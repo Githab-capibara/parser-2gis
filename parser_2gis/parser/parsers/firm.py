@@ -38,7 +38,7 @@ class FirmParser(MainParser):
         # Handle 404
         assert document_response['mimeType'] == 'text/html'
         if document_response['status'] == 404:
-            logger.warn('Сервер вернул сообщение "Организация не найдена".')
+            logger.warning('Сервер вернул сообщение "Организация не найдена".')
 
             if self._options.skip_404_response:
                 return
@@ -50,7 +50,7 @@ class FirmParser(MainParser):
         initial_state = self._chrome_remote.execute_script('window.initialState')
         data = list(initial_state['data']['entity']['profile'].values())
         if not data:
-            logger.warn('Данные организации не найдены.')
+            logger.warning('Данные организации не найдены.')
             return
         doc = data[0]
 

@@ -9,11 +9,11 @@ from ..common import running_mac, running_windows
 
 @functools.lru_cache()
 def locate_chrome_path() -> str | None:
-    """Locate Chrome's executable path."""
+    """Определяет путь к исполняемому файлу Chrome."""
     if running_windows():
         app_dirs = []
 
-        # Win paths from WinAPI
+        # Пути Windows из WinAPI
         import ctypes
 
         csidl = dict(
@@ -36,18 +36,18 @@ def locate_chrome_path() -> str | None:
             'LOCALAPPDATA',
         ]
 
-        # Win paths from the environment
+        # Пути Windows из окружения
         for d in env_dirs:
             if d in os.environ and os.environ[d] not in app_dirs:
                 app_dirs.append(os.environ[d])
 
-        # Chrome's possible installation locations
+        # Возможные пути установки Chrome
         for path in app_dirs:
             binary_path = os.path.join(path, 'Google', 'Chrome', 'Application', 'chrome.exe')
             if os.path.isfile(binary_path):
                 return binary_path
 
-        # We also could try to use Windows registry to find out Chrome's path
+        # Также можно использовать реестр Windows для поиска пути Chrome
         import winreg
 
         reg_path = r'SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe'
@@ -76,7 +76,7 @@ def locate_chrome_path() -> str | None:
                 if os.path.isfile(binary_path):
                     return binary_path
 
-        # We also could use 'which' to locate Chrome executable
+        # Также можно использовать 'which' для поиска исполняемого файла Chrome
         import subprocess
 
         for f in browser_executables:
@@ -93,10 +93,10 @@ def locate_chrome_path() -> str | None:
 
 
 def free_port() -> int:
-    """Get free port using sockets.
+    """Получает свободный порт с помощью сокетов.
 
     Returns:
-        Free port.
+        Свободный порт.
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as free_socket:
         free_socket.bind(('127.0.0.1', 0))
