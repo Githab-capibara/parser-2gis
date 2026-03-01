@@ -6,6 +6,11 @@ from ..common import GUI_ENABLED, running_linux
 from ..paths import data_path
 from .error_popup import gui_error_popup
 from .rubric_selector import gui_rubric_selector
+from .theme import (COLOR_ACCENT, COLOR_BACKGROUND, COLOR_BACKGROUND_SECONDARY,
+                    COLOR_BORDER, COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY,
+                    COLOR_WHITE, FONT_SIZE_BASE, FONT_SIZE_LG, FONT_SIZE_MD,
+                    FONT_SIZE_SM, FONT_SIZE_XL, SPACING_LG, SPACING_MD, SPACING_SM,
+                    SPACING_XS, apply_theme, get_font)
 from .utils import ensure_gui_enabled, setup_text_widget, url_query_encode
 
 if GUI_ENABLED:
@@ -21,6 +26,9 @@ def gui_urls_generator() -> list[str]:
     Returns:
         List of generated URLs.
     """
+    # Применяем современную тему
+    apply_theme('modern')
+
     # Locate and load cities list
     cities_path = data_path() / 'cities.json'
     if not cities_path.is_file():
@@ -38,10 +46,40 @@ def gui_urls_generator() -> list[str]:
     country_code_to_name = dict(
         ae='Объединенные Арабские Эмираты', iq='Ирак',
         az='Азербайджан', bh='Бахрейн', by='Беларусь', cl='Чили', cy='Кипр', cz='Чехия',
-        eg='Египт', it='Италия', kg='Киргизия', kw='Кувейт', kz='Казахстан', om='Оман',
+        eg='Египет', it='Италия', kg='Киргизия', kw='Кувейт', kz='Казахстан', om='Оман',
         qa='Катар', ru='Россия', sa='Саудовская Аравия', uz='Узбекистан')
 
     country_name_to_code = {v: k for k, v in country_code_to_name.items()}
+
+    # Стили для элементов
+    checkbox_style = {'background_color': COLOR_BACKGROUND,
+                      'text_color': COLOR_TEXT_PRIMARY,
+                      'font': get_font(FONT_SIZE_BASE),
+                      'checkbox_color': COLOR_ACCENT,
+                      'pad': ((0, SPACING_SM), (SPACING_XS, SPACING_XS))}
+    
+    input_style = {'background_color': COLOR_WHITE,
+                   'text_color': COLOR_TEXT_PRIMARY,
+                   'font': get_font(FONT_SIZE_BASE)}
+    
+    frame_style = {'background_color': COLOR_BACKGROUND,
+                   'title_color': COLOR_TEXT_PRIMARY,
+                   'font': get_font(FONT_SIZE_MD, 'bold'),
+                   'border_width': 1,
+                   'border_color': COLOR_BORDER,
+                   'pad': (SPACING_MD, SPACING_SM),
+                   'element_padding': (SPACING_MD, SPACING_SM),
+                   'relief': 'flat'}
+    
+    button_style = {'button_color': (COLOR_WHITE, COLOR_ACCENT),
+                    'border_width': 0,
+                    'font': get_font(FONT_SIZE_BASE),
+                    'pad': (SPACING_SM, SPACING_XS)}
+    
+    button_secondary_style = {'button_color': (COLOR_TEXT_PRIMARY, COLOR_BACKGROUND_SECONDARY),
+                              'border_width': 0,
+                              'font': get_font(FONT_SIZE_BASE),
+                              'pad': (SPACING_SM, SPACING_XS)}
 
     # Checkbox layouts
     checkbox_layouts = {}
@@ -52,67 +90,115 @@ def gui_urls_generator() -> list[str]:
                 layout.append([
                     sg.Checkbox(
                         city['name'], metadata=city,
-                        checkbox_color=sg.theme_input_background_color())
+                        **checkbox_style)
                 ])
         checkbox_layouts[country_code] = sg.Column(
             layout, scrollable=True, vertical_scroll_only=True,
-            expand_x=True, expand_y=True, visible=False)
+            expand_x=True, expand_y=True, visible=False,
+            background_color=COLOR_BACKGROUND)
 
     # Obtain screen dimensions
     _, screen_height = sg.Window.get_screen_size()
 
-    # Window layout
+    # Window layout - современный дизайн
     layout = [
+        # Заголовок
         [
             sg.Column([
                 [
-                    sg.Text('Запрос', size=(7, 1)),
-                    sg.Input(key='-IN_QUERY-'),
+                    sg.Text('Генератор ссылок', font=get_font(FONT_SIZE_XL, 'bold'), 
+                            text_color=COLOR_TEXT_PRIMARY, pad=(SPACING_LG, SPACING_MD)),
                 ],
-            ]),
+            ], background_color=COLOR_BACKGROUND, pad=0),
         ],
+        
+        # Поля ввода
         [
-            sg.Column([
+            sg.Frame('Параметры поиска', layout=[
                 [
-                    sg.Text('Страна', size=(7, 1)),
-                    sg.Combo(key='-COUNTRY-', default_value=country_code_to_name[default_city_code],
-                             values=sorted(country_code_to_name.values()), readonly=True, enable_events=True),
-                ],
-            ]),
-        ],
-        [
-            sg.Column([
-                [
-                    sg.Text('Рубрика', size=(7, 1)),
-                    sg.Input(key='-IN_RUBRIC-', disabled=True,
-                             size=(35, 1), expand_x=True),
                     sg.Column([
                         [
-                            sg.Button('...', size=(4, 1), key='-BTN_RUBRIC-'),
+                            sg.Text('Поисковый запрос', font=get_font(FONT_SIZE_MD), 
+                                    text_color=COLOR_TEXT_PRIMARY, pad=(0, SPACING_XS)),
+                            sg.Input(key='-IN_QUERY-', size=(40, 1), 
+                                     font=get_font(FONT_SIZE_BASE), background_color=COLOR_WHITE),
                         ],
-                    ], element_justification='right', pad=0),
+                    ], expand_x=True, pad=SPACING_MD),
                 ],
-            ], expand_x=True),
+                [
+                    sg.Column([
+                        [
+                            sg.Text('Страна', font=get_font(FONT_SIZE_MD), 
+                                    text_color=COLOR_TEXT_PRIMARY, pad=(0, SPACING_XS)),
+                            sg.Combo(key='-COUNTRY-', 
+                                     default_value=country_code_to_name[default_city_code],
+                                     values=sorted(country_code_to_name.values()), 
+                                     readonly=True, enable_events=True,
+                                     font=get_font(FONT_SIZE_BASE), 
+                                     background_color=COLOR_WHITE,
+                                     size=(35, 1)),
+                        ],
+                    ], expand_x=True, pad=SPACING_MD),
+                ],
+                [
+                    sg.Column([
+                        [
+                            sg.Text('Рубрика', font=get_font(FONT_SIZE_MD), 
+                                    text_color=COLOR_TEXT_PRIMARY, pad=(0, SPACING_XS)),
+                            sg.Column([
+                                [
+                                    sg.Input(key='-IN_RUBRIC-', disabled=True,
+                                             size=(35, 1), expand_x=True,
+                                             font=get_font(FONT_SIZE_BASE), 
+                                             background_color=COLOR_BACKGROUND_SECONDARY),
+                                ],
+                            ], expand_x=True, pad=(SPACING_MD, 0)),
+                            sg.Column([
+                                [
+                                    sg.Button('Выбрать', key='-BTN_RUBRIC-', 
+                                              **button_style),
+                                ],
+                            ], element_justification='right', pad=(SPACING_SM, 0)),
+                        ],
+                    ], expand_x=True, pad=SPACING_MD),
+                ],
+            ], **frame_style, expand_x=True),
         ],
+        
+        # Города
         [
-            sg.Frame('Города', [
-                list(checkbox_layouts.values()),
-            ], size=(None, int(screen_height / 2)), expand_x=True, expand_y=True),
+            sg.Frame('Города для парсинга', layout=[
+                [
+                    sg.Column(list(checkbox_layouts.values()), 
+                              expand_x=True, expand_y=True, 
+                              background_color=COLOR_BACKGROUND),
+                ],
+            ], **frame_style, size=(None, int(screen_height / 3)), 
+               expand_x=True, expand_y=True),
         ],
+        
+        # Кнопки управления
         [
-            sg.Button('OK', size=(6, 1), pad=((6, 0), (7, 7)), key='-BTN_OK-'),
             sg.Column([
                 [
-                    sg.Button('Выделить всё', size=(14, 1), pad=((0, 7), (7, 7)), key='-BTN_SELECT_ALL-'),
-                    sg.Button('Снять выделение', size=(17, 1), pad=((7, 0), (7, 7)), key='-BTN_DESELECT_ALL-'),
+                    sg.Button('✅ OK', size=(10, 1), key='-BTN_OK-', 
+                              **button_style),
+                    sg.Button('🗀 Выделить всё', size=(14, 1), key='-BTN_SELECT_ALL-', 
+                              **button_secondary_style),
+                    sg.Button('🗅 Снять выделение', size=(18, 1), key='-BTN_DESELECT_ALL-', 
+                              **button_secondary_style),
                 ],
-            ], expand_x=True, element_justification='right'),
+            ], expand_x=True, element_justification='right', 
+               background_color=COLOR_BACKGROUND, pad=SPACING_MD),
         ],
     ]
 
-    window_title = 'Generate links' if running_linux() else 'Сгенерировать ссылки'
+    window_title = 'Generate links' if running_linux() else 'Генератор ссылок'
     window = sg.Window(window_title, layout=layout, auto_size_text=True,
-                       finalize=True, font='Any 12', modal=True, keep_on_top=True)
+                       finalize=True, font=get_font(FONT_SIZE_BASE), 
+                       modal=True, keep_on_top=True,
+                       resizable=True, size=(700, 550), 
+                       min_size=(600, 450))
 
     setup_text_widget(window['-IN_QUERY-'].widget, window.TKroot,
                       menu_clear=False, set_focus=True)
@@ -225,11 +311,11 @@ def gui_urls_generator() -> list[str]:
 
         elif event == '-BTN_OK-':
             if not values['-IN_QUERY-'].strip():
-                gui_error_popup('Необходимо ввести запрос!')
+                gui_error_popup('Необходимо ввести запрос!\n\nВведите поисковый запрос для генерации ссылок.')
                 continue
 
             if not get_checkboxes(state=True):
-                gui_error_popup('Необходимо выбрать хотя бы один город!')
+                gui_error_popup('Необходимо выбрать города!\n\nВыберите хотя бы один город для парсинга.')
                 continue
 
             ret_urls = get_selected_urls(values['-IN_QUERY-'])

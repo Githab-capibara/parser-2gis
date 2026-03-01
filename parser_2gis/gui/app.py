@@ -12,7 +12,13 @@ from ..runner import GUIRunner
 from ..version import version
 from .error_popup import gui_error_popup
 from .settings import gui_settings
-from .urls_editor import gui_urls_editor
+from .theme import (COLOR_ACCENT, COLOR_ACCENT_HOVER, COLOR_BACKGROUND,
+                    COLOR_BACKGROUND_SECONDARY, COLOR_BORDER, COLOR_ERROR,
+                    COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_WHITE,
+                    ELEMENT_HEIGHT_LG, ELEMENT_HEIGHT_MD, FONT_SIZE_BASE,
+                    FONT_SIZE_LG, FONT_SIZE_MD, FONT_SIZE_SM, FONT_SIZE_XL,
+                    RADIUS_LG, RADIUS_MD, SPACING_LG, SPACING_MD, SPACING_SM,
+                    SPACING_XS, apply_theme, get_font)
 from .utils import (ensure_gui_enabled, generate_event_handler,
                     setup_text_widget)
 
@@ -35,8 +41,8 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
         format: `csv`, `xlsx` or `json` format.
         config: User configuration.
     """
-    # App color theme
-    sg.theme('Green')
+    # Применяем современную тему
+    apply_theme('modern')
 
     # Set icon
     sg.set_global_icon(image_data('icon', 'png'))
@@ -54,57 +60,144 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
     if urls is None:
         urls = []
 
-    # Window layout
+    # Современные стили для элементов
+    button_style = {'button_color': (COLOR_WHITE, COLOR_ACCENT),
+                    'border_width': 0,
+                    'pad': (SPACING_SM, SPACING_SM)}
+    
+    input_style = {'background_color': COLOR_WHITE,
+                   'text_color': COLOR_TEXT_PRIMARY,
+                   'font': get_font(FONT_SIZE_BASE)}
+    
+    frame_style = {'background_color': COLOR_BACKGROUND,
+                   'title_color': COLOR_TEXT_PRIMARY,
+                   'font': get_font(FONT_SIZE_MD, 'bold'),
+                   'border_width': 1,
+                   'border_color': COLOR_BORDER,
+                   'pad': (SPACING_MD, SPACING_MD),
+                   'element_padding': (SPACING_MD, SPACING_SM)}
+
+    # Window layout - современный дизайн с боковой панелью
     layout = [
+        # Верхняя панель с заголовком и настройками
         [
-            sg.Text('URL', size=(4, 1)),
-            sg.Input(key='-IN_URL-', use_readonly_for_disable=True, expand_x=True),
-            sg.Button('...', size=(4, 1), key='-BTN_URLS-'),
-            sg.Button('', image_data=image_data('settings'), key='-BTN_SETTINGS-', tooltip=str(config.path)),
+            sg.Column([
+                [
+                    sg.Text('Парсер 2GIS', font=get_font(FONT_SIZE_XL, 'bold'), 
+                            text_color=COLOR_TEXT_PRIMARY, pad=(SPACING_LG, SPACING_MD)),
+                    sg.Text(f'v{version}', font=get_font(FONT_SIZE_SM), 
+                            text_color=COLOR_TEXT_SECONDARY, pad=(0, SPACING_MD)),
+                ],
+            ], background_color=COLOR_BACKGROUND, pad=0),
+            sg.Column([
+                [
+                    sg.Button('', image_data=image_data('settings'), key='-BTN_SETTINGS-', 
+                              tooltip=f'Настройки: {config.path}', 
+                              button_color=(COLOR_TEXT_SECONDARY, COLOR_BACKGROUND),
+                              border_width=0, pad=(SPACING_SM, SPACING_MD)),
+                ],
+            ], element_justification='right', background_color=COLOR_BACKGROUND, pad=0),
         ],
+        
+        # Основная рабочая область
         [
-            sg.Frame('Результат', expand_x=True, expand_y=True, layout=[
+            sg.Frame('Параметры парсинга', expand_x=True, layout=[
                 [
                     sg.Column([
                         [
-                            sg.Text('Тип'),
+                            sg.Text('URL для парсинга', font=get_font(FONT_SIZE_MD), 
+                                    text_color=COLOR_TEXT_SECONDARY, pad=(0, SPACING_XS)),
+                        ],
+                        [
+                            sg.Input(key='-IN_URL-', use_readonly_for_disable=True, expand_x=True,
+                                     font=get_font(FONT_SIZE_BASE), background_color=COLOR_WHITE),
+                            sg.Button('Редактор', key='-BTN_URLS-', size=(10, 1), 
+                                      button_color=(COLOR_WHITE, COLOR_ACCENT), border_width=0),
+                        ],
+                    ], expand_x=True, pad=SPACING_LG),
+                ],
+            ], **frame_style, relief='flat', title_location='top'),
+        ],
+        
+        # Настройки результата
+        [
+            sg.Frame('Результат', expand_x=True, layout=[
+                [
+                    sg.Column([
+                        [
+                            sg.Text('Формат файла', font=get_font(FONT_SIZE_MD), 
+                                    text_color=COLOR_TEXT_SECONDARY, pad=(0, SPACING_XS)),
+                        ],
+                        [
                             sg.Combo(key='-FILE_FORMAT-', default_value=default_result_format,
-                                     values=['csv', 'xlsx', 'json'], readonly=True, enable_events=True),
-                            sg.Text('Путь'),
+                                     values=['csv', 'xlsx', 'json'], readonly=True, enable_events=True,
+                                     font=get_font(FONT_SIZE_BASE), background_color=COLOR_WHITE,
+                                     size=(10, 1)),
+                            sg.Text('Путь к файлу', font=get_font(FONT_SIZE_MD), 
+                                    text_color=COLOR_TEXT_SECONDARY, pad=((SPACING_LG, SPACING_XS), 0)),
+                        ],
+                        [
                             sg.Input(key='-OUTPUT_PATH-', expand_x=True,
-                                     default_text='' if output_path is None else output_path),
-                            sg.FileSaveAs(key='-OUTPUT_PATH_BROWSE-', button_text='Обзор', size=(7, 1),
-                                          default_extension=f'.{default_result_format}',
+                                     default_text='' if output_path is None else output_path,
+                                     font=get_font(FONT_SIZE_BASE), background_color=COLOR_WHITE),
+                            sg.FileSaveAs(key='-OUTPUT_PATH_BROWSE-', button_text='Обзор', 
+                                          size=(8, 1), button_color=(COLOR_WHITE, COLOR_ACCENT),
+                                          border_width=0, default_extension=f'.{default_result_format}',
                                           file_types=result_filetype[default_result_format]),
                         ],
-                    ], expand_x=True),
+                    ], expand_x=True, pad=SPACING_LG),
                 ],
-            ]),
+            ], **frame_style, relief='flat'),
         ],
+        
+        # Лог выполнения
         [
-            sg.Frame('Лог', expand_x=True, expand_y=True, layout=[
+            sg.Frame('Лог выполнения', expand_x=True, expand_y=True, layout=[
                 [
-                    sg.Multiline(key='-LOG-', size=(80, 20), expand_x=True, autoscroll=True,
-                                 reroute_stdout=True, reroute_stderr=True, echo_stdout_stderr=True),
+                    sg.Multiline(key='-LOG-', size=(80, 15), expand_x=True, expand_y=True,
+                                 autoscroll=True, reroute_stdout=True, reroute_stderr=True,
+                                 echo_stdout_stderr=True, font=get_font(FONT_SIZE_BASE, 'normal'),
+                                 background_color=COLOR_BACKGROUND_SECONDARY,
+                                 text_color=COLOR_TEXT_PRIMARY,
+                                 no_scrollbar=False,
+                                 vertical_scroll_only=False),
                 ],
-            ]),
+            ], **frame_style, relief='flat'),
         ],
+        
+        # Нижняя панель с логотипом и кнопками управления
         [
-            sg.Image(data=image_data('logo'), key='-IMG_LOGO-',
-                     enable_events=True, background_color=sg.theme_background_color()),
-            sg.Text(f'v{version}'),
             sg.Column([
                 [
-                    sg.Image(key='-IMG_LOADING-', visible=False, background_color=sg.theme_background_color()),
+                    sg.Image(data=image_data('logo'), key='-IMG_LOGO-',
+                             enable_events=True, background_color=COLOR_BACKGROUND,
+                             tooltip='Открыть GitHub репозиторий'),
                 ],
-            ], expand_x=True, element_justification='right'),
+            ], size=(80, 80), pad=(SPACING_LG, SPACING_MD)),
+            
             sg.Column([
                 [
-                    sg.Button('Запуск', key='-BTN_START-', size=(8, 1)),
-                    sg.Button('Стоп', key='-BTN_STOP-', size=(6, 1), button_color=('white', 'orange3'), visible=False),
+                    sg.Image(key='-IMG_LOADING-', visible=False, 
+                             background_color=COLOR_BACKGROUND),
                 ],
-            ], element_justification='right'),
-            sg.Button('Выход', size=(7, 1), button_color=('white', 'firebrick3'), key='-BTN_EXIT-'),
+            ], expand_x=True, element_justification='center', pad=SPACING_LG),
+            
+            sg.Column([
+                [
+                    sg.Button('▶ Запуск', key='-BTN_START-', size=(12, 1), 
+                              button_color=(COLOR_WHITE, COLOR_ACCENT),
+                              border_width=0, font=get_font(FONT_SIZE_MD, 'bold'),
+                              pad=((SPACING_MD, SPACING_SM), SPACING_MD)),
+                    sg.Button('⏹ Стоп', key='-BTN_STOP-', size=(10, 1), 
+                              button_color=(COLOR_WHITE, '#FF9500'), 
+                              border_width=0, font=get_font(FONT_SIZE_MD, 'bold'),
+                              visible=False, pad=((SPACING_SM, SPACING_SM), SPACING_MD)),
+                    sg.Button('✕ Выход', size=(10, 1), 
+                              button_color=(COLOR_WHITE, COLOR_ERROR),
+                              border_width=0, font=get_font(FONT_SIZE_MD),
+                              key='-BTN_EXIT-', pad=((SPACING_SM, SPACING_LG), SPACING_MD)),
+                ],
+            ], element_justification='right', pad=0),
         ],
     ]
 
@@ -112,8 +205,20 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
     # so let the window titles be in English. No big deal, actually.
     window_title = 'Parser 2GIS' if running_linux() else 'Парсер 2GIS'
 
-    # Main window
-    window = sg.Window(window_title, layout, auto_size_text=True, finalize=True, font='Any 12')
+    # Main window с современными параметрами
+    window = sg.Window(
+        window_title, 
+        layout, 
+        auto_size_text=True, 
+        finalize=True, 
+        font=get_font(FONT_SIZE_BASE),
+        margins=(0, 0),
+        use_custom_titlebar=False,
+        keep_on_top=False,
+        resizable=True,
+        size=(1000, 700),
+        min_size=(800, 500),
+    )
 
     # Setup text widgets
     setup_text_widget(window['-IN_URL-'].widget, window.TKroot, menu_clear=False, set_focus=True)
@@ -183,11 +288,17 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
 
     update_urls_input()
 
-    # Set log background colors by level
-    log_colors = dict(CRITICAL='tomato1', ERROR='tomato1', WARNING='tan1')
+    # Set log background colors by level - современные цвета
+    log_colors = {
+        'CRITICAL': COLOR_LOG_CRITICAL,
+        'ERROR': COLOR_LOG_ERROR,
+        'WARNING': COLOR_LOG_WARNING,
+        'INFO': COLOR_LOG_INFO,
+        'SUCCESS': COLOR_LOG_SUCCESS,
+    }
 
-    # Pre-define log tags
-    for color in log_colors.values():
+    # Pre-define log tags с современными цветами
+    for level, color in log_colors.items():
         tag = f'Multiline(None,{color},None)'
         window['-LOG-'].tags.add(tag)
         window['-LOG-'].widget.tag_configure(tag, background=color)
@@ -248,12 +359,12 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
         elif event == '-BTN_START-':
             # Check output file path
             if not values['-OUTPUT_PATH-']:
-                gui_error_popup('Отсутствует путь результирующего файла!')
+                gui_error_popup('Отсутствует путь результирующего файла!\n\nУкажите файл для сохранения результатов парсинга.')
                 continue
 
             # Check output file path
             if not values['-IN_URL-']:
-                gui_error_popup('Отсутствует URL!')
+                gui_error_popup('Отсутствует URL!\n\nВведите URL для парсинга или используйте редактор ссылок.')
                 continue
 
             # Check result format
@@ -263,7 +374,7 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
 
             # Check if result format match output file extension
             if values['-OUTPUT_PATH-'].split('.')[-1].lower() != values['-FILE_FORMAT-']:
-                gui_error_popup('Расширение результирующего файла должно быть *.%s!' % values['-FILE_FORMAT-'])
+                gui_error_popup(f'Расширение результирующего файла должно быть *.{values["-FILE_FORMAT-"]}!')
                 continue
 
             # Sync urls with input element
