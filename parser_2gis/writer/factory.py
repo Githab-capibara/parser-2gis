@@ -2,26 +2,25 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .writers import CSVWriter, XLSXWriter, FileWriter, JSONWriter
-
+from .writers import CSVWriter, XLSXWriter, JSONWriter
 from .exceptions import WriterUnknownFileFormat
 
 if TYPE_CHECKING:
     from .options import WriterOptions
+    from .writers.file_writer import FileWriter
 
 
 def get_writer(file_path: str, file_format: str, writer_options: WriterOptions) -> FileWriter:
-    """Writer factory function.
+    """Фабричная функция для создания писателя файлов.
 
     Args:
-        output_path: Path to thr result file.
-        format: `csv`, `xlsx` or `json` format.
-        writer_options: Writer options.
+        file_path: Путь к результирующему файлу.
+        file_format: Формат файла: `csv`, `xlsx` или `json`.
+        writer_options: Опции писателя.
 
     Returns:
-        File Writer instance.
+        Экземпляр файлового писателя.
     """
-
     if file_format == 'json':
         return JSONWriter(file_path, writer_options)
     elif file_format == 'csv':
@@ -29,4 +28,4 @@ def get_writer(file_path: str, file_format: str, writer_options: WriterOptions) 
     elif file_format == 'xlsx':
         return XLSXWriter(file_path, writer_options)
 
-    raise WriterUnknownFileFormat('Неизвестный формат файла: %s', file_format)
+    raise WriterUnknownFileFormat(f'Неизвестный формат файла: {file_format}')

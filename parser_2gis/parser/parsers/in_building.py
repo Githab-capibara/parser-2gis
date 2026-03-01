@@ -54,7 +54,10 @@ class InBuildingParser(MainParser):
         document_response = responses[0]
 
         # Handle 404
-        assert document_response['mimeType'] == 'text/html'
+        if document_response['mimeType'] != 'text/html':
+            logger.error('Неверный тип MIME ответа: %s', document_response['mimeType'])
+            return
+            
         if document_response['status'] == 404:
             logger.warning('Сервер вернул сообщение "Точных совпадений нет / Не найдено".')
 

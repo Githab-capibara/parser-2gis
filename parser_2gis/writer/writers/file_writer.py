@@ -25,20 +25,23 @@ class FileWriter(ABC):
                     newline='', errors='replace')
 
     def _check_catalog_doc(self, catalog_doc: Any, verbose: bool = True) -> bool:
-        """Check Catalog Item API JSON document for errors.
+        """Проверяет JSON-документ Catalog Item API на ошибки.
 
         Args:
-            catalog_doc: Catalog Item API JSON document.
-            verbose: Whether to report about found errors.
+            catalog_doc: JSON-документ Catalog Item API.
+            verbose: Сообщать ли об найденных ошибках.
 
         Returns:
-            `True` if document passed all checks.
-            `False` if errors found in document.
+            `True`, если документ прошёл все проверки.
+            `False`, если в документе найдены ошибки.
         """
         try:
-            assert isinstance(catalog_doc, dict)
+            if not isinstance(catalog_doc, dict):
+                if verbose:
+                    logger.error('Сервер вернул некорректный документ (не dict).')
+                return False
 
-            if 'error' in catalog_doc['meta']:  # An error is found
+            if 'error' in catalog_doc['meta']:  # Найдена ошибка
                 if verbose:
                     error_msg = catalog_doc['meta']['error'].get('message', None)
                     if error_msg:
@@ -48,18 +51,41 @@ class FileWriter(ABC):
 
                 return False
 
-            assert catalog_doc['meta']['code'] == 200
-            assert 'result' in catalog_doc
-            assert 'items' in catalog_doc['result']
-            assert isinstance(catalog_doc['result']['items'], list)
-            assert len(catalog_doc['result']['items']) > 0
-            assert isinstance(catalog_doc['result']['items'][0], dict)
+            if catalog_doc['meta'].get('code') != 200:
+                if verbose:
+                    logger.error('Сервер вернул код ответа: %s', catalog_doc['meta'].get('code'))
+                return False
+                
+            if 'result' not in catalog_doc:
+                if verbose:
+                    logger.error('Сервер вернул документ без ключа "result".')
+                return False
+                
+            if 'items' not in catalog_doc['result']:
+                if verbose:
+                    logger.error('Сервер вернул документ без ключа "items".')
+                return False
+                
+            if not isinstance(catalog_doc['result']['items'], list):
+                if verbose:
+                    logger.error('Сервер вернул некорректный тип "items".')
+                return False
+                
+            if len(catalog_doc['result']['items']) == 0:
+                if verbose:
+                    logger.error('Сервер вернул пустой список "items".')
+                return False
+                
+            if not isinstance(catalog_doc['result']['items'][0], dict):
+                if verbose:
+                    logger.error('Сервер вернул некорректный тип элемента "items".')
+                return False
 
             if len(catalog_doc['result']['items']) > 1 and verbose:
                 logger.warning('Сервер вернул больше одного ответа.')
 
             return True
-        except (KeyError, AssertionError):
+        except KeyError:
             if verbose:
                 logger.error('Сервер ответил неизвестным документом.')
             return False
