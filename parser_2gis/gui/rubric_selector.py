@@ -6,6 +6,11 @@ from typing import Any
 from ..common import GUI_ENABLED, running_linux
 from ..paths import data_path, image_data
 from .error_popup import gui_error_popup
+from .theme import (COLOR_ACCENT, COLOR_ACCENT_LIGHT, COLOR_BACKGROUND,
+                    COLOR_BACKGROUND_SECONDARY, COLOR_BORDER, COLOR_TEXT_PRIMARY,
+                    COLOR_TEXT_SECONDARY, COLOR_WHITE, FONT_SIZE_BASE, FONT_SIZE_LG,
+                    FONT_SIZE_MD, FONT_SIZE_SM, FONT_SIZE_XL, SPACING_LG, SPACING_MD,
+                    SPACING_SM, SPACING_XS, apply_theme, get_font)
 from .utils import (ensure_gui_enabled, generate_event_handler,
                     invoke_widget_hook, setup_text_widget)
 
@@ -50,9 +55,14 @@ def create_search_widget(column_element: sg.Element, containing_frame: tk.Frame,
     search_widget.pack(side='top', fill='both', expand=True)
     setup_text_widget(search_widget, toplevel_form.TKroot, menu_clear=False)
 
-    search_widget.configure(background=sg.theme_input_background_color(),
-                            font=('TkDefaultFont', 12),
-                            highlightthickness=0)
+    search_widget.configure(background=COLOR_WHITE,
+                            font=('TkDefaultFont', FONT_SIZE_BASE),
+                            highlightthickness=1,
+                            highlightbackground=COLOR_BORDER,
+                            highlightcolor=COLOR_ACCENT,
+                            foreground=COLOR_TEXT_PRIMARY,
+                            padx=SPACING_MD,
+                            pady=SPACING_SM)
 
     return search_widget
 
@@ -70,6 +80,9 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
         Dictionary representing selected rubric
         or `None` if nothing selected.
     """
+    # Применяем современную тему
+    apply_theme('modern')
+
     # Locate and load rubrics list
     rubric_path = data_path() / 'rubrics.json'
     if not rubric_path.is_file():
@@ -82,43 +95,112 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
         gui_error_popup(f'Файл {rubric_path.name} повреждён:\n{e}')
         return None
 
-    # Window layout
+    # Стили для элементов
+    button_style = {'button_color': (COLOR_WHITE, COLOR_ACCENT),
+                    'border_width': 0,
+                    'font': get_font(FONT_SIZE_BASE),
+                    'pad': (SPACING_SM, SPACING_XS)}
+    
+    button_secondary_style = {'button_color': (COLOR_TEXT_PRIMARY, COLOR_BACKGROUND_SECONDARY),
+                              'border_width': 0,
+                              'font': get_font(FONT_SIZE_BASE),
+                              'pad': (SPACING_SM, SPACING_XS)}
+
+    # Window layout - современный дизайн
     layout = [
+        # Заголовок
         [
-            sg.Text('Поиск рубрики', size=(14, 1)),
-            sg.Column([[]], pad=((0, 5), 0), key='-COL_SEARCH-', expand_x=True),
-        ],
-        [
-            RubricsTree(rubrics=rubrics,
-                        image_parent=image_data('rubric_folder'),
-                        image_item=image_data('rubric_item'),
-                        headings=[], auto_size_columns=True,
-                        select_mode=sg.TABLE_SELECT_MODE_BROWSE,
-                        num_rows=30, col0_width=80,
-                        key='-TREE-',
-                        enable_events=True,
-                        expand_x=True, expand_y=True),
-        ],
-        [
-            sg.StatusBar('', size=(0, 1), key='-STATUS-'),
-        ],
-        [
-            sg.Button('OK', size=(6, 1), pad=((6, 7), (7, 7)), key='-BTN_OK-'),
-            sg.Button('Отмена', size=(8, 1), pad=((7, 7), (7, 7)), key='-BTN_CANCEL-'),
             sg.Column([
                 [
-                    sg.Button('Развернуть всё', size=(16, 1), pad=((0, 7), (7, 7)), key='-BTN_EXPAND_ALL-'),
-                    sg.Button('Свернуть всё', size=(14, 1), pad=((7, 0), (7, 7)), key='-BTN_COLLAPSE_ALL-'),
+                    sg.Text('Выбор рубрики', font=get_font(FONT_SIZE_XL, 'bold'), 
+                            text_color=COLOR_TEXT_PRIMARY, pad=(SPACING_LG, SPACING_MD)),
                 ],
-            ], expand_x=True, element_justification='right'),
+            ], background_color=COLOR_BACKGROUND, pad=0),
+        ],
+        
+        # Поле поиска
+        [
+            sg.Frame('Поиск рубрики', layout=[
+                [
+                    sg.Column([[]], pad=((SPACING_MD, SPACING_MD), (SPACING_SM, SPACING_SM)), 
+                              key='-COL_SEARCH-', expand_x=True),
+                ],
+            ], background_color=COLOR_BACKGROUND, border_width=1, 
+               border_color=COLOR_BORDER, relief='flat', 
+               title_font=get_font(FONT_SIZE_MD, 'bold'),
+               title_color=COLOR_TEXT_PRIMARY,
+               pad=(SPACING_MD, SPACING_SM)),
+        ],
+        
+        # Дерево рубрик
+        [
+            sg.Frame('Дерево рубрик', layout=[
+                [
+                    RubricsTree(rubrics=rubrics,
+                                image_parent=image_data('rubric_folder'),
+                                image_item=image_data('rubric_item'),
+                                headings=[], auto_size_columns=True,
+                                select_mode=sg.TABLE_SELECT_MODE_BROWSE,
+                                num_rows=25, col0_width=80,
+                                key='-TREE-',
+                                enable_events=True,
+                                expand_x=True, expand_y=True,
+                                background_color=COLOR_WHITE,
+                                header_background_color=COLOR_BACKGROUND_SECONDARY,
+                                header_text_color=COLOR_TEXT_PRIMARY,
+                                text_color=COLOR_TEXT_PRIMARY,
+                                selected_background_color=COLOR_ACCENT_LIGHT,
+                                selected_text_color=COLOR_TEXT_PRIMARY,
+                                border_width=1,
+                                border_color=COLOR_BORDER),
+                ],
+            ], background_color=COLOR_BACKGROUND, border_width=1, 
+               border_color=COLOR_BORDER, relief='flat',
+               title_font=get_font(FONT_SIZE_MD, 'bold'),
+               title_color=COLOR_TEXT_PRIMARY,
+               expand_x=True, expand_y=True,
+               pad=(SPACING_MD, SPACING_SM)),
+        ],
+        
+        # Строка статуса
+        [
+            sg.Column([
+                [
+                    sg.StatusBar('', size=(0, 1), key='-STATUS-', 
+                                 background_color=COLOR_BACKGROUND_SECONDARY,
+                                 text_color=COLOR_TEXT_SECONDARY,
+                                 font=get_font(FONT_SIZE_SM),
+                                 pad=(SPACING_MD, SPACING_SM)),
+                ],
+            ], expand_x=True, background_color=COLOR_BACKGROUND),
+        ],
+        
+        # Кнопки управления
+        [
+            sg.Column([
+                [
+                    sg.Button('✅ OK', size=(10, 1), key='-BTN_OK-', 
+                              **button_style),
+                    sg.Button('✕ Отмена', size=(10, 1), key='-BTN_CANCEL-', 
+                              **button_secondary_style),
+                    sg.Button('🔽 Развернуть всё', size=(16, 1), key='-BTN_EXPAND_ALL-', 
+                              **button_secondary_style),
+                    sg.Button('🔼 Свернуть всё', size=(15, 1), key='-BTN_COLLAPSE_ALL-', 
+                              **button_secondary_style),
+                ],
+            ], expand_x=True, element_justification='right', 
+               background_color=COLOR_BACKGROUND, pad=SPACING_MD),
         ],
     ]
 
-    with invoke_widget_hook(sg.PySimpleGUI, '-COL_SEARCH-', create_search_widget) as get_widget:
-        window_title = 'Select rubric' if running_linux() else 'Выбор рубрики'
-        window = sg.Window(window_title, layout=layout, finalize=True, auto_size_text=True,
-                           font='Any 12', modal=True, keep_on_top=True)
+    window_title = 'Select rubric' if running_linux() else 'Выбор рубрики'
+    window = sg.Window(window_title, layout=layout, finalize=True, 
+                       auto_size_text=True, font=get_font(FONT_SIZE_BASE),
+                       modal=True, keep_on_top=True,
+                       resizable=True, size=(700, 550), 
+                       min_size=(550, 400))
 
+    with invoke_widget_hook(sg.PySimpleGUI, '-COL_SEARCH-', create_search_widget) as get_widget:
         # Get search widget
         search_widget = get_widget()
         assert search_widget
@@ -131,13 +213,6 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
 
     # Hide tree header
     window['-TREE-'].widget.configure(show='tree')
-
-    # Perform rubrics search on text changed
-    def perform_rubric_search() -> None:
-        query = search_widget.get()
-        window['-TREE-'].filter(query)  # noqa: F821
-
-    search_widget.bind('<<Change>>', generate_event_handler(perform_rubric_search))
 
     # Return rubric
     ret_rubric = None
@@ -152,7 +227,7 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
 
         elif event == '-BTN_OK-':
             if not ret_rubric:
-                gui_error_popup('Рубрика не выбрана!')
+                gui_error_popup('Рубрика не выбрана!\n\nВыберите рубрику из дерева или используйте поиск.')
                 continue
             break
 
@@ -164,7 +239,7 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
                 is_leaf = not bool(node['children'])
                 if is_leaf:
                     ret_rubric = rubrics[tree_values[0]]
-                    window['-STATUS-'].update(ret_rubric['label'])
+                    window['-STATUS-'].update(f'📁 Выбрано: {ret_rubric["label"]}')
                 else:
                     ret_rubric = None
                     window['-STATUS-'].update('')
