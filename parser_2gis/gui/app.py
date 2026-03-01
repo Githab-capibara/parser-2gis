@@ -14,11 +14,12 @@ from .error_popup import gui_error_popup
 from .settings import gui_settings
 from .theme import (COLOR_ACCENT, COLOR_ACCENT_HOVER, COLOR_BACKGROUND,
                     COLOR_BACKGROUND_SECONDARY, COLOR_BORDER, COLOR_ERROR,
-                    COLOR_TEXT_PRIMARY, COLOR_TEXT_SECONDARY, COLOR_WHITE,
-                    ELEMENT_HEIGHT_LG, ELEMENT_HEIGHT_MD, FONT_SIZE_BASE,
-                    FONT_SIZE_LG, FONT_SIZE_MD, FONT_SIZE_SM, FONT_SIZE_XL,
-                    RADIUS_LG, RADIUS_MD, SPACING_LG, SPACING_MD, SPACING_SM,
-                    SPACING_XS, apply_theme, get_font)
+                    COLOR_LOG_CRITICAL, COLOR_LOG_ERROR, COLOR_LOG_WARNING,
+                    COLOR_LOG_INFO, COLOR_LOG_SUCCESS, COLOR_TEXT_PRIMARY,
+                    COLOR_TEXT_SECONDARY, COLOR_WHITE, ELEMENT_HEIGHT_LG,
+                    ELEMENT_HEIGHT_MD, FONT_SIZE_BASE, FONT_SIZE_LG, FONT_SIZE_MD,
+                    FONT_SIZE_SM, FONT_SIZE_XL, RADIUS_LG, RADIUS_MD, SPACING_LG,
+                    SPACING_MD, SPACING_SM, SPACING_XS, apply_theme, get_font)
 from .utils import (ensure_gui_enabled, generate_event_handler,
                     setup_text_widget)
 
@@ -348,7 +349,7 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
         # Click stop
         elif event == '-BTN_STOP-':
             if parsing_thread_running():
-                logger.warn('Парсинг остановлен пользователем.')
+                logger.warning('Парсинг остановлен пользователем.')
                 assert parsing_thread
                 parsing_thread.stop()
 

@@ -19,14 +19,14 @@ if TYPE_CHECKING:
 
 
 class MainParser:
-    """Main parser that extracts useful payload
-    from search result pages using Chrome browser
-    and saves it into a `csv`, `xlsx` or `json` files.
+    """Основной парсер, который извлекает полезные данные
+    со страниц поисковой выдачи с помощью браузера Chrome
+    и сохраняет их в файлы `csv`, `xlsx` или `json`.
 
     Args:
-        url: 2GIS URLs with items to be collected.
-        chrome_options: Chrome options.
-        parser_options: Parser options.
+        url: 2GIS URLs с элементами для сбора.
+        chrome_options: Опции Chrome.
+        parser_options: Опции парсера.
     """
     def __init__(self, url: str,
                  chrome_options: ChromeOptions,
@@ -34,30 +34,30 @@ class MainParser:
         self._options = parser_options
         self._url = url
 
-        # "Catalog Item Document" response pattern.
+        # Паттерн ответа "Catalog Item Document"
         self._item_response_pattern = r'https://catalog\.api\.2gis.[^/]+/.*/items/byid'
 
-        # Open browser, start remote
+        # Открываем браузер, запускаем remote
         response_patterns = [self._item_response_pattern]
         self._chrome_remote = ChromeRemote(chrome_options=chrome_options,
                                            response_patterns=response_patterns)
         self._chrome_remote.start()
 
-        # Add counter for 2GIS requsts
+        # Добавляем счётчик для 2GIS запросов
         self._add_xhr_counter()
 
-        # Disable specific requests
+        # Отключаем определённые запросы
         blocked_urls = blocked_requests(extended=chrome_options.disable_images)
         self._chrome_remote.add_blocked_requests(blocked_urls)
 
     @staticmethod
     def url_pattern():
-        """URL pattern for the parser."""
+        """URL-паттерн для парсера."""
         return r'https?://2gis\.[^/]+/[^/]+/search/.*'
 
     @wait_until_finished(timeout=5, throw_exception=False)
     def _get_links(self) -> list[DOMNode]:
-        """Extracts specific DOM node links from current DOM snapshot."""
+        """Извлекает определённые DOM-узлы ссылок из текущего снимка DOM."""
         def valid_link(node: DOMNode) -> bool:
             if node.local_name == 'a' and 'href' in node.attributes:
                 link_match = re.match(r'.*/(firm|station)/.*\?stat=(?P<data>[a-zA-Z0-9%]+)', node.attributes['href'])
@@ -65,7 +65,7 @@ class MainParser:
                     try:
                         base64.b64decode(urllib.parse.unquote(link_match.group('data')))
                         return True
-                    except:
+                    except Exception:
                         pass
 
             return False
@@ -74,8 +74,8 @@ class MainParser:
         return dom_tree.search(valid_link)
 
     def _add_xhr_counter(self) -> None:
-        """Inject old-school wrapper around XMLHttpRequest,
-        to keep track of all pending requests to 2GIS website."""
+        """Внедряет old-school обёртку вокруг XMLHttpRequest
+        для отслеживания всех ожидающих запросов к сайту 2GIS."""
         xhr_script = r'''
             (function() {
                 var oldOpen = XMLHttpRequest.prototype.open;
@@ -100,11 +100,11 @@ class MainParser:
 
     @wait_until_finished(timeout=120)
     def _wait_requests_finished(self) -> bool:
-        """Wait for all pending requests."""
+        """Ждёт завершения всех ожидающих запросов."""
         return self._chrome_remote.execute_script('window.openHTTPs == 0')
 
     def _get_available_pages(self) -> dict[int, DOMNode]:
-        """Get available pages to navigate."""
+        """Получает доступные страницы для навигации."""
         dom_tree = self._chrome_remote.get_document()
         dom_links = dom_tree.search(lambda x: x.local_name == 'a' and 'href' in x.attributes)
 
@@ -117,17 +117,17 @@ class MainParser:
         return available_pages
 
     def _go_page(self, n_page: int) -> Optional[int]:
-        """Go page with number `n_page`.
+        """Переходит на страницу с номером `n_page`.
 
         Note:
-            `n_page` gotta exists in current DOM.
-            Otherwise 2GIS anti-bot will redirect you to the first page.
+            `n_page` должна существовать в текущем DOM.
+            В противном случае 2GIS anti-bot перенаправит вас на первую страницу.
 
         Args:
-            n_page: Page number.
+            n_page: Номер страницы.
 
         Returns:
-            Navigated page number.
+            Номер страницы, на которую перешли.
         """
         available_pages = self._get_available_pages()
         if n_page in available_pages:
@@ -137,14 +137,14 @@ class MainParser:
         return None
 
     def parse(self, writer: FileWriter) -> None:
-        """Parse URL with result items.
+        """Парсит URL с элементами результатов.
 
         Args:
-            writer: Target file writer.
+            writer: Целевой файловый писатель.
         """
-        # Starting from page 6 and further
-        # 2GIS redirects user to the beginning automatically (anti-bot protection).
-        # If a page argument found in the URL, we should manually walk to it first.
+        # Начиная со страницы 6 и далее
+        # 2GIS автоматически перенаправляет пользователя в начало (anti-bot защита).
+        # Если в URL найден аргумент страницы, мы должны вручную перейти к ней сначала.
 
         current_page_number = 1
         url = re.sub(r'/page/\d+', '', self._url, re.I)
@@ -155,32 +155,32 @@ class MainParser:
         else:
             walk_page_number = None
 
-        # Go URL
+        # Переходим по URL
         self._chrome_remote.navigate(url, referer='https://google.com', timeout=120)
 
-        # Document loaded, get its response
+        # Документ загружен, получаем его ответ
         responses = self._chrome_remote.get_responses(timeout=5)
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
         document_response = responses[0]
 
-        # Handle 404
+        # Обработка 404
         assert document_response['mimeType'] == 'text/html'
         if document_response['status'] == 404:
-            logger.warn('Сервер вернул сообщение "Точных совпадений нет / Не найдено".')
+            logger.warning('Сервер вернул сообщение "Точных совпадений нет / Не найдено".')
 
             if self._options.skip_404_response:
                 return
 
-        # Parsed records
+        # Спарсенные записи
         collected_records = 0
 
-        # Already visited links
+        # Уже посещённые ссылки
         visited_links: set[str] = set()
 
-        # This wrapper is not necessary, but I'd like to be sure
-        # we haven't gathered links from old DOM somehow.
+        # Эта обёртка не необходима, но я хочу быть уверен,
+        # что мы не собрали ссылки из старого DOM каким-то образом.
         @wait_until_finished(timeout=10, throw_exception=False)
         def get_unique_links() -> list[DOMNode]:
             links = self._get_links()
@@ -192,34 +192,34 @@ class MainParser:
             return links
 
         while True:
-            # Wait all 2GIS requests get finished
+            # Ждём завершения всех 2GIS запросов
             self._wait_requests_finished()
 
-            # Gather links to be clicked
+            # Собираем ссылки для клика
             links = get_unique_links()
 
-            # We should parse the page if we are not walking
+            # Мы должны парсить страницу, если не идём к определённой странице
             if not walk_page_number:
-                # Iterate through gathered links
+                # Итерируемся по собранным ссылкам
                 for link in links:
-                    for _ in range(3):  # 3 attempts to get response
-                        # Click the link to provoke request
-                        # with a auth key and secret arguments
+                    for _ in range(3):  # 3 попытки получить ответ
+                        # Кликаем на ссылку, чтобы спровоцировать запрос
+                        # с ключом авторизации и секретными аргументами
                         self._chrome_remote.perform_click(link)
 
-                        # Delay between clicks, could be usefull if
-                        # 2GIS's anti-bot service become more strict.
+                        # Задержка между кликами, может быть полезна, если
+                        # 2GIS's anti-bot сервис станет более строгим.
                         if self._options.delay_between_clicks:
                             self._chrome_remote.wait(self._options.delay_between_clicks / 1000)
 
-                        # Gather response and collect useful payload.
+                        # Собираем ответы и собираем полезные данные.
                         resp = self._chrome_remote.wait_response(self._item_response_pattern)
 
-                        # If request is failed - repeat, otherwise go further.
+                        # Если запрос не удался - повторяем, иначе идём дальше.
                         if resp and resp['status'] >= 0:
                             break
 
-                    # Get response body data
+                    # Получаем данные тела ответа
                     if resp and resp['status'] >= 0:
                         data = self._chrome_remote.get_response_body(resp, timeout=10) if resp else None
 
@@ -232,26 +232,26 @@ class MainParser:
                         doc = None
 
                     if doc:
-                        # Write API document into a file
+                        # Записываем API документ в файл
                         writer.write(doc)
                         collected_records += 1
                     else:
                         logger.error('Данные не получены, пропуск позиции.')
 
-                    # We've reached our limit, bail
+                    # Мы достигли нашего лимита, выходим
                     if collected_records >= self._options.max_records:
                         logger.info('Спарсено максимально разрешенное количество записей с данного URL.')
                         return
 
-            # Evaluate Garbage Collection if it's been exposed and enabled
+            # Запускаем сборщик мусора, если он доступен и включён
             if self._options.use_gc and current_page_number % self._options.gc_pages_interval == 0:
                 logger.debug('Запуск сборщика мусора.')
                 self._chrome_remote.execute_script('"gc" in window && window.gc()')
 
-            # Free memory allocated for collected requests
+            # Освобождаем память, выделенную для собранных запросов
             self._chrome_remote.clear_requests()
 
-            # Calculate next page number and navigate it
+            # Вычисляем следующий номер страницы и переходим к ней
             if walk_page_number:
                 available_pages = self._get_available_pages()
                 available_pages_ahead = {k: v for k, v in available_pages.items()
@@ -263,9 +263,9 @@ class MainParser:
 
             current_page_number = self._go_page(next_page_number)  # type: ignore
             if not current_page_number:
-                break  # Reached the end of the search results
+                break  # Достигли конца результатов поиска
 
-            # Unset walking page if we've done walking to the desired page
+            # Сбрасываем страницу назначения, если мы закончили переход к желаемой странице
             if walk_page_number and walk_page_number <= current_page_number:
                 walk_page_number = None
 
@@ -281,5 +281,5 @@ class MainParser:
     def __repr__(self) -> str:
         classname = self.__class__.__name__
         return (f'{classname}(parser_options={self._options!r}, '
-                'chrome_remote={self._chrome_remote!r}, '
-                'url={self._url!r}')
+                f'chrome_remote={self._chrome_remote!r}, '
+                f'url={self._url!r})')

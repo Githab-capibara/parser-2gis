@@ -16,10 +16,10 @@ if TYPE_CHECKING:
 
 
 class ChromeBrowser():
-    """Chrome Browser with temporary profile.
+    """Браузер Chrome с временным профилем.
 
     Args:
-        chrome_options: Chrome options.
+        chrome_options: Опции Chrome.
     """
     def __init__(self, chrome_options: ChromeOptions) -> None:
         binary_path = (chrome_options.binary_path
@@ -62,29 +62,29 @@ class ChromeBrowser():
 
     @property
     def remote_port(self) -> int:
-        """Remote debugging port."""
+        """Порт отладки."""
         return self._remote_port
 
     @wait_until_finished(timeout=5, throw_exception=False)
     def _delete_profile(self) -> bool:
-        """Delete profile.
+        """Удаляет профиль.
 
         Returns:
-            `True` on successful deletion, `False` on failure.
+            `True` при успешном удалении, `False` при неудаче.
         """
         shutil.rmtree(self._profile_path, ignore_errors=True)
         profile_deleted = not os.path.isdir(self._profile_path)
         return profile_deleted
 
     def close(self) -> None:
-        """Close browser and delete temporary profile."""
+        """Закрывает браузер и удаляет временный профиль."""
         logger.debug('Завершение работы Chrome Браузера.')
 
-        # Close the browser
+        # Закрываем браузер
         self._proc.terminate()
         self._proc.wait()
 
-        # Delete temporary profile
+        # Удаляем временный профиль
         self._delete_profile()
 
     def __repr__(self) -> str:
