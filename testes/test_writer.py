@@ -167,7 +167,7 @@ class TestGetWriter:
         with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
             try:
                 options = WriterOptions()
-                writer = get_writer(f.name, options, options.csv)
+                writer = get_writer(f.name, 'csv', options)
                 assert isinstance(writer, CSVWriter)
             finally:
                 if os.path.exists(f.name):
@@ -178,7 +178,7 @@ class TestGetWriter:
         with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as f:
             try:
                 options = WriterOptions()
-                writer = get_writer(f.name, options, options.csv)
+                writer = get_writer(f.name, 'xlsx', options)
                 assert isinstance(writer, XLSXWriter)
             finally:
                 if os.path.exists(f.name):
@@ -189,7 +189,7 @@ class TestGetWriter:
         with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
             try:
                 options = WriterOptions()
-                writer = get_writer(f.name, options, options.csv)
+                writer = get_writer(f.name, 'json', options)
                 assert isinstance(writer, JSONWriter)
             finally:
                 if os.path.exists(f.name):
@@ -198,12 +198,12 @@ class TestGetWriter:
     def test_get_writer_unknown_extension(self):
         """Проверка получения writer с неизвестным расширением."""
         from parser_2gis.writer.exceptions import WriterUnknownFileFormat
-        
+
         with tempfile.NamedTemporaryFile(suffix='.txt', delete=False) as f:
             try:
                 options = WriterOptions()
                 with pytest.raises(WriterUnknownFileFormat):
-                    get_writer(f.name, options, options.csv)
+                    get_writer(f.name, 'txt', options)
             finally:
                 if os.path.exists(f.name):
                     os.unlink(f.name)
