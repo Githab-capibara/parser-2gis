@@ -56,7 +56,7 @@ class InBuildingParser(MainParser):
         # Handle 404
         assert document_response['mimeType'] == 'text/html'
         if document_response['status'] == 404:
-            logger.warn('Сервер вернул сообщение "Точных совпадений нет / Не найдено".')
+            logger.warning('Сервер вернул сообщение "Точных совпадений нет / Не найдено".')
 
             if self._options.skip_404_response:
                 return

@@ -13,7 +13,7 @@ from .gui import gui_app
 
 
 class ArgumentHelpFormatter(argparse.HelpFormatter):
-    """Help message formatter which adds default values to argument help."""
+    """Форматировщик справки, добавляющий значения по умолчанию к описанию аргументов."""
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._default_config = Configuration().dict()
@@ -22,10 +22,10 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
         if dest == 'version':
             return argparse.SUPPRESS
 
-        fileds = dest.split('.')
+        fields = dest.split('.')
         value = self._default_config
         try:
-            for field in fileds:
+            for field in fields:
                 value = value[field]
             return value
         except KeyError:
@@ -43,9 +43,7 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
 
 
 def patch_argparse_translations() -> None:
-    """Patch argparse's `gettext` and make it
-    translate some strings into russian."""
-
+    """Патчит gettext в argparse для перевода строк на русский язык."""
     custom_translations = {
         'usage: ': 'Использование: ',
         'one of the arguments %s is required': 'один из аргументов %s обязателен',
@@ -64,27 +62,26 @@ def patch_argparse_translations() -> None:
 
     argparse._ = gettext  # type: ignore[attr-defined]
 
-    # Also replace hardcoded string `argument` in ArgumentError class
-    # (patch tested in Python 3.7, 3.8, 3.9, 3.10)
-    # This bug was fixed only on 6 May 2022 https://github.com/python/cpython/pull/17169
+    # Заменяем хардкодную строку `argument` в классе ArgumentError
+    # Этот баг был исправлен только 6 мая 2022 https://github.com/python/cpython/pull/17169
     def argument_error__str__(self: argparse.ArgumentError) -> str:
         if self.argument_name is None:
-            format = '%(message)s'
+            format_str = '%(message)s'
         else:
-            format = 'аргумент %(argument_name)s: %(message)s'
-        return format % dict(message=self.message,
-                             argument_name=self.argument_name)
+            format_str = 'аргумент %(argument_name)s: %(message)s'
+        return format_str % dict(message=self.message,
+                                 argument_name=self.argument_name)
 
     argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore
 
 
 def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
-    """Parse arguments depending on whether we got GUI support or not.
+    """Парсит аргументы в зависимости от доступности GUI.
 
     Returns:
-        Tuple of Command line arguments and Configuration.
+        Кортеж из аргументов командной строки и конфигурации.
     """
-    patch_argparse_translations()  # Patch Russian translations
+    patch_argparse_translations()  # Патчим переводы
     arg_parser = argparse.ArgumentParser('Parser2GIS', description='Парсер данных сайта 2GIS', add_help=False,
                                          formatter_class=ArgumentHelpFormatter, argument_default=argparse.SUPPRESS)
 
@@ -135,7 +132,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     config_args = unwrap_dot_dict(vars(args))
 
     try:
-        # Initialize config with command line arguments
+        # Инициализируем конфигурацию аргументами командной строки
         config = Configuration(**config_args)
     except pydantic.ValidationError as e:
         errors = []
@@ -151,13 +148,13 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
 
 
 def main() -> None:
-    """Entry point."""
-    # Parse command line arguments
+    """Точка входа."""
+    # Парсим аргументы командной строки
     args, command_line_config = parse_arguments()
 
-    # Run CLI if we specified all required args, otherwise run GUI.
+    # Запускаем CLI если указаны все требуемые аргументы, иначе запускаем GUI.
     if args.url is None or args.output_path is None or args.format is None:
-        # Load user config and merge it with one created by command line arguments.
+        # Загружаем пользовательскую конфигурацию и объединяем с созданной из аргументов.
         user_config = Configuration.load_config(auto_create=True)
         user_config.merge_with(command_line_config)
         config = user_config
