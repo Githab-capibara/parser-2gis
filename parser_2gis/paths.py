@@ -9,7 +9,7 @@ from .common import running_mac, running_windows
 
 
 def data_path() -> pathlib.Path:
-    """Get package's data path."""
+    """Получает путь к данным пакета."""
     if '_MEIPASS2' in os.environ:
         here = os.environ['_MEIPASS2']
     else:
@@ -20,11 +20,11 @@ def data_path() -> pathlib.Path:
 
 
 def user_path(is_config: bool = True) -> pathlib.Path:
-    """Get user path depending on running OS.
+    """Получает пользовательский путь в зависимости от ОС.
 
-    Note:
-        Possible path location depending on running OS:
-        * Unix: ~/.config/parser-2gis or ~/.local/share/parser-2gis (depends on `is_config` flag)
+    Примечание:
+        Возможное расположение пути в зависимости от ОС:
+        * Unix: ~/.config/parser-2gis или ~/.local/share/parser-2gis (зависит от флага `is_config`)
         * Mac: ~/Library/Application Support/parser-2gis/
         * Win: C:\\Users\\%USERPROFILE%\\AppData\\Local\\parser-2gis
     """
@@ -49,36 +49,45 @@ def user_path(is_config: bool = True) -> pathlib.Path:
 
 @functools.lru_cache()
 def image_path(basename: str, ext: str | None = None) -> str:
-    """Get image `basename`.`ext`.
-    Extension is ignored if `ext` set to `None`.
+    """Получает путь к изображению `basename`.`ext`.
+    Расширение игнорируется, если `ext` установлен в `None`.
 
     Args:
-        basename: Image basename.
-        ext: Image extension.
+        basename: Базовое имя изображения.
+        ext: Расширение изображения.
 
     Returns:
-        Image path.
+        Путь к изображению.
     """
     images_dir = data_path() / 'images'
-    for img_name in os.listdir(images_dir):
-        img_basename, img_ext = os.path.splitext(img_name)
-        if img_basename == basename and (ext is None or img_ext == f'.{ext}'):
-            return os.path.abspath(images_dir / img_name)
-
-    raise FileNotFoundError(f'Изображение {basename} не найдено')
+    
+    # Оптимизированный поиск: сразу формируем ожидаемое имя файла
+    if ext is not None:
+        img_name = f'{basename}.{ext}'
+        img_path = images_dir / img_name
+        if img_path.exists():
+            return os.path.abspath(img_path)
+        raise FileNotFoundError(f'Изображение {basename}.{ext} не найдено')
+    else:
+        # Если расширение не указано, ищем любой файл с таким basename
+        for img_name in os.listdir(images_dir):
+            img_basename, img_ext = os.path.splitext(img_name)
+            if img_basename == basename:
+                return os.path.abspath(images_dir / img_name)
+        raise FileNotFoundError(f'Изображение {basename} не найдено')
 
 
 @functools.lru_cache()
 def image_data(basename: str, ext: str | None = None) -> bytes:
-    """Get image data `basename`.`ext`.
-    Extension is ignored if `ext` set to `None`.
+    """Получает данные изображения `basename`.`ext`.
+    Расширение игнорируется, если `ext` установлен в `None`.
 
     Args:
-        basename: Image basename.
-        ext: Image extension.
+        basename: Базовое имя изображения.
+        ext: Расширение изображения.
 
     Returns:
-        Image data.
+        Данные изображения.
     """
     with open(image_path(basename, ext), 'rb') as f_img:
         return base64.b64encode(f_img.read())

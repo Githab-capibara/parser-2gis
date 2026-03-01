@@ -23,16 +23,16 @@ if TYPE_CHECKING:
     Request = Dict[str, Any]
     Response = Dict[str, Any]
 
-# Apply all custom patches
+# Применяем все пользовательские патчи
 patch_all()
 
 
 class ChromeRemote:
-    """Wrapper for Chrome DevTools Protocol Interface.
+    """Обёртка для Chrome DevTools Protocol Interface.
 
     Args:
-        chrome_options: ChromeOptions parameters.
-        response_patterns: Response URL patterns to capture.
+        chrome_options: Параметры ChromeOptions.
+        response_patterns: Паттерны URL ответов для перехвата.
     """
     def __init__(self, chrome_options: ChromeOptions, response_patterns: list[str]) -> None:
         self._chrome_options: ChromeOptions = chrome_options
@@ -46,10 +46,10 @@ class ChromeRemote:
 
     @wait_until_finished(timeout=60)
     def _connect_interface(self) -> bool:
-        """Establish connection to Chrome and open new tab.
+        """Устанавливает соединение с Chrome и открывает новую вкладку.
 
         Returns:
-            `True` on success, `False` on failure.
+            `True` при успехе, `False` при неудаче.
         """
         try:
             self._chrome_interface = pychrome.Browser(url=self._dev_url)
@@ -60,23 +60,23 @@ class ChromeRemote:
             return False
 
     def start(self) -> None:
-        """Open browser, create new tab, setup remote interface."""
-        # Open browser
+        """Открывает браузер, создаёт новую вкладку, настраивает удалённый интерфейс."""
+        # Открываем браузер
         self._chrome_browser = ChromeBrowser(self._chrome_options)
         self._dev_url = f'http://127.0.0.1:{self._chrome_browser.remote_port}'
 
-        # Connect browser with CDP
+        # Подключаем браузер к CDP
         self._connect_interface()
         self._setup_tab()
         self._init_tab_monitor()
 
     def _create_tab(self) -> pychrome.Tab:
-        """Create Chrome Tab."""
+        """Создаёт Chrome-вкладку."""
         resp = requests.put('%s/json/new' % (self._dev_url), json=True)         
         return pychrome.Tab(**resp.json())
 
     def _close_tab(self, tab: pychrome.Tab) -> None:
-        """Close Chrome Tab."""
+        """Закрывает Chrome-вкладку."""
         if tab.status == pychrome.Tab.status_started:
             tab.stop()
         requests.put('%s/json/close/%s' % (self._dev_url, tab.id))
@@ -248,9 +248,16 @@ class ChromeRemote:
             return None
 
     def clear_requests(self) -> None:
-        """Очищает все собранные ответы."""
+        """Очищает все собранные запросы и очереди ответов."""
         with self._requests_lock:
             self._requests = {}
+        # Очищаем очереди ответов для предотвращения утечки памяти
+        for pattern_queue in self._response_queues.values():
+            while not pattern_queue.empty():
+                try:
+                    pattern_queue.get_nowait()
+                except queue.Empty:
+                    break
 
     @wait_until_finished(timeout=15, throw_exception=False)
     def get_response_body(self, response: Response) -> str:

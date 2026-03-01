@@ -15,7 +15,7 @@ from .file_writer import FileWriter
 
 
 class CSVWriter(FileWriter):
-    """Writer to CSV table."""
+    """Писатель в CSV-таблицу."""
     @property
     def _type_names(self) -> dict[str, str]:
         return {
@@ -28,8 +28,9 @@ class CSVWriter(FileWriter):
 
     @property
     def _complex_mapping(self) -> dict[str, Any]:
-        # Complex mapping means its content could contain several entities bound by user settings.
-        # For example: phone -> phone_1, phone_2, ..., phone_n
+        # Сложное маппирование означает, что его содержимое может содержать несколько сущностей,
+        # связанных пользовательскими настройками.
+        # Например: phone -> phone_1, phone_2, ..., phone_n
         return {
             'phone': 'Телефон', 'email': 'E-mail', 'website': 'Веб-сайт', 'instagram': 'Instagram',
             'twitter': 'Twitter', 'facebook': 'Facebook', 'vkontakte': 'ВКонтакте', 'whatsapp': 'WhatsApp',
@@ -65,7 +66,7 @@ class CSVWriter(FileWriter):
         }
 
     def _writerow(self, row: dict[str, Any]) -> None:
-        """Write a `row` into CSV."""
+        """Записывает `row` в CSV."""
         if self._options.verbose:
             logger.info('Парсинг [%d] > %s', self._wrote_count + 1, row['name'])
 
@@ -91,21 +92,21 @@ class CSVWriter(FileWriter):
             self._remove_duplicates()
 
     def _remove_empty_columns(self) -> None:
-        """Post-process: Remove empty columns."""
+        """Постобработка: Удаление пустых колонок."""
         complex_columns = self._complex_mapping.keys()
         complex_columns_count = {c: 0 for c in self._data_mapping.keys() if
                                  re.match('|'.join(fr'^{x}_\d+$' for x in complex_columns), c)}
 
-        # Looking for empty columns
+        # Поиск пустых колонок
         with self._open_file(self._file_path, 'r') as f_csv:
             csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
-            next(csv_reader, None)  # Skip header
+            next(csv_reader, None)  # Пропуск заголовка
             for row in csv.DictReader(f_csv, self._data_mapping.keys()):  # type: ignore
                 for column_name in complex_columns_count.keys():
                     if row[column_name] != '':
                         complex_columns_count[column_name] += 1
 
-        # Generate new data mapping
+        # Генерация нового маппинга данных
         new_data_mapping: dict[str, Any] = {}
         for k, v in self._data_mapping.items():
             if k in complex_columns_count:
@@ -114,30 +115,30 @@ class CSVWriter(FileWriter):
             else:
                 new_data_mapping[k] = v
 
-        # Rename single complex column - remove postfix numbers
+        # Переименование одиночной сложной колонки - удаление суффиксов с цифрами
         for column in complex_columns:
             if f'{column}_1' in new_data_mapping and f'{column}_2' not in new_data_mapping:
                 new_data_mapping[f'{column}_1'] = re.sub(r'\s+\d+$', '', new_data_mapping[f'{column}_1'])
 
-        # Populate new csv
+        # Заполнение нового csv
         tmp_csv_name = os.path.splitext(self._file_path)[0] + '.removed-columns.csv'
 
         with self._open_file(tmp_csv_name, 'w') as f_tmp_csv, \
                 self._open_file(self._file_path, 'r') as f_csv:
             csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
             csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
-            csv_writer.writerow(new_data_mapping)  # Write new header
-            next(csv_reader, None)  # Skip header
+            csv_writer.writerow(new_data_mapping)  # Запись нового заголовка
+            next(csv_reader, None)  # Пропуск заголовка
 
             for row in csv_reader:
                 new_row = {k: v for k, v in row.items() if k in new_data_mapping}
                 csv_writer.writerow(new_row)
 
-        # Replace original table with new one
+        # Замена оригинального файла новым
         shutil.move(tmp_csv_name, self._file_path)
 
     def _remove_duplicates(self) -> None:
-        """Post-process: Remove duplicates."""
+        """Постобработка: Удаление дубликатов."""
         tmp_csv_name = os.path.splitext(self._file_path)[0] + '.deduplicated.csv'
         with self._open_file(tmp_csv_name, 'w') as f_tmp_csv, \
                 self._open_file(self._file_path, 'r') as f_csv:
@@ -149,14 +150,14 @@ class CSVWriter(FileWriter):
                 seen_records.add(line)
                 f_tmp_csv.write(line)
 
-        # Replace original table with new one
+        # Замена оригинального файла новым
         shutil.move(tmp_csv_name, self._file_path)
 
     def write(self, catalog_doc: Any) -> None:
-        """Write Catalog Item API JSON document down to CSV table.
+        """Записывает JSON-документ Catalog Item API в CSV-таблицу.
 
         Args:
-            catalog_doc: Catalog Item API JSON document.
+            catalog_doc: JSON-документ Catalog Item API.
         """
         if not self._check_catalog_doc(catalog_doc):
             return
@@ -167,13 +168,13 @@ class CSVWriter(FileWriter):
             self._wrote_count += 1
 
     def _extract_raw(self, catalog_doc: Any) -> dict[str, Any]:
-        """Extract data from Catalog Item API JSON document.
+        """Извлекает данные из JSON-документа Catalog Item API.
 
         Args:
-            catalog_doc: Catalog Item API JSON document.
+            catalog_doc: JSON-документ Catalog Item API.
 
         Returns:
-            Dictionary for CSV row.
+            Словарь для строки CSV.
         """
         data: dict[str, Any] = {k: None for k in self._data_mapping.keys()}
 
@@ -244,12 +245,12 @@ class CSVWriter(FileWriter):
         for contact_group in catalog_item.contact_groups:
             def append_contact(contact_type: str, priority_fields: list[str],
                                formatter: Callable[[str], str] | None = None) -> None:
-                """Add contact to `data`.
+                """Добавляет контакт в `data`.
 
                 Args:
-                    contact_type: Contact type (see `Contact` in `catalog_item.py`)
-                    priority_fields: Field of contact to be added, sorted by priority
-                    formatter: Field value formatter
+                    contact_type: Тип контакта (см. `Contact` в `catalog_item.py`)
+                    priority_fields: Поля контакта для добавления, сортированные по приоритету
+                    formatter: Форматировщик значения поля
                 """
                 contacts = [x for x in contact_group.contacts if x.type == contact_type]
                 for i, contact in enumerate(contacts, 1):
@@ -286,8 +287,8 @@ class CSVWriter(FileWriter):
             for t in ['email', 'skype']:
                 append_contact(t, ['value'])
 
-            # Phone (`value` sometimes has strange crap inside, so we better parse `text`.
-            # If no `text` field in contact - use `value` attribute)
+            # Phone (`value` иногда содержит странные данные, поэтому лучше парсить `text`.
+            # Если в контакте нет поля `text` - используем атрибут `value`)
             append_contact('phone', ['text', 'value'],
                            formatter=lambda x: re.sub(r'^\+7', '8', re.sub(r'[^0-9+]', '', x)))
 
