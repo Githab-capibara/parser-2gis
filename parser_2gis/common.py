@@ -21,17 +21,17 @@ except ImportError as e:
 
 
 def running_linux() -> bool:
-    """Determine if current OS is Linux-based."""
+    """Определяет, является ли текущая ОС Linux-подобной."""
     return sys.platform.startswith('linux')
 
 
 def running_windows() -> bool:
-    """Determine if current OS is Windows."""
+    """Определяет, является ли текущая ОС Windows."""
     return sys.platform.startswith('win')
 
 
 def running_mac() -> bool:
-    """Determine if current OS is MacOS."""
+    """Определяет, является ли текущая ОС MacOS."""
     return sys.platform.startswith('darwin')
 
 
@@ -57,7 +57,7 @@ def wait_until_finished(timeout: int | None = None,
             # Перемещаем lambda в тело функции для избежания изменяемого аргумента по умолчанию
             if finished is None:
                 finished = lambda x: bool(x)
-            
+
             call_time = time.time()
             while True:
                 ret = func(*args, **kwargs)

@@ -59,5 +59,5 @@ class WriterOptions(BaseModel):
             try:
                 codecs.lookup(v)
             except LookupError:
-                raise ValueError
+                raise ValueError('Неизвестная кодировка')
             return v
