@@ -232,6 +232,7 @@ class TestApplyTheme:
         """Проверка существования apply_theme."""
         assert callable(apply_theme)
 
+    @pytest.mark.skip(reason="Требует PySimpleGUI")
     def test_apply_theme_default(self):
         """Проверка apply_theme по умолчанию."""
         try:

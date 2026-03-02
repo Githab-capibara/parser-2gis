@@ -48,7 +48,7 @@ class CSVWriter(FileWriter):
             'timezone': 'Часовой пояс', 'general_rating': 'Рейтинг', 'general_review_count': 'Количество отзывов'
         }
 
-        # Expand complex mapping
+        # Расширяем сложное маппирование
         for k, v in self._complex_mapping.items():
             for n in range(1, self._options.csv.columns_per_entity + 1):
                 data_mapping[f'{k}_{n}'] = f'{v} {n}'
@@ -79,7 +79,7 @@ class CSVWriter(FileWriter):
     def __enter__(self) -> CSVWriter:
         super().__enter__()
         self._writer = csv.DictWriter(self._file, self._data_mapping.keys())
-        self._writer.writerow(self._data_mapping)  # Write header
+        self._writer.writerow(self._data_mapping)  # Запись заголовка
         self._wrote_count = 0
         return self
 

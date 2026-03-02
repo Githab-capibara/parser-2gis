@@ -111,7 +111,7 @@ class TestChromeRemote:
     def test_chrome_remote_creation(self):
         """Проверка создания ChromeRemote."""
         options = ChromeOptions()
-        chrome = ChromeRemote(options)
+        chrome = ChromeRemote(options, response_patterns=[])
         assert chrome is not None
 
     def test_chrome_remote_with_custom_options(self):
@@ -121,13 +121,13 @@ class TestChromeRemote:
             disable_images=True,
             memory_limit=256
         )
-        chrome = ChromeRemote(options)
+        chrome = ChromeRemote(options, response_patterns=[])
         assert chrome is not None
 
     def test_chrome_remote_with_binary_path(self):
         """Проверка ChromeRemote с путём к бинарнику."""
         options = ChromeOptions(binary_path=pathlib.Path('/usr/bin/chrome'))
-        chrome = ChromeRemote(options)
+        chrome = ChromeRemote(options, response_patterns=[])
         assert chrome is not None
 
 
