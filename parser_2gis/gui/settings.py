@@ -39,9 +39,7 @@ def gui_settings(config: Configuration) -> None:
                    'title_color': COLOR_TEXT_PRIMARY,
                    'font': get_font(FONT_SIZE_MD, 'bold'),
                    'border_width': 1,
-                   'border_color': COLOR_BORDER,
                    'pad': (SPACING_MD, SPACING_SM),
-                   'element_padding': (SPACING_MD, SPACING_SM),
                    'relief': 'flat'}
     
     spin_style = {'background_color': COLOR_WHITE,
@@ -268,7 +266,7 @@ def gui_settings(config: Configuration) -> None:
                 ],
             ], pad=(SPACING_MD, SPACING_MD), background_color=COLOR_BACKGROUND,
             selected_title_color=COLOR_ACCENT, tab_background_color=COLOR_BACKGROUND_SECONDARY,
-            border_width=1, border_color=COLOR_BORDER),
+            border_width=1),
         ],
         
         # Кнопки управления

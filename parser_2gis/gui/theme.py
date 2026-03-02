@@ -304,9 +304,54 @@ def apply_theme(theme_name: str = 'modern') -> None:
     import PySimpleGUI as sg
 
     theme = get_theme(theme_name)
-    sg.theme_dict = theme
-    sg.theme_dict['NAME'] = theme['NAME']
-    sg.theme(theme['NAME'])
+    
+    # PySimpleGUI 5.x (ограниченная версия с PyPI) не имеет полноценной поддержки тем
+    # Проверяем доступность функций и применяем тему в зависимости от версии
+    if hasattr(sg, 'theme_add_new') and hasattr(sg, 'theme'):
+        # PySimpleGUI 5.x с полной поддержкой тем (с частного сервера)
+        try:
+            sg.theme_add_new(theme['NAME'], **theme)
+            sg.theme(theme['NAME'])
+            return
+        except TypeError:
+            # theme_add_new не принимает **kwargs, используем LOOK_AND_FEEL_TABLE
+            pass
+    
+    # PySimpleGUI 4.x и совместимые версии
+    # Используем только базовые параметры которые поддерживаются всеми версиями
+    if hasattr(sg, 'LOOK_AND_FEEL_TABLE'):
+        # Упрощённая тема для совместимости
+        simple_theme = {
+            'BACKGROUND': theme['BACKGROUND'],
+            'TEXT': theme['TEXT'],
+            'INPUT': theme['INPUT'],
+            'TEXT_INPUT': theme['TEXT_INPUT'],
+            'BUTTON': theme['BUTTON'],
+            'PROGRESS': theme['PROGRESS'],
+            'BORDER': 1,  # Используем число вместо цвета
+            'SLIDER_DEPTH': 0,
+            'PROGRESS_DEPTH': 0,
+            'SCROLL': theme['SCROLL'],
+            'SCROLL_PRESS': theme.get('SCROLL_PRESS', theme['SCROLL']),
+            'COMBO': theme['INPUT'],
+            'COMBO_LIST': theme['INPUT'],
+            'NAME': theme['NAME'],
+        }
+        sg.LOOK_AND_FEEL_TABLE[theme['NAME']] = simple_theme
+        sg.theme(theme['NAME'])
+    elif hasattr(sg, 'set_options'):
+        # PySimpleGUI с ограниченной поддержкой тем
+        sg.set_options(
+            background_color=theme['BACKGROUND'],
+            text_color=theme['TEXT'],
+            button_color=theme['BUTTON'],
+            button_element_background_color=theme['INPUT'],
+            text_element_background_color=theme['TEXT_ELEMENT_BACKGROUND'],
+            element_background_color=theme['BACKGROUND'],
+            input_elements_background_color=theme['INPUT'],
+            input_text_color=theme['TEXT_INPUT'],
+        )
+    # else: PySimpleGUI без поддержки тем - используем значения по умолчанию
 
 
 # =============================================================================
