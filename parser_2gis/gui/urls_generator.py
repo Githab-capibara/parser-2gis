@@ -66,9 +66,7 @@ def gui_urls_generator() -> list[str]:
                    'title_color': COLOR_TEXT_PRIMARY,
                    'font': get_font(FONT_SIZE_MD, 'bold'),
                    'border_width': 1,
-                   'border_color': COLOR_BORDER,
                    'pad': (SPACING_MD, SPACING_SM),
-                   'element_padding': (SPACING_MD, SPACING_SM),
                    'relief': 'flat'}
     
     button_style = {'button_color': (COLOR_WHITE, COLOR_ACCENT),

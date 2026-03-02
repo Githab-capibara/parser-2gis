@@ -46,8 +46,9 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
     # Применяем современную тему
     apply_theme('modern')
 
-    # Set icon
-    sg.set_global_icon(image_data('icon', 'png'))
+    # Set icon (если функция доступна в версии PySimpleGUI)
+    if hasattr(sg, 'set_global_icon'):
+        sg.set_global_icon(image_data('icon', 'png'))
 
     # Setup main GUI logger queue first (для потокобезопасного логгирования)
     log_queue: queue.Queue[tuple[str, str]] = queue.Queue()  # Queue of log messages (log_level, log_message)
@@ -68,20 +69,16 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
 
     # Современные стили для элементов
     button_style = {'button_color': (COLOR_WHITE, COLOR_ACCENT),
-                    'border_width': 0,
                     'pad': (SPACING_SM, SPACING_SM)}
-    
+
     input_style = {'background_color': COLOR_WHITE,
                    'text_color': COLOR_TEXT_PRIMARY,
                    'font': get_font(FONT_SIZE_BASE)}
-    
+
     frame_style = {'background_color': COLOR_BACKGROUND,
                    'title_color': COLOR_TEXT_PRIMARY,
                    'font': get_font(FONT_SIZE_MD, 'bold'),
-                   'border_width': 1,
-                   'border_color': COLOR_BORDER,
-                   'pad': (SPACING_MD, SPACING_MD),
-                   'element_padding': (SPACING_MD, SPACING_SM)}
+                   'pad': (SPACING_MD, SPACING_MD)}
 
     # Window layout - современный дизайн с боковой панелью
     layout = [
@@ -117,12 +114,12 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                         [
                             sg.Input(key='-IN_URL-', use_readonly_for_disable=True, expand_x=True,
                                      font=get_font(FONT_SIZE_BASE), background_color=COLOR_WHITE),
-                            sg.Button('Редактор', key='-BTN_URLS-', size=(10, 1), 
+                            sg.Button('Редактор', key='-BTN_URLS-', size=(10, 1),
                                       button_color=(COLOR_WHITE, COLOR_ACCENT), border_width=0),
                         ],
                     ], expand_x=True, pad=SPACING_LG),
                 ],
-            ], **frame_style, relief='flat', title_location='top'),
+            ], **frame_style, relief='flat'),
         ],
         
         # Настройки результата
@@ -146,9 +143,9 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                             sg.Input(key='-OUTPUT_PATH-', expand_x=True,
                                      default_text='' if output_path is None else output_path,
                                      font=get_font(FONT_SIZE_BASE), background_color=COLOR_WHITE),
-                            sg.FileSaveAs(key='-OUTPUT_PATH_BROWSE-', button_text='Обзор', 
+                            sg.FileSaveAs(key='-OUTPUT_PATH_BROWSE-', button_text='Обзор',
                                           size=(8, 1), button_color=(COLOR_WHITE, COLOR_ACCENT),
-                                          border_width=0, default_extension=f'.{default_result_format}',
+                                          default_extension=f'.{default_result_format}',
                                           file_types=result_filetype[default_result_format]),
                         ],
                     ], expand_x=True, pad=SPACING_LG),
@@ -165,8 +162,7 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                                  echo_stdout_stderr=True, font=get_font(FONT_SIZE_BASE, 'normal'),
                                  background_color=COLOR_BACKGROUND_SECONDARY,
                                  text_color=COLOR_TEXT_PRIMARY,
-                                 no_scrollbar=False,
-                                 vertical_scroll_only=False),
+                                 no_scrollbar=False),
                 ],
             ], **frame_style, relief='flat'),
         ],
@@ -213,17 +209,16 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
 
     # Main window с современными параметрами
     window = sg.Window(
-        window_title, 
-        layout, 
-        auto_size_text=True, 
-        finalize=True, 
+        window_title,
+        layout,
+        auto_size_text=True,
+        finalize=True,
         font=get_font(FONT_SIZE_BASE),
         margins=(0, 0),
         use_custom_titlebar=False,
         keep_on_top=False,
         resizable=True,
         size=(1000, 700),
-        min_size=(800, 500),
     )
 
     # Setup text widgets
