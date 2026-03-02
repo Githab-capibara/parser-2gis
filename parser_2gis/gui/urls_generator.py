@@ -19,17 +19,17 @@ if GUI_ENABLED:
 
 @ensure_gui_enabled
 def gui_urls_generator() -> list[str]:
-    """Run URLs generator.
+    """Запускает генератор URL.
 
-    Run form that can build a bunch of URLs out of query and specified cities.
+    Запускает форму, которая может построить набор URL из запроса и указанных городов.
 
     Returns:
-        List of generated URLs.
+        Список сгенерированных URL.
     """
     # Применяем современную тему
     apply_theme('modern')
 
-    # Locate and load cities list
+    # Находим и загружаем список городов
     cities_path = data_path() / 'cities.json'
     if not cities_path.is_file():
         raise FileNotFoundError(f'Файл {cities_path} не найден')
@@ -207,11 +207,11 @@ def gui_urls_generator() -> list[str]:
                       menu_clear=False, menu_paste=False, menu_cut=False)
 
     def update_checkbox_layouts(country_name: str) -> None:
-        """Bring frame with checkboxes visible that
-        belong to `country_name`.
+        """Делает видимым фрейм с чекбоксами, которые
+        принадлежат `country_name`.
 
         Args:
-            country_name: Name of a country.
+            country_name: Название страны.
         """
         for country_code, column_element in checkbox_layouts.items():
             if country_code_to_name[country_code] == country_name:
@@ -219,30 +219,30 @@ def gui_urls_generator() -> list[str]:
             else:
                 column_element.update(visible=False)
 
-        # Reset rubrics
+        # Сброс рубрик
         rubric_input = window['-IN_RUBRIC-']  # noqa: F821
         rubric_input.metadata = None
         rubric_input.update(value='Без рубрики')
 
     def select_checkboxes(country_name: str, state: bool = True) -> None:
-        """Select all checkboxes that belong to `country_name`.
+        """Выбирает все чекбоксы, которые принадлежат `country_name`.
 
         Args:
-            country_name: Name of a country.
-            state: Desired checkboxes' state.
+            country_name: Название страны.
+            state: Желаемое состояние чекбоксов.
         """
         country_code = country_name_to_code[country_name]
         for element in sum(checkbox_layouts[country_code].Rows, []):
             element.update(state)
 
     def get_checkboxes(state: bool | None) -> list[sg.Checkbox]:
-        """Return all checkboxes.
+        """Возвращает все чекбоксы.
 
         Args:
-            state: Checkbox state requirement.
+            state: Требование к состоянию чекбокса.
 
         Returns:
-            Checkboxes with specified `state`.
+            Чекбоксы с указанным `state`.
         """
         all_checkboxes: list[sg.Checkbox] = sum(sum([x.Rows for x in checkbox_layouts.values()], []), [])
         if isinstance(state, bool):
@@ -251,13 +251,13 @@ def gui_urls_generator() -> list[str]:
         return all_checkboxes
 
     def get_selected_urls(query: str) -> list[str]:
-        """Get all checked checkboxes among all frames and generate URLs.
+        """Получает все отмеченные чекбоксы среди всех фреймов и генерирует URL.
 
         Args:
-            query: User's query.
+            query: Запрос пользователя.
 
         Returns:
-            List of urls.
+            Список URL.
         """
         urls = []
         rubric = window['-IN_RUBRIC-'].metadata  # noqa: F821

@@ -11,10 +11,10 @@ class CLIRunner(AbstractRunner):
     """CLI runner.
 
     Args:
-        urls: 2GIS URLs with items to be collected.
-        output_path: Path to the result file.
-        format: `csv`, `xlsx` or `json` format.
-        config: Configuration.
+        urls: URL 2GIS с элементами для сбора.
+        output_path: Путь к результирующему файлу.
+        format: Формат `csv`, `xlsx` или `json`.
+        config: Конфигурация.
     """
     def start(self):
         logger.info('Парсинг запущен.')

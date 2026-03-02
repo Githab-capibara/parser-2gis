@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 from ...logger import logger
@@ -9,21 +8,24 @@ from .file_writer import FileWriter
 
 
 class JSONWriter(FileWriter):
-    """Writer to JSON file."""
+    """Писатель в JSON файл."""
     def __enter__(self) -> JSONWriter:
         super().__enter__()
         self._wrote_count = 0
-        self._file.write('[')
+        self._items: list[dict[str, Any]] = []  # Собираем элементы в список для валидного JSON
         return self
 
     def __exit__(self, *exc_info) -> None:
-        if self._wrote_count > 0:
-            self._file.write(os.linesep)
-        self._file.write(']')
+        # Записываем весь список одним вызовом json.dump для гарантии валидного JSON
+        json.dump(self._items, self._file, ensure_ascii=False, indent=2)
         super().__exit__(*exc_info)
 
     def _writedoc(self, catalog_doc: Any) -> None:
-        """Write a `catalog_doc` into JSON document."""
+        """Добавляет документ в список для последующей записи в JSON.
+
+        Args:
+            catalog_doc: JSON-документ Catalog Item API.
+        """
         item = catalog_doc['result']['items'][0]
 
         if self._options.verbose:
@@ -34,18 +36,15 @@ class JSONWriter(FileWriter):
 
             logger.info('Парсинг [%d] > %s', self._wrote_count + 1, name)
 
-        if self._wrote_count > 0:
-            self._file.write(',')
-
-        self._file.write(os.linesep)
-        self._file.write(json.dumps(item, ensure_ascii=False))
+        # Добавляем элемент в список вместо ручной записи
+        self._items.append(item)
         self._wrote_count += 1
 
     def write(self, catalog_doc: Any) -> None:
-        """Write Catalog Item API JSON document down to JSON file.
+        """Записывает JSON-документ Catalog Item API в JSON файл.
 
         Args:
-            catalog_doc: Catalog Item API JSON document.
+            catalog_doc: JSON-документ Catalog Item API.
         """
         if not self._check_catalog_doc(catalog_doc):
             return

@@ -10,46 +10,46 @@ if TYPE_CHECKING:
 
 
 class FirmParser(MainParser):
-    """Parser for the firms provided by 2GIS.
+    """Парсер для фирм, предоставленных 2GIS.
 
-    URL pattern for such cases: https://2gis.<domain>/<city_id>/firm/<firm_id>
+    URL-паттерн для таких случаев: https://2gis.<domain>/<city_id>/firm/<firm_id>
     """
     @staticmethod
     def url_pattern():
-        """URL pattern for the parser."""
+        """URL-паттерн для парсера."""
         return r'https?://2gis\.[^/]+(/[^/]+)?/firm/.*'
 
     def parse(self, writer: FileWriter) -> None:
-        """Parse URL with an organization.
+        """Парсит URL с организацией.
 
         Args:
-            writer: Target file writer.
+            writer: Целевой файловый писатель.
         """
-        # Go URL
+        # Переходим по URL
         self._chrome_remote.navigate(self._url, referer='https://google.com', timeout=120)
 
-        # Document loaded, get its response
+        # Документ загружен, получаем ответ
         responses = self._chrome_remote.get_responses(timeout=5)
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
         document_response = responses[0]
 
-        # Handle 404
+        # Обработка 404
         if document_response['mimeType'] != 'text/html':
             logger.error('Неверный тип MIME ответа: %s', document_response['mimeType'])
             return
-            
+
         if document_response['status'] == 404:
             logger.warning('Сервер вернул сообщение "Организация не найдена".')
 
             if self._options.skip_404_response:
                 return
 
-        # Wait all 2GIS requests get finished
+        # Ждём завершения всех запросов 2GIS
         self._wait_requests_finished()
 
-        # Gather response and collect useful payload.
+        # Получаем ответ и собираем полезную нагрузку.
         initial_state = self._chrome_remote.execute_script('window.initialState')
         data = list(initial_state['data']['entity']['profile'].values())
         if not data:
@@ -57,7 +57,7 @@ class FirmParser(MainParser):
             return
         doc = data[0]
 
-        # Write API document into a file
+        # Записываем API документ в файл
         writer.write({
             'result': {
                 'items': [doc['data']]

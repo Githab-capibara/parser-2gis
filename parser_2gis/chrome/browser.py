@@ -28,6 +28,12 @@ class ChromeBrowser():
         if not binary_path:
             raise ChromePathNotFound
 
+        # Валидация binary_path: проверка на существование и абсолютный путь
+        if not os.path.isabs(binary_path):
+            raise ValueError(f'Путь к браузеру должен быть абсолютным: {binary_path}')
+        if not os.path.exists(binary_path):
+            raise FileNotFoundError(f'Путь к браузеру не существует: {binary_path}')
+
         logger.debug('Запуск Chrome Браузера.')
 
         self._profile_path = tempfile.mkdtemp()
@@ -37,7 +43,8 @@ class ChromeBrowser():
             f'--remote-debugging-port={self._remote_port}',
             f'--user-data-dir={self._profile_path}', '--no-default-browser-check',
             '--no-first-run', '--no-sandbox', '--disable-fre',
-            '--remote-allow-origins=*',
+            # Ограничиваем remote-allow-origins для безопасности
+            '--remote-allow-origins=http://localhost',
             f'--js-flags=--expose-gc --max-old-space-size={chrome_options.memory_limit}',
         ]
 
@@ -72,9 +79,17 @@ class ChromeBrowser():
         Returns:
             `True` при успешном удалении, `False` при неудаче.
         """
-        shutil.rmtree(self._profile_path, ignore_errors=True)
-        profile_deleted = not os.path.isdir(self._profile_path)
-        return profile_deleted
+        try:
+            shutil.rmtree(self._profile_path, ignore_errors=True)
+            profile_deleted = not os.path.isdir(self._profile_path)
+            return profile_deleted
+        except Exception:
+            # Принудительное удаление при ошибке
+            try:
+                shutil.rmtree(self._profile_path, ignore_errors=True)
+            except Exception:
+                pass
+            return False
 
     def close(self) -> None:
         """Закрывает браузер и удаляет временный профиль."""

@@ -6,12 +6,12 @@ import PySimpleGUI as sg
 
 
 class RubricsTree(sg.Tree):  # type: ignore
-    """Rubrics tree.
+    """Дерево рубрик.
 
     Args:
-        rubrics: Rubrics dictionary.
-        image_parent: Image for parent rubric.
-        image_item: Image for rubric.
+        rubrics: Словарь рубрик.
+        image_parent: Изображение для родительской рубрики.
+        image_item: Изображение для рубрики.
     """
     def __init__(self, rubrics: dict[str, Any], image_parent: bytes | None = None,
                  image_item: bytes | None = None, *args, **kwargs) -> None:
@@ -23,14 +23,14 @@ class RubricsTree(sg.Tree):  # type: ignore
 
     def _build_tree(self, root_code: str = '0',
                     tree: sg.TreeData | None = None) -> sg.TreeData:
-        """Get tree data out of `_rubrics`.
+        """Получает данные дерева из `_rubrics`.
 
         Args:
-            root_code: Root key (always '0').
-            tree: Tree data (always None).
+            root_code: Корневой ключ (всегда '0').
+            tree: Данные дерева (всегда None).
 
         Returns:
-            Generated tree data.
+            Сгенерированные данные дерева.
         """
         node = self._rubrics[root_code]
         parent_code = node['parentCode']
@@ -44,7 +44,7 @@ class RubricsTree(sg.Tree):  # type: ignore
             tree = sg.TreeData()
 
         if root_code != '0':
-            # Change root to sg's '', instead of default '0'
+            # Меняем root на sg's '', вместо стандартного '0'
             assert tree
             tree.Insert('' if parent_code == '0' else parent_code,
                         root_code, node['label'], values=[],
@@ -56,10 +56,10 @@ class RubricsTree(sg.Tree):  # type: ignore
         return tree
 
     def expand(self, expand: bool = True) -> None:
-        """Expand tree.
+        """Развернуть дерево.
 
         Args:
-            expand: Whether to expand or collapse the tree.
+            expand: Развернуть или свернуть дерево.
         """
         def recursive_expand(parent: str = '') -> None:
             self.widget.item(parent, open=expand)
@@ -69,24 +69,24 @@ class RubricsTree(sg.Tree):  # type: ignore
         recursive_expand()
 
     def clear(self) -> None:
-        """Clear tree."""
+        """Очистить дерево."""
         self.widget.delete(*self.widget.get_children())
 
     def filter(self, query: str) -> None:
-        """Filter tree by user search query.
+        """Фильтрует дерево по поисковому запросу пользователя.
 
         Args:
-            query: User search query.
+            query: Поисковый запрос пользователя.
         """
         def mark_visible_nodes(root_code: str = '0') -> bool:
-            """Tree traversal with marking nodes
-            matches specified user query.
+            """Обход дерева с отметкой узлов,
+            соответствующих указанному запросу пользователя.
 
             Args:
-                root_code: Root key (always '0').
+                root_code: Корневой ключ (всегда '0').
 
             Returns:
-                Root node visibility.
+                Видимость корневого узла.
             """
             node = self._rubrics[root_code]
             children = node['children']

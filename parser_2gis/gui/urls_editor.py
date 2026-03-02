@@ -21,9 +21,9 @@ if GUI_ENABLED:
 
 def create_text_widget(column_element: sg.Element, containing_frame: tk.Frame,
                        toplevel_form: sg.Window) -> tk.Widget:
-    """Callback for `custom_widget_hook` that creates and
-    returns Line Numbered Text Widget."""
-    # Create and setup Line Numbered Text Widget
+    """Callback для `custom_widget_hook`, который создаёт и
+    возвращает виджет текста с номерами строк."""
+    # Создаём и настраиваем виджет текста с номерами строк
     urls_widget = LineNumberedText(column_element.TKColFrame)
     urls_widget.pack(side='top', fill='both', expand=True)
     urls_widget.text.configure(background=COLOR_WHITE,
@@ -43,13 +43,13 @@ def create_text_widget(column_element: sg.Element, containing_frame: tk.Frame,
 
 @ensure_gui_enabled
 def gui_urls_editor(urls: list[str]) -> list[str] | None:
-    """Run URLs editor.
+    """Запускает редактор URL.
 
     Args:
-        urls: Currently set urls.
+        urls: Текущие установленные URL.
 
     Returns:
-        List of URLs or `None` on cancel.
+        Список URL или `None` при отмене.
     """
     # Применяем современную тему
     apply_theme('modern')

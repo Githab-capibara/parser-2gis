@@ -58,14 +58,14 @@ class Schedule(BaseModel):
     date_to: Optional[str] = None
 
     def to_str(self, join_char: str, add_comment: bool = False) -> str:
-        """Schedule as a string.
+        """Расписание как строка.
 
         Args:
-            join_char: Char for splitting split days.
-            add_comment: Whether to add comment at the end.
+            join_char: Символ для разделения дней.
+            add_comment: Добавлять ли комментарий в конце.
 
         Returns:
-            Schedule as a string.
+            Расписание в виде строки.
         """
         days_names = [x.name for x in self.__fields__.values() if x.type_ == ScheduleDay]
         days_mapping = dict(Mon='Пн', Tue='Вт', Wed='Ср', Thu='Чт', Fri='Пт', Sat='Сб', Sun='Вс')

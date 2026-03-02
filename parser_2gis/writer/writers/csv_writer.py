@@ -4,6 +4,7 @@ import csv
 import os
 import re
 import shutil
+from contextlib import ExitStack
 from typing import Any, Callable
 
 from pydantic import ValidationError
@@ -123,8 +124,10 @@ class CSVWriter(FileWriter):
         # Заполнение нового csv
         tmp_csv_name = os.path.splitext(self._file_path)[0] + '.removed-columns.csv'
 
-        with self._open_file(tmp_csv_name, 'w') as f_tmp_csv, \
-                self._open_file(self._file_path, 'r') as f_csv:
+        # Используем ExitStack для гарантии закрытия всех файлов даже при exception
+        with ExitStack() as stack:
+            f_tmp_csv = stack.enter_context(self._open_file(tmp_csv_name, 'w'))
+            f_csv = stack.enter_context(self._open_file(self._file_path, 'r'))
             csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
             csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
             csv_writer.writerow(new_data_mapping)  # Запись нового заголовка
@@ -140,14 +143,19 @@ class CSVWriter(FileWriter):
     def _remove_duplicates(self) -> None:
         """Постобработка: Удаление дубликатов."""
         tmp_csv_name = os.path.splitext(self._file_path)[0] + '.deduplicated.csv'
-        with self._open_file(tmp_csv_name, 'w') as f_tmp_csv, \
-                self._open_file(self._file_path, 'r') as f_csv:
+        
+        # Используем ExitStack для гарантии закрытия файлов
+        with ExitStack() as stack:
+            f_tmp_csv = stack.enter_context(self._open_file(tmp_csv_name, 'w'))
+            f_csv = stack.enter_context(self._open_file(self._file_path, 'r'))
             seen_records = set()
             for line in f_csv:
-                if line in seen_records:
+                # Нормализуем строку: удаляем завершающие пробелы и newlines для корректного сравнения
+                normalized_line = line.rstrip('\r\n')
+                if normalized_line in seen_records:
                     continue
 
-                seen_records.add(line)
+                seen_records.add(normalized_line)
                 f_tmp_csv.write(line)
 
         # Замена оригинального файла новым
@@ -190,8 +198,9 @@ class CSVWriter(FileWriter):
                 error_msg = description['error_message']
                 errors.append(f'[*] Поле: {path}, значение: {arg}, ошибка: {error_msg}')
 
+            # Sanitize вывод: не раскрываем полную структуру документа API
             error_str = 'Ошибка парсинга:\n' + '\n'.join(errors)
-            error_str += '\nДокумент каталога: ' + str(catalog_doc)
+            error_str += f'\nДокумент каталога (тип: {item.get("type", "неизвестно")}, ID: {item.get("id", "неизвестно")})'
             logger.error(error_str)
 
             return {}
