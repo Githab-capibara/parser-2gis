@@ -1,4 +1,4 @@
-# Patch pychrome, make it handle correctly empty CDP messages
+# Патч для pychrome - исправляет обработку пустых сообщений Chrome DevTools Protocol
 
 import pychrome.tab
 import json

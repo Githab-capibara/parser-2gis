@@ -10,8 +10,8 @@ from ..common import floor_to_hundreds
 
 
 def default_memory_limit() -> int:
-    """Лимит памяти по умолчанию для V8, 0.75 от общей физической памяти."""
-    memory_total = psutil.virtual_memory().total / 1024 ** 2  # MB
+    """Лимит памяти по умолчанию для V8 - 0.75 от общей физической памяти в МБ."""
+    memory_total = psutil.virtual_memory().total / 1024 ** 2  # Конвертируем в МБ
     return floor_to_hundreds(round(0.75 * memory_total))
 
 

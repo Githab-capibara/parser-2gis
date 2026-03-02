@@ -34,7 +34,7 @@ def blocked_requests(extended: bool = False) -> list[str]:
         'https://vk.com/*',
     ]
 
-    # Styles, map tiles, images, etc.
+    # Стили, плитки карт, изображения и прочие ресурсы визуализации
     blocked_requests_extra: list[str] = [
         'https://d-assets.2gis.*/fonts/*',
         'https://mapgl.2gis.*/api/fonts/*',

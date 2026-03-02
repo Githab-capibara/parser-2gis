@@ -53,7 +53,7 @@ def gui_settings(config: Configuration) -> None:
                    'text_color': COLOR_TEXT_SECONDARY,
                    'font': get_font(FONT_SIZE_SM)}
 
-    # Window layout - современный дизайн с вкладками
+    # Макет окна - современный дизайн с вкладками настроек
     layout = [
         # Заголовок окна настроек
         [
@@ -293,15 +293,15 @@ def gui_settings(config: Configuration) -> None:
                        font=get_font(FONT_SIZE_BASE), modal=True, keep_on_top=True,
                        resizable=True, size=(700, 600), min_size=(600, 500))
 
-    # Main loop
+    # Основной цикл обработки событий
     while True:
         event, values = window.Read()
 
-        # Close window
+        # Закрываем окно по кнопке отмены или закрытию окна
         if event in (None, '-BTN_CANCEL-'):
             break
 
-        # Chrome settings
+        # Сохраняем параметры Chrome и других компонентов
         elif event == '-BTN_SAVE-':
             new_parameters_flat = {k.strip('-').lower(): v for k, v in values.items()}
             new_parameters = unwrap_dot_dict(new_parameters_flat)
@@ -321,7 +321,7 @@ def gui_settings(config: Configuration) -> None:
 
                 gui_error_popup('\n\n'.join(errors))
             except Exception as e:
-                # Print the error to console and close the window
+                # Выводим ошибку в консоль и закрываем окно
                 logger.error('Ошибка при сохранении параметров:\n%s', e, exc_info=True)
                 break
 
