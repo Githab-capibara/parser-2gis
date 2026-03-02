@@ -7,11 +7,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/interlark/parser-2gis/actions/workflows/tests.yml"><img src="https://github.com/interlark/parser-2gis/actions/workflows/tests.yml/badge.svg" alt="Tests"/></a>
+  <a href="https://github.com/Githab-capibara/parser-2gis/actions/workflows/tests.yml"><img src="https://github.com/interlark/parser-2gis/actions/workflows/tests.yml/badge.svg" alt="Tests"/></a>
   <a href="https://pypi.org/project/parser-2gis"><img src="https://badgen.net/pypi/v/parser-2gis" alt="PyPi version"/></a>
   <a href="https://pypi.org/project/parser-2gis"><img src="https://badgen.net/pypi/python/parser-2gis" alt="Supported Python versions"/></a>
-  <a href="https://github.com/interlark/parser-2gis/releases"><img src="https://img.shields.io/github/downloads/interlark/parser-2gis/total.svg" alt="Downloads"/></a>
-  <a href="https://github.com/interlark/parser-2gis"><img src="https://img.shields.io/github/stars/interlark/parser-2gis" alt="GitHub stars"/></a>
+  <a href="https://github.com/Githab-capibara/parser-2gis/releases"><img src="https://img.shields.io/github/downloads/interlark/parser-2gis/total.svg" alt="Downloads"/></a>
+  <a href="https://github.com/Githab-capibara/parser-2gis"><img src="https://img.shields.io/github/stars/interlark/parser-2gis" alt="GitHub stars"/></a>
 </p>
 
 **Parser2GIS** — парсер сайта [2GIS](https://2gis.ru/) с помощью браузера [Google Chrome](https://google.com/chrome).
@@ -41,23 +41,24 @@
 
 Parser2GIS — это инструмент для автоматического сбора базы адресов и контактов предприятий, которые работают на территории следующих стран:
 
-- 🇷🇺 Россия
-- 🇰🇿 Казахстан
-- 🇧🇾 Беларусь
-- 🇦🇿 Азербайджан
-- 🇰🇬 Киргизия
-- 🇺🇿 Узбекистан
-- 🇨🇿 Чехия
-- 🇪🇬 Египет
-- 🇮🇹 Италия
-- 🇸🇦 Саудовская Аравия
-- 🇨🇾 Кипр
-- 🇦🇪 ОАЭ
-- 🇨🇱 Чили
-- 🇶🇦 Катар
-- 🇴🇲 Оман
-- 🇧🇭 Бахрейн
-- 🇰🇼 Кувейт
+- 🇷🇺 **Россия** (155 городов)
+- 🇰🇿 **Казахстан** (18 городов)
+- 🇧🇾 **Беларусь** (Минск)
+- 🇦🇿 **Азербайджан** (Баку)
+- 🇰🇬 **Киргизия** (Бишкек, Ош)
+- 🇺🇿 **Узбекистан** (Ташкент, Самарканд)
+- 🇨🇿 **Чехия** (Прага)
+- 🇪🇬 **Египет** (Новый Каир)
+- 🇮🇹 **Италия** (Падуя)
+- 🇸🇦 **Саудовская Аравия** (14 городов)
+- 🇨🇾 **Кипр**
+- 🇦🇪 **ОАЭ**
+- 🇨🇱 **Чили** (Сантьяго)
+- 🇶🇦 **Катар**
+- 🇴🇲 **Оман**
+- 🇧🇭 **Бахрейн**
+- 🇰🇼 **Кувейт**
+- 🇮🇶 **Ирак** (Басра)
 
 Парсер извлекает данные из API 2GIS, включая:
 - Наименование и описание организации
@@ -94,7 +95,7 @@ Parser2GIS — это инструмент для автоматического
 
 ### Установка одним файлом
 
-Скачайте последний [релиз](https://github.com/interlark/parser-2gis/releases/latest).
+Скачайте последний [релиз](https://github.com/Githab-capibara/parser-2gis/releases/latest).
 
 ### Установка из PyPI
 
@@ -110,7 +111,7 @@ pip install parser-2gis[gui]
 
 ```bash
 # Клонируйте репозиторий
-git clone https://github.com/interlark/parser-2gis.git
+git clone https://github.com/Githab-capibara/parser-2gis.git
 cd parser-2gis
 
 # Установите зависимости
@@ -551,8 +552,6 @@ python setup.py build_standalone
 
 ## 📝 История изменений
 
-Полная история изменений доступна в [CHANGELOG.md](CHANGELOG.md).
-
 ### Последние изменения
 
 #### [1.2.1] — 14-03-2024
@@ -568,6 +567,58 @@ python setup.py build_standalone
 - ✅ Поддержка Chrome v111
 - ✅ Новый город Басра (Ирак)
 - ✅ Обновлён список рубрик и городов
+
+#### [1.1.1] — 03-02-2023
+- ✅ Обновлён список рубрик и городов
+- ✅ Добавлены поля контактов "Telegram", "Viber" и "WhatsApp"
+
+#### [1.1.0] — 05-01-2023
+- ✅ Обновлён список рубрик и городов
+- ✅ Добавлены поля "Рейтинг" и "Количество отзывов"
+- ✅ Добавлена возможность записи результата в Excel таблицу
+- ✅ Добавлена автоматическая навигация к странице, если в URL есть параметр страницы `/page/<номер_страницы>`
+
+#### [0.1.10] — 25-10-2022
+- ✅ Обновлён список рубрик и городов
+- ⚠️ Отключен скрытый режим парсинга по-умолчанию
+
+#### [0.1.9] — 18-08-2022
+- ✅ Новые рубрики: *Клубы настольного тенниса, Атрибутика для болельщиков, Полицейские станции*
+- ✅ Поддержка парсинга ссылок "В здании"
+
+#### [0.1.8] — 10-08-2022
+- ✅ Совместимость с Windows 7, Windows 8
+
+#### [0.1.7] — 19-07-2022
+- ⚠️ Исправлена возможная ошибка во время получения нового ключа авторизации
+- ⚠️ Исправлен баг с остановкой парсера при возникновении ошибки
+- ✅ Новые рубрики: *Прокат компьютеров / ноутбуков, Буккроссинг, Пляжные принадлежности, Администрация города/посёлка/села*
+
+#### [0.1.6] — 03-07-2022
+- ⚠️ Исправлен релиз под Linux
+- ⚠️ Пропуск некорректных ответов сервера (JSON expected)
+- ✅ Новая страна: *Кувейт*
+- ✅ Новые рубрики: *Купальники, Мебель для салонов красоты, Дневные детские лагеря*
+
+#### [0.1.5] — 25-05-2022
+- ⚠️ Исправлен баг с редкой ошибкой чтения ответа сервера при парсинге CSV
+- ✅ Колонка "Часовой пояс" в CSV
+
+#### [0.1.4] — 24-05-2022
+- ⚠️ Исправлен баг с неполным удалением временного профиля браузера
+
+#### [0.1.3] — 23-05-2022
+- ⚠️ CSV: Исправлено название колонки `Веб сайт` -> `Веб-сайт`
+- ⚠️ Usage: Убрана ошибочно влезшая версия конфигурации
+
+#### [0.1.2] — 22-05-2022
+- ✅ Предупреждение при неудачной попытке загрузки GUI
+
+#### [0.1.1] — 22-05-2022
+- ⚠️ Ссылка на репозиторий внутри модуля и в манифесте
+
+#### [0.1.0] — 22-05-2022
+- ✅ Первый релиз
 
 ---
 
@@ -617,10 +668,10 @@ along with Parser2GIS.  If not, see <https://www.gnu.org/licenses/>.
 
 ## 📞 Контакты
 
-- **GitHub**: [https://github.com/interlark/parser-2gis](https://github.com/interlark/parser-2gis)
+- **GitHub**: [https://github.com/Githab-capibara/parser-2gis](https://github.com/Githab-capibara/parser-2gis)
 - **PyPI**: [https://pypi.org/project/parser-2gis](https://pypi.org/project/parser-2gis)
 - **Документация**: [https://github.com/interlark/parser-2gis/wiki](https://github.com/interlark/parser-2gis/wiki)
-- **Changelog**: [https://github.com/interlark/parser-2gis/blob/main/CHANGELOG.md](https://github.com/interlark/parser-2gis/blob/main/CHANGELOG.md)
+- **Changelog**: [https://github.com/Githab-capibara/parser-2gis/blob/main/CHANGELOG.md](https://github.com/Githab-capibara/parser-2gis/blob/main/CHANGELOG.md)
 
 ---
 
