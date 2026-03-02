@@ -8,20 +8,26 @@ from .file_writer import FileWriter
 
 
 class JSONWriter(FileWriter):
-    """Писатель в JSON файл."""
+    """Писатель в JSON файл.
+    
+    Записывает элементы в JSON файл в потоковом режиме для предотвращения
+    переполнения памяти при больших объёмах данных.
+    """
     def __enter__(self) -> JSONWriter:
         super().__enter__()
         self._wrote_count = 0
-        self._items: list[dict[str, Any]] = []  # Собираем элементы в список для валидного JSON
+        self._first_item = True
+        # Записываем открывающую скобку массива
+        self._file.write('[\n')
         return self
 
     def __exit__(self, *exc_info) -> None:
-        # Записываем весь список одним вызовом json.dump для гарантии валидного JSON
-        json.dump(self._items, self._file, ensure_ascii=False, indent=2)
+        # Записываем закрывающую скобку массива
+        self._file.write('\n]')
         super().__exit__(*exc_info)
 
     def _writedoc(self, catalog_doc: Any) -> None:
-        """Добавляет документ в список для последующей записи в JSON.
+        """Добавляет документ в JSON файл.
 
         Args:
             catalog_doc: JSON-документ Catalog Item API.
@@ -36,8 +42,11 @@ class JSONWriter(FileWriter):
 
             logger.info('Парсинг [%d] > %s', self._wrote_count + 1, name)
 
-        # Добавляем элемент в список вместо ручной записи
-        self._items.append(item)
+        # Записываем элемент сразу в файл для экономии памяти
+        if not self._first_item:
+            self._file.write(',\n')
+        json.dump(item, self._file, ensure_ascii=False, indent=2)
+        self._first_item = False
         self._wrote_count += 1
 
     def write(self, catalog_doc: Any) -> None:

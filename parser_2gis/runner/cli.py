@@ -32,7 +32,7 @@ class CLIRunner(AbstractRunner):
         except (KeyboardInterrupt, ChromeUserAbortException):
             logger.error('Работа парсера прервана пользователем.')
         except Exception as e:
-            if isinstance(e, ChromeRuntimeException) and str(e) == 'Tab has been stopped':
+            if isinstance(e, ChromeRuntimeException) and str(e) == 'Вкладка была остановлена':
                 logger.error('Вкладка браузера была закрыта.')
             else:
                 logger.error('Ошибка во время работы парсера.', exc_info=True)

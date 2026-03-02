@@ -48,9 +48,22 @@ class DOMNode(BaseModel):
     else:
         @validator('attributes', pre=True)
         def validate_attributes(cls, attributes_list: list[str]) -> dict[str, str]:
+            """Валидирует список атрибутов, преобразуя его в словарь.
+            
+            Args:
+                attributes_list: Список атрибутов в формате [name1, value1, name2, value2, ...].
+                
+            Returns:
+                Словарь атрибутов {name1: value1, name2: value2, ...}.
+                
+            Raises:
+                ValueError: Если список содержит нечётное количество элементов.
+            """
             attributes = {}
             attributes_list_count = len(attributes_list)
-            assert attributes_list_count % 2 == 0
+            if attributes_list_count % 2 != 0:
+                # Явно выбрасываем исключение вместо assert для надёжности
+                raise ValueError('Список атрибутов должен содержать чётное количество элементов')
             for name_idx in range(0, attributes_list_count, 2):
                 attributes[attributes_list[name_idx]] = attributes_list[name_idx + 1]
 

@@ -231,7 +231,7 @@ class ChromeRemote:
         self._ping_thread.start()
 
         def get_send_with_reraise() -> Callable[..., Any]:
-            """Повторно выбрасывает "Tab has been stopped" вместо `UserAbortException`,
+            """Повторно выбрасывает "Вкладка была остановлена" вместо `UserAbortException`,
             если обнаружена отсоединение вкладки."""
             original_send = self._chrome_tab._send
 
@@ -241,7 +241,7 @@ class ChromeRemote:
                 except pychrome.UserAbortException:
                     with tab_detached_lock:
                         if tab_detached:
-                            raise pychrome.RuntimeException('Tab has been stopped')
+                            raise pychrome.RuntimeException('Вкладка была остановлена')
                         else:
                             raise
             return wrapped_send
