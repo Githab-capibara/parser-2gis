@@ -33,7 +33,7 @@ def gui_error_popup(error_msg: str) -> None:
         textwrap.wrap(error_msg, width=70, replace_whitespace=False, break_on_hyphens=False)
     )
 
-    # Window layout - современный дизайн
+    # Макет окна - современный дизайн
     layout = [
         # Иконка ошибки и заголовок
         [
@@ -57,7 +57,7 @@ def gui_error_popup(error_msg: str) -> None:
                pad=(SPACING_SM, SPACING_MD)),
         ],
         
-        # Кнопка закрытия
+        # Кнопка для закрытия окна
         [
             sg.Column([
                 [
@@ -81,7 +81,7 @@ def gui_error_popup(error_msg: str) -> None:
     while True:
         event, _ = window.Read()
 
-        # Close window
+        # Закрываем окно по клику на кнопку или при закрытии окна
         if event in (None, '-BTN_CLOSE-'):
             break
 

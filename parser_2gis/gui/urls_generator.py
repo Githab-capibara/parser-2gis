@@ -41,7 +41,7 @@ def gui_urls_generator() -> list[str]:
         gui_error_popup(f'Файл {cities_path.name} повреждён:\n{e}')
         return []
 
-    # Countries available
+    # Доступные страны с их кодами
     default_city_code = 'ru'
     country_code_to_name = dict(
         ae='Объединенные Арабские Эмираты', iq='Ирак',
@@ -81,7 +81,7 @@ def gui_urls_generator() -> list[str]:
                               'font': get_font(FONT_SIZE_BASE),
                               'pad': (SPACING_SM, SPACING_XS)}
 
-    # Checkbox layouts
+    # Макеты с чекбоксами для выбора городов по странам
     checkbox_layouts = {}
     for country_code in country_code_to_name.keys():
         layout = []
@@ -97,10 +97,10 @@ def gui_urls_generator() -> list[str]:
             expand_x=True, expand_y=True, visible=False,
             background_color=COLOR_BACKGROUND)
 
-    # Obtain screen dimensions
+    # Получаем размеры экрана для оптимального расположения окна
     _, screen_height = sg.Window.get_screen_size()
 
-    # Window layout - современный дизайн
+    # Макет окна - современный дизайн
     layout = [
         # Заголовок
         [
@@ -275,13 +275,13 @@ def gui_urls_generator() -> list[str]:
 
         return urls
 
-    # Set default layout
+    # Устанавливаем макет по умолчанию
     update_checkbox_layouts(country_code_to_name[default_city_code])
 
-    # Result urls
+    # Список результирующих URL
     ret_urls = []
 
-    # Main loop
+    # Основной цикл обработки событий
     while True:
         event, values = window.read()
 
