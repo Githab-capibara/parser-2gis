@@ -50,10 +50,12 @@ def wait_until_finished(timeout: int | None = None,
     """
     def outer(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def inner(*args, timeout: int | None = timeout,
+        def inner(*args, 
+                  timeout: int | None = timeout,
                   finished: Callable[[Any], bool] | None = finished,
                   throw_exception: bool = throw_exception,
-                  poll_interval: float = poll_interval, **kwargs):
+                  poll_interval: float = poll_interval, 
+                  **kwargs):
             # Инициализируем finished внутри функции для избежания изменяемого аргумента по умолчанию
             inner_finished = finished if finished is not None else lambda x: bool(x)
 
@@ -63,10 +65,9 @@ def wait_until_finished(timeout: int | None = None,
                 if inner_finished(ret):
                     return ret
 
-                # Переименовываем внутренний параметр для избежания путаницы
-                inner_timeout = timeout
-                if inner_timeout is not None:
-                    if time.time() - call_time > inner_timeout:
+                # Проверяем таймаут
+                if timeout is not None:
+                    if time.time() - call_time > timeout:
                         if throw_exception:
                             raise TimeoutError(func)
                         return ret

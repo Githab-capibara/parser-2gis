@@ -214,8 +214,10 @@ class CSVWriter(FileWriter):
                 errors.append(f'[*] Поле: {path}, значение: {arg}, ошибка: {error_msg}')
 
             # Безопасность: не раскрываем полную структуру документа API
+            item_type = item.get('type', 'неизвестно')
+            item_id = item.get('id', 'неизвестно')
             error_str = 'Ошибка парсинга:\n' + '\n'.join(errors)
-            error_str += f'\nДокумент каталога (тип: {item.get("type", "неизвестно")}, ID: {item.get("id", "неизвестно")})'
+            error_str += f'\nДокумент каталога (тип: {item_type}, ID: {item_id})'
             logger.error(error_str)
 
             # Возвращаем пустой словарь для индикации ошибки

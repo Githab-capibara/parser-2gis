@@ -37,19 +37,14 @@ class Configuration(BaseModel):
             if fields_set is None:
                 # Fallback для Pydantic v1
                 fields_set = getattr(model_source, '__fields_set__', set())
-            
+
             for field in fields_set:
                 source_attr = getattr(model_source, field)
                 if not isinstance(source_attr, BaseModel):
                     setattr(model_target, field, source_attr)
                 else:
                     target_attr = getattr(model_target, field)
-                    # Заменяем assert на явную проверку с исключением
-                    if not isinstance(target_attr, BaseModel):
-                        raise TypeError(
-                            f'Ожидалась BaseModel для поля {field}, '
-                            f'получено {type(target_attr).__name__}'
-                        )
+                    # Рекурсивно объединяем вложенные модели
                     assign_attributes(source_attr, target_attr)
 
         assign_attributes(other_config, self)
@@ -59,10 +54,10 @@ class Configuration(BaseModel):
         if self.path:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             # Используем model_dump_json для совместимости с Pydantic v2
+            import json
             if hasattr(self, 'model_dump_json'):
                 json_str = self.model_dump_json(exclude={'path'}, ensure_ascii=False)
                 # Форматируем JSON с отступами
-                import json
                 data = json.loads(json_str)
                 json_str = json.dumps(data, ensure_ascii=False, indent=4)
             else:
@@ -107,7 +102,7 @@ class Configuration(BaseModel):
                 # Используем model_validate_json для совместимости с Pydantic v2
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config_data = f.read()
-                
+
                 if hasattr(cls, 'model_validate_json'):
                     config = cls.model_validate_json(config_data)
                 else:
@@ -124,9 +119,9 @@ class Configuration(BaseModel):
                     if backup_path.exists():
                         logger.warning('Создан backup повреждённой конфигурации: %s', backup_path)
                     else:
-                        logger.warning('Backup создан не был: %s', backup_path)
+                        logger.warning('Не удалось создать backup: %s', backup_path)
                 except OSError as copy_err:
-                    logger.warning('Не удалось создать backup конфигурации: %s', copy_err)
+                    logger.warning('Ошибка при создании backup конфигурации: %s', copy_err)
 
             warning_msg = 'Не удалось загрузить конфигурацию: '
             if isinstance(e, ValidationError):
