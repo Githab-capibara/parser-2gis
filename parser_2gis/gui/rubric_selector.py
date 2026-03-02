@@ -23,24 +23,24 @@ if GUI_ENABLED:
 
 def filtered_rubrics(rubrics: dict[str, Any],
                      is_russian: bool = True) -> dict[str, Any]:
-    """Filter rubrics on russian/non russian nodes.
+    """Фильтрует рубрики на русские/не русские узлы.
 
     Args:
-        rubrics: Loaded rubric dictionary.
-        is_russian: Filter criteria.
+        rubrics: Загруженный словарь рубрик.
+        is_russian: Критерий фильтрации.
 
     Returns:
-        Filtered rubric dictionary.
+        Отфильтрованный словарь рубрик.
     """
-    # Filter nodes
+    # Фильтрация узлов
     if is_russian:
-        # Rubrics for Russia
+        # Рубрики для России
         rubrics = {k: v for k, v in rubrics.items() if v.get('isRussian', True)}
     else:
-        # Rubrics for Non-russian countries
+        # Рубрики для нерусских стран
         rubrics = {k: v for k, v in rubrics.items() if v.get('isNonRussian', True)}
 
-    # Fix references
+    # Исправление ссылок
     for node in rubrics.values():
         node['children'] = [x for x in node['children'] if x in rubrics]
 
@@ -49,8 +49,8 @@ def filtered_rubrics(rubrics: dict[str, Any],
 
 def create_search_widget(column_element: sg.Element, containing_frame: tk.Frame,
                          toplevel_form: sg.Window) -> tk.Widget:
-    """Callback for `custom_widget_hook` that creates and
-    returns Search Widget."""
+    """Callback для `custom_widget_hook`, который создаёт и
+    возвращает виджет поиска."""
     search_widget = CustomEntry(column_element.TKColFrame, width=60)
     search_widget.pack(side='top', fill='both', expand=True)
     setup_text_widget(search_widget, toplevel_form.TKroot, menu_clear=False)
@@ -69,21 +69,21 @@ def create_search_widget(column_element: sg.Element, containing_frame: tk.Frame,
 
 @ensure_gui_enabled
 def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
-    """Run rubric selector.
+    """Запускает выбор рубрики.
 
-    Run form that could help user to specify rubric.
+    Запускает форму, которая может помочь пользователю указать рубрику.
 
     Args:
-        is_russian: Whether rubrics for Russia or not.
+        is_russian: Рубрики для России или нет.
 
     Returns:
-        Dictionary representing selected rubric
-        or `None` if nothing selected.
+        Словарь, представляющий выбранную рубрику,
+        или `None`, если ничего не выбрано.
     """
     # Применяем современную тему
     apply_theme('modern')
 
-    # Locate and load rubrics list
+    # Находим и загружаем список рубрик
     rubric_path = data_path() / 'rubrics.json'
     if not rubric_path.is_file():
         raise FileNotFoundError(f'Файл {rubric_path} не найден')

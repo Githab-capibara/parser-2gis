@@ -6,16 +6,16 @@ from pydantic import BaseModel, Field, validator
 
 
 class CSVOptions(BaseModel):
-    """Represent all possible options for CSV Writer.
+    """Представляет все возможные опции для CSV Writer.
 
-    Attributes:
-        add_rubrics: Whether to add rubrics to csv or not.
-        add_comments: Add comments to complex columns (phones, emails, etc.)
-            with extra info, business hours.
-        columns_per_entity: Number of columns for a result with multiple possible values.
-        remove_empty_columns: Remove empty columns after parsing process finished.
-        remove_duplicates: Remove duplicates after parsing process finished.
-        join_char: Char for joining complex values.
+    Атрибуты:
+        add_rubrics: Добавлять ли рубрики в csv или нет.
+        add_comments: Добавлять комментарии к сложным колонкам (телефоны, email и т.д.)
+            с дополнительной информацией, часами работы.
+        columns_per_entity: Количество колонок для результата с несколькими возможными значениями.
+        remove_empty_columns: Удалять пустые колонки после завершения процесса парсинга.
+        remove_duplicates: Удалять дубликаты после завершения процесса парсинга.
+        join_char: Символ для объединения сложных значений.
     """
     add_rubrics: bool = True
     add_comments: bool = True
@@ -26,11 +26,11 @@ class CSVOptions(BaseModel):
 
 
 class WriterOptions(BaseModel):
-    """Represent all possible options for File Writer.
+    """Представляет все возможные опции для File Writer.
 
-    Attributes:
-       encoding: Encoding of output document.
-       verbose: Echo to stdout parsing item's name.
+    Атрибуты:
+       encoding: Кодировка выходного документа.
+       verbose: Выводить в stdout название элемента парсинга.
     """
     encoding: str = 'utf-8-sig'
     verbose: bool = True
@@ -38,7 +38,7 @@ class WriterOptions(BaseModel):
 
     @validator('encoding')
     def encoding_exists(cls, v: str) -> str:
-        """Determine if `encoding` exists."""
+        """Проверяет существование `encoding`."""
         try:
             codecs.lookup(v)
         except LookupError:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Download rubrics.
+# Загружаем рубрики.
 
 import json
 import os
@@ -18,7 +18,7 @@ for _ in range(2):
         if parent_dir not in sys.path:
             sys.path.insert(1, parent_dir)
 
-# Get available cities from https://data.2gis.com and save it to data/rubrics.json
+# Получаем доступные города с https://data.2gis.com и сохраняем в data/rubrics.json
 
 _REGIONS_LIST_RESPONSE = r'https://hermes.2gis.ru/api/data/availableParameters'
 
@@ -31,23 +31,23 @@ with ChromeRemote(chrome_options, [_REGIONS_LIST_RESPONSE]) as chrome_remote:
     try:
         doc = json.loads(data)
     except json.JSONDecodeError:
-        print('Returned invalid JSON document!', file=sys.stderr)
+        print('Возвращён некорректный JSON документ!', file=sys.stderr)
         exit(1)
 
     if not doc:
-        print('No response, bail!', file=sys.stderr)
+        print('Нет ответа, выходим!', file=sys.stderr)
         exit(1)
 
-    # Cherry-pick
+    # Отбираем нужное
     rubrics = doc['rubrics']
     for v in rubrics.values():
         del v['totalCount']
         del v['groupId']
 
-    # Check for special None rubric
+    # Проверка специальной None рубрики
     assert any(x['label'] == 'Без рубрики' for x in rubrics.values())
 
-    # Save rubrics list
+    # Сохраняем список рубрик
     rubrics_path = parser_2gis.paths.data_path() / 'rubrics.json'
     with open(rubrics_path, 'w', encoding='utf-8') as f:
         json.dump(rubrics, f, ensure_ascii=False, indent=4)

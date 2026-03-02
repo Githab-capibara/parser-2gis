@@ -23,6 +23,25 @@ if TYPE_CHECKING:
     Request = Dict[str, Any]
     Response = Dict[str, Any]
 
+
+def _validate_remote_port(port: Any) -> int:
+    """Валидирует remote_port как integer в допустимом диапазоне.
+    
+    Args:
+        port: Значение порта для валидации.
+        
+    Returns:
+        Валидный номер порта.
+        
+    Raises:
+        ValueError: Если порт некорректен.
+    """
+    if not isinstance(port, int):
+        raise ValueError(f"remote_port должен быть integer, получен {type(port).__name__}")
+    if port < 1024 or port > 65535:
+        raise ValueError(f"remote_port должен быть в диапазоне 1024-65535, получен {port}")
+    return port
+
 # Применяем все пользовательские патчи
 patch_all()
 
@@ -60,13 +79,22 @@ class ChromeRemote:
             return False
 
     def start(self) -> None:
-        """Открывает браузер, создаёт новую вкладку, настраивает удалённый интерфейс."""
+        """Открывает браузер, создаёт новую вкладку, настраивает удалённый интерфейс.
+        
+        Raises:
+            ChromeException: Если не удалось подключиться к Chrome.
+        """
         # Открываем браузер
         self._chrome_browser = ChromeBrowser(self._chrome_options)
-        self._dev_url = f'http://127.0.0.1:{self._chrome_browser.remote_port}'
+        
+        # Валидируем порт перед использованием
+        remote_port = _validate_remote_port(self._chrome_browser.remote_port)
+        self._dev_url = f'http://127.0.0.1:{remote_port}'
 
-        # Подключаем браузер к CDP
-        self._connect_interface()
+        # Подключаем браузер к CDP с проверкой результата
+        if not self._connect_interface():
+            raise ChromeException("Не удалось подключиться к Chrome DevTools Protocol")
+        
         self._setup_tab()
         self._init_tab_monitor()
 
@@ -106,19 +134,20 @@ class ChromeRemote:
             if resource_type == 'Preflight':
                 return
 
-            # Добавляем ответ
+            # Добавляем ответ атомарно под блокировкой
             with self._requests_lock:
                 if request_id in self._requests:
                     request = self._requests[request_id]
                     response['request'] = request
                     request['response'] = response
 
-            # Если ответ нужен, помещаем его в очередь
-            for pattern in self._response_patterns:
-                if re.match(pattern, response['url']):
-                    self._response_queues[pattern].put(response)
+                    # Помещаем ответ в очередь атомарно, чтобы избежать гонки
+                    for pattern in self._response_patterns:
+                        if re.match(pattern, response['url']):
+                            self._response_queues[pattern].put(response)
 
         def loadingFailed(**kwargs) -> None:
+            """Обрабатывает неудачные загрузки запросов."""
             error_text = kwargs.get('errorText')
             blocked_reason = kwargs.get('blockedReason')
             status_text = ''
@@ -136,8 +165,7 @@ class ChromeRemote:
                 'statusText': status_text,
             }
 
-            # Добавляем ответ
-            request_url = None
+            # Унифицированный паттерн блокировки: всё под одним локом
             with self._requests_lock:
                 if request_id in self._requests:
                     request = self._requests[request_id]
@@ -145,11 +173,11 @@ class ChromeRemote:
                     request['response'] = response
                     request_url = request['url']
 
-            if request_url:
-                # Если ответ нужен, помещаем его в очередь
-                for pattern in self._response_patterns:
-                    if re.match(pattern, request_url):
-                        self._response_queues[pattern].put(response)
+                    # Если ответ нужен, помещаем его в очередь атомарно
+                    if request_url:
+                        for pattern in self._response_patterns:
+                            if re.match(pattern, request_url):
+                                self._response_queues[pattern].put(response)
 
         def requestWillBeSent(**kwargs) -> None:
             request = kwargs.pop('request')
@@ -178,22 +206,26 @@ class ChromeRemote:
     def _init_tab_monitor(self) -> None:
         """Мониторит здоровье вкладки Chrome."""
         tab_detached = False
+        tab_detached_lock = threading.Lock()
 
         def monitor_tab() -> None:
-            """V8 OOM может уронить вкладку Chrome и сохранить websocket функциональным,
+            """V8 OOM может убить вкладку Chrome и сохранить websocket функциональным,
             как будто ничего не случилось, поэтому мы мониторим индексную страницу вкладок
             и проверяем, жива ли наша вкладка."""
             while not self._chrome_tab._stopped.is_set():
                 try:
-                    ret = requests.get('%s/json' % self._dev_url, json=True)
-                    if not any(x['id'] == self._chrome_tab.id for x in ret.json()):
-                        nonlocal tab_detached
-                        tab_detached = True
-                        self._chrome_tab._stopped.set()
+                    ret = requests.get('%s/json' % self._dev_url, json=True, timeout=5)
+                    with tab_detached_lock:
+                        if not any(x['id'] == self._chrome_tab.id for x in ret.json()):
+                            tab_detached = True
+                            self._chrome_tab._stopped.set()
 
                     self._chrome_tab._stopped.wait(0.5)
-                except ConnectionError:
+                except (ConnectionError, RequestException, TimeoutError):
                     break
+                except Exception:
+                    # Ловим любые неожиданные исключения, чтобы мониторинг не падал
+                    self._chrome_tab._stopped.wait(0.5)
 
         self._ping_thread = threading.Thread(target=monitor_tab, daemon=True)
         self._ping_thread.start()
@@ -207,10 +239,11 @@ class ChromeRemote:
                 try:
                     return original_send(*args, **kwargs)
                 except pychrome.UserAbortException:
-                    if tab_detached:
-                        raise pychrome.RuntimeException('Tab has been stopped')
-                    else:
-                        raise
+                    with tab_detached_lock:
+                        if tab_detached:
+                            raise pychrome.RuntimeException('Tab has been stopped')
+                        else:
+                            raise
             return wrapped_send
 
         self._chrome_tab._send = get_send_with_reraise()
@@ -265,6 +298,9 @@ class ChromeRemote:
 
         Args:
             response: Ответ.
+            
+        Returns:
+            Тело ответа или пустую строку при ошибке.
         """
         try:
             request_id = response['meta']['requestId']
@@ -276,9 +312,13 @@ class ChromeRemote:
             response_body = response_data['body']
             response['body'] = response_body
             return response_body
-        except pychrome.CallMethodException:
-            # Тело ответа не найдено
+        except (pychrome.CallMethodException, KeyError, UnicodeDecodeError):
+            # Тело ответа не найдено или ошибка декодирования
             return ''
+        finally:
+            # Гарантированная очистка ссылки на тело для предотвращения утечки памяти
+            if 'body' in response_data:
+                del response_data['body']
 
     @wait_until_finished(timeout=None, throw_exception=False)
     def get_responses(self) -> list[Response]:

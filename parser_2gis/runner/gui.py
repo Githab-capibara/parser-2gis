@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+from contextlib import closing
 from typing import TYPE_CHECKING
 
 from ..exceptions import ChromeRuntimeException, ChromeUserAbortException
@@ -29,10 +30,11 @@ class GUIRunner(AbstractRunner, threading.Thread):
 
         self._parser = None
         self._lock = threading.Lock()
+        self._cancelled = threading.Event()  # Потокобезопасный флаг отмены
 
     def start(self) -> None:
         """Запускает поток."""
-        self._cancelled = False
+        self._cancelled.clear()  # Сбрасываем флаг отмены
         logger.info('Парсинг запущен.')
         threading.Thread.start(self)
 
@@ -41,10 +43,10 @@ class GUIRunner(AbstractRunner, threading.Thread):
         if not self._started.is_set():  # type: ignore
             raise RuntimeError('start() is not called')
 
-        if self._cancelled:
-            return  # We can stop the thread only once
+        if self._cancelled.is_set():
+            return  # Мы можем остановить поток только один раз
 
-        self._cancelled = True
+        self._cancelled.set()  # Устанавливаем флаг отмены
         self._stop_parser()
 
     def _stop_parser(self) -> None:
@@ -56,19 +58,26 @@ class GUIRunner(AbstractRunner, threading.Thread):
 
     def run(self) -> None:
         """Точка активности потока."""
-        with get_writer(self._output_path, self._format, self._config.writer) as writer:
+        with closing(get_writer(self._output_path, self._format, self._config.writer)) as writer:
             for url in self._urls:
                 try:
                     logger.info(f'Парсинг ссылки {url}')
-                    self._parser = get_parser(url,
-                                              chrome_options=self._config.chrome,
-                                              parser_options=self._config.parser)
-                    assert self._parser
+                    with self._lock:
+                        self._parser = get_parser(url,
+                                                  chrome_options=self._config.chrome,
+                                                  parser_options=self._config.parser)
+                        parser = self._parser
+                    assert parser
 
-                    if not self._cancelled:
-                        self._parser.parse(writer)
+                    if not self._cancelled.is_set():
+                        parser.parse(writer)
+                except KeyboardInterrupt:
+                    # KeyboardInterrupt в потоке требует специальной обработки
+                    logger.error('Получен сигнал прерывания.')
+                    self._cancelled.set()
+                    break
                 except Exception as e:
-                    if not self._cancelled:  # Не перехватываем преднамеренные исключения, вызванные остановкой парсера
+                    if not self._cancelled.is_set():  # Не перехватываем преднамеренные исключения, вызванные остановкой парсера
                         if isinstance(e, ChromeRuntimeException) and str(e) == 'Tab has been stopped':
                             logger.error('Вкладка браузера была закрыта.')
                         elif isinstance(e, ChromeUserAbortException):
@@ -78,7 +87,7 @@ class GUIRunner(AbstractRunner, threading.Thread):
                 finally:
                     logger.info('Парсинг ссылки завершён.')
                     self._stop_parser()
-                    if self._cancelled:
+                    if self._cancelled.is_set():
                         break
 
         logger.info('Парсинг завершён.')

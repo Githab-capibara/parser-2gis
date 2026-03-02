@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import queue
+import threading
 import webbrowser
 from functools import partial
 from typing import TYPE_CHECKING
@@ -48,7 +49,11 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
     # Set icon
     sg.set_global_icon(image_data('icon', 'png'))
 
-    # Setup main CLI logger
+    # Setup main GUI logger queue first (для потокобезопасного логгирования)
+    log_queue: queue.Queue[tuple[str, str]] = queue.Queue()  # Queue of log messages (log_level, log_message)
+    setup_gui_logger(log_queue, config.log)
+
+    # Setup main CLI logger после создания GUI logger queue
     setup_cli_logger(config.log)
 
     # Result format
@@ -239,8 +244,7 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
     window['-LOG-'].widget.bind('<<Cut>>', lambda e: 'break')
 
     # Enable logging queue to be able to handle log in the mainloop
-    log_queue: queue.Queue[tuple[str, str]] = queue.Queue()  # Queue of log messages (log_level, log_message)
-    setup_gui_logger(log_queue, config.log)
+    # log_queue уже создан выше для setup_gui_logger
 
     # Hand cursor for logo
     window['-IMG_LOGO-'].widget.config(cursor='hand2')
@@ -260,11 +264,15 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
     # Move cursor to the end of the URL input
     window['-IN_URL-'].widget.icursor('end')
 
-    # Parsing thread
+    # Parsing thread с блокировкой для потокобезопасности
     parsing_thread: GUIRunner | None = None
+    parsing_thread_lock = threading.Lock()  # Блокировка для доступа к parsing_thread
+    stop_flag = False  # Флаг для корректной остановки потока
 
     def parsing_thread_running() -> bool:
-        return parsing_thread is not None and parsing_thread.is_alive()
+        """Проверка состояния потока с блокировкой."""
+        with parsing_thread_lock:
+            return parsing_thread is not None and parsing_thread.is_alive()
 
     # Update URL Input element according to `urls` list
     def update_urls_input() -> None:
@@ -313,10 +321,16 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
 
         # App exit
         if event in (None, '-BTN_EXIT-'):
+            # Корректное завершение потока с timeout для предотвращения утечки ресурсов
             if parsing_thread_running():
-                assert parsing_thread
-                parsing_thread.stop()
-                parsing_thread.join()
+                with parsing_thread_lock:
+                    if parsing_thread is not None:
+                        parsing_thread.stop()
+                        # Ждем завершения потока с timeout (5 секунд)
+                        parsing_thread.join(timeout=5.0)
+                        # Проверяем, завершился ли поток
+                        if parsing_thread.is_alive():
+                            logger.warning('Поток парсинга не завершился корректно в течение 5 секунд')
 
             break
 
@@ -331,7 +345,8 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                 urls = [values['-IN_URL-']]
 
             ret_urls = gui_urls_editor(urls)
-            if ret_urls is not None:
+            # Проверка возвращаемого значения на None
+            if ret_urls is not None and isinstance(ret_urls, list):
                 urls = ret_urls
                 update_urls_input()
 
@@ -348,12 +363,15 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
 
         # Click stop
         elif event == '-BTN_STOP-':
+            # Потокобезопасная остановка через флаг и polling
             if parsing_thread_running():
                 logger.warning('Парсинг остановлен пользователем.')
-                assert parsing_thread
-                parsing_thread.stop()
+                with parsing_thread_lock:
+                    if parsing_thread is not None:
+                        parsing_thread.stop()
+                        stop_flag = True  # Устанавливаем флаг остановки
 
-                # Disable button until the thread fully stops
+                # Отключаем кнопку до полной остановки потока (polling)
                 window['-BTN_STOP-'].update(disabled=True)
 
         # Click start
@@ -382,10 +400,12 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
             if not window['-IN_URL-'].Disabled:
                 urls = [values['-IN_URL-']]
 
-            # Run parser
+            # Run parser с блокировкой для потокобезопасности
             if not parsing_thread_running():
-                parsing_thread = GUIRunner(urls, values['-OUTPUT_PATH-'], values['-FILE_FORMAT-'], config)
-                parsing_thread.start()
+                with parsing_thread_lock:
+                    parsing_thread = GUIRunner(urls, values['-OUTPUT_PATH-'], values['-FILE_FORMAT-'], config)
+                    parsing_thread.start()
+                    stop_flag = False  # Сбрасываем флаг при запуске
 
                 # Activate stop button if it's been disabled
                 window['-BTN_STOP-'].update(disabled=False)

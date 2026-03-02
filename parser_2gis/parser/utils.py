@@ -2,24 +2,24 @@ from __future__ import annotations
 
 
 def blocked_requests(extended: bool = False) -> list[str]:
-    """Get blocked request patterns list: metrics, logging,
-    analytics, counters, ads, etc.
+    """Получить список заблокированных запросов: метрика, логирование,
+    аналитика, счётчики, реклама и т.д.
 
-    During the parsing we don't need requests that could slow
-    down the speed or increase memory consumption or
-    send any logs of automatic bot activity.
+    Во время парсинга нам не нужны запросы, которые могут замедлить
+    скорость или увеличить потребление памяти, или отправлять
+    логи автоматической активности бота.
 
-    The lists are separated: basic and extended that includes
-    images, styles, map tiles, fonts and other visual-related
-    resources.
+    Списки разделены: базовый и расширенный, который включает
+    изображения, стили, плитки карт, шрифты и другие визуальные
+    ресурсы.
 
     Args:
-        extended: Whether to return extended list or basic.
+        extended: Вернуть расширенный список или базовый.
 
     Returns:
-        List of blocking url patterns.
+        Список блокируемых URL-шаблонов.
     """
-    # Metrics, logging, analytics, counters, ads, etc.
+    # Метрика, логирование, аналитика, счётчики, реклама и т.д.
     blocked_requests: list[str] = [
         'https://favorites.api.2gis.*/*',
         'https://2gis.*/_/log',

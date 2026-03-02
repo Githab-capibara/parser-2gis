@@ -10,14 +10,14 @@ if TYPE_CHECKING:
 
 
 class FileWriter(ABC):
-    """Base writer."""
+    """Базовый писатель."""
     def __init__(self, file_path: str, writer_options: WriterOptions) -> None:
         self._file_path = file_path
         self._options = writer_options
 
     @abstractmethod
     def write(self, catalog_doc: Any) -> None:
-        """Write Catalog Item API JSON document retrieved by parser."""
+        """Записывает JSON-документ Catalog Item API, полученный парсером."""
         pass
 
     def _open_file(self, file_path: str, mode: str = 'r') -> IO[Any]:
@@ -85,7 +85,7 @@ class FileWriter(ABC):
                 logger.warning('Сервер вернул больше одного ответа.')
 
             return True
-        except KeyError:
+        except (KeyError, TypeError, AttributeError):
             if verbose:
                 logger.error('Сервер ответил неизвестным документом.')
             return False
@@ -95,4 +95,6 @@ class FileWriter(ABC):
         return self
 
     def __exit__(self, *exc_info) -> None:
-        self._file.close()
+        # Проверяем наличие атрибута _file перед закрытием
+        if hasattr(self, '_file'):
+            self._file.close()

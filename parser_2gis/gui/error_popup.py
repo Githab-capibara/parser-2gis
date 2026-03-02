@@ -17,18 +17,18 @@ if GUI_ENABLED:
 
 @ensure_gui_enabled
 def gui_error_popup(error_msg: str) -> None:
-    """Run error modal window.
+    """Запускает модальное окно ошибки.
 
     Args:
-        error_msg: Error message.
+        error_msg: Сообщение об ошибке.
     """
     # Применяем современную тему
     apply_theme('modern')
 
-    # Set icon
+    # Устанавливаем иконку
     sg.set_global_icon(image_data('icon', 'png'))
 
-    # Adjust error message width
+    # Корректируем ширину сообщения об ошибке
     error_msg = '\n'.join(
         textwrap.wrap(error_msg, width=70, replace_whitespace=False, break_on_hyphens=False)
     )

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import pathlib
+import shutil
 from json import JSONDecodeError
 from typing import Optional
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from .chrome import ChromeOptions
 from .common import report_from_validation_error
@@ -17,24 +18,14 @@ from .writer import WriterOptions
 
 class Configuration(BaseModel):
     """Configuration model."""
+    model_config = ConfigDict(validate_assignment=True)
+    
     log: LogOptions = LogOptions()
     writer: WriterOptions = WriterOptions()
     chrome: ChromeOptions = ChromeOptions()
     parser: ParserOptions = ParserOptions()
     path: Optional[pathlib.Path] = None
     version: str = config_version
-
-    def __init__(self, *args, **kwargs) -> None:
-        def setup_config(model: BaseModel) -> None:
-            """Recursively setup config."""
-            self.Config.validate_assignment = True
-            for field in model.__fields__:
-                attr = getattr(model, field)
-                if isinstance(attr, BaseModel):
-                    setup_config(attr)
-
-        super().__init__(*args, **kwargs)
-        setup_config(self)
 
     def merge_with(self, other_config: Configuration) -> None:
         """Merge configuration with another one."""
@@ -47,7 +38,12 @@ class Configuration(BaseModel):
                     setattr(model_target, field, source_attr)
                 else:
                     target_attr = getattr(model_target, field)
-                    assert isinstance(target_attr, BaseModel)
+                    # Заменяем assert на явную проверку с исключением
+                    if not isinstance(target_attr, BaseModel):
+                        raise TypeError(
+                            f'Ожидалась BaseModel для поля {field}, '
+                            f'получено {type(target_attr).__name__}'
+                        )
                     assign_attributes(source_attr, target_attr)
 
         assign_attributes(other_config, self)
@@ -92,9 +88,21 @@ class Configuration(BaseModel):
                 else:
                     config = cls()
             else:
-                config = cls.parse_file(config_path, content_type='json', encoding='utf-8')
+                # Используем model_validate_json с явным чтением файла для защиты от path traversal
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config_data = f.read()
+                config = cls.model_validate_json(config_data)
                 config.path = config_path
         except (JSONDecodeError, ValidationError) as e:
+            # Создаём backup повреждённого файла конфигурации для отладки
+            if config_path and config_path.is_file():
+                backup_path = config_path.with_suffix(config_path.suffix + '.bak')
+                try:
+                    shutil.copy2(config_path, backup_path)
+                    logger.warning('Создан backup повреждённой конфигурации: %s', backup_path)
+                except OSError as copy_err:
+                    logger.warning('Не удалось создать backup конфигурации: %s', copy_err)
+
             warning_msg = 'Не удалось загрузить конфигурацию: '
             if isinstance(e, ValidationError):
                 errors = []

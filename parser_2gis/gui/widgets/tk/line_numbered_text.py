@@ -6,7 +6,7 @@ from .custom_text import CustomText
 
 
 class TextLineNumbers(tk.Canvas):
-    """Numbered Line Widget."""
+    """Виджет с номерами строк."""
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.textwidget: tk.Text | None = None
@@ -32,7 +32,7 @@ class TextLineNumbers(tk.Canvas):
 
 
 class LineNumberedText(tk.Frame):
-    """Combined Numbered Line and Customized Text Widgets."""
+    """Комбинированный виджет с номерами строк и кастомизированным текстом."""
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.text = CustomText(self)
