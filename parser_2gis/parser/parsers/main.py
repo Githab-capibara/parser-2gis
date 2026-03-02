@@ -4,7 +4,7 @@ import base64
 import json
 import re
 import urllib.parse
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from ...chrome import ChromeRemote
 from ...common import wait_until_finished
@@ -64,7 +64,7 @@ class MainParser:
         return r'https?://2gis\.[^/]+/[^/]+/search/.*'
 
     @wait_until_finished(timeout=GET_LINKS_TIMEOUT, throw_exception=False)
-    def _get_links(self) -> Optional[list[DOMNode]]:
+    def _get_links(self) -> list[DOMNode] | None:
         """Извлекает определённые DOM-узлы ссылок из текущего снимка DOM.
 
         Returns:
@@ -84,10 +84,8 @@ class MainParser:
 
         dom_tree = self._chrome_remote.get_document()
         links = dom_tree.search(valid_link)
-        # Проверяем, что ссылки действительно получены
-        if not links:
-            return None
-        return links
+        # Возвращаем None если ссылки не найдены, иначе список ссылок
+        return links if links else None
 
     def _add_xhr_counter(self) -> None:
         """Внедряет old-school обёртку вокруг XMLHttpRequest
@@ -132,7 +130,7 @@ class MainParser:
 
         return available_pages
 
-    def _go_page(self, n_page: int) -> Optional[int]:
+    def _go_page(self, n_page: int) -> int | None:
         """Переходит на страницу с номером `n_page`.
 
         Note:
@@ -179,20 +177,20 @@ class MainParser:
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
-        
+
         # Безопасное получение первого ответа с проверкой
         try:
             document_response = responses[0]
-        except IndexError:
-            logger.error('Список ответов пуст после проверки.')
+        except (IndexError, KeyError):
+            logger.error('Список ответов пуст или некорректен.')
             return
 
         # Обработка 404
-        if document_response['mimeType'] != 'text/html':
-            logger.error('Неверный тип MIME ответа: %s', document_response['mimeType'])
+        if document_response.get('mimeType') != 'text/html':
+            logger.error('Неверный тип MIME ответа: %s', document_response.get('mimeType', 'неизвестно'))
             return
 
-        if document_response['status'] == 404:
+        if document_response.get('status') == 404:
             logger.warning('Сервер вернул сообщение "Точных совпадений нет / Не найдено".')
 
             if self._options.skip_404_response:
@@ -207,7 +205,7 @@ class MainParser:
         # Эта обёртка не необходима, но я хочу быть уверен,
         # что мы не собрали ссылки из старого DOM каким-то образом.
         @wait_until_finished(timeout=self.GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False)
-        def get_unique_links() -> Optional[list[DOMNode]]:
+        def get_unique_links() -> list[DOMNode] | None:
             """Получает уникальные ссылки, которые ещё не были посещены.
 
             Returns:

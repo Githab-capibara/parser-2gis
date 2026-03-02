@@ -80,21 +80,22 @@ class ChromeRemote:
 
     def start(self) -> None:
         """Открывает браузер, создаёт новую вкладку, настраивает удалённый интерфейс.
-        
+
         Raises:
             ChromeException: Если не удалось подключиться к Chrome.
         """
         # Открываем браузер
         self._chrome_browser = ChromeBrowser(self._chrome_options)
-        
+
         # Валидируем порт перед использованием
         remote_port = _validate_remote_port(self._chrome_browser.remote_port)
         self._dev_url = f'http://127.0.0.1:{remote_port}'
 
         # Подключаем браузер к CDP с проверкой результата
         if not self._connect_interface():
+            self._chrome_browser.close()
             raise ChromeException("Не удалось подключиться к Chrome DevTools Protocol")
-        
+
         self._setup_tab()
         self._init_tab_monitor()
 

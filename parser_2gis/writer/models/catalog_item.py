@@ -88,4 +88,4 @@ class CatalogItem(BaseModel):
         minutes = abs(self.timezone_offset)
         h = minutes // 60
         m = minutes % 60
-        return '{}{:02d}:{:02d}'.format(sign, h, m)
+        return f'{sign}{h:02d}:{m:02d}'

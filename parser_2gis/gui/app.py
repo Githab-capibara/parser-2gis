@@ -46,24 +46,24 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
     # Применяем современную тему
     apply_theme('modern')
 
-    # Set icon (если функция доступна в версии PySimpleGUI)
+    # Устанавливаем иконку (если функция доступна в версии PySimpleGUI)
     if hasattr(sg, 'set_global_icon'):
         sg.set_global_icon(image_data('icon', 'png'))
 
-    # Setup main GUI logger queue first (для потокобезопасного логгирования)
-    log_queue: queue.Queue[tuple[str, str]] = queue.Queue()  # Queue of log messages (log_level, log_message)
+    # Настраиваем основной GUI logger (очередь для потокобезопасного логгирования)
+    log_queue: queue.Queue[tuple[str, str]] = queue.Queue()  # Очередь сообщений лога (уровень, сообщение)
     setup_gui_logger(log_queue, config.log)
 
-    # Setup main CLI logger после создания GUI logger queue
+    # Настраиваем CLI logger после создания очереди GUI logger
     setup_cli_logger(config.log)
 
-    # Result format
+    # Формат результата
     default_result_format = format if format else 'csv'
     result_filetype = {'csv': [('CSV Table', '*.csv')],
                        'xlsx': [('Microsoft Excel Spreadsheet', '*.xlsx')],
                        'json': [('JSON', '*.json')]}
 
-    # If urls wasn't passed then let it be an empty list
+    # Если URL не передан, создаём пустой список
     if urls is None:
         urls = []
 
@@ -80,28 +80,28 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                    'font': get_font(FONT_SIZE_MD, 'bold'),
                    'pad': (SPACING_MD, SPACING_MD)}
 
-    # Window layout - современный дизайн с боковой панелью
+    # Макет окна - современный дизайн с боковой панелью
     layout = [
         # Верхняя панель с заголовком и настройками
         [
             sg.Column([
                 [
-                    sg.Text('Парсер 2GIS', font=get_font(FONT_SIZE_XL, 'bold'), 
+                    sg.Text('Парсер 2GIS', font=get_font(FONT_SIZE_XL, 'bold'),
                             text_color=COLOR_TEXT_PRIMARY, pad=(SPACING_LG, SPACING_MD)),
-                    sg.Text(f'v{version}', font=get_font(FONT_SIZE_SM), 
+                    sg.Text(f'v{version}', font=get_font(FONT_SIZE_SM),
                             text_color=COLOR_TEXT_SECONDARY, pad=(0, SPACING_MD)),
                 ],
             ], background_color=COLOR_BACKGROUND, pad=0),
             sg.Column([
                 [
-                    sg.Button('', image_data=image_data('settings'), key='-BTN_SETTINGS-', 
-                              tooltip=f'Настройки: {config.path}', 
+                    sg.Button('', image_data=image_data('settings'), key='-BTN_SETTINGS-',
+                              tooltip=f'Настройки: {config.path}',
                               button_color=(COLOR_TEXT_SECONDARY, COLOR_BACKGROUND),
                               border_width=0, pad=(SPACING_SM, SPACING_MD)),
                 ],
             ], element_justification='right', background_color=COLOR_BACKGROUND, pad=0),
         ],
-        
+
         # Основная рабочая область
         [
             sg.Frame('Параметры парсинга', expand_x=True, layout=[
@@ -152,7 +152,7 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                 ],
             ], **frame_style, relief='flat'),
         ],
-        
+
         # Лог выполнения
         [
             sg.Frame('Лог выполнения', expand_x=True, expand_y=True, layout=[
@@ -166,7 +166,7 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                 ],
             ], **frame_style, relief='flat'),
         ],
-        
+
         # Нижняя панель с логотипом и кнопками управления
         [
             sg.Column([
@@ -176,25 +176,25 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                              tooltip='Открыть GitHub репозиторий'),
                 ],
             ], size=(80, 80), pad=(SPACING_LG, SPACING_MD)),
-            
+
             sg.Column([
                 [
-                    sg.Image(key='-IMG_LOADING-', visible=False, 
+                    sg.Image(key='-IMG_LOADING-', visible=False,
                              background_color=COLOR_BACKGROUND),
                 ],
             ], expand_x=True, element_justification='center', pad=SPACING_LG),
-            
+
             sg.Column([
                 [
-                    sg.Button('▶ Запуск', key='-BTN_START-', size=(12, 1), 
+                    sg.Button('▶ Запуск', key='-BTN_START-', size=(12, 1),
                               button_color=(COLOR_WHITE, COLOR_ACCENT),
                               border_width=0, font=get_font(FONT_SIZE_MD, 'bold'),
                               pad=((SPACING_MD, SPACING_SM), SPACING_MD)),
-                    sg.Button('⏹ Стоп', key='-BTN_STOP-', size=(10, 1), 
-                              button_color=(COLOR_WHITE, '#FF9500'), 
+                    sg.Button('⏹ Стоп', key='-BTN_STOP-', size=(10, 1),
+                              button_color=(COLOR_WHITE, '#FF9500'),
                               border_width=0, font=get_font(FONT_SIZE_MD, 'bold'),
                               visible=False, pad=((SPACING_SM, SPACING_SM), SPACING_MD)),
-                    sg.Button('✕ Выход', size=(10, 1), 
+                    sg.Button('✕ Выход', size=(10, 1),
                               button_color=(COLOR_WHITE, COLOR_ERROR),
                               border_width=0, font=get_font(FONT_SIZE_MD),
                               key='-BTN_EXIT-', pad=((SPACING_SM, SPACING_LG), SPACING_MD)),
@@ -203,11 +203,11 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
         ],
     ]
 
-    # tkinter could encounter encoding problem with cyrillics characters on linux systems (toolbar, topbar),
-    # so let the window titles be in English. No big deal, actually.
+    # tkinter может иметь проблемы с кодировкой кириллицы на Linux (панель инструментов, заголовок),
+    # поэтому заголовок окна будет на английском. Это не критично.
     window_title = 'Parser 2GIS' if running_linux() else 'Парсер 2GIS'
 
-    # Main window с современными параметрами
+    # Главное окно с современными параметрами
     window = sg.Window(
         window_title,
         layout,
@@ -221,13 +221,13 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
         size=(1000, 700),
     )
 
-    # Setup text widgets
+    # Настраиваем текстовые виджеты
     setup_text_widget(window['-IN_URL-'].widget, window.TKroot, menu_clear=False, set_focus=True)
     setup_text_widget(window['-OUTPUT_PATH-'].widget, window.TKroot, menu_clear=False)
     setup_text_widget(window['-LOG-'].widget, window.TKroot, menu_paste=False, menu_cut=False)
 
-    # Forbid user to edit output console,
-    # block any keys except ctl+c, ←, ↑, →, ↓
+    # Запрещаем пользователю редактировать консоль лога,
+    # блокируем все клавиши кроме Ctrl+C, ←, ↑, →, ↓
     def log_key_handler(e: tk.Event) -> str | None:
         if e.char == '\x03' or e.keysym in ('Left', 'Up', 'Right', 'Down'):
             return None
@@ -238,15 +238,15 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
     window['-LOG-'].widget.bind('<<Paste>>', lambda e: 'break')
     window['-LOG-'].widget.bind('<<Cut>>', lambda e: 'break')
 
-    # Enable logging queue to be able to handle log in the mainloop
+    # Включаем очередь логирования для обработки в главном цикле
     # log_queue уже создан выше для setup_gui_logger
 
-    # Hand cursor for logo
+    # Курсор-рука для логотипа
     window['-IMG_LOGO-'].widget.config(cursor='hand2')
 
-    # Set config settings button hover/click image
+    # Устанавливаем изображение кнопки настроек при наведении/нажатии
     def change_settings_image(image_name: str) -> None:
-        window['-BTN_SETTINGS-'].update(image_data=image_data(image_name))  # noqa: F821
+        window['-BTN_SETTINGS-'].update(image_data=image_data(image_name))
 
     window['-BTN_SETTINGS-'].TKButton.bind(
         '<Button>' if running_windows() else '<Enter>',
@@ -272,9 +272,9 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
     def update_urls_input() -> None:
         urls_length = len(urls) if isinstance(urls, list) else 0
         if urls_length == 0:
-            window['-IN_URL-'].update('', disabled=False)  # noqa: F821
+            window['-IN_URL-'].update('', disabled=False)
         elif urls_length == 1:
-            window['-IN_URL-'].update(urls[0], disabled=False)  # noqa: F821
+            window['-IN_URL-'].update(urls[0], disabled=False)
         else:
             def get_plural() -> str:
                 last_1d = urls_length % 10
@@ -287,7 +287,7 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                     return 'ссылки'
                 return 'ссылок'
 
-            window['-IN_URL-'].update(f'<{len(urls)} {get_plural()}>', disabled=True)  # noqa: F821
+            window['-IN_URL-'].update(f'<{len(urls)} {get_plural()}>', disabled=True)
 
     update_urls_input()
 
@@ -374,7 +374,7 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                 gui_error_popup('Отсутствует путь результирующего файла!\n\nУкажите файл для сохранения результатов парсинга.')
                 continue
 
-            # Проверка пути к выходному файлу
+            # Проверка URL
             if not values['-IN_URL-']:
                 gui_error_popup('Отсутствует URL!\n\nВведите URL для парсинга или используйте редактор ссылок.')
                 continue
@@ -424,7 +424,7 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
             if not window['-IMG_LOADING-'].visible:
                 window['-IMG_LOADING-'].update(visible=True)
 
-            # Run loading animation
+            # Запускаем анимацию загрузки
             window['-IMG_LOADING-'].update_animation(image_path('loading'), time_between_frames=50)
         else:
             if not window['-BTN_START-'].visible:

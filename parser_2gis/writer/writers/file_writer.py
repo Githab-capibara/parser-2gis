@@ -96,10 +96,10 @@ class FileWriter(ABC):
 
     def __exit__(self, *exc_info) -> None:
         # Проверяем наличие атрибута _file перед закрытием
-        if hasattr(self, '_file'):
+        if hasattr(self, '_file') and not self._file.closed:
             self._file.close()
 
     def close(self) -> None:
         """Закрывает файл."""
-        if hasattr(self, '_file'):
+        if hasattr(self, '_file') and not self._file.closed:
             self._file.close()

@@ -33,14 +33,20 @@ class FirmParser(MainParser):
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
-        document_response = responses[0]
-
-        # Обработка 404
-        if document_response['mimeType'] != 'text/html':
-            logger.error('Неверный тип MIME ответа: %s', document_response['mimeType'])
+        
+        # Безопасное получение первого ответа
+        try:
+            document_response = responses[0]
+        except (IndexError, KeyError):
+            logger.error('Список ответов пуст или некорректен.')
             return
 
-        if document_response['status'] == 404:
+        # Обработка 404
+        if document_response.get('mimeType') != 'text/html':
+            logger.error('Неверный тип MIME ответа: %s', document_response.get('mimeType', 'неизвестно'))
+            return
+
+        if document_response.get('status') == 404:
             logger.warning('Сервер вернул сообщение "Организация не найдена".')
 
             if self._options.skip_404_response:
@@ -50,17 +56,25 @@ class FirmParser(MainParser):
         self._wait_requests_finished()
 
         # Получаем ответ и собираем полезную нагрузку.
-        initial_state = self._chrome_remote.execute_script('window.initialState')
-        data = list(initial_state['data']['entity']['profile'].values())
-        if not data:
-            logger.warning('Данные организации не найдены.')
+        try:
+            initial_state = self._chrome_remote.execute_script('window.initialState')
+            if not initial_state or 'data' not in initial_state:
+                logger.warning('Данные организации не найдены.')
+                return
+            
+            data = list(initial_state['data']['entity']['profile'].values())
+            if not data:
+                logger.warning('Данные организации не найдены.')
+                return
+            doc = data[0]
+        except (KeyError, TypeError, AttributeError):
+            logger.error('Ошибка при получении данных организации.')
             return
-        doc = data[0]
 
         # Записываем API документ в файл
         writer.write({
             'result': {
                 'items': [doc['data']]
             },
-            'meta': doc['meta']
+            'meta': doc.get('meta', {})
         })
