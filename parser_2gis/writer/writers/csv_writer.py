@@ -141,22 +141,37 @@ class CSVWriter(FileWriter):
         shutil.move(tmp_csv_name, self._file_path)
 
     def _remove_duplicates(self) -> None:
-        """Постобработка: Удаление дубликатов."""
-        tmp_csv_name = os.path.splitext(self._file_path)[0] + '.deduplicated.csv'
+        """Постобработка: Удаление дубликатов.
         
+        Использует хеширование строк для надёжного сравнения.
+        """
+        import hashlib
+        
+        tmp_csv_name = os.path.splitext(self._file_path)[0] + '.deduplicated.csv'
+
         # Используем ExitStack для гарантии закрытия файлов
         with ExitStack() as stack:
             f_tmp_csv = stack.enter_context(self._open_file(tmp_csv_name, 'w'))
             f_csv = stack.enter_context(self._open_file(self._file_path, 'r'))
-            seen_records = set()
-            for line in f_csv:
-                # Нормализуем строку: удаляем завершающие пробелы и newlines для корректного сравнения
+            seen_hashes = set()
+            duplicates_count = 0
+            
+            for line_num, line in enumerate(f_csv):
+                # Нормализуем строку: удаляем завершающие пробелы и newlines
                 normalized_line = line.rstrip('\r\n')
-                if normalized_line in seen_records:
+                
+                # Вычисляем хеш для надёжного сравнения
+                line_hash = hashlib.md5(normalized_line.encode('utf-8')).hexdigest()
+                
+                if line_hash in seen_hashes:
+                    duplicates_count += 1
                     continue
 
-                seen_records.add(normalized_line)
+                seen_hashes.add(line_hash)
                 f_tmp_csv.write(line)
+            
+            if duplicates_count > 0:
+                logger.info('Удалено дубликатов: %d', duplicates_count)
 
         # Замена оригинального файла новым
         shutil.move(tmp_csv_name, self._file_path)
@@ -182,7 +197,7 @@ class CSVWriter(FileWriter):
             catalog_doc: JSON-документ Catalog Item API.
 
         Returns:
-            Словарь для строки CSV.
+            Словарь для строки CSV или пустой словарь при ошибке.
         """
         data: dict[str, Any] = {k: None for k in self._data_mapping.keys()}
 
@@ -203,6 +218,7 @@ class CSVWriter(FileWriter):
             error_str += f'\nДокумент каталога (тип: {item.get("type", "неизвестно")}, ID: {item.get("id", "неизвестно")})'
             logger.error(error_str)
 
+            # Возвращаем пустой словарь для индикации ошибки
             return {}
 
         # Наименование и описание объекта

@@ -261,20 +261,19 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
         '<ButtonRelease>' if running_windows() else '<Leave>',
         generate_event_handler(partial(change_settings_image, 'settings')))
 
-    # Move cursor to the end of the URL input
+    # Перемещаем курсор в конец поля URL
     window['-IN_URL-'].widget.icursor('end')
 
-    # Parsing thread с блокировкой для потокобезопасности
+    # Поток парсинга с блокировкой для потокобезопасности
     parsing_thread: GUIRunner | None = None
     parsing_thread_lock = threading.Lock()  # Блокировка для доступа к parsing_thread
-    stop_flag = False  # Флаг для корректной остановки потока
 
     def parsing_thread_running() -> bool:
         """Проверка состояния потока с блокировкой."""
         with parsing_thread_lock:
             return parsing_thread is not None and parsing_thread.is_alive()
 
-    # Update URL Input element according to `urls` list
+    # Обновление элемента URL в соответствии со списком `urls`
     def update_urls_input() -> None:
         urls_length = len(urls) if isinstance(urls, list) else 0
         if urls_length == 0:
@@ -297,7 +296,7 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
 
     update_urls_input()
 
-    # Set log background colors by level - современные цвета
+    # Установка цветов фона логирования по уровням - современные цвета
     log_colors = {
         'CRITICAL': COLOR_LOG_CRITICAL,
         'ERROR': COLOR_LOG_ERROR,
@@ -306,20 +305,20 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
         'SUCCESS': COLOR_LOG_SUCCESS,
     }
 
-    # Pre-define log tags с современными цветами
+    # Предварительное определение тегов логирования с современными цветами
     for level, color in log_colors.items():
         tag = f'Multiline(None,{color},None)'
         window['-LOG-'].tags.add(tag)
         window['-LOG-'].widget.tag_configure(tag, background=color)
 
-    # Keep selection tag priority on top
+    # Сохраняем приоритет тега выделения наверху
     window['-LOG-'].widget.tag_raise('sel')
 
-    # Main loop
+    # Главный цикл обработки событий
     while True:
         event, values = window.Read(timeout=50)
 
-        # App exit
+        # Выход из приложения
         if event in (None, '-BTN_EXIT-'):
             # Корректное завершение потока с timeout для предотвращения утечки ресурсов
             if parsing_thread_running():
@@ -334,13 +333,13 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
 
             break
 
-        # Run settings
+        # Запуск настроек
         elif event == '-BTN_SETTINGS-':
             gui_settings(config)
 
-        # Run URLs Editor
+        # Запуск редактора URL
         elif event == '-BTN_URLS-':
-            # Sync urls with input element
+            # Синхронизация URL с элементом ввода
             if not window['-IN_URL-'].Disabled:
                 urls = [values['-IN_URL-']]
 
@@ -350,18 +349,18 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                 urls = ret_urls
                 update_urls_input()
 
-        # Select output file format
+        # Выбор формата выходного файла
         elif event == '-FILE_FORMAT-':
             file_format = values['-FILE_FORMAT-']
             if file_format in result_filetype:
                 window['-OUTPUT_PATH_BROWSE-'].FileTypes = result_filetype[file_format]
                 window['-OUTPUT_PATH_BROWSE-'].DefaultExtension = f'.{file_format}'
 
-        # Click logo
+        # Клик по логотипу
         elif event == '-IMG_LOGO-':
             webbrowser.open('https://github.com/interlark/parser-2gis')
 
-        # Click stop
+        # Нажатие кнопки остановки
         elif event == '-BTN_STOP-':
             # Потокобезопасная остановка через флаг и polling
             if parsing_thread_running():
@@ -369,59 +368,57 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                 with parsing_thread_lock:
                     if parsing_thread is not None:
                         parsing_thread.stop()
-                        stop_flag = True  # Устанавливаем флаг остановки
 
                 # Отключаем кнопку до полной остановки потока (polling)
                 window['-BTN_STOP-'].update(disabled=True)
 
-        # Click start
+        # Нажатие кнопки запуска
         elif event == '-BTN_START-':
-            # Check output file path
+            # Проверка пути к выходному файлу
             if not values['-OUTPUT_PATH-']:
                 gui_error_popup('Отсутствует путь результирующего файла!\n\nУкажите файл для сохранения результатов парсинга.')
                 continue
 
-            # Check output file path
+            # Проверка пути к выходному файлу
             if not values['-IN_URL-']:
                 gui_error_popup('Отсутствует URL!\n\nВведите URL для парсинга или используйте редактор ссылок.')
                 continue
 
-            # Check result format
+            # Проверка формата результата
             if values['-FILE_FORMAT-'] not in ('csv', 'xlsx', 'json'):
                 gui_error_popup('Формат результирующего файла должен быть csv, xlsx или json!')
                 continue
 
-            # Check if result format match output file extension
+            # Проверка соответствия формата результата расширению файла
             if values['-OUTPUT_PATH-'].split('.')[-1].lower() != values['-FILE_FORMAT-']:
                 gui_error_popup(f'Расширение результирующего файла должно быть *.{values["-FILE_FORMAT-"]}!')
                 continue
 
-            # Sync urls with input element
+            # Синхронизация URL с элементом ввода
             if not window['-IN_URL-'].Disabled:
                 urls = [values['-IN_URL-']]
 
-            # Run parser с блокировкой для потокобезопасности
+            # Запуск парсера с блокировкой для потокобезопасности
             if not parsing_thread_running():
                 with parsing_thread_lock:
                     parsing_thread = GUIRunner(urls, values['-OUTPUT_PATH-'], values['-FILE_FORMAT-'], config)
                     parsing_thread.start()
-                    stop_flag = False  # Сбрасываем флаг при запуске
 
-                # Activate stop button if it's been disabled
+                # Активируем кнопку остановки, если она была отключена
                 window['-BTN_STOP-'].update(disabled=False)
 
-        # Poll log queue
+        # Опрос очереди логирования
         while True:
             try:
                 log_level, log_msg = log_queue.get(block=False)
             except queue.Empty:
                 break
             else:
-                # Print message to log
+                # Вывод сообщения в лог
                 window['-LOG-'].update(log_msg, append=True,
                                        background_color_for_value=log_colors.get(log_level, None))
 
-        # Swap start/stop buttons
+        # Переключение кнопок запуска/остановки
         if parsing_thread_running():
             if window['-BTN_START-'].visible:
                 window['-BTN_START-'].update(visible=False)

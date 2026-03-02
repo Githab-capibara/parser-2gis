@@ -121,7 +121,10 @@ class Configuration(BaseModel):
                 backup_path = config_path.with_suffix(config_path.suffix + '.bak')
                 try:
                     shutil.copy2(config_path, backup_path)
-                    logger.warning('Создан backup повреждённой конфигурации: %s', backup_path)
+                    if backup_path.exists():
+                        logger.warning('Создан backup повреждённой конфигурации: %s', backup_path)
+                    else:
+                        logger.warning('Backup создан не был: %s', backup_path)
                 except OSError as copy_err:
                     logger.warning('Не удалось создать backup конфигурации: %s', copy_err)
 
