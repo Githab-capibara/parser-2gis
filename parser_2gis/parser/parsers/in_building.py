@@ -109,7 +109,7 @@ class InBuildingParser(MainParser):
 
                 # Получаем данные тела ответа
                 if resp and resp['status'] >= 0:
-                    data = self._chrome_remote.get_response_body(resp, timeout=10) if resp else None
+                    data = self._chrome_remote.get_response_body(resp) if resp else None
 
                     try:
                         doc = json.loads(data)

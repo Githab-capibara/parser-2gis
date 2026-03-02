@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from typing import Callable, Dict, List
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
+try:
+    from pydantic import field_validator
+    PYDANTIC_V2 = True
+except ImportError:
+    from pydantic import validator
+    PYDANTIC_V2 = False
 
 
 class DOMNode(BaseModel):
@@ -27,15 +33,28 @@ class DOMNode(BaseModel):
     children: List[DOMNode] = []
     attributes: Dict[str, str] = {}
 
-    @validator('attributes', pre=True)
-    def validate_attributes(cls, attributes_list: list[str]) -> dict[str, str]:
-        attributes = {}
-        attributes_list_count = len(attributes_list)
-        assert attributes_list_count % 2 == 0
-        for name_idx in range(0, attributes_list_count, 2):
-            attributes[attributes_list[name_idx]] = attributes_list[name_idx + 1]
+    if PYDANTIC_V2:
+        @field_validator('attributes', mode='before')
+        @classmethod
+        def validate_attributes(cls, attributes_list: list[str]) -> dict[str, str]:
+            attributes = {}
+            attributes_list_count = len(attributes_list)
+            if attributes_list_count % 2 != 0:
+                raise ValueError('Список атрибутов должен содержать чётное количество элементов')
+            for name_idx in range(0, attributes_list_count, 2):
+                attributes[attributes_list[name_idx]] = attributes_list[name_idx + 1]
 
-        return attributes
+            return attributes
+    else:
+        @validator('attributes', pre=True)
+        def validate_attributes(cls, attributes_list: list[str]) -> dict[str, str]:
+            attributes = {}
+            attributes_list_count = len(attributes_list)
+            assert attributes_list_count % 2 == 0
+            for name_idx in range(0, attributes_list_count, 2):
+                attributes[attributes_list[name_idx]] = attributes_list[name_idx + 1]
+
+            return attributes
 
     def search(self, predicate: Callable[[DOMNode], bool]) -> list[DOMNode]:
         """Ищет узлы в DOM дереве с помощью `predicate`."""

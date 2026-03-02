@@ -98,3 +98,8 @@ class FileWriter(ABC):
         # Проверяем наличие атрибута _file перед закрытием
         if hasattr(self, '_file'):
             self._file.close()
+
+    def close(self) -> None:
+        """Закрывает файл."""
+        if hasattr(self, '_file'):
+            self._file.close()

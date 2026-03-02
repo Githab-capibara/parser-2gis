@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import codecs
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
+try:
+    from pydantic import field_validator
+    PYDANTIC_V2 = True
+except ImportError:
+    from pydantic import validator
+    PYDANTIC_V2 = False
 
 
 class CSVOptions(BaseModel):
@@ -36,11 +42,22 @@ class WriterOptions(BaseModel):
     verbose: bool = True
     csv: CSVOptions = CSVOptions()
 
-    @validator('encoding')
-    def encoding_exists(cls, v: str) -> str:
-        """Проверяет существование `encoding`."""
-        try:
-            codecs.lookup(v)
-        except LookupError:
-            raise ValueError
-        return v
+    if PYDANTIC_V2:
+        @field_validator('encoding')
+        @classmethod
+        def encoding_exists(cls, v: str) -> str:
+            """Проверяет существование `encoding`."""
+            try:
+                codecs.lookup(v)
+            except LookupError:
+                raise ValueError(f'Неизвестная кодировка: {v}')
+            return v
+    else:
+        @validator('encoding')
+        def encoding_exists(cls, v: str) -> str:
+            """Проверяет существование `encoding`."""
+            try:
+                codecs.lookup(v)
+            except LookupError:
+                raise ValueError
+            return v
