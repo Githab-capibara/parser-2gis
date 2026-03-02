@@ -35,7 +35,6 @@ class MainParser:
     WAIT_REQUESTS_TIMEOUT: int = 120  # Таймаут ожидания завершения запросов
     GET_LINKS_TIMEOUT: int = 5  # Таймаут получения ссылок
     GET_UNIQUE_LINKS_TIMEOUT: int = 10  # Таймаут получения уникальных ссылок
-    RESPONSE_BODY_TIMEOUT: int = 10  # Таймаут получения тела ответа
 
     def __init__(self, url: str,
                  chrome_options: ChromeOptions,
@@ -180,7 +179,13 @@ class MainParser:
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
-        document_response = responses[0]
+        
+        # Безопасное получение первого ответа с проверкой
+        try:
+            document_response = responses[0]
+        except IndexError:
+            logger.error('Список ответов пуст после проверки.')
+            return
 
         # Обработка 404
         if document_response['mimeType'] != 'text/html':
@@ -254,29 +259,32 @@ class MainParser:
                             if attempt < self.MAX_RESPONSE_ATTEMPTS - 1:
                                 self._chrome_remote.wait(0.5)
 
-                        # Получаем данные тела ответа
-                        if resp and resp['status'] >= 0:
-                            data = self._chrome_remote.get_response_body(resp)
+                        # Пропускаем позицию, если все попытки получить ответ неудачны
+                        if not resp or resp['status'] < 0:
+                            logger.error('Не удалось получить ответ после %d попыток, пропуск позиции.', 
+                                        self.MAX_RESPONSE_ATTEMPTS)
+                            continue
 
-                            try:
-                                doc = json.loads(data)
-                            except json.JSONDecodeError:
-                                logger.error('Сервер вернул некорректный JSON документ: "%s", пропуск позиции.', data)
-                                doc = None
-                        else:
+                        # Получаем данные тела ответа
+                        data = self._chrome_remote.get_response_body(resp)
+
+                        try:
+                            doc = json.loads(data)
+                        except json.JSONDecodeError:
+                            logger.error('Сервер вернул некорректный JSON документ: "%s", пропуск позиции.', data)
                             doc = None
 
                         if doc:
                             # Записываем API документ в файл
                             writer.write(doc)
                             collected_records += 1
+                            
+                            # Проверяем достижение лимита после каждой успешной записи
+                            if collected_records >= self._options.max_records:
+                                logger.info('Спарсено максимально разрешенное количество записей с данного URL.')
+                                return
                         else:
                             logger.error('Данные не получены, пропуск позиции.')
-
-                        # Мы достигли нашего лимита, выходим
-                        if collected_records >= self._options.max_records:
-                            logger.info('Спарсено максимально разрешенное количество записей с данного URL.')
-                            return
 
                 # Запускаем сборщик мусора, если он доступен и включён
                 if self._options.use_gc and current_page_number % self._options.gc_pages_interval == 0:

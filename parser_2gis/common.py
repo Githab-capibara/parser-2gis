@@ -54,14 +54,13 @@ def wait_until_finished(timeout: int | None = None,
                   finished: Callable[[Any], bool] | None = finished,
                   throw_exception: bool = throw_exception,
                   poll_interval: float = poll_interval, **kwargs):
-            # Перемещаем lambda в тело функции для избежания изменяемого аргумента по умолчанию
-            if finished is None:
-                finished = lambda x: bool(x)
+            # Инициализируем finished внутри функции для избежания изменяемого аргумента по умолчанию
+            inner_finished = finished if finished is not None else lambda x: bool(x)
 
             call_time = time.time()
             while True:
                 ret = func(*args, **kwargs)
-                if finished(ret):
+                if inner_finished(ret):
                     return ret
 
                 # Переименовываем внутренний параметр для избежания путаницы
@@ -107,6 +106,10 @@ def report_from_validation_error(ex: ValidationError,
             },
             ...
         }
+        
+    Примечание безопасности:
+        При передаче словаря `d` убедитесь, что он не содержит чувствительных данных,
+        так как они могут попасть в логирование.
     """
     values = {}
     for error in ex.errors():

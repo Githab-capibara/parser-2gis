@@ -39,9 +39,13 @@ class GUIRunner(AbstractRunner, threading.Thread):
         threading.Thread.start(self)
 
     def stop(self) -> None:
-        """Останавливает поток."""
+        """Останавливает поток.
+        
+        Raises:
+            RuntimeError: Если поток не был запущен через start().
+        """
         if not self._started.is_set():  # type: ignore
-            raise RuntimeError('start() is not called')
+            raise RuntimeError('Метод start() не был вызван')
 
         if self._cancelled.is_set():
             return  # Мы можем остановить поток только один раз
@@ -67,7 +71,11 @@ class GUIRunner(AbstractRunner, threading.Thread):
                                                   chrome_options=self._config.chrome,
                                                   parser_options=self._config.parser)
                         parser = self._parser
-                    assert parser
+                    
+                    # Проверяем, что парсер успешно создан
+                    if parser is None:
+                        logger.error('Не удалось создать парсер для URL: %s', url)
+                        continue
 
                     if not self._cancelled.is_set():
                         parser.parse(writer)
