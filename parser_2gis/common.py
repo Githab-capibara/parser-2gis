@@ -14,9 +14,9 @@ try:
     GUI_ENABLED = True
 except ImportError as e:
     if e.name != 'PySimpleGUI':
-        # GUI was installed, but failed to load
-        # due to tkinter missing or other dependencies.
-        warnings.warn('Failed to load GUI: %s' % e.msg)
+        # GUI был установлен, но не загрузился
+        # из-за отсутствия tkinter или других зависимостей.
+        warnings.warn('Не удалось загрузить GUI: %s' % e.msg)
     GUI_ENABLED = False
 
 

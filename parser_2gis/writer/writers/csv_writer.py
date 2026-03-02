@@ -198,14 +198,14 @@ class CSVWriter(FileWriter):
                 error_msg = description['error_message']
                 errors.append(f'[*] Поле: {path}, значение: {arg}, ошибка: {error_msg}')
 
-            # Sanitize вывод: не раскрываем полную структуру документа API
+            # Безопасность: не раскрываем полную структуру документа API
             error_str = 'Ошибка парсинга:\n' + '\n'.join(errors)
             error_str += f'\nДокумент каталога (тип: {item.get("type", "неизвестно")}, ID: {item.get("id", "неизвестно")})'
             logger.error(error_str)
 
             return {}
 
-        # Name, description
+        # Наименование и описание объекта
         if catalog_item.name_ex:
             data['name'] = catalog_item.name_ex.primary
             data['description'] = catalog_item.name_ex.extension
@@ -214,43 +214,43 @@ class CSVWriter(FileWriter):
         elif catalog_item.type in self._type_names:
             data['name'] = self._type_names[catalog_item.type]
 
-        # Type
+        # Тип объекта
         data['type'] = catalog_item.type
 
-        # Address
+        # Адрес объекта
         data['address'] = catalog_item.address_name
 
-        # Reviews
+        # Рейтинг и отзывы
         if catalog_item.reviews:
             data['general_rating'] = catalog_item.reviews.general_rating
             data['general_review_count'] = catalog_item.reviews.general_review_count
 
-        # Point location
+        # Географические координаты объекта
         if catalog_item.point:
-            data['point_lat'] = catalog_item.point.lat  # Latitude (широта)
-            data['point_lon'] = catalog_item.point.lon  # Longitude (долгота)
+            data['point_lat'] = catalog_item.point.lat  # Широта объекта
+            data['point_lon'] = catalog_item.point.lon  # Долгота объекта
 
-        # Address comment
+        # Дополнительный комментарий к адресу
         data['address_comment'] = catalog_item.address_comment
 
-        # Post code
+        # Почтовый индекс
         if catalog_item.address:
             data['postcode'] = catalog_item.address.postcode
 
-        # Timezone
+        # Часовой пояс объекта
         if catalog_item.timezone is not None:
             data['timezone'] = catalog_item.timezone
 
-        # Administrative location details
+        # Административно-территориальные детали (страна, регион, округ и т.д.)
         for div in catalog_item.adm_div:
             for t in ('country', 'region', 'district_area', 'city', 'district', 'living_area'):
                 if div.type == t:
                     data[t] = div.name
 
-        # Item URL
+        # URL объекта на сайте 2GIS
         data['url'] = catalog_item.url
 
-        # Contacts
+        # Контактные данные (телефоны, email, сайты, соцсети)
         for contact_group in catalog_item.contact_groups:
             def append_contact(contact_type: str, priority_fields: list[str],
                                formatter: Callable[[str], str] | None = None) -> None:
@@ -270,7 +270,7 @@ class CSVWriter(FileWriter):
                             contact_value = getattr(contact, field)
                             break
 
-                    # Empty contact value, bail
+                    # Отсутствующие значения контакта - пропускаем
                     if not contact_value:
                         return
 
@@ -278,35 +278,36 @@ class CSVWriter(FileWriter):
                     if data_name in data:
                         data[data_name] = formatter(contact_value) if formatter else contact_value
 
-                        # Add comment on demand
+                        # Добавляем комментарий к контакту при наличии
                         if self._options.csv.add_comments and contact.comment:
                             data[data_name] += ' (%s)' % contact.comment
 
-            # URLs
+            # Интернет-адреса (веб-сайты, соцсети)
             for t in ['website', 'vkontakte', 'whatsapp', 'viber', 'telegram',
                       'instagram', 'facebook', 'twitter', 'youtube', 'skype']:
                 append_contact(t, ['url'])
 
-            # Remove arguments from WhatsApp URL
+            # Удаляем параметры из URL WhatsApp
             for field in data:
                 if field.startswith('whatsapp') and data[field]:
                     data[field] = data[field].split('?')[0]
 
-            # Values
+            # Текстовые значения (email, skype и т.д.)
             for t in ['email', 'skype']:
                 append_contact(t, ['value'])
 
-            # Phone (`value` иногда содержит странные данные, поэтому лучше парсить `text`.
-            # Если в контакте нет поля `text` - используем атрибут `value`)
+            # Телефоны (поле `value` иногда содержит нерелевантные данные,
+            # поэтому предпочитаем парсить поле `text`.
+            # Если в контакте нет `text` - используем атрибут `value`)
             append_contact('phone', ['text', 'value'],
                            formatter=lambda x: re.sub(r'^\+7', '8', re.sub(r'[^0-9+]', '', x)))
 
-        # Schedule
+        # Режим работы объекта
         if catalog_item.schedule:
             data['schedule'] = catalog_item.schedule.to_str(self._options.csv.join_char,
                                                             self._options.csv.add_comments)
 
-        # Rubrics
+        # Рубрики (категории) объекта
         if self._options.csv.add_rubrics:
             data['rubrics'] = self._options.csv.join_char.join(x.name for x in catalog_item.rubrics)
 

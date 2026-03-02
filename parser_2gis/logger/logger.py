@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     import queue
 
 
-# Set third-party loggers level to error
+# Устанавливаем уровень логирования для сторонних библиотек
 logging.getLogger('urllib3').setLevel(logging.ERROR)
 logging.getLogger('pychrome').setLevel(logging.FATAL)
 warnings.filterwarnings(

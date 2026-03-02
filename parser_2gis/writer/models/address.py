@@ -18,5 +18,5 @@ class Address(BaseModel):
     # Почтовый индекс
     postcode: Optional[str] = None
 
-    # Makani адрес объекта
+    # Makani адрес объекта (применяется в странах Ближнего Востока)
     makani: Optional[str] = None

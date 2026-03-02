@@ -21,7 +21,7 @@ def locate_chrome_path() -> str | None:
             CSIDL_PROGRAM_FILESX86=42,  # C:\Program Files (x86)
             CSIDL_LOCAL_APPDATA=28,  # C:\Documents and Settings\<username>\Local Settings\Application Data.
             CSIDL_COMMON_APPDATA=35,  # C:\Documents and Settings\All Users\Application Data
-            CSIDL_APPDATA=26,  # C:\Users\<username>
+            CSIDL_APPDATA=26,  # C:\Users\<username> - Личные файлы пользователя
         )
 
         for _, v in csidl.items():
@@ -36,18 +36,18 @@ def locate_chrome_path() -> str | None:
             'LOCALAPPDATA',
         ]
 
-        # Пути Windows из окружения
+        # Пути Windows из переменных окружения
         for d in env_dirs:
             if d in os.environ and os.environ[d] not in app_dirs:
                 app_dirs.append(os.environ[d])
 
-        # Возможные пути установки Chrome
+        # Возможные пути установки Chrome на диске
         for path in app_dirs:
             binary_path = os.path.join(path, 'Google', 'Chrome', 'Application', 'chrome.exe')
             if os.path.isfile(binary_path):
                 return binary_path
 
-        # Также можно использовать реестр Windows для поиска пути Chrome
+        # Используем реестр Windows для поиска пути установки Chrome
         import winreg
 
         reg_path = r'SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe'
@@ -76,7 +76,7 @@ def locate_chrome_path() -> str | None:
                 if os.path.isfile(binary_path):
                     return binary_path
 
-        # Также можно использовать 'which' для поиска исполняемого файла Chrome
+        # Используем команду 'which' для поиска исполняемого файла Chrome
         import subprocess
 
         for f in browser_executables:
