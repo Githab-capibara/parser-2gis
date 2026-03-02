@@ -4,19 +4,19 @@ from .parsers import FirmParser, InBuildingParser, MainParser
 
 
 def get_parser(url, chrome_options, parser_options):
-    """Parser factory function.
+    """Фабричная функция для получения парсера.
 
     Args:
-        url: 2GIS URLs with items to be collected.
-        chrome_options: Chrome options.
-        parser_options: Parser options.
+        url: URL 2GIS с элементами для сбора.
+        chrome_options: Опции Chrome.
+        parser_options: Опции парсера.
 
     Returns:
-        Parser instance.
+        Экземпляр парсера.
     """
     for parser in (FirmParser, InBuildingParser, MainParser):
         if re.match(parser.url_pattern(), url):
             return parser(url, chrome_options, parser_options)
 
-    # Default fallback
+    # Резервный вариант по умолчанию
     return MainParser(url, chrome_options, parser_options)

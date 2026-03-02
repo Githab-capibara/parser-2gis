@@ -20,10 +20,10 @@ if GUI_ENABLED:
 
 @ensure_gui_enabled
 def gui_settings(config: Configuration) -> None:
-    """Run settings.
+    """Запускает настройки.
 
     Args:
-        config: Configuration to be changed.
+        config: Конфигурация для изменения.
     """
     # Применяем современную тему
     apply_theme('modern')

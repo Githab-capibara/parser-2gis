@@ -10,21 +10,21 @@ from ..common import floor_to_hundreds
 
 
 def default_memory_limit() -> int:
-    """Default memory limit for V8, 0.75 of total physical memory."""
+    """Лимит памяти по умолчанию для V8, 0.75 от общей физической памяти."""
     memory_total = psutil.virtual_memory().total / 1024 ** 2  # MB
     return floor_to_hundreds(round(0.75 * memory_total))
 
 
 class ChromeOptions(BaseModel):
-    """Represents all possible options for Chrome.
+    """Представляет все возможные опции для Chrome.
 
-    Attributes:
-        binary_path: Chrome binary path. If not set, tries to find automatically.
-        start_maximized: Start browser maximized.
-        headless: Start browser hidden, without GUI.
-        disable_images: Disable images.
-        silent_browser: Do not show Chrome's output in `stdout`.
-        memory_size: Max V8's memory size.
+    Атрибуты:
+        binary_path: Путь к бинарному файлу Chrome. Если не указан, пытается найти автоматически.
+        start_maximized: Запускать браузер развёрнутым.
+        headless: Запускать браузер скрыто, без GUI.
+        disable_images: Отключить изображения.
+        silent_browser: Не показывать вывод Chrome в `stdout`.
+        memory_size: Максимальный размер памяти V8.
     """
     binary_path: Optional[pathlib.Path] = None
     start_maximized: bool = False

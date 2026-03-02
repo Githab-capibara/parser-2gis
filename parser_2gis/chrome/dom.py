@@ -6,17 +6,17 @@ from pydantic import BaseModel, Field, validator
 
 
 class DOMNode(BaseModel):
-    """DOM Node.
+    """DOM узел.
 
-    Attributes:
-        id: Node identifier.
-        backend_id: The BackendNodeId for this node.
-        type: Node's type.
-        name: Node's name.
-        local_name: Node's local name.
-        value: Node's value.
-        children: Node's children.
-        attributes: Node's attributes.
+    Атрибуты:
+        id: Идентификатор узла.
+        backend_id: BackendNodeId для этого узла.
+        type: Тип узла.
+        name: Имя узла.
+        local_name: Локальное имя узла.
+        value: Значение узла.
+        children: Дочерние узлы.
+        attributes: Атрибуты узла.
     """
     id: int = Field(..., alias='nodeId')
     backend_id: int = Field(..., alias='backendNodeId')
@@ -38,7 +38,7 @@ class DOMNode(BaseModel):
         return attributes
 
     def search(self, predicate: Callable[[DOMNode], bool]) -> list[DOMNode]:
-        """Search nodes in the DOM Tree using `predicate`."""
+        """Ищет узлы в DOM дереве с помощью `predicate`."""
         def _search(node: DOMNode, found_nodes: list[DOMNode]) -> None:
             if predicate(node):
                 found_nodes.append(node)

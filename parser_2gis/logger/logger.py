@@ -33,11 +33,11 @@ class QueueHandler(logging.Handler):
 
 def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]],
                      options: LogOptions) -> None:
-    """Add queue handler to existing logger so it would
-    emmit logs to the specified queue.
+    """Добавляет обработчик очереди к существующему логгеру, чтобы он
+    отправлял логи в указанную очередь.
 
     Args:
-        log_queue: Queue to put logging messages into.
+        log_queue: Очередь для размещения сообщений логирования.
     """
     formatter = logging.Formatter(options.gui_format, options.gui_datefmt)
     queue_handler = QueueHandler(log_queue)
@@ -46,10 +46,10 @@ def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]],
 
 
 def setup_cli_logger(options: LogOptions) -> None:
-    """Setup CLI logger from config.
+    """Настраивает CLI логгер из конфигурации.
 
     Args:
-        options: Log options.
+        options: Опции логирования.
     """
     setup_logger(
         options.level,
@@ -59,12 +59,12 @@ def setup_cli_logger(options: LogOptions) -> None:
 
 
 def setup_logger(level: str, fmt: str, datefmt: str) -> None:
-    """Setup logger.
+    """Настраивает логгер.
 
     Args:
-        level: logger level.
-        fmt: format string in percent style.
-        datefmt: date format string.
+        level: Уровень логгера.
+        fmt: Строка формата в процентном стиле.
+        datefmt: Строка формата даты.
     """
     if not logger.handlers:
         handler = logging.StreamHandler()

@@ -5,18 +5,18 @@ from typing import Any
 
 
 class CustomEntry(tk.Entry):
-    """Custom entry widget that report on internal widget commands."""
+    """Пользовательский виджет Entry, который сообщает о внутренних командах виджета."""
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        # Create a proxy for the underlying widget
+        # Создаём прокси для базового виджета
         widget_name = self._w  # type: ignore[attr-defined]
         self._orig = widget_name + '_orig'
         self.tk.call('rename', widget_name, self._orig)
         self.tk.createcommand(widget_name, self._proxy)
 
     def _proxy(self, command: Any, *args) -> Any:
-        # Let the actual widget perform the requested action
+        # Позволяем реальному виджету выполнить запрошенное действие
         cmd = (self._orig, command) + args
 
         try:
@@ -24,7 +24,7 @@ class CustomEntry(tk.Entry):
         except tk.TclError:
             result = ''
 
-        # Generate an event if something was added or deleted
+        # Генерируем событие, если что-то было добавлено или удалено
         if command in ('insert', 'delete', 'replace'):
             self.event_generate('<<Change>>', when='tail')
 

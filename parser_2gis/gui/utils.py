@@ -18,14 +18,14 @@ if GUI_ENABLED:
 
 
 def generate_event_handler(func: Callable, with_break: bool = False) -> Callable:
-    """Generate event handler out of function.
+    """Генерирует обработчик событий из функции.
 
     Args:
-        func: Function to be wrapped in event handler.
-        with_break: Whether to stop event propagation.
+        func: Функция, которую нужно обернуть в обработчик событий.
+        with_break: Останавливать ли распространение события.
 
     Returns:
-        Event handler.
+        Обработчик событий.
     """
     def wrapper(event: tk.Event) -> str | None:
         func()
@@ -38,16 +38,16 @@ def setup_text_widget(widget: tk.Text | tk.Entry, root: tk.Toplevel, *,
                       menu_copy: bool = True, menu_paste: bool = True,
                       menu_cut: bool = True, menu_clear: bool = True,
                       set_focus: bool = False) -> None:
-    """Setup text widgets, add context menu and other functionality.
+    """Настраивает текстовый виджет, добавляет контекстное меню и другую функциональность.
 
     Args:
-        widget: tk.Text or tk.Entry widget.
-        root: Parent window.
-        menu_copy: Whether text of the `widget` could be copied with context menu.
-        menu_paste: Whether text of the `widget` could be pasted with context menu.
-        menu_cut: Whether text of the `widget` could be cut with context menu.
-        menu_clear: Whether text of the `widget` could be cleared with context menu.
-        set_focus: Whether to set focus on the `widget`.
+        widget: Виджет tk.Text или tk.Entry.
+        root: Родительское окно.
+        menu_copy: Можно ли копировать текст `widget` через контекстное меню.
+        menu_paste: Можно ли вставлять текст в `widget` через контекстное меню.
+        menu_cut: Можно ли вырезать текст из `widget` через контекстное меню.
+        menu_clear: Можно ли очистить текст `widget` через контекстное меню.
+        set_focus: Устанавливать ли фокус на `widget`.
     """
     # def get_text() -> str:
     #     if isinstance(widget, tk.Entry):
@@ -177,8 +177,8 @@ def setup_text_widget(widget: tk.Text | tk.Entry, root: tk.Toplevel, *,
 
 
 def ensure_gui_enabled(func: F) -> F:
-    """Decorator to be sure GUI is enabled
-    before decorated form is run."""
+    """Декоратор для проверки, что GUI включён,
+    перед запуском декорированной формы."""
     @functools.wraps(func)
     def _ensure_gui_enabled(*args, **kwargs) -> Any:
         assert GUI_ENABLED, 'GUI is not enabled'
@@ -190,16 +190,16 @@ def ensure_gui_enabled(func: F) -> F:
 @contextlib.contextmanager
 def invoke_widget_hook(sg: sg, parent_key: str,
                        widget_callback: Callable[[sg.Element, tk.Frame, sg.Window], tk.Widget]):
-    """Hacky way to place custom widget inside element with key `parent_key`
-    by hooking SG module function PackFormIntoFrame during window finalization.
+    """Хитрый способ разместить пользовательский виджет внутри элемента с ключом `parent_key`,
+    перехватывая функцию модуля SG PackFormIntoFrame во время финализации окна.
 
     Args:
-        sg: PySimpleGUI module
-        parent_key: Parent element key.
-        created_widget: Callback with just created parent element as an argument.
+        sg: Модуль PySimpleGUI.
+        parent_key: Ключ родительского элемента.
+        created_widget: Callback с только что созданным родительским элементом в качестве аргумента.
 
     Returns:
-        Patched SG with `widget_callback` hook.
+        Патченный SG с хуком `widget_callback`.
     """
     old_PackFormIntoFrame = sg.PackFormIntoFrame
     created_widget = None
@@ -221,14 +221,14 @@ def invoke_widget_hook(sg: sg, parent_key: str,
 
 
 def url_query_encode(url: str) -> str:
-    """URL encode for query, nonascii
-    regular russian characters allowed (plus space).
+    """URL-кодирование для query, неascii
+    регулярные русские символы разрешены (плюс пробел).
 
     Args:
-        url: URL to be encoded.
+        url: URL для кодирования.
 
     Returns:
-        Encoded URL.
+        Закодированный URL.
     """
     encoded_characters = []
     for char in url:

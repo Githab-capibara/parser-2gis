@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Download cities info for following countries:
+# Загружаем информацию о городах для следующих стран:
 # ae, az, bh, by, cl, cy, cz, eg, it, kg, kw, kz, om, qa, ru, sa, uz
 
 import json
@@ -19,14 +19,14 @@ for _ in range(2):
         if parent_dir not in sys.path:
             sys.path.insert(1, parent_dir)
 
-# Get available cities from https://data.2gis.com and save it to data/cities.json
+# Получаем доступные города с https://data.2gis.com и сохраняем в data/cities.json
 
 _REGIONS_LIST_RESPONSE = r'https://catalog\.api\.2gis.[^/]+/.*/region/list'
 
-# NOTE:
-# There are also cities list in 'https://hermes.2gis.ru/api/data/availableParameters'
-# It has less entries than in '/region/list', but more structured (tree vs flat list).
-# Better use '/region/list' for parsing purpose.
+# ПРИМЕЧАНИЕ:
+# Также есть список городов в 'https://hermes.2gis.ru/api/data/availableParameters'
+# В нём меньше записей, чем в '/region/list', но он более структурирован (дерево против плоского списка).
+# Лучше использовать '/region/list' для целей парсинга.
 
 chrome_options = ChromeOptions(headless=True)
 with ChromeRemote(chrome_options, [_REGIONS_LIST_RESPONSE]) as chrome_remote:
@@ -37,18 +37,18 @@ with ChromeRemote(chrome_options, [_REGIONS_LIST_RESPONSE]) as chrome_remote:
     try:
         doc = json.loads(data)
     except json.JSONDecodeError:
-        print('Returned invalid JSON document!', file=sys.stderr)
+        print('Возвращён некорректный JSON документ!', file=sys.stderr)
         exit(1)
 
     if not doc:
-        print('No response, bail!', file=sys.stderr)
+        print('Нет ответа, выходим!', file=sys.stderr)
         exit(1)
 
     cities = []
     for item in doc['result']['items']:
         cities.append({
-            # "name" could contain trailing underscore char
-            # for some reasons, get rid of it.
+            # "name" может содержать завершающий символ подчёркивания
+            # по некоторым причинам, избавляемся от него.
             'name': item['name'].strip('_'),
             'code': item['code'],
             'domain': item['domain'],

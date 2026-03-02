@@ -36,31 +36,38 @@ def running_mac() -> bool:
 
 
 def wait_until_finished(timeout: int | None = None,
-                        finished: Callable[[Any], bool] = lambda x: bool(x),
+                        finished: Callable[[Any], bool] | None = None,
                         throw_exception: bool = True,
                         poll_interval: float = 0.1) -> Callable[..., Callable[..., Any]]:
-    """Decorator that polls wrapped function until time is out or `finished`
-    predicate returns `True`.
+    """Декоратор опрашивает обёрнутую функцию до истечения времени или пока
+    предикат `finished` не вернёт `True`.
 
     Args:
-        timeout: Max time to wait.
-        finished: Predicate for succeeded result of decorated function.
-        throw_exception: Whether to throw `TimeoutError`.
-        poll_interval: Poll interval for result of decorated function.
+        timeout: Максимальное время ожидания.
+        finished: Предикат для успешного результата обёрнутой функции.
+        throw_exception: Выбрасывать ли `TimeoutError`.
+        poll_interval: Интервал опроса результата обёрнутой функции.
     """
     def outer(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def inner(*args, timeout=timeout, finished=finished,
-                  throw_exception=throw_exception,
-                  poll_interval=poll_interval, **kwargs):
+        def inner(*args, timeout: int | None = timeout,
+                  finished: Callable[[Any], bool] | None = finished,
+                  throw_exception: bool = throw_exception,
+                  poll_interval: float = poll_interval, **kwargs):
+            # Перемещаем lambda в тело функции для избежания изменяемого аргумента по умолчанию
+            if finished is None:
+                finished = lambda x: bool(x)
+            
             call_time = time.time()
             while True:
                 ret = func(*args, **kwargs)
                 if finished(ret):
                     return ret
 
-                if timeout is not None:
-                    if time.time() - call_time > timeout:
+                # Переименовываем внутренний параметр для избежания путаницы
+                inner_timeout = timeout
+                if inner_timeout is not None:
+                    if time.time() - call_time > inner_timeout:
                         if throw_exception:
                             raise TimeoutError(func)
                         return ret
@@ -72,12 +79,11 @@ def wait_until_finished(timeout: int | None = None,
 
 def report_from_validation_error(ex: ValidationError,
                                  d: dict | None = None) -> dict:
-    """Generate validation error report
-    for `BaseModel` out of `ValidationError`.
+    """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
 
     Note:
-        It's convenient to use when you try to instantiate
-        model with predefined dictionary. For example:
+        Удобно использовать при попытке инициализации модели с предопределённым
+        словарём. Например:
 
         class TestModel(BaseModel):
             test_int: int
@@ -89,15 +95,15 @@ def report_from_validation_error(ex: ValidationError,
             print(report_from_validation_error(ex, d))
 
     Args:
-        d: Arguments dictionary.
-        ex: Thrown Pydantic ValidationError.
+        d: Словарь аргументов.
+        ex: Выброшенное Pydantic ValidationError.
 
     Returns:
-        Dictionary with validation error information.
+        Словарь с информацией об ошибках валидации.
         {
-            'full_path_of_invalid_attribute': {
-                'invalid_value': ...,
-                'error_message': ...,
+            'полный_путь_неверного_атрибута': {
+                'неверное_значение': ...,
+                'сообщение_об_ошибке': ...,
             },
             ...
         }
@@ -132,17 +138,16 @@ def report_from_validation_error(ex: ValidationError,
 
 
 def unwrap_dot_dict(d: dict) -> dict:
-    """Unwrap flat dictionary with keys represented
-    by dot-concatenated path to their values.
+    """Разворачивает плоский словарь с ключами в виде точечного пути к значениям.
 
     Example:
-        Input:
+        Вход:
             {
                 'full.path.fieldname': 'value1',
                 'another.fieldname': 'value2',
             }
 
-        Output:
+        Выход:
             {
                 'full': {
                     'path': {
@@ -163,5 +168,5 @@ def unwrap_dot_dict(d: dict) -> dict:
 
 
 def floor_to_hundreds(arg: int | float) -> int:
-    """Round number down to the nearest hundred."""
+    """Округляет число вниз до ближайшей сотни."""
     return int(arg // 100 * 100)

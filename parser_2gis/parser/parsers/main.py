@@ -28,6 +28,15 @@ class MainParser:
         chrome_options: Опции Chrome.
         parser_options: Опции парсера.
     """
+
+    # Константы для магических чисел
+    MAX_RESPONSE_ATTEMPTS: int = 3  # Максимальное количество попыток получить ответ
+    NAVIGATION_TIMEOUT: int = 120  # Таймаут навигации в секундах
+    WAIT_REQUESTS_TIMEOUT: int = 120  # Таймаут ожидания завершения запросов
+    GET_LINKS_TIMEOUT: int = 5  # Таймаут получения ссылок
+    GET_UNIQUE_LINKS_TIMEOUT: int = 10  # Таймаут получения уникальных ссылок
+    RESPONSE_BODY_TIMEOUT: int = 10  # Таймаут получения тела ответа
+
     def __init__(self, url: str,
                  chrome_options: ChromeOptions,
                  parser_options: ParserOptions) -> None:
@@ -55,9 +64,13 @@ class MainParser:
         """URL-паттерн для парсера."""
         return r'https?://2gis\.[^/]+/[^/]+/search/.*'
 
-    @wait_until_finished(timeout=5, throw_exception=False)
-    def _get_links(self) -> list[DOMNode]:
-        """Извлекает определённые DOM-узлы ссылок из текущего снимка DOM."""
+    @wait_until_finished(timeout=GET_LINKS_TIMEOUT, throw_exception=False)
+    def _get_links(self) -> Optional[list[DOMNode]]:
+        """Извлекает определённые DOM-узлы ссылок из текущего снимка DOM.
+
+        Returns:
+            Список DOM-узлов ссылок или None при ошибке.
+        """
         def valid_link(node: DOMNode) -> bool:
             if node.local_name == 'a' and 'href' in node.attributes:
                 link_match = re.match(r'.*/(firm|station)/.*\?stat=(?P<data>[a-zA-Z0-9%]+)', node.attributes['href'])
@@ -71,7 +84,11 @@ class MainParser:
             return False
 
         dom_tree = self._chrome_remote.get_document()
-        return dom_tree.search(valid_link)
+        links = dom_tree.search(valid_link)
+        # Проверяем, что ссылки действительно получены
+        if not links:
+            return None
+        return links
 
     def _add_xhr_counter(self) -> None:
         """Внедряет old-school обёртку вокруг XMLHttpRequest
@@ -98,7 +115,7 @@ class MainParser:
         '''
         self._chrome_remote.add_start_script(xhr_script)
 
-    @wait_until_finished(timeout=120)
+    @wait_until_finished(timeout=WAIT_REQUESTS_TIMEOUT)
     def _wait_requests_finished(self) -> bool:
         """Ждёт завершения всех ожидающих запросов."""
         return self._chrome_remote.execute_script('window.openHTTPs == 0')
@@ -156,10 +173,10 @@ class MainParser:
             walk_page_number = None
 
         # Переходим по URL
-        self._chrome_remote.navigate(url, referer='https://google.com', timeout=120)
+        self._chrome_remote.navigate(url, referer='https://google.com', timeout=self.NAVIGATION_TIMEOUT)
 
         # Документ загружен, получаем его ответ
-        responses = self._chrome_remote.get_responses(timeout=5)
+        responses = self._chrome_remote.get_responses(timeout=self.GET_LINKS_TIMEOUT)
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
@@ -169,7 +186,7 @@ class MainParser:
         if document_response['mimeType'] != 'text/html':
             logger.error('Неверный тип MIME ответа: %s', document_response['mimeType'])
             return
-            
+
         if document_response['status'] == 404:
             logger.warning('Сервер вернул сообщение "Точных совпадений нет / Не найдено".')
 
@@ -184,93 +201,116 @@ class MainParser:
 
         # Эта обёртка не необходима, но я хочу быть уверен,
         # что мы не собрали ссылки из старого DOM каким-то образом.
-        @wait_until_finished(timeout=10, throw_exception=False)
-        def get_unique_links() -> list[DOMNode]:
+        @wait_until_finished(timeout=self.GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False)
+        def get_unique_links() -> Optional[list[DOMNode]]:
+            """Получает уникальные ссылки, которые ещё не были посещены.
+
+            Returns:
+                Список уникальных DOM-узлов ссылок или None при ошибке/повторе.
+            """
             links = self._get_links()
+            # Проверяем, что ссылки успешно получены
+            if links is None:
+                return None
             link_addresses = set(x.attributes['href'] for x in links)
             if link_addresses & visited_links:
-                return []
+                # Возвращаем None вместо пустого списка для явного указания на повтор
+                return None
 
             visited_links.update(link_addresses)
             return links
 
-        while True:
-            # Ждём завершения всех 2GIS запросов
-            self._wait_requests_finished()
+        try:
+            while True:
+                # Ждём завершения всех 2GIS запросов
+                self._wait_requests_finished()
 
-            # Собираем ссылки для клика
-            links = get_unique_links()
+                # Собираем ссылки для клика
+                links = get_unique_links()
 
-            # Мы должны парсить страницу, если не идём к определённой странице
-            if not walk_page_number:
-                # Итерируемся по собранным ссылкам
-                for link in links:
-                    for _ in range(3):  # 3 попытки получить ответ
-                        # Кликаем на ссылку, чтобы спровоцировать запрос
-                        # с ключом авторизации и секретными аргументами
-                        self._chrome_remote.perform_click(link)
+                # Мы должны парсить страницу, если не идём к определённой странице
+                if not walk_page_number:
+                    # Итерируемся по собранным ссылкам
+                    for link in links:
+                        resp = None
+                        for attempt in range(self.MAX_RESPONSE_ATTEMPTS):  # 3 попытки получить ответ
+                            # Кликаем на ссылку, чтобы спровоцировать запрос
+                            # с ключом авторизации и секретными аргументами
+                            self._chrome_remote.perform_click(link)
 
-                        # Задержка между кликами, может быть полезна, если
-                        # 2GIS's anti-bot сервис станет более строгим.
-                        if self._options.delay_between_clicks:
-                            self._chrome_remote.wait(self._options.delay_between_clicks / 1000)
+                            # Задержка между кликами, может быть полезна, если
+                            # 2GIS's anti-bot сервис станет более строгим.
+                            if self._options.delay_between_clicks:
+                                self._chrome_remote.wait(self._options.delay_between_clicks / 1000)
 
-                        # Собираем ответы и собираем полезные данные.
-                        resp = self._chrome_remote.wait_response(self._item_response_pattern)
+                            # Собираем ответы и собираем полезные данные.
+                            resp = self._chrome_remote.wait_response(self._item_response_pattern)
 
-                        # Если запрос не удался - повторяем, иначе идём дальше.
+                            # Если запрос не удался - повторяем, иначе идём дальше.
+                            if resp and resp['status'] >= 0:
+                                break
+
+                            # Добавляем небольшую задержку между попытками для снижения нагрузки
+                            if attempt < self.MAX_RESPONSE_ATTEMPTS - 1:
+                                self._chrome_remote.wait(0.5)
+
+                        # Получаем данные тела ответа
                         if resp and resp['status'] >= 0:
-                            break
+                            data = self._chrome_remote.get_response_body(resp, timeout=self.RESPONSE_BODY_TIMEOUT)
 
-                    # Получаем данные тела ответа
-                    if resp and resp['status'] >= 0:
-                        data = self._chrome_remote.get_response_body(resp, timeout=10) if resp else None
-
-                        try:
-                            doc = json.loads(data)
-                        except json.JSONDecodeError:
-                            logger.error('Сервер вернул некорректный JSON документ: "%s", пропуск позиции.', data)
+                            try:
+                                doc = json.loads(data)
+                            except json.JSONDecodeError:
+                                logger.error('Сервер вернул некорректный JSON документ: "%s", пропуск позиции.', data)
+                                doc = None
+                        else:
                             doc = None
-                    else:
-                        doc = None
 
-                    if doc:
-                        # Записываем API документ в файл
-                        writer.write(doc)
-                        collected_records += 1
-                    else:
-                        logger.error('Данные не получены, пропуск позиции.')
+                        if doc:
+                            # Записываем API документ в файл
+                            writer.write(doc)
+                            collected_records += 1
+                        else:
+                            logger.error('Данные не получены, пропуск позиции.')
 
-                    # Мы достигли нашего лимита, выходим
-                    if collected_records >= self._options.max_records:
-                        logger.info('Спарсено максимально разрешенное количество записей с данного URL.')
-                        return
+                        # Мы достигли нашего лимита, выходим
+                        if collected_records >= self._options.max_records:
+                            logger.info('Спарсено максимально разрешенное количество записей с данного URL.')
+                            return
 
-            # Запускаем сборщик мусора, если он доступен и включён
-            if self._options.use_gc and current_page_number % self._options.gc_pages_interval == 0:
-                logger.debug('Запуск сборщика мусора.')
-                self._chrome_remote.execute_script('"gc" in window && window.gc()')
+                # Запускаем сборщик мусора, если он доступен и включён
+                if self._options.use_gc and current_page_number % self._options.gc_pages_interval == 0:
+                    logger.debug('Запуск сборщика мусора.')
+                    self._chrome_remote.execute_script('"gc" in window && window.gc()')
 
-            # Освобождаем память, выделенную для собранных запросов
+                # Вычисляем следующий номер страницы и переходим к ней
+                if walk_page_number:
+                    available_pages = self._get_available_pages()
+                    available_pages_ahead = {k: v for k, v in available_pages.items()
+                                             if k > current_page_number}
+                    next_page_number = min(available_pages_ahead, key=lambda n: abs(n - walk_page_number),  # type: ignore
+                                           default=current_page_number + 1)
+                else:
+                    next_page_number = current_page_number + 1
+
+                current_page_number = self._go_page(next_page_number)  # type: ignore
+                if not current_page_number:
+                    break  # Достигли конца результатов поиска
+
+                # Сбрасываем страницу назначения, если мы закончили переход к желаемой странице
+                if walk_page_number and walk_page_number <= current_page_number:
+                    walk_page_number = None
+
+                # Освобождаем память, выделенную для собранных запросов
+                # Вызываем ПОСЛЕ перехода на следующую страницу, чтобы не удалить нужные запросы
+                self._chrome_remote.clear_requests()
+        except Exception as e:
+            # При любом исключении гарантируем закрытие chrome_remote
+            logger.error('Критическая ошибка при парсинге: %s', e)
+            raise
+        finally:
+            # Гарантируем очистку ресурсов
             self._chrome_remote.clear_requests()
-
-            # Вычисляем следующий номер страницы и переходим к ней
-            if walk_page_number:
-                available_pages = self._get_available_pages()
-                available_pages_ahead = {k: v for k, v in available_pages.items()
-                                         if k > current_page_number}
-                next_page_number = min(available_pages_ahead, key=lambda n: abs(n - walk_page_number),  # type: ignore
-                                       default=current_page_number + 1)
-            else:
-                next_page_number = current_page_number + 1
-
-            current_page_number = self._go_page(next_page_number)  # type: ignore
-            if not current_page_number:
-                break  # Достигли конца результатов поиска
-
-            # Сбрасываем страницу назначения, если мы закончили переход к желаемой странице
-            if walk_page_number and walk_page_number <= current_page_number:
-                walk_page_number = None
 
     def close(self) -> None:
         self._chrome_remote.stop()

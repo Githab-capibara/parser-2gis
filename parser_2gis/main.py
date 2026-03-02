@@ -140,7 +140,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         for path, description in errors_report.items():
             arg = description['invalid_value']
             error_msg = description['error_message']
-            errors.append(f'aргумент --{path} {arg} ({error_msg})')
+            errors.append(f'аргумент --{path} {arg} ({error_msg})')
 
         arg_parser.error(', '.join(errors))
 
@@ -159,8 +159,11 @@ def main() -> None:
         user_config.merge_with(command_line_config)
         config = user_config
         app = gui_app
+        # Добавляем явную проверку if urls: перед передачей в gui_app()
+        urls = args.url if args.url else []
     else:
         config = command_line_config
         app = cli_app
+        urls = args.url
 
-    app(args.url, args.output_path, args.format, config)
+    app(urls, args.output_path, args.format, config)

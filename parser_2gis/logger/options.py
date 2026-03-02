@@ -6,15 +6,15 @@ from pydantic import BaseModel, validator
 
 
 class LogOptions(BaseModel):
-    # Format string (percent style)
+    # Строка формата (процентный стиль)
     gui_format: str = '%(asctime)s.%(msecs)03d | %(message)s'
     cli_format: str = '%(asctime)s.%(msecs)03d | %(levelname)-8s | %(message)s'
 
-    # Date format
+    # Формат даты
     gui_datefmt: str = '%H:%M:%S'
     cli_datefmt: str = '%d/%m/%Y %H:%M:%S'
 
-    # Level
+    # Уровень
     level: str = 'INFO'
 
     @validator('level')
@@ -28,7 +28,7 @@ class LogOptions(BaseModel):
 
     @validator('gui_format', 'cli_format')
     def format_validation(cls, v: str) -> str:
-        """Validate percent style format string."""
+        """Проверяет строку формата в процентном стиле."""
         fmt_match = re.match(r'%\(\w+\)[#0+ -]*(\*|\d+)?(\.(\*|\d+))?[diouxefgcrsa%]', v, re.I)
         if not fmt_match:
             raise ValueError('Format string is invalid')
