@@ -25,8 +25,12 @@ class InBuildingParser(MainParser):
         return r'https?://2gis\.[^/]+/[^/]+/inside/.*'
 
     @wait_until_finished(timeout=5, throw_exception=False)
-    def _get_links(self) -> list[DOMNode]:
-        """Извлекает конкретные ссылки узлов DOM из текущего снимка DOM."""
+    def _get_links(self) -> list[DOMNode] | None:
+        """Извлекает конкретные ссылки узлов DOM из текущего снимка DOM.
+        
+        Returns:
+            Список DOM-узлов ссылок или None при ошибке.
+        """
         def valid_link(node: DOMNode) -> bool:
             if node.local_name == 'a' and 'href' in node.attributes:
                 link_match = re.match(r'/[^/]+/firm/[^/]+$', node.attributes['href'])
@@ -35,7 +39,8 @@ class InBuildingParser(MainParser):
             return False
 
         dom_tree = self._chrome_remote.get_document()
-        return dom_tree.search(valid_link)
+        links = dom_tree.search(valid_link)
+        return links if links else None
 
     def parse(self, writer: FileWriter) -> None:
         """Парсит URL с организациями.
@@ -51,14 +56,20 @@ class InBuildingParser(MainParser):
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
-        document_response = responses[0]
-
-        # Обработка 404
-        if document_response['mimeType'] != 'text/html':
-            logger.error('Неверный тип MIME ответа: %s', document_response['mimeType'])
+        
+        # Безопасное получение первого ответа
+        try:
+            document_response = responses[0]
+        except (IndexError, KeyError):
+            logger.error('Список ответов пуст или некорректен.')
             return
 
-        if document_response['status'] == 404:
+        # Обработка 404
+        if document_response.get('mimeType') != 'text/html':
+            logger.error('Неверный тип MIME ответа: %s', document_response.get('mimeType', 'неизвестно'))
+            return
+
+        if document_response.get('status') == 404:
             logger.warning('Сервер вернул сообщение "Точных совпадений нет / Не найдено".')
 
             if self._options.skip_404_response:
@@ -72,8 +83,10 @@ class InBuildingParser(MainParser):
 
         # Получаем новые ссылки
         @wait_until_finished(timeout=5, throw_exception=False)
-        def get_unique_links() -> list[DOMNode]:
+        def get_unique_links() -> list[DOMNode] | None:
             links = self._get_links()
+            if links is None:
+                return None
             link_addresses = set(x.attributes['href'] for x in links) - visited_links
             visited_links.update(link_addresses)
             return [x for x in links if x.attributes['href'] in link_addresses]
@@ -90,6 +103,7 @@ class InBuildingParser(MainParser):
 
             # Итерируемся по собранным ссылкам
             for link in links:
+                resp = None
                 for _ in range(3):  # 3 попытки получить ответ
                     # Кликаем по ссылке, чтобы вызвать запрос
                     # с ключом авторизации и секретными аргументами
@@ -104,12 +118,12 @@ class InBuildingParser(MainParser):
                     resp = self._chrome_remote.wait_response(self._item_response_pattern)
 
                     # Если запрос не удался — повторяем, иначе идём дальше.
-                    if resp and resp['status'] >= 0:
+                    if resp and resp.get('status', -1) >= 0:
                         break
 
                 # Получаем данные тела ответа
-                if resp and resp['status'] >= 0:
-                    data = self._chrome_remote.get_response_body(resp) if resp else None
+                if resp and resp.get('status', -1) >= 0:
+                    data = self._chrome_remote.get_response_body(resp)
 
                     try:
                         doc = json.loads(data)

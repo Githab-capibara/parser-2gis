@@ -80,7 +80,7 @@ class ChromeBrowser():
             `True` при успешном удалении, `False` при неудаче.
         """
         try:
-            shutil.rmtree(self._profile_path, ignore_errors=True)
+            shutil.rmtree(self._profile_path, ignore_errors=False)
             profile_deleted = not os.path.isdir(self._profile_path)
             return profile_deleted
         except Exception:
@@ -96,8 +96,16 @@ class ChromeBrowser():
         logger.debug('Завершение работы Chrome браузера.')
 
         # Закрываем браузер
-        self._proc.terminate()
-        self._proc.wait()
+        try:
+            self._proc.terminate()
+            self._proc.wait(timeout=5)
+        except Exception:
+            # Принудительное завершение при ошибке
+            try:
+                self._proc.kill()
+                self._proc.wait(timeout=2)
+            except Exception:
+                pass
 
         # Удаляем временный профиль
         self._delete_profile()
