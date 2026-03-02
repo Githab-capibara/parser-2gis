@@ -49,7 +49,7 @@ class LogOptions(BaseModel):
             v = v.upper()
             if v not in ('ERROR', 'WARNING', 'WARN', 'INFO',
                          'DEBUG', 'FATAL', 'CRITICAL', 'NOTSET'):
-                raise ValueError('Level name not found')
+                raise ValueError('Неверное имя уровня логирования')
 
             return v
 
@@ -58,6 +58,6 @@ class LogOptions(BaseModel):
             """Проверяет строку формата в процентном стиле."""
             # Упрощённая проверка: строка должна содержать %(...) и спецификатор формата
             if not re.search(r'%\(\w+\)[#0+ \-]*(\*|\d+)?(\.(\*|\d+))?[diouxefgcrsa%]', v):
-                raise ValueError('Format string is invalid')
+                raise ValueError('Строка формата неверна')
 
             return v
