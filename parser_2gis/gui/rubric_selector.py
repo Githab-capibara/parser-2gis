@@ -122,11 +122,10 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
         [
             sg.Frame('Поиск рубрики', layout=[
                 [
-                    sg.Column([[]], pad=((SPACING_MD, SPACING_MD), (SPACING_SM, SPACING_SM)), 
+                    sg.Column([[]], pad=((SPACING_MD, SPACING_MD), (SPACING_SM, SPACING_SM)),
                               key='-COL_SEARCH-', expand_x=True),
                 ],
-            ], background_color=COLOR_BACKGROUND, border_width=1, 
-               border_color=COLOR_BORDER, relief='flat', 
+            ], background_color=COLOR_BACKGROUND, border_width=1, relief='flat',
                title_font=get_font(FONT_SIZE_MD, 'bold'),
                title_color=COLOR_TEXT_PRIMARY,
                pad=(SPACING_MD, SPACING_SM)),
@@ -151,11 +150,9 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
                                 text_color=COLOR_TEXT_PRIMARY,
                                 selected_background_color=COLOR_ACCENT_LIGHT,
                                 selected_text_color=COLOR_TEXT_PRIMARY,
-                                border_width=1,
-                                border_color=COLOR_BORDER),
+                                border_width=1),
                 ],
-            ], background_color=COLOR_BACKGROUND, border_width=1, 
-               border_color=COLOR_BORDER, relief='flat',
+            ], background_color=COLOR_BACKGROUND, border_width=1, relief='flat',
                title_font=get_font(FONT_SIZE_MD, 'bold'),
                title_color=COLOR_TEXT_PRIMARY,
                expand_x=True, expand_y=True,
