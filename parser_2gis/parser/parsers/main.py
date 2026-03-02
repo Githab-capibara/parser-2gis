@@ -256,7 +256,7 @@ class MainParser:
 
                         # Получаем данные тела ответа
                         if resp and resp['status'] >= 0:
-                            data = self._chrome_remote.get_response_body(resp, timeout=self.RESPONSE_BODY_TIMEOUT)
+                            data = self._chrome_remote.get_response_body(resp)
 
                             try:
                                 doc = json.loads(data)

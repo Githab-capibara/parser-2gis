@@ -298,10 +298,11 @@ class ChromeRemote:
 
         Args:
             response: Ответ.
-            
+
         Returns:
             Тело ответа или пустую строку при ошибке.
         """
+        response_data = None
         try:
             request_id = response['meta']['requestId']
             response_data = self._chrome_tab.call_method('Network.getResponseBody',
@@ -317,7 +318,7 @@ class ChromeRemote:
             return ''
         finally:
             # Гарантированная очистка ссылки на тело для предотвращения утечки памяти
-            if 'body' in response_data:
+            if response_data and 'body' in response_data:
                 del response_data['body']
 
     @wait_until_finished(timeout=None, throw_exception=False)

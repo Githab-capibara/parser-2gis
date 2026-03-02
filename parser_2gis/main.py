@@ -152,15 +152,15 @@ def main() -> None:
     # Парсим аргументы командной строки
     args, command_line_config = parse_arguments()
 
-    # Запускаем CLI если указаны все требуемые аргументы, иначе запускаем GUI.
+    # Запускаем CLI, если указаны все требуемые аргументы, иначе запускаем GUI
     if args.url is None or args.output_path is None or args.format is None:
-        # Загружаем пользовательскую конфигурацию и объединяем с созданной из аргументов.
+        # Загружаем пользовательскую конфигурацию и объединяем с созданной из аргументов
         user_config = Configuration.load_config(auto_create=True)
         user_config.merge_with(command_line_config)
         config = user_config
         app = gui_app
-        # Добавляем явную проверку if urls: перед передачей в gui_app()
-        urls = args.url if args.url else []
+        # Формируем список URL для GUI (может быть пустым)
+        urls = args.url or []
     else:
         config = command_line_config
         app = cli_app

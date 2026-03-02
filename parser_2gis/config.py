@@ -28,11 +28,17 @@ class Configuration(BaseModel):
     version: str = config_version
 
     def merge_with(self, other_config: Configuration) -> None:
-        """Merge configuration with another one."""
+        """Объединяет конфигурацию с другой."""
         def assign_attributes(model_source: BaseModel,
                               model_target: BaseModel) -> None:
-            """Recursively assign new attributes to existing config."""
-            for field in model_source.__fields_set__:
+            """Рекурсивно присваивает новые атрибуты к существующей конфигурации."""
+            # Используем model_fields_set для совместимости с Pydantic v2
+            fields_set = getattr(model_source, 'model_fields_set', None)
+            if fields_set is None:
+                # Fallback для Pydantic v1
+                fields_set = getattr(model_source, '__fields_set__', set())
+            
+            for field in fields_set:
                 source_attr = getattr(model_source, field)
                 if not isinstance(source_attr, BaseModel):
                     setattr(model_target, field, source_attr)
@@ -49,32 +55,42 @@ class Configuration(BaseModel):
         assign_attributes(other_config, self)
 
     def save_config(self) -> None:
-        """Save config if it's been loaded from a path previously."""
+        """Сохраняет конфигурацию, если она была загружена из пути."""
         if self.path:
             self.path.parent.mkdir(parents=True, exist_ok=True)
+            # Используем model_dump_json для совместимости с Pydantic v2
+            if hasattr(self, 'model_dump_json'):
+                json_str = self.model_dump_json(exclude={'path'}, ensure_ascii=False)
+                # Форматируем JSON с отступами
+                import json
+                data = json.loads(json_str)
+                json_str = json.dumps(data, ensure_ascii=False, indent=4)
+            else:
+                # Fallback для Pydantic v1
+                json_str = self.json(exclude={'path'}, ensure_ascii=False, indent=4)
             with open(self.path, 'w', encoding='utf-8') as f:
-                f.write(self.json(exclude={'path'}, ensure_ascii=False, indent=4))
+                f.write(json_str)
 
     @classmethod
     def load_config(cls, config_path: pathlib.Path | None = None,
                     auto_create: bool = True) -> Configuration:
-        """Load configuration from path. If path is not specified,
-        configuration gets loaded from user's configuration path.
-        If errors occurred during loading, method would fallback to
-        default configuration.
+        """Загружает конфигурацию из пути. Если путь не указан,
+        конфигурация загружается из пользовательского пути конфигурации.
+        При возникновении ошибок во время загрузки метод возвращается к
+        конфигурации по умолчанию.
 
-        Note:
-            User configuration path depending on running OS:
+        Примечание:
+            Пользовательский путь конфигурации в зависимости от ОС:
             * Unix: ~/.config/parser-2gis/parser-2gis.config
             * Mac: ~/Library/Application Support/parser-2gis/parser-2gis.config
-            * Win: C:\\Users\\%USERPROFILE%\\AppData\\Local\\parser-2gis\\parser-2gis.config
+            * Win: C:\\Users\\%USERPROFILE%\\AppData\\Local\\parser-2gis/parser-2gis.config
 
         Args:
-            config_path: Path to the config file. If not specified, user config gets loaded.
-            auto_create: Create config if it does not exist.
+            config_path: Путь к файлу конфигурации. Если не указан, загружается пользовательская конфигурация.
+            auto_create: Создать конфигурацию, если она не существует.
 
         Returns:
-            Configuration.
+            Конфигурация.
         """
         if not config_path:
             config_path = user_path() / 'parser-2gis.config'
@@ -88,10 +104,16 @@ class Configuration(BaseModel):
                 else:
                     config = cls()
             else:
-                # Используем model_validate_json с явным чтением файла для защиты от path traversal
+                # Используем model_validate_json для совместимости с Pydantic v2
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config_data = f.read()
-                config = cls.model_validate_json(config_data)
+                
+                if hasattr(cls, 'model_validate_json'):
+                    config = cls.model_validate_json(config_data)
+                else:
+                    # Fallback для Pydantic v1
+                    from pydantic import parse_raw_as
+                    config = parse_raw_as(cls, config_data)
                 config.path = config_path
         except (JSONDecodeError, ValidationError) as e:
             # Создаём backup повреждённого файла конфигурации для отладки

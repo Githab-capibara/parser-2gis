@@ -34,7 +34,7 @@ class ChromeBrowser():
         if not os.path.exists(binary_path):
             raise FileNotFoundError(f'Путь к браузеру не существует: {binary_path}')
 
-        logger.debug('Запуск Chrome Браузера.')
+        logger.debug('Запуск Chrome браузера.')
 
         self._profile_path = tempfile.mkdtemp()
         self._remote_port = free_port()
@@ -52,7 +52,7 @@ class ChromeBrowser():
             self._chrome_cmd.append('--start-maximized')
 
         if chrome_options.headless:
-            logger.debug('В Chrome установлен в скрытый режим.')
+            logger.debug('В Chrome установлен скрытый режим.')
             self._chrome_cmd.append('--headless')
             self._chrome_cmd.append('--disable-gpu')
 
@@ -61,7 +61,7 @@ class ChromeBrowser():
             self._chrome_cmd.append('--blink-settings=imagesEnabled=false')
 
         if chrome_options.silent_browser:
-            logger.debug('В Chrome отключен вывод отладочной информации.')
+            logger.debug('В Chrome отключён вывод отладочной информации.')
             self._proc = subprocess.Popen(self._chrome_cmd, shell=False,
                                           stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
         else:
@@ -93,7 +93,7 @@ class ChromeBrowser():
 
     def close(self) -> None:
         """Закрывает браузер и удаляет временный профиль."""
-        logger.debug('Завершение работы Chrome Браузера.')
+        logger.debug('Завершение работы Chrome браузера.')
 
         # Закрываем браузер
         self._proc.terminate()
