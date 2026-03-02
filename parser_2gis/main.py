@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pydantic
 
@@ -9,7 +9,9 @@ from .common import GUI_ENABLED, report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
 from .version import version
 from .cli import cli_app
-from .gui import gui_app
+
+if TYPE_CHECKING:
+    from .gui import gui_app
 
 
 class ArgumentHelpFormatter(argparse.HelpFormatter):
@@ -94,6 +96,9 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
 
     main_parser = arg_parser.add_argument_group(main_parser_name)
     main_parser.add_argument('-i', '--url', nargs='+', default=None, required=main_parser_required, help='URL с выдачей')
+    main_parser.add_argument('--cities', nargs='+', default=None, metavar='CITY_CODE', help='Коды городов для парсинга (например: moscow spb kazan)')
+    main_parser.add_argument('--query', default=None, help='Поисковый запрос для генерации URL по городам')
+    main_parser.add_argument('--rubric', default=None, help='Код рубрики для фильтрации результатов')
     main_parser.add_argument('-o', '--output-path', metavar='PATH', default=None, required=main_parser_required, help='Путь до результирующего файла')
     main_parser.add_argument('-f', '--format', metavar='{csv,xlsx,json}', choices=['csv', 'xlsx', 'json'], default=None, required=main_parser_required, help='Формат результирующего файла')
 
@@ -152,18 +157,50 @@ def main() -> None:
     # Парсим аргументы командной строки
     args, command_line_config = parse_arguments()
 
+    # Обрабатываем аргументы городов
+    urls = args.url or []
+
+    # Если указаны города, генерируем URL
+    if hasattr(args, 'cities') and args.cities:
+        from .common import generate_city_urls
+        from .paths import data_path
+        import json
+
+        # Загружаем список городов
+        cities_path = data_path() / 'cities.json'
+        if not cities_path.is_file():
+            raise FileNotFoundError(f'Файл {cities_path} не найден')
+
+        with open(cities_path, 'r', encoding='utf-8') as f:
+            all_cities = json.load(f)
+
+        # Фильтруем города по указанным кодам
+        selected_cities = [city for city in all_cities if city['code'] in args.cities]
+
+        if not selected_cities:
+            raise ValueError(f'Города с кодами {args.cities} не найдены')
+
+        # Получаем запрос и рубрику
+        query = args.query or 'Организации'
+        rubric = {'code': args.rubric} if args.rubric else None
+
+        # Генерируем URL
+        generated_urls = generate_city_urls(selected_cities, query, rubric)
+        urls.extend(generated_urls)
+
     # Запускаем CLI, если указаны все требуемые аргументы, иначе запускаем GUI
-    if args.url is None or args.output_path is None or args.format is None:
+    if (args.url is None and (not hasattr(args, 'cities') or not args.cities)) or args.output_path is None or args.format is None:
         # Загружаем пользовательскую конфигурацию и объединяем с созданной из аргументов
         user_config = Configuration.load_config(auto_create=True)
         user_config.merge_with(command_line_config)
         config = user_config
+        # Импортируем gui_app только при необходимости
+        from .gui import gui_app
         app = gui_app
         # Формируем список URL для GUI (может быть пустым)
-        urls = args.url or []
+        # URLs уже обработаны выше
     else:
         config = command_line_config
         app = cli_app
-        urls = args.url
 
     app(urls, args.output_path, args.format, config)

@@ -11,6 +11,7 @@ from ..logger import logger, setup_cli_logger, setup_gui_logger
 from ..paths import image_data, image_path
 from ..runner import GUIRunner
 from ..version import version
+from .city_selector import gui_city_selector
 from .error_popup import gui_error_popup
 from .settings import gui_settings
 from .theme import (COLOR_ACCENT, COLOR_ACCENT_HOVER, COLOR_BACKGROUND,
@@ -108,14 +109,20 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                 [
                     sg.Column([
                         [
-                            sg.Text('URL для парсинга', font=get_font(FONT_SIZE_MD), 
+                            sg.Text('URL для парсинга', font=get_font(FONT_SIZE_MD),
                                     text_color=COLOR_TEXT_SECONDARY, pad=(0, SPACING_XS)),
                         ],
                         [
                             sg.Input(key='-IN_URL-', use_readonly_for_disable=True, expand_x=True,
                                      font=get_font(FONT_SIZE_BASE), background_color=COLOR_WHITE),
-                            sg.Button('Редактор', key='-BTN_URLS-', size=(10, 1),
-                                      button_color=(COLOR_WHITE, COLOR_ACCENT), border_width=0),
+                            sg.Column([
+                                [
+                                    sg.Button('Города', key='-BTN_CITIES-', size=(10, 1),
+                                              button_color=(COLOR_WHITE, COLOR_ACCENT), border_width=0),
+                                    sg.Button('Редактор', key='-BTN_URLS-', size=(10, 1),
+                                              button_color=(COLOR_WHITE, COLOR_ACCENT), border_width=0),
+                                ],
+                            ], element_justification='right', pad=((SPACING_SM, 0), 0)),
                         ],
                     ], expand_x=True, pad=SPACING_LG),
                 ],
@@ -343,6 +350,28 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
             if ret_urls is not None and isinstance(ret_urls, list):
                 urls = ret_urls
                 update_urls_input()
+
+        # Запуск селектора городов
+        elif event == '-BTN_CITIES-':
+            # Синхронизация URL с элементом ввода
+            if not window['-IN_URL-'].Disabled:
+                urls = [values['-IN_URL-']]
+
+            # Запускаем селектор городов
+            selected_cities = gui_city_selector(config)
+            if selected_cities:
+                # Запрашиваем поисковый запрос у пользователя
+                import PySimpleGUI as sg
+                query = sg.popup_get_text('Введите поисковый запрос:', title='Генерация URL по городам',
+                                          default_text='Организации', font=get_font(FONT_SIZE_BASE))
+                if query:
+                    # Генерируем URL по выбранным городам
+                    from ..common import generate_city_urls
+                    generated_urls = generate_city_urls(selected_cities, query)
+                    urls.extend(generated_urls)
+                    update_urls_input()
+                    logger.info('Добавлено %d URL для городов: %s', len(generated_urls),
+                               ', '.join([city['name'] for city in selected_cities]))
 
         # Выбор формата выходного файла
         elif event == '-FILE_FORMAT-':

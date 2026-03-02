@@ -101,14 +101,16 @@ def gui_urls_editor(urls: list[str]) -> list[str] | None:
         [
             sg.Column([
                 [
-                    sg.Button('✅ OK', size=(10, 1), key='-BTN_OK-', 
+                    sg.Button('✅ OK', size=(10, 1), key='-BTN_OK-',
                               **button_style),
-                    sg.Button('🛠 Генерировать', size=(14, 1), key='-BTN_BUILD-', 
+                    sg.Button('🛠 Генерировать', size=(14, 1), key='-BTN_BUILD-',
                               **button_style),
-                    sg.Button('✕ Отмена', size=(10, 1), key='-BTN_CANCEL-', 
+                    sg.Button('🌍 Города', size=(10, 1), key='-BTN_CITIES-',
+                              **button_style),
+                    sg.Button('✕ Отмена', size=(10, 1), key='-BTN_CANCEL-',
                               **button_secondary_style),
                 ],
-            ], expand_x=True, element_justification='right', 
+            ], expand_x=True, element_justification='right',
                background_color=COLOR_BACKGROUND, pad=SPACING_MD),
         ],
     ]
@@ -145,6 +147,21 @@ def gui_urls_editor(urls: list[str]) -> list[str] | None:
                 urls_content = urls_widget.text.get('1.0', 'end')[:-1]
                 join_character = '\n' if urls_content and urls_content[-1:] != '\n' else ''
                 urls_widget.text.insert('end', join_character + '\n'.join(urls))
+
+        elif event == '-BTN_CITIES-':
+            from .city_selector import gui_city_selector
+            selected_cities = gui_city_selector()
+            if selected_cities:
+                # Запрашиваем поисковый запрос
+                query = sg.popup_get_text('Введите поисковый запрос:', title='Генерация URL по городам',
+                                          default_text='Организации')
+                if query:
+                    from ..common import generate_city_urls
+                    generated_urls = generate_city_urls(selected_cities, query)
+                    if generated_urls:
+                        urls_content = urls_widget.text.get('1.0', 'end')[:-1]
+                        join_character = '\n' if urls_content and urls_content[-1:] != '\n' else ''
+                        urls_widget.text.insert('end', join_character + '\n'.join(generated_urls))
 
         elif event == '-BTN_OK-':
             urls_content = urls_widget.text.get('1.0', 'end')[:-1]

@@ -174,3 +174,52 @@ def unwrap_dot_dict(d: dict) -> dict:
 def floor_to_hundreds(arg: int | float) -> int:
     """Округляет число вниз до ближайшей сотни."""
     return int(arg // 100 * 100)
+
+
+def generate_city_urls(cities: list[dict], query: str, rubric: dict | None = None) -> list[str]:
+    """Генерирует URL для парсинга по списку городов.
+
+    Args:
+        cities: Список словарей городов с полями name, code, domain, country_code.
+        query: Поисковый запрос (например, "Аптеки", "Рестораны").
+        rubric: Словарь рубрики с полями code, label (опционально).
+
+    Returns:
+        Список URL для парсинга.
+    """
+    urls = []
+    for city in cities:
+        base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
+        rest_url = f'/search/{url_query_encode(query)}'
+        if rubric:
+            rest_url += f'/rubricId/{rubric["code"]}'
+
+        rest_url += '/filters/sort=name'
+        url = base_url + rest_url
+        urls.append(url)
+
+    return urls
+
+
+def url_query_encode(query: str) -> str:
+    """Кодирует строку запроса для URL.
+
+    Args:
+        query: Исходная строка запроса.
+
+    Returns:
+        Закодированная строка для использования в URL.
+    
+    Примечание:
+        Русские символы и пробелы остаются без изменений для читаемости URL.
+    """
+    from urllib.parse import quote
+    encoded_characters = []
+    for char in query:
+        char_ord = ord(char.lower())
+        # Do not escape [а-яё ]
+        if 1072 <= char_ord <= 1103 or char_ord in (1105, 32):
+            encoded_characters.append(char)
+        else:
+            encoded_characters.append(quote(char, safe=''))
+    return ''.join(encoded_characters)
