@@ -9,6 +9,12 @@ from typing import Any, Callable
 
 from pydantic import ValidationError
 
+# Отложенный импорт logger для избежания циклических зависимостей
+def _get_logger():
+    """Получает logger для модуля common."""
+    from .logger import logger
+    return logger
+
 try:
     import PySimpleGUI
     del PySimpleGUI
@@ -189,10 +195,18 @@ def generate_city_urls(cities: list[dict], query: str, rubric: dict | None = Non
         Список URL для парсинга.
     """
     urls = []
+    logger = _get_logger()
+    
     for city in cities:
+        # Валидация данных города
+        if not all(key in city for key in ('code', 'domain')):
+            logger.warning('Город не содержит обязательные поля (code, domain): %s', city)
+            continue
+            
         base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
         rest_url = f'/search/{url_query_encode(query)}'
-        if rubric:
+        
+        if rubric and 'code' in rubric:
             rest_url += f'/rubricId/{rubric["code"]}'
 
         rest_url += '/filters/sort=name'
@@ -213,13 +227,15 @@ def url_query_encode(query: str) -> str:
 
     Примечание:
         Русские символы и пробелы остаются без изменений для читаемости URL.
+        Кириллические символы кодируются в UTF-8 для совместимости с браузерами.
     """
     encoded_characters = []
     for char in query:
-        char_ord = ord(char.lower())
-        # Не кодируем [а-яё ]
-        if 1072 <= char_ord <= 1103 or char_ord in (1105, 32):
+        char_ord = ord(char)
+        # Не кодируем русские буквы [а-яА-ЯёЁ] и пробел для читаемости
+        if (1040 <= char_ord <= 1103) or char_ord in (1025, 1105, 32):
             encoded_characters.append(char)
         else:
+            # Кодируем все остальные символы (латиница, цифры, спецсимволы)
             encoded_characters.append(urllib.parse.quote(char, safe=''))
     return ''.join(encoded_characters)
