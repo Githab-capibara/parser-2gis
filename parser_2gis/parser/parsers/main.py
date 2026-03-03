@@ -171,7 +171,7 @@ class MainParser:
         self._chrome_remote.navigate(url, referer='https://google.com', timeout=NAVIGATION_TIMEOUT)
 
         # Документ загружен, получаем его ответ
-        responses = self._chrome_remote.get_responses(timeout=GET_LINKS_TIMEOUT)
+        responses = self._chrome_remote.get_responses()
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
