@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import functools
 
+
+@functools.lru_cache(maxsize=2)
 def blocked_requests(extended: bool = False) -> list[str]:
     """Получить список заблокированных запросов: метрика, логирование,
     аналитика, счётчики, реклама и т.д.
@@ -48,7 +51,7 @@ def blocked_requests(extended: bool = False) -> list[str]:
         'https://disk.2gis.*/styles/*',
     ]
 
-    ret_list = blocked_requests
+    ret_list = list(blocked_requests)  # Создаём копию для предотвращения изменения кэша
     if extended:
         ret_list.extend(blocked_requests_extra)
 

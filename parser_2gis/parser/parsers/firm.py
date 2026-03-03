@@ -29,11 +29,11 @@ class FirmParser(MainParser):
         self._chrome_remote.navigate(self._url, referer='https://google.com', timeout=120)
 
         # Документ загружен, получаем ответ
-        responses = self._chrome_remote.get_responses(timeout=5)
+        responses = self._chrome_remote.get_responses()
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
-        
+
         # Безопасное получение первого ответа
         try:
             document_response = responses[0]
@@ -58,17 +58,21 @@ class FirmParser(MainParser):
         # Получаем ответ и собираем полезную нагрузку.
         try:
             initial_state = self._chrome_remote.execute_script('window.initialState')
-            if not initial_state or 'data' not in initial_state:
-                logger.warning('Данные организации не найдены.')
+            if not initial_state:
+                logger.warning('Данные организации не найдены (initialState отсутствует).')
+                return
+            
+            if 'data' not in initial_state:
+                logger.warning('Данные организации не найдены (data отсутствует).')
                 return
             
             data = list(initial_state['data']['entity']['profile'].values())
             if not data:
-                logger.warning('Данные организации не найдены.')
+                logger.warning('Данные организации не найдены (пустой профиль).')
                 return
             doc = data[0]
-        except (KeyError, TypeError, AttributeError):
-            logger.error('Ошибка при получении данных организации.')
+        except (KeyError, TypeError, AttributeError) as e:
+            logger.error('Ошибка при получении данных организации: %s', e)
             return
 
         # Записываем API документ в файл
