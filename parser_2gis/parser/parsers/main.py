@@ -18,6 +18,14 @@ if TYPE_CHECKING:
     from ..options import ParserOptions
 
 
+# Константы модуля для магических чисел
+MAX_RESPONSE_ATTEMPTS: int = 3  # Максимальное количество попыток получить ответ
+NAVIGATION_TIMEOUT: int = 120  # Таймаут навигации в секундах
+WAIT_REQUESTS_TIMEOUT: int = 120  # Таймаут ожидания завершения запросов
+GET_LINKS_TIMEOUT: int = 5  # Таймаут получения ссылок
+GET_UNIQUE_LINKS_TIMEOUT: int = 10  # Таймаут получения уникальных ссылок
+
+
 class MainParser:
     """Основной парсер, который извлекает полезные данные
     со страниц поисковой выдачи с помощью браузера Chrome
@@ -28,13 +36,6 @@ class MainParser:
         chrome_options: Опции Chrome.
         parser_options: Опции парсера.
     """
-
-    # Константы для магических чисел
-    MAX_RESPONSE_ATTEMPTS: int = 3  # Максимальное количество попыток получить ответ
-    NAVIGATION_TIMEOUT: int = 120  # Таймаут навигации в секундах
-    WAIT_REQUESTS_TIMEOUT: int = 120  # Таймаут ожидания завершения запросов
-    GET_LINKS_TIMEOUT: int = 5  # Таймаут получения ссылок
-    GET_UNIQUE_LINKS_TIMEOUT: int = 10  # Таймаут получения уникальных ссылок
 
     def __init__(self, url: str,
                  chrome_options: ChromeOptions,
@@ -164,16 +165,13 @@ class MainParser:
         url = re.sub(r'/page/\d+', '', self._url, re.I)
 
         page_match = re.search(r'/page/(?P<page_number>\d+)', self._url, re.I)
-        if page_match:
-            walk_page_number = int(page_match.group('page_number'))
-        else:
-            walk_page_number = None
+        walk_page_number = int(page_match.group('page_number')) if page_match else None
 
         # Переходим по URL
-        self._chrome_remote.navigate(url, referer='https://google.com', timeout=self.NAVIGATION_TIMEOUT)
+        self._chrome_remote.navigate(url, referer='https://google.com', timeout=NAVIGATION_TIMEOUT)
 
         # Документ загружен, получаем его ответ
-        responses = self._chrome_remote.get_responses(timeout=self.GET_LINKS_TIMEOUT)
+        responses = self._chrome_remote.get_responses(timeout=GET_LINKS_TIMEOUT)
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
@@ -231,18 +229,18 @@ class MainParser:
                 # Собираем ссылки для клика
                 links = get_unique_links()
 
-                # Мы должны парсить страницу, если не идём к определённой странице
-                if not walk_page_number:
+                # Парсим страницу, если не идём к определённой странице
+                if not walk_page_number and links:
                     # Итерируемся по собранным ссылкам
                     for link in links:
                         resp = None
-                        for attempt in range(self.MAX_RESPONSE_ATTEMPTS):  # 3 попытки получить ответ
+                        for attempt in range(MAX_RESPONSE_ATTEMPTS):  # 3 попытки получить ответ
                             # Кликаем на ссылку, чтобы спровоцировать запрос
                             # с ключом авторизации и секретными аргументами
                             self._chrome_remote.perform_click(link)
 
                             # Задержка между кликами, может быть полезна, если
-                            # 2GIS's anti-bot сервис станет более строгим.
+                            # anti-bot сервис 2GIS станет более строгим.
                             if self._options.delay_between_clicks:
                                 self._chrome_remote.wait(self._options.delay_between_clicks / 1000)
 
@@ -250,17 +248,17 @@ class MainParser:
                             resp = self._chrome_remote.wait_response(self._item_response_pattern)
 
                             # Если запрос не удался - повторяем, иначе идём дальше.
-                            if resp and resp['status'] >= 0:
+                            if resp and resp.get('status', -1) >= 0:
                                 break
 
                             # Добавляем небольшую задержку между попытками для снижения нагрузки
-                            if attempt < self.MAX_RESPONSE_ATTEMPTS - 1:
+                            if attempt < MAX_RESPONSE_ATTEMPTS - 1:
                                 self._chrome_remote.wait(0.5)
 
                         # Пропускаем позицию, если все попытки получить ответ неудачны
-                        if not resp or resp['status'] < 0:
-                            logger.error('Не удалось получить ответ после %d попыток, пропуск позиции.', 
-                                        self.MAX_RESPONSE_ATTEMPTS)
+                        if not resp or resp.get('status', -1) < 0:
+                            logger.error('Не удалось получить ответ после %d попыток, пропуск позиции.',
+                                        MAX_RESPONSE_ATTEMPTS)
                             continue
 
                         # Получаем данные тела ответа
@@ -276,7 +274,7 @@ class MainParser:
                             # Записываем API документ в файл
                             writer.write(doc)
                             collected_records += 1
-                            
+
                             # Проверяем достижение лимита после каждой успешной записи
                             if collected_records >= self._options.max_records:
                                 logger.info('Спарсено максимально разрешенное количество записей с данного URL.')
