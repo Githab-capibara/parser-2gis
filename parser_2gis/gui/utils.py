@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import contextlib
 import functools
-import urllib.parse
 from typing import TYPE_CHECKING, Any, Callable, TypeVar, cast
 
-from ..common import GUI_ENABLED, running_mac
+from ..common import GUI_ENABLED, running_mac, url_query_encode
 
 F = TypeVar('F', bound=Callable[..., Any])
 
@@ -49,18 +48,11 @@ def setup_text_widget(widget: tk.Text | tk.Entry, root: tk.Toplevel, *,
         menu_clear: Можно ли очистить текст `widget` через контекстное меню.
         set_focus: Устанавливать ли фокус на `widget`.
     """
-    # def get_text() -> str:
-    #     if isinstance(widget, tk.Entry):
-    #         return widget.get()
-    #     elif isinstance(widget, tk.Text):
-    #         return widget.get('1.0','end')
-    #     return ''
-
     def get_clipboard() -> str | None:
         try:
             return widget.clipboard_get()
         except tk.TclError:
-            # Nothing in clipboard
+            # Буфер обмена пуст
             return None
 
     def get_selection() -> str | None:
@@ -73,14 +65,14 @@ def setup_text_widget(widget: tk.Text | tk.Entry, root: tk.Toplevel, *,
             try:
                 return widget.get('sel.first', 'sel.last')
             except tk.TclError:
-                # Nothing was selected
+                # Выделение отсутствует
                 return None
 
     def delete_selection() -> None:
         try:
-            widget.delete('sel.first', 'sel.last')  # Works for tk.Entry and tk.Text
+            widget.delete('sel.first', 'sel.last')  # Работает для tk.Entry и tk.Text
         except tk.TclError:
-            # Nothing was selected
+            # Выделение отсутствует
             pass
 
     def copy_text() -> None:
@@ -112,7 +104,7 @@ def setup_text_widget(widget: tk.Text | tk.Entry, root: tk.Toplevel, *,
             widget.tag_add('sel', '1.0', 'end')
 
     def ctrl_key_press(event) -> None:
-        """Generate CTRL + X, V, C, A events for non-english layouts."""
+        """Генерирует события CTRL + X, V, C, A для нерусских раскладок."""
         if event.keycode == 88 and event.keysym.lower() != 'x':
             event.widget.event_generate('<<Cut>>')
         elif event.keycode == 86 and event.keysym.lower() != 'v':
@@ -122,10 +114,10 @@ def setup_text_widget(widget: tk.Text | tk.Entry, root: tk.Toplevel, *,
         elif event.keycode == 65 and event.keysym.lower() != 'a':
             event.widget.event_generate('<<SelectAll>>')
 
-    # Generate extra events for non-english layouts
+    # Генерируем дополнительные события для нерусских раскладок
     widget.bind('<Control-KeyPress>', ctrl_key_press)
 
-    # Create menu
+    # Создаём меню
     menu = tk.Menu(root, tearoff=False)
 
     if menu_cut:
@@ -134,19 +126,19 @@ def setup_text_widget(widget: tk.Text | tk.Entry, root: tk.Toplevel, *,
         menu.add_command(label='Скопировать', command=copy_text)
     if menu_paste:
         menu.add_command(label='Вставить', command=paste_text)
-        # Fix paste bahaviour
+        # Исправляем поведение вставки
         widget.bind('<<Paste>>', generate_event_handler(paste_text, with_break=True))
 
-    # Select all bahaviour
+    # Выделение всего текста
     widget.bind('<Control-a>', generate_event_handler(select_all, with_break=True))
     menu.add_command(label='Выделить всё', command=select_all)
 
     if menu_clear:
         menu.add_command(label='Очистить', command=clear_text)
 
-    # Show menu
+    # Показ меню
     def show_menu_handler(event: tk.Event) -> None:
-        """Config menu."""
+        """Настройка меню."""
         is_readonly = widget.cget('state') == 'readonly'
 
         if menu_copy:
@@ -168,10 +160,10 @@ def setup_text_widget(widget: tk.Text | tk.Entry, root: tk.Toplevel, *,
     rclick_event_name = '<Button-2>' if running_mac() else '<Button-3>'
     widget.bind(rclick_event_name, show_menu_handler)
 
-    # Hide menu
+    # Скрытие меню
     menu.bind('<FocusOut>', generate_event_handler(menu.unpost))
 
-    # Focus
+    # Фокус
     if set_focus:
         widget.focus_set()
 
@@ -181,7 +173,7 @@ def ensure_gui_enabled(func: F) -> F:
     перед запуском декорированной формы."""
     @functools.wraps(func)
     def _ensure_gui_enabled(*args, **kwargs) -> Any:
-        assert GUI_ENABLED, 'GUI is not enabled'
+        assert GUI_ENABLED, 'GUI не включён'
         return func(*args, **kwargs)
 
     return cast(F, _ensure_gui_enabled)
@@ -196,7 +188,7 @@ def invoke_widget_hook(sg: sg, parent_key: str,
     Args:
         sg: Модуль PySimpleGUI.
         parent_key: Ключ родительского элемента.
-        created_widget: Callback с только что созданным родительским элементом в качестве аргумента.
+        widget_callback: Callback с только что созданным родительским элементом в качестве аргумента.
 
     Returns:
         Патченный SG с хуком `widget_callback`.
@@ -220,25 +212,5 @@ def invoke_widget_hook(sg: sg, parent_key: str,
         sg.PackFormIntoFrame = old_PackFormIntoFrame
 
 
-def url_query_encode(url: str) -> str:
-    """URL-кодирование для query, неascii
-    регулярные русские символы разрешены (плюс пробел).
-
-    Args:
-        url: URL для кодирования.
-
-    Returns:
-        Закодированный URL.
-    """
-    encoded_characters = []
-    for char in url:
-        char_ord = ord(char.lower())
-
-        # Do not escape [а-яё ]
-        if 1072 <= char_ord <= 1103 \
-           or char_ord in (1105, 32):
-            encoded_characters.append(char)
-        else:
-            encoded_characters.append(urllib.parse.quote(char, safe=''))
-
-    return ''.join(encoded_characters)
+# Экспортируем url_query_encode из common.py для обратной совместимости
+__all__ = ['url_query_encode']
