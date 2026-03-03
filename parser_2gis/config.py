@@ -29,24 +29,28 @@ class Configuration(BaseModel):
 
     def merge_with(self, other_config: Configuration) -> None:
         """Объединяет конфигурацию с другой.
-        
+
         Рекурсивно обновляет поля текущей конфигурации значениями из other_config.
         Используются только явно установленные поля (model_fields_set / __fields_set__).
-        
+
         Args:
             other_config: Конфигурация для объединения.
-            
+
         Raises:
             ValueError: Если возникает конфликт типов при объединении.
         """
         def assign_attributes(model_source: BaseModel,
                               model_target: BaseModel) -> None:
             """Рекурсивно присваивает новые атрибуты к существующей конфигурации."""
-            # Используем model_fields_set для совместимости с Pydantic v2
+            # Определяем версию Pydantic и получаем набор установленных полей
             fields_set = getattr(model_source, 'model_fields_set', None)
             if fields_set is None:
                 # Fallback для Pydantic v1
                 fields_set = getattr(model_source, '__fields_set__', set())
+            
+            # Гарантируем, что fields_set - это множество
+            if fields_set is None:
+                fields_set = set()
 
             for field in fields_set:
                 try:
@@ -69,6 +73,7 @@ class Configuration(BaseModel):
             # Используем model_dump_json для совместимости с Pydantic v2
             import json
             if hasattr(self, 'model_dump_json'):
+                # Pydantic v2
                 json_str = self.model_dump_json(exclude={'path'}, ensure_ascii=False)
                 # Форматируем JSON с отступами
                 data = json.loads(json_str)
@@ -117,11 +122,11 @@ class Configuration(BaseModel):
                     config_data = f.read()
 
                 if hasattr(cls, 'model_validate_json'):
+                    # Pydantic v2
                     config = cls.model_validate_json(config_data)
                 else:
                     # Fallback для Pydantic v1
-                    from pydantic import parse_raw_as
-                    config = parse_raw_as(cls, config_data)
+                    config = cls.parse_raw(config_data)
                 config.path = config_path
         except (JSONDecodeError, ValidationError) as e:
             # Создаём backup повреждённого файла конфигурации для отладки

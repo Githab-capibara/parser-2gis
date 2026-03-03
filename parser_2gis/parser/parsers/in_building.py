@@ -52,11 +52,11 @@ class InBuildingParser(MainParser):
         self._chrome_remote.navigate(self._url, referer='https://google.com', timeout=120)
 
         # Документ загружен, получаем ответ
-        responses = self._chrome_remote.get_responses(timeout=5)
+        responses = self._chrome_remote.get_responses()
         if not responses:
             logger.error('Ошибка получения ответа сервера.')
             return
-        
+
         # Безопасное получение первого ответа
         try:
             document_response = responses[0]
