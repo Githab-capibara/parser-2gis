@@ -67,7 +67,8 @@ class Schedule(BaseModel):
         Returns:
             Расписание в виде строки.
         """
-        days_names = [x.name for x in self.__fields__.values() if x.type_ == ScheduleDay]
+        # Явно указываем имена дней для совместимости с Pydantic v1 и v2
+        days_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         days_mapping = dict(Mon='Пн', Tue='Вт', Wed='Ср', Thu='Чт', Fri='Пт', Sat='Сб', Sun='Вс')
 
         slots_list = []
