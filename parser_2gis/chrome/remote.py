@@ -208,7 +208,8 @@ class ChromeRemote:
 
     def _init_tab_monitor(self) -> None:
         """Мониторит здоровье вкладки Chrome."""
-        tab_detached = False
+        # Используем list для возможности изменения значения в замыкании
+        tab_detached = [False]
         tab_detached_lock = threading.Lock()
 
         def monitor_tab() -> None:
@@ -219,8 +220,9 @@ class ChromeRemote:
                 try:
                     ret = requests.get('%s/json' % self._dev_url, json=True, timeout=5)
                     with tab_detached_lock:
-                        if not any(x['id'] == self._chrome_tab.id for x in ret.json()):
-                            tab_detached = True
+                        tab_found = any(x['id'] == self._chrome_tab.id for x in ret.json())
+                        if not tab_found:
+                            tab_detached[0] = True
                             self._chrome_tab._stopped.set()
 
                     self._chrome_tab._stopped.wait(0.5)
@@ -243,7 +245,7 @@ class ChromeRemote:
                     return original_send(*args, **kwargs)
                 except pychrome.UserAbortException:
                     with tab_detached_lock:
-                        if tab_detached:
+                        if tab_detached[0]:
                             raise pychrome.RuntimeException('Вкладка была остановлена')
                         else:
                             raise

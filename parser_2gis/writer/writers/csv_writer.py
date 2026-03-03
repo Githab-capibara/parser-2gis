@@ -101,7 +101,7 @@ class CSVWriter(FileWriter):
         with self._open_file(self._file_path, 'r') as f_csv:
             csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
             next(csv_reader, None)  # Пропуск заголовка
-            for row in csv.DictReader(f_csv, self._data_mapping.keys()):  # type: ignore
+            for row in csv_reader:
                 for column_name in complex_columns_count.keys():
                     if row[column_name] != '':
                         complex_columns_count[column_name] += 1
