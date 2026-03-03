@@ -149,28 +149,35 @@ class CSVWriter(FileWriter):
         seen_hashes: set[str] = set()
         duplicates_count = 0
 
-        # Чтение исходного файла и запись нового без дубликатов
-        with self._open_file(self._file_path, 'r') as f_csv, \
-             self._open_file(tmp_csv_name, 'w') as f_tmp_csv:
-            for line in f_csv:
-                # Нормализуем строку: удаляем завершающие пробелы и newlines
-                normalized_line = line.rstrip('\r\n')
+        try:
+            # Чтение исходного файла и запись нового без дубликатов
+            with self._open_file(self._file_path, 'r') as f_csv, \
+                 self._open_file(tmp_csv_name, 'w') as f_tmp_csv:
+                for line in f_csv:
+                    # Нормализуем строку: удаляем завершающие пробелы и newlines
+                    normalized_line = line.rstrip('\r\n')
 
-                # Вычисляем хеш для надёжного сравнения
-                line_hash = hashlib.md5(normalized_line.encode('utf-8')).hexdigest()
+                    # Вычисляем хеш для надёжного сравнения
+                    line_hash = hashlib.md5(normalized_line.encode('utf-8')).hexdigest()
 
-                if line_hash in seen_hashes:
-                    duplicates_count += 1
-                    continue
+                    if line_hash in seen_hashes:
+                        duplicates_count += 1
+                        continue
 
-                seen_hashes.add(line_hash)
-                f_tmp_csv.write(line)
+                    seen_hashes.add(line_hash)
+                    f_tmp_csv.write(line)
 
-        if duplicates_count > 0:
-            logger.info('Удалено дубликатов: %d', duplicates_count)
+            if duplicates_count > 0:
+                logger.info('Удалено дубликатов: %d', duplicates_count)
 
-        # Замена оригинального файла новым
-        shutil.move(tmp_csv_name, self._file_path)
+            # Замена оригинального файла новым
+            shutil.move(tmp_csv_name, self._file_path)
+        except (OSError, IOError) as e:
+            logger.error('Ошибка при удалении дубликатов: %s', e)
+            # Удаляем временный файл если он существует
+            if os.path.exists(tmp_csv_name):
+                os.remove(tmp_csv_name)
+            raise
 
     def write(self, catalog_doc: Any) -> None:
         """Записывает JSON-документ Catalog Item API в CSV-таблицу.

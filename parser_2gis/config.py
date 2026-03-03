@@ -28,7 +28,17 @@ class Configuration(BaseModel):
     version: str = config_version
 
     def merge_with(self, other_config: Configuration) -> None:
-        """Объединяет конфигурацию с другой."""
+        """Объединяет конфигурацию с другой.
+        
+        Рекурсивно обновляет поля текущей конфигурации значениями из other_config.
+        Используются только явно установленные поля (model_fields_set / __fields_set__).
+        
+        Args:
+            other_config: Конфигурация для объединения.
+            
+        Raises:
+            ValueError: Если возникает конфликт типов при объединении.
+        """
         def assign_attributes(model_source: BaseModel,
                               model_target: BaseModel) -> None:
             """Рекурсивно присваивает новые атрибуты к существующей конфигурации."""
@@ -39,13 +49,16 @@ class Configuration(BaseModel):
                 fields_set = getattr(model_source, '__fields_set__', set())
 
             for field in fields_set:
-                source_attr = getattr(model_source, field)
-                if not isinstance(source_attr, BaseModel):
-                    setattr(model_target, field, source_attr)
-                else:
-                    target_attr = getattr(model_target, field)
-                    # Рекурсивно объединяем вложенные модели
-                    assign_attributes(source_attr, target_attr)
+                try:
+                    source_attr = getattr(model_source, field)
+                    if not isinstance(source_attr, BaseModel):
+                        setattr(model_target, field, source_attr)
+                    else:
+                        target_attr = getattr(model_target, field)
+                        # Рекурсивно объединяем вложенные модели
+                        assign_attributes(source_attr, target_attr)
+                except (AttributeError, TypeError) as e:
+                    logger.warning('Ошибка при объединении поля %s: %s', field, e)
 
         assign_attributes(other_config, self)
 

@@ -12,6 +12,7 @@ from requests.exceptions import RequestException
 from websocket import WebSocketException
 
 from ..common import wait_until_finished
+from ..logger import logger
 from .browser import ChromeBrowser
 from .dom import DOMNode
 from .exceptions import ChromeException
@@ -26,20 +27,20 @@ if TYPE_CHECKING:
 
 def _validate_remote_port(port: Any) -> int:
     """Валидирует remote_port как integer в допустимом диапазоне.
-    
+
     Args:
         port: Значение порта для валидации.
-        
+
     Returns:
         Валидный номер порта.
-        
+
     Raises:
-        ValueError: Если порт некорректен.
+        ChromeException: Если порт некорректен.
     """
     if not isinstance(port, int):
-        raise ValueError(f"remote_port должен быть integer, получен {type(port).__name__}")
+        raise ChromeException(f"remote_port должен быть integer, получен {type(port).__name__}")
     if port < 1024 or port > 65535:
-        raise ValueError(f"remote_port должен быть в диапазоне 1024-65535, получен {port}")
+        raise ChromeException(f"remote_port должен быть в диапазоне 1024-65535, получен {port}")
     return port
 
 # Применяем все пользовательские патчи
@@ -75,7 +76,8 @@ class ChromeRemote:
             self._chrome_tab = self._create_tab()
             self._chrome_tab.start()
             return True
-        except (RequestException, WebSocketException):
+        except (RequestException, WebSocketException, ChromeException) as e:
+            logger.error('Ошибка подключения к Chrome DevTools Protocol: %s', e)
             return False
 
     def start(self) -> None:
@@ -319,8 +321,10 @@ class ChromeRemote:
             return ''
         finally:
             # Гарантированная очистка ссылки на тело для предотвращения утечки памяти
-            if response_data and 'body' in response_data:
-                del response_data['body']
+            if response_data:
+                response_data.pop('body', None)
+            # Очищаем ссылку на response_data для помощи сборщику мусора
+            response_data = None
 
     @wait_until_finished(timeout=None, throw_exception=False)
     def get_responses(self) -> list[Response]:

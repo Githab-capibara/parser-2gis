@@ -9,6 +9,7 @@ import pydantic
 
 from .common import GUI_ENABLED, generate_city_urls, report_from_validation_error, unwrap_dot_dict, url_query_encode
 from .config import Configuration
+from .logger import logger
 from .paths import data_path
 from .version import version
 from .cli import cli_app
@@ -189,8 +190,9 @@ def main() -> None:
 
     # Определяем режим запуска: GUI или CLI
     # GUI запускается, если не указаны все обязательные аргументы (URL/cities, output-path, format)
+    has_urls = args.url is not None or (hasattr(args, 'cities') and args.cities)
     is_gui_mode = (
-        (args.url is None and (not hasattr(args, 'cities') or not args.cities)) or
+        not has_urls or
         args.output_path is None or
         args.format is None
     )
@@ -212,4 +214,10 @@ def main() -> None:
         output_path = args.output_path
         result_format = args.format
 
-    app(urls, output_path, result_format, config)
+    try:
+        app(urls, output_path, result_format, config)
+    except KeyboardInterrupt:
+        logger.info('Работа приложения прервана пользователем.')
+    except Exception as e:
+        logger.error('Критическая ошибка приложения: %s', e, exc_info=True)
+        raise
