@@ -106,7 +106,7 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
                               'font': get_font(FONT_SIZE_BASE),
                               'pad': (SPACING_SM, SPACING_XS)}
 
-    # Window layout - современный дизайн
+    # Макет окна - современный дизайн
     layout = [
         # Заголовок
         [
@@ -198,23 +198,23 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
                        min_size=(550, 400))
 
     with invoke_widget_hook(sg.PySimpleGUI, '-COL_SEARCH-', create_search_widget) as get_widget:
-        # Get search widget
+        # Получаем виджет поиска
         search_widget = get_widget()
         assert search_widget
 
-    # On Linux\MacOS created window could be behind its parent
+    # На Linux/MacOS созданное окно может оказаться позади родительского
     window.bring_to_front()
 
-    # Focus on custom widget
+    # Устанавливаем фокус на виджете поиска
     search_widget.focus_set()
 
-    # Hide tree header
+    # Скрываем заголовок дерева
     window['-TREE-'].widget.configure(show='tree')
 
-    # Return rubric
+    # Возвращаем рубрику
     ret_rubric = None
 
-    # Main loop
+    # Главный цикл
     while True:
         event, values = window.read()
 
@@ -228,7 +228,7 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
                 continue
             break
 
-        # Update status bar
+        # Обновляем строку статуса
         elif event == '-TREE-':
             tree_values = values['-TREE-']
             if tree_values:
