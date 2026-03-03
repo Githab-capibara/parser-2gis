@@ -308,13 +308,13 @@ class ChromeRemote:
             request_id = response['meta']['requestId']
             response_data = self._chrome_tab.call_method('Network.getResponseBody',
                                                          requestId=request_id)
-            if response_data['base64Encoded']:
+            if response_data.get('base64Encoded'):
                 response_data['body'] = base64.b64decode(response_data['body']).decode('utf-8')
 
-            response_body = response_data['body']
+            response_body = response_data.get('body', '')
             response['body'] = response_body
             return response_body
-        except (pychrome.CallMethodException, KeyError, UnicodeDecodeError):
+        except (pychrome.CallMethodException, KeyError, UnicodeDecodeError, TypeError):
             # Тело ответа не найдено или ошибка декодирования
             return ''
         finally:

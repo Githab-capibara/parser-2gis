@@ -4,7 +4,6 @@ import csv
 import os
 import re
 import shutil
-from contextlib import ExitStack
 from typing import Any, Callable
 
 from pydantic import ValidationError
@@ -124,10 +123,9 @@ class CSVWriter(FileWriter):
         # Заполнение нового csv
         tmp_csv_name = os.path.splitext(self._file_path)[0] + '.removed-columns.csv'
 
-        # Используем ExitStack для гарантии закрытия всех файлов даже при exception
-        with ExitStack() as stack:
-            f_tmp_csv = stack.enter_context(self._open_file(tmp_csv_name, 'w'))
-            f_csv = stack.enter_context(self._open_file(self._file_path, 'r'))
+        # Чтение исходного файла и запись нового
+        with self._open_file(self._file_path, 'r') as f_csv, \
+             self._open_file(tmp_csv_name, 'w') as f_tmp_csv:
             csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
             csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
             csv_writer.writerow(new_data_mapping)  # Запись нового заголовка
@@ -142,36 +140,34 @@ class CSVWriter(FileWriter):
 
     def _remove_duplicates(self) -> None:
         """Постобработка: Удаление дубликатов.
-        
+
         Использует хеширование строк для надёжного сравнения.
         """
         import hashlib
-        
-        tmp_csv_name = os.path.splitext(self._file_path)[0] + '.deduplicated.csv'
 
-        # Используем ExitStack для гарантии закрытия файлов
-        with ExitStack() as stack:
-            f_tmp_csv = stack.enter_context(self._open_file(tmp_csv_name, 'w'))
-            f_csv = stack.enter_context(self._open_file(self._file_path, 'r'))
-            seen_hashes = set()
-            duplicates_count = 0
-            
-            for line_num, line in enumerate(f_csv):
+        tmp_csv_name = os.path.splitext(self._file_path)[0] + '.deduplicated.csv'
+        seen_hashes: set[str] = set()
+        duplicates_count = 0
+
+        # Чтение исходного файла и запись нового без дубликатов
+        with self._open_file(self._file_path, 'r') as f_csv, \
+             self._open_file(tmp_csv_name, 'w') as f_tmp_csv:
+            for line in f_csv:
                 # Нормализуем строку: удаляем завершающие пробелы и newlines
                 normalized_line = line.rstrip('\r\n')
-                
+
                 # Вычисляем хеш для надёжного сравнения
                 line_hash = hashlib.md5(normalized_line.encode('utf-8')).hexdigest()
-                
+
                 if line_hash in seen_hashes:
                     duplicates_count += 1
                     continue
 
                 seen_hashes.add(line_hash)
                 f_tmp_csv.write(line)
-            
-            if duplicates_count > 0:
-                logger.info('Удалено дубликатов: %d', duplicates_count)
+
+        if duplicates_count > 0:
+            logger.info('Удалено дубликатов: %d', duplicates_count)
 
         # Замена оригинального файла новым
         shutil.move(tmp_csv_name, self._file_path)

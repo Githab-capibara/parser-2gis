@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 import re
+from typing import TYPE_CHECKING
 
 from .parsers import FirmParser, InBuildingParser, MainParser
 
+if TYPE_CHECKING:
+    from ..chrome.options import ChromeOptions
+    from ..parser.options import ParserOptions
 
-def get_parser(url, chrome_options, parser_options):
+
+def get_parser(url: str, chrome_options: ChromeOptions, parser_options: ParserOptions) -> MainParser | FirmParser | InBuildingParser:
     """Фабричная функция для получения парсера.
 
     Args:

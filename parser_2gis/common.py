@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import sys
 import time
+import urllib.parse
 import warnings
 from typing import Any, Callable
 
@@ -50,11 +51,11 @@ def wait_until_finished(timeout: int | None = None,
     """
     def outer(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def inner(*args, 
+        def inner(*args,
                   timeout: int | None = timeout,
                   finished: Callable[[Any], bool] | None = finished,
                   throw_exception: bool = throw_exception,
-                  poll_interval: float = poll_interval, 
+                  poll_interval: float = poll_interval,
                   **kwargs):
             # Инициализируем finished внутри функции для избежания изменяемого аргумента по умолчанию
             inner_finished = finished if finished is not None else lambda x: bool(x)
@@ -107,7 +108,7 @@ def report_from_validation_error(ex: ValidationError,
             },
             ...
         }
-        
+
     Примечание безопасности:
         При передаче словаря `d` убедитесь, что он не содержит чувствительных данных,
         так как они могут попасть в логирование.
@@ -209,11 +210,10 @@ def url_query_encode(query: str) -> str:
 
     Returns:
         Закодированная строка для использования в URL.
-    
+
     Примечание:
         Русские символы и пробелы остаются без изменений для читаемости URL.
     """
-    from urllib.parse import quote
     encoded_characters = []
     for char in query:
         char_ord = ord(char.lower())
@@ -221,5 +221,5 @@ def url_query_encode(query: str) -> str:
         if 1072 <= char_ord <= 1103 or char_ord in (1105, 32):
             encoded_characters.append(char)
         else:
-            encoded_characters.append(quote(char, safe=''))
+            encoded_characters.append(urllib.parse.quote(char, safe=''))
     return ''.join(encoded_characters)

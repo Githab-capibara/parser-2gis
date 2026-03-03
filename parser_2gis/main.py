@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pydantic
 
-from .common import GUI_ENABLED, report_from_validation_error, unwrap_dot_dict
+from .common import GUI_ENABLED, generate_city_urls, report_from_validation_error, unwrap_dot_dict, url_query_encode
 from .config import Configuration
+from .paths import data_path
 from .version import version
 from .cli import cli_app
 
@@ -105,28 +108,28 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     browser_parser = arg_parser.add_argument_group('Аргументы браузера')
     browser_parser.add_argument('--chrome.binary_path', metavar='PATH', help='Путь до исполняемого файла браузера. Если не указан, то определяется автоматически')
     browser_parser.add_argument('--chrome.disable-images', metavar='{yes,no}', help='Отключить изображения в браузере')
-    browser_parser.add_argument('--chrome.headless', metavar='{yes,no}', help='Скрыть браузер')
-    browser_parser.add_argument('--chrome.silent-browser', metavar='{yes,no}', help='Отключить отладочную информацию браузера')
-    browser_parser.add_argument('--chrome.start-maximized', metavar='{yes,no}', help='Запустить окно браузера развёрнутым')
+    browser_parser.add_argument('--chrome.headless', metavar='{yes/no}', help='Скрыть браузер')
+    browser_parser.add_argument('--chrome.silent-browser', metavar='{yes/no}', help='Отключить отладочную информацию браузера')
+    browser_parser.add_argument('--chrome.start-maximized', metavar='{yes/no}', help='Запустить окно браузера развёрнутым')
     browser_parser.add_argument('--chrome.memory-limit', metavar='{4096,5120,...}', help='Лимит оперативной памяти браузера (мегабайт)')
 
     csv_parser = arg_parser.add_argument_group('Аргументы CSV/XLSX')
-    csv_parser.add_argument('--writer.csv.add-rubrics', metavar='{yes,no}', help='Добавить колонку "Рубрики"')
-    csv_parser.add_argument('--writer.csv.add-comments', metavar='{yes,no}', help='Добавлять комментарии к ячейкам Телефон, E-Mail, и т.д.')
+    csv_parser.add_argument('--writer.csv.add-rubrics', metavar='{yes/no}', help='Добавить колонку "Рубрики"')
+    csv_parser.add_argument('--writer.csv.add-comments', metavar='{yes/no}', help='Добавлять комментарии к ячейкам Телефон, E-Mail, и т.д.')
     csv_parser.add_argument('--writer.csv.columns-per-entity', metavar='{1,2,3,...}', help='Количество колонок для результата с несколькими возможными значениями: Телефон_1, Телефон_2, и т.д.')
-    csv_parser.add_argument('--writer.csv.remove-empty-columns', metavar='{yes,no}', help='Удалить пустые колонки по завершению работы парсера')
-    csv_parser.add_argument('--writer.csv.remove-duplicates', metavar='{yes,no}', help='Удалить повторяющиеся записи по завершению работы парсера')
+    csv_parser.add_argument('--writer.csv.remove-empty-columns', metavar='{yes/no}', help='Удалить пустые колонки по завершению работы парсера')
+    csv_parser.add_argument('--writer.csv.remove-duplicates', metavar='{yes/no}', help='Удалить повторяющиеся записи по завершению работы парсера')
     csv_parser.add_argument('--writer.csv.join_char', metavar='{; ,% ,...}', help='Разделитель для комплексных значений ячеек Рубрики, Часы работы')
 
     p_parser = arg_parser.add_argument_group('Аргументы парсера')
-    p_parser.add_argument('--parser.use-gc', metavar='{yes,no}', help='Включить сборщик мусора - сдерживает быстрое заполнение RAM, уменьшает скорость парсинга')
+    p_parser.add_argument('--parser.use-gc', metavar='{yes/no}', help='Включить сборщик мусора - сдерживает быстрое заполнение RAM, уменьшает скорость парсинга')
     p_parser.add_argument('--parser.gc-pages-interval', metavar='{5,10,...}', help='Запуск сборщика мусора каждую N-ую страницу результатов (если сборщик включен)')
     p_parser.add_argument('--parser.max-records', metavar='{1000,2000,...}', help='Максимальное количество спарсенных записей с одного URL')
-    p_parser.add_argument('--parser.skip-404-response', metavar='{yes,no}', help='Пропускать ссылки вернувшие сообщение "Точных совпадений нет / Не найдено"')
+    p_parser.add_argument('--parser.skip-404-response', metavar='{yes/no}', help='Пропускать ссылки вернувшие сообщение "Точных совпадений нет / Не найдено"')
     p_parser.add_argument('--parser.delay_between_clicks', metavar='{0,100,...}', help='Задержка между кликами по записям (миллисекунд)')
 
     other_parser = arg_parser.add_argument_group('Прочие аргументы')
-    other_parser.add_argument('--writer.verbose', metavar='{yes,no}', help='Отображать наименования позиций во время парсинга')
+    other_parser.add_argument('--writer.verbose', metavar='{yes/no}', help='Отображать наименования позиций во время парсинга')
     other_parser.add_argument('--writer.encoding', metavar='{utf8,1251,...}', help='Кодировка результирующего файла')
 
     rest_parser = arg_parser.add_argument_group('Служебные аргументы')
@@ -158,14 +161,10 @@ def main() -> None:
     args, command_line_config = parse_arguments()
 
     # Обрабатываем аргументы городов
-    urls = args.url or []
+    urls = list(args.url) if args.url else []
 
     # Если указаны города, генерируем URL
     if hasattr(args, 'cities') and args.cities:
-        from .common import generate_city_urls
-        from .paths import data_path
-        import json
-
         # Загружаем список городов
         cities_path = data_path() / 'cities.json'
         if not cities_path.is_file():
@@ -188,8 +187,15 @@ def main() -> None:
         generated_urls = generate_city_urls(selected_cities, query, rubric)
         urls.extend(generated_urls)
 
-    # Запускаем CLI, если указаны все требуемые аргументы, иначе запускаем GUI
-    if (args.url is None and (not hasattr(args, 'cities') or not args.cities)) or args.output_path is None or args.format is None:
+    # Определяем режим запуска: GUI или CLI
+    # GUI запускается, если не указаны все обязательные аргументы (URL/cities, output-path, format)
+    is_gui_mode = (
+        (args.url is None and (not hasattr(args, 'cities') or not args.cities)) or
+        args.output_path is None or
+        args.format is None
+    )
+
+    if is_gui_mode:
         # Загружаем пользовательскую конфигурацию и объединяем с созданной из аргументов
         user_config = Configuration.load_config(auto_create=True)
         user_config.merge_with(command_line_config)
@@ -197,8 +203,6 @@ def main() -> None:
         # Импортируем gui_app только при необходимости
         from .gui import gui_app
         app = gui_app
-        # Формируем список URL для GUI (может быть пустым)
-        # URLs уже обработаны выше
     else:
         config = command_line_config
         app = cli_app
