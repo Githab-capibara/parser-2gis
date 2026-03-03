@@ -217,7 +217,7 @@ def url_query_encode(query: str) -> str:
     encoded_characters = []
     for char in query:
         char_ord = ord(char.lower())
-        # Do not escape [а-яё ]
+        # Не кодируем [а-яё ]
         if 1072 <= char_ord <= 1103 or char_ord in (1105, 32):
             encoded_characters.append(char)
         else:

@@ -203,8 +203,13 @@ def main() -> None:
         # Импортируем gui_app только при необходимости
         from .gui import gui_app
         app = gui_app
+        # В GUI режиме параметры могут быть None
+        output_path = args.output_path or ''
+        result_format = args.format or ''
     else:
         config = command_line_config
         app = cli_app
+        output_path = args.output_path
+        result_format = args.format
 
-    app(urls, args.output_path, args.format, config)
+    app(urls, output_path, result_format, config)

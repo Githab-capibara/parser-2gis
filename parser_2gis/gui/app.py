@@ -36,13 +36,13 @@ if GUI_ENABLED:
 
 @ensure_gui_enabled
 def gui_app(urls: list[str], output_path: str, format: str, config: Configuration) -> None:
-    """Run GUI.
+    """Запуск GUI.
 
     Args:
-        url: 2GIS URLs with results to be collected.
-        output_path: Path to the result file.
-        format: `csv`, `xlsx` or `json` format.
-        config: User configuration.
+        urls: URL-адреса 2GIS с результатами для сбора.
+        output_path: Путь к файлу результата.
+        format: Формат `csv`, `xlsx` или `json`.
+        config: Пользовательская конфигурация.
     """
     # Применяем современную тему
     apply_theme('modern')

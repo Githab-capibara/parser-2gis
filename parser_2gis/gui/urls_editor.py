@@ -65,7 +65,7 @@ def gui_urls_editor(urls: list[str]) -> list[str] | None:
                               'font': get_font(FONT_SIZE_BASE),
                               'pad': (SPACING_SM, SPACING_XS)}
 
-    # Window layout - современный дизайн
+    # Макет окна - современный дизайн
     layout = [
         # Заголовок
         [
@@ -91,12 +91,12 @@ def gui_urls_editor(urls: list[str]) -> list[str] | None:
         
         # Текстовое поле для URL
         [
-            sg.Column([[]], key='-COL_URLS-', size=(0, 0,), 
+            sg.Column([[]], key='-COL_URLS-', size=(0, 0,),
                       expand_x=True, expand_y=True,
                       background_color=COLOR_BACKGROUND,
                       pad=SPACING_MD),
         ],
-        
+
         # Кнопки управления
         [
             sg.Column([
@@ -115,27 +115,26 @@ def gui_urls_editor(urls: list[str]) -> list[str] | None:
         ],
     ]
 
-    with invoke_widget_hook(sg.PySimpleGUI, '-COL_URLS-', create_text_widget) as get_widget:
-        window = sg.Window('Редактор ссылок', layout=layout, finalize=True, 
-                           auto_size_text=True, font=get_font(FONT_SIZE_BASE),
-                           modal=True, keep_on_top=True,
-                           resizable=True, size=(700, 500), 
-                           min_size=(500, 350))
+    window = sg.Window('Редактор ссылок', layout=layout, finalize=True,
+                       auto_size_text=True, font=get_font(FONT_SIZE_BASE),
+                       modal=True, keep_on_top=True,
+                       resizable=True, size=(700, 500),
+                       min_size=(500, 350))
 
-        # Get `LineNumberedText` widget
+        # Получаем виджет LineNumberedText
         urls_widget = get_widget()
         assert urls_widget
 
-    # Insert existing links
+    # Вставляем существующие ссылки
     urls_widget.text.insert('insert', '\n'.join(urls))
 
-    # Focus on custom widget
+    # Устанавливаем фокус на кастомном виджете
     urls_widget.text.focus_set()
 
-    # Result urls
+    # Результат URL
     ret_urls = None
 
-    # Main loop
+    # Главный цикл
     while True:
         event, _ = window.read()
         if event in (None, '-BTN_CANCEL-'):
