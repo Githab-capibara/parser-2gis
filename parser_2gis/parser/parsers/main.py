@@ -202,7 +202,7 @@ class MainParser:
 
         # Эта обёртка не необходима, но я хочу быть уверен,
         # что мы не собрали ссылки из старого DOM каким-то образом.
-        @wait_until_finished(timeout=self.GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False)
+        @wait_until_finished(timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False)
         def get_unique_links() -> list[DOMNode] | None:
             """Получает уникальные ссылки, которые ещё не были посещены.
 
