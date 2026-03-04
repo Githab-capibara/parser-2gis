@@ -44,7 +44,7 @@ class GUIRunner(AbstractRunner, threading.Thread):
         Raises:
             RuntimeError: Если поток не был запущен через start().
         """
-        if not self._started.is_set():  # type: ignore
+        if not self.is_alive():
             raise RuntimeError('Метод start() не был вызван')
 
         if self._cancelled.is_set():
