@@ -7,14 +7,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Githab-capibara/parser-2gis/actions/workflows/tests.yml"><img src="https://github.com/interlark/parser-2gis/actions/workflows/tests.yml/badge.svg" alt="Tests"/></a>
+  <a href="https://github.com/Githab-capibara/parser-2gis/actions/workflows/tests.yml"><img src="https://github.com/Githab-capibara/parser-2gis/actions/workflows/tests.yml/badge.svg" alt="Tests"/></a>
   <a href="https://pypi.org/project/parser-2gis"><img src="https://badgen.net/pypi/v/parser-2gis" alt="PyPi version"/></a>
   <a href="https://pypi.org/project/parser-2gis"><img src="https://badgen.net/pypi/python/parser-2gis" alt="Supported Python versions"/></a>
-  <a href="https://github.com/Githab-capibara/parser-2gis/releases"><img src="https://img.shields.io/github/downloads/interlark/parser-2gis/total.svg" alt="Downloads"/></a>
-  <a href="https://github.com/Githab-capibara/parser-2gis"><img src="https://img.shields.io/github/stars/interlark/parser-2gis" alt="GitHub stars"/></a>
+  <a href="https://github.com/Githab-capibara/parser-2gis/releases"><img src="https://img.shields.io/github/downloads/Githab-capibara/parser-2gis/total.svg" alt="Downloads"/></a>
+  <a href="https://github.com/Githab-capibara/parser-2gis"><img src="https://img.shields.io/github/stars/Githab-capibara/parser-2gis" alt="GitHub stars"/></a>
 </p>
 
-**Parser2GIS** — парсер сайта [2GIS](https://2gis.ru/) с помощью браузера [Google Chrome](https://google.com/chrome).
+**Parser2GIS** — мощный инструмент для автоматического сбора данных с сайта [2GIS](https://2gis.ru/) с использованием браузера [Google Chrome](https://google.com/chrome).
 
 ## 📋 Содержание
 
@@ -32,6 +32,7 @@
 - [Тестирование](#-тестирование)
 - [Разработка](#-разработка)
 - [Утилиты](#-утилиты)
+- [Частые вопросы (FAQ)](#-частые-вопросы-faq)
 - [История изменений](#-история-изменений)
 - [Поддержка проекта](#-поддержка-проекта)
 - [Лицензия](#-лицензия)
@@ -41,50 +42,64 @@
 
 ## ℹ️ Описание
 
-Parser2GIS — это инструмент для автоматического сбора базы адресов и контактов предприятий, которые работают на территории следующих стран:
+Parser2GIS автоматически собирает базу данных предприятий с полной информацией: адреса, контакты, режим работы, рейтинги и отзывы. Работает через браузер Chrome, что обеспечивает обход анти-бот защит.
 
-- 🇷🇺 **Россия** (155 городов)
-- 🇰🇿 **Казахстан** (18 городов)
-- 🇧🇾 **Беларусь** (Минск)
-- 🇦🇿 **Азербайджан** (Баку)
-- 🇰🇬 **Киргизия** (Бишкек, Ош)
-- 🇺🇿 **Узбекистан** (Ташкент, Самарканд)
-- 🇨🇿 **Чехия** (Прага)
-- 🇪🇬 **Египет** (Новый Каир)
-- 🇮🇹 **Италия** (Падуя)
-- 🇸🇦 **Саудовская Аравия** (14 городов)
-- 🇨🇾 **Кипр**
-- 🇦🇪 **ОАЭ**
-- 🇨🇱 **Чили** (Сантьяго)
-- 🇶🇦 **Катар**
-- 🇴🇲 **Оман**
-- 🇧🇭 **Бахрейн**
-- 🇰🇼 **Кувейт**
-- 🇮🇶 **Ирак** (Басра)
+### 🌍 Поддерживаемые страны и города
 
-Парсер извлекает данные из API 2GIS, включая:
-- Наименование и описание организации
-- Адрес, почтовый индекс, район, город, регион
-- Координаты (широта и долгота)
-- Телефоны, e-mail, веб-сайты
-- Социальные сети (Instagram, Facebook, VK, WhatsApp, Viber, Telegram и др.)
-- Часы работы
-- Рейтинг и количество отзывов
-- Рубрики (категории)
+| Страна | Городов | Примеры городов |
+|--------|---------|-----------------|
+| 🇷🇺 Россия | 155 | Москва, Санкт-Петербург, Казань, Екатеринбург, Новосибирск |
+| 🇰🇿 Казахстан | 18 | Алматы, Астана, Шымкент, Караганда |
+| 🇸🇦 Саудовская Аравия | 14 | Эр-Рияд, Джидда, Мекка, Медина |
+| 🇰🇬 Киргизия | 2 | Бишкек, Ош |
+| 🇺🇿 Узбекистан | 2 | Ташкент, Самарканд |
+| 🇧🇾 Беларусь | 1 | Минск |
+| 🇦🇿 Азербайджан | 1 | Баку |
+| 🇨🇿 Чехия | 1 | Прага |
+| 🇪🇬 Египет | 1 | Новый Каир |
+| 🇮🇹 Италия | 1 | Падуя |
+| 🇨🇾 Кипр | 1 | Никосия |
+| 🇦🇪 ОАЭ | 1 | Дубай |
+| 🇨🇱 Чили | 1 | Сантьяго |
+| 🇶🇦 Катар | 1 | Доха |
+| 🇴🇲 Оман | 1 | Маскат |
+| 🇧🇭 Бахрейн | 1 | Манама |
+| 🇰🇼 Кувейт | 1 | Эль-Кувейт |
+| 🇮🇶 Ирак | 1 | Басра |
+
+**Всего: 204 города в 18 странах**
+
+### 📊 Извлекаемые данные
+
+| Категория | Поля |
+|-----------|------|
+| **Основная информация** | Наименование, Описание, Рубрики |
+| **Адрес** | Полный адрес, Почтовый индекс, Район, Город, Регион, Страна |
+| **Координаты** | Широта, Долгота |
+| **Контакты** | Телефоны (множественные), E-mail, Веб-сайт |
+| **Соцсети** | Instagram, Facebook, VK, WhatsApp, Viber, Telegram, Twitter, YouTube, Skype |
+| **Рейтинг** | Средняя оценка, Количество отзывов |
+| **Режим работы** | Часы работы, Часовой пояс |
+| **Ссылки** | URL карточки 2GIS |
 
 ---
 
 ## ✨ Возможности
 
-- 💰 **Абсолютно бесплатный** — открытый исходный код
-- 🤖 **Обход анти-бот блокировок** — успешно работает на территории РФ
-- 🖥️ **Кроссплатформенность** — работает под Windows, Linux и MacOS
-- 📄 **Три формата вывода** — CSV, XLSX и JSON
-- 🔗 **Генератор ссылок** — по городам и рубрикам
-- 🎨 **GUI и CLI** — графический интерфейс и командная строка
-- ⚙️ **Гибкая настройка** — множество параметров конфигурации
-- 🧹 **Сборщик мусора** — контроль потребления памяти
-- 🚀 **Автоматическая навигация** — по страницам результатов
+| Возможность | Описание |
+|-------------|----------|
+| 💰 **Бесплатный** | Открытый исходный код (LGPLv3+) |
+| 🤖 **Анти-блокировка** | Обход защит 2GIS через Chrome |
+| 🖥️ **Кроссплатформенность** | Windows, Linux, macOS |
+| 📄 **3 формата вывода** | CSV, XLSX, JSON |
+| 🔗 **Генератор URL** | По городам и рубрикам |
+| 🎨 **Два режима** | GUI и CLI |
+| ⚙️ **Гибкая настройка** | 20+ параметров конфигурации |
+| 🧹 **Контроль памяти** | Сборщик мусора для RAM |
+| 🚀 **Авто-навигация** | Переход по страницам результатов |
+| 🏢 **Парсинг зданий** | Поддержка ссылок "В здании" |
+| 🚉 **Парсинг остановок** | Сбор данных об остановках |
+| 📍 **Парсинг фирм** | Поддержка ссылок `/firm/<id>` |
 
 ---
 
@@ -92,34 +107,45 @@ Parser2GIS — это инструмент для автоматического
 
 ### Требования
 
-- **Python 3.8, 3.9, 3.10, 3.11**
-- **Google Chrome** (обязательно)
+| Компонент | Версия | Обязательно |
+|-----------|--------|-------------|
+| Python | 3.8 – 3.11 | ✅ Да |
+| Google Chrome | Любая актуальная | ✅ Да |
 
-### Установка одним файлом
+### Вариант 1: Готовый исполняемый файл
 
-Скачайте последний [релиз](https://github.com/Githab-capibara/parser-2gis/releases/latest).
+Скачайте последний релиз: [**Releases**](https://github.com/Githab-capibara/parser-2gis/releases/latest)
 
-### Установка из PyPI
+- **Windows**: `Parser2GIS.exe`
+- **Linux/macOS**: `Parser2GIS`
+
+### Вариант 2: Установка через PyPI
 
 ```bash
-# Только CLI
+# Только CLI (командная строка)
 pip install parser-2gis
 
-# CLI + GUI
+# CLI + GUI (графический интерфейс)
 pip install parser-2gis[gui]
 ```
 
-### Установка для разработки
+### Вариант 3: Установка из исходников (для разработки)
 
 ```bash
-# Клонируйте репозиторий
+# Клонирование репозитория
 git clone https://github.com/Githab-capibara/parser-2gis.git
 cd parser-2gis
 
-# Установите зависимости
+# Создание виртуального окружения (рекомендуется)
+python3 -m venv venv
+source venv/bin/activate  # Linux/macOS
+# или
+venv\Scripts\activate  # Windows
+
+# Установка пакета в режиме разработки
 pip install -e .[dev]
 
-# Установите pre-commit хуки
+# Установка pre-commit хуков
 pre-commit install
 ```
 
@@ -127,20 +153,34 @@ pre-commit install
 
 ## 📖 Быстрый старт
 
-### Пример использования в командной строке
+### Пример 1: Базовый парсинг
 
 ```bash
-# Парсинг аптек в Москве в CSV
-parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" -o result.csv -f csv
+# Парсинг аптек в Москве (CSV)
+parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" -o pharmacies.csv -f csv
+```
 
-# Парсинг с настройками
+### Пример 2: Парсинг с настройками
+
+```bash
+# Парсинг ресторанов с ограничением в 100 записей (скрытый режим)
 parser-2gis -i "https://2gis.ru/moscow/search/Рестораны" \
-    -o result.xlsx -f xlsx \
+    -o restaurants.xlsx -f xlsx \
     --parser.max-records 100 \
     --chrome.headless yes
 ```
 
-### Пример использования в Python
+### Пример 3: Парсинг нескольких городов
+
+```bash
+# Парсинг аптек в 3 городах
+parser-2gis --cities moscow spb kazan \
+    --query "Аптеки" \
+    -o pharmacies.csv -f csv \
+    --chrome.headless yes
+```
+
+### Пример 4: Использование в Python
 
 ```python
 from parser_2gis import main
@@ -157,122 +197,191 @@ if __name__ == '__main__':
 
 #### Обязательные аргументы
 
-| Аргумент | Описание |
-|----------|----------|
-| `-i`, `--url` | URL с выдачей 2GIS (один или несколько) |
-| `-o`, `--output-path` | Путь до результирующего файла |
-| `-f`, `--format` | Формат файла: `csv`, `xlsx` или `json` |
+| Аргумент | Короткий | Описание | Пример |
+|----------|----------|----------|--------|
+| `--url` | `-i` | URL с выдачей 2GIS (один или несколько) | `-i "https://2gis.ru/moscow/search/Аптеки"` |
+| `--output-path` | `-o` | Путь к результирующему файлу | `-o result.csv` |
+| `--format` | `-f` | Формат файла: `csv`, `xlsx`, `json` | `-f csv` |
 
 #### Аргументы для парсинга городов
 
-| Аргумент | Описание | По умолчанию |
-|----------|----------|----------|
-| `--cities` | Коды городов для парсинга (например: `moscow spb kazan`) | - |
-| `--query` | Поисковый запрос для генерации URL по городам | `Организации` |
-| `--rubric` | Код рубрики для фильтрации результатов | - |
+| Аргумент | Описание | По умолчанию | Пример |
+|----------|----------|--------------|--------|
+| `--cities` | Коды городов (например: `moscow spb`) | — | `--cities omsk kazan` |
+| `--query` | Поисковый запрос для генерации URL | `Организации` | `--query "Рестораны"` |
+| `--rubric` | Код рубрики для фильтрации | — | `--rubric "161"` |
 
-#### Аргументы браузера
+#### Аргументы браузера Chrome
 
-| Аргумент | Описание | По умолчанию |
-|----------|----------|----------|
-| `--chrome.binary_path` | Путь к исполняемому файлу Chrome | Авто |
-| `--chrome.disable-images` | Отключить изображения | `yes` |
-| `--chrome.headless` | Скрытый режим браузера | `no` |
-| `--chrome.silent-browser` | Отключить отладочную информацию | `yes` |
-| `--chrome.start-maximized` | Запустить окно развёрнутым | `no` |
-| `--chrome.memory-limit` | Лимит оперативной памяти (МБ) | 75% от общей |
+| Аргумент | Описание | По умолчанию | Пример |
+|----------|----------|--------------|--------|
+| `--chrome.binary_path` | Путь к Chrome (если не в PATH) | Авто | `--chrome.binary_path "/usr/bin/google-chrome"` |
+| `--chrome.disable-images` | Отключить изображения | `yes` | `--chrome.disable-images no` |
+| `--chrome.headless` | **Скрытый режим (без окна)** | `no` | `--chrome.headless yes` |
+| `--chrome.silent-browser` | Отключить отладочный вывод | `yes` | `--chrome.silent-browser no` |
+| `--chrome.start-maximized` | Развернуть окно браузера | `no` | `--chrome.start-maximized yes` |
+| `--chrome.memory-limit` | Лимит RAM (МБ) | 75% от общей | `--chrome.memory-limit 4096` |
 
 #### Аргументы CSV/XLSX
 
 | Аргумент | Описание | По умолчанию |
-|----------|----------|----------|
+|----------|----------|--------------|
 | `--writer.csv.add-rubrics` | Добавить колонку "Рубрики" | `yes` |
-| `--writer.csv.add-comments` | Добавлять комментарии к ячейкам | `yes` |
-| `--writer.csv.columns-per-entity` | Количество колонок для множественных значений | `3` |
+| `--writer.csv.add-comments` | Комментарии к ячейкам | `yes` |
+| `--writer.csv.columns-per-entity` | Колонки для множественных значений | `3` |
 | `--writer.csv.remove-empty-columns` | Удалить пустые колонки | `yes` |
-| `--writer.csv.remove-duplicates` | Удалить повторяющиеся записи | `yes` |
+| `--writer.csv.remove-duplicates` | Удалить дубликаты записей | `yes` |
 | `--writer.csv.join_char` | Разделитель для комплексных значений | `; ` |
 
 #### Аргументы парсера
 
 | Аргумент | Описание | По умолчанию |
-|----------|----------|----------|
+|----------|----------|--------------|
 | `--parser.use-gc` | Включить сборщик мусора | `no` |
 | `--parser.gc-pages-interval` | Запуск GC каждые N страниц | `10` |
-| `--parser.max-records` | Максимальное количество записей с URL | Авто |
+| `--parser.max-records` | Максимум записей с URL | Авто |
 | `--parser.skip-404-response` | Пропускать 404 ответы | `yes` |
 | `--parser.delay_between_clicks` | Задержка между кликами (мс) | `0` |
 
 #### Прочие аргументы
 
 | Аргумент | Описание | По умолчанию |
-|----------|----------|----------|
-| `--writer.verbose` | Отображать наименования позиций | `yes` |
+|----------|----------|--------------|
+| `--writer.verbose` | Отображать названия позиций | `yes` |
 | `--writer.encoding` | Кодировка файла | `utf-8-sig` |
 
-#### Примеры
+### Примеры использования CLI
+
+#### Базовый парсинг
 
 ```bash
-# Базовый пример
+# Парсинг аптек в Москве (CSV)
 parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" -o pharmacies.csv -f csv
+```
 
-# Несколько URL
+#### Несколько URL одновременно
+
+```bash
+# Парсинг аптек в Москве и Санкт-Петербурге
 parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" \
                "https://2gis.ru/spb/search/Аптеки" \
             -o pharmacies.csv -f csv
+```
 
-# Парсинг по городам (CLI)
+#### Парсинг по городам (рекомендуется!)
+
+```bash
+# Парсинг аптек в 3 городах
 parser-2gis --cities moscow spb kazan \
             --query "Аптеки" \
             -o pharmacies.csv -f csv
+```
 
-# Парсинг по городам с рубрикой
+#### Парсинг с рубрикой
+
+```bash
+# Парсинг ресторанов с рубрикой "Рестораны" (код 161)
 parser-2gis --cities moscow spb \
             --query "Рестораны" \
             --rubric "161" \
             -o restaurants.xlsx -f xlsx
+```
 
-# Комбинированный режим (URL + города)
+#### Комбинированный режим (URL + города)
+
+```bash
+# Парсинг по URL + дополнительные города
 parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" \
             --cities spb kazan \
             --query "Аптеки" \
             -o pharmacies.csv -f csv
+```
 
-# Скрытый режим с ограничением записей
+#### Скрытый режим (без окна браузера)
+
+```bash
+# Парсинг в фоновом режиме (Chrome не виден)
 parser-2gis -i "https://2gis.ru/moscow/search/Рестораны" \
             -o restaurants.json -f json \
-            --chrome.headless yes \
-            --parser.max-records 50
+            --chrome.headless yes
+```
 
-# Парсинг с отладочной информацией браузера
+#### С ограничением записей
+
+```bash
+# Максимум 50 записей с каждого URL
+parser-2gis -i "https://2gis.ru/moscow/search/Кафе" \
+            -o cafes.xlsx -f xlsx \
+            --parser.max-records 50
+```
+
+#### С отладочной информацией
+
+```bash
+# Вывод отладочной информации браузера
 parser-2gis -i "https://2gis.ru/moscow/search/Кафе" \
             -o cafes.xlsx -f xlsx \
             --chrome.silent-browser no
 ```
 
+#### Парсинг с задержкой (анти-детект)
+
+```bash
+# Задержка 200мс между кликами
+parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" \
+            -o pharmacies.csv -f csv \
+            --parser.delay_between_clicks 200
+```
+
+#### Со сборщиком мусора (для больших объёмов)
+
+```bash
+# GC каждые 10 страниц для экономии RAM
+parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" \
+            -o pharmacies.csv -f csv \
+            --parser.use-gc yes \
+            --parser.gc-pages-interval 10
+```
+
+---
+
 ### GUI (графический интерфейс)
 
-Для запуска GUI просто выполните команду без обязательных аргументов:
+Для запуска GUI выполните команду без обязательных аргументов:
 
 ```bash
 parser-2gis
 ```
 
-Или с флагом GUI:
+Или установите GUI-версию:
 
 ```bash
 pip install parser-2gis[gui]
 parser-2gis
 ```
 
-**Возможности GUI:**
-- Добавление и редактирование URL
-- Генератор ссылок по городам и рубрикам
-- 🌍 **Выбор городов** — новый интерфейс для выбора городов из списка (180+ городов)
-- Выбор формата вывода
-- Настройка параметров парсера
-- Просмотр логов в реальном времени
-- Настройки приложения
+#### Возможности GUI
+
+| Функция | Описание |
+|---------|----------|
+| ➕ **Добавление URL** | Ручное добавление или импорт из файла |
+| 🌍 **Выбор городов** | Визуальный выбор из 204 городов (18 стран) |
+| 🔗 **Генератор ссылок** | Автоматическая генерация URL по городам и рубрикам |
+| 📁 **Выбор формата** | CSV, XLSX, JSON |
+| ⚙️ **Настройки парсера** | Все параметры конфигурации |
+| 📊 **Лог в реальном времени** | Просмотр процесса парсинга |
+| 🎨 **Современный дизайн** | Удобный интерфейс с тёмной темой |
+
+#### Работа с GUI
+
+1. **Запуск**: `parser-2gis` (без аргументов)
+2. **Добавление URL**:
+   - Введите URL вручную в поле "URL для парсинга"
+   - Или нажмите **"Города"** для выбора из списка
+   - Или нажмите **"Редактор"** для работы с несколькими URL
+3. **Выбор формата**: CSV, XLSX или JSON
+4. **Путь к файлу**: Укажите путь сохранения
+5. **Запуск**: Нажмите **"▶ Запуск"**
 
 ---
 
@@ -286,7 +395,7 @@ parser-2gis
 | **Linux** | `~/.config/parser-2gis/parser-2gis.config` |
 | **macOS** | `~/Library/Application Support/parser-2gis/parser-2gis.config` |
 
-### Структура конфигурации
+### Пример конфигурации
 
 ```json
 {
@@ -365,126 +474,66 @@ Excel-таблица с теми же данными, что и CSV, с форм
 ```
 parser-2gis/
 ├── parser_2gis/              # Основной пакет
-│   ├── __init__.py           # Точка входа (экспортирует main и __version__)
-│   ├── main.py               # Главный модуль CLI (парсинг аргументов, точка входа)
-│   ├── config.py             # Конфигурация (Pydantic BaseModel)
-│   ├── common.py             # Общие утилиты (декораторы, валидация, URL encoder)
-│   ├── paths.py              # Пути к данным и изображениям
-│   ├── version.py            # Версия пакета (1.2.1) и конфигурации (0.1)
-│   ├── exceptions.py         # Экспорт исключений
+│   ├── __init__.py           # Точка входа (main, __version__)
+│   ├── main.py               # CLI (парсинг аргументов)
+│   ├── config.py             # Конфигурация (Pydantic)
+│   ├── common.py             # Утилиты (декораторы, валидация)
+│   ├── paths.py              # Пути к данным
+│   ├── version.py            # Версия (1.2.1)
+│   ├── exceptions.py         # Исключения
 │   │
-│   ├── chrome/               # Работа с Chrome через DevTools Protocol
-│   │   ├── browser.py        # Запуск браузера с временным профилем
-│   │   ├── remote.py         # Chrome DevTools Protocol обёртка
-│   │   ├── dom.py            # DOM-узлы (DOMNode модель)
-│   │   ├── options.py        # Опции Chrome (headless, memory_limit)
-│   │   ├── utils.py          # Утилиты (поиск пути к Chrome, свободный порт)
-│   │   ├── exceptions.py     # Исключения Chrome
-│   │   └── patches/
-│   │       ├── __init__.py   # Применение всех патчей
-│   │       └── pychrome.py   # Патч обработки пустых сообщений CDP
+│   ├── chrome/               # Работа с Chrome
+│   │   ├── browser.py        # Запуск браузера
+│   │   ├── remote.py         # Chrome DevTools Protocol
+│   │   ├── dom.py            # DOM-узлы
+│   │   ├── options.py        # Опции Chrome
+│   │   └── utils.py          # Утилиты Chrome
 │   │
 │   ├── parser/               # Парсеры данных
-│   │   ├── factory.py        # Фабрика парсеров (get_parser)
-│   │   ├── options.py        # Опции парсера (max_records, delay)
-│   │   ├── utils.py          # Утилиты (blocked_requests)
-│   │   ├── exceptions.py     # Исключения парсера
+│   │   ├── factory.py        # Фабрика парсеров
+│   │   ├── options.py        # Опции парсера
+│   │   ├── utils.py          # Утилиты парсера
 │   │   └── parsers/
-│   │       ├── __init__.py
-│   │       ├── main.py       # Основной парсер (поисковая выдача)
+│   │       ├── main.py       # Основной парсер (поиск)
 │   │       ├── firm.py       # Парсер фирм (/firm/<id>)
-│   │       └── in_building.py # Парсер "В здании" (/inside/<id>)
+│   │       └── in_building.py # Парсер "В здании"
 │   │
 │   ├── writer/               # Писатели файлов
-│   │   ├── factory.py        # Фабрика писателей (get_writer)
-│   │   ├── options.py        # Опции писателя (encoding, CSV options)
-│   │   ├── exceptions.py     # Исключения писателя
+│   │   ├── factory.py        # Фабрика писателей
+│   │   ├── options.py        # Опции писателя
 │   │   ├── models/           # Модели данных (Pydantic)
-│   │   │   ├── __init__.py
-│   │   │   ├── catalog_item.py  # CatalogItem (основная модель)
-│   │   │   ├── address.py       # Address
-│   │   │   ├── adm_div_item.py  # AdmDivItem (административные единицы)
-│   │   │   ├── contact_group.py # ContactGroup, Contact
-│   │   │   ├── name_ex.py       # NameEx (расширенное имя)
-│   │   │   ├── org.py           # Org
-│   │   │   ├── point.py         # Point (координаты)
-│   │   │   ├── reviews.py       # Reviews (рейтинг, отзывы)
-│   │   │   ├── rubric.py        # Rubric (рубрики)
-│   │   │   └── schedule.py      # Schedule (часы работы)
 │   │   └── writers/
-│   │       ├── __init__.py
-│   │       ├── file_writer.py  # Базовый абстрактный писатель
-│   │       ├── csv_writer.py   # CSV writer (с удалением пустых колонок и дубликатов)
-│   │       ├── xlsx_writer.py  # XLSX writer (конвертация из CSV)
-│   │       └── json_writer.py  # JSON writer (потоковая запись)
+│   │       ├── csv_writer.py # CSV writer
+│   │       ├── xlsx_writer.py # XLSX writer
+│   │       └── json_writer.py # JSON writer
 │   │
 │   ├── logger/               # Логирование
-│   │   ├── __init__.py
-│   │   ├── logger.py         # Настройка логгера (CLI, GUI, QueueHandler)
-│   │   └── options.py        # Опции логирования (уровень, формат)
+│   │   ├── logger.py         # Настройка логгера
+│   │   └── options.py        # Опции логирования
 │   │
 │   ├── runner/               # Запуск парсера
-│   │   ├── __init__.py
-│   │   ├── runner.py         # Базовый абстрактный runner
-│   │   ├── cli.py            # CLI runner (синхронный)
-│   │   └── gui.py            # GUI runner (поток с отменой)
+│   │   ├── runner.py         # Базовый runner
+│   │   ├── cli.py            # CLI runner
+│   │   └── gui.py            # GUI runner
 │   │
 │   ├── cli/                  # CLI приложение
-│   │   ├── __init__.py
 │   │   └── app.py            # Запуск CLIRunner
 │   │
 │   ├── gui/                  # GUI приложение (PySimpleGUI)
-│   │   ├── __init__.py
-│   │   ├── app.py            # Главное окно (URL, лог, кнопки)
-│   │   ├── settings.py       # Диалог настроек (вкладки: браузер, парсер, CSV)
-│   │   ├── theme.py          # Тема оформления (цвета, шрифты, отступы)
-│   │   ├── utils.py          # Утилиты GUI (event handler, context menu)
-│   │   ├── error_popup.py    # Всплывающее окно ошибки
-│   │   ├── rubric_selector.py # Диалог выбора рубрик (дерево)
-│   │   ├── urls_editor.py    # Редактор URL (текст с номерами строк)
-│   │   ├── urls_generator.py # Генератор URL (города, запрос, рубрика)
-│   │   ├── city_selector.py  # Выбор городов (список по странам)
-│   │   └── widgets/          # Кастомные виджеты
-│   │       ├── sg/           # PySimpleGUI виджеты (RubricsTree)
-│   │       └── tk/           # Tkinter виджеты (CustomText, LineNumberedText)
+│   │   ├── app.py            # Главное окно
+│   │   ├── settings.py       # Диалог настроек
+│   │   ├── city_selector.py  # Выбор городов
+│   │   ├── urls_generator.py # Генератор URL
+│   │   └── rubric_selector.py # Выбор рубрик
 │   │
 │   └── data/                 # Данные
-│       ├── cities.json       # Список городов (204 города, 18 стран)
-│       ├── rubrics.json      # Список рубрик (1786 рубрик)
-│       └── images/           # Изображения (icon, logo, loading, settings)
+│       ├── cities.json       # Города (204 города)
+│       └── rubrics.json      # Рубрики (1786 рубрик)
 │
 ├── testes/                   # Тесты (pytest)
-│   ├── __init__.py
-│   ├── conftest.py           # Фикстуры pytest (test_data_dir, sample_urls)
-│   ├── test_chrome.py        # Тесты Chrome (options, remote, exceptions)
-│   ├── test_common.py        # Тесты общих утилит (платформа, декораторы)
-│   ├── test_config.py        # Тесты конфигурации (создание, загрузка, слияние)
-│   ├── test_gui_theme.py     # Тесты GUI тем (цвета, шрифты)
-│   ├── test_gui_utils.py     # Тесты GUI утилит (event handler, url_encode)
-│   ├── test_integration.py   # Комплексные интеграционные тесты
-│   ├── test_logger.py        # Тесты логирования (уровни, QueueHandler)
-│   ├── test_parser.py        # Интеграционные тесты парсера
-│   ├── test_parser_options.py # Тесты опций парсера
-│   ├── test_paths.py         # Тесты путей (data_path, user_path, images)
-│   ├── test_runner.py        # Тесты runners (CLI, GUI)
-│   ├── test_version_exceptions.py # Тесты версий и исключений
-│   └── test_writer.py        # Тесты писателей (CSV, JSON, XLSX)
-│
 ├── scripts/                  # Скрипты обновления данных
-│   ├── update_cities_list.py # Обновление списка городов (2GIS API)
-│   └── update_rubrics_list.py # Обновление списка рубрик (2GIS API)
-│
-├── parser-2gis.py            # Точка входа standalone (PyInstaller)
-├── setup.py                  # Установка пакета (зависимости, entry points)
-├── setup.cfg                 # Конфигурация flake8, mypy, pytest
-├── pytest.ini                # Конфигурация pytest (маркеры, таймауты)
-├── tox.ini                   # Конфигурация tox (flake8, mypy, py38-310)
-├── .pre-commit-config.yaml   # Pre-commit хуки (trailing-whitespace, flake8, mypy)
-├── .gitignore                # Git ignore (venv, __pycache__, dist, build)
-├── LICENSE                   # Лицензия LGPLv3+
-├── MANIFEST.in               # Manifest (включение данных в пакет)
-├── CHANGELOG.md              # История изменений (0.1.0 - 1.2.1)
-└── README.md                 # Этот файл
+├── parser-2gis.py            # Точка входа
+└── setup.py                  # Установка пакета
 ```
 
 ---
@@ -515,19 +564,21 @@ pytest -m slow
 
 | Файл | Описание |
 |------|----------|
-| `test_common.py` | Тесты общих утилит (платформа, декораторы, валидация, floor_to_hundreds, unwrap_dot_dict) |
-| `test_config.py` | Тесты конфигурации (создание, загрузка, слияние, валидация, auto_create) |
-| `test_logger.py` | Тесты логирования (настройка, уровни, QueueHandler, LogOptions) |
-| `test_parser.py` | Интеграционные тесты парсера (парсинг с проверкой CSV/JSON) |
-| `test_integration.py` | Комплексные интеграционные тесты (Config+Parser, Config+Writer) |
-| `test_writer.py` | Тесты писателей файлов (CSVOptions, WriterOptions, CSVWriter, JSONWriter, XLSXWriter) |
-| `test_paths.py` | Тесты путей к данным и изображениям (data_path, user_path, image_path) |
-| `test_runner.py` | Тесты runners (AbstractRunner, GUIRunner, CLIRunner) |
-| `test_parser_options.py` | Тесты опций парсера (ParserOptions валидация) |
-| `test_chrome.py` | Тесты Chrome браузера (ChromeOptions, ChromeRemote, исключения) |
-| `test_gui_theme.py` | Тесты GUI тем (цвета, типографика, get_font, get_spacing) |
-| `test_gui_utils.py` | Тесты GUI утилит (generate_event_handler, url_query_encode, ensure_gui_enabled) |
-| `test_version_exceptions.py` | Тесты версий и исключений (version, config_version, все исключения) |
+| `test_common.py` | Общие утилиты (платформа, декораторы) |
+| `test_config.py` | Конфигурация (создание, загрузка) |
+| `test_logger.py` | Логирование (уровни, QueueHandler) |
+| `test_parser.py` | Интеграционные тесты парсера |
+| `test_writer.py` | Писатели файлов (CSV, JSON, XLSX) |
+| `test_chrome.py` | Chrome браузер (options, remote) |
+| `test_gui_*.py` | Тесты GUI (темы, утилиты) |
+
+### Маркеры тестов
+
+- `slow` — медленные тесты
+- `integration` — интеграционные тесты
+- `gui` — тесты GUI
+- `requires_chrome` — тесты, требующие Chrome
+- `requires_network` — тесты, требующие сеть
 
 ### Pre-commit
 
@@ -541,14 +592,6 @@ flake8 parser_2gis
 # Проверка типов
 mypy parser_2gis
 ```
-
-### Маркеры тестов
-
-- `slow` — медленные тесты
-- `integration` — интеграционные тесты
-- `gui` — тесты GUI
-- `requires_chrome` — тесты, требующие Chrome
-- `requires_network` — тесты, требующие сеть
 
 ---
 
@@ -565,16 +608,18 @@ pip install -e .[dev]
 - `tox>=3.5,<4` — автоматизация тестирования
 - `pre-commit>=2.6` — pre-commit хуки
 - `wheel>=0.36.2,<0.38` — сборка пакетов
-- `pyinstaller>=5.0,<5.7.0` (Windows) или `pyinstaller>=6.6.0` (Linux/Mac) — сборка standalone
+- `pyinstaller` — сборка standalone
 
 ### Основные зависимости
 
-- `pychrome==0.2.4` — работа с Chrome DevTools Protocol
-- `pydantic>=1.9.0,<2.0` — валидация данных
-- `psutil>=5.4.8` — работа с системной памятью
-- `requests>=2.13.0` — HTTP-запросы
-- `xlsxwriter>=3.0.5` — создание XLSX файлов
-- `PySimpleGUI==4.59.0` (опционально) — GUI интерфейс
+| Пакет | Версия | Назначение |
+|-------|--------|------------|
+| `pychrome` | 0.2.4 | Chrome DevTools Protocol |
+| `pydantic` | >=1.9.0,<2.0 | Валидация данных |
+| `psutil` | >=5.4.8 | Системная память |
+| `requests` | >=2.13.0 | HTTP-запросы |
+| `xlsxwriter` | >=3.0.5 | Создание XLSX |
+| `PySimpleGUI` | 4.59.0 | GUI интерфейс (опционально) |
 
 ### Сборка standalone приложения
 
@@ -606,90 +651,139 @@ python scripts/update_rubrics_list.py
 
 Загружает данные с `https://hermes.2gis.ru/api/data/availableParameters` и сохраняет в `parser_2gis/data/rubrics.json`.
 
-### Вклад в проект
+---
 
-1. Fork репозитория
-2. Создайте ветку (`git checkout -b feature/amazing-feature`)
-3. Закоммитьте изменения (`git commit -m 'Добавлена amazing-feature'`)
-4. Отправьте в ветку (`git push origin feature/amazing-feature`)
-5. Откройте Pull Request
+## ❓ Частые вопросы (FAQ)
 
-### Стиль кода
+### 🔹 Как запустить парсер в фоновом режиме?
 
-- **flake8**: max-line-length=130, игнорируемые правила: E501, W503
-- **mypy**: строгая проверка типов
-- **Форматирование**: 4 пробела, UTF-8 кодировка
-- **Комментарии**: на русском языке
+Используйте флаг `--chrome.headless yes`:
+
+```bash
+parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" \
+    -o pharmacies.csv -f csv \
+    --chrome.headless yes
+```
+
+Браузер Chrome будет работать без видимого окна.
+
+### 🔹 Как распарсить несколько городов сразу?
+
+Используйте аргумент `--cities`:
+
+```bash
+parser-2gis --cities moscow spb kazan \
+    --query "Аптеки" \
+    -o pharmacies.csv -f csv
+```
+
+### 🔹 Как ограничить количество записей?
+
+Используйте `--parser.max-records`:
+
+```bash
+parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" \
+    -o pharmacies.csv -f csv \
+    --parser.max-records 100
+```
+
+### 🔹 Как добавить задержку между кликами?
+
+Для обхода анти-бот защит используйте `--parser.delay_between_clicks`:
+
+```bash
+parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" \
+    -o pharmacies.csv -f csv \
+    --parser.delay_between_clicks 200
+```
+
+### 🔹 Как уменьшить потребление памяти?
+
+Включите сборщик мусора:
+
+```bash
+parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" \
+    -o pharmacies.csv -f csv \
+    --parser.use-gc yes \
+    --parser.gc-pages-interval 10
+```
+
+### 🔹 Где хранится конфигурация?
+
+| ОС | Путь |
+|----|------|
+| Windows | `%APPDATA%\parser-2gis\parser-2gis.config` |
+| Linux | `~/.config/parser-2gis/parser-2gis.config` |
+| macOS | `~/Library/Application Support/parser-2gis/parser-2gis.config` |
+
+### 🔹 Как обновить список городов?
+
+```bash
+python scripts/update_cities_list.py
+```
+
+### 🔹 Что делать, если Chrome не найден?
+
+Укажите путь вручную:
+
+```bash
+parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" \
+    -o pharmacies.csv -f csv \
+    --chrome.binary_path "/usr/bin/google-chrome"
+```
+
+### 🔹 Какие версии Python поддерживаются?
+
+Python **3.8, 3.9, 3.10, 3.11**
+
+### 🔹 Работает ли парсер в России?
+
+Да! Парсер успешно обходит анти-бот блокировки и работает на территории РФ.
 
 ---
 
 ## 📝 История изменений
 
+### [Невошедшее]
+
+**Исправлено:**
+- Исправлена совместимость с Pydantic v2 (замена `.dict()` на `.model_dump()`)
+- Улучшена обработка ошибок в скриптах обновления данных
+- Переведены комментарии в скриптах на русский язык
+- Улучшена читаемость кода и документация
+
 ### [1.2.1] — 14-03-2024
-- ✅ Поддержка парсинга остановок
-- ✅ Сортировка URL по алфавиту для исключения повторений поисковой выдачи
-- ✅ Обновлён список рубрик
+
+**Добавлено:**
+- Поддержка парсинга остановок
+- Сортировка URL по алфавиту для исключения повторений
+- Обновлён список рубрик
 
 ### [1.2.0] — 08-02-2024
-- ✅ Поддержка ссылок организаций `https://2gis.ru/<city>/firm/<firm_id>`
-- ✅ Обновлён список рубрик и городов
+
+**Добавлено:**
+- Поддержка ссылок организаций `/firm/<id>`
+- Обновлён список рубрик и городов
 
 ### [1.1.2] — 08-03-2023
-- ✅ Поддержка Chrome v111
-- ✅ Новый город Басра (Ирак)
-- ✅ Обновлён список рубрик и городов
+
+**Добавлено:**
+- Поддержка Chrome v111
+- Новый город Басра (Ирак)
 
 ### [1.1.1] — 03-02-2023
-- ✅ Обновлён список рубрик и городов
-- ✅ Добавлены поля контактов "Telegram", "Viber" и "WhatsApp"
+
+**Добавлено:**
+- Поля контактов: Telegram, Viber, WhatsApp
 
 ### [1.1.0] — 05-01-2023
-- ✅ Обновлён список рубрик и городов
-- ✅ Добавлены поля "Рейтинг" и "Количество отзывов"
-- ✅ Добавлена возможность записи результата в Excel таблицу
-- ✅ Добавлена автоматическая навигация к странице, если в URL есть параметр страницы `/page/<номер_страницы>`
 
-### [0.1.10] — 25-10-2022
-- ✅ Обновлён список рубрик и городов
-- ⚠️ Отключен скрытый режим парсинга по-умолчанию
+**Добавлено:**
+- Поля "Рейтинг" и "Количество отзывов"
+- Запись результата в Excel (XLSX)
+- Авто-навигация к странице `/page/<номер>`
 
-### [0.1.9] — 18-08-2022
-- ✅ Новые рубрики: *Клубы настольного тенниса, Атрибутика для болельщиков, Полицейские станции*
-- ✅ Поддержка парсинга ссылок "В здании"
-
-### [0.1.8] — 10-08-2022
-- ✅ Совместимость с Windows 7, Windows 8
-
-### [0.1.7] — 19-07-2022
-- ⚠️ Исправлена возможная ошибка во время получения нового ключа авторизации
-- ⚠️ Исправлен баг с остановкой парсера при возникновении ошибки
-- ✅ Новые рубрики: *Прокат компьютеров / ноутбуков, Буккроссинг, Пляжные принадлежности, Администрация города/посёлка/села*
-
-### [0.1.6] — 03-07-2022
-- ⚠️ Исправлен релиз под Linux
-- ⚠️ Пропуск некорректных ответов сервера (JSON expected)
-- ✅ Новая страна: *Кувейт*
-- ✅ Новые рубрики: *Купальники, Мебель для салонов красоты, Дневные детские лагеря*
-
-### [0.1.5] — 25-05-2022
-- ⚠️ Исправлен баг с редкой ошибкой чтения ответа сервера при парсинге CSV
-- ✅ Колонка "Часовой пояс" в CSV
-
-### [0.1.4] — 24-05-2022
-- ⚠️ Исправлен баг с неполным удалением временного профиля браузера
-
-### [0.1.3] — 23-05-2022
-- ⚠️ CSV: Исправлено название колонки `Веб сайт` -> `Веб-сайт`
-- ⚠️ Usage: Убрана ошибочно влезшая версия конфигурации
-
-### [0.1.2] — 22-05-2022
-- ✅ Предупреждение при неудачной попытке загрузки GUI
-
-### [0.1.1] — 22-05-2022
-- ⚠️ Ссылка на репозиторий внутри модуля и в манифесте
-
-### [0.1.0] — 22-05-2022
-- ✅ Первый релиз
+[Полная история изменений →](CHANGELOG.md)
 
 ---
 
@@ -741,7 +835,6 @@ along with Parser2GIS.  If not, see <https://www.gnu.org/licenses/>.
 
 - **GitHub**: [https://github.com/Githab-capibara/parser-2gis](https://github.com/Githab-capibara/parser-2gis)
 - **PyPI**: [https://pypi.org/project/parser-2gis](https://pypi.org/project/parser-2gis)
-- **Документация**: [https://github.com/interlark/parser-2gis/wiki](https://github.com/interlark/parser-2gis/wiki)
 - **Changelog**: [https://github.com/Githab-capibara/parser-2gis/blob/main/CHANGELOG.md](https://github.com/Githab-capibara/parser-2gis/blob/main/CHANGELOG.md)
 
 ---
