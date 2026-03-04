@@ -365,9 +365,17 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                 query = sg.popup_get_text('Введите поисковый запрос:', title='Генерация URL по городам',
                                           default_text='Организации', font=get_font(FONT_SIZE_BASE))
                 if query:
+                    # Запрашиваем рубрику (опционально)
+                    if sg.popup_yes_no('Выбрать рубрику?', title='Генерация URL по городам') == 'Yes':
+                        from .rubric_selector import gui_rubric_selector
+                        rubric_dict = gui_rubric_selector()
+                        rubric = rubric_dict if rubric_dict and rubric_dict.get('code') else None
+                    else:
+                        rubric = None
+
                     # Генерируем URL по выбранным городам
                     from ..common import generate_city_urls
-                    generated_urls = generate_city_urls(selected_cities, query)
+                    generated_urls = generate_city_urls(selected_cities, query, rubric)
                     urls.extend(generated_urls)
                     update_urls_input()
                     logger.info('Добавлено %d URL для городов: %s', len(generated_urls),

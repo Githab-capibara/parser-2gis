@@ -12,52 +12,52 @@ except ImportError:
 
 
 class LogOptions(BaseModel):
-    # Строка формата (процентный стиль)
+    """Опции логирования.
+
+    Атрибуты:
+        gui_format: Формат сообщений для GUI.
+        cli_format: Формат сообщений для CLI.
+        gui_datefmt: Формат даты для GUI.
+        cli_datefmt: Формат даты для CLI.
+        level: Уровень логирования.
+    """
     gui_format: str = '%(asctime)s.%(msecs)03d | %(message)s'
     cli_format: str = '%(asctime)s.%(msecs)03d | %(levelname)-8s | %(message)s'
-
-    # Формат даты
     gui_datefmt: str = '%H:%M:%S'
     cli_datefmt: str = '%d/%m/%Y %H:%M:%S'
-
-    # Уровень по умолчанию DEBUG для тестов
     level: str = 'DEBUG'
+
+    @staticmethod
+    def _validate_level(v: str) -> str:
+        """Валидирует уровень логирования."""
+        v = v.upper()
+        if v not in ('ERROR', 'WARNING', 'WARN', 'INFO',
+                     'DEBUG', 'FATAL', 'CRITICAL', 'NOTSET'):
+            raise ValueError('Неверное имя уровня логирования')
+        return v
+
+    @staticmethod
+    def _validate_format(v: str) -> str:
+        """Проверяет строку формата в процентном стиле."""
+        if not re.search(r'%\(\w+\)[#0+ \-]*(\*|\d+)?(\.(\*|\d+))?[diouxefgcrsa%]', v):
+            raise ValueError('Строка формата неверна')
+        return v
 
     if PYDANTIC_V2:
         @field_validator('level')
         @classmethod
         def level_validation(cls, v: str) -> str:
-            v = v.upper()
-            if v not in ('ERROR', 'WARNING', 'WARN', 'INFO',
-                         'DEBUG', 'FATAL', 'CRITICAL', 'NOTSET'):
-                raise ValueError('Неверное имя уровня логирования')
-
-            return v
+            return cls._validate_level(v)
 
         @field_validator('gui_format', 'cli_format')
         @classmethod
         def format_validation(cls, v: str) -> str:
-            """Проверяет строку формата в процентном стиле."""
-            # Упрощённая проверка: строка должна содержать %(...) и спецификатор формата
-            if not re.search(r'%\(\w+\)[#0+ \-]*(\*|\d+)?(\.(\*|\d+))?[diouxefgcrsa%]', v):
-                raise ValueError('Строка формата неверна')
-
-            return v
+            return cls._validate_format(v)
     else:
         @validator('level')
         def level_validation(cls, v: str) -> str:
-            v = v.upper()
-            if v not in ('ERROR', 'WARNING', 'WARN', 'INFO',
-                         'DEBUG', 'FATAL', 'CRITICAL', 'NOTSET'):
-                raise ValueError('Неверное имя уровня логирования')
-
-            return v
+            return cls._validate_level(v)
 
         @validator('gui_format', 'cli_format')
         def format_validation(cls, v: str) -> str:
-            """Проверяет строку формата в процентном стиле."""
-            # Упрощённая проверка: строка должна содержать %(...) и спецификатор формата
-            if not re.search(r'%\(\w+\)[#0+ \-]*(\*|\d+)?(\.(\*|\d+))?[diouxefgcrsa%]', v):
-                raise ValueError('Строка формата неверна')
-
-            return v
+            return cls._validate_format(v)
