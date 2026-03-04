@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Скрипт обновления списка городов.
 
-# Загружаем информацию о городах для следующих стран:
-# ae, az, bh, by, cl, cy, cz, eg, it, kg, kw, kz, om, qa, ru, sa, uz
+Загружает информацию о городах для следующих стран:
+ae, az, bh, by, cl, cy, cz, eg, it, kg, kw, kz, om, qa, ru, sa, uz
+
+Получает данные с https://data.2gis.com и сохраняет в parser_2gis/data/cities.json
+"""
 
 import json
 import os
@@ -10,8 +16,7 @@ import sys
 for _ in range(2):
     try:
         import parser_2gis.paths
-        from parser_2gis.chrome import (ChromeOptions,
-                                        ChromeRemote)
+        from parser_2gis.chrome import ChromeOptions, ChromeRemote
         break
     except ImportError:
         here = os.path.dirname(os.path.abspath(__file__))
@@ -19,8 +24,7 @@ for _ in range(2):
         if parent_dir not in sys.path:
             sys.path.insert(1, parent_dir)
 
-# Получаем доступные города с https://data.2gis.com и сохраняем в data/cities.json
-
+# URL API для получения списка регионов
 _REGIONS_LIST_RESPONSE = r'https://catalog\.api\.2gis.[^/]+/.*/region/list'
 
 # ПРИМЕЧАНИЕ:
@@ -38,11 +42,11 @@ with ChromeRemote(chrome_options, [_REGIONS_LIST_RESPONSE]) as chrome_remote:
         doc = json.loads(data)
     except json.JSONDecodeError:
         print('Возвращён некорректный JSON документ!', file=sys.stderr)
-        exit(1)
+        sys.exit(1)
 
     if not doc:
         print('Нет ответа, выходим!', file=sys.stderr)
-        exit(1)
+        sys.exit(1)
 
     cities = []
     for item in doc['result']['items']:

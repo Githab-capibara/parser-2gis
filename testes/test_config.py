@@ -125,22 +125,27 @@ class TestConfigurationMerge:
         config1 = Configuration()
         config2 = Configuration()
         config2.chrome.headless = True
-        
-        # Используем dict для слияния
-        config1_dict = config1.dict()
-        config2_dict = config2.dict()
+
+        # Используем model_dump() для Pydantic v2 или dict() для v1
+        if hasattr(config1, 'model_dump'):
+            config1_dict = config1.model_dump()
+        else:
+            config1_dict = config1.dict()
         config1_dict['chrome']['headless'] = True
-        
+
         config_merged = Configuration(**config1_dict)
         assert config_merged.chrome.headless is True
 
     def test_merge_nested_values(self):
         """Проверка слияния вложенных значений."""
         config1 = Configuration()
-        config1_dict = config1.dict()
+        if hasattr(config1, 'model_dump'):
+            config1_dict = config1.model_dump()
+        else:
+            config1_dict = config1.dict()
         config1_dict['parser']['max_records'] = 100
         config1_dict['parser']['delay_between_clicks'] = 500
-        
+
         config_merged = Configuration(**config1_dict)
         assert config_merged.parser.max_records == 100
         assert config_merged.parser.delay_between_clicks == 500
@@ -150,12 +155,15 @@ class TestConfigurationMerge:
         config1 = Configuration()
         config2 = Configuration()
         config2.chrome.headless = True
-        
+
         original_headless = config1.chrome.headless
-        config1_dict = config1.dict()
+        if hasattr(config1, 'model_dump'):
+            config1_dict = config1.model_dump()
+        else:
+            config1_dict = config1.dict()
         config1_dict['chrome']['headless'] = True
         config_merged = Configuration(**config1_dict)
-        
+
         # config1 не должен измениться
         assert config1.chrome.headless == original_headless
         # config_merged должен иметь новое значение

@@ -129,19 +129,19 @@ BORDER_WIDTH_THICK = 3
 # =============================================================================
 
 # Легкая тень (для карточек)
-# box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.04)
+# CSS: box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.04)
 SHADOW_SM = '0 1px 2px rgba(0, 0, 0, 0.04)'
 
 # Средняя тень (для приподнятых элементов)
-# box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.06)
+# CSS: box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.06)
 SHADOW_MD = '0 2px 4px rgba(0, 0, 0, 0.06)'
 
 # Большая тень (для модальных окон)
-# box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.08)
+# CSS: box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.08)
 SHADOW_LG = '0 4px 12px rgba(0, 0, 0, 0.08)'
 
 # Тень при наведении
-# box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 8px 32px rgba(0, 0, 0, 0.12)
+# CSS: box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 8px 32px rgba(0, 0, 0, 0.12)
 SHADOW_HOVER = '0 4px 16px rgba(0, 0, 0, 0.12)'
 
 # =============================================================================
