@@ -4,7 +4,7 @@ import queue
 import threading
 import webbrowser
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from ..common import GUI_ENABLED, running_linux, running_windows
 from ..logger import logger, setup_cli_logger, setup_gui_logger
@@ -35,7 +35,7 @@ if GUI_ENABLED:
 
 
 @ensure_gui_enabled
-def gui_app(urls: list[str], output_path: str, format: str, config: Configuration) -> None:
+def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Configuration) -> None:
     """Запуск GUI.
 
     Args:
@@ -43,30 +43,41 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
         output_path: Путь к файлу результата.
         format: Формат `csv`, `xlsx` или `json`.
         config: Пользовательская конфигурация.
+        
+    Примечание:
+        Функция включает улучшенную обработку ошибок и потоков.
     """
-    # Применяем современную тему
-    apply_theme('modern')
+    try:
+        # Применяем современную тему
+        apply_theme('modern')
 
-    # Устанавливаем иконку (если функция доступна в версии PySimpleGUI)
-    if hasattr(sg, 'set_global_icon'):
-        sg.set_global_icon(image_data('icon', 'png'))
+        # Устанавливаем иконку (если функция доступна в версии PySimpleGUI)
+        if hasattr(sg, 'set_global_icon'):
+            sg.set_global_icon(image_data('icon', 'png'))
 
-    # Настраиваем основной GUI logger (очередь для потокобезопасного логгирования)
-    log_queue: queue.Queue[tuple[str, str]] = queue.Queue()  # Очередь сообщений лога (уровень, сообщение)
-    setup_gui_logger(log_queue, config.log)
+        # Настраиваем основной GUI logger (очередь для потокобезопасного логгирования)
+        log_queue: queue.Queue[Tuple[str, str]] = queue.Queue()  # Очередь сообщений лога (уровень, сообщение)
+        setup_gui_logger(log_queue, config.log)
 
-    # Настраиваем CLI logger после создания очереди GUI logger
-    setup_cli_logger(config.log)
+        # Настраиваем CLI logger после создания очереди GUI logger
+        setup_cli_logger(config.log)
 
-    # Формат результата
-    default_result_format = format if format else 'csv'
-    result_filetype = {'csv': [('CSV Table', '*.csv')],
-                       'xlsx': [('Microsoft Excel Spreadsheet', '*.xlsx')],
-                       'json': [('JSON', '*.json')]}
+        # Формат результата
+        default_result_format = format if format else 'csv'
+        result_filetype: Dict[str, List[Tuple[str, str]]] = {
+            'csv': [('CSV Table', '*.csv')],
+            'xlsx': [('Microsoft Excel Spreadsheet', '*.xlsx')],
+            'json': [('JSON', '*.json')]
+        }
 
-    # Если URL не передан, создаём пустой список
-    if urls is None:
-        urls = []
+        # Если URL не передан, создаём пустой список
+        if urls is None:
+            urls = []
+            
+    except Exception as e:
+        logger.error('Ошибка при инициализации GUI: %s', e, exc_info=True)
+        gui_error_popup(f'Критическая ошибка при инициализации GUI:\n{str(e)}')
+        return
 
     # Современные стили для элементов
     button_style = {'button_color': (COLOR_WHITE, COLOR_ACCENT),
@@ -320,21 +331,32 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
 
     # Главный цикл обработки событий
     while True:
-        event, values = window.Read(timeout=50)
+        try:
+            event, values = window.Read(timeout=50)
+        except Exception as e:
+            logger.error('Ошибка при чтении событий окна: %s', e)
+            break
 
         # Выход из приложения
         if event in (None, '-BTN_EXIT-'):
             # Корректное завершение потока с timeout для предотвращения утечки ресурсов
-            if parsing_thread_running():
-                with parsing_thread_lock:
-                    if parsing_thread is not None:
-                        parsing_thread.stop()
-                        # Ждем завершения потока с timeout (5 секунд)
-                        parsing_thread.join(timeout=5.0)
-                        # Проверяем, завершился ли поток
-                        if parsing_thread.is_alive():
-                            logger.warning('Поток парсинга не завершился корректно в течение 5 секунд')
-            break
+            try:
+                if parsing_thread_running():
+                    with parsing_thread_lock:
+                        if parsing_thread is not None:
+                            logger.info('Завершение потока парсинга...')
+                            parsing_thread.stop()
+                            # Ждем завершения потока с timeout (5 секунд)
+                            parsing_thread.join(timeout=5.0)
+                            # Проверяем, завершился ли поток
+                            if parsing_thread.is_alive():
+                                logger.warning('Поток парсинга не завершился корректно в течение 5 секунд')
+                            else:
+                                logger.debug('Поток парсинга успешно завершён')
+            except Exception as e:
+                logger.error('Ошибка при завершении потока парсинга: %s', e)
+            finally:
+                break
 
         # Запуск настроек
         elif event == '-BTN_SETTINGS-':
@@ -406,38 +428,54 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
 
         # Нажатие кнопки запуска
         elif event == '-BTN_START-':
-            # Проверка пути к выходному файлу
-            if not values['-OUTPUT_PATH-']:
-                gui_error_popup('Отсутствует путь результирующего файла!\n\nУкажите файл для сохранения результатов парсинга.')
-                continue
+            try:
+                # Проверка пути к выходному файлу
+                if not values['-OUTPUT_PATH-']:
+                    gui_error_popup('Отсутствует путь результирующего файла!\n\nУкажите файл для сохранения результатов парсинга.')
+                    continue
 
-            # Проверка URL
-            if not values['-IN_URL-']:
-                gui_error_popup('Отсутствует URL!\n\nВведите URL для парсинга или используйте редактор ссылок.')
-                continue
+                # Проверка URL
+                if not values['-IN_URL-']:
+                    gui_error_popup('Отсутствует URL!\n\nВведите URL для парсинга или используйте редактор ссылок.')
+                    continue
 
-            # Проверка формата результата
-            if values['-FILE_FORMAT-'] not in ('csv', 'xlsx', 'json'):
-                gui_error_popup('Формат результирующего файла должен быть csv, xlsx или json!')
-                continue
+                # Проверка формата результата
+                if values['-FILE_FORMAT-'] not in ('csv', 'xlsx', 'json'):
+                    gui_error_popup('Формат результирующего файла должен быть csv, xlsx или json!')
+                    continue
 
-            # Проверка соответствия формата результата расширению файла
-            if values['-OUTPUT_PATH-'].split('.')[-1].lower() != values['-FILE_FORMAT-']:
-                gui_error_popup(f'Расширение результирующего файла должно быть *.{values["-FILE_FORMAT-"]}!')
-                continue
+                # Проверка соответствия формата результата расширению файла
+                output_extension = values['-OUTPUT_PATH-'].split('.')[-1].lower()
+                if output_extension != values['-FILE_FORMAT-']:
+                    gui_error_popup(f'Расширение результирующего файла должно быть *.{values["-FILE_FORMAT-"]}!')
+                    continue
 
-            # Синхронизация URL с элементом ввода
-            if not window['-IN_URL-'].Disabled:
-                urls = [values['-IN_URL-']]
+                # Синхронизация URL с элементом ввода
+                if not window['-IN_URL-'].Disabled:
+                    urls = [values['-IN_URL-']]
 
-            # Запуск парсера с блокировкой для потокобезопасности
-            if not parsing_thread_running():
-                with parsing_thread_lock:
-                    parsing_thread = GUIRunner(urls, values['-OUTPUT_PATH-'], values['-FILE_FORMAT-'], config)
-                    parsing_thread.start()
+                # Запуск парсера с блокировкой для потокобезопасности
+                if not parsing_thread_running():
+                    try:
+                        with parsing_thread_lock:
+                            parsing_thread = GUIRunner(
+                                urls, 
+                                values['-OUTPUT_PATH-'], 
+                                values['-FILE_FORMAT-'], 
+                                config
+                            )
+                            parsing_thread.start()
+                        logger.info('Поток парсинга запущен')
+                    except Exception as runner_error:
+                        logger.error('Ошибка при запуске парсера: %s', runner_error, exc_info=True)
+                        gui_error_popup(f'Ошибка при запуске парсинга:\n{str(runner_error)}')
 
-                # Активируем кнопку остановки, если она была отключена
-                window['-BTN_STOP-'].update(disabled=False)
+                    # Активируем кнопку остановки, если она была отключена
+                    window['-BTN_STOP-'].update(disabled=False)
+                    
+            except Exception as e:
+                logger.error('Непредвиденная ошибка при запуске парсинга: %s', e, exc_info=True)
+                gui_error_popup(f'Критическая ошибка при запуске:\n{str(e)}')
 
         # Опрос очереди логирования
         while True:
@@ -462,7 +500,10 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                 window['-IMG_LOADING-'].update(visible=True)
 
             # Запускаем анимацию загрузки
-            window['-IMG_LOADING-'].update_animation(image_path('loading'), time_between_frames=50)
+            try:
+                window['-IMG_LOADING-'].update_animation(image_path('loading'), time_between_frames=50)
+            except Exception as anim_error:
+                logger.debug('Ошибка анимации загрузки: %s', anim_error)
         else:
             if not window['-BTN_START-'].visible:
                 window['-BTN_START-'].update(visible=True)
@@ -473,5 +514,10 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
             if window['-IMG_LOADING-'].visible:
                 window['-IMG_LOADING-'].update(visible=False)
 
-    window.close()
-    del window
+    # Закрытие окна с обработкой ошибок
+    try:
+        window.close()
+        del window
+        logger.debug('GUI окно закрыто')
+    except Exception as close_error:
+        logger.error('Ошибка при закрытии GUI окна: %s', close_error)

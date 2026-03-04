@@ -4,7 +4,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from ..common import wait_until_finished
 from ..logger import logger
@@ -20,39 +20,53 @@ class ChromeBrowser():
 
     Args:
         chrome_options: Опции Chrome.
+        
+    Raises:
+        ChromePathNotFound: Если путь к Chrome не найден.
+        ValueError: Если путь к браузеру некорректен.
+        FileNotFoundError: Если файл браузера не существует.
     """
     def __init__(self, chrome_options: ChromeOptions) -> None:
-        binary_path = (chrome_options.binary_path
-                       if chrome_options.binary_path else locate_chrome_path())
+        # Получаем путь к браузеру
+        binary_path: Optional[str] = (
+            chrome_options.binary_path 
+            if chrome_options.binary_path 
+            else locate_chrome_path()
+        )
 
         if not binary_path:
+            logger.error('Путь к Chrome браузеру не найден')
             raise ChromePathNotFound
 
-        # Валидация binary_path: проверка на существование и абсолютный путь
-        if not os.path.isabs(binary_path):
-            raise ValueError(f'Путь к браузеру должен быть абсолютным: {binary_path}')
-        if not os.path.exists(binary_path):
-            raise FileNotFoundError(f'Путь к браузеру не существует: {binary_path}')
+        # Строгая валидация binary_path
+        self._validate_binary_path(binary_path)
 
-        logger.debug('Запуск Chrome браузера.')
+        logger.debug('Запуск Chrome браузера по пути: %s', binary_path)
 
+        # Инициализация профиля и порта
         self._profile_path = tempfile.mkdtemp()
         self._remote_port = free_port()
+        
+        # Формирование команды запуска
         self._chrome_cmd = [
             binary_path,
             f'--remote-debugging-port={self._remote_port}',
-            f'--user-data-dir={self._profile_path}', '--no-default-browser-check',
-            '--no-first-run', '--no-sandbox', '--disable-fre',
+            f'--user-data-dir={self._profile_path}',
+            '--no-default-browser-check',
+            '--no-first-run',
+            '--no-sandbox',
+            '--disable-fre',
             # Ограничиваем remote-allow-origins для безопасности
             '--remote-allow-origins=http://localhost',
             f'--js-flags=--expose-gc --max-old-space-size={chrome_options.memory_limit}',
         ]
 
+        # Дополнительные опции
         if chrome_options.start_maximized:
             self._chrome_cmd.append('--start-maximized')
 
         if chrome_options.headless:
-            logger.debug('В Chrome установлен скрытый режим.')
+            logger.debug('В Chrome установлен скрытый режим (headless).')
             self._chrome_cmd.append('--headless')
             self._chrome_cmd.append('--disable-gpu')
 
@@ -60,12 +74,57 @@ class ChromeBrowser():
             logger.debug('В Chrome отключены изображения.')
             self._chrome_cmd.append('--blink-settings=imagesEnabled=false')
 
-        if chrome_options.silent_browser:
-            logger.debug('В Chrome отключён вывод отладочной информации.')
-            self._proc = subprocess.Popen(self._chrome_cmd, shell=False,
-                                          stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-        else:
-            self._proc = subprocess.Popen(self._chrome_cmd, shell=False)
+        # Запуск процесса
+        try:
+            if chrome_options.silent_browser:
+                logger.debug('В Chrome отключён вывод отладочной информации.')
+                self._proc = subprocess.Popen(
+                    self._chrome_cmd, 
+                    shell=False,
+                    stderr=subprocess.DEVNULL, 
+                    stdout=subprocess.DEVNULL
+                )
+            else:
+                self._proc = subprocess.Popen(self._chrome_cmd, shell=False)
+                
+            logger.debug('Chrome браузер запущен с PID: %d', self._proc.pid)
+            
+        except Exception as e:
+            logger.error('Ошибка при запуске Chrome браузера: %s', e)
+            # Очистка профиля при ошибке запуска
+            try:
+                shutil.rmtree(self._profile_path, ignore_errors=True)
+            except Exception:
+                pass
+            raise
+
+    def _validate_binary_path(self, binary_path: str) -> None:
+        """
+        Валидирует путь к исполняемому файлу браузера.
+
+        Args:
+            binary_path: Путь к браузеру для валидации.
+
+        Raises:
+            ValueError: Если путь не абсолютный.
+            FileNotFoundError: Если файл не существует.
+            PermissionError: Если файл не исполняемый.
+        """
+        # Проверка на абсолютный путь
+        if not os.path.isabs(binary_path):
+            raise ValueError(f'Путь к браузеру должен быть абсолютным: {binary_path}')
+            
+        # Проверка существования файла
+        if not os.path.exists(binary_path):
+            raise FileNotFoundError(f'Путь к браузеру не существует: {binary_path}')
+            
+        # Проверка, что это файл (не директория)
+        if not os.path.isfile(binary_path):
+            raise ValueError(f'Путь к браузеру должен указывать на файл: {binary_path}')
+            
+        # Проверка на исполняемость (для Unix-систем)
+        if os.name != 'nt' and not os.access(binary_path, os.X_OK):
+            logger.warning('Файл браузера не имеет прав на выполнение: %s', binary_path)
 
     @property
     def remote_port(self) -> int:
@@ -74,7 +133,7 @@ class ChromeBrowser():
 
     @wait_until_finished(timeout=300, throw_exception=False)
     def _delete_profile(self) -> bool:
-        """Удаляет профиль.
+        """Удаляет временный профиль Chrome.
 
         Returns:
             `True` при успешном удалении, `False` при неудаче.
@@ -82,33 +141,63 @@ class ChromeBrowser():
         try:
             shutil.rmtree(self._profile_path, ignore_errors=False)
             profile_deleted = not os.path.isdir(self._profile_path)
+            if profile_deleted:
+                logger.debug('Временный профиль Chrome удалён: %s', self._profile_path)
             return profile_deleted
-        except Exception:
+        except Exception as e:
+            logger.warning('Ошибка при удалении профиля Chrome: %s', e)
             # Принудительное удаление при ошибке
             try:
                 shutil.rmtree(self._profile_path, ignore_errors=True)
-            except Exception:
-                pass
+                logger.debug('Профиль Chrome удалён принудительно')
+            except Exception as cleanup_error:
+                logger.error('Не удалось удалить профиль Chrome: %s', cleanup_error)
             return False
 
     def close(self) -> None:
-        """Закрывает браузер и удаляет временный профиль."""
+        """Закрывает браузер и удаляет временный профиль.
+        
+        Примечание:
+            Функция гарантирует попытку закрытия даже при ошибках.
+        """
         logger.debug('Завершение работы Chrome браузера.')
 
         # Закрываем браузер
+        process_closed = False
+        
         try:
-            self._proc.terminate()
-            self._proc.wait(timeout=300)
-        except Exception:
-            # Принудительное завершение при ошибке
-            try:
-                self._proc.kill()
-                self._proc.wait(timeout=60)
-            except Exception:
-                pass
+            if hasattr(self, '_proc') and self._proc is not None:
+                # Попытка корректного завершения
+                try:
+                    self._proc.terminate()
+                    self._proc.wait(timeout=30)  # Уменьшенный таймаут для быстродействия
+                    process_closed = True
+                    logger.debug('Chrome браузер корректно завершён')
+                except subprocess.TimeoutExpired:
+                    logger.warning('Таймаут при завершении Chrome, принудительное закрытие')
+                except Exception as terminate_error:
+                    logger.warning('Ошибка при завершении Chrome: %s', terminate_error)
+                    
+                # Принудительное завершение при необходимости
+                if not process_closed:
+                    try:
+                        self._proc.kill()
+                        self._proc.wait(timeout=60)
+                        logger.debug('Chrome браузер принудительно завершён')
+                    except Exception as kill_error:
+                        logger.error('Ошибка при принудительном закрытии Chrome: %s', kill_error)
+            else:
+                logger.warning('Процесс Chrome не инициализирован')
+                
+        except Exception as e:
+            logger.error('Непредвиденная ошибка при закрытии Chrome: %s', e)
 
         # Удаляем временный профиль
-        self._delete_profile()
+        try:
+            if hasattr(self, '_profile_path') and self._profile_path:
+                self._delete_profile()
+        except Exception as profile_error:
+            logger.error('Ошибка при удалении профиля: %s', profile_error)
 
     def __repr__(self) -> str:
         classname = self.__class__.__name__
