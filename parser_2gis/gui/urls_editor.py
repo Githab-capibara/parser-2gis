@@ -121,6 +121,7 @@ def gui_urls_editor(urls: list[str]) -> list[str] | None:
                        resizable=True, size=(700, 500),
                        min_size=(500, 350))
 
+    with invoke_widget_hook(sg, '-COL_URLS-', create_text_widget) as get_widget:
         # Получаем виджет LineNumberedText
         urls_widget = get_widget()
         assert urls_widget

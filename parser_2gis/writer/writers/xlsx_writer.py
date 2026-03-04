@@ -16,12 +16,12 @@ class XLSXWriter(CSVWriter):
         super().__exit__(*exc_info)
 
         # Конвертируем CSV в XLSX таблицу
-        tmp_xlx_name = os.path.splitext(self._file_path)[0] + '.converted.xlsx'
+        tmp_xlsx_name = os.path.splitext(self._file_path)[0] + '.converted.xlsx'
 
         # Используем try/finally для гарантии удаления временного файла при ошибке
         try:
             # constant_memory=True уменьшает потребление RAM при работе с большими файлами
-            with Workbook(tmp_xlx_name, {'constant_memory': True}) as workbook:
+            with Workbook(tmp_xlsx_name, {'constant_memory': True}) as workbook:
                 bold = workbook.add_format({'bold': True})  # Формат для заголовка
 
                 worksheet = workbook.add_worksheet()
@@ -35,9 +35,9 @@ class XLSXWriter(CSVWriter):
                                 worksheet.write(r, c, col)
 
             # Замена оригинального файла новым
-            shutil.move(tmp_xlx_name, self._file_path)
+            shutil.move(tmp_xlsx_name, self._file_path)
         except Exception:
             # Удаляем временный файл если он был создан
-            if os.path.exists(tmp_xlx_name):
-                os.remove(tmp_xlx_name)
+            if os.path.exists(tmp_xlsx_name):
+                os.remove(tmp_xlsx_name)
             raise

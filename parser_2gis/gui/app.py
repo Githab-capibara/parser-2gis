@@ -361,7 +361,6 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
             selected_cities = gui_city_selector(config)
             if selected_cities:
                 # Запрашиваем поисковый запрос у пользователя
-                import PySimpleGUI as sg
                 query = sg.popup_get_text('Введите поисковый запрос:', title='Генерация URL по городам',
                                           default_text='Организации', font=get_font(FONT_SIZE_BASE))
                 if query:

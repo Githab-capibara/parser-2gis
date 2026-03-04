@@ -64,7 +64,7 @@ def wait_until_finished(timeout: int | None = None,
                   poll_interval: float = poll_interval,
                   **kwargs):
             # Инициализируем finished внутри функции для избежания изменяемого аргумента по умолчанию
-            inner_finished = finished if finished is not None else lambda x: bool(x)
+            inner_finished = finished if finished is not None else bool
 
             call_time = time.time()
             while True:
