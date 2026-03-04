@@ -72,7 +72,7 @@ def gui_error_popup(error_msg: str) -> None:
         ],
     ]
 
-    window_title = 'Error' if running_linux() else 'Ошибка'
+    window_title = 'Ошибка'
     window = sg.Window(window_title, layout, auto_size_text=True, finalize=True,
                        font=get_font(FONT_SIZE_BASE), modal=True, keep_on_top=True,
                        background_color=COLOR_ERROR_BACKGROUND,

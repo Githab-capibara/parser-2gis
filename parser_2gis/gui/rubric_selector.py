@@ -190,7 +190,7 @@ def gui_rubric_selector(is_russian: bool = True) -> dict[str, Any] | None:
         ],
     ]
 
-    window_title = 'Select rubric' if running_linux() else 'Выбор рубрики'
+    window_title = 'Выбор рубрики'
     window = sg.Window(window_title, layout=layout, finalize=True, 
                        auto_size_text=True, font=get_font(FONT_SIZE_BASE),
                        modal=True, keep_on_top=True,

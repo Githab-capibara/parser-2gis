@@ -160,7 +160,7 @@ def gui_city_selector(config: Configuration | None = None) -> list[dict]:
         ],
     ]
 
-    window_title = 'Select Cities' if running_linux() else 'Выбор городов'
+    window_title = 'Выбор городов'
     window = sg.Window(window_title, layout=layout, auto_size_text=True,
                        finalize=True, font=get_font(FONT_SIZE_BASE),
                        modal=True, keep_on_top=True,
