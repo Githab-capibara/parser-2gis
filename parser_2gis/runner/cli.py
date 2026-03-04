@@ -16,7 +16,8 @@ class CLIRunner(AbstractRunner):
         format: Формат `csv`, `xlsx` или `json`.
         config: Конфигурация.
     """
-    def start(self):
+    def start(self) -> None:
+        """Запускает процесс парсинга в CLI режиме."""
         logger.info('Парсинг запущен.')
         try:
             with get_writer(self._output_path, self._format, self._config.writer) as writer:
@@ -39,5 +40,11 @@ class CLIRunner(AbstractRunner):
         finally:
             logger.info('Парсинг завершён.')
 
-    def stop(self):
+    def stop(self) -> None:
+        """Останавливает процесс парсинга в CLI режиме.
+        
+        Примечание: В CLI режиме остановка не поддерживается, так как
+        процесс выполняется синхронно. Для остановки необходимо
+        использовать сочетание клавиш Ctrl+C.
+        """
         pass

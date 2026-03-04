@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from ..common import GUI_ENABLED, running_linux
 from ..paths import data_path
@@ -228,7 +228,7 @@ def gui_city_selector(config: Configuration | None = None) -> list[dict]:
     while True:
         event, values = window.read()
 
-        if event in (None, ):
+        if event in (None, '-BTN_CANCEL-'):
             break
 
         elif event == '-COUNTRY-':
