@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Скрипт обновления списка рубрик.
 
-# Загружаем рубрики.
+Загружает рубрики с API 2GIS и сохраняет в parser_2gis/data/rubrics.json
+"""
 
 import json
 import os
@@ -9,8 +13,7 @@ import sys
 for _ in range(2):
     try:
         import parser_2gis.paths
-        from parser_2gis.chrome import (ChromeOptions,
-                                        ChromeRemote)
+        from parser_2gis.chrome import ChromeOptions, ChromeRemote
         break
     except ImportError:
         here = os.path.dirname(os.path.abspath(__file__))
@@ -18,8 +21,7 @@ for _ in range(2):
         if parent_dir not in sys.path:
             sys.path.insert(1, parent_dir)
 
-# Получаем доступные города с https://data.2gis.com и сохраняем в data/rubrics.json
-
+# URL API для получения списка рубрик
 _REGIONS_LIST_RESPONSE = r'https://hermes.2gis.ru/api/data/availableParameters'
 
 chrome_options = ChromeOptions(headless=True)
@@ -32,13 +34,13 @@ with ChromeRemote(chrome_options, [_REGIONS_LIST_RESPONSE]) as chrome_remote:
         doc = json.loads(data)
     except json.JSONDecodeError:
         print('Возвращён некорректный JSON документ!', file=sys.stderr)
-        exit(1)
+        sys.exit(1)
 
     if not doc:
         print('Нет ответа, выходим!', file=sys.stderr)
-        exit(1)
+        sys.exit(1)
 
-    # Отбираем нужное
+    # Отбираем нужные данные
     rubrics = doc['rubrics']
     for v in rubrics.values():
         del v['totalCount']

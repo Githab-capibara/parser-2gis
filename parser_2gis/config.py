@@ -70,16 +70,18 @@ class Configuration(BaseModel):
         """Сохраняет конфигурацию, если она была загружена из пути."""
         if self.path:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-            # Используем model_dump_json для совместимости с Pydantic v2
             import json
-            
-            if hasattr(self, 'model_dump_json'):
+
+            # Используем model_dump() для Pydantic v2 или dict() для v1
+            if hasattr(self, 'model_dump'):
                 # Pydantic v2
-                json_str = self.model_dump_json(exclude={'path'}, ensure_ascii=False, indent=4)
+                config_dict = self.model_dump(exclude={'path'})
             else:
-                # Запасной вариант для Pydantic v1
-                json_str = self.json(exclude={'path'}, ensure_ascii=False, indent=4)
-                
+                # Pydantic v1
+                config_dict = self.dict(exclude={'path'})
+
+            json_str = json.dumps(config_dict, ensure_ascii=False, indent=4)
+
             # Записываем конфигурацию в файл с кодировкой UTF-8
             with open(self.path, 'w', encoding='utf-8') as f:
                 f.write(json_str)
