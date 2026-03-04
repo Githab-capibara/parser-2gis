@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 # Устанавливаем уровень логирования для сторонних библиотек
 logging.getLogger('urllib3').setLevel(logging.ERROR)
-logging.getLogger('pychrome').setLevel(logging.CRITICAL)
+logging.getLogger('pychrome').setLevel(logging.ERROR)
 warnings.filterwarnings(
     action='ignore',
     module='pychrome'
