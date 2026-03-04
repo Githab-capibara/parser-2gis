@@ -30,7 +30,7 @@ _REGIONS_LIST_RESPONSE = r'https://catalog\.api\.2gis.[^/]+/.*/region/list'
 
 chrome_options = ChromeOptions(headless=True)
 with ChromeRemote(chrome_options, [_REGIONS_LIST_RESPONSE]) as chrome_remote:
-    chrome_remote.navigate('https://data.2gis.com')
+    chrome_remote.navigate('https://data.2gis.com', timeout=300)
     response = chrome_remote.wait_response(_REGIONS_LIST_RESPONSE)
     data = chrome_remote.get_response_body(response)
 

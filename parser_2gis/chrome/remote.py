@@ -256,22 +256,23 @@ class ChromeRemote:
 
         self._chrome_tab._send = get_send_with_reraise()
 
-    def navigate(self, url: str, referer: str = '', timeout: int = 60) -> None:
+    def navigate(self, url: str, referer: str = '', timeout: int = 300) -> None:
         """Переходит по URL.
 
         Args:
+            url: URL для навигации.
             referer: Установить заголовок referer.
-            timeout: Таймаут ожидания.
+            timeout: Таймаут ожидания в секундах (по умолчанию 5 минут).
 
-        Returns:
-            None при успехе, сообщение об ошибке при неудаче.
+        Raises:
+            ChromeException: При ошибке навигации.
         """
         ret = self._chrome_tab.Page.navigate(url=url, _timeout=timeout, referrer=referer)
         error_message = ret.get('errorText', None)
         if error_message:
             raise ChromeException(error_message)
 
-    @wait_until_finished(timeout=30, throw_exception=False)
+    @wait_until_finished(timeout=300, throw_exception=False)
     def wait_response(self, response_pattern: str) -> Response | None:
         """Ждёт указанный ответ с предопределённым паттерном.
 
@@ -279,7 +280,7 @@ class ChromeRemote:
             response_pattern: Паттерн URL ответа.
 
         Returns:
-            Ответ или None в случае таймаута.
+            Ответ или None в случае таймаута (5 минут).
         """
         try:
             if self._chrome_tab._stopped.is_set():
@@ -300,7 +301,7 @@ class ChromeRemote:
                 except queue.Empty:
                     break
 
-    @wait_until_finished(timeout=15, throw_exception=False)
+    @wait_until_finished(timeout=60, throw_exception=False)
     def get_response_body(self, response: Response) -> str:
         """Получает тело ответа.
 
