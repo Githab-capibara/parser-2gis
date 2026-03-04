@@ -97,35 +97,47 @@ class CSVWriter(FileWriter):
         complex_columns_count = {c: 0 for c in self._data_mapping.keys()
                           if re.match("|".join(fr"^{x}_\d+$" for x in complex_columns), c)}
 
-        # Поиск пустых колонок с таймаутом
-        import signal
+        # Поиск пустых колонок с кроссплатформенным таймаутом
+        import threading
         
         class TimeoutError(Exception):
             pass
         
-        def timeout_handler(signum, frame):
-            raise TimeoutError("Операция превышена лимит времени (5 минут)")
+        timeout_occurred = False
+        timeout_lock = threading.Lock()
         
-        # Устанавливаем таймаут для Linux/Unix систем
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(300)  # 5 минут
+        def timeout_thread():
+            """Функция для потока таймаута."""
+            import time
+            time.sleep(300)  # 5 минут = 300 секунд
+            with timeout_lock:
+                if not timeout_occurred:
+                    timeout_occurred = True
+        
+        # Запускаем поток таймаута
+        timer_thread = threading.Thread(target=timeout_thread, daemon=True)
+        timer_thread.start()
         
         try:
             with self._open_file(self._file_path, 'r') as f_csv:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
                 next(csv_reader, None)  # Пропуск заголовка
                 for row in csv_reader:
+                    # Проверяем таймаут
+                    with timeout_lock:
+                        if timeout_occurred:
+                            break
+                    
                     for column_name in complex_columns_count.keys():
                         if row[column_name] != '':
                             complex_columns_count[column_name] += 1
-        except TimeoutError as e:
-            logger.warning('%s', e)
-            # Сбрасываем таймаут
-            signal.alarm(0)
-            return
+            
+            if timeout_occurred:
+                logger.warning('Операция превышена лимит времени (5 минут)')
+                return
         finally:
-            # Отменяем таймаут
-            signal.alarm(0)
+            with timeout_lock:
+                timeout_occurred = True
 
         # Генерация нового маппинга данных
         new_data_mapping: dict[str, Any] = {}
