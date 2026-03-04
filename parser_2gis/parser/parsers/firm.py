@@ -61,12 +61,17 @@ class FirmParser(MainParser):
             if not initial_state:
                 logger.warning('Данные организации не найдены (initialState отсутствует).')
                 return
+
+            # Безопасное извлечение данных с проверкой всех ключей
+            data_dict = initial_state.get('data', {})
+            entity = data_dict.get('entity', {})
+            profile = entity.get('profile', {})
             
-            if 'data' not in initial_state:
-                logger.warning('Данные организации не найдены (data отсутствует).')
+            if not profile:
+                logger.warning('Данные организации не найдены (profile отсутствует).')
                 return
-            
-            data = list(initial_state['data']['entity']['profile'].values())
+
+            data = list(profile.values())
             if not data:
                 logger.warning('Данные организации не найдены (пустой профиль).')
                 return

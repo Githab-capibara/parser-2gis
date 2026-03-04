@@ -14,9 +14,6 @@ from .paths import data_path
 from .version import version
 from .cli import cli_app
 
-if TYPE_CHECKING:
-    from .gui import gui_app
-
 
 class ArgumentHelpFormatter(argparse.HelpFormatter):
     """Форматировщик справки, добавляющий значения по умолчанию к описанию аргументов."""
