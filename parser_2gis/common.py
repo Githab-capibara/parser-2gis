@@ -239,4 +239,3 @@ def url_query_encode(query: str) -> str:
             # Кодируем все остальные символы (латиница, цифры, спецсимволы)
             result.append(urllib.parse.quote(char, safe=''))
     return ''.join(result)
- +++++++ REPLACE
