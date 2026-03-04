@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import os
 import re
 import shutil
-from typing import Any, Callable
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from pydantic import ValidationError
 
@@ -65,15 +66,19 @@ class CSVWriter(FileWriter):
             }
         }
 
-    def _writerow(self, row: dict[str, Any]) -> None:
-        """Записывает `row` в CSV."""
+    def _writerow(self, row: Dict[str, Any]) -> None:
+        """Записывает `row` в CSV.
+
+        Args:
+            row: Словарь с данными для записи.
+        """
         if self._options.verbose:
-            logger.info('Парсинг [%d] > %s', self._wrote_count + 1, row['name'])
+            logger.info('Парсинг [%d] > %s', self._wrote_count + 1, row.get('name', 'N/A'))
 
         try:
             self._writer.writerow(row)
         except Exception as e:
-            logger.error('Ошибка во время записи: %s', e)
+            logger.error('Ошибка во время записи строки: %s', e)
 
     def __enter__(self) -> CSVWriter:
         super().__enter__()
@@ -82,69 +87,62 @@ class CSVWriter(FileWriter):
         self._wrote_count = 0
         return self
 
-    def __exit__(self, *exc_info) -> None:
+    def __exit__(self, *exc_info: Any) -> None:
         super().__exit__(*exc_info)
+        
+        # Постобработка: удаление пустых колонок
         if self._options.csv.remove_empty_columns:
-            logger.info('Удаление пустых колонок CSV.')
-            self._remove_empty_columns()
+            try:
+                logger.info('Удаление пустых колонок CSV.')
+                self._remove_empty_columns()
+            except Exception as e:
+                logger.error('Ошибка при удалении пустых колонок: %s', e)
+                
+        # Постобработка: удаление дубликатов
         if self._options.csv.remove_duplicates:
-            logger.info('Удаление повторяющихся записей CSV.')
-            self._remove_duplicates()
+            try:
+                logger.info('Удаление повторяющихся записей CSV.')
+                self._remove_duplicates()
+            except Exception as e:
+                logger.error('Ошибка при удалении дубликатов: %s', e)
 
     def _remove_empty_columns(self) -> None:
-        """Постобработка: Удаление пустых колонок с таймаутом 5 минут."""
+        """Постобработка: Удаление пустых колонок.
+        
+        Примечание:
+            Функция анализирует все строки CSV и удаляет колонки,
+            которые не содержат данных (за исключением сложных колонок,
+            таких как phone_1, phone_2 и т.д.).
+        """
         complex_columns = list(self._complex_mapping.keys())
-        complex_columns_count = {c: 0 for c in self._data_mapping.keys()
-                          if re.match("|".join(fr"^{x}_\d+$" for x in complex_columns), c)}
-
-        # Поиск пустых колонок с кроссплатформенным таймаутом
-        import threading
-        import time
-
-        timeout_occurred = False
-        timeout_lock = threading.Lock()
-
-        def timeout_thread() -> None:
-            """Функция для потока таймаута."""
-            time.sleep(300)  # 5 минут = 300 секунд
-            with timeout_lock:
-                nonlocal timeout_occurred
-                if not timeout_occurred:
-                    timeout_occurred = True
-
-        # Запускаем поток таймаута
-        timer_thread = threading.Thread(target=timeout_thread, daemon=True)
-        timer_thread.start()
+        
+        # Словарь для подсчёта непустых значений в сложных колонках
+        complex_columns_count: Dict[str, int] = {
+            c: 0 for c in self._data_mapping.keys()
+            if re.match("|".join(fr"^{x}_\d+$" for x in complex_columns), c)
+        }
 
         try:
-            with self._open_file(self._file_path, 'r') as f_csv:
+            # Первый проход: подсчёт непустых значений в сложных колонках
+            with self._open_file(self._file_path, 'r', encoding='utf-8') as f_csv:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
-                next(csv_reader, None)  # Пропуск заголовка
+                
                 for row in csv_reader:
-                    # Проверяем таймаут
-                    with timeout_lock:
-                        if timeout_occurred:
-                            break
-
                     for column_name in complex_columns_count.keys():
-                        if row[column_name] != '':
+                        if row.get(column_name, '') != '':
                             complex_columns_count[column_name] += 1
 
-            with timeout_lock:
-                if timeout_occurred:
-                    logger.warning('Операция превысила лимит времени (5 минут)')
-                    return
+            logger.debug('Подсчёт заполненности колонок завершён')
+
         except Exception as e:
-            logger.error('Ошибка при удалении пустых колонок: %s', e)
+            logger.error('Ошибка при чтении CSV для анализа колонок: %s', e)
             raise
-        finally:
-            with timeout_lock:
-                timeout_occurred = True
 
         # Генерация нового маппинга данных
-        new_data_mapping: dict[str, Any] = {}
+        new_data_mapping: Dict[str, Any] = {}
         for k, v in self._data_mapping.items():
             if k in complex_columns_count:
+                # Оставляем только заполненные сложные колонки
                 if complex_columns_count[k] > 0:
                     new_data_mapping[k] = v
             else:
@@ -152,66 +150,126 @@ class CSVWriter(FileWriter):
 
         # Переименование одиночной сложной колонки - удаление суффиксов с цифрами
         for column in complex_columns:
-            if f'{column}_1' in new_data_mapping and f'{column}_2' not in new_data_mapping:
-                new_data_mapping[f'{column}_1'] = re.sub(r'\s+\d+$', '', new_data_mapping[f'{column}_1'])
+            col_1 = f'{column}_1'
+            col_2 = f'{column}_2'
+            if col_1 in new_data_mapping and col_2 not in new_data_mapping:
+                # Удаляем суффикс " 1" из названия колонки
+                new_data_mapping[col_1] = re.sub(r'\s+\d+$', '', new_data_mapping[col_1])
 
-        # Заполнение нового csv
-        tmp_csv_name = os.path.splitext(self._file_path)[0] + '.removed-columns.csv'
+        # Создание временного файла
+        file_root, file_ext = os.path.splitext(self._file_path)
+        tmp_csv_name = f'{file_root}.removed-columns{file_ext}'
 
-        # Чтение исходного файла и запись нового
-        with self._open_file(self._file_path, 'r') as f_csv, \
-             self._open_file(tmp_csv_name, 'w') as f_tmp_csv:
-            csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
-            csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
-            csv_writer.writerow(new_data_mapping)  # Запись нового заголовка
-            next(csv_reader, None)  # Пропуск заголовка
+        try:
+            # Чтение исходного файла и запись нового
+            with self._open_file(self._file_path, 'r', encoding='utf-8') as f_csv, \
+                 self._open_file(tmp_csv_name, 'w', encoding='utf-8', newline='') as f_tmp_csv:
+                
+                csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
+                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
+                
+                # Запись нового заголовка
+                csv_writer.writerow(new_data_mapping)
+                
+                # Пропуск старого заголовка и запись данных
+                for row in csv_reader:
+                    new_row = {k: v for k, v in row.items() if k in new_data_mapping}
+                    csv_writer.writerow(new_row)
 
-            for row in csv_reader:
-                new_row = {k: v for k, v in row.items() if k in new_data_mapping}
-                csv_writer.writerow(new_row)
-
-        # Замена оригинального файла новым
-        shutil.move(tmp_csv_name, self._file_path)
+            # Замена оригинального файла новым
+            shutil.move(tmp_csv_name, self._file_path)
+            logger.info('Удалены пустые колонки из CSV')
+            
+        except Exception as e:
+            logger.error('Ошибка при записи CSV без пустых колонок: %s', e)
+            # Удаляем временный файл если он существует
+            if os.path.exists(tmp_csv_name):
+                try:
+                    os.remove(tmp_csv_name)
+                except OSError:
+                    pass
+            raise
 
     def _remove_duplicates(self) -> None:
         """Постобработка: Удаление дубликатов.
 
-        Использует хеширование строк для надёжного сравнения.
+        Примечание:
+            Использует хеширование строк для надёжного сравнения.
+            Включает улучшенную обработку ошибок и очистку временных файлов.
         """
-        import hashlib
-
-        tmp_csv_name = os.path.splitext(self._file_path)[0] + '.deduplicated.csv'
-        seen_hashes: set[str] = set()
+        file_root, file_ext = os.path.splitext(self._file_path)
+        tmp_csv_name = f'{file_root}.deduplicated{file_ext}'
+        seen_hashes: Set[str] = set()
         duplicates_count = 0
+
+        # Проверка существования файла
+        if not os.path.exists(self._file_path):
+            logger.error('Файл CSV не найден: %s', self._file_path)
+            return
 
         try:
             # Чтение исходного файла и запись нового без дубликатов
-            with self._open_file(self._file_path, 'r') as f_csv, \
-                 self._open_file(tmp_csv_name, 'w') as f_tmp_csv:
-                for line in f_csv:
-                    # Нормализуем строку: удаляем завершающие пробелы и newlines
-                    normalized_line = line.rstrip('\r\n')
+            with self._open_file(self._file_path, 'r', encoding='utf-8') as f_csv, \
+                 self._open_file(tmp_csv_name, 'w', encoding='utf-8', newline='') as f_tmp_csv:
+                
+                for line_num, line in enumerate(f_csv, 1):
+                    try:
+                        # Нормализуем строку: удаляем завершающие пробелы и newlines
+                        normalized_line = line.rstrip('\r\n')
 
-                    # Вычисляем хеш для надёжного сравнения
-                    line_hash = hashlib.md5(normalized_line.encode('utf-8')).hexdigest()
+                        # Вычисляем хеш для надёжного сравнения
+                        line_hash = hashlib.md5(
+                            normalized_line.encode('utf-8'),
+                            usedforsecurity=False  # Оптимизация для Python 3.9+
+                        ).hexdigest()
 
-                    if line_hash in seen_hashes:
-                        duplicates_count += 1
-                        continue
+                        if line_hash in seen_hashes:
+                            duplicates_count += 1
+                            continue
 
-                    seen_hashes.add(line_hash)
-                    f_tmp_csv.write(line)
+                        seen_hashes.add(line_hash)
+                        f_tmp_csv.write(line)
+                        
+                    except Exception as line_error:
+                        logger.warning('Ошибка обработки строки %d: %s', line_num, line_error)
+                        # Пропускаем проблемную строку и продолжаем
 
             if duplicates_count > 0:
                 logger.info('Удалено дубликатов: %d', duplicates_count)
+            else:
+                logger.debug('Дубликаты не найдены')
 
             # Замена оригинального файла новым
             shutil.move(tmp_csv_name, self._file_path)
+            
         except (OSError, IOError) as e:
             logger.error('Ошибка при удалении дубликатов: %s', e)
             # Удаляем временный файл если он существует
             if os.path.exists(tmp_csv_name):
-                os.remove(tmp_csv_name)
+                try:
+                    os.remove(tmp_csv_name)
+                except OSError:
+                    pass
+            raise
+            
+        except KeyboardInterrupt:
+            logger.info('Операция удаления дубликатов прервана пользователем')
+            # Удаляем временный файл при прерывании
+            if os.path.exists(tmp_csv_name):
+                try:
+                    os.remove(tmp_csv_name)
+                except OSError:
+                    pass
+            raise
+            
+        except Exception as e:
+            logger.error('Непредвиденная ошибка при удалении дубликатов: %s', e)
+            # Удаляем временный файл если он существует
+            if os.path.exists(tmp_csv_name):
+                try:
+                    os.remove(tmp_csv_name)
+                except OSError:
+                    pass
             raise
 
     def write(self, catalog_doc: Any) -> None:
@@ -228,7 +286,7 @@ class CSVWriter(FileWriter):
             self._writerow(row)
             self._wrote_count += 1
 
-    def _extract_raw(self, catalog_doc: Any) -> dict[str, Any]:
+    def _extract_raw(self, catalog_doc: Any) -> Dict[str, Any]:
         """Извлекает данные из JSON-документа Catalog Item API.
 
         Args:
@@ -237,9 +295,24 @@ class CSVWriter(FileWriter):
         Returns:
             Словарь для строки CSV или пустой словарь при ошибке.
         """
-        data: dict[str, Any] = {k: None for k in self._data_mapping.keys()}
+        data: Dict[str, Any] = {k: None for k in self._data_mapping.keys()}
 
-        item = catalog_doc['result']['items'][0]
+        # Проверка структуры документа
+        try:
+            result = catalog_doc.get('result')
+            if not result or 'items' not in result:
+                logger.error('Некорректная структура документа: отсутствует result.items')
+                return {}
+                
+            items = result.get('items', [])
+            if not items:
+                logger.error('Пустой список items в документе')
+                return {}
+                
+            item = items[0]
+        except (KeyError, TypeError, IndexError) as e:
+            logger.error('Ошибка при извлечении элемента из документа: %s', e)
+            return {}
 
         try:
             catalog_item = CatalogItem(**item)
@@ -308,8 +381,8 @@ class CSVWriter(FileWriter):
 
         # Контактные данные (телефоны, email, сайты, соцсети)
         for contact_group in catalog_item.contact_groups:
-            def append_contact(contact_type: str, priority_fields: list[str],
-                               formatter: Callable[[str], str] | None = None) -> None:
+            def append_contact(contact_type: str, priority_fields: List[str],
+                               formatter: Optional[Callable[[str], str]] = None) -> None:
                 """Добавляет контакт в `data`.
 
                 Args:

@@ -1,19 +1,72 @@
 from __future__ import annotations
 
 import functools
+import re
 import sys
 import time
 import urllib.parse
 import warnings
-from typing import Any, Callable
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 from pydantic import ValidationError
 
 # Отложенный импорт logger для избежания циклических зависимостей
-def _get_logger():
+def _get_logger() -> Any:
     """Получает logger для модуля common."""
     from .logger import logger
     return logger
+
+
+# Набор чувствительных ключей для фильтрации данных
+_SENSITIVE_KEYS: Set[str] = {
+    'password', 'passwd', 'pwd', 'secret', 'token', 'api_key', 'apikey',
+    'api-key', 'auth', 'authorization', 'credential', 'private_key',
+    'access_token', 'refresh_token', 'session_id', 'session_token'
+}
+
+
+def _is_sensitive_key(key: str) -> bool:
+    """
+    Проверяет, является ли ключ чувствительным.
+    
+    Args:
+        key: Имя ключа для проверки.
+        
+    Returns:
+        True если ключ чувствительный, False иначе.
+    """
+    key_lower = key.lower()
+    # Прямая проверка
+    if key_lower in _SENSITIVE_KEYS:
+        return True
+    # Проверка по паттерну (содержит чувствительное слово)
+    sensitive_patterns = ['pass', 'secret', 'token', 'key', 'auth', 'cred']
+    return any(pattern in key_lower for pattern in sensitive_patterns)
+
+
+def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
+    """
+    Очищает чувствительные данные из значения.
+    
+    Args:
+        value: Значение для очистки.
+        key: Имя ключа (опционально).
+        
+    Returns:
+        Очищенное значение или '<REDACTED>' для чувствительных данных.
+    """
+    if key and _is_sensitive_key(key):
+        return '<REDACTED>'
+    
+    # Рекурсивная обработка словарей
+    if isinstance(value, dict):
+        return {k: _sanitize_value(v, k) for k, v in value.items()}
+    
+    # Рекурсивная обработка списков
+    if isinstance(value, list):
+        return [_sanitize_value(item) for item in value]
+    
+    return value
 
 try:
     import PySimpleGUI
@@ -42,41 +95,56 @@ def running_mac() -> bool:
     return sys.platform.startswith('darwin')
 
 
-def wait_until_finished(timeout: int | None = None,
-                        finished: Callable[[Any], bool] | None = None,
+def wait_until_finished(timeout: Optional[int] = None,
+                        finished: Optional[Callable[[Any], bool]] = None,
                         throw_exception: bool = True,
                         poll_interval: float = 0.1) -> Callable[..., Callable[..., Any]]:
     """Декоратор опрашивает обёрнутую функцию до истечения времени или пока
     предикат `finished` не вернёт `True`.
 
     Args:
-        timeout: Максимальное время ожидания.
+        timeout: Максимальное время ожидания в секундах.
         finished: Предикат для успешного результата обёрнутой функции.
         throw_exception: Выбрасывать ли `TimeoutError`.
-        poll_interval: Интервал опроса результата обёрнутой функции.
+        poll_interval: Интервал опроса результата обёрнутой функции в секундах.
+        
+    Returns:
+        Декоратор для функции с ожиданием завершения.
     """
     def outer(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def inner(*args,
-                  timeout: int | None = timeout,
-                  finished: Callable[[Any], bool] | None = finished,
+        def inner(*args: Any,
+                  timeout: Optional[int] = timeout,
+                  finished: Optional[Callable[[Any], bool]] = finished,
                   throw_exception: bool = throw_exception,
                   poll_interval: float = poll_interval,
-                  **kwargs):
+                  **kwargs: Any) -> Any:
             # Инициализируем finished внутри функции для избежания изменяемого аргумента по умолчанию
             inner_finished = finished if finished is not None else bool
 
             call_time = time.time()
             while True:
-                ret = func(*args, **kwargs)
-                if inner_finished(ret):
-                    return ret
+                try:
+                    ret = func(*args, **kwargs)
+                    if inner_finished(ret):
+                        return ret
+                except Exception as e:
+                    # Логирование ошибок выполнения функции
+                    logger = _get_logger()
+                    logger.warning('Ошибка при выполнении функции %s: %s', func.__name__, e)
+                    # Проверяем таймаут даже при ошибках
+                    if timeout is not None and time.time() - call_time > timeout:
+                        if throw_exception:
+                            raise TimeoutError(f'Превышено время ожидания для {func.__name__}')
+                        return None
+                    time.sleep(poll_interval)
+                    continue
 
                 # Проверяем таймаут
                 if timeout is not None:
                     if time.time() - call_time > timeout:
                         if throw_exception:
-                            raise TimeoutError(func)
+                            raise TimeoutError(f'Превышено время ожидания для {func.__name__}')
                         return ret
 
                 time.sleep(poll_interval)
@@ -85,7 +153,7 @@ def wait_until_finished(timeout: int | None = None,
 
 
 def report_from_validation_error(ex: ValidationError,
-                                 d: dict | None = None) -> dict:
+                                 d: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
 
     Note:
@@ -116,28 +184,34 @@ def report_from_validation_error(ex: ValidationError,
         }
 
     Примечание безопасности:
-        При передаче словаря `d` убедитесь, что он не содержит чувствительных данных,
-        так как они могут попасть в логирование.
+        Функция автоматически фильтрует чувствительные данные (пароли, токены, ключи API)
+        и заменяет их на '<REDACTED>' для предотвращения утечки конфиденциальной информации.
     """
-    values = {}
+    values: Dict[str, Any] = {}
     for error in ex.errors():
         msg = error['msg']
         loc = error['loc']
         attribute_path = '.'.join([str(location) for location in loc])
 
         if d:
-            value = d
+            value: Any = d
+            last_key: Optional[str] = None
             for field in loc:
                 if field == '__root__':
                     break
                 if field in value:
+                    last_key = field if isinstance(value, dict) else None
                     value = value[field]
                 else:
-                    value = '<No value>'  # type: ignore
+                    value = '<No value>'
+                    last_key = None
                     break
 
+            # Очищаем чувствительные данные перед возвратом
+            sanitized_value = _sanitize_value(value, last_key)
+            
             values[attribute_path] = {
-                'invalid_value': value,
+                'invalid_value': sanitized_value,
                 'error_message': msg,
             }
         else:
@@ -148,7 +222,7 @@ def report_from_validation_error(ex: ValidationError,
     return values
 
 
-def unwrap_dot_dict(d: dict) -> dict:
+def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
     """Разворачивает плоский словарь с ключами в виде точечного пути к значениям.
 
     Example:
@@ -169,8 +243,14 @@ def unwrap_dot_dict(d: dict) -> dict:
                     'fieldname': 'value2',
                 },
             }
+            
+    Args:
+        d: Плоский словарь с ключами в виде точечного пути.
+        
+    Returns:
+        Вложенный словарь с развёрнутой структурой.
     """
-    output: dict = {}
+    output: Dict[str, Any] = {}
     for key, value in d.items():
         path = key.split('.')
         target = functools.reduce(lambda d, k: d.setdefault(k, {}), path[:-1], output)
@@ -178,12 +258,21 @@ def unwrap_dot_dict(d: dict) -> dict:
     return output
 
 
-def floor_to_hundreds(arg: int | float) -> int:
-    """Округляет число вниз до ближайшей сотни."""
+def floor_to_hundreds(arg: Union[int, float]) -> int:
+    """Округляет число вниз до ближайшей сотни.
+    
+    Args:
+        arg: Число для округления.
+        
+    Returns:
+        Округлённое вниз число до ближайшей сотни.
+    """
     return int(arg // 100 * 100)
 
 
-def generate_city_urls(cities: list[dict], query: str, rubric: dict | None = None) -> list[str]:
+def generate_city_urls(cities: List[Dict[str, Any]], 
+                       query: str, 
+                       rubric: Optional[Dict[str, Any]] = None) -> List[str]:
     """Генерирует URL для парсинга по списку городов.
 
     Args:
@@ -193,27 +282,79 @@ def generate_city_urls(cities: list[dict], query: str, rubric: dict | None = Non
 
     Returns:
         Список URL для парсинга.
-    """
-    urls = []
-    logger = _get_logger()
-    
-    for city in cities:
-        # Валидация данных города
-        if not all(key in city for key in ('code', 'domain')):
-            logger.warning('Город не содержит обязательные поля (code, domain): %s', city)
-            continue
-            
-        base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
-        rest_url = f'/search/{url_query_encode(query)}'
         
-        if rubric and 'code' in rubric:
-            rest_url += f'/rubricId/{rubric["code"]}'
+    Примечание:
+        Функция автоматически пропускает города с отсутствующими обязательными полями
+        и логирует предупреждения для каждого такого случая.
+    """
+    urls: List[str] = []
+    logger = _get_logger()
 
-        rest_url += '/filters/sort=name'
-        url = base_url + rest_url
-        urls.append(url)
+    for city in cities:
+        try:
+            # Валидация данных города
+            if not isinstance(city, dict):
+                logger.warning('Элемент cities не является словарём: %s', city)
+                continue
+                
+            if not all(key in city for key in ('code', 'domain')):
+                logger.warning('Город не содержит обязательные поля (code, domain): %s', city)
+                continue
+
+            # Проверка типов полей
+            if not isinstance(city['code'], str) or not isinstance(city['domain'], str):
+                logger.warning('Поля code и domain должны быть строками: %s', city)
+                continue
+
+            base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
+            rest_url = f'/search/{url_query_encode(query)}'
+
+            if rubric and 'code' in rubric:
+                rest_url += f'/rubricId/{rubric["code"]}'
+
+            rest_url += '/filters/sort=name'
+            url = base_url + rest_url
+            urls.append(url)
+            
+        except Exception as e:
+            # Логирование непредвиденных ошибок при обработке города
+            logger.error('Ошибка при генерации URL для города %s: %s', city, e)
+            continue
 
     return urls
+
+
+def _is_safe_char(char: str) -> bool:
+    """
+    Проверяет, является ли символ безопасным для URL (не требует кодирования).
+    
+    Безопасные символы:
+    - Кириллица (а-я, А-Я, ё, Ё)
+    - Пробел
+    
+    Args:
+        char: Символ для проверки.
+        
+    Returns:
+        True если символ безопасный, False иначе.
+    """
+    char_code = ord(char)
+    # Диапазоны кириллических символов
+    cyrillic_lower_start = 0x0430  # 1072 - 'а'
+    cyrillic_lower_end = 0x044F    # 1103 - 'я'
+    cyrillic_upper_start = 0x0410  # 1040 - 'А'
+    cyrillic_upper_end = 0x042F    # 1071 - 'Я'
+    io_lower = 0x0451                # 1105 - 'ё'
+    io_upper = 0x0401                # 1025 - 'Ё'
+    space = 0x20                     # 32 - пробел
+    
+    return (
+        cyrillic_lower_start <= char_code <= cyrillic_lower_end or
+        cyrillic_upper_start <= char_code <= cyrillic_upper_end or
+        char_code == io_lower or
+        char_code == io_upper or
+        char_code == space
+    )
 
 
 def url_query_encode(query: str) -> str:
@@ -226,16 +367,11 @@ def url_query_encode(query: str) -> str:
         Закодированная строка для использования в URL.
 
     Примечание:
-        Русские символы и пробелы остаются без изменений для читаемости URL.
-        Кириллические символы кодируются в UTF-8 для совместимости с браузерами.
+        Кириллические символы и пробелы остаются без изменений для читаемости URL.
+        Все остальные символы (латиница, цифры, спецсимволы) кодируются в UTF-8.
     """
-    result = []
-    for char in query:
-        char_code = ord(char)
-        # Не кодируем русские буквы [а-яА-ЯёЁ] и пробел для читаемости
-        if 1040 <= char_code <= 1103 or char_code in (1025, 1105, 32):
-            result.append(char)
-        else:
-            # Кодируем все остальные символы (латиница, цифры, спецсимволы)
-            result.append(urllib.parse.quote(char, safe=''))
-    return ''.join(result)
+    # Используем генератор списка для лучшей читаемости и производительности
+    return ''.join(
+        char if _is_safe_char(char) else urllib.parse.quote(char, safe='')
+        for char in query
+    )
