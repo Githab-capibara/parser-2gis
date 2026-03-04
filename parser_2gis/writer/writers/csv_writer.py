@@ -94,8 +94,8 @@ class CSVWriter(FileWriter):
     def _remove_empty_columns(self) -> None:
         """Постобработка: Удаление пустых колонок."""
         complex_columns = self._complex_mapping.keys()
-        complex_columns_count = {c: 0 for c in self._data_mapping.keys() if
-                                 re.match('|'.join(fr'^{x}_\d+$' for x in complex_columns), c)}
+        complex_columns_count = {c: 0 for c in self._data_mapping.keys()
+                          if re.match("|".join(fr"^{x}_\d+$" for x in complex_columns), c)}
 
         # Поиск пустых колонок
         with self._open_file(self._file_path, 'r') as f_csv:
