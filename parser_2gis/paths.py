@@ -61,13 +61,17 @@ def image_path(basename: str, ext: str | None = None) -> str:
 
     Returns:
         Путь к изображению.
+        
+    Raises:
+        ValueError: Если basename содержит недопустимые символы.
+        FileNotFoundError: Если изображение не найдено.
     """
     # Валидация basename для предотвращения directory traversal
     if '/' in basename or '\\' in basename or '..' in basename:
         raise ValueError(f'Недопустимое имя файла: {basename}')
-    
+
     images_dir = data_path() / 'images'
-    
+
     # Оптимизированный поиск: сразу формируем ожидаемое имя файла
     if ext is not None:
         img_name = f'{basename}.{ext}'

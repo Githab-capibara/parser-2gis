@@ -172,7 +172,8 @@ class TestThirdPartyLoggers:
     def test_pychrome_logger_level(self):
         """Проверка уровня логгера pychrome."""
         pychrome_logger = logging.getLogger('pychrome')
-        assert pychrome_logger.level == logging.FATAL
+        # Уровень ERROR (40) для отладочной информации
+        assert pychrome_logger.level == logging.ERROR
 
 
 class TestLoggerMessageFormatting:

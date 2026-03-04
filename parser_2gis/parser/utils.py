@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import functools
 
-
-@functools.lru_cache(maxsize=2)
 def blocked_requests(extended: bool = False) -> list[str]:
     """Получить список заблокированных запросов: метрика, логирование,
     аналитика, счётчики, реклама и т.д.
@@ -23,7 +20,7 @@ def blocked_requests(extended: bool = False) -> list[str]:
         Список блокируемых URL-шаблонов.
     """
     # Метрика, логирование, аналитика, счётчики, реклама и т.д.
-    blocked_requests: list[str] = [
+    base_requests: list[str] = [
         'https://favorites.api.2gis.*/*',
         'https://2gis.*/_/log',
         'https://2gis.*/_/metrics',
@@ -38,7 +35,7 @@ def blocked_requests(extended: bool = False) -> list[str]:
     ]
 
     # Стили, плитки карт, изображения и прочие ресурсы визуализации
-    blocked_requests_extra: list[str] = [
+    extra_requests: list[str] = [
         'https://d-assets.2gis.*/fonts/*',
         'https://mapgl.2gis.*/api/fonts/*',
         'https://tile*.maps.2gis.*',
@@ -51,8 +48,9 @@ def blocked_requests(extended: bool = False) -> list[str]:
         'https://disk.2gis.*/styles/*',
     ]
 
-    ret_list = list(blocked_requests)  # Создаём копию для предотвращения изменения кэша
+    # Возвращаем новый список для предотвращения изменения кэша
+    result = base_requests.copy()
     if extended:
-        ret_list.extend(blocked_requests_extra)
+        result.extend(extra_requests)
 
-    return ret_list
+    return result

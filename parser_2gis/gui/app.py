@@ -310,7 +310,9 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
     # Предварительное определение тегов логирования с современными цветами
     for level, color in log_colors.items():
         tag = f'Multiline(None,{color},None)'
-        window['-LOG-'].tags.add(tag)
+        # Проверяем наличие атрибута tags для совместимости со старыми версиями PySimpleGUI
+        if hasattr(window['-LOG-'], 'tags') and hasattr(window['-LOG-'].tags, 'add'):
+            window['-LOG-'].tags.add(tag)
         window['-LOG-'].widget.tag_configure(tag, background=color)
 
     # Сохраняем приоритет тега выделения наверху
@@ -332,7 +334,6 @@ def gui_app(urls: list[str], output_path: str, format: str, config: Configuratio
                         # Проверяем, завершился ли поток
                         if parsing_thread.is_alive():
                             logger.warning('Поток парсинга не завершился корректно в течение 5 секунд')
-
             break
 
         # Запуск настроек

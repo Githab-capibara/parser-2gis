@@ -35,12 +35,12 @@ def _validate_remote_port(port: Any) -> int:
         Валидный номер порта.
 
     Raises:
-        ChromeException: Если порт некорректен.
+        ValueError: Если порт некорректен.
     """
     if not isinstance(port, int):
-        raise ChromeException(f"remote_port должен быть integer, получен {type(port).__name__}")
+        raise ValueError(f"remote_port должен быть integer, получен {type(port).__name__}")
     if port < 1024 or port > 65535:
-        raise ChromeException(f"remote_port должен быть в диапазоне 1024-65535, получен {port}")
+        raise ValueError(f"remote_port должен быть в диапазоне 1024-65535, получен {port}")
     return port
 
 # Применяем все пользовательские патчи
@@ -102,9 +102,20 @@ class ChromeRemote:
         self._init_tab_monitor()
 
     def _create_tab(self) -> pychrome.Tab:
-        """Создаёт Chrome-вкладку."""
-        resp = requests.put('%s/json/new' % (self._dev_url), json=True)         
-        return pychrome.Tab(**resp.json())
+        """Создаёт Chrome-вкладку.
+        
+        Returns:
+            Новый экземпляр pychrome.Tab.
+            
+        Raises:
+            ChromeException: Если не удалось создать вкладку.
+        """
+        try:
+            resp = requests.put('%s/json/new' % (self._dev_url), json=True, timeout=30)
+            resp.raise_for_status()
+            return pychrome.Tab(**resp.json())
+        except (RequestException, ValueError, KeyError) as e:
+            raise ChromeException(f'Не удалось создать вкладку: {e}')
 
     def _close_tab(self, tab: pychrome.Tab) -> None:
         """Закрывает Chrome-вкладку."""

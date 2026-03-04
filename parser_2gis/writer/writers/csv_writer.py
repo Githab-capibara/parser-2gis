@@ -93,31 +93,29 @@ class CSVWriter(FileWriter):
 
     def _remove_empty_columns(self) -> None:
         """Постобработка: Удаление пустых колонок с таймаутом 5 минут."""
-        complex_columns = self._complex_mapping.keys()
+        complex_columns = list(self._complex_mapping.keys())
         complex_columns_count = {c: 0 for c in self._data_mapping.keys()
                           if re.match("|".join(fr"^{x}_\d+$" for x in complex_columns), c)}
 
         # Поиск пустых колонок с кроссплатформенным таймаутом
         import threading
-        
-        class TimeoutError(Exception):
-            pass
-        
+        import time
+
         timeout_occurred = False
         timeout_lock = threading.Lock()
-        
-        def timeout_thread():
+
+        def timeout_thread() -> None:
             """Функция для потока таймаута."""
-            import time
             time.sleep(300)  # 5 минут = 300 секунд
             with timeout_lock:
+                nonlocal timeout_occurred
                 if not timeout_occurred:
                     timeout_occurred = True
-        
+
         # Запускаем поток таймаута
         timer_thread = threading.Thread(target=timeout_thread, daemon=True)
         timer_thread.start()
-        
+
         try:
             with self._open_file(self._file_path, 'r') as f_csv:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
@@ -127,14 +125,18 @@ class CSVWriter(FileWriter):
                     with timeout_lock:
                         if timeout_occurred:
                             break
-                    
+
                     for column_name in complex_columns_count.keys():
                         if row[column_name] != '':
                             complex_columns_count[column_name] += 1
-            
-            if timeout_occurred:
-                logger.warning('Операция превышена лимит времени (5 минут)')
-                return
+
+            with timeout_lock:
+                if timeout_occurred:
+                    logger.warning('Операция превысила лимит времени (5 минут)')
+                    return
+        except Exception as e:
+            logger.error('Ошибка при удалении пустых колонок: %s', e)
+            raise
         finally:
             with timeout_lock:
                 timeout_occurred = True
