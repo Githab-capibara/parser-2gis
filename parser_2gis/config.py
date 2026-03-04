@@ -83,7 +83,6 @@ class Configuration(BaseModel):
             # Записываем конфигурацию в файл с кодировкой UTF-8
             with open(self.path, 'w', encoding='utf-8') as f:
                 f.write(json_str)
- +++++++ REPLACE
 
     @classmethod
     def load_config(cls, config_path: pathlib.Path | None = None,
