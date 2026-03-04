@@ -25,8 +25,9 @@ class FirmParser(MainParser):
         Args:
             writer: Целевой файловый писатель.
         """
-        # Переходим по URL
-        self._chrome_remote.navigate(self._url, referer='https://google.com', timeout=120)
+        # Переходим по URL с таймаутом 5 минут
+        self._chrome_remote.navigate(self._url, referer='https://google.com', timeout=300)
+ +++++++ REPLACE
 
         # Документ загружен, получаем ответ
         responses = self._chrome_remote.get_responses()

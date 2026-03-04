@@ -229,13 +229,14 @@ def url_query_encode(query: str) -> str:
         Русские символы и пробелы остаются без изменений для читаемости URL.
         Кириллические символы кодируются в UTF-8 для совместимости с браузерами.
     """
-    encoded_characters = []
+    result = []
     for char in query:
-        char_ord = ord(char)
+        char_code = ord(char)
         # Не кодируем русские буквы [а-яА-ЯёЁ] и пробел для читаемости
-        if (1040 <= char_ord <= 1103) or char_ord in (1025, 1105, 32):
-            encoded_characters.append(char)
+        if 1040 <= char_code <= 1103 or char_code in (1025, 1105, 32):
+            result.append(char)
         else:
             # Кодируем все остальные символы (латиница, цифры, спецсимволы)
-            encoded_characters.append(urllib.parse.quote(char, safe=''))
-    return ''.join(encoded_characters)
+            result.append(urllib.parse.quote(char, safe=''))
+    return ''.join(result)
+ +++++++ REPLACE

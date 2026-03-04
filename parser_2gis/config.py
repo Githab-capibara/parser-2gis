@@ -72,17 +72,18 @@ class Configuration(BaseModel):
             self.path.parent.mkdir(parents=True, exist_ok=True)
             # Используем model_dump_json для совместимости с Pydantic v2
             import json
+            
             if hasattr(self, 'model_dump_json'):
                 # Pydantic v2
-                json_str = self.model_dump_json(exclude={'path'}, ensure_ascii=False)
-                # Форматируем JSON с отступами
-                data = json.loads(json_str)
-                json_str = json.dumps(data, ensure_ascii=False, indent=4)
+                json_str = self.model_dump_json(exclude={'path'}, ensure_ascii=False, indent=4)
             else:
                 # Fallback для Pydantic v1
                 json_str = self.json(exclude={'path'}, ensure_ascii=False, indent=4)
+                
+            # Записываем конфигурацию в файл с кодировкой UTF-8
             with open(self.path, 'w', encoding='utf-8') as f:
                 f.write(json_str)
+ +++++++ REPLACE
 
     @classmethod
     def load_config(cls, config_path: pathlib.Path | None = None,
