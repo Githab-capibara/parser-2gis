@@ -283,7 +283,7 @@ def gui_urls_generator() -> list[str]:
     while True:
         event, values = window.read()
 
-        if event in (None, ):
+        if event in (None, '-BTN_CANCEL-'):
             break
 
         elif event == '-COUNTRY-':

@@ -72,7 +72,7 @@ class ChromeBrowser():
         """Порт отладки."""
         return self._remote_port
 
-    @wait_until_finished(timeout=5, throw_exception=False)
+    @wait_until_finished(timeout=300, throw_exception=False)
     def _delete_profile(self) -> bool:
         """Удаляет профиль.
 
@@ -98,12 +98,12 @@ class ChromeBrowser():
         # Закрываем браузер
         try:
             self._proc.terminate()
-            self._proc.wait(timeout=5)
+            self._proc.wait(timeout=300)
         except Exception:
             # Принудительное завершение при ошибке
             try:
                 self._proc.kill()
-                self._proc.wait(timeout=2)
+                self._proc.wait(timeout=60)
             except Exception:
                 pass
 
