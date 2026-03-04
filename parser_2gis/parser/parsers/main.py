@@ -302,7 +302,7 @@ class MainParser:
                     break  # Достигли конца результатов поиска
 
                 # Сбрасываем страницу назначения, если мы закончили переход к желаемой странице
-                if walk_page_number and walk_page_number <= current_page_number:
+                if walk_page_number is not None and walk_page_number <= current_page_number:
                     walk_page_number = None
 
                 # Освобождаем память, выделенную для собранных запросов

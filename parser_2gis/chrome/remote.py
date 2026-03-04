@@ -128,10 +128,13 @@ class ChromeRemote:
 
         def responseReceived(**kwargs) -> None:
             """Собирает ответы."""
-            response = kwargs.pop('response')
-            response['meta'] = kwargs
+            # Извлекаем response до изменения kwargs
+            response = kwargs['response']
             request_id = kwargs['requestId']
             resource_type = kwargs.get('type')
+            
+            # Сохраняем метаданные ответа
+            response['meta'] = {k: v for k, v in kwargs.items() if k != 'response'}
 
             # Пропускаем preflight запросы
             if resource_type == 'Preflight':
