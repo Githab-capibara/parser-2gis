@@ -25,7 +25,6 @@ class CSVWriter(FileWriter):
             'crossroad': 'Перекрёсток',
             'station': 'Остановка',
         }
- +++++++ REPLACE
 
     @property
     def _complex_mapping(self) -> dict[str, Any]:
@@ -127,7 +126,6 @@ class CSVWriter(FileWriter):
         finally:
             # Отменяем таймаут
             signal.alarm(0)
- +++++++ REPLACE
 
         # Генерация нового маппинга данных
         new_data_mapping: dict[str, Any] = {}
