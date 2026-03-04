@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eval Review</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .tab:hover {
+            background: #e0e0e0;
+        }
+        .tab.active {
+            background: #007bff;
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #444;
+        }
+        .prompt {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border-left: 4px solid #007bff;
+        }
+        .output-section {
+            margin: 15px 0;
+        }
+        .output-file {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .output-file-header {
+            background: #f0f0f0;
+            padding: 10px 15px;
+            font-weight: 600;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .output-file-content {
+            padding: 15px;
+            max-height: 500px;
+            overflow: auto;
+        }
+        .output-file-content pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+        }
+        .output-file-content img {
+            max-width: 100%;
+            height: auto;
+        }
+        .feedback-section {
+            margin-top: 20px;
+        }
+        .feedback-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .nav-btn {
+            padding: 10px 20px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: #0056b3;
+        }
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .nav-btn.secondary {
+            background: #6c757d;
+        }
+        .nav-btn.secondary:hover {
+            background: #545b62;
+        }
+        .grading-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        .grading-summary {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .grading-stat {
+            text-align: center;
+        }
+        .grading-stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .grading-stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .expectation-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+        .expectation-item.pass {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        .expectation-item.fail {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        .previous-section {
+            margin: 15px 0;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+        }
+        .previous-section summary {
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .progress-indicator {
+            text-align: center;
+            padding: 10px;
+            color: #666;
+        }
+        .success-message {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 1000;
+            text-align: center;
+        }
+        .success-message.show {
+            display: block;
+        }
+        .success-message h2 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        .overlay.show {
+            display: block;
+        }
+        .benchmark-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .benchmark-table th,
+        .benchmark-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .benchmark-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .benchmark-table tr:hover {
+            background: #f8f9fa;
+        }
+        .delta-positive {
+            color: #28a745;
+            font-weight: 600;
+        }
+        .delta-negative {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        .notes-list {
+            list-style: none;
+            margin: 15px 0;
+        }
+        .notes-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .notes-list li:before {
+            content: "📝 ";
+            margin-right: 8px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            .grading-summary {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="skill-name-header">Eval Review</h1>
+            <div class="progress-indicator" id="progress-indicator"></div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="outputs">Outputs</button>
+            <button class="tab" data-tab="benchmark">Benchmark</button>
+        </div>
+
+        <div id="outputs-tab" class="tab-content active">
+            <div class="card">
+                <h2>Prompt</h2>
+                <div class="prompt" id="prompt-content"></div>
+            </div>
+
+            <div class="card">
+                <h2>Output</h2>
+                <div id="output-content"></div>
+            </div>
+
+            <details class="previous-section" id="previous-section" style="display: none;">
+                <summary>▶ Previous Output</summary>
+                <div id="previous-output-content" style="margin-top: 15px;"></div>
+            </details>
+
+            <details class="grading-section" id="grading-section" style="display: none;">
+                <summary>▶ Formal Grades</summary>
+                <div id="grading-content" style="margin-top: 15px;"></div>
+            </details>
+
+            <div class="feedback-section">
+                <label for="feedback-textarea">Your Feedback</label>
+                <textarea id="feedback-textarea" placeholder="Share your thoughts on this output..."></textarea>
+            </div>
+
+            <details class="previous-section" id="previous-feedback-section" style="display: none;">
+                <summary>▶ Previous Feedback</summary>
+                <div id="previous-feedback-content" style="margin-top: 15px; white-space: pre-wrap;"></div>
+            </details>
+
+            <div class="navigation">
+                <button class="nav-btn secondary" id="prev-btn">← Previous</button>
+                <button class="nav-btn" id="submit-all-btn">Submit All Reviews</button>
+                <button class="nav-btn" id="next-btn">Next →</button>
+            </div>
+        </div>
+
+        <div id="benchmark-tab" class="tab-content">
+            <div class="card">
+                <h2>Benchmark Summary</h2>
+                <div id="benchmark-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="success-message" id="success-message">
+        <h2>✓ Review Complete</h2>
+        <p>Your feedback has been saved.</p>
+        <p style="margin-top: 15px;">Go back to your QWEN CLI session and tell the assistant you're done reviewing.</p>
+        <button class="nav-btn" style="margin-top: 20px;" onclick="closeSuccess()">OK</button>
+    </div>
+
+    <script>
+        // Embedded data will be inserted here by generate_review.py
+        const EMBEDDED_DATA = {/*__EMBEDDED_DATA__*/};
+
+        let currentIndex = 0;
+        let runs = [];
+        let previousFeedback = {};
+        let previousOutputs = {};
+        let feedback = {};
+
+        function init() {
+            runs = EMBEDDED_DATA.runs || [];
+            previousFeedback = EMBEDDED_DATA.previous_feedback || {};
+            previousOutputs = EMBEDDED_DATA.previous_outputs || {};
+            
+            const skillName = EMBEDDED_DATA.skill_name || 'Skill Review';
+            document.getElementById('skill-name-header').textContent = `Eval Review: ${skillName}`;
+            
+            if (runs.length > 0) {
+                renderRun(currentIndex);
+                updateProgress();
+            }
+            
+            setupEventListeners();
+            loadExistingFeedback();
+            renderBenchmark();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('prev-btn').addEventListener('click', () => navigate(-1));
+            document.getElementById('next-btn').addEventListener('click', () => navigate(1));
+            document.getElementById('submit-all-btn').addEventListener('click', submitAllReviews);
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
+            });
+
+            document.getElementById('feedback-textarea').addEventListener('input', (e) => {
+                const run = runs[currentIndex];
+                if (run) {
+                    feedback[run.id] = e.target.value;
+                    saveFeedback();
+                }
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'TEXTAREA') return;
+                if (e.key === 'ArrowLeft') navigate(-1);
+                if (e.key === 'ArrowRight') navigate(1);
+            });
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.toggle('active', content.id === `${tabName}-tab`);
+            });
+        }
+
+        function navigate(direction) {
+            const newIndex = currentIndex + direction;
+            if (newIndex >= 0 && newIndex < runs.length) {
+                currentIndex = newIndex;
+                renderRun(currentIndex);
+                updateProgress();
+            }
+        }
+
+        function updateProgress() {
+            const indicator = document.getElementById('progress-indicator');
+            indicator.textContent = `Eval ${currentIndex + 1} of ${runs.length}`;
+        }
+
+        function renderRun(index) {
+            const run = runs[index];
+            if (!run) return;
+
+            // Prompt
+            document.getElementById('prompt-content').textContent = run.prompt || '(No prompt)';
+
+            // Outputs
+            const outputContainer = document.getElementById('output-content');
+            outputContainer.innerHTML = '';
+            
+            if (run.outputs && run.outputs.length > 0) {
+                run.outputs.forEach(file => {
+                    const fileDiv = document.createElement('div');
+                    fileDiv.className = 'output-file';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'output-file-header';
+                    header.textContent = file.name;
+                    fileDiv.appendChild(header);
+                    
+                    const content = document.createElement('div');
+                    content.className = 'output-file-content';
+                    
+                    if (file.type === 'text') {
+                        const pre = document.createElement('pre');
+                        pre.textContent = file.content;
+                        content.appendChild(pre);
+                    } else if (file.type === 'image') {
+                        const img = document.createElement('img');
+                        img.src = file.data_uri;
+                        img.alt = file.name;
+                        content.appendChild(img);
+                    } else if (file.type === 'pdf') {
+                        const embed = document.createElement('embed');
+                        embed.src = file.data_uri;
+                        embed.type = 'application/pdf';
+                        embed.style.width = '100%';
+                        embed.style.height = '500px';
+                        content.appendChild(embed);
+                    } else {
+                        content.innerHTML = `<p><a href="${file.data_uri}" download="${file.name}">Download ${file.name}</a></p>`;
+                    }
+                    
+                    fileDiv.appendChild(content);
+                    outputContainer.appendChild(fileDiv);
+                });
+            } else {
+                outputContainer.innerHTML = '<p>No output files found</p>';
+            }
+
+            // Previous Output
+            const prevSection = document.getElementById('previous-section');
+            const prevContent = document.getElementById('previous-output-content');
+            if (previousOutputs[run.id] && previousOutputs[run.id].length > 0) {
+                prevSection.style.display = 'block';
+                prevContent.innerHTML = '';
+                previousOutputs[run.id].forEach(file => {
+                    const fileDiv = document.createElement('div');
+                    fileDiv.className = 'output-file';
+                    const header = document.createElement('div');
+                    header.className = 'output-file-header';
+                    header.textContent = file.name;
+                    fileDiv.appendChild(header);
+                    const content = document.createElement('div');
+                    content.className = 'output-file-content';
+                    if (file.type === 'text') {
+                        const pre = document.createElement('pre');
+                        pre.textContent = file.content;
+                        content.appendChild(pre);
+                    }
+                    fileDiv.appendChild(content);
+                    prevContent.appendChild(fileDiv);
+                });
+            } else {
+                prevSection.style.display = 'none';
+            }
+
+            // Grading
+            const gradingSection = document.getElementById('grading-section');
+            const gradingContent = document.getElementById('grading-content');
+            if (run.grading && run.grading.expectations) {
+                gradingSection.style.display = 'block';
+                
+                const summary = run.grading.summary || {};
+                let html = `
+                    <div class="grading-summary">
+                        <div class="grading-stat">
+                            <div class="grading-stat-value" style="color: #28a745;">${summary.passed || 0}</div>
+                            <div class="grading-stat-label">Passed</div>
+                        </div>
+                        <div class="grading-stat">
+                            <div class="grading-stat-value" style="color: #dc3545;">${summary.failed || 0}</div>
+                            <div class="grading-stat-label">Failed</div>
+                        </div>
+                        <div class="grading-stat">
+                            <div class="grading-stat-value">${summary.total || 0}</div>
+                            <div class="grading-stat-label">Total</div>
+                        </div>
+                        <div class="grading-stat">
+                            <div class="grading-stat-value">${Math.round((summary.pass_rate || 0) * 100)}%</div>
+                            <div class="grading-stat-label">Pass Rate</div>
+                        </div>
+                    </div>
+                `;
+                
+                run.grading.expectations.forEach(exp => {
+                    const cls = exp.passed ? 'pass' : 'fail';
+                    html += `
+                        <div class="expectation-item ${cls}">
+                            <strong>${exp.passed ? '✓' : '✗'}</strong> ${exp.text}
+                            ${exp.evidence ? `<br><small>${exp.evidence}</small>` : ''}
+                        </div>
+                    `;
+                });
+                
+                gradingContent.innerHTML = html;
+            } else {
+                gradingSection.style.display = 'none';
+            }
+
+            // Feedback
+            const textarea = document.getElementById('feedback-textarea');
+            textarea.value = feedback[run.id] || '';
+
+            // Previous Feedback
+            const prevFeedbackSection = document.getElementById('previous-feedback-section');
+            const prevFeedbackContent = document.getElementById('previous-feedback-content');
+            if (previousFeedback[run.id]) {
+                prevFeedbackSection.style.display = 'block';
+                prevFeedbackContent.textContent = previousFeedback[run.id];
+            } else {
+                prevFeedbackSection.style.display = 'none';
+            }
+
+            // Update buttons
+            document.getElementById('prev-btn').disabled = currentIndex === 0;
+            document.getElementById('next-btn').disabled = currentIndex === runs.length - 1;
+        }
+
+        function renderBenchmark() {
+            const benchmark = EMBEDDED_DATA.benchmark;
+            const container = document.getElementById('benchmark-content');
+            
+            if (!benchmark) {
+                container.innerHTML = '<p>No benchmark data available. Run a benchmark to see quantitative results here.</p>';
+                return;
+            }
+
+            const summary = benchmark.run_summary || {};
+            const configs = Object.keys(summary).filter(k => k !== 'delta');
+            
+            let html = '<table class="benchmark-table">';
+            html += '<thead><tr><th>Metric</th>';
+            configs.forEach(config => {
+                html += `<th>${config.replace(/_/g, ' ').toUpperCase()}</th>`;
+            });
+            if (summary.delta) {
+                html += '<th>Delta</th>';
+            }
+            html += '</tr></thead><tbody>';
+
+            const metrics = ['pass_rate', 'time_seconds', 'tokens'];
+            const metricLabels = {
+                pass_rate: 'Pass Rate',
+                time_seconds: 'Time (s)',
+                tokens: 'Tokens'
+            };
+
+            metrics.forEach(metric => {
+                html += `<tr><td><strong>${metricLabels[metric]}</strong></td>`;
+                configs.forEach(config => {
+                    const data = summary[config]?.[metric] || {};
+                    if (metric === 'pass_rate') {
+                        html += `<td>${Math.round((data.mean || 0) * 100)}% ± ${Math.round((data.stddev || 0) * 100)}%</td>`;
+                    } else {
+                        html += `<td>${(data.mean || 0).toFixed(1)} ± ${(data.stddev || 0).toFixed(1)}</td>`;
+                    }
+                });
+                if (summary.delta?.[metric]) {
+                    const delta = summary.delta[metric];
+                    const cls = delta.startsWith('+') ? 'delta-positive' : 'delta-negative';
+                    html += `<td class="${cls}">${delta}</td>`;
+                }
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+
+            if (benchmark.notes && benchmark.notes.length > 0) {
+                html += '<h3>Notes</h3><ul class="notes-list">';
+                benchmark.notes.forEach(note => {
+                    html += `<li>${note}</li>`;
+                });
+                html += '</ul>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        function loadExistingFeedback() {
+            try {
+                const stored = localStorage.getItem('eval-feedback');
+                if (stored) {
+                    feedback = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Failed to load feedback:', e);
+            }
+        }
+
+        function saveFeedback() {
+            try {
+                localStorage.setItem('eval-feedback', JSON.stringify(feedback));
+            } catch (e) {
+                console.error('Failed to save feedback:', e);
+            }
+        }
+
+        async function submitAllReviews() {
+            const reviews = runs.map(run => ({
+                run_id: run.id,
+                feedback: feedback[run.id] || '',
+                timestamp: new Date().toISOString()
+            }));
+
+            const payload = { reviews, status: 'complete' };
+
+            try {
+                await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                // Also save to localStorage as backup
+                localStorage.setItem('eval-feedback-final', JSON.stringify(payload));
+                
+                // Show success message
+                document.getElementById('overlay').classList.add('show');
+                document.getElementById('success-message').classList.add('show');
+            } catch (e) {
+                console.error('Failed to submit feedback:', e);
+                alert('Failed to submit feedback. Please try again.');
+            }
+        }
+
+        function closeSuccess() {
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('success-message').classList.remove('show');
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
