@@ -45,7 +45,7 @@ class Configuration(BaseModel):
             # Определяем версию Pydantic и получаем набор установленных полей
             fields_set = getattr(model_source, 'model_fields_set', None)
             if fields_set is None:
-                # Fallback для Pydantic v1
+                # Запасной вариант для Pydantic v1
                 fields_set = getattr(model_source, '__fields_set__', set())
             
             # Гарантируем, что fields_set - это множество
@@ -77,7 +77,7 @@ class Configuration(BaseModel):
                 # Pydantic v2
                 json_str = self.model_dump_json(exclude={'path'}, ensure_ascii=False, indent=4)
             else:
-                # Fallback для Pydantic v1
+                # Запасной вариант для Pydantic v1
                 json_str = self.json(exclude={'path'}, ensure_ascii=False, indent=4)
                 
             # Записываем конфигурацию в файл с кодировкой UTF-8
@@ -125,7 +125,7 @@ class Configuration(BaseModel):
                     # Pydantic v2
                     config = cls.model_validate_json(config_data)
                 else:
-                    # Fallback для Pydantic v1
+                    # Запасной вариант для Pydantic v1
                     config = cls.parse_raw(config_data)
                 config.path = config_path
         except (JSONDecodeError, ValidationError) as e:
