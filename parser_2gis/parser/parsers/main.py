@@ -73,7 +73,10 @@ class MainParser:
         """
         def valid_link(node: DOMNode) -> bool:
             if node.local_name == 'a' and 'href' in node.attributes:
-                link_match = re.match(r'.*/(firm|station)/.*\?stat=(?P<data>[a-zA-Z0-9%]+)', node.attributes['href'])
+                href = node.attributes.get('href', '')
+                if not href:
+                    return False
+                link_match = re.match(r'.*/(firm|station)/.*\?stat=(?P<data>[a-zA-Z0-9%]+)', href)
                 if link_match:
                     try:
                         base64.b64decode(urllib.parse.unquote(link_match.group('data')))
@@ -229,8 +232,13 @@ class MainParser:
                 # Собираем ссылки для клика
                 links = get_unique_links()
 
+                # Проверяем, что ссылки успешно получены
+                if links is None:
+                    logger.warning('Не удалось получить ссылки, переходим к следующей странице.')
+                    continue
+
                 # Парсим страницу, если не идём к определённой странице
-                if not walk_page_number and links:
+                if not walk_page_number:
                     # Итерируемся по собранным ссылкам
                     for link in links:
                         resp = None
@@ -292,7 +300,7 @@ class MainParser:
                     available_pages = self._get_available_pages()
                     available_pages_ahead = {k: v for k, v in available_pages.items()
                                              if k > current_page_number}
-                    next_page_number = min(available_pages_ahead, key=lambda n: abs(n - walk_page_number),  # type: ignore
+                    next_page_number = min(available_pages_ahead, key=lambda n: abs(n - walk_page_number),
                                            default=current_page_number + 1)
                 else:
                     next_page_number = current_page_number + 1

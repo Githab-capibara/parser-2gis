@@ -104,6 +104,9 @@ class Configuration(BaseModel):
 
         Returns:
             Конфигурация.
+            
+        Raises:
+            OSError: Если не удалось создать файл конфигурации.
         """
         if not config_path:
             config_path = user_path() / 'parser-2gis.config'
@@ -128,6 +131,10 @@ class Configuration(BaseModel):
                     # Запасной вариант для Pydantic v1
                     config = cls.parse_raw(config_data)
                 config.path = config_path
+        except FileNotFoundError:
+            # Файл конфигурации не найден и auto_create=False
+            logger.warning('Файл конфигурации не найден: %s', config_path)
+            config = cls()
         except (JSONDecodeError, ValidationError) as e:
             # Создаём backup повреждённого файла конфигурации для отладки
             if config_path and config_path.is_file():
