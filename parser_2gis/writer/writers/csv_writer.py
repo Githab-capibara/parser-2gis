@@ -25,6 +25,7 @@ class CSVWriter(FileWriter):
             'crossroad': 'Перекрёсток',
             'station': 'Остановка',
         }
+ +++++++ REPLACE
 
     @property
     def _complex_mapping(self) -> dict[str, Any]:
@@ -92,19 +93,41 @@ class CSVWriter(FileWriter):
             self._remove_duplicates()
 
     def _remove_empty_columns(self) -> None:
-        """Постобработка: Удаление пустых колонок."""
+        """Постобработка: Удаление пустых колонок с таймаутом 5 минут."""
         complex_columns = self._complex_mapping.keys()
         complex_columns_count = {c: 0 for c in self._data_mapping.keys()
                           if re.match("|".join(fr"^{x}_\d+$" for x in complex_columns), c)}
 
-        # Поиск пустых колонок
-        with self._open_file(self._file_path, 'r') as f_csv:
-            csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
-            next(csv_reader, None)  # Пропуск заголовка
-            for row in csv_reader:
-                for column_name in complex_columns_count.keys():
-                    if row[column_name] != '':
-                        complex_columns_count[column_name] += 1
+        # Поиск пустых колонок с таймаутом
+        import signal
+        
+        class TimeoutError(Exception):
+            pass
+        
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Операция превышена лимит времени (5 минут)")
+        
+        # Устанавливаем таймаут для Linux/Unix систем
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(300)  # 5 минут
+        
+        try:
+            with self._open_file(self._file_path, 'r') as f_csv:
+                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
+                next(csv_reader, None)  # Пропуск заголовка
+                for row in csv_reader:
+                    for column_name in complex_columns_count.keys():
+                        if row[column_name] != '':
+                            complex_columns_count[column_name] += 1
+        except TimeoutError as e:
+            logger.warning('%s', e)
+            # Сбрасываем таймаут
+            signal.alarm(0)
+            return
+        finally:
+            # Отменяем таймаут
+            signal.alarm(0)
+ +++++++ REPLACE
 
         # Генерация нового маппинга данных
         new_data_mapping: dict[str, Any] = {}

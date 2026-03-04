@@ -64,13 +64,14 @@ class ChromeRemote:
         self._requests: dict[str, Request] = {}  # _requests[request_id] = <Request>
         self._requests_lock = threading.Lock()
 
-    @wait_until_finished(timeout=60)
+    @wait_until_finished(timeout=300)
     def _connect_interface(self) -> bool:
         """Устанавливает соединение с Chrome и открывает новую вкладку.
 
         Returns:
             `True` при успехе, `False` при неудаче.
         """
+ +++++++ REPLACE
         try:
             self._chrome_interface = pychrome.Browser(url=self._dev_url)
             self._chrome_tab = self._create_tab()
@@ -159,11 +160,12 @@ class ChromeRemote:
             status_text = ''
 
             if error_text:
-                status_text = 'error: %s' % error_text
+                status_text = f'error: {error_text}'
             if blocked_reason:
                 if status_text:
                     status_text += ', '
-                status_text += 'blocked_reason: %s' % blocked_reason
+                status_text += f'blocked_reason: {blocked_reason}'
+ +++++++ REPLACE
 
             request_id = kwargs.get('requestId')
             response = {
