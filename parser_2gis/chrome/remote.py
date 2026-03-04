@@ -71,7 +71,6 @@ class ChromeRemote:
         Returns:
             `True` при успехе, `False` при неудаче.
         """
- +++++++ REPLACE
         try:
             self._chrome_interface = pychrome.Browser(url=self._dev_url)
             self._chrome_tab = self._create_tab()
@@ -165,7 +164,6 @@ class ChromeRemote:
                 if status_text:
                     status_text += ', '
                 status_text += f'blocked_reason: {blocked_reason}'
- +++++++ REPLACE
 
             request_id = kwargs.get('requestId')
             response = {
