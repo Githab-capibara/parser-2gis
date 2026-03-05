@@ -100,6 +100,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     main_parser.add_argument('--cities', nargs='+', default=None, metavar='CITY_CODE', help='Коды городов для парсинга (например: moscow spb kazan)')
     main_parser.add_argument('--query', default=None, help='Поисковый запрос для генерации URL по городам')
     main_parser.add_argument('--rubric', default=None, help='Код рубрики для фильтрации результатов')
+    main_parser.add_argument('--categories-mode', action='store_true', default=None, help='Режим парсинга по 93 категориям (только с --cities)')
     main_parser.add_argument('-o', '--output-path', metavar='PATH', default=None, required=main_parser_required, help='Путь до результирующего файла')
     main_parser.add_argument('-f', '--format', metavar='{csv,xlsx,json}', choices=['csv', 'xlsx', 'json'], default=None, required=main_parser_required, help='Формат результирующего файла')
 
@@ -125,6 +126,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     p_parser.add_argument('--parser.max-records', metavar='{1000,2000,...}', help='Максимальное количество спарсенных записей с одного URL')
     p_parser.add_argument('--parser.skip-404-response', metavar='{yes/no}', help='Пропускать ссылки вернувшие сообщение "Точных совпадений нет / Не найдено"')
     p_parser.add_argument('--parser.delay_between_clicks', metavar='{0,100,...}', help='Задержка между кликами по записям (миллисекунд)')
+    p_parser.add_argument('--parallel-workers', type=int, default=3, help='Количество одновременных потоков для параллельного парсинга (по умолчанию: 3)')
 
     other_parser = arg_parser.add_argument_group('Прочие аргументы')
     other_parser.add_argument('--writer.verbose', metavar='{yes/no}', help='Отображать наименования позиций во время парсинга')
@@ -161,6 +163,9 @@ def main() -> None:
     # Обрабатываем аргументы городов
     urls = list(args.url) if args.url else []
 
+    # Проверяем режим парсинга по категориям
+    categories_mode = getattr(args, 'categories_mode', False)
+
     # Если указаны города, генерируем URL
     if hasattr(args, 'cities') and args.cities:
         # Загружаем список городов
@@ -177,13 +182,51 @@ def main() -> None:
         if not selected_cities:
             raise ValueError(f'Города с кодами {args.cities} не найдены')
 
-        # Получаем запрос и рубрику
-        query = args.query or 'Организации'
-        rubric = {'code': args.rubric} if args.rubric else None
+        if categories_mode:
+            # Режим парсинга по 93 категориям
+            from .data.categories_93 import CATEGORIES_93
+            from .parallel_parser import ParallelCityParser
+            
+            # Создаём папку output
+            output_dir = args.output_path if args.output_path else 'output'
+            output_path_obj = Path(output_dir)
+            output_path_obj.mkdir(parents=True, exist_ok=True)
+            
+            logger.info('Запуск параллельного парсинга по %d категориям', len(CATEGORIES_93))
+            logger.info('Города: %s', [c['name'] for c in selected_cities])
+            logger.info('Количество потоков: %d', getattr(args, 'parallel_workers', 3))
+            
+            # Создаём и запускаем параллельный парсер (синхронно)
+            parser = ParallelCityParser(
+                cities=selected_cities,
+                categories=CATEGORIES_93,
+                output_dir=str(output_path_obj),
+                config=command_line_config,
+                max_workers=getattr(args, 'parallel_workers', 3),
+            )
+            
+            def on_progress(success: int, failed: int, filename: str) -> None:
+                logger.info('Прогресс: успешно=%d, ошибок=%d, файл=%s', success, failed, filename)
+            
+            # Запускаем парсинг
+            output_file = str(output_path_obj / 'merged_result.csv')
+            result = parser.run(output_file=output_file, progress_callback=on_progress)
+            
+            if result:
+                logger.info('Параллельный парсинг завершён успешно!')
+                logger.info('Результаты сохранены в папку: %s', output_path_obj.absolute())
+            else:
+                logger.error('Параллельный парсинг завершён с ошибками')
+            
+            return
+        else:
+            # Обычный режим - генерируем URL по городам
+            query = args.query or 'Организации'
+            rubric = {'code': args.rubric} if args.rubric else None
 
-        # Генерируем URL
-        generated_urls = generate_city_urls(selected_cities, query, rubric)
-        urls.extend(generated_urls)
+            # Генерируем URL
+            generated_urls = generate_city_urls(selected_cities, query, rubric)
+            urls.extend(generated_urls)
 
     # Определяем режим запуска: GUI или CLI
     # GUI запускается, если не указаны все обязательные аргументы (URL/cities, output-path, format)
