@@ -4,7 +4,7 @@ import queue
 import threading
 import webbrowser
 from functools import partial
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from ..common import GUI_ENABLED, running_linux, running_windows
 from ..logger import logger, setup_cli_logger, setup_gui_logger
@@ -14,13 +14,12 @@ from ..version import version
 from .city_selector import gui_city_selector
 from .error_popup import gui_error_popup
 from .settings import gui_settings
-from .theme import (COLOR_ACCENT, COLOR_ACCENT_HOVER, COLOR_BACKGROUND,
-                    COLOR_BACKGROUND_SECONDARY, COLOR_BORDER, COLOR_ERROR,
-                    COLOR_LOG_CRITICAL, COLOR_LOG_ERROR, COLOR_LOG_WARNING,
+from .urls_editor import gui_urls_editor
+from .theme import (COLOR_ACCENT, COLOR_BACKGROUND, COLOR_BACKGROUND_SECONDARY,
+                    COLOR_ERROR, COLOR_LOG_CRITICAL, COLOR_LOG_ERROR, COLOR_LOG_WARNING,
                     COLOR_LOG_INFO, COLOR_LOG_SUCCESS, COLOR_TEXT_PRIMARY,
-                    COLOR_TEXT_SECONDARY, COLOR_WHITE, ELEMENT_HEIGHT_LG,
-                    ELEMENT_HEIGHT_MD, FONT_SIZE_BASE, FONT_SIZE_LG, FONT_SIZE_MD,
-                    FONT_SIZE_SM, FONT_SIZE_XL, RADIUS_LG, RADIUS_MD, SPACING_LG,
+                    COLOR_TEXT_SECONDARY, COLOR_WHITE, FONT_SIZE_BASE, FONT_SIZE_MD,
+                    FONT_SIZE_SM, FONT_SIZE_XL, SPACING_LG,
                     SPACING_MD, SPACING_SM, SPACING_XS, apply_theme, get_font)
 from .utils import (ensure_gui_enabled, generate_event_handler,
                     setup_text_widget)
@@ -29,21 +28,19 @@ if TYPE_CHECKING:
     from ..config import Configuration
 
 if GUI_ENABLED:
-    import tkinter as tk
-
     import PySimpleGUI as sg
 
 
 @ensure_gui_enabled
-def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Configuration) -> None:
+def gui_app(urls: Optional[List[str]], output_path: str, file_format: str, config: Configuration) -> None:
     """Запуск GUI.
 
     Args:
         urls: URL-адреса 2GIS с результатами для сбора.
         output_path: Путь к файлу результата.
-        format: Формат `csv`, `xlsx` или `json`.
+        file_format: Формат `csv`, `xlsx` или `json`.
         config: Пользовательская конфигурация.
-        
+
     Примечание:
         Функция включает улучшенную обработку ошибок и потоков.
     """
@@ -63,7 +60,7 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
         setup_cli_logger(config.log)
 
         # Формат результата
-        default_result_format = format if format else 'csv'
+        default_result_format = file_format if file_format else 'csv'
         result_filetype: Dict[str, List[Tuple[str, str]]] = {
             'csv': [('CSV Table', '*.csv')],
             'xlsx': [('Microsoft Excel Spreadsheet', '*.xlsx')],
@@ -73,20 +70,13 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
         # Если URL не передан, создаём пустой список
         if urls is None:
             urls = []
-            
+
     except Exception as e:
         logger.error('Ошибка при инициализации GUI: %s', e, exc_info=True)
         gui_error_popup(f'Критическая ошибка при инициализации GUI:\n{str(e)}')
         return
 
     # Современные стили для элементов
-    button_style = {'button_color': (COLOR_WHITE, COLOR_ACCENT),
-                    'pad': (SPACING_SM, SPACING_SM)}
-
-    input_style = {'background_color': COLOR_WHITE,
-                   'text_color': COLOR_TEXT_PRIMARY,
-                   'font': get_font(FONT_SIZE_BASE)}
-
     frame_style = {'background_color': COLOR_BACKGROUND,
                    'title_color': COLOR_TEXT_PRIMARY,
                    'font': get_font(FONT_SIZE_MD, 'bold'),
@@ -141,14 +131,14 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
                 ],
             ], **frame_style, relief='flat'),
         ],
-        
+
         # Настройки результата
         [
             sg.Frame('Результат', expand_x=True, layout=[
                 [
                     sg.Column([
                         [
-                            sg.Text('Формат файла', font=get_font(FONT_SIZE_MD), 
+                            sg.Text('Формат файла', font=get_font(FONT_SIZE_MD),
                                     text_color=COLOR_TEXT_SECONDARY, pad=(0, SPACING_XS)),
                         ],
                         [
@@ -156,7 +146,7 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
                                      values=['csv', 'xlsx', 'json'], readonly=True, enable_events=True,
                                      font=get_font(FONT_SIZE_BASE), background_color=COLOR_WHITE,
                                      size=(10, 1)),
-                            sg.Text('Путь к файлу', font=get_font(FONT_SIZE_MD), 
+                            sg.Text('Путь к файлу', font=get_font(FONT_SIZE_MD),
                                     text_color=COLOR_TEXT_SECONDARY, pad=((SPACING_LG, SPACING_XS), 0)),
                         ],
                         [
@@ -248,7 +238,7 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
 
     # Запрещаем пользователю редактировать консоль лога,
     # блокируем все клавиши кроме Ctrl+C, ←, ↑, →, ↓
-    def log_key_handler(e: tk.Event) -> str | None:
+    def log_key_handler(e) -> str | None:
         if e.char == '\x03' or e.keysym in ('Left', 'Up', 'Right', 'Down'):
             return None
 
@@ -417,12 +407,12 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
                 # Запускаем селектор категорий
                 from .category_selector import gui_category_selector
                 selected_categories = gui_category_selector()
-                
+
                 if selected_categories:
                     # Запрашиваем папку для сохранения
                     import tkinter as tk
                     from pathlib import Path
-                    
+
                     # Создаём диалог выбора папки с обработкой ошибок
                     root = None
                     try:
@@ -435,14 +425,14 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
                     finally:
                         if root:
                             root.destroy()
-                    
+
                     if output_dir:
                         # Запускаем параллельный парсинг
                         from ..parallel_parser import ParallelCityParser
-                        
+
                         logger.info('Запуск параллельного парсинга по %d категориям', len(selected_categories))
                         logger.info('Города: %s', [c['name'] for c in selected_cities])
-                        
+
                         # Создаём парсер
                         parser = ParallelCityParser(
                             cities=selected_cities,
@@ -451,10 +441,10 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
                             config=config,
                             max_workers=3,
                         )
-                        
+
                         def on_progress(success: int, failed: int, filename: str) -> None:
                             logger.info('Прогресс: успешно=%d, ошибок=%d, файл=%s', success, failed, filename)
-                        
+
                         # Запускаем в отдельном потоке с обработкой ошибок
                         def run_parser():
                             try:
@@ -466,9 +456,9 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
                                     logger.error('Параллельный парсинг завершён с ошибками')
                             except Exception as e:
                                 logger.error('Ошибка при параллельном парсинге: %s', e, exc_info=True)
-                        
+
                         threading.Thread(target=run_parser, daemon=True).start()
-                        
+
                         sg.popup_info(
                             f'Запущен параллельный парсинг!\n\nГорода: {len(selected_cities)}\nКатегории: {len(selected_categories)}\n\nРезультаты будут сохранены в: {output_dir}',
                             title='Парсинг запущен',
@@ -534,9 +524,9 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
                     try:
                         with parsing_thread_lock:
                             parsing_thread = GUIRunner(
-                                urls, 
-                                values['-OUTPUT_PATH-'], 
-                                values['-FILE_FORMAT-'], 
+                                urls,
+                                values['-OUTPUT_PATH-'],
+                                values['-FILE_FORMAT-'],
                                 config
                             )
                             parsing_thread.start()
@@ -547,7 +537,7 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
 
                     # Активируем кнопку остановки, если она была отключена
                     window['-BTN_STOP-'].update(disabled=False)
-                    
+
             except Exception as e:
                 logger.error('Непредвиденная ошибка при запуске парсинга: %s', e, exc_info=True)
                 gui_error_popup(f'Критическая ошибка при запуске:\n{str(e)}')

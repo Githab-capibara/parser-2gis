@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Список из 93 категорий для парсинга городов.
 
@@ -28,14 +27,14 @@ CATEGORIES_93 = [
     {"name": "Мороженое", "query": "Мороженое", "rubric_code": "469"},
     {"name": "Кальянные", "query": "Кальянные", "rubric_code": "69774"},
     {"name": "Пивные магазины", "query": "Пивные магазины", "rubric_code": None},
-    
+
     # 16-20: Гостиницы
     {"name": "Гостиницы", "query": "Гостиницы", "rubric_code": "269"},
     {"name": "Хостелы", "query": "Хостелы", "rubric_code": "52681"},
     {"name": "Апартаменты", "query": "Апартаменты посуточно", "rubric_code": None},
     {"name": "Мотели", "query": "Мотели", "rubric_code": None},
     {"name": "Базы отдыха", "query": "Базы отдыха", "rubric_code": "547"},
-    
+
     # 21-34: Досуг и развлечения
     {"name": "Театры", "query": "Театры", "rubric_code": "192"},
     {"name": "Музеи", "query": "Музеи", "rubric_code": "193"},
@@ -51,7 +50,7 @@ CATEGORIES_93 = [
     {"name": "Галереи", "query": "Художественные галереи", "rubric_code": "190"},
     {"name": "Выставочные центры", "query": "Выставочные центры", "rubric_code": "190"},
     {"name": "Торговые центры", "query": "Торговые центры", "rubric_code": "611"},
-    
+
     # 35-42: Магазины
     {"name": "Супермаркеты", "query": "Супермаркеты", "rubric_code": "350"},
     {"name": "Продуктовые магазины", "query": "Продуктовые магазины", "rubric_code": "14"},
@@ -61,25 +60,25 @@ CATEGORIES_93 = [
     {"name": "Книжные магазины", "query": "Книжные магазины", "rubric_code": "347"},
     {"name": "Цветочные магазины", "query": "Цветочные магазины", "rubric_code": "389"},
     {"name": "Магазины подарков", "query": "Магазины подарков", "rubric_code": "510"},
-    
+
     # 43-47: Красота и здоровье
     {"name": "Салоны красоты", "query": "Салоны красоты", "rubric_code": None},
     {"name": "Парикмахерские", "query": "Парикмахерские", "rubric_code": "305"},
     {"name": "Барбершопы", "query": "Барбершопы", "rubric_code": "110998"},
     {"name": "СПА-салоны", "query": "СПА-салоны", "rubric_code": "206"},
     {"name": "Массажные салоны", "query": "Массажные салоны", "rubric_code": "671"},
-    
+
     # 48-50: Спорт и фитнес
     {"name": "Фитнес-клубы", "query": "Фитнес-клубы", "rubric_code": "268"},
     {"name": "Бассейны", "query": "Бассейны", "rubric_code": "261"},
     {"name": "Сауны", "query": "Сауны", "rubric_code": "946"},
-    
+
     # 51-54: Медицина
     {"name": "Стоматологии", "query": "Стоматологии", "rubric_code": "222"},
     {"name": "Медицинские центры", "query": "Медицинские центры", "rubric_code": "4521"},
     {"name": "Поликлиники", "query": "Поликлиники", "rubric_code": "224"},
     {"name": "Ветеринарные клиники", "query": "Ветеринарные клиники", "rubric_code": "205"},
-    
+
     # 55-61: Финансы и услуги
     {"name": "Банки", "query": "Банки", "rubric_code": "492"},
     {"name": "Банкоматы", "query": "Банкоматы", "rubric_code": "522"},
@@ -88,20 +87,20 @@ CATEGORIES_93 = [
     {"name": "Юридические услуги", "query": "Юридические услуги", "rubric_code": "65"},
     {"name": "Турагентства", "query": "Турагентства", "rubric_code": "272"},
     {"name": "Страховые компании", "query": "Страховые компании", "rubric_code": "107"},
-    
+
     # 62-65: Бытовые услуги
     {"name": "Фотосалоны", "query": "Фотосалоны", "rubric_code": None},
     {"name": "Химчистки", "query": "Химчистки", "rubric_code": "313"},
     {"name": "Прачечные", "query": "Прачечные", "rubric_code": "1013"},
     {"name": "Ремонт телефонов", "query": "Ремонт телефонов", "rubric_code": "667"},
-    
+
     # 66-70: Авто
     {"name": "Автосервисы", "query": "Автосервисы", "rubric_code": None},
     {"name": "Автозапчасти", "query": "Автозапчасти", "rubric_code": "430"},
     {"name": "Автозаправки", "query": "Автозаправки", "rubric_code": "618"},
     {"name": "Автошколы", "query": "Автошколы", "rubric_code": "233"},
     {"name": "Такси", "query": "Такси", "rubric_code": "533"},
-    
+
     # 71-77: Образование
     {"name": "Школы", "query": "Школы", "rubric_code": "243"},
     {"name": "Детские сады", "query": "Детские сады", "rubric_code": "237"},
@@ -110,7 +109,7 @@ CATEGORIES_93 = [
     {"name": "Языковые школы", "query": "Языковые школы", "rubric_code": "675"},
     {"name": "Учебные центры", "query": "Учебные центры", "rubric_code": "39"},
     {"name": "Детские кружки и секции", "query": "Детские кружки и секции", "rubric_code": None},
-    
+
     # 78-84: Госучреждения
     {"name": "МФЦ", "query": "МФЦ", "rubric_code": "53505"},
     {"name": "Налоговые инспекции", "query": "Налоговые инспекции", "rubric_code": "132"},
@@ -118,12 +117,12 @@ CATEGORIES_93 = [
     {"name": "ЗАГСы", "query": "ЗАГСы", "rubric_code": "138"},
     {"name": "Суды", "query": "Суды", "rubric_code": "153"},
     {"name": "Полиция", "query": "Полиция", "rubric_code": "8463"},
-    
+
     # 85-87: Религия
     {"name": "Церкви", "query": "Церкви", "rubric_code": "194"},
     {"name": "Мечети", "query": "Мечети", "rubric_code": "13374"},
     {"name": "Синагоги", "query": "Синагоги", "rubric_code": "1175"},
-    
+
     # 88-93: Прочее
     {"name": "Парки", "query": "Парки", "rubric_code": "168"},
     {"name": "Скверы", "query": "Скверы", "rubric_code": "168"},
@@ -151,31 +150,31 @@ def get_category_by_name(name: str) -> dict | None:
 def generate_urls_for_city(city: dict, categories: list[dict] | None = None) -> list[str]:
     """
     Генерирует URL для парсинга всех категорий для одного города.
-    
+
     Args:
         city: Словарь города с полями code, domain.
         categories: Список категорий (по умолчанию все 93).
-    
+
     Returns:
         Список URL для парсинга.
     """
     from ..common import url_query_encode
-    
+
     if categories is None:
         categories = CATEGORIES_93
-    
+
     urls = []
     for cat in categories:
         base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
         rest_url = f'/search/{url_query_encode(cat["query"])}'
-        
+
         if cat.get("rubric_code"):
             rest_url += f'/rubricId/{cat["rubric_code"]}'
-        
+
         rest_url += '/filters/sort=name'
         url = base_url + rest_url
         urls.append(url)
-    
+
     return urls
 
 

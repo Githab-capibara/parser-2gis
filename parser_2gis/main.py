@@ -1,13 +1,20 @@
+"""
+Модуль точки входа CLI для Parser2GIS.
+
+Парсит аргументы командной строки, инициализирует конфигурацию
+и запускает CLI или GUI приложение в зависимости от переданных аргументов.
+"""
+
 from __future__ import annotations
 
 import argparse
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pydantic
 
-from .common import GUI_ENABLED, generate_city_urls, report_from_validation_error, unwrap_dot_dict, url_query_encode
+from .common import GUI_ENABLED, generate_city_urls, report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
 from .logger import logger
 from .paths import data_path
@@ -186,38 +193,46 @@ def main() -> None:
             # Режим парсинга по 93 категориям
             from .data.categories_93 import CATEGORIES_93
             from .parallel_parser import ParallelCityParser
-            
-            # Создаём папку output
-            output_dir = args.output_path if args.output_path else 'output'
-            output_path_obj = Path(output_dir)
-            output_path_obj.mkdir(parents=True, exist_ok=True)
-            
+
+            # Используем output_path как директорию (если указан) или 'output' по умолчанию
+            if args.output_path:
+                # Если указан путь к файлу, используем его директорию
+                output_path_obj = Path(args.output_path)
+                if output_path_obj.suffix:  # Это файл, а не директория
+                    output_dir = output_path_obj.parent
+                else:
+                    output_dir = output_path_obj
+            else:
+                output_dir = Path('output')
+
+            output_dir.mkdir(parents=True, exist_ok=True)
+
             logger.info('Запуск параллельного парсинга по %d категориям', len(CATEGORIES_93))
             logger.info('Города: %s', [c['name'] for c in selected_cities])
             logger.info('Количество потоков: %d', getattr(args, 'parallel_workers', 3))
-            
+
             # Создаём и запускаем параллельный парсер (синхронно)
             parser = ParallelCityParser(
                 cities=selected_cities,
                 categories=CATEGORIES_93,
-                output_dir=str(output_path_obj),
+                output_dir=str(output_dir),
                 config=command_line_config,
                 max_workers=getattr(args, 'parallel_workers', 3),
             )
-            
+
             def on_progress(success: int, failed: int, filename: str) -> None:
                 logger.info('Прогресс: успешно=%d, ошибок=%d, файл=%s', success, failed, filename)
-            
+
             # Запускаем парсинг
-            output_file = str(output_path_obj / 'merged_result.csv')
+            output_file = str(output_dir / 'merged_result.csv')
             result = parser.run(output_file=output_file, progress_callback=on_progress)
-            
+
             if result:
                 logger.info('Параллельный парсинг завершён успешно!')
-                logger.info('Результаты сохранены в папку: %s', output_path_obj.absolute())
+                logger.info('Результаты сохранены в папку: %s', output_dir.absolute())
             else:
                 logger.error('Параллельный парсинг завершён с ошибками')
-            
+
             return
         else:
             # Обычный режим - генерируем URL по городам
