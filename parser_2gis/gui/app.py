@@ -130,6 +130,8 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
                                 [
                                     sg.Button('Города', key='-BTN_CITIES-', size=(10, 1),
                                               button_color=(COLOR_WHITE, COLOR_ACCENT), border_width=0),
+                                    sg.Button('Категории', key='-BTN_CATEGORIES_MODE-', size=(14, 1),
+                                              button_color=(COLOR_WHITE, COLOR_ACCENT), border_width=0),
                                     sg.Button('Редактор', key='-BTN_URLS-', size=(10, 1),
                                               button_color=(COLOR_WHITE, COLOR_ACCENT), border_width=0),
                                 ],
@@ -402,6 +404,79 @@ def gui_app(urls: Optional[List[str]], output_path: str, format: str, config: Co
                     update_urls_input()
                     logger.info('Добавлено %d URL для городов: %s', len(generated_urls),
                                ', '.join([city['name'] for city in selected_cities]))
+
+        # Запуск парсинга по категориям
+        elif event == '-BTN_CATEGORIES_MODE-':
+            # Синхронизация URL с элементом ввода
+            if not window['-IN_URL-'].Disabled:
+                urls = [values['-IN_URL-']]
+
+            # Запускаем селектор городов
+            selected_cities = gui_city_selector(config)
+            if selected_cities:
+                # Запускаем селектор категорий
+                from .category_selector import gui_category_selector
+                selected_categories = gui_category_selector()
+                
+                if selected_categories:
+                    # Запрашиваем папку для сохранения
+                    import tkinter as tk
+                    from pathlib import Path
+                    
+                    # Создаём диалог выбора папки с обработкой ошибок
+                    root = None
+                    try:
+                        root = tk.Tk()
+                        root.withdraw()
+                        output_dir = tk.filedialog.askdirectory(
+                            title='Выберите папку для сохранения результатов',
+                            initialdir=Path.cwd()
+                        )
+                    finally:
+                        if root:
+                            root.destroy()
+                    
+                    if output_dir:
+                        # Запускаем параллельный парсинг
+                        from ..parallel_parser import ParallelCityParser
+                        
+                        logger.info('Запуск параллельного парсинга по %d категориям', len(selected_categories))
+                        logger.info('Города: %s', [c['name'] for c in selected_cities])
+                        
+                        # Создаём парсер
+                        parser = ParallelCityParser(
+                            cities=selected_cities,
+                            categories=selected_categories,
+                            output_dir=output_dir,
+                            config=config,
+                            max_workers=3,
+                        )
+                        
+                        def on_progress(success: int, failed: int, filename: str) -> None:
+                            logger.info('Прогресс: успешно=%d, ошибок=%d, файл=%s', success, failed, filename)
+                        
+                        # Запускаем в отдельном потоке с обработкой ошибок
+                        def run_parser():
+                            try:
+                                output_file = str(Path(output_dir) / 'merged_result.csv')
+                                result = parser.run(output_file=output_file, progress_callback=on_progress)
+                                if result:
+                                    logger.info('Параллельный парсинг завершён успешно!')
+                                else:
+                                    logger.error('Параллельный парсинг завершён с ошибками')
+                            except Exception as e:
+                                logger.error('Ошибка при параллельном парсинге: %s', e, exc_info=True)
+                        
+                        threading.Thread(target=run_parser, daemon=True).start()
+                        
+                        sg.popup_info(
+                            f'Запущен параллельный парсинг!\n\nГорода: {len(selected_cities)}\nКатегории: {len(selected_categories)}\n\nРезультаты будут сохранены в: {output_dir}',
+                            title='Парсинг запущен',
+                            font=get_font(FONT_SIZE_BASE),
+                            background_color=COLOR_BACKGROUND,
+                            text_color=COLOR_TEXT_PRIMARY,
+                            button_color=(COLOR_WHITE, COLOR_ACCENT)
+                        )
 
         # Выбор формата выходного файла
         elif event == '-FILE_FORMAT-':
