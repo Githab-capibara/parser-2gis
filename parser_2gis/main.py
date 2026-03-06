@@ -103,7 +103,8 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         main_parser_required = True
 
     main_parser = arg_parser.add_argument_group(main_parser_name)
-    main_parser.add_argument('-i', '--url', nargs='+', default=None, required=main_parser_required, help='URL с выдачей')
+    # URL не обязателен, если указаны --cities с --categories-mode
+    main_parser.add_argument('-i', '--url', nargs='+', default=None, required=False, help='URL с выдачей')
     main_parser.add_argument('--cities', nargs='+', default=None, metavar='CITY_CODE', help='Коды городов для парсинга (например: moscow spb kazan)')
     main_parser.add_argument('--query', default=None, help='Поисковый запрос для генерации URL по городам')
     main_parser.add_argument('--rubric', default=None, help='Код рубрики для фильтрации результатов')
@@ -145,6 +146,19 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
 
     args = arg_parser.parse_args()
     config_args = unwrap_dot_dict(vars(args))
+
+    # Ручная валидация: требуется хотя бы один источник URL
+    has_url_source = (
+        args.url is not None or
+        (hasattr(args, 'cities') and args.cities is not None)
+    )
+    if not has_url_source:
+        arg_parser.error('Требуется указать хотя бы один источник URL: -i/--url или --cities')
+
+    # Валидация: --categories-mode требует --cities
+    categories_mode = getattr(args, 'categories_mode', False)
+    if categories_mode and not (hasattr(args, 'cities') and args.cities):
+        arg_parser.error('--categories-mode требует указания --cities')
 
     try:
         # Инициализируем конфигурацию аргументами командной строки
@@ -245,7 +259,13 @@ def main() -> None:
 
     # Определяем режим запуска: GUI или CLI
     # GUI запускается, если не указаны все обязательные аргументы (URL/cities, output-path, format)
-    has_urls = args.url is not None or (hasattr(args, 'cities') and args.cities)
+    # При --categories-mode URL генерируются автоматически из городов
+    categories_mode = getattr(args, 'categories_mode', False)
+    has_urls = (
+        args.url is not None or
+        (hasattr(args, 'cities') and args.cities) or
+        (categories_mode and hasattr(args, 'cities') and args.cities)
+    )
     is_gui_mode = (
         not has_urls or
         args.output_path is None or
