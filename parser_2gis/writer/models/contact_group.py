@@ -70,7 +70,7 @@ class ContactGroup(BaseModel):
         name: Имя группы контактов (например "Сервисный центр").
     """
     # Список контактов
-    contacts: List[Contact]
+    contacts: List[Contact] = []
 
     # Расписание группы контактов
     schedule: Optional[Schedule] = None

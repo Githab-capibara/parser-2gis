@@ -124,7 +124,7 @@ class CSVWriter(FileWriter):
 
         try:
             # Первый проход: подсчёт непустых значений в сложных колонках
-            with self._open_file(self._file_path, 'r', encoding='utf-8') as f_csv:
+            with self._open_file(self._file_path, 'r') as f_csv:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
                 
                 for row in csv_reader:
@@ -162,8 +162,8 @@ class CSVWriter(FileWriter):
 
         try:
             # Чтение исходного файла и запись нового
-            with self._open_file(self._file_path, 'r', encoding='utf-8') as f_csv, \
-                 self._open_file(tmp_csv_name, 'w', encoding='utf-8', newline='') as f_tmp_csv:
+            with self._open_file(self._file_path, 'r') as f_csv, \
+                 self._open_file(tmp_csv_name, 'w', newline='') as f_tmp_csv:
                 
                 csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
@@ -209,8 +209,8 @@ class CSVWriter(FileWriter):
 
         try:
             # Чтение исходного файла и запись нового без дубликатов
-            with self._open_file(self._file_path, 'r', encoding='utf-8') as f_csv, \
-                 self._open_file(tmp_csv_name, 'w', encoding='utf-8', newline='') as f_tmp_csv:
+            with self._open_file(self._file_path, 'r') as f_csv, \
+                 self._open_file(tmp_csv_name, 'w', newline='') as f_tmp_csv:
                 
                 for line_num, line in enumerate(f_csv, 1):
                     try:

@@ -133,7 +133,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     p_parser.add_argument('--parser.gc-pages-interval', metavar='{5,10,...}', help='Запуск сборщика мусора каждую N-ую страницу результатов (если сборщик включен)')
     p_parser.add_argument('--parser.max-records', metavar='{1000,2000,...}', help='Максимальное количество спарсенных записей с одного URL')
     p_parser.add_argument('--parser.skip-404-response', metavar='{yes/no}', help='Пропускать ссылки вернувшие сообщение "Точных совпадений нет / Не найдено"')
-    p_parser.add_argument('--parser.delay_between_clicks', metavar='{0,100,...}', help='Задержка между кликами по записям (миллисекунд)')
+    p_parser.add_argument('--parser.delay-between-clicks', metavar='{0,100,...}', help='Задержка между кликами по записям (миллисекунд)')
     p_parser.add_argument('--parallel-workers', type=int, default=3, help='Количество одновременных потоков для параллельного парсинга (по умолчанию: 3)')
 
     other_parser = arg_parser.add_argument_group('Прочие аргументы')

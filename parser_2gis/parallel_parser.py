@@ -192,7 +192,7 @@ class ParallelCityParser:
             temp_filepath.replace(filepath)
             self.log(f'Временный файл переименован: {temp_filename} → {filename}', 'debug')
 
-            self.log(f'Завершён парсинг: {city_name} - {category_name} → {filepath}', 'success')
+            self.log(f'Завершён парсинг: {city_name} - {category_name} → {filepath}', 'info')
 
             # Потокобезопасное обновление статистики
             with self._lock:
@@ -252,6 +252,12 @@ class ParallelCityParser:
 
         # Находим все CSV файлы в output_dir
         csv_files = list(self.output_dir.glob('*.csv'))
+        
+        # Исключаем объединенный файл если он уже существует (повторный запуск)
+        output_file_path = Path(output_file)
+        if output_file_path.exists():
+            csv_files = [f for f in csv_files if f != output_file_path]
+            self.log(f'Исключен объединенный файл из списка: {output_file_path.name}', 'debug')
 
         if not csv_files:
             self.log('Не найдено CSV файлов для объединения', 'warning')
@@ -283,6 +289,9 @@ class ParallelCityParser:
                     # Формат: Город_Категория.csv
                     parts = csv_file.stem.split('_', 1)
                     category_name = parts[1] if len(parts) > 1 else parts[0]
+                    
+                    # Логируем извлечение категории для отладки
+                    self.log(f'Файл: {csv_file.name} -> Категория: {category_name}', 'debug')
 
                     # Читаем исходный файл
                     with open(csv_file, 'r', encoding='utf-8-sig', newline='') as infile:
@@ -313,17 +322,18 @@ class ParallelCityParser:
                     # Добавляем файл в список на удаление (не удаляем сразу!)
                     files_to_delete.append(csv_file)
 
-                self.log(f'Объединение завершено. Всего записей: {total_rows}', 'success')
+                self.log(f'Объединение завершено. Всего записей: {total_rows}', 'info')
                 
-                # ТОЛЬКО ПОСЛЕ успешного объединения всех файлов удаляем исходные
-                for csv_file in files_to_delete:
-                    try:
-                        csv_file.unlink()
-                        self.log(f'Исходный файл удалён: {csv_file.name}', 'debug')
-                    except Exception as e:
-                        self.log(f'Не удалось удалить файл {csv_file}: {e}', 'warning')
+                # ИЗМЕНЕНИЕ: Исходные файлы НЕ удаляются, они остаются в папке output/
+                # Как требуется: в конце должны остаться ВСЕ 93 файла + 1 объединенный файл
+                # for csv_file in files_to_delete:
+                #     try:
+                #         csv_file.unlink()
+                #         self.log(f'Исходный файл удалён: {csv_file.name}', 'debug')
+                #     except Exception as e:
+                #         self.log(f'Не удалось удалить файл {csv_file}: {e}', 'warning')
                 
-                self.log(f'Все исходные файлы удалены ({len(files_to_delete)} шт.)', 'info')
+                self.log(f'Исходные файлы сохранены ({len(files_to_delete)} шт.) в папке {self.output_dir}', 'info')
                 return True
 
         except Exception as e:
