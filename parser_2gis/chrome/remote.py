@@ -3,7 +3,9 @@ from __future__ import annotations
 import base64
 import queue
 import re
+import socket
 import threading
+import time
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 import pychrome
@@ -58,6 +60,31 @@ def _validate_remote_port(port: Any) -> int:
     
     return port
 
+
+def _check_port_available(port: int, timeout: float = 0.5) -> bool:
+    """Проверяет доступность порта для подключения.
+
+    Args:
+        port: Номер порта для проверки.
+        timeout: Таймаут проверки в секундах.
+
+    Returns:
+        True если порт доступен для подключения, False иначе.
+
+    Примечание:
+        Использует TCP socket для проверки доступности порта.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    try:
+        result = sock.connect_ex(('127.0.0.1', port))
+        sock.close()
+        return result == 0
+    except Exception:
+        sock.close()
+        return False
+
+
 # Применяем все пользовательские патчи
 patch_all()
 
@@ -85,47 +112,84 @@ class ChromeRemote:
 
         Returns:
             `True` при успехе, `False` при неудаче.
-            
+
         Примечание:
             Функция детально логирует все ошибки подключения для отладки.
+            Перед подключением проверяется доступность порта.
+            Выполняется до 3 попыток подключения.
         """
-        try:
-            logger.debug('Подключение к Chrome DevTools Protocol по адресу: %s', self._dev_url)
-            self._chrome_interface = pychrome.Browser(url=self._dev_url)
-            self._chrome_tab = self._create_tab()
-            self._chrome_tab.start()
-            logger.info('Успешное подключение к Chrome DevTools Protocol')
-            return True
-            
-        except RequestException as e:
-            # Ошибки HTTP/сети
-            logger.error('Ошибка сети при подключении к Chrome DevTools Protocol (%s): %s', 
-                        self._dev_url, e)
-            return False
-            
-        except WebSocketException as e:
-            # Ошибки WebSocket соединения
-            logger.error('Ошибка WebSocket при подключении к Chrome DevTools Protocol (%s): %s', 
-                        self._dev_url, e)
-            return False
-            
-        except ChromeException as e:
-            # Специфичные ошибки Chrome
-            logger.error('Ошибка Chrome при подключении к DevTools Protocol (%s): %s', 
-                        self._dev_url, e)
-            return False
-            
-        except Exception as e:
-            # Любые другие непредвиденные ошибки
-            logger.error('Непредвиденная ошибка при подключении к Chrome DevTools Protocol (%s): %s', 
-                        self._dev_url, e, exc_info=True)
-            return False
+        max_attempts = 3
+        attempt_delay = 2.0
+        
+        for attempt in range(max_attempts):
+            try:
+                # Извлекаем порт из dev_url для проверки
+                port = int(self._dev_url.split(':')[-1])
+
+                # Проверка доступности порта перед подключением
+                if not _check_port_available(port, timeout=1.0):
+                    logger.warning('Порт %d недоступен при подключении к DevTools (попытка %d/%d)', port, attempt + 1, max_attempts)
+                    if attempt < max_attempts - 1:
+                        time.sleep(attempt_delay)
+                        continue
+                    return False
+
+                logger.debug('Подключение к Chrome DevTools Protocol по адресу: %s', self._dev_url)
+                self._chrome_interface = pychrome.Browser(url=self._dev_url)
+
+                logger.debug('Создание вкладки через _create_tab()...')
+                self._chrome_tab = self._create_tab()
+
+                logger.debug('Запуск вкладки...')
+                self._chrome_tab.start()
+                logger.info('Успешное подключение к Chrome DevTools Protocol')
+                return True
+
+            except RequestException as e:
+                # Ошибки HTTP/сети
+                logger.error('Ошибка сети при подключении к Chrome DevTools Protocol (%s): %s',
+                            self._dev_url, e)
+                if attempt < max_attempts - 1:
+                    time.sleep(attempt_delay)
+                continue
+
+            except WebSocketException as e:
+                # Ошибки WebSocket соединения
+                logger.error('Ошибка WebSocket при подключении к Chrome DevTools Protocol (%s): %s',
+                            self._dev_url, e)
+                if attempt < max_attempts - 1:
+                    time.sleep(attempt_delay)
+                continue
+
+            except ChromeException as e:
+                # Специфичные ошибки Chrome
+                logger.error('Ошибка Chrome при подключению к DevTools Protocol (%s): %s',
+                            self._dev_url, e)
+                if attempt < max_attempts - 1:
+                    time.sleep(attempt_delay)
+                continue
+
+            except Exception as e:
+                # Любые другие непредвиденные ошибки
+                logger.error('Непредвиденная ошибка при подключении к Chrome DevTools Protocol (%s): %s',
+                            self._dev_url, e, exc_info=True)
+                if attempt < max_attempts - 1:
+                    time.sleep(attempt_delay)
+                continue
+        
+        # Все попытки исчерпаны
+        logger.error('Все %d попыток подключения исчерпаны', max_attempts)
+        return False
 
     def start(self) -> None:
         """Открывает браузер, создаёт новую вкладку, настраивает удалённый интерфейс.
 
         Raises:
             ChromeException: Если не удалось подключиться к Chrome.
+
+        Примечание:
+            Добавлена задержка после запуска Chrome для стабильного подключения.
+            При параллельном запуске нескольких браузеров может потребоваться больше времени.
         """
         # Открываем браузер
         self._chrome_browser = ChromeBrowser(self._chrome_options)
@@ -133,6 +197,33 @@ class ChromeRemote:
         # Валидируем порт перед использованием
         remote_port = _validate_remote_port(self._chrome_browser.remote_port)
         self._dev_url = f'http://127.0.0.1:{remote_port}'
+
+        # Начальная задержка для запуска Chrome (даём время на старт)
+        # При параллельном запуске нескольких браузеров увеличиваем задержку
+        initial_delay = 1.5  # Увеличено с 0.5 до 1.5 сек
+        logger.debug('Ожидание запуска Chrome (%.1f сек)...', initial_delay)
+        time.sleep(initial_delay)
+
+        # Проверка доступности порта перед подключением с повторными попытками
+        max_port_check_attempts = 5
+        port_check_delay = 1.0
+        
+        for attempt in range(max_port_check_attempts):
+            if _check_port_available(remote_port, timeout=2.0):
+                logger.debug('Порт %d доступен для подключения', remote_port)
+                break
+            
+            if attempt < max_port_check_attempts - 1:
+                logger.warning(
+                    'Порт %d недоступен (попытка %d/%d). Ожидание %.1f сек...',
+                    remote_port, attempt + 1, max_port_check_attempts, port_check_delay
+                )
+                time.sleep(port_check_delay)
+            else:
+                raise ChromeException(
+                    f'Порт {remote_port} недоступен после {max_port_check_attempts} попыток. '
+                    'Возможно, Chrome не запустился.'
+                )
 
         # Подключаем браузер к CDP с проверкой результата
         if not self._connect_interface():
@@ -143,20 +234,46 @@ class ChromeRemote:
         self._init_tab_monitor()
 
     def _create_tab(self) -> pychrome.Tab:
-        """Создаёт Chrome-вкладку.
-        
+        """Создаёт Chrome-вкладку с повторными попытками.
+
         Returns:
             Новый экземпляр pychrome.Tab.
-            
+
         Raises:
-            ChromeException: Если не удалось создать вкладку.
+            ChromeException: Если не удалось создать вкладку после всех попыток.
+
+        Примечание:
+            - Выполняется до 10 попыток создания вкладки
+            - Задержка между попытками: 1.5 секунды
+            - Увеличенный timeout для каждой попытки: 60 секунд
+            - Детальное логирование для отладки
         """
-        try:
-            resp = requests.put('%s/json/new' % (self._dev_url), json=True, timeout=30)
-            resp.raise_for_status()
-            return pychrome.Tab(**resp.json())
-        except (RequestException, ValueError, KeyError) as e:
-            raise ChromeException(f'Не удалось создать вкладку: {e}')
+        max_attempts = 10
+        delay_seconds = 1.5
+
+        for attempt in range(max_attempts):
+            try:
+                logger.debug('Попытка %d/%d: создание вкладки...', attempt + 1, max_attempts)
+                resp = requests.put(
+                    '%s/json/new' % (self._dev_url),
+                    json=True,
+                    timeout=60  # Увеличенный timeout для стабильности
+                )
+                resp.raise_for_status()
+                logger.debug('Вкладка успешно создана')
+                return pychrome.Tab(**resp.json())
+
+            except (RequestException, ValueError, KeyError) as e:
+                if attempt < max_attempts - 1:
+                    logger.warning(
+                        'Не удалось создать вкладку (попытка %d): %s. Повторная попытка через %.1f сек...',
+                        attempt + 1, e, delay_seconds
+                    )
+                    time.sleep(delay_seconds)
+                else:
+                    raise ChromeException(f'Не удалось создать вкладку после {max_attempts} попыток: {e}')
+
+        raise ChromeException('Не удалось создать вкладку')
 
     def _close_tab(self, tab: pychrome.Tab) -> None:
         """Закрывает Chrome-вкладку."""
