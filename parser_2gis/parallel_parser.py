@@ -7,7 +7,10 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
 import threading
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional
@@ -26,7 +29,7 @@ class ParallelCityParser:
     Параллельный парсер для парсинга городов по категориям.
 
     Запускает несколько браузеров одновременно для парсинга разных URL.
-    Результаты сохраняются в отдельные файлы в папке output/, затем объединяются.
+    Результаты сохраняются в отдельную папку output/, затем объединяются.
 
     Args:
         cities: Список городов для парсинга.
@@ -44,14 +47,40 @@ class ParallelCityParser:
         config: Configuration,
         max_workers: int = 3,
     ) -> None:
+        # Валидация входных данных: проверка списка городов
+        if not cities:
+            raise ValueError("Список городов не может быть пустым")
+        
+        # Валидация входных данных: проверка списка категорий
+        if not categories:
+            raise ValueError("Список категорий не может быть пустым")
+        
+        # Валидация входных данных: ограничение max_workers (1-20)
+        if not 1 <= max_workers <= 20:
+            raise ValueError("max_workers должен быть от 1 до 20")
+        
         self.cities = cities
         self.categories = categories
         self.output_dir = Path(output_dir)
         self.config = config
         self.max_workers = max_workers
 
-        # Создаём папку output
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        # Проверка существования output_dir и прав на запись
+        if self.output_dir.exists():
+            if not self.output_dir.is_dir():
+                raise ValueError(f"output_dir существует, но не является директорией: {output_dir}")
+            # Проверка прав на запись
+            if not os.access(self.output_dir, os.W_OK):
+                raise ValueError(f"Нет прав на запись в директорию: {output_dir}")
+        else:
+            # Попытка создать директорию
+            try:
+                self.output_dir.mkdir(parents=True, exist_ok=True)
+                # Проверка прав на запись после создания
+                if not os.access(self.output_dir, os.W_OK):
+                    raise ValueError(f"Нет прав на запись в директорию: {output_dir}")
+            except (OSError, PermissionError) as e:
+                raise ValueError(f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}")
 
         # Блокировка для потокобезопасного логгирования
         self._lock = threading.Lock()
@@ -66,6 +95,9 @@ class ParallelCityParser:
             'failed': 0,
             'skipped': 0,
         }
+        
+        # Логирование успешной инициализации
+        self.log(f"Инициализирован парсер: {len(cities)} городов, {len(categories)} категорий, max_workers={max_workers}", 'info')
 
     def log(self, message: str, level: str = 'info') -> None:
         """Потокобезопасное логгирование."""
@@ -113,6 +145,11 @@ class ParallelCityParser:
         """
         Парсит один URL и сохраняет результат в отдельный файл.
 
+        Использует временный файл для защиты от race condition:
+        - Запись происходит во временный файл с уникальным именем
+        - После успешного завершения файл переименовывается в целевое имя
+        - При ошибке временный файл удаляется
+
         Args:
             url: URL для парсинга.
             category_name: Название категории.
@@ -126,14 +163,18 @@ class ParallelCityParser:
         if self._cancel_event.is_set():
             return False, 'Отменено пользователем'
 
-        # Формируем имя файла
+        # Формируем целевое имя файла
         safe_city = city_name.replace(' ', '_').replace('/', '_')
         safe_category = category_name.replace(' ', '_').replace('/', '_')
         filename = f'{safe_city}_{safe_category}.csv'
         filepath = self.output_dir / filename
 
+        # Создаём уникальное временное имя файла для защиты от race condition
+        temp_filename = f'{safe_city}_{safe_category}_{uuid.uuid4().hex}.tmp'
+        temp_filepath = self.output_dir / temp_filename
+
         try:
-            self.log(f'Начало парсинга: {city_name} - {category_name}', 'info')
+            self.log(f'Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filename})', 'info')
 
             # Создаем парсер
             with get_parser(
@@ -141,10 +182,15 @@ class ParallelCityParser:
                 chrome_options=self.config.chrome,
                 parser_options=self.config.parser,
             ) as parser:
-                # Создаем writer для этого URL
-                with get_writer(str(filepath), 'csv', self.config.writer) as writer:
+                # Создаем writer для этого URL (запись во временный файл)
+                with get_writer(str(temp_filepath), 'csv', self.config.writer) as writer:
                     # Парсим
                     parser.parse(writer)
+
+            # После успешного парсинга переименовываем временный файл в целевой
+            # Это атомарная операция на большинстве файловых систем
+            temp_filepath.replace(filepath)
+            self.log(f'Временный файл переименован: {temp_filename} → {filename}', 'debug')
 
             self.log(f'Завершён парсинг: {city_name} - {category_name} → {filepath}', 'success')
 
@@ -161,6 +207,14 @@ class ParallelCityParser:
 
         except Exception as e:
             self.log(f'Ошибка парсинга {city_name} - {category_name}: {e}', 'error')
+            
+            # Удаляем временный файл при ошибке
+            try:
+                if temp_filepath.exists():
+                    temp_filepath.unlink()
+                    self.log(f'Временный файл удалён после ошибки: {temp_filename}', 'debug')
+            except Exception as cleanup_error:
+                self.log(f'Не удалось удалить временный файл {temp_filename}: {cleanup_error}', 'warning')
 
             # Потокобезопасное обновление статистики
             with self._lock:
@@ -180,6 +234,10 @@ class ParallelCityParser:
     ) -> bool:
         """
         Объединяет все CSV файлы в один с добавлением колонки "Категория".
+
+        Важно: Сначала объединяются ВСЕ файлы, и ТОЛЬКО ПОСЛЕ успешного
+        объединения удаляются все исходные файлы. Это предотвращает потерю
+        данных при ошибке в середине процесса.
 
         Args:
             output_file: Путь к итоговому файлу.
@@ -203,6 +261,9 @@ class ParallelCityParser:
 
         # Сортируем файлы по имени
         csv_files.sort(key=lambda x: x.name)
+
+        # Список файлов для удаления (заполняется после успешного объединения)
+        files_to_delete: list[Path] = []
 
         # Открываем выходной файл
         try:
@@ -249,17 +310,25 @@ class ParallelCityParser:
                             writer.writerow(row)
                             total_rows += 1
 
-                    # Удаляем исходный файл после объединения
-                    try:
-                        csv_file.unlink()
-                    except Exception as e:
-                        self.log(f'Не удалось удалить файл {csv_file}: {e}', 'warning')
+                    # Добавляем файл в список на удаление (не удаляем сразу!)
+                    files_to_delete.append(csv_file)
 
                 self.log(f'Объединение завершено. Всего записей: {total_rows}', 'success')
+                
+                # ТОЛЬКО ПОСЛЕ успешного объединения всех файлов удаляем исходные
+                for csv_file in files_to_delete:
+                    try:
+                        csv_file.unlink()
+                        self.log(f'Исходный файл удалён: {csv_file.name}', 'debug')
+                    except Exception as e:
+                        self.log(f'Не удалось удалить файл {csv_file}: {e}', 'warning')
+                
+                self.log(f'Все исходные файлы удалены ({len(files_to_delete)} шт.)', 'info')
                 return True
 
         except Exception as e:
             self.log(f'Ошибка при объединении CSV: {e}', 'error')
+            self.log('Исходные файлы НЕ были удалены (ошибка до завершения объединения)', 'warning')
             return False
 
     def run(
@@ -293,6 +362,10 @@ class ParallelCityParser:
         # Запускаем параллельный парсинг
         success_count = 0
         failed_count = 0
+        
+        # Получаем таймаут из конфигурации (если есть) или используем значение по умолчанию
+        timeout_per_url = getattr(self.config.parser, 'timeout', 300) if hasattr(self.config, 'parser') else 300
+        self.log(f'Таймаут на один URL: {timeout_per_url} секунд', 'info')
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Создаём futures
@@ -312,13 +385,18 @@ class ParallelCityParser:
                 url, category_name, city_name = futures[future]
 
                 try:
-                    success, result = future.result()
+                    # Получаем результат с таймаутом
+                    success, result = future.result(timeout=timeout_per_url)
                     if success:
                         success_count += 1
                     else:
                         failed_count += 1
-                        self.log(f'Не удалось: {city_name} - {category_name}', 'error')
+                        self.log(f'Не удалось: {city_name} - {category_name}: {result}', 'error')
 
+                except TimeoutError:
+                    failed_count += 1
+                    self.log(f'Таймаут при парсинге {city_name} - {category_name} ({timeout_per_url} сек)', 'error')
+                    
                 except Exception as e:
                     failed_count += 1
                     self.log(f'Исключение при парсинге {city_name} - {category_name}: {e}', 'error')
