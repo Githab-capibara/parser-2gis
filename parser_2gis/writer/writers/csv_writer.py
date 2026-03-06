@@ -29,7 +29,7 @@ class CSVWriter(FileWriter):
 
     @property
     def _complex_mapping(self) -> dict[str, Any]:
-        # Сложное маппирование означает, что его содержимое может содержать несколько сущностей,
+        # Сложное отображение означает, что его содержимое может содержать несколько сущностей,
         # связанных пользовательскими настройками.
         # Например: phone -> phone_1, phone_2, ..., phone_n
         return {
@@ -48,7 +48,7 @@ class CSVWriter(FileWriter):
             'timezone': 'Часовой пояс', 'general_rating': 'Рейтинг', 'general_review_count': 'Количество отзывов'
         }
 
-        # Расширяем сложное маппирование
+        # Расширяем сложное отображение
         for k, v in self._complex_mapping.items():
             for n in range(1, self._options.csv.columns_per_entity + 1):
                 data_mapping[f'{k}_{n}'] = f'{v} {n}'
