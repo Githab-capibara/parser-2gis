@@ -20,9 +20,26 @@ class FileWriter(ABC):
         """Записывает JSON-документ Catalog Item API, полученный парсером."""
         pass
 
-    def _open_file(self, file_path: str, mode: str = 'r') -> IO[Any]:
-        return open(file_path, mode, encoding=self._options.encoding,
-                    newline='', errors='replace')
+    def _open_file(self, file_path: str, mode: str = 'r', newline: str = None, **kwargs) -> IO[Any]:
+        """Открывает файл с указанными параметрами.
+
+        Args:
+            file_path: Путь к файлу.
+            mode: Режим открытия файла.
+            newline: Параметр newline для текстовых файлов. Если None, не передается.
+            **kwargs: Дополнительные параметры для open().
+
+        Returns:
+            Файловый объект.
+        """
+        open_kwargs = {
+            'encoding': self._options.encoding,
+            'errors': 'replace'
+        }
+        if newline is not None:
+            open_kwargs['newline'] = newline
+        open_kwargs.update(kwargs)
+        return open(file_path, mode, **open_kwargs)
 
     def _check_catalog_doc(self, catalog_doc: Any, verbose: bool = True) -> bool:
         """Проверяет JSON-документ Catalog Item API на ошибки.
