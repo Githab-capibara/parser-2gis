@@ -124,13 +124,14 @@ class CSVWriter(FileWriter):
 
         try:
             # Первый проход: подсчёт непустых значений в сложных колонках
-            with self._open_file(self._file_path, 'r') as f_csv:
+            with self._open_file(self._file_path, 'r', encoding='utf-8-sig') as f_csv:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
                 
                 for row in csv_reader:
                     for column_name in complex_columns_count.keys():
                         if row.get(column_name, '') != '':
                             complex_columns_count[column_name] += 1
+  +++++++ REPLACE
 
             logger.debug('Подсчёт заполненности колонок завершён')
 
@@ -209,8 +210,9 @@ class CSVWriter(FileWriter):
 
         try:
             # Чтение исходного файла и запись нового без дубликатов
-            with self._open_file(self._file_path, 'r') as f_csv, \
-                 self._open_file(tmp_csv_name, 'w', newline='') as f_tmp_csv:
+            with self._open_file(self._file_path, 'r', encoding='utf-8-sig') as f_csv, \
+                 self._open_file(tmp_csv_name, 'w', encoding='utf-8', newline='') as f_tmp_csv:
+  +++++++ REPLACE
                 
                 for line_num, line in enumerate(f_csv, 1):
                     try:
