@@ -47,6 +47,9 @@ class ChromeBrowser():
         self._profile_path = tempfile.mkdtemp()
         self._remote_port = free_port()
         
+        # Валидация memory_limit перед формированием команды
+        memory_limit = chrome_options.memory_limit if chrome_options.memory_limit is not None else 2048
+        
         # Формирование команды запуска
         self._chrome_cmd = [
             binary_path,
@@ -58,8 +61,9 @@ class ChromeBrowser():
             '--disable-fre',
             # Ограничиваем remote-allow-origins для безопасности
             '--remote-allow-origins=http://localhost',
-            f'--js-flags=--expose-gc --max-old-space-size={chrome_options.memory_limit}',
+            f'--js-flags=--expose-gc --max-old-space-size={memory_limit}',
         ]
+  +++++++ REPLACE
 
         # Дополнительные опции
         if chrome_options.start_maximized:
