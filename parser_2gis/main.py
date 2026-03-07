@@ -2,19 +2,20 @@
 Модуль точки входа CLI для Parser2GIS.
 
 Парсит аргументы командной строки, инициализирует конфигурацию
-и запускает CLI или GUI приложение в зависимости от переданных аргументов.
+и запускает CLI приложение.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
 import pydantic
 
-from .common import GUI_ENABLED, generate_city_urls, report_from_validation_error, unwrap_dot_dict
+from .common import generate_city_urls, report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
 from .logger import logger
 from .paths import data_path
@@ -86,21 +87,20 @@ def patch_argparse_translations() -> None:
 
 
 def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
-    """Парсит аргументы в зависимости от доступности GUI.
+    """Парсит аргументы командной строки.
 
     Returns:
         Кортеж из аргументов командной строки и конфигурации.
     """
+    # Преобразуем аргументы в нижний регистр для поддержки верхнего регистра
+    sys.argv = [arg.lower() if arg.startswith('-') else arg for arg in sys.argv]
+
     patch_argparse_translations()  # Патчим переводы
     arg_parser = argparse.ArgumentParser('Parser2GIS', description='Парсер данных сайта 2GIS', add_help=False,
                                          formatter_class=ArgumentHelpFormatter, argument_default=argparse.SUPPRESS)
 
-    if GUI_ENABLED:
-        main_parser_name = 'Основные аргументы'
-        main_parser_required = False
-    else:
-        main_parser_name = 'Обязательные аргументы'
-        main_parser_required = True
+    main_parser_name = 'Обязательные аргументы'
+    main_parser_required = True
 
     main_parser = arg_parser.add_argument_group(main_parser_name)
     # URL не обязателен, если указаны --cities с --categories-mode
@@ -133,6 +133,8 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     p_parser.add_argument('--parser.gc-pages-interval', metavar='{5,10,...}', help='Запуск сборщика мусора каждую N-ую страницу результатов (если сборщик включен)')
     p_parser.add_argument('--parser.max-records', metavar='{1000,2000,...}', help='Максимальное количество спарсенных записей с одного URL')
     p_parser.add_argument('--parser.skip-404-response', metavar='{yes/no}', help='Пропускать ссылки вернувшие сообщение "Точных совпадений нет / Не найдено"')
+    p_parser.add_argument('--parser.stop-on-first-404', metavar='{yes/no}', help='Останавливать парсинг немедленно при первом 404 ответе (по умолчанию: no)')
+    p_parser.add_argument('--parser.max-consecutive-empty-pages', metavar='{2,3,5,...}', help='Максимальное количество подряд пустых страниц перед остановкой (по умолчанию: 3)')
     p_parser.add_argument('--parser.delay-between-clicks', metavar='{0,100,...}', help='Задержка между кликами по записям (миллисекунд)')
     p_parser.add_argument('--parallel-workers', type=int, default=3, help='Количество одновременных потоков для параллельного парсинга (по умолчанию: 3)')
 
@@ -257,42 +259,27 @@ def main() -> None:
             generated_urls = generate_city_urls(selected_cities, query, rubric)
             urls.extend(generated_urls)
 
-    # Определяем режим запуска: GUI или CLI
-    # GUI запускается, если не указаны все обязательные аргументы (URL/cities, output-path, format)
-    # При --categories-mode URL генерируются автоматически из городов
-    categories_mode = getattr(args, 'categories_mode', False)
-    has_urls = (
-        args.url is not None or
-        (hasattr(args, 'cities') and args.cities) or
-        (categories_mode and hasattr(args, 'cities') and args.cities)
-    )
-    is_gui_mode = (
-        not has_urls or
-        args.output_path is None or
-        args.format is None
-    )
+    # Проверяем, что указаны обязательные параметры
+    # В режиме categories_mode парсинг уже завершён выше, пропускаем проверки
+    if not categories_mode:
+        # Обычный режим - требуем все обязательные параметры
+        if not urls and not (hasattr(args, 'cities') and args.cities):
+            logger.error('Не указан источник URL. Используйте -i/--url или --cities')
+            sys.exit(1)
+        
+        if not args.output_path:
+            logger.error('Не указан путь к выходному файлу. Используйте -o/--output-path')
+            sys.exit(1)
+        
+        if not args.format:
+            logger.error('Не указан формат выходного файла. Используйте -f/--format')
+            sys.exit(1)
 
-    if is_gui_mode:
-        # Загружаем пользовательскую конфигурацию и объединяем с созданной из аргументов
-        user_config = Configuration.load_config(auto_create=True)
-        user_config.merge_with(command_line_config)
-        config = user_config
-        # Импортируем gui_app только при необходимости
-        from .gui import gui_app
-        app = gui_app
-        # В GUI режиме параметры могут быть None
-        output_path = args.output_path or ''
-        result_format = args.format or ''
-    else:
-        config = command_line_config
-        app = cli_app
-        output_path = args.output_path
-        result_format = args.format
-
-    try:
-        app(urls, output_path, result_format, config)
-    except KeyboardInterrupt:
-        logger.info('Работа приложения прервана пользователем.')
-    except Exception as e:
-        logger.error('Критическая ошибка приложения: %s', e, exc_info=True)
-        raise
+        try:
+            cli_app(urls, args.output_path, args.format, command_line_config)
+        except KeyboardInterrupt:
+            logger.info('Работа приложения прервана пользователем.')
+        except Exception as e:
+            logger.error('Критическая ошибка приложения: %s', e, exc_info=True)
+            raise
+  +++++++ REPLACE
