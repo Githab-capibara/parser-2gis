@@ -182,7 +182,8 @@ class ParallelOptimizer:
 
         with self._lock:
             self._completed_tasks.append(task)
-            
+
+            # Увеличиваем счётчик только один раз в соответствующем блоке
             if success:
                 self._stats['completed'] += 1
             else:

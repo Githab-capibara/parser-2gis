@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 from parser_2gis.logger import logger
 
@@ -39,36 +39,41 @@ class SmartRetryManager:
     def should_retry(self, error: str, records_on_page: int = 0) -> bool:
         """
         Определяет, нужно ли выполнять повторную попытку.
-        
+
         Args:
             error: Описание ошибки.
             records_on_page: Количество записей на последней странице.
-            
+
         Returns:
             True если нужна повторная попытка, False если лучше завершить.
+        
+        Примечание:
+            Счётчик попыток увеличивается только после принятия решения
+            о необходимости повторной попытки для корректного подсчёта.
         """
-        self._retry_count += 1
         self._last_error = error
         self._records_on_last_page = records_on_page
-        
+
         # Проверяем, не превышен ли лимит попыток
-        if self._retry_count > self._max_retries:
+        if self._retry_count >= self._max_retries:
             logger.warning('Превышен лимит повторных попыток (%d)', self._max_retries)
             return False
-        
+
         # Анализируем тип ошибки
         error_lower = error.lower()
-        
+
         # Сетевые ошибки (502, 503, 504, Timeout) - всегда retry
         if any(code in error_lower for code in ['502', '503', '504', 'timeout']):
-            logger.info('Сетевая ошибка: %s. Повторная попытка %d/%d', 
+            self._retry_count += 1  # Увеличиваем только при фактическом retry
+            logger.info('Сетевая ошибка: %s. Повторная попытка %d/%d',
                       error, self._retry_count, self._max_retries)
             return True
-        
+
         # 404 ошибки
         if '404' in error_lower:
             # Если были записи до 404 - возможно временная проблема, retry
             if self._total_records_collected > 0:
+                self._retry_count += 1  # Увеличиваем только при фактическом retry
                 logger.info('404 после %d записей. Повторная попытка %d/%d',
                           self._total_records_collected, self._retry_count, self._max_retries)
                 return True
@@ -76,19 +81,21 @@ class SmartRetryManager:
             else:
                 logger.info('404 без записей. Завершаем парсинг.')
                 return False
-        
+
         # 403 ошибки (блокировка) - не retry
         if '403' in error_lower:
             logger.error('Ошибка 403 (блокировка). Повторные попытки бесполезны.')
             return False
-        
+
         # 500 ошибки (ошибка сервера) - retry
         if '500' in error_lower:
+            self._retry_count += 1  # Увеличиваем только при фактическом retry
             logger.info('Ошибка сервера 500. Повторная попытка %d/%d',
                       self._retry_count, self._max_retries)
             return True
-        
+
         # По умолчанию - retry для других ошибок
+        self._retry_count += 1  # Увеличиваем только при фактическом retry
         logger.info('Неизвестная ошибка: %s. Повторная попытка %d/%d',
                     error, self._retry_count, self._max_retries)
         return True
@@ -122,10 +129,10 @@ class SmartRetryManager:
         """
         return self._total_records_collected
     
-    def get_stats(self) -> Dict[str, any]:
+    def get_stats(self) -> Dict[str, Any]:
         """
         Возвращает статистику повторных попыток.
-        
+
         Returns:
             Словарь со статистикой.
         """
