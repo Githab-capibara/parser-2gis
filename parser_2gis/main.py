@@ -93,7 +93,8 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         Кортеж из аргументов командной строки и конфигурации.
     """
     # Преобразуем аргументы в нижний регистр для поддержки верхнего регистра
-    sys.argv = [arg.lower() if arg.startswith('-') else arg for arg in sys.argv]
+    # Создаём копию sys.argv вместо модификации оригинального списка
+    argv_copy = [arg.lower() if arg.startswith('-') else arg for arg in sys.argv]
 
     patch_argparse_translations()  # Патчим переводы
     arg_parser = argparse.ArgumentParser('Parser2GIS', description='Парсер данных сайта 2GIS', add_help=False,
@@ -146,7 +147,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     rest_parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {version}', help='Показать версию программы и выйти')
     rest_parser.add_argument('-h', '--help', action='help', help='Показать эту справку и выйти')
 
-    args = arg_parser.parse_args()
+    args = arg_parser.parse_args(argv_copy[1:])
     config_args = unwrap_dot_dict(vars(args))
 
     # Ручная валидация: требуется хотя бы один источник URL

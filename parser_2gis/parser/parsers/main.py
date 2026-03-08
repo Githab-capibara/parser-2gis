@@ -427,6 +427,10 @@ class MainParser:
                 return None
 
         try:
+            # Счётчик попыток получения ссылок для предотвращения бесконечного цикла
+            max_link_attempts = 5
+            link_attempt_count = 0
+            
             while True:
                 # Ждём завершения всех 2GIS запросов
                 try:
@@ -441,20 +445,29 @@ class MainParser:
                 # Проверяем, что ссылки успешно получены
                 if links is None:
                     consecutive_empty_pages += 1
-                    logger.warning('Не удалось получить ссылки, переходим к следующей странице. (Пустых страниц подряд: %d/%d)', 
-                                consecutive_empty_pages, self._options.max_consecutive_empty_pages)
-                    
+                    link_attempt_count += 1
+                    logger.warning('Не удалось получить ссылки, переходим к следующей странице. (Пустых страниц подряд: %d/%d, Попыток: %d/%d)',
+                                consecutive_empty_pages, self._options.max_consecutive_empty_pages,
+                                link_attempt_count, max_link_attempts)
+
                     # Если подряд слишком много пустых страниц - прерываем парсинг
                     # Это избегает бесконечного цикла при 404 ошибках
                     if consecutive_empty_pages >= self._options.max_consecutive_empty_pages:
-                        logger.error('Достигнут лимит подряд пустых страниц (%d). Прекращаем парсинг URL.', 
+                        logger.error('Достигнут лимит подряд пустых страниц (%d). Прекращаем парсинг URL.',
                                     self._options.max_consecutive_empty_pages)
                         return
                     
+                    # Если слишком много попыток получения ссылок неудачны - прерываем цикл
+                    if link_attempt_count >= max_link_attempts:
+                        logger.error('Достигнут лимит попыток получения ссылок (%d). Прекращаем парсинг URL.',
+                                    max_link_attempts)
+                        return
+
                     continue
                 else:
-                    # Ссылки успешно получены - сбрасываем счётчик пустых страниц
+                    # Ссылки успешно получены - сбрасываем счётчик пустых страниц и попыток
                     consecutive_empty_pages = 0
+                    link_attempt_count = 0
 
                 # Парсим страницу, если не идём к определённой странице
                 if not walk_page_number:
