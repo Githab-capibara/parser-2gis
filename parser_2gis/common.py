@@ -68,31 +68,15 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     
     return value
 
-try:
-    import PySimpleGUI
-    del PySimpleGUI
-    GUI_ENABLED = True
-except ImportError as e:
-    if e.name != 'PySimpleGUI':
-        # GUI был установлен, но не загрузился
-        # из-за отсутствия tkinter или других зависимостей.
-        warnings.warn('Не удалось загрузить GUI: %s' % e.msg)
-    GUI_ENABLED = False
-
 
 def running_linux() -> bool:
-    """Определяет, является ли текущая ОС Linux-подобной."""
+    """Определяет, является ли текущая ОС Linux Ubuntu.
+    
+    Returns:
+        True - приложение работает только на Linux Ubuntu.
+    """
+    # Приложение поддерживает только Linux Ubuntu
     return sys.platform.startswith('linux')
-
-
-def running_windows() -> bool:
-    """Определяет, является ли текущая ОС Windows."""
-    return sys.platform.startswith('win')
-
-
-def running_mac() -> bool:
-    """Определяет, является ли текущая ОС MacOS."""
-    return sys.platform.startswith('darwin')
 
 
 def wait_until_finished(timeout: Optional[int] = None,
