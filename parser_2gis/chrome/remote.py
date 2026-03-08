@@ -20,6 +20,9 @@ from .dom import DOMNode
 from .exceptions import ChromeException
 from .patches import patch_all
 
+# Константа задержки запуска Chrome для стабильного подключения
+CHROME_STARTUP_DELAY = 1.5
+
 if TYPE_CHECKING:
     from .options import ChromeOptions
 
@@ -87,7 +90,6 @@ def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> 
         sock.settimeout(timeout)
         try:
             result = sock.connect_ex(("127.0.0.1", port))
-            sock.close()
             # Если порт занят (result == 0), возвращаем False немедленно
             if result == 0:
                 return False
@@ -95,8 +97,9 @@ def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> 
             if attempt < retries - 1:
                 time.sleep(0.1)
         except Exception:
-            sock.close()
             return False
+        finally:
+            sock.close()
     # Порт свободен после всех проверок
     return True
 
@@ -117,9 +120,10 @@ class ChromeRemote:
         self, chrome_options: ChromeOptions, response_patterns: list[str]
     ) -> None:
         self._chrome_options: ChromeOptions = chrome_options
-        self._chrome_browser: ChromeBrowser
-        self._chrome_interface: pychrome.Browser
-        self._chrome_tab: pychrome.Tab
+        self._chrome_browser: Optional[ChromeBrowser] = None
+        self._chrome_interface: Optional[pychrome.Browser] = None
+        self._chrome_tab: Optional[pychrome.Tab] = None
+        self._dev_url: Optional[str] = None
         self._response_patterns: list[str] = response_patterns
         self._response_queues: dict[str, queue.Queue[Response]] = {
             x: queue.Queue() for x in response_patterns
@@ -242,9 +246,8 @@ class ChromeRemote:
 
         # Начальная задержка для запуска Chrome (даём время на старт)
         # При параллельном запуске нескольких браузеров увеличиваем задержку
-        initial_delay = 1.5  # Увеличено с 0.5 до 1.5 сек
-        logger.debug("Ожидание запуска Chrome (%.1f сек)...", initial_delay)
-        time.sleep(initial_delay)
+        logger.debug("Ожидание запуска Chrome (%.1f сек)...", CHROME_STARTUP_DELAY)
+        time.sleep(CHROME_STARTUP_DELAY)
 
         # Проверка доступности порта перед подключением с повторными попытками
         max_port_check_attempts = 5
@@ -301,9 +304,10 @@ class ChromeRemote:
                 logger.debug(
                     "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
                 )
+                # requests.put не принимает параметр json=True, используем данные запроса
                 resp = requests.put(
                     "%s/json/new" % (self._dev_url),
-                    json=True,
+                    json={},  # Пустой JSON для создания вкладки
                     timeout=60,  # Увеличенный timeout для стабильности
                 )
                 resp.raise_for_status()
@@ -449,9 +453,8 @@ class ChromeRemote:
 
     def _init_tab_monitor(self) -> None:
         """Мониторит здоровье вкладки Chrome."""
-        # Используем list для возможности изменения значения в замыкании
-        tab_detached = [False]
-        tab_detached_lock = threading.Lock()
+        # Используем threading.Event для потокобезопасного флага
+        tab_detached = threading.Event()
 
         def monitor_tab() -> None:
             """V8 OOM может убить вкладку Chrome и сохранить websocket функциональным,
@@ -459,14 +462,14 @@ class ChromeRemote:
             и проверяем, жива ли наша вкладка."""
             while not self._chrome_tab._stopped.is_set():
                 try:
-                    ret = requests.get("%s/json" % self._dev_url, json=True, timeout=5)
-                    with tab_detached_lock:
-                        tab_found = any(
-                            x["id"] == self._chrome_tab.id for x in ret.json()
-                        )
-                        if not tab_found:
-                            tab_detached[0] = True
-                            self._chrome_tab._stopped.set()
+                    # requests.get не принимает параметр json=True, убираем его
+                    ret = requests.get("%s/json" % self._dev_url, timeout=5)
+                    tab_found = any(
+                        x["id"] == self._chrome_tab.id for x in ret.json()
+                    )
+                    if not tab_found:
+                        tab_detached.set()
+                        self._chrome_tab._stopped.set()
 
                     self._chrome_tab._stopped.wait(0.5)
                 except (ConnectionError, RequestException, TimeoutError):
@@ -478,24 +481,19 @@ class ChromeRemote:
         self._ping_thread = threading.Thread(target=monitor_tab, daemon=True)
         self._ping_thread.start()
 
-        def get_send_with_reraise() -> Callable[..., Any]:
-            """Повторно выбрасывает "Вкладка была остановлена" вместо `UserAbortException`,
-            если обнаружена отсоединение вкладки."""
-            original_send = self._chrome_tab._send
+        # Устанавливаем обёртку для отправки с повторным выбросом исключения
+        original_send = self._chrome_tab._send
 
-            def wrapped_send(*args, **kwargs) -> Any:
-                try:
-                    return original_send(*args, **kwargs)
-                except pychrome.UserAbortException:
-                    with tab_detached_lock:
-                        if tab_detached[0]:
-                            raise pychrome.RuntimeException("Вкладка была остановлена")
-                        else:
-                            raise
+        def wrapped_send(*args, **kwargs) -> Any:
+            try:
+                return original_send(*args, **kwargs)
+            except pychrome.UserAbortException:
+                if tab_detached.is_set():
+                    raise pychrome.RuntimeException("Вкладка была остановлена")
+                else:
+                    raise
 
-            return wrapped_send
-
-        self._chrome_tab._send = get_send_with_reraise()
+        self._chrome_tab._send = wrapped_send
 
     def navigate(self, url: str, referer: str = "", timeout: int = 300) -> None:
         """Переходит по URL.

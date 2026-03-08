@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import os
+import platform
 import shutil
 import subprocess
 import tempfile
+from subprocess import TimeoutExpired
 from typing import TYPE_CHECKING
 
 from ..common import wait_until_finished
@@ -72,8 +74,9 @@ class ChromeBrowser:
             "--no-sandbox",
             "--disable-fre",
             # Ограничиваем remote-allow-origins для безопасности
-            "--remote-allow-origins=http://localhost",
-            f"--js-flags=--expose-gc --max-old-space-size={memory_limit}",
+            "--remote-allow-origins=http://localhost:*",
+            "--js-flags=--expose-gc",
+            f"--max-old-space-size={memory_limit}",
         ]
 
         # Дополнительные опции
@@ -138,8 +141,12 @@ class ChromeBrowser:
             raise ValueError(f"Путь к браузеру должен указывать на файл: {binary_path}")
 
         # Проверка на исполняемость (для Unix-систем)
+        # Примечание: проверка не учитывает WSL, где исполняемость не требуется
         if os.name != "nt" and not os.access(binary_path, os.X_OK):
-            logger.warning("Файл браузера не имеет прав на выполнение: %s", binary_path)
+            # Проверка на WSL через platform
+            is_wsl = "microsoft" in platform.uname().release.lower()
+            if not is_wsl:
+                logger.warning("Файл браузера не имеет прав на выполнение: %s", binary_path)
 
     @property
     def remote_port(self) -> int:
@@ -203,9 +210,9 @@ class ChromeBrowser:
             )
             # Помечаем профиль для удаления при следующем запуске
             try:
-                # Создаём маркер для последующей очистки
+                # Создаём маркер для последующей очистки в системной temp директории
                 marker_file = os.path.join(
-                    os.path.dirname(self._profile_path), ".cleanup_marker"
+                    tempfile.gettempdir(), ".cleanup_marker"
                 )
                 with open(marker_file, "a", encoding="utf-8") as f:
                     f.write(f"{self._profile_path}\n")

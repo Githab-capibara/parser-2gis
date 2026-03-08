@@ -5,9 +5,11 @@
 перед записью в файлы для повышения качества выходных данных.
 """
 
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from urllib.parse import urlparse
 
 
@@ -26,7 +28,7 @@ class ValidationResult:
 
     is_valid: bool
     value: Optional[str]
-    errors: list[str]
+    errors: List[str]
 
 
 class DataValidator:
@@ -42,6 +44,10 @@ class DataValidator:
         >>> if result.is_valid:
         ...     print(result.value)  # '8 (999) 123-45-67'
     """
+
+    # Константы для валидации телефонных номеров
+    INTERNATIONAL_PHONE_MIN_LENGTH = 10
+    INTERNATIONAL_PHONE_MAX_LENGTH = 15
 
     # Паттерн для валидации email-адресов
     EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
@@ -80,6 +86,11 @@ class DataValidator:
 
         # Обработка российских номеров (+7 или 8)
         if cleaned.startswith("+7") or cleaned.startswith("8"):
+            # Номер +8 не является корректным международным форматом
+            if cleaned.startswith("+8"):
+                errors.append("Некорректный международный префикс: +8 (должен быть +7 для России)")
+                return ValidationResult(False, None, errors)
+            
             if cleaned.startswith("+7"):
                 cleaned = "8" + cleaned[2:]
 
@@ -100,9 +111,9 @@ class DataValidator:
             international_digits = cleaned[1:]  # Убираем +
 
             # Проверяем длину (10-15 цифр для международных номеров)
-            if len(international_digits) < 10 or len(international_digits) > 15:
+            if len(international_digits) < self.INTERNATIONAL_PHONE_MIN_LENGTH or len(international_digits) > self.INTERNATIONAL_PHONE_MAX_LENGTH:
                 errors.append(
-                    f"Некорректная длина международного номера: {len(international_digits)} (ожидалось 10-15)"
+                    f"Некорректная длина международного номера: {len(international_digits)} (ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH})"
                 )
                 return ValidationResult(False, None, errors)
 
@@ -120,12 +131,12 @@ class DataValidator:
                     # Считаем что это номер с кодом города без 8
                     errors.append("Номер должен начинаться с +7, 8 или +[код страны]")
                     return ValidationResult(False, None, errors)
-            elif 10 <= len(digits_only) <= 15:
+            elif self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(digits_only) <= self.INTERNATIONAL_PHONE_MAX_LENGTH:
                 # Международный номер без +
                 return ValidationResult(True, f"+{digits_only}", [])
             else:
                 errors.append(
-                    f"Некорректная длина номера: {len(digits_only)} (ожидалось 10-15 цифр)"
+                    f"Некорректная длина номера: {len(digits_only)} (ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH} цифр)"
                 )
                 return ValidationResult(False, None, errors)
 
@@ -193,6 +204,10 @@ class DataValidator:
             parsed = urlparse(url)
             if not parsed.scheme or not parsed.netloc:
                 return ValidationResult(False, None, ["Некорректный формат URL"])
+            
+            # Проверяем что схема именно http или https
+            if parsed.scheme not in ('http', 'https'):
+                return ValidationResult(False, None, [f"Неподдерживаемая схема URL: {parsed.scheme} (требуется http или https)"])
 
             return ValidationResult(True, url, [])
         except Exception as e:
@@ -244,37 +259,28 @@ class DataValidator:
         """
         validated = record.copy()
 
-        # Валидация телефонов
-        for key in list(validated.keys()):
-            if key.startswith("phone_") and validated[key]:
-                result = self.validate_phone(validated[key])
-                if result.is_valid:
-                    validated[key] = result.value
-                else:
-                    validated[key] = None
+        # Конфигурация префиксов полей для валидации
+        field_prefixes = {
+            "phone_": self.validate_phone,
+            "email_": self.validate_email,
+            "website_": self.validate_url,
+        }
 
-        # Валидация email
-        for key in list(validated.keys()):
-            if key.startswith("email_") and validated[key]:
-                result = self.validate_email(validated[key])
-                if result.is_valid:
-                    validated[key] = result.value
-                else:
-                    validated[key] = None
-
-        # Валидация URL
-        for key in list(validated.keys()):
-            if key.startswith("website_") and validated[key]:
-                result = self.validate_url(validated[key])
-                if result.is_valid:
-                    validated[key] = result.value
-                else:
-                    validated[key] = None
+        # Валидация полей с префиксами
+        for prefix, validator_func in field_prefixes.items():
+            for key in list(validated.keys()):
+                if key.startswith(prefix) and validated[key]:
+                    result = validator_func(validated[key])
+                    if result.is_valid:
+                        validated[key] = result.value
+                    else:
+                        validated[key] = None
 
         # Очистка текстовых полей
         text_fields = ["name", "description", "address"]
         for field in text_fields:
-            if validated.get(field):
-                validated[field] = self.clean_text(validated[field])
+            value = validated.get(field)
+            if value:
+                validated[field] = self.clean_text(value)
 
         return validated
