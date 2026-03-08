@@ -140,6 +140,8 @@ def wait_until_finished(
             # Инициализируем finished внутри функции для избежания изменяемого аргумента по умолчанию
             inner_finished = finished if finished is not None else bool
 
+            # Инициализируем ret для избежания UnboundLocalError
+            ret: Any = None
             call_time = time.time()
             while True:
                 try:
@@ -169,7 +171,8 @@ def wait_until_finished(
                             raise TimeoutError(
                                 f"Превышено время ожидания для {func.__name__}"
                             )
-                        return ret
+                        # Возвращаем None явно, так как функция не завершилась успешно
+                        return None
 
                 time.sleep(poll_interval)
 

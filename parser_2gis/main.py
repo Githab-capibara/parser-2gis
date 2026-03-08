@@ -17,7 +17,9 @@ import pydantic
 
 from .common import generate_city_urls, report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
+from .data.categories_93 import CATEGORIES_93
 from .logger import logger
+from .parallel_parser import ParallelCityParser
 from .paths import data_path
 from .version import version
 from .cli import cli_app
@@ -106,7 +108,6 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     )
 
     main_parser_name = "Обязательные аргументы"
-    main_parser_required = True
 
     main_parser = arg_parser.add_argument_group(main_parser_name)
     # URL не обязателен, если указаны --cities с --categories-mode
@@ -137,7 +138,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         "--output-path",
         metavar="PATH",
         default=None,
-        required=main_parser_required,
+        required=False,
         help="Путь до результирующего файла",
     )
     main_parser.add_argument(
@@ -146,7 +147,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         metavar="{csv,xlsx,json}",
         choices=["csv", "xlsx", "json"],
         default=None,
-        required=main_parser_required,
+        required=False,
         help="Формат результирующего файла",
     )
 
@@ -283,9 +284,8 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     config_args = unwrap_dot_dict(vars(args))
 
     # Ручная валидация: требуется хотя бы один источник URL
-    has_url_source = args.url is not None or (
-        hasattr(args, "cities") and args.cities is not None
-    )
+    has_cities = hasattr(args, "cities") and args.cities is not None
+    has_url_source = args.url is not None or has_cities
     if not has_url_source:
         arg_parser.error(
             "Требуется указать хотя бы один источник URL: -i/--url или --cities"
@@ -293,7 +293,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
 
     # Валидация: --categories-mode требует --cities
     categories_mode = getattr(args, "categories_mode", False)
-    if categories_mode and not (hasattr(args, "cities") and args.cities):
+    if categories_mode and not has_cities:
         arg_parser.error("--categories-mode требует указания --cities")
 
     try:
@@ -323,8 +323,11 @@ def main() -> None:
     # Проверяем режим парсинга по категориям
     categories_mode = getattr(args, "categories_mode", False)
 
+    # Выносим проверку наличия городов в переменную для избежания дублирования
+    has_cities = hasattr(args, "cities") and args.cities is not None
+
     # Если указаны города, генерируем URL
-    if hasattr(args, "cities") and args.cities:
+    if has_cities:
         # Загружаем список городов
         cities_path = data_path() / "cities.json"
         if not cities_path.is_file():
@@ -341,9 +344,6 @@ def main() -> None:
 
         if categories_mode:
             # Режим парсинга по 93 категориям
-            from .data.categories_93 import CATEGORIES_93
-            from .parallel_parser import ParallelCityParser
-
             # Используем output_path как директорию (если указан) или 'output' по умолчанию
             if args.output_path:
                 # Если указан путь к файлу, используем его директорию
@@ -361,7 +361,7 @@ def main() -> None:
                 "Запуск параллельного парсинга по %d категориям", len(CATEGORIES_93)
             )
             logger.info("Города: %s", [c["name"] for c in selected_cities])
-            logger.info("Количество потоков: %d", getattr(args, "parallel_workers", 10))
+            logger.info("Количество потоков: %d", getattr(args, "parallel_workers", 3))
 
             # Создаём и запускаем параллельный парсер (синхронно)
             # Приводим тип categories к list[dict] для совместимости с ParallelCityParser
@@ -371,7 +371,7 @@ def main() -> None:
                 categories=categories_list,
                 output_dir=str(output_dir),
                 config=command_line_config,
-                max_workers=getattr(args, "parallel_workers", 10),
+                max_workers=getattr(args, "parallel_workers", 3),
             )
 
             def on_progress(success: int, failed: int, filename: str) -> None:
@@ -406,7 +406,7 @@ def main() -> None:
     # В режиме categories_mode парсинг уже завершён выше, пропускаем проверки
     if not categories_mode:
         # Обычный режим - требуем все обязательные параметры
-        if not urls and not (hasattr(args, "cities") and args.cities):
+        if not urls and not has_cities:
             logger.error("Не указан источник URL. Используйте -i/--url или --cities")
             sys.exit(1)
 

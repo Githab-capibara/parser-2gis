@@ -42,7 +42,12 @@ class CacheManager:
         Args:
             cache_dir: Директория для хранения кэша
             ttl_hours: Время жизни кэша в часах (по умолчанию 24 часа)
+
+        Raises:
+            ValueError: Если ttl_hours меньше или равен нулю
         """
+        if ttl_hours <= 0:
+            raise ValueError("ttl_hours должен быть положительным числом")
         self._cache_dir = cache_dir
         self._ttl = timedelta(hours=ttl_hours)
         self._cache_file = cache_dir / "cache.db"
@@ -109,7 +114,11 @@ class CacheManager:
                 return None
 
             data, expires_at = row
-            expires_at = datetime.fromisoformat(expires_at)
+            try:
+                expires_at = datetime.fromisoformat(expires_at)
+            except ValueError:
+                # Некорректный формат даты, считаем кэш истёкшим
+                return None
 
             # Проверяем, истек ли кэш
             if datetime.now() > expires_at:
@@ -233,15 +242,15 @@ class CacheManager:
     def _hash_url(url: str) -> str:
         """Хеширование URL.
 
-        Вычисляет MD5 хеш от указанного URL для использования
+        Вычисляет SHA256 хеш от указанного URL для использования
         в качестве ключа в базе данных кэша.
 
         Args:
             url: URL для хеширования
 
         Returns:
-            MD5 хеш URL в виде шестнадцатеричной строки
+            SHA256 хеш URL в виде шестнадцатеричной строки
         """
         import hashlib
 
-        return hashlib.md5(url.encode("utf-8")).hexdigest()
+        return hashlib.sha256(url.encode("utf-8")).hexdigest()

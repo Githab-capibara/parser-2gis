@@ -8,9 +8,10 @@
 from __future__ import annotations
 
 import os
+import shutil
 import threading
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional
 
@@ -70,34 +71,39 @@ class ParallelCityParser:
                 raise ValueError(
                     f"output_dir существует, но не является директорией: {output_dir}"
                 )
-            # Проверка прав на запись
-            if not os.access(self.output_dir, os.W_OK):
-                raise ValueError(f"Нет прав на запись в директорию: {output_dir}")
+            # EAFP подход: проверяем права попыткой записи тестового файла
+            # Это защищает от race condition между проверкой и фактической записью
+            try:
+                test_file = self.output_dir / ".write_test"
+                test_file.touch()
+                test_file.unlink()
+            except (OSError, PermissionError) as e:
+                raise ValueError(f"Нет прав на запись в директорию: {output_dir}. Ошибка: {e}")
         else:
             # Попытка создать директорию
             try:
                 self.output_dir.mkdir(parents=True, exist_ok=True)
-                # Проверка прав на запись после создания
-                if not os.access(self.output_dir, os.W_OK):
-                    raise ValueError(f"Нет прав на запись в директорию: {output_dir}")
+                # EAFP проверка прав после создания
+                test_file = self.output_dir / ".write_test"
+                test_file.touch()
+                test_file.unlink()
             except (OSError, PermissionError) as e:
                 raise ValueError(
                     f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}"
                 )
 
-        # Блокировка для потокобезопасного логгирования
-        self._lock = threading.Lock()
-
-        # Флаг отмены
-        self._cancel_event = threading.Event()
-
-        # Статистика
+        # Статистика (все операции защищены _lock)
         self._stats = {
             "total": 0,
             "success": 0,
             "failed": 0,
             "skipped": 0,
         }
+        # Блокировка для потокобезопасного доступа к _stats и логгирования
+        self._lock = threading.Lock()
+
+        # Флаг отмены
+        self._cancel_event = threading.Event()
 
         # Логирование успешной инициализации
         self.log(
@@ -175,9 +181,13 @@ class ParallelCityParser:
         filename = f"{safe_city}_{safe_category}.csv"
         filepath = self.output_dir / filename
 
-        # Создаём уникальное временное имя файла для защиты от race condition
-        temp_filename = f"{safe_city}_{safe_category}_{uuid.uuid4().hex}.tmp"
-        temp_filepath = self.output_dir / temp_filename
+        # Создаём уникальное временное имя файла с проверкой на коллизии
+        # Используем цикл while для гарантии уникальности имени
+        while True:
+            temp_filename = f"{safe_city}_{safe_category}_{uuid.uuid4().hex}.tmp"
+            temp_filepath = self.output_dir / temp_filename
+            if not temp_filepath.exists():
+                break
 
         try:
             self.log(
@@ -195,12 +205,22 @@ class ParallelCityParser:
                 with get_writer(
                     str(temp_filepath), "csv", self.config.writer
                 ) as writer:
-                    # Парсим
-                    parser.parse(writer)
+                    # Парсим с гарантированной очисткой ресурсов
+                    try:
+                        parser.parse(writer)
+                    finally:
+                        # Гарантируем очистку даже при исключении
+                        # контекстные менеджеры вызовут __exit__, но явно указываем на важность
+                        pass
 
             # После успешного парсинга переименовываем временный файл в целевой
             # Это атомарная операция на большинстве файловых систем
-            temp_filepath.replace(filepath)
+            # Используем shutil.move как fallback для cross-device перемещения
+            try:
+                temp_filepath.replace(filepath)
+            except OSError:
+                # Fallback для перемещения между разными файловыми системами
+                shutil.move(str(temp_filepath), str(filepath))
             self.log(
                 f"Временный файл переименован: {temp_filename} → {filename}", "debug"
             )
@@ -294,15 +314,24 @@ class ParallelCityParser:
         # Список файлов для удаления (заполняется после успешного объединения)
         files_to_delete: list[Path] = []
 
-        # Открываем выходной файл
+        # Создаём временный файл для результата объединения
+        # Это защищает от частичных данных при ошибке в середине процесса
+        temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
+
+        # Открываем временный выходной файл
         try:
-            with open(output_file, "w", encoding="utf-8-sig", newline="") as outfile:
+            with open(temp_output, "w", encoding="utf-8-sig", newline="") as outfile:
                 writer = None
                 total_rows = 0
 
                 for csv_file in csv_files:
                     if self._cancel_event.is_set():
                         self.log("Объединение отменено пользователем", "warning")
+                        # Удаляем временный файл при отмене
+                        try:
+                            temp_output.unlink()
+                        except Exception:
+                            pass
                         return False
 
                     if progress_callback:
@@ -354,22 +383,36 @@ class ParallelCityParser:
 
                 self.log(f"Объединение завершено. Всего записей: {total_rows}", "info")
 
-                # Удаляем исходные файлы после успешного объединения
-                for csv_file in files_to_delete:
-                    try:
-                        csv_file.unlink()
-                        self.log(f"Исходный файл удалён: {csv_file.name}", "debug")
-                    except Exception as e:
-                        self.log(f"Не удалось удалить файл {csv_file}: {e}", "warning")
+            # После успешной записи во временный файл переименовываем его в целевой
+            # Используем shutil.move как fallback для cross-device перемещения
+            try:
+                temp_output.replace(output_file_path)
+            except OSError:
+                shutil.move(str(temp_output), str(output_file_path))
 
-                self.log(
-                    f"Объединение завершено. Файлы удалены ({len(files_to_delete)} шт.)",
-                    "info",
-                )
-                return True
+            # Удаляем исходные файлы после успешного переименования
+            for csv_file in files_to_delete:
+                try:
+                    csv_file.unlink()
+                    self.log(f"Исходный файл удалён: {csv_file.name}", "debug")
+                except Exception as e:
+                    self.log(f"Не удалось удалить файл {csv_file}: {e}", "warning")
+
+            self.log(
+                f"Объединение завершено. Файлы удалены ({len(files_to_delete)} шт.)",
+                "info",
+            )
+            return True
 
         except Exception as e:
             self.log(f"Ошибка при объединении CSV: {e}", "error")
+            # Удаляем временный файл при ошибке
+            try:
+                if temp_output.exists():
+                    temp_output.unlink()
+                    self.log("Временный файл удалён после ошибки", "debug")
+            except Exception:
+                pass
             self.log(
                 "Исходные файлы НЕ были удалены (ошибка до завершения объединения)",
                 "warning",
@@ -445,7 +488,7 @@ class ParallelCityParser:
                             "error",
                         )
 
-                except TimeoutError:
+                except FuturesTimeoutError:
                     failed_count += 1
                     self.log(
                         f"Таймаут при парсинге {city_name} - {category_name} ({timeout_per_url} сек)",
