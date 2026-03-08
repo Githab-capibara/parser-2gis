@@ -3,8 +3,6 @@
 
 Проверяют следующие функции:
 - running_linux()
-- running_windows()
-- running_mac()
 - wait_until_finished()
 - report_from_validation_error()
 - unwrap_dot_dict()
@@ -31,23 +29,14 @@ class TestRunningPlatform:
         result = running_linux()
         assert isinstance(result, bool)
 
-    def test_running_windows_returns_bool(self):
-        """Проверка, что running_windows возвращает bool."""
-        from parser_2gis.common import running_windows
-        result = running_windows()
-        assert isinstance(result, bool)
-
-    def test_running_mac_returns_bool(self):
-        """Проверка, что running_mac возвращает bool."""
-        from parser_2gis.common import running_mac
-        result = running_mac()
-        assert isinstance(result, bool)
-
-    def test_only_one_platform_is_true(self):
-        """Проверка, что только одна функция возвращает True."""
-        from parser_2gis.common import running_linux, running_mac, running_windows
-        results = [running_linux(), running_windows(), running_mac()]
-        assert sum(results) == 1
+    def test_running_linux_on_ubuntu(self):
+        """Проверка, что running_linux возвращает True на Linux Ubuntu."""
+        from parser_2gis.common import running_linux
+        # Приложение поддерживает только Linux Ubuntu
+        result = running_linux()
+        # На Linux Ubuntu должно быть True
+        if sys.platform.startswith('linux'):
+            assert result is True
 
 
 class TestFloorToHundreds:
@@ -224,12 +213,3 @@ class TestWaitUntilFinished:
 
         result = return_true()
         assert result is True
-
-
-class TestGUIEnabled:
-    """Тесты для переменной GUI_ENABLED."""
-
-    def test_gui_enabled_is_bool(self):
-        """Проверка, что GUI_ENABLED - булево значение."""
-        from parser_2gis.common import GUI_ENABLED
-        assert isinstance(GUI_ENABLED, bool)

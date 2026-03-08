@@ -51,13 +51,9 @@ class BuildStandaloneCommand(distutils.cmd.Command):
             ]
 
             # Icon
-            if sys.platform.startswith('win'):
+            if sys.platform.startswith('linux'):
                 build_cmd += [
-                    '--icon', 'parser_2gis/data/images/icon.ico',
-                ]
-            elif sys.platform.startswith('darwin'):
-                build_cmd += [
-                    '--icon', 'parser_2gis/data/images/icon.icns',
+                    '--icon', 'parser_2gis/data/images/icon.png',
                 ]
 
             # Add data
@@ -104,24 +100,19 @@ if __name__ == '__main__':
             'xlsxwriter>=3.0.5',
         ],
         extras_require={
-            'gui': [
-                'PySimpleGUI==4.59.0',
-            ],
             'dev': [
                 "pytest>=6.2,<8",
                 "tox>=3.5,<4",
                 "pre-commit>=2.6",
                 "wheel>=0.36.2,<0.38",
-            ] + (
-                ["pyinstaller>=5.0,<5.7.0"]
-                if sys.platform.startswith("win")
-                else ["pyinstaller>=6.6.0"]
-            ),
+                "pyinstaller>=6.6.0",
+            ],
         },
         classifiers=[
             "Topic :: Internet",
             "Topic :: Utilities",
-            "Operating System :: OS Independent",
+            "Operating System :: POSIX :: Linux",
+            "Environment :: X11 Applications",
             "Programming Language :: Python :: 3 :: Only",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",

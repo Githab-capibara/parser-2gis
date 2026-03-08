@@ -5,8 +5,6 @@ import functools
 import os
 import pathlib
 
-from .common import running_mac, running_windows
-
 # Константа для максимальной длины пути
 MAX_PATH_LENGTH = 1024
 
@@ -23,28 +21,17 @@ def data_path() -> pathlib.Path:
 
 
 def user_path(is_config: bool = True) -> pathlib.Path:
-    """Получает пользовательский путь в зависимости от ОС.
+    """Получает пользовательский путь для Linux Ubuntu.
 
     Примечание:
-        Возможное расположение пути в зависимости от ОС:
-        * Unix: ~/.config/parser-2gis или ~/.local/share/parser-2gis (зависит от флага `is_config`)
-        * Mac: ~/Library/Application Support/parser-2gis/
-        * Win: C:\\Users\\%USERPROFILE%\\AppData\\Local\\parser-2gis
+        Расположение пути для Linux Ubuntu:
+        * ~/.config/parser-2gis (для конфигурации)
+        * ~/.local/share/parser-2gis (для данных)
     """
-    if running_windows():
-        import ctypes
-
-        CSIDL_LOCAL_APPDATA = 28
-        buf = ctypes.create_unicode_buffer(MAX_PATH_LENGTH)
-        ctypes.windll.shell32.SHGetFolderPathW(None, CSIDL_LOCAL_APPDATA, None, 0, buf)  # type: ignore
-        path = buf.value
-    elif running_mac():
-        path = os.path.expanduser('~/Library/Application Support')
+    if is_config:
+        path = os.getenv('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
     else:
-        if is_config:
-            path = os.getenv('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
-        else:
-            path = os.getenv('XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
+        path = os.getenv('XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
 
     path = os.path.join(path, 'parser-2gis')
     return pathlib.Path(path)

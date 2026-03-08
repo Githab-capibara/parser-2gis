@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import base64
+import gc
 import json
 import re
+import sys
+import time
 import urllib.parse
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
@@ -25,6 +28,7 @@ WAIT_REQUESTS_TIMEOUT: int = 120  # Таймаут ожидания заверш
 GET_LINKS_TIMEOUT: int = 5  # Таймаут получения ссылок
 GET_UNIQUE_LINKS_TIMEOUT: int = 10  # Таймаут получения уникальных ссылок
 MAX_VISITED_LINKS_SIZE: int = 10000  # Максимальный размер множества посещённых ссылок
+# MAX_CONSECUTIVE_EMPTY_PAGES теперь задается через ParserOptions.max_consecutive_empty_pages (по умолчанию 3)
 
 
 # Типы для типизации
@@ -218,12 +222,41 @@ class MainParser:
         page_match = re.search(r'/page/(?P<page_number>\d+)', self._url, re.I)
         walk_page_number = int(page_match.group('page_number')) if page_match else None
 
-        # Переходим по URL
-        try:
-            self._chrome_remote.navigate(url, referer='https://google.com', timeout=NAVIGATION_TIMEOUT)
-        except Exception as navigate_error:
-            logger.error('Ошибка навигации по URL %s: %s', url, navigate_error)
-            return
+        # Переходим по URL с возможностью повторных попыток при ошибках сети
+        # Автоматический повторный парсинг при временных ошибках (502, 503, 504, TimeoutError)
+        for retry_attempt in range(self._options.max_retries + 1):
+            try:
+                # Первая попытка или повторная
+                if retry_attempt > 0:
+                    logger.info('Повторная попытка навигации (%d/%d) для URL: %s', 
+                               retry_attempt, self._options.max_retries, url)
+                    
+                self._chrome_remote.navigate(url, referer='https://google.com', timeout=NAVIGATION_TIMEOUT)
+                # Если навигация успешна - выходим из цикла
+                break
+                
+            except Exception as navigate_error:
+                error_msg = str(navigate_error).lower()
+                is_network_error = (
+                    '502' in error_msg or 
+                    '503' in error_msg or 
+                    '504' in error_msg or 
+                    'timeout' in error_msg
+                )
+                
+                if retry_attempt < self._options.max_retries and self._options.retry_on_network_errors and is_network_error:
+                    # Экспоненциальная задержка: 1с, 2с, 4с, ...
+                    delay = self._options.retry_delay_base * (2 ** retry_attempt)
+                    logger.warning(
+                        'Ошибка сети при навигации (попытка %d/%d): %s. '
+                        'Повторная попытка через %.1f сек...',
+                        retry_attempt + 1, self._options.max_retries, navigate_error, delay
+                    )
+                    time.sleep(delay)
+                else:
+                    # Либо это не ошибка сети, либо исчерпаны все попытки
+                    logger.error('Ошибка навигации по URL %s: %s', url, navigate_error)
+                    return
 
         # Документ загружен, получаем его ответ
         try:
@@ -262,6 +295,10 @@ class MainParser:
             if self._options.skip_404_response:
                 logger.info('Пропуск URL из-за 404 ответа (skip_404_response=True).')
                 return
+            # Если включен режим немедленной остановки при первом 404 - завершаем парсинг
+            if self._options.stop_on_first_404:
+                logger.info('Немедленная остановка парсинга при первом 404 (stop_on_first_404=True).')
+                return
                 
         elif http_status == 403:
             logger.error('Сервер вернул 403: Доступ запрещён. Возможна блокировка.')
@@ -279,6 +316,67 @@ class MainParser:
 
         # Уже посещённые ссылки (с оптимизацией памяти)
         visited_links: Set[str] = set()
+
+        # Счётчик подряд пустых страниц (для избежания бесконечного цикла при 404)
+        consecutive_empty_pages = 0
+        
+        # Проверка и автоматическая оптимизация памяти при больших объёмах данных
+        def check_and_optimize_memory():
+            """Проверяет использование памяти и выполняет автоматическую оптимизацию.
+            
+            Эта функция вызывается периодически для предотвращения OutOfMemory ошибок
+            при парсинге больших объёмов данных (>10000 записей).
+            """
+            try:
+                # Получаем текущее использование памяти процесса в МБ
+                import psutil
+                process = psutil.Process()
+                memory_info = process.memory_info()
+                memory_mb = memory_info.rss / 1024 / 1024  # Конвертируем в МБ
+                
+                # Проверяем превышение порога (увеличен с 500 до 2048 МБ)
+                if memory_mb > self._options.memory_threshold:
+                    logger.warning(
+                        'Использование памяти %.1f МБ превышает порог %d МБ. '
+                        'Выполняем автоматическую оптимизацию...',
+                        memory_mb, self._options.memory_threshold
+                    )
+                    
+                    # Усиливаем очистку: очищаем 75% посещённых ссылок вместо 50%
+                    if len(visited_links) > 1000:
+                        links_list = list(visited_links)
+                        keep_count = len(links_list) // 4  # Оставляем 25% старых ссылок
+                        visited_links.clear()
+                        visited_links.update(links_list[keep_count:])
+                        logger.debug('Очищено %d ссылок для освобождения памяти', len(links_list) - keep_count)
+                    
+                    # Дополнительный вызов сборщика мусора для агрессивной очистки
+                    gc.collect()
+                    gc.collect()  # Двойной вызов для лучшей очистки
+                    
+                    # Очищаем кэш запросов Chrome если возможно
+                    try:
+                        self._chrome_remote.clear_requests()
+                        logger.debug('Очищен кэш запросов Chrome')
+                    except Exception as cache_error:
+                        logger.debug('Ошибка при очистке кэша: %s', cache_error)
+                    
+                    # Проверяем, освободилась ли память
+                    new_memory_info = process.memory_info()
+                    new_memory_mb = new_memory_info.rss / 1024 / 1024
+                    saved_mb = memory_mb - new_memory_mb
+                    
+                    if saved_mb > 0:
+                        logger.info('Освобождено %.1f МБ памяти (%.1f%% уменьшение)', 
+                                   saved_mb, (saved_mb / memory_mb) * 100)
+                    else:
+                        logger.warning('Не удалось освободить значительный объём памяти')
+                        
+            except ImportError:
+                # psutil не установлен - пропускаем проверку
+                pass
+            except Exception as memory_error:
+                logger.debug('Ошибка при проверке памяти: %s', memory_error)
 
         # Эта обёртка не необходима, но я хочу быть уверен,
         # что мы не собрали ссылки из старого DOM каким-то образом.
@@ -305,11 +403,12 @@ class MainParser:
                 
                 # Оптимизация памяти: очищаем старые ссылки при превышении лимита
                 if len(visited_links) > MAX_VISITED_LINKS_SIZE:
-                    # Оставляем только последние 50% ссылок
+                    # Оставляем только последние 25% ссылок (усилено с 50%)
                     links_list = list(visited_links)
+                    keep_count = len(links_list) // 4  # Оставляем 25% вместо 50%
                     visited_links.clear()
-                    visited_links.update(links_list[len(links_list)//2:])
-                    logger.debug('Оптимизация памяти: очищено %d старых ссылок', len(links_list)//2)
+                    visited_links.update(links_list[keep_count:])
+                    logger.debug('Оптимизация памяти: очищено %d старых ссылок', len(links_list) - keep_count)
                 
                 return links
             except Exception as e:
@@ -330,8 +429,21 @@ class MainParser:
 
                 # Проверяем, что ссылки успешно получены
                 if links is None:
-                    logger.warning('Не удалось получить ссылки, переходим к следующей странице.')
+                    consecutive_empty_pages += 1
+                    logger.warning('Не удалось получить ссылки, переходим к следующей странице. (Пустых страниц подряд: %d/%d)', 
+                                consecutive_empty_pages, self._options.max_consecutive_empty_pages)
+                    
+                    # Если подряд слишком много пустых страниц - прерываем парсинг
+                    # Это избегает бесконечного цикла при 404 ошибках
+                    if consecutive_empty_pages >= self._options.max_consecutive_empty_pages:
+                        logger.error('Достигнут лимит подряд пустых страниц (%d). Прекращаем парсинг URL.', 
+                                    self._options.max_consecutive_empty_pages)
+                        return
+                    
                     continue
+                else:
+                    # Ссылки успешно получены - сбрасываем счётчик пустых страниц
+                    consecutive_empty_pages = 0
 
                 # Парсим страницу, если не идём к определённой странице
                 if not walk_page_number:
@@ -408,13 +520,19 @@ class MainParser:
                         del resp
                         del data
 
-                # Запускаем сборщик мусора, если он доступен и включён
-                if self._options.use_gc and current_page_number % self._options.gc_pages_interval == 0:
-                    logger.debug('Запуск сборщика мусора.')
-                    try:
-                        self._chrome_remote.execute_script('"gc" in window && window.gc()')
-                    except Exception as gc_error:
-                        logger.debug('Ошибка при запуске сборщика мусора: %s', gc_error)
+                # Запускаем сборщик мусора и проверяем использование памяти
+                # Это выполняется каждые несколько страниц для предотвращения OutOfMemory ошибок
+                if current_page_number % self._options.gc_pages_interval == 0:
+                    # Проверяем и оптимизируем использование памяти
+                    check_and_optimize_memory()
+                    
+                    # Запускаем сборщик мусора, если включён
+                    if self._options.use_gc:
+                        logger.debug('Запуск сборщика мусора.')
+                        try:
+                            self._chrome_remote.execute_script('"gc" in window && window.gc()')
+                        except Exception as gc_error:
+                            logger.debug('Ошибка при запуске сборщика мусора: %s', gc_error)
 
                 # Вычисляем следующий номер страницы и переходим к ней
                 if walk_page_number:

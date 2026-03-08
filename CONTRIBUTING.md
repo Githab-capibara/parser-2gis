@@ -22,6 +22,7 @@
 |-----------|--------|------------|
 | Python | 3.8 – 3.11 | Обязательно |
 | Google Chrome | Любая актуальная | Для парсинга |
+| ОС | Linux Ubuntu | Единственная поддерживаемая ОС |
 | Git | Любая актуальная | Для работы с репозиторием |
 
 ### Установка для разработки
@@ -33,9 +34,7 @@ cd parser-2gis
 
 # Создание виртуального окружения
 python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
-# или
-venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux Ubuntu
 
 # Установка зависимостей
 pip install -e .[dev]
@@ -344,10 +343,7 @@ Fixes #52
 ### Сборка standalone приложения
 
 ```bash
-# Windows
-python setup.py build_standalone
-
-# Linux/Mac
+# Linux Ubuntu
 python setup.py build_standalone
 ```
 

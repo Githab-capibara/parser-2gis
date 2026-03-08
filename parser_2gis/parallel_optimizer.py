@@ -1,0 +1,314 @@
+"""
+Модуль для оптимизации параллельного парсинга.
+
+Этот модуль предоставляет логику для эффективного распределения
+ресурсов между браузерами при параллельном парсинге.
+"""
+
+from __future__ import annotations
+
+import psutil
+import threading
+import time
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable, Dict, List, Optional, Tuple
+
+from parser_2gis.logger import logger
+
+
+class ParallelTask:
+    """Задача для параллельного парсинга."""
+    
+    def __init__(self, url: str, category_name: str, city_name: str, 
+                 priority: int = 0) -> None:
+        """
+        Инициализирует задачу.
+        
+        Args:
+            url: URL для парсинга.
+            category_name: Название категории.
+            city_name: Название города.
+            priority: Приоритет задачи (0 - обычный, 1 - высокий).
+        """
+        self.url = url
+        self.category_name = category_name
+        self.city_name = city_name
+        self.priority = priority
+        self.start_time: Optional[float] = None
+        self.end_time: Optional[float] = None
+        
+    def start(self) -> None:
+        """Отмечает начало выполнения задачи."""
+        self.start_time = time.time()
+        logger.debug('Начало задачи: %s - %s', self.city_name, self.category_name)
+    
+    def finish(self) -> None:
+        """Отмечает завершение задачи."""
+        self.end_time = time.time()
+        duration = self.duration()
+        logger.debug('Завершение задачи: %s - %s (время: %.2f сек)',
+                   self.city_name, self.category_name, duration)
+    
+    def duration(self) -> float:
+        """
+        Возвращает длительность выполнения задачи.
+        
+        Returns:
+            Длительность в секундах или 0 если не завершена.
+        """
+        if self.start_time and self.end_time:
+            return self.end_time - self.start_time
+        elif self.start_time:
+            return time.time() - self.start_time
+        return 0
+
+
+class ParallelOptimizer:
+    """
+    Оптимизатор для параллельного парсинга.
+    
+    Управляет очередями задач, балансирует нагрузку между браузерами,
+    контролирует использование ресурсов системы.
+    """
+    
+    def __init__(self, max_workers: int = 3, max_memory_mb: int = 4096) -> None:
+        """
+        Инициализирует оптимизатор.
+        
+        Args:
+            max_workers: Максимальное количество рабочих потоков.
+            max_memory_mb: Максимальное использование памяти в МБ.
+        """
+        self._max_workers = max_workers
+        self._max_memory_mb = max_memory_mb
+        self._tasks: deque[ParallelTask] = deque()
+        self._active_tasks: Dict[int, ParallelTask] = {}
+        self._completed_tasks: List[ParallelTask] = []
+        self._lock = threading.Lock()
+        self._stats = {
+            'total_tasks': 0,
+            'completed': 0,
+            'failed': 0,
+            'avg_duration': 0.0,
+        }
+        
+        logger.info('Инициализирован ParallelOptimizer: max_workers=%d, max_memory=%d МБ',
+                   max_workers, max_memory_mb)
+    
+    def add_task(self, url: str, category_name: str, city_name: str, 
+                priority: int = 0) -> None:
+        """
+        Добавляет задачу в очередь.
+        
+        Args:
+            url: URL для парсинга.
+            category_name: Название категории.
+            city_name: Название города.
+            priority: Приоритет задачи (0 - обычный, 1 - высокий).
+        """
+        task = ParallelTask(url, category_name, city_name, priority)
+        
+        with self._lock:
+            # Вставляем задачу в соответствии с приоритетом
+            if priority > 0:
+                # Высокий приоритет - добавляем в начало
+                self._tasks.appendleft(task)
+            else:
+                # Обычный приоритет - добавляем в конец
+                self._tasks.append(task)
+            self._stats['total_tasks'] += 1
+        
+        logger.debug('Добавлена задача: %s - %s (приоритет: %d)',
+                   city_name, category_name, priority)
+    
+    def check_resources(self) -> Tuple[bool, float]:
+        """
+        Проверяет доступность ресурсов системы.
+        
+        Returns:
+            Кортеж (доступно ли, использование_памяти_МБ).
+        """
+        try:
+            # Получаем использование памяти
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            memory_mb = memory_info.rss / 1024 / 1024
+            
+            # Получаем загрузку CPU
+            cpu_percent = process.cpu_percent(interval=0.1)
+            
+            # Проверяем лимиты
+            memory_ok = memory_mb < self._max_memory_mb
+            cpu_ok = cpu_percent < 95  # Не перегружать CPU
+            
+            available = memory_ok and cpu_ok
+            
+            if not available:
+                logger.debug(
+                    'Ресурсы ограничены: память=%.1f МБ (лимит %d), CPU=%.1f%%',
+                    memory_mb, self._max_memory_mb, cpu_percent
+                )
+            
+            return available, memory_mb
+            
+        except Exception as e:
+            logger.warning('Ошибка при проверке ресурсов: %s', e)
+            return True, 0.0
+    
+    def get_next_task(self) -> Optional[ParallelTask]:
+        """
+        Получает следующую задачу из очереди.
+        
+        Returns:
+            Следующая задача или None если очередь пуста.
+        """
+        with self._lock:
+            if self._tasks:
+                task = self._tasks.popleft()
+                task.start()
+                return task
+        return None
+    
+    def complete_task(self, task: ParallelTask, success: bool) -> None:
+        """
+        Отмечает задачу как завершенную.
+        
+        Args:
+            task: Задача.
+            success: Успешно ли выполнена.
+        """
+        task.finish()
+        
+        with self._lock:
+            self._completed_tasks.append(task)
+            self._stats['completed'] += 1
+            
+            if success:
+                self._stats['completed'] = self._stats.get('completed', 0) + 1
+            else:
+                self._stats['failed'] = self._stats.get('failed', 0) + 1
+            
+            # Пересчитываем среднюю длительность
+            total_duration = sum(t.duration() for t in self._completed_tasks)
+            self._stats['avg_duration'] = total_duration / len(self._completed_tasks)
+            
+            # Удаляем из активных задач
+            task_id = id(task)
+            if task_id in self._active_tasks:
+                del self._active_tasks[task_id]
+        
+        logger.info('Задача завершена: %s - %s (успех: %s, время: %.2f сек)',
+                  task.city_name, task.category_name, success, task.duration())
+    
+    def get_stats(self) -> Dict[str, any]:
+        """
+        Возвращает статистику оптимизатора.
+        
+        Returns:
+            Словарь со статистикой.
+        """
+        with self._lock:
+            stats = self._stats.copy()
+            stats['pending_tasks'] = len(self._tasks)
+            stats['active_tasks'] = len(self._active_tasks)
+            stats['progress'] = (
+                self._stats['completed'] / self._stats['total_tasks'] * 100
+                if self._stats['total_tasks'] > 0 else 0
+            )
+            return stats
+    
+    def reset(self) -> None:
+        """Сбрасывает состояние оптимизатора."""
+        with self._lock:
+            self._tasks.clear()
+            self._active_tasks.clear()
+            self._completed_tasks.clear()
+            self._stats = {
+                'total_tasks': 0,
+                'completed': 0,
+                'failed': 0,
+                'avg_duration': 0.0,
+            }
+        logger.debug('ParallelOptimizer сброшен')
+    
+    def run_parallel(self, parse_func: Callable[[ParallelTask], Tuple[bool, str]],
+                  progress_callback: Optional[Callable[[int, int, str], None]] = None) -> bool:
+        """
+        Запускает параллельный парсинг с оптимизацией.
+        
+        Args:
+            parse_func: Функция парсинга, принимающая ParallelTask.
+            progress_callback: Функция обратного вызова для прогресса.
+            
+        Returns:
+            True если все задачи выполнены успешно.
+        """
+        logger.info('Запуск параллельного парсинга с оптимизацией (%d потоков)',
+                   self._max_workers)
+        
+        success_count = 0
+        failed_count = 0
+        
+        with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
+            # Создаём futures для всех задач
+            futures = {}
+            
+            while self._tasks or self._active_tasks:
+                # Проверяем ресурсы
+                available, memory_mb = self.check_resources()
+                
+                if not available:
+                    logger.warning('Ожидание освобождения ресурсов...')
+                    time.sleep(5)
+                    continue
+                
+                # Запускаем новые задачи если есть ресурсы
+                while len(self._active_tasks) < self._max_workers and self._tasks:
+                    task = self.get_next_task()
+                    if task:
+                        future = executor.submit(parse_func, task)
+                        futures[future] = task
+                        self._active_tasks[id(task)] = task
+                        logger.debug('Запущена задача: %s - %s',
+                                   task.city_name, task.category_name)
+                
+                # Проверяем завершенные задачи
+                completed = []
+                for future in as_completed(futures.keys(), timeout=1.0):
+                    try:
+                        task = futures[future]
+                        success, result = future.result(timeout=300)
+                        self.complete_task(task, success)
+                        completed.append(future)
+                        
+                        if success:
+                            success_count += 1
+                        else:
+                            failed_count += 1
+                        
+                        if progress_callback:
+                            progress_callback(success_count, failed_count, 
+                                           f'{task.city_name}_{task.category_name}')
+                    except Exception as e:
+                        task = futures[future]
+                        logger.error('Ошибка в задаче %s - %s: %s',
+                                   task.city_name, task.category_name, e)
+                        self.complete_task(task, False)
+                        completed.append(future)
+                        failed_count += 1
+                
+                # Удаляем завершенные futures
+                for future in completed:
+                    del futures[future]
+                
+                # Небольшая пауза если нет активных задач
+                if not self._active_tasks:
+                    time.sleep(0.1)
+        
+        logger.info(
+            'Параллельный парсинг завершен. Успешно: %d, Ошибок: %d',
+            success_count, failed_count
+        )
+        
+        return failed_count == 0

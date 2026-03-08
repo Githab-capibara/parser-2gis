@@ -63,7 +63,6 @@ class ChromeBrowser():
             '--remote-allow-origins=http://localhost',
             f'--js-flags=--expose-gc --max-old-space-size={memory_limit}',
         ]
-  +++++++ REPLACE
 
         # Дополнительные опции
         if chrome_options.start_maximized:

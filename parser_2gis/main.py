@@ -136,7 +136,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     p_parser.add_argument('--parser.stop-on-first-404', metavar='{yes/no}', help='Останавливать парсинг немедленно при первом 404 ответе (по умолчанию: no)')
     p_parser.add_argument('--parser.max-consecutive-empty-pages', metavar='{2,3,5,...}', help='Максимальное количество подряд пустых страниц перед остановкой (по умолчанию: 3)')
     p_parser.add_argument('--parser.delay-between-clicks', metavar='{0,100,...}', help='Задержка между кликами по записям (миллисекунд)')
-    p_parser.add_argument('--parallel-workers', type=int, default=3, help='Количество одновременных потоков для параллельного парсинга (по умолчанию: 3)')
+    p_parser.add_argument('--parallel-workers', type=int, default=10, help='Количество одновременных потоков для параллельного парсинга (по умолчанию: 10)')
 
     other_parser = arg_parser.add_argument_group('Прочие аргументы')
     other_parser.add_argument('--writer.verbose', metavar='{yes/no}', help='Отображать наименования позиций во время парсинга')
@@ -225,7 +225,7 @@ def main() -> None:
 
             logger.info('Запуск параллельного парсинга по %d категориям', len(CATEGORIES_93))
             logger.info('Города: %s', [c['name'] for c in selected_cities])
-            logger.info('Количество потоков: %d', getattr(args, 'parallel_workers', 3))
+            logger.info('Количество потоков: %d', getattr(args, 'parallel_workers', 10))
 
             # Создаём и запускаем параллельный парсер (синхронно)
             parser = ParallelCityParser(
@@ -233,7 +233,7 @@ def main() -> None:
                 categories=CATEGORIES_93,
                 output_dir=str(output_dir),
                 config=command_line_config,
-                max_workers=getattr(args, 'parallel_workers', 3),
+                max_workers=getattr(args, 'parallel_workers', 10),
             )
 
             def on_progress(success: int, failed: int, filename: str) -> None:
@@ -282,4 +282,3 @@ def main() -> None:
         except Exception as e:
             logger.error('Критическая ошибка приложения: %s', e, exc_info=True)
             raise
-  +++++++ REPLACE
