@@ -50,15 +50,15 @@ class ParallelCityParser:
         # Валидация входных данных: проверка списка городов
         if not cities:
             raise ValueError("Список городов не может быть пустым")
-        
+
         # Валидация входных данных: проверка списка категорий
         if not categories:
             raise ValueError("Список категорий не может быть пустым")
-        
+
         # Валидация входных данных: ограничение max_workers (1-20)
         if not 1 <= max_workers <= 20:
             raise ValueError("max_workers должен быть от 1 до 20")
-        
+
         self.cities = cities
         self.categories = categories
         self.output_dir = Path(output_dir)
@@ -68,7 +68,9 @@ class ParallelCityParser:
         # Проверка существования output_dir и прав на запись
         if self.output_dir.exists():
             if not self.output_dir.is_dir():
-                raise ValueError(f"output_dir существует, но не является директорией: {output_dir}")
+                raise ValueError(
+                    f"output_dir существует, но не является директорией: {output_dir}"
+                )
             # Проверка прав на запись
             if not os.access(self.output_dir, os.W_OK):
                 raise ValueError(f"Нет прав на запись в директорию: {output_dir}")
@@ -80,7 +82,9 @@ class ParallelCityParser:
                 if not os.access(self.output_dir, os.W_OK):
                     raise ValueError(f"Нет прав на запись в директорию: {output_dir}")
             except (OSError, PermissionError) as e:
-                raise ValueError(f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}")
+                raise ValueError(
+                    f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}"
+                )
 
         # Блокировка для потокобезопасного логгирования
         self._lock = threading.Lock()
@@ -90,16 +94,19 @@ class ParallelCityParser:
 
         # Статистика
         self._stats = {
-            'total': 0,
-            'success': 0,
-            'failed': 0,
-            'skipped': 0,
+            "total": 0,
+            "success": 0,
+            "failed": 0,
+            "skipped": 0,
         }
-        
-        # Логирование успешной инициализации
-        self.log(f"Инициализирован парсер: {len(cities)} городов, {len(categories)} категорий, max_workers={max_workers}", 'info')
 
-    def log(self, message: str, level: str = 'info') -> None:
+        # Логирование успешной инициализации
+        self.log(
+            f"Инициализирован парсер: {len(cities)} городов, {len(categories)} категорий, max_workers={max_workers}",
+            "info",
+        )
+
+    def log(self, message: str, level: str = "info") -> None:
         """Потокобезопасное логгирование."""
         with self._lock:
             log_func = getattr(logger, level)
@@ -123,15 +130,15 @@ class ParallelCityParser:
                 if category.get("rubric_code"):
                     rest_url += f'/rubricId/{category["rubric_code"]}'
 
-                rest_url += '/filters/sort=name'
+                rest_url += "/filters/sort=name"
                 url = base_url + rest_url
 
                 all_urls.append((url, category["name"], city["name"]))
 
         with self._lock:
-            self._stats['total'] = len(all_urls)
+            self._stats["total"] = len(all_urls)
 
-        self.log(f'Сгенерировано {len(all_urls)} URL для парсинга', 'info')
+        self.log(f"Сгенерировано {len(all_urls)} URL для парсинга", "info")
 
         return all_urls
 
@@ -161,20 +168,23 @@ class ParallelCityParser:
         """
         # Проверяем флаг отмены
         if self._cancel_event.is_set():
-            return False, 'Отменено пользователем'
+            return False, "Отменено пользователем"
 
         # Формируем целевое имя файла
-        safe_city = city_name.replace(' ', '_').replace('/', '_')
-        safe_category = category_name.replace(' ', '_').replace('/', '_')
-        filename = f'{safe_city}_{safe_category}.csv'
+        safe_city = city_name.replace(" ", "_").replace("/", "_")
+        safe_category = category_name.replace(" ", "_").replace("/", "_")
+        filename = f"{safe_city}_{safe_category}.csv"
         filepath = self.output_dir / filename
 
         # Создаём уникальное временное имя файла для защиты от race condition
-        temp_filename = f'{safe_city}_{safe_category}_{uuid.uuid4().hex}.tmp'
+        temp_filename = f"{safe_city}_{safe_category}_{uuid.uuid4().hex}.tmp"
         temp_filepath = self.output_dir / temp_filename
 
         try:
-            self.log(f'Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filename})', 'info')
+            self.log(
+                f"Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filename})",
+                "info",
+            )
 
             # Создаем парсер
             with get_parser(
@@ -183,22 +193,28 @@ class ParallelCityParser:
                 parser_options=self.config.parser,
             ) as parser:
                 # Создаем writer для этого URL (запись во временный файл)
-                with get_writer(str(temp_filepath), 'csv', self.config.writer) as writer:
+                with get_writer(
+                    str(temp_filepath), "csv", self.config.writer
+                ) as writer:
                     # Парсим
                     parser.parse(writer)
 
             # После успешного парсинга переименовываем временный файл в целевой
             # Это атомарная операция на большинстве файловых систем
             temp_filepath.replace(filepath)
-            self.log(f'Временный файл переименован: {temp_filename} → {filename}', 'debug')
+            self.log(
+                f"Временный файл переименован: {temp_filename} → {filename}", "debug"
+            )
 
-            self.log(f'Завершён парсинг: {city_name} - {category_name} → {filepath}', 'info')
+            self.log(
+                f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info"
+            )
 
             # Потокобезопасное обновление статистики
             with self._lock:
-                self._stats['success'] += 1
-                success_count = self._stats['success']
-                failed_count = self._stats['failed']
+                self._stats["success"] += 1
+                success_count = self._stats["success"]
+                failed_count = self._stats["failed"]
 
             if progress_callback:
                 progress_callback(success_count, failed_count, filepath.name)
@@ -206,24 +222,29 @@ class ParallelCityParser:
             return True, str(filepath)
 
         except Exception as e:
-            self.log(f'Ошибка парсинга {city_name} - {category_name}: {e}', 'error')
-            
+            self.log(f"Ошибка парсинга {city_name} - {category_name}: {e}", "error")
+
             # Удаляем временный файл при ошибке
             try:
                 if temp_filepath.exists():
                     temp_filepath.unlink()
-                    self.log(f'Временный файл удалён после ошибки: {temp_filename}', 'debug')
+                    self.log(
+                        f"Временный файл удалён после ошибки: {temp_filename}", "debug"
+                    )
             except Exception as cleanup_error:
-                self.log(f'Не удалось удалить временный файл {temp_filename}: {cleanup_error}', 'warning')
+                self.log(
+                    f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
+                    "warning",
+                )
 
             # Потокобезопасное обновление статистики
             with self._lock:
-                self._stats['failed'] += 1
-                success_count = self._stats['success']
-                failed_count = self._stats['failed']
+                self._stats["failed"] += 1
+                success_count = self._stats["success"]
+                failed_count = self._stats["failed"]
 
             if progress_callback:
-                progress_callback(success_count, failed_count, 'N/A')
+                progress_callback(success_count, failed_count, "N/A")
 
             return False, str(e)
 
@@ -248,22 +269,25 @@ class ParallelCityParser:
         """
         import csv
 
-        self.log('Начало объединения CSV файлов...', 'info')
+        self.log("Начало объединения CSV файлов...", "info")
 
         # Находим все CSV файлы в output_dir
-        csv_files = list(self.output_dir.glob('*.csv'))
-        
+        csv_files = list(self.output_dir.glob("*.csv"))
+
         # Исключаем объединенный файл если он уже существует (повторный запуск)
         output_file_path = Path(output_file)
         if output_file_path.exists():
             csv_files = [f for f in csv_files if f != output_file_path]
-            self.log(f'Исключен объединенный файл из списка: {output_file_path.name}', 'debug')
+            self.log(
+                f"Исключен объединенный файл из списка: {output_file_path.name}",
+                "debug",
+            )
 
         if not csv_files:
-            self.log('Не найдено CSV файлов для объединения', 'warning')
+            self.log("Не найдено CSV файлов для объединения", "warning")
             return False
 
-        self.log(f'Найдено {len(csv_files)} CSV файлов для объединения', 'info')
+        self.log(f"Найдено {len(csv_files)} CSV файлов для объединения", "info")
 
         # Сортируем файлы по имени
         csv_files.sort(key=lambda x: x.name)
@@ -273,39 +297,46 @@ class ParallelCityParser:
 
         # Открываем выходной файл
         try:
-            with open(output_file, 'w', encoding='utf-8-sig', newline='') as outfile:
+            with open(output_file, "w", encoding="utf-8-sig", newline="") as outfile:
                 writer = None
                 total_rows = 0
 
                 for csv_file in csv_files:
                     if self._cancel_event.is_set():
-                        self.log('Объединение отменено пользователем', 'warning')
+                        self.log("Объединение отменено пользователем", "warning")
                         return False
 
                     if progress_callback:
-                        progress_callback(f'Обработка: {csv_file.name}')
+                        progress_callback(f"Обработка: {csv_file.name}")
 
                     # Извлекаем название категории из имени файла
                     # Формат: Город_Категория.csv
-                    parts = csv_file.stem.split('_', 1)
+                    parts = csv_file.stem.split("_", 1)
                     category_name = parts[1] if len(parts) > 1 else parts[0]
-                    
+
                     # Логируем извлечение категории для отладки
-                    self.log(f'Файл: {csv_file.name} -> Категория: {category_name}', 'debug')
+                    self.log(
+                        f"Файл: {csv_file.name} -> Категория: {category_name}", "debug"
+                    )
 
                     # Читаем исходный файл
-                    with open(csv_file, 'r', encoding='utf-8-sig', newline='') as infile:
+                    with open(
+                        csv_file, "r", encoding="utf-8-sig", newline=""
+                    ) as infile:
                         reader = csv.DictReader(infile)
 
                         # Проверяем наличие заголовков
                         if not reader.fieldnames:
-                            self.log(f'Файл {csv_file} пуст или не имеет заголовков', 'warning')
+                            self.log(
+                                f"Файл {csv_file} пуст или не имеет заголовков",
+                                "warning",
+                            )
                             continue
 
                         # Добавляем колонку "Категория" если её нет
                         fieldnames = list(reader.fieldnames)
-                        if 'Категория' not in fieldnames:
-                            fieldnames.insert(0, 'Категория')
+                        if "Категория" not in fieldnames:
+                            fieldnames.insert(0, "Категория")
 
                         # Создаем writer если ещё не создан
                         if writer is None:
@@ -314,30 +345,36 @@ class ParallelCityParser:
 
                         # Записываем строки с добавлением категории
                         for row in reader:
-                            if 'Категория' not in row:
-                                row['Категория'] = category_name
+                            if "Категория" not in row:
+                                row["Категория"] = category_name
                             writer.writerow(row)
                             total_rows += 1
 
                     # Добавляем файл в список на удаление (не удаляем сразу!)
                     files_to_delete.append(csv_file)
 
-                self.log(f'Объединение завершено. Всего записей: {total_rows}', 'info')
+                self.log(f"Объединение завершено. Всего записей: {total_rows}", "info")
 
                 # Удаляем исходные файлы после успешного объединения
                 for csv_file in files_to_delete:
                     try:
                         csv_file.unlink()
-                        self.log(f'Исходный файл удалён: {csv_file.name}', 'debug')
+                        self.log(f"Исходный файл удалён: {csv_file.name}", "debug")
                     except Exception as e:
-                        self.log(f'Не удалось удалить файл {csv_file}: {e}', 'warning')
+                        self.log(f"Не удалось удалить файл {csv_file}: {e}", "warning")
 
-                self.log(f'Объединение завершено. Файлы удалены ({len(files_to_delete)} шт.)', 'info')
+                self.log(
+                    f"Объединение завершено. Файлы удалены ({len(files_to_delete)} шт.)",
+                    "info",
+                )
                 return True
 
         except Exception as e:
-            self.log(f'Ошибка при объединении CSV: {e}', 'error')
-            self.log('Исходные файлы НЕ были удалены (ошибка до завершения объединения)', 'warning')
+            self.log(f"Ошибка при объединении CSV: {e}", "error")
+            self.log(
+                "Исходные файлы НЕ были удалены (ошибка до завершения объединения)",
+                "warning",
+            )
             return False
 
     def run(
@@ -357,24 +394,28 @@ class ParallelCityParser:
         Returns:
             True если успешно.
         """
-        self.log(f'Запуск параллельного парсинга ({self.max_workers} потока)', 'info')
-        self.log(f'Города: {[c["name"] for c in self.cities]}', 'info')
-        self.log(f'Категории: {len(self.categories)}', 'info')
+        self.log(f"Запуск параллельного парсинга ({self.max_workers} потока)", "info")
+        self.log(f'Города: {[c["name"] for c in self.cities]}', "info")
+        self.log(f"Категории: {len(self.categories)}", "info")
 
         # Генерируем все URL
         all_urls = self.generate_all_urls()
 
         if not all_urls:
-            self.log('Нет URL для парсинга', 'error')
+            self.log("Нет URL для парсинга", "error")
             return False
 
         # Запускаем параллельный парсинг
         success_count = 0
         failed_count = 0
-        
+
         # Получаем таймаут из конфигурации (если есть) или используем значение по умолчанию
-        timeout_per_url = getattr(self.config.parser, 'timeout', 300) if hasattr(self.config, 'parser') else 300
-        self.log(f'Таймаут на один URL: {timeout_per_url} секунд', 'info')
+        timeout_per_url = (
+            getattr(self.config.parser, "timeout", 300)
+            if hasattr(self.config, "parser")
+            else 300
+        )
+        self.log(f"Таймаут на один URL: {timeout_per_url} секунд", "info")
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Создаём futures
@@ -400,31 +441,40 @@ class ParallelCityParser:
                         success_count += 1
                     else:
                         failed_count += 1
-                        self.log(f'Не удалось: {city_name} - {category_name}: {result}', 'error')
+                        self.log(
+                            f"Не удалось: {city_name} - {category_name}: {result}",
+                            "error",
+                        )
 
                 except TimeoutError:
                     failed_count += 1
-                    self.log(f'Таймаут при парсинге {city_name} - {category_name} ({timeout_per_url} сек)', 'error')
-                    
+                    self.log(
+                        f"Таймаут при парсинге {city_name} - {category_name} ({timeout_per_url} сек)",
+                        "error",
+                    )
+
                 except Exception as e:
                     failed_count += 1
-                    self.log(f'Исключение при парсинге {city_name} - {category_name}: {e}', 'error')
+                    self.log(
+                        f"Исключение при парсинге {city_name} - {category_name}: {e}",
+                        "error",
+                    )
 
         self.log(
-            f'Парсинг завершён. Успешно: {success_count}, Ошибок: {failed_count}',
-            'info',
+            f"Парсинг завершён. Успешно: {success_count}, Ошибок: {failed_count}",
+            "info",
         )
 
         # Объединяем CSV файлы
         if success_count > 0:
-            self.log('Начало объединения результатов...', 'info')
+            self.log("Начало объединения результатов...", "info")
             merge_success = self.merge_csv_files(output_file, merge_callback)
 
             if not merge_success:
-                self.log('Не удалось объединить CSV файлы', 'error')
+                self.log("Не удалось объединить CSV файлы", "error")
                 return False
         else:
-            self.log('Нет успешных результатов для объединения', 'warning')
+            self.log("Нет успешных результатов для объединения", "warning")
             return False
 
         return True
@@ -432,7 +482,7 @@ class ParallelCityParser:
     def stop(self) -> None:
         """Останавливает парсинг."""
         self._cancel_event.set()
-        self.log('Получена команда остановки парсинга', 'warning')
+        self.log("Получена команда остановки парсинга", "warning")
 
 
 class ParallelCityParserThread(ParallelCityParser, threading.Thread):
@@ -464,14 +514,17 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
         self._result: Optional[bool] = None
         self._output_file = output_file
 
-    def run(self) -> None:
+    def run(self) -> None:  # type: ignore[override]
         """Точка входа потока."""
         try:
             # Используем переданный output_file или путь по умолчанию
-            output_file = self._output_file or str(self.output_dir / 'merged_result.csv')
-            self._result = self.run(output_file=output_file)
+            output_file = self._output_file or str(
+                self.output_dir / "merged_result.csv"
+            )
+            # Вызываем метод родительского класса ParallelCityParser.run
+            self._result = ParallelCityParser.run(self, output_file=output_file)
         except Exception as e:
-            logger.error(f'Ошибка в потоке параллельного парсинга: {e}', exc_info=True)
+            logger.error("Ошибка в потоке параллельного парсинга: %s", e, exc_info=True)
             self._result = False
 
     def get_result(self) -> Optional[bool]:
