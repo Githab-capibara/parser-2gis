@@ -6,15 +6,28 @@ import sys
 import time
 import urllib.parse
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union
 
 from pydantic import ValidationError
 
-# Отложенный импорт logger для избежания циклических зависимостей
-def _get_logger() -> Any:
-    """Получает logger для модуля common."""
-    from .logger import logger
-    return logger
+if TYPE_CHECKING:
+    from .logger import Logger
+
+# Кэшированный logger для избежания циклических зависимостей и накладных расходов
+_logger: Optional['Logger'] = None
+
+
+def _get_logger() -> 'Logger':
+    """Получает logger для модуля common.
+    
+    Returns:
+        Экземпляр logger из модуля logger.
+    """
+    global _logger
+    if _logger is None:
+        from .logger import logger
+        _logger = logger
+    return _logger
 
 
 # Набор чувствительных ключей для фильтрации данных

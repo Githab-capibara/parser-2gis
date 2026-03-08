@@ -41,20 +41,30 @@ class Configuration(BaseModel):
         """
         def assign_attributes(model_source: BaseModel,
                               model_target: BaseModel) -> None:
-            """Рекурсивно присваивает новые атрибуты к существующей конфигурации."""
+            """Рекурсивно присваивает новые атрибуты к существующей конфигурации.
+            
+            Примечание:
+                Корректно определяет версию Pydantic и получает набор установленных полей.
+                Для Pydantic v2 используется model_fields_set, для v1 - __fields_set__.
+            """
             # Определяем версию Pydantic и получаем набор установленных полей
-            fields_set: Optional[Set[str]] = getattr(model_source, 'model_fields_set', None)
-            if fields_set is None:
-                # Запасной вариант для Pydantic v1
-                fields_set = getattr(model_source, '__fields_set__', None)
-                
+            if hasattr(model_source, 'model_fields_set'):
+                # Pydantic v2
+                fields_set: Optional[Set[str]] = model_source.model_fields_set
+            elif hasattr(model_source, '__fields_set__'):
+                # Pydantic v1
+                fields_set = model_source.__fields_set__
+            else:
+                # Неизвестная версия Pydantic
+                fields_set = set()
+
             if not fields_set:
                 fields_set = set()
 
             for field in fields_set:
                 try:
                     source_attr = getattr(model_source, field)
-                    
+
                     if not isinstance(source_attr, BaseModel):
                         # Присваиваем простое значение
                         setattr(model_target, field, source_attr)
@@ -62,7 +72,7 @@ class Configuration(BaseModel):
                         # Рекурсивно объединяем вложенные модели
                         target_attr = getattr(model_target, field)
                         assign_attributes(source_attr, target_attr)
-                        
+
                 except (AttributeError, TypeError) as e:
                     logger.warning('Ошибка при объединении поля %s: %s', field, e)
                 except Exception as e:

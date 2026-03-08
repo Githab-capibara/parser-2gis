@@ -5,6 +5,7 @@ import hashlib
 import os
 import re
 import shutil
+import sys
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from pydantic import ValidationError
@@ -117,10 +118,15 @@ class CSVWriter(FileWriter):
         complex_columns = list(self._complex_mapping.keys())
         
         # Словарь для подсчёта непустых значений в сложных колонках
-        complex_columns_count: Dict[str, int] = {
-            c: 0 for c in self._data_mapping.keys()
-            if re.match("|".join(fr"^{x}_\d+$" for x in complex_columns), c)
-        }
+        complex_columns_count: Dict[str, int] = {}
+        
+        # Создаём сгруппированный regex паттерн для сложных колонок
+        if complex_columns:
+            # Группируем паттерны для корректной работы regex
+            pattern = r'^(?:' + '|'.join(fr'{x}_\d+' for x in complex_columns) + r')$'
+            for c in self._data_mapping.keys():
+                if re.match(pattern, c):
+                    complex_columns_count[c] = 0
 
         try:
             # Первый проход: подсчёт непустых значений в сложных колонках
@@ -218,10 +224,17 @@ class CSVWriter(FileWriter):
                         normalized_line = line.rstrip('\r\n')
 
                         # Вычисляем хеш для надёжного сравнения
-                        line_hash = hashlib.md5(
-                            normalized_line.encode('utf-8'),
-                            usedforsecurity=False  # Оптимизация для Python 3.9+
-                        ).hexdigest()
+                        # Используем параметр usedforsecurity только для Python 3.9+
+                        if sys.version_info >= (3, 9):
+                            line_hash = hashlib.md5(
+                                normalized_line.encode('utf-8'),
+                                usedforsecurity=False  # Оптимизация для Python 3.9+
+                            ).hexdigest()
+                        else:
+                            # Для Python 3.8 используем обычный md5
+                            line_hash = hashlib.md5(
+                                normalized_line.encode('utf-8')
+                            ).hexdigest()
 
                         if line_hash in seen_hashes:
                             duplicates_count += 1

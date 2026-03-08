@@ -9,6 +9,13 @@ import time
 import urllib.parse
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    psutil = None  # type: ignore
+    PSUTIL_AVAILABLE = False
+
 from ...chrome import ChromeRemote
 from ...common import wait_until_finished
 from ...logger import logger
@@ -323,17 +330,24 @@ class MainParser:
         # Проверка и автоматическая оптимизация памяти при больших объёмах данных
         def check_and_optimize_memory():
             """Проверяет использование памяти и выполняет автоматическую оптимизацию.
-            
+
             Эта функция вызывается периодически для предотвращения OutOfMemory ошибок
             при парсинге больших объёмов данных (>10000 записей).
+            
+            Примечание:
+                Требуется установленный пакет psutil для мониторинга памяти.
             """
+            # Проверяем доступность psutil
+            if not PSUTIL_AVAILABLE:
+                logger.debug('psutil не установлен - пропускаем проверку памяти')
+                return
+                
             try:
                 # Получаем текущее использование памяти процесса в МБ
-                import psutil
                 process = psutil.Process()
                 memory_info = process.memory_info()
                 memory_mb = memory_info.rss / 1024 / 1024  # Конвертируем в МБ
-                
+
                 # Проверяем превышение порога (увеличен с 500 до 2048 МБ)
                 if memory_mb > self._options.memory_threshold:
                     logger.warning(
@@ -341,7 +355,7 @@ class MainParser:
                         'Выполняем автоматическую оптимизацию...',
                         memory_mb, self._options.memory_threshold
                     )
-                    
+
                     # Усиливаем очистку: очищаем 75% посещённых ссылок вместо 50%
                     if len(visited_links) > 1000:
                         links_list = list(visited_links)
@@ -349,32 +363,29 @@ class MainParser:
                         visited_links.clear()
                         visited_links.update(links_list[keep_count:])
                         logger.debug('Очищено %d ссылок для освобождения памяти', len(links_list) - keep_count)
-                    
+
                     # Дополнительный вызов сборщика мусора для агрессивной очистки
                     gc.collect()
                     gc.collect()  # Двойной вызов для лучшей очистки
-                    
+
                     # Очищаем кэш запросов Chrome если возможно
                     try:
                         self._chrome_remote.clear_requests()
                         logger.debug('Очищен кэш запросов Chrome')
                     except Exception as cache_error:
                         logger.debug('Ошибка при очистке кэша: %s', cache_error)
-                    
+
                     # Проверяем, освободилась ли память
                     new_memory_info = process.memory_info()
                     new_memory_mb = new_memory_info.rss / 1024 / 1024
                     saved_mb = memory_mb - new_memory_mb
-                    
+
                     if saved_mb > 0:
-                        logger.info('Освобождено %.1f МБ памяти (%.1f%% уменьшение)', 
+                        logger.info('Освобождено %.1f МБ памяти (%.1f%% уменьшение)',
                                    saved_mb, (saved_mb / memory_mb) * 100)
                     else:
                         logger.warning('Не удалось освободить значительный объём памяти')
-                        
-            except ImportError:
-                # psutil не установлен - пропускаем проверку
-                pass
+
             except Exception as memory_error:
                 logger.debug('Ошибка при проверке памяти: %s', memory_error)
 
