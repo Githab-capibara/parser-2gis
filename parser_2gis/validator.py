@@ -105,26 +105,30 @@ class DataValidator:
     
     def validate_email(self, email: str) -> ValidationResult:
         """Валидация email-адреса.
-        
+
         Проверяет корректность email-адреса по стандартному паттерну.
-        
+
         Args:
             email: Email-адрес для валидации
-            
+
         Returns:
             ValidationResult с email или ошибками
-            
+
         Примечание:
             Email приводится к нижнему регистру и удаляются пробелы.
+            Проверка на пустую строку выполняется до обработки для оптимизации.
         """
-        email = email.strip().lower()
-        
-        if not email:
+        # Быстрая проверка на пустую строку до обработки
+        if not email or not email.strip():
             return ValidationResult(False, None, ["Email пустой"])
         
+        # Нормализация email
+        email = email.strip().lower()
+
+        # Проверка формата email
         if not self.EMAIL_PATTERN.match(email):
             return ValidationResult(False, None, ["Некорректный формат email"])
-        
+
         return ValidationResult(True, email, [])
     
     def validate_url(self, url: str) -> ValidationResult:

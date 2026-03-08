@@ -172,30 +172,47 @@ class CacheManager:
     
     def get_stats(self) -> Dict[str, Any]:
         """Получение статистики кэша.
-        
+
         Returns:
             Словарь со статистикой:
             - total_records: Общее количество записей
             - expired_records: Количество истекших записей
             - cache_size: Размер файла базы данных в байтах
+            
+        Примечание:
+            Метод включает обработку ошибок для всех операций с файловой системой
+            и базой данных для предотвращения сбоев.
         """
-        with sqlite3.connect(self._cache_file) as conn:
-            # Общее количество записей
-            total = conn.execute("SELECT COUNT(*) FROM cache").fetchone()[0]
-            
-            # Количество истекших записей
-            expired = conn.execute("""
-                SELECT COUNT(*) FROM cache 
-                WHERE expires_at < ?
-            """, (datetime.now().isoformat(),)).fetchone()[0]
-            
-            # Размер файла базы данных
-            cache_size = self._cache_file.stat().st_size if self._cache_file.exists() else 0
-            
+        try:
+            with sqlite3.connect(self._cache_file) as conn:
+                # Общее количество записей
+                total = conn.execute("SELECT COUNT(*) FROM cache").fetchone()[0]
+
+                # Количество истекших записей
+                expired = conn.execute("""
+                    SELECT COUNT(*) FROM cache
+                    WHERE expires_at < ?
+                """, (datetime.now().isoformat(),)).fetchone()[0]
+
+                # Размер файла базы данных с обработкой ошибок
+                try:
+                    cache_size = self._cache_file.stat().st_size if self._cache_file.exists() else 0
+                except OSError:
+                    # Файл недоступен или ошибка файловой системы
+                    cache_size = 0
+
+                return {
+                    'total_records': total,
+                    'expired_records': expired,
+                    'cache_size': cache_size
+                }
+        except sqlite3.Error as db_error:
+            # Ошибка базы данных
+            logger.warning('Ошибка при получении статистики кэша: %s', db_error)
             return {
-                'total_records': total,
-                'expired_records': expired,
-                'cache_size': cache_size
+                'total_records': 0,
+                'expired_records': 0,
+                'cache_size': 0
             }
     
     @staticmethod

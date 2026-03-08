@@ -282,10 +282,26 @@ class ChromeRemote:
         requests.put('%s/json/close/%s' % (self._dev_url, tab.id))
 
     def _setup_tab(self) -> None:
-        """Скрывает следы webdriver, включает перехват запросов/ответов, исправляет UA."""
+        """Скрывает следы webdriver, включает перехват запросов/ответов, исправляет UA.
+        
+        Примечание:
+            Метод устанавливает пользовательский агент, скрывает признаки webdriver
+            и настраивает перехват сетевых запросов для последующей обработки.
+        """
         # Исправляем user agent для headless браузера
         original_useragent = self.execute_script('navigator.userAgent')
-        fixed_useragent = original_useragent.replace('Headless', '')
+        
+        # Проверяем успешность получения user agent
+        if original_useragent:
+            fixed_useragent = original_useragent.replace('Headless', '')
+        else:
+            # Запасной вариант: стандартный user agent Chrome
+            fixed_useragent = (
+                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+                '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            )
+            logger.warning('Не удалось получить user agent, используется запасной вариант')
+        
         self._chrome_tab.Network.setUserAgentOverride(userAgent=fixed_useragent)
 
         # Скрываем следы webdriver

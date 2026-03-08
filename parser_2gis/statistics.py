@@ -6,7 +6,7 @@
 """
 
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -15,10 +15,10 @@ from typing import Optional, Dict, Any
 @dataclass
 class ParserStatistics:
     """Статистика работы парсера.
-    
+
     Содержит полную информацию о работе парсера, включая
     количество обработанных записей, время работы и другую статистику.
-    
+
     Attributes:
         start_time: Время начала работы парсера
         end_time: Время завершения работы парсера
@@ -40,12 +40,7 @@ class ParserStatistics:
     failed_records: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
-    errors: list[str] = None
-    
-    def __post_init__(self):
-        """Инициализация списка ошибок, если он не был задан."""
-        if self.errors is None:
-            self.errors = []
+    errors: list[str] = field(default_factory=list)
     
     @property
     def elapsed_time(self) -> Optional[timedelta]:
