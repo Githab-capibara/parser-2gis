@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, List
+from typing import Callable
 
 from pydantic import BaseModel, Field
 
@@ -94,13 +94,13 @@ class DOMNode(BaseModel):
             Текстовое содержимое узла.
         """
         text_parts: list[str] = []
-        
+
         # Добавляем значение текущего узла если это текстовый узел
         if self.value:
             text_parts.append(self.value)
-        
+
         # Рекурсивно собираем текст из дочерних узлов
         for child in self.children:
             text_parts.append(child.text)
-        
+
         return "".join(text_parts)

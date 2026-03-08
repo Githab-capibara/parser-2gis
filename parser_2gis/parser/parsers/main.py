@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import base64
 import gc
 import json
 import re
-import sys
 import time
 import urllib.parse
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 try:
     import psutil
@@ -478,7 +476,8 @@ class MainParser:
                     consecutive_empty_pages += 1
                     link_attempt_count += 1
                     logger.warning(
-                        "Не удалось получить ссылки, переходим к следующей странице. (Пустых страниц подряд: %d/%d, Попыток: %d/%d)",
+                        "Не удалось получить ссылки, переходим к следующей странице. "
+                        "(Пустых страниц подряд: %d/%d, Попыток: %d/%d)",
                         consecutive_empty_pages,
                         self._options.max_consecutive_empty_pages,
                         link_attempt_count,
