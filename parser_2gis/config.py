@@ -41,13 +41,33 @@ class Configuration(BaseModel):
             ValueError: Если возникает конфликт типов при объединении.
         """
 
-        def assign_attributes(model_source: BaseModel, model_target: BaseModel) -> None:
+        def assign_attributes(
+            model_source: BaseModel,
+            model_target: BaseModel,
+            max_depth: int = 10,
+            current_depth: int = 0,
+        ) -> None:
             """Рекурсивно присваивает новые атрибуты к существующей конфигурации.
 
             Примечание:
                 Корректно определяет версию Pydantic и получает набор установленных полей.
                 Для Pydantic v2 используется model_fields_set, для v1 - __fields_set__.
+
+            Args:
+                model_source: Исходная модель.
+                model_target: Целевая модель.
+                max_depth: Максимальная глубина рекурсии (по умолчанию 10).
+                current_depth: Текущая глубина рекурсии.
+
+            Raises:
+                RecursionError: При превышении максимальной глубины рекурсии.
             """
+            # Проверка глубины рекурсии
+            if current_depth >= max_depth:
+                raise RecursionError(
+                    f"Превышена максимальная глубина рекурсии ({max_depth}) при объединении конфигурации"
+                )
+
             # Определяем версию Pydantic и получаем набор установленных полей
             if hasattr(model_source, "model_fields_set"):
                 # Pydantic v2
@@ -72,14 +92,18 @@ class Configuration(BaseModel):
                     else:
                         # Рекурсивно объединяем вложенные модели
                         target_attr = getattr(model_target, field)
-                        assign_attributes(source_attr, target_attr)
+                        assign_attributes(
+                            source_attr, target_attr, max_depth, current_depth + 1
+                        )
 
                 except (AttributeError, TypeError) as e:
                     logger.warning("Ошибка при объединении поля %s: %s", field, e)
+                    raise
                 except Exception as e:
                     logger.error(
                         "Непредвиденная ошибка при объединении поля %s: %s", field, e
                     )
+                    raise
 
         try:
             assign_attributes(other_config, self)
@@ -152,7 +176,14 @@ class Configuration(BaseModel):
             OSError: Если не удалось создать файл конфигурации.
         """
         if not config_path:
-            config_path = user_path() / "parser-2gis.config"
+            user_config_path = user_path()
+            if user_config_path is None:
+                logger.warning(
+                    "Не удалось определить пользовательский путь конфигурации, используется путь по умолчанию"
+                )
+                config_path = pathlib.Path.home() / ".config" / "parser-2gis"
+            else:
+                config_path = user_config_path / "parser-2gis.config"
 
         try:
             if not config_path.is_file():
@@ -202,6 +233,16 @@ class Configuration(BaseModel):
                         logger.warning(
                             "Создан backup повреждённой конфигурации: %s", backup_path
                         )
+                        # Переименовываем оригинальный файл, чтобы избежать перезаписи
+                        renamed_path = config_path.with_suffix(
+                            config_path.suffix + ".corrupted"
+                        )
+                        config_path.rename(renamed_path)
+                        logger.warning(
+                            "Оригинальный файл переименован: %s -> %s",
+                            config_path,
+                            renamed_path,
+                        )
                     else:
                         logger.warning("Не удалось создать backup: %s", backup_path)
                 except OSError as copy_err:
@@ -231,7 +272,7 @@ class Configuration(BaseModel):
         except Exception as e:
             # Любая другая непредвиденная ошибка
             logger.error(
-                "Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=True
+                "Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=e
             )
             config = cls()
 
