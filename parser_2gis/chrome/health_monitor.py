@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 class HealthStatusDict(TypedDict, total=False):
     """Словарь состояния здоровья браузера."""
+
     healthy: bool
     memory_mb: float
     cpu_percent: float
@@ -141,7 +142,10 @@ class BrowserHealthMonitor:
                             self._critical_errors_count += 1
 
                         # Рекомендуем перезапуск
-                        if self._enable_auto_restart and health_status["recommendation"]:
+                        if (
+                            self._enable_auto_restart
+                            and health_status["recommendation"]
+                        ):
                             health_status[
                                 "recommendation"
                             ] += ". Рекомендуется перезапуск."

@@ -12,6 +12,7 @@ class Reviews(BaseModel):
         general_rating: Общий рейтинг организации (от 0 до 5).
         general_review_count: Общее количество отзывов.
     """
+
     # Общий рейтинг
     general_rating: Optional[float] = None
 

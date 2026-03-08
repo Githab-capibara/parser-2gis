@@ -16,16 +16,16 @@ class XLSXWriter(CSVWriter):
         super().__exit__(*exc_info)
 
         # Конвертируем CSV в XLSX таблицу
-        tmp_xlsx_name = os.path.splitext(self._file_path)[0] + '.converted.xlsx'
+        tmp_xlsx_name = os.path.splitext(self._file_path)[0] + ".converted.xlsx"
 
         # Используем try/finally для гарантии удаления временного файла при ошибке
         try:
             # constant_memory=True уменьшает потребление RAM при работе с большими файлами
-            with Workbook(tmp_xlsx_name, {'constant_memory': True}) as workbook:
-                bold = workbook.add_format({'bold': True})  # Формат для заголовка
+            with Workbook(tmp_xlsx_name, {"constant_memory": True}) as workbook:
+                bold = workbook.add_format({"bold": True})  # Формат для заголовка
 
                 worksheet = workbook.add_worksheet()
-                with self._open_file(self._file_path, 'r') as f_csv:
+                with self._open_file(self._file_path, "r") as f_csv:
                     csv_reader = csv.reader(f_csv)
                     for r, row in enumerate(csv_reader):
                         for c, col in enumerate(row):

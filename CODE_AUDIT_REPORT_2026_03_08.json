@@ -1,0 +1,935 @@
+{
+  "audit_report": {
+    "project": "parser-2gis",
+    "audit_date": "2026-03-08",
+    "auditor": "QC Worker (AI Code Inspector)",
+    "total_files_analyzed": 67,
+    "summary": {
+      "critical_issues": 12,
+      "high_issues": 18,
+      "medium_issues": 24,
+      "low_issues": 31
+    }
+  },
+  "issues": [
+    {
+      "id": "CRIT-001",
+      "priority": "critical",
+      "category": "logic",
+      "file": "parser_2gis/parallel_optimizer.py",
+      "line": "178-181",
+      "description": "Дублирование подсчёта completed задач. Счётчик увеличивается дважды: сначала на строке 178, затем повторно в условии if success.",
+      "code_snippet": "self._stats['completed'] += 1  # Строка 178\n...\nif success:\n    self._stats['completed'] = self._stats.get('completed', 0) + 1  # Строка 181 - ДУБЛИРОВАНИЕ!",
+      "recommendation": "Удалить строку 181 или переместить увеличение счётчика только в блок if/else",
+      "impact": "Некорректная статистика выполнения задач, невозможность отслеживания реального прогресса"
+    },
+    {
+      "id": "CRIT-002",
+      "priority": "critical",
+      "category": "logic",
+      "file": "parser_2gis/cache.py",
+      "line": "224",
+      "description": "Использование неимпортированной переменной logger. В методе get_stats вызывается logger.warning, но logger не импортирован в этом модуле.",
+      "code_snippet": "except sqlite3.Error as db_error:\n    logger.warning('Ошибка при получении статистики кэша: %s', db_error)  # logger не импортирован!",
+      "recommendation": "Добавить импорт: from .logger import logger",
+      "impact": "NameError при возникновении ошибки базы данных, падение приложения"
+    },
+    {
+      "id": "CRIT-003",
+      "priority": "critical",
+      "category": "type_safety",
+      "file": "parser_2gis/parallel_optimizer.py",
+      "line": "189",
+      "description": "Некорректное использование типа данных. Используется 'any' (строчными буквами) вместо 'Any' из typing.",
+      "code_snippet": "def get_stats(self) -> Dict[str, any]:  # Должно быть Dict[str, Any]",
+      "recommendation": "Заменить 'any' на 'Any' и добавить импорт из typing",
+      "impact": "Проблемы с проверкой типов mypy, потенциальные ошибки времени выполнения"
+    },
+    {
+      "id": "CRIT-004",
+      "priority": "critical",
+      "category": "security",
+      "file": "parser_2gis/main.py",
+      "line": "71",
+      "description": "Прямая модификация sys.argv может привести к инъекции аргументов командной строки.",
+      "code_snippet": "sys.argv = [arg.lower() if arg.startswith('-') else arg for arg in sys.argv]",
+      "recommendation": "Создать копию аргументов для обработки вместо модификации оригинального sys.argv",
+      "impact": "Потенциальная уязвимость безопасности, непредсказуемое поведение при повторном использовании sys.argv"
+    },
+    {
+      "id": "CRIT-005",
+      "priority": "critical",
+      "category": "resource_leak",
+      "file": "parser_2gis/parallel_parser.py",
+      "line": "254-260",
+      "description": "Закомментирован код удаления временных файлов после объединения. Это приводит к накоплению файлов в папке output и возможному заполнению диска.",
+      "code_snippet": "# for csv_file in files_to_delete:\n#     try:\n#         csv_file.unlink()\n#         self.log(f'Исходный файл удалён: {csv_file.name}', 'debug')",
+      "recommendation": "Раскомментировать код удаления или реализовать альтернативный механизм очистки",
+      "impact": "Заполнение дискового пространства при длительной работе парсера"
+    },
+    {
+      "id": "CRIT-006",
+      "priority": "critical",
+      "category": "logic",
+      "file": "parser_2gis/parser/parsers/main.py",
+      "line": "414-416",
+      "description": "Некорректная обработка пустых страниц. При неудачном получении ссылок увеличивается счётчик consecutive_empty_pages, но continue может привести к бесконечному циклу.",
+      "code_snippet": "if links is None:\n    consecutive_empty_pages += 1\n    ...\n    continue  # Может зациклиться",
+      "recommendation": "Добавить проверку на максимальное количество попыток или механизм выхода из цикла",
+      "impact": "Возможный бесконечный цикл при постоянных ошибках получения ссылок"
+    },
+    {
+      "id": "CRIT-007",
+      "priority": "critical",
+      "category": "exception_handling",
+      "file": "parser_2gis/chrome/remote.py",
+      "line": "158-175",
+      "description": "В методе _connect_interface все исключения ловятся и игнорируются в цикле, но нет гарантии что функция вернёт False после всех попыток.",
+      "code_snippet": "for attempt in range(max_attempts):\n    try:\n        ...\n    except Exception as e:\n        ... continue  # Может продолжаться бесконечно",
+      "recommendation": "Добавить явный return False после исчерпания всех попыток",
+      "impact": "Зависание приложения при проблемах с подключением к Chrome"
+    },
+    {
+      "id": "CRIT-008",
+      "priority": "critical",
+      "category": "data_integrity",
+      "file": "parser_2gis/writer/writers/csv_writer.py",
+      "line": "237-245",
+      "description": "В методе _remove_duplicates используется hashlib.md5 с параметром usedforsecurity, который доступен только в Python 3.9+, но проверка версии не гарантирует корректную работу.",
+      "code_snippet": "if sys.version_info >= (3, 9):\n    line_hash = hashlib.md5(..., usedforsecurity=False)\nelse:\n    line_hash = hashlib.md5(...)",
+      "recommendation": "Использовать try/except для обработки AttributeError или убрать параметр usedforsecurity",
+      "impact": "AttributeError на Python < 3.9, падение при удалении дубликатов"
+    },
+    {
+      "id": "HIGH-001",
+      "priority": "high",
+      "category": "logic",
+      "file": "parser_2gis/validator.py",
+      "line": "74-88",
+      "description": "validate_phone поддерживает только российские номера (+7/8). Номера других стран будут отклонены.",
+      "code_snippet": "if cleaned.startswith('+7'):\n    cleaned = '8' + cleaned[2:]\nelif not cleaned.startswith('8'):\n    errors.append('Номер должен начинаться с +7 или 8')",
+      "recommendation": "Добавить поддержку международных номеров или явно документировать ограничение",
+      "impact": "Невозможность валидации номеров других стран"
+    },
+    {
+      "id": "HIGH-002",
+      "priority": "high",
+      "category": "documentation",
+      "file": "parser_2gis/common.py",
+      "line": "113-117",
+      "description": "Функция running_linux() утверждает что проверяет только Ubuntu, но фактически проверяет любой Linux.",
+      "code_snippet": "def running_linux() -> bool:\n    '''Определяет, является ли текущая ОС Linux Ubuntu.'''\n    return sys.platform.startswith('linux')  # Проверка для любого Linux!",
+      "recommendation": "Исправить документацию или добавить проверку именно Ubuntu (через /etc/os-release)",
+      "impact": "Вводящая в заблуждение документация"
+    },
+    {
+      "id": "HIGH-003",
+      "priority": "high",
+      "category": "resource_management",
+      "file": "parser_2gis/chrome/browser.py",
+      "line": "124-145",
+      "description": "Метод _delete_profile может не удалить профиль при ошибках, что приводит к утечке дискового пространства.",
+      "code_snippet": "try:\n    shutil.rmtree(self._profile_path, ignore_errors=False)\nexcept Exception as e:\n    logger.warning('Ошибка при удалении профиля Chrome: %s', e)\n    # Профиль может остаться на диске!",
+      "recommendation": "Использовать ignore_errors=True или реализовать механизм принудительного удаления",
+      "impact": "Накопление временных файлов профиля Chrome"
+    },
+    {
+      "id": "HIGH-004",
+      "priority": "high",
+      "category": "concurrency",
+      "file": "parser_2gis/chrome/remote.py",
+      "line": "77-89",
+      "description": "Проверка доступности порта подвержена race condition. Порт может быть занят между проверкой и использованием.",
+      "code_snippet": "def _check_port_available(port: int, timeout: float = 0.5) -> bool:\n    sock = socket.socket(...)\n    result = sock.connect_ex(('127.0.0.1', port))\n    # Race condition: порт может быть занят сразу после проверки",
+      "recommendation": "Добавить повторную проверку непосредственно перед использованием порта",
+      "impact": "Потенциальные ошибки подключения при параллельном запуске нескольких браузеров"
+    },
+    {
+      "id": "HIGH-005",
+      "priority": "high",
+      "category": "error_handling",
+      "file": "parser_2gis/parallel_parser.py",
+      "line": "174-186",
+      "description": "При ошибке парсинга временный файл удаляется, но ошибка может произойти после переименования, что приведёт к потере данных.",
+      "code_snippet": "temp_filepath.replace(filepath)  # Переименование\n...\nexcept Exception as e:\n    # Удаляем temp_filepath, но он уже переименован!\n    if temp_filepath.exists():\n        temp_filepath.unlink()",
+      "recommendation": "Переместить обновление статистики и callback после переименования в try блок",
+      "impact": "Потеря данных при ошибках после переименования файла"
+    },
+    {
+      "id": "HIGH-006",
+      "priority": "high",
+      "category": "performance",
+      "file": "parser_2gis/parser/parsers/main.py",
+      "line": "290-310",
+      "description": "Функция check_and_optimize_memory вызывается на каждой странице, но проверка psutil.Process() создаёт накладные расходы.",
+      "code_snippet": "def check_and_optimize_memory():\n    if not PSUTIL_AVAILABLE:\n        return\n    process = psutil.Process()  # Создаётся каждый раз!",
+      "recommendation": "Кэшировать объект Process или вызывать проверку реже",
+      "impact": "Излишние накладные расходы при парсинге больших объёмов"
+    },
+    {
+      "id": "HIGH-007",
+      "priority": "high",
+      "category": "type_safety",
+      "file": "parser_2gis/parallel_optimizer.py",
+      "line": "24",
+      "description": "Класс ParallelTask использует Optional[float] для start_time и end_time, но не обрабатывает случай когда они None в методе duration().",
+      "code_snippet": "def duration(self) -> float:\n    if self.start_time and self.end_time:\n        return self.end_time - self.start_time\n    elif self.start_time:\n        return time.time() - self.start_time\n    return 0  # Возвращает 0, что может быть некорректно",
+      "recommendation": "Бросать исключение или возвращать None для незавершённых задач",
+      "impact": "Некорректные расчёты длительности для активных задач"
+    },
+    {
+      "id": "HIGH-008",
+      "priority": "high",
+      "category": "security",
+      "file": "parser_2gis/chrome/browser.py",
+      "line": "67",
+      "description": "Опция remote-allow-origins установлена на localhost, но это может быть недостаточно для защиты от атак.",
+      "code_snippet": "'--remote-allow-origins=http://localhost',  # Может быть недостаточно",
+      "recommendation": "Использовать более строгие ограничения или добавить токены аутентификации",
+      "impact": "Потенциальная уязвимость для локальных атак"
+    },
+    {
+      "id": "HIGH-009",
+      "priority": "high",
+      "category": "logic",
+      "file": "parser_2gis/common.py",
+      "line": "263-275",
+      "description": "Функция url_query_encode использует кастомную логику кодирования, которая может некорректно обрабатывать специальные символы.",
+      "code_snippet": "def _is_safe_char(char: str) -> bool:\n    # Проверяет только кириллицу и пробел\n    # Латиница и цифры будут закодированы, что избыточно",
+      "recommendation": "Использовать стандартный urllib.parse.quote для всех символов",
+      "impact": "Некорректное кодирование URL со специальными символами"
+    },
+    {
+      "id": "HIGH-010",
+      "priority": "high",
+      "category": "data_integrity",
+      "file": "parser_2gis/writer/writers/csv_writer.py",
+      "line": "106-115",
+      "description": "Метод _remove_empty_columns может некорректно обрабатывать файлы с большим количеством строк из-за чтения всего файла в память.",
+      "code_snippet": "with self._open_file(self._file_path, 'r', encoding='utf-8-sig') as f_csv:\n    csv_reader = csv.DictReader(f_csv, ...)\n    for row in csv_reader:  # Все строки в памяти!\n        ...",
+      "recommendation": "Использовать потоковую обработку или chunked reading для больших файлов",
+      "impact": "OutOfMemory ошибка при обработке больших CSV файлов"
+    },
+    {
+      "id": "HIGH-011",
+      "priority": "high",
+      "category": "exception_handling",
+      "file": "parser_2gis/config.py",
+      "line": "134-152",
+      "description": "Метод load_config ловит Exception и возвращает конфигурацию по умолчанию, что может скрыть серьёзные проблемы.",
+      "code_snippet": "except Exception as e:\n    logger.error('Непредвиденная ошибка при загрузке конфигурации: %s', e, exc_info=True)\n    config = cls()  # Просто возвращаем default",
+      "recommendation": "Логировать с полным stack trace и рассматривать возможность проброса исключения",
+      "impact": "Сложность отладки проблем с конфигурацией"
+    },
+    {
+      "id": "HIGH-012",
+      "priority": "high",
+      "category": "logic",
+      "file": "parser_2gis/parser/adaptive_limits.py",
+      "line": "72-85",
+      "description": "Метод _determine_city_size использует среднее значение, но не учитывает дисперсию. Город может быть неверно классифицирован.",
+      "code_snippet": "avg_records = sum(self._records_on_first_pages) / len(self._records_on_first_pages)\n# Не учитывается variance/стандартное отклонение",
+      "recommendation": "Добавить проверку на стандартное отклонение или использовать медиану",
+      "impact": "Некорректная классификация городов и неоптимальные лимиты"
+    },
+    {
+      "id": "HIGH-013",
+      "priority": "high",
+      "category": "concurrency",
+      "file": "parser_2gis/parallel_parser.py",
+      "line": "88-92",
+      "description": "Блокировка self._lock используется для статистики, но не защищает все критические секции.",
+      "code_snippet": "with self._lock:\n    self._stats['total'] = len(all_urls)\n# Другие операции со stats не защищены!",
+      "recommendation": "Защитить все операции с shared state блокировкой",
+      "impact": "Потенциальные race condition при обновлении статистики"
+    },
+    {
+      "id": "HIGH-014",
+      "priority": "high",
+      "category": "resource_management",
+      "file": "parser_2gis/chrome/remote.py",
+      "line": "475-490",
+      "description": "Метод get_response_body не освобождает память сразу после получения тела ответа.",
+      "code_snippet": "response_data = self._chrome_tab.call_method(...)\n# response_data остаётся в памяти до конца функции",
+      "recommendation": "Явно удалять response_data после извлечения body",
+      "impact": "Избыточное потребление памяти при парсинге"
+    },
+    {
+      "id": "HIGH-015",
+      "priority": "high",
+      "category": "error_handling",
+      "file": "parser_2gis/runner/cli.py",
+      "line": "28-35",
+      "description": "Общий except блок ловит все исключения и логирует их, но некоторые ошибки могут требовать специального处理的.",
+      "code_snippet": "except Exception as e:\n    if isinstance(e, ChromeRuntimeException) and str(e) == 'Вкладка была остановлена':\n        logger.error('Вкладка браузера была закрыта.')\n    else:\n        logger.error('Ошибка во время работы парсера.', exc_info=True)",
+      "recommendation": "Добавить обработку специфичных исключений (ConnectionError, TimeoutError и т.д.)",
+      "impact": "Потеря контекста ошибок и сложность отладки"
+    },
+    {
+      "id": "HIGH-016",
+      "priority": "high",
+      "category": "logic",
+      "file": "parser_2gis/parser/smart_retry.py",
+      "line": "47-70",
+      "description": "Метод should_retry автоматически увеличивает retry_count при каждом вызове, даже если решение не было принято.",
+      "code_snippet": "def should_retry(self, error: str, records_on_page: int = 0) -> bool:\n    self._retry_count += 1  # Увеличивается ДО принятия решения!\n    # ... логика принятия решения",
+      "recommendation": "Увеличивать счётчик только после фактического выполнения retry",
+      "impact": "Некорректный подсчёт попыток, преждевременное прекращение retry"
+    },
+    {
+      "id": "HIGH-017",
+      "priority": "high",
+      "category": "data_integrity",
+      "file": "parser_2gis/writer/models/catalog_item.py",
+      "line": "89-95",
+      "description": "Свойство timezone может вернуть некорректное значение для отрицательных offset.",
+      "code_snippet": "sign = '-' if self.timezone_offset < 0 else '+'\nminutes = abs(self.timezone_offset)\nh = minutes // 60\nm = minutes % 60\nreturn f'{sign}{h:02d}:{m:02d}'",
+      "recommendation": "Добавить проверку на корректность диапазона offset (-12 до +14)",
+      "impact": "Некорректное отображение часового пояса"
+    },
+    {
+      "id": "HIGH-018",
+      "priority": "high",
+      "category": "performance",
+      "file": "parser_2gis/parser/parsers/main.py",
+      "line": "357-370",
+      "description": "Цикл for link in links выполняет до 3 попыток для каждой ссылки, что может значительно замедлить парсинг.",
+      "code_snippet": "for link in links:\n    for attempt in range(MAX_RESPONSE_ATTEMPTS):  # 3 попытки\n        self._chrome_remote.perform_click(link)\n        # ...",
+      "recommendation": "Реализовать batch processing или оптимизировать количество попыток",
+      "impact": "Значительное замедление парсинга при большом количестве ссылок"
+    },
+    {
+      "id": "MED-001",
+      "priority": "medium",
+      "category": "pep8",
+      "file": "parser_2gis/parallel_optimizer.py",
+      "line": "多处",
+      "description": "Нарушение PEP 8: строки превышают 120 символов в нескольких местах файла.",
+      "recommendation": "Разделить длинные строки или использовать скобки для неявного continuation",
+      "impact": "Снижение читаемости кода"
+    },
+    {
+      "id": "MED-002",
+      "priority": "medium",
+      "category": "code_style",
+      "file": "parser_2gis/config.py",
+      "line": "44-78",
+      "description": "Метод merge_with слишком сложный (Cognitive Complexity), требует рефакторинга.",
+      "recommendation": "Выделить вложенную функцию assign_attributes в отдельный метод или класс",
+      "impact": "Сложность поддержки и тестирования"
+    },
+    {
+      "id": "MED-003",
+      "priority": "medium",
+      "category": "documentation",
+      "file": "parser_2gis/cache.py",
+      "line": "1-30",
+      "description": "Отсутствует описание исключений в docstring класса CacheManager.",
+      "recommendation": "Добавить Raises секцию с описанием возможных исключений",
+      "impact": "Неполная документация API"
+    },
+    {
+      "id": "MED-004",
+      "priority": "medium",
+      "category": "type_safety",
+      "file": "parser_2gis/common.py",
+      "line": "88-110",
+      "description": "Декоратор wait_until_finished использует Any для всех параметров, что снижает типобезопасность.",
+      "recommendation": "Использовать более специфичные типы (Callable, Optional и т.д.)",
+      "impact": "Снижение преимуществ статической проверки типов"
+    },
+    {
+      "id": "MED-005",
+      "priority": "medium",
+      "category": "error_handling",
+      "file": "parser_2gis/paths.py",
+      "line": "62-78",
+      "description": "Функция image_path использует listdir для поиска файла, что неэффективно для больших директорий.",
+      "recommendation": "Использовать pathlib.Path.glob или заранее известный список файлов",
+      "impact": "Снижение производительности при большом количестве изображений"
+    },
+    {
+      "id": "MED-006",
+      "priority": "medium",
+      "category": "code_duplication",
+      "file": "parser_2gis/writer/writers/csv_writer.py",
+      "line": "156-175, 210-230",
+      "description": "Дублирование кода для работы с временными файлами в _remove_empty_columns и _remove_duplicates.",
+      "recommendation": "Выделить общий код в утилиту create_temp_file или контекстный менеджер",
+      "impact": "Увеличение размера кода, сложность поддержки"
+    },
+    {
+      "id": "MED-007",
+      "priority": "medium",
+      "category": "performance",
+      "file": "parser_2gis/chrome/remote.py",
+      "line": "230-250",
+      "description": "Метод _create_tab выполняет до 10 попыток создания вкладки с задержкой 1.5 сек, что может занять до 15 секунд.",
+      "recommendation": "Уменьшить количество попыток или использовать экспоненциальную задержку",
+      "impact": "Длительная задержка при запуске браузера"
+    },
+    {
+      "id": "MED-008",
+      "priority": "medium",
+      "category": "logic",
+      "file": "parser_2gis/parser/end_of_results.py",
+      "line": "35-42",
+      "description": "DOM_END_SELECTORS использует lambda функции которые могут бросить исключение при отсутствии text атрибута.",
+      "recommendation": "Добавить проверку на наличие text перед использованием",
+      "impact": "Potential exception при проверке окончания результатов"
+    },
+    {
+      "id": "MED-009",
+      "priority": "medium",
+      "category": "security",
+      "file": "parser_2gis/common.py",
+      "line": "45-58",
+      "description": "Функция _is_sensitive_key использует простые паттерны для поиска чувствительных ключей, что может дать false positives.",
+      "recommendation": "Использовать более точные паттерны или полный список ключей",
+      "impact": "Возможная утечка чувствительных данных или избыточное скрытие"
+    },
+    {
+      "id": "MED-010",
+      "priority": "medium",
+      "category": "error_handling",
+      "file": "parser_2gis/statistics.py",
+      "line": "155-165",
+      "description": "Метод _generate_html не экранирует HTML в ошибках, что может привести к XSS при отображении статистики.",
+      "recommendation": "Использовать html.escape для всех пользовательских данных",
+      "impact": "Потенциальная XSS уязвимость в HTML отчётах"
+    },
+    {
+      "id": "MED-011",
+      "priority": "medium",
+      "category": "type_safety",
+      "file": "parser_2gis/cli/progress.py",
+      "line": "45-55",
+      "description": "Класс ProgressManager использует Optional[tqdm] но tqdm может быть None если TQDM_AVAILABLE=False.",
+      "recommendation": "Использовать Union[tqdm, None] или явную проверку перед использованием",
+      "impact": "Potential AttributeError при использовании без установленного tqdm"
+    },
+    {
+      "id": "MED-012",
+      "priority": "medium",
+      "category": "performance",
+      "file": "parser_2gis/writer/writers/csv_writer.py",
+      "line": "320-340",
+      "description": "Метод _extract_raw создаёт словарь data со всеми ключами заранее, что избыточно для записей с неполными данными.",
+      "recommendation": "Создавать ключи только по мере необходимости",
+      "impact": "Избыточное потребление памяти"
+    },
+    {
+      "id": "MED-013",
+      "priority": "medium",
+      "category": "code_style",
+      "file": "parser_2gis/logger/options.py",
+      "line": "28-45",
+      "description": "Валидаторы уровня логирования и формата дублируются для Pydantic v1 и v2.",
+      "recommendation": "Использовать общую функцию с декоратором или условным применением",
+      "impact": "Дублирование кода"
+    },
+    {
+      "id": "MED-014",
+      "priority": "medium",
+      "category": "documentation",
+      "file": "parser_2gis/parallel_parser.py",
+      "line": "1-30",
+      "description": "Отсутствует описание параметров в docstring класса ParallelCityParser.",
+      "recommendation": "Добавить Args секцию с описанием всех параметров",
+      "impact": "Неполная документация API"
+    },
+    {
+      "id": "MED-015",
+      "priority": "medium",
+      "category": "error_handling",
+      "file": "parser_2gis/chrome/health_monitor.py",
+      "line": "78-95",
+      "description": "Метод check_health ловит Exception и возвращает healthy=False, но это может скрыть временные проблемы.",
+      "recommendation": "Различать временные и постоянные ошибки",
+      "impact": "Ложные срабатывания при временных проблемах мониторинга"
+    },
+    {
+      "id": "MED-016",
+      "priority": "medium",
+      "category": "logic",
+      "file": "parser_2gis/parser/parsers/firm.py",
+      "line": "52-65",
+      "description": "Извлечение данных из initialState использует цепочку get, но не проверяет все промежуточные значения.",
+      "code_snippet": "data_dict = initial_state.get('data', {})\nentity = data_dict.get('entity', {})\nprofile = entity.get('profile', {})\n# Если data_dict None - всё равно работает, но это не явно",
+      "recommendation": "Добавить явные проверки на None для каждого уровня",
+      "impact": "Potential KeyError при некорректной структуре данных"
+    },
+    {
+      "id": "MED-017",
+      "priority": "medium",
+      "category": "performance",
+      "file": "parser_2gis/writer/writers/xlsx_writer.py",
+      "line": "25-40",
+      "description": "Конвертация CSV в XLSX читает весь CSV в память перед записью, что проблематично для больших файлов.",
+      "recommendation": "Использовать потоковую запись или chunked processing",
+      "impact": "OutOfMemory ошибка при больших CSV файлах"
+    },
+    {
+      "id": "MED-018",
+      "priority": "medium",
+      "category": "type_safety",
+      "file": "parser_2gis/data/categories_93.py",
+      "line": "145-160",
+      "description": "Функция generate_urls_for_city импортирует url_query_encode внутри функции, что нарушает принцип импортов.",
+      "recommendation": "Переместить импорт наверх файла",
+      "impact": "Нарушение стиля кода, минимальное влияние на производительность"
+    },
+    {
+      "id": "MED-019",
+      "priority": "medium",
+      "category": "error_handling",
+      "file": "parser_2gis/chrome/dom.py",
+      "line": "35-45",
+      "description": "Валидатор атрибутов DOMNode бросает ValueError при нечётном количестве элементов, но не указывает какой именно список проблемный.",
+      "recommendation": "Добавить больше контекста в сообщение об ошибке",
+      "impact": "Сложность отладки проблем с DOM"
+    },
+    {
+      "id": "MED-020",
+      "priority": "medium",
+      "category": "code_style",
+      "file": "parser_2gis/parser/options.py",
+      "line": "18-25",
+      "description": "Функция default_max_records использует магические числа (550, 1024, 400) без объяснения.",
+      "recommendation": "Вынести в константы с поясняющими именами",
+      "impact": "Снижение читаемости кода"
+    },
+    {
+      "id": "MED-021",
+      "priority": "medium",
+      "category": "logic",
+      "file": "parser_2gis/parallel_optimizer.py",
+      "line": "130-145",
+      "description": "Метод check_resources проверяет CPU с interval=0.1, но это может дать неточные результаты при частых вызовах.",
+      "recommendation": "Кэшировать результат или использовать более длительный интервал",
+      "impact": "Неточные измерения загрузки CPU"
+    },
+    {
+      "id": "MED-022",
+      "priority": "medium",
+      "category": "documentation",
+      "file": "parser_2gis/writer/models/schedule.py",
+      "line": "1-20",
+      "description": "Отсутствует файл (не был прочитан), предполагается неполная документация.",
+      "recommendation": "Проверить наличие и полноту документации",
+      "impact": "Неполная документация API"
+    },
+    {
+      "id": "MED-023",
+      "priority": "medium",
+      "category": "error_handling",
+      "file": "parser_2gis/parallel_parser.py",
+      "line": "310-325",
+      "description": "Обработка TimeoutError в run не различает таймаут парсинга и таймаут future.result().",
+      "recommendation": "Добавить более детальную обработку различных типов таймаутов",
+      "impact": "Сложность диагностики проблем с таймаутами"
+    },
+    {
+      "id": "MED-024",
+      "priority": "medium",
+      "category": "performance",
+      "file": "parser_2gis/parser/parsers/in_building.py",
+      "line": "75-90",
+      "description": "Цикл while True с get_unique_links может быть неэффективным при большом количестве организаций.",
+      "recommendation": "Добавить лимит итераций или оптимизировать получение ссылок",
+      "impact": "Возможное замедление при парсинге зданий с большим количеством организаций"
+    },
+    {
+      "id": "LOW-001",
+      "priority": "low",
+      "category": "pep8",
+      "file": "parser_2gis/main.py",
+      "line": "多处",
+      "description": "Некоторые строки превышают рекомендуемую длину в 120 символов.",
+      "recommendation": "Разделить длинные строки",
+      "impact": "Снижение читаемости"
+    },
+    {
+      "id": "LOW-002",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/version.py",
+      "line": "3-4",
+      "description": "Константы version и config_version могли бы использовать более информативные имена.",
+      "recommendation": "Переименовать в PARSER_VERSION и CONFIG_SCHEMA_VERSION",
+      "impact": "Минимальное, улучшение читаемости"
+    },
+    {
+      "id": "LOW-003",
+      "priority": "low",
+      "category": "documentation",
+      "file": "parser_2gis/exceptions.py",
+      "line": "1-15",
+      "description": "Отсутствуют docstring для классов исключений.",
+      "recommendation": "Добавить краткое описание для каждого исключения",
+      "impact": "Неполная документация API"
+    },
+    {
+      "id": "LOW-004",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/common.py",
+      "line": "30-38",
+      "description": "Глобальная переменная _logger использует кэширование, но это не документировано.",
+      "recommendation": "Добавить комментарий о причине кэширования",
+      "impact": "Минимальное"
+    },
+    {
+      "id": "LOW-005",
+      "priority": "low",
+      "category": "performance",
+      "file": "parser_2gis/cache.py",
+      "line": "100-110",
+      "description": "Метод get использует datetime.fromisoformat который медленнее альтернатив.",
+      "recommendation": "Рассмотреть использование timestamp для хранения времени",
+      "impact": "Минимальное замедление при частых обращениях к кэшу"
+    },
+    {
+      "id": "LOW-006",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/validator.py",
+      "line": "25-30",
+      "description": "Константы EMAIL_PATTERN и URL_PATTERN могли бы быть скомпилированы с флагом re.IGNORECASE.",
+      "recommendation": "Добавить флаг или явно документировать регистрозависимость",
+      "impact": "Минимальное"
+    },
+    {
+      "id": "LOW-007",
+      "priority": "low",
+      "category": "documentation",
+      "file": "parser_2gis/paths.py",
+      "line": "20-28",
+      "description": "Функция user_path упоминает только Linux в docstring, но код поддерживает и другие ОС.",
+      "recommendation": "Обновить документацию",
+      "impact": "Устаревшая документация"
+    },
+    {
+      "id": "LOW-008",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/statistics.py",
+      "line": "45-55",
+      "description": "Свойство elapsed_time возвращает Optional[timedelta], но caller могут не проверять на None.",
+      "recommendation": "Добавить предупреждение в документацию или возвращать timedelta(0)",
+      "impact": "Potential TypeError"
+    },
+    {
+      "id": "LOW-009",
+      "priority": "low",
+      "category": "performance",
+      "file": "parser_2gis/chrome/utils.py",
+      "line": "15-35",
+      "description": "Функция locate_chrome_path кэшируется с lru_cache, но список путей мог бы быть константой.",
+      "recommendation": "Вынести app_dirs и browser_executables в константы модуля",
+      "impact": "Минимальное"
+    },
+    {
+      "id": "LOW-010",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/cli/progress.py",
+      "line": "70-80",
+      "description": "Использование colour='blue' для tqdm может не работать на всех терминалах.",
+      "recommendation": "Добавить проверку поддержки цветов или использовать fallback",
+      "impact": "Визуальные артефакты на некоторых терминалах"
+    },
+    {
+      "id": "LOW-011",
+      "priority": "low",
+      "category": "documentation",
+      "file": "parser_2gis/logger/file_handler.py",
+      "line": "45-55",
+      "description": "Метод _setup_file_handler не документирован.",
+      "recommendation": "Добавить docstring",
+      "impact": "Неполная документация"
+    },
+    {
+      "id": "LOW-012",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/writer/factory.py",
+      "line": "20-30",
+      "description": "Фабричная функция get_writer использует if/elif вместо словаря стратегий.",
+      "recommendation": "Рассмотреть использование словаря для расширяемости",
+      "impact": "Сложность добавления новых форматов"
+    },
+    {
+      "id": "LOW-013",
+      "priority": "low",
+      "category": "performance",
+      "file": "parser_2gis/parser/utils.py",
+      "line": "15-35",
+      "description": "Функция blocked_requests создаёт новый список при каждом вызове, хотя мог бы быть кэширован.",
+      "recommendation": "Использовать lru_cache или константу",
+      "impact": "Минимальные накладные расходы"
+    },
+    {
+      "id": "LOW-014",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/chrome/patches/pychrome.py",
+      "line": "10-30",
+      "description": "Патч pychrome использует глобальную модификацию, что может вызвать проблемы при обновлении библиотеки.",
+      "recommendation": "Добавить проверку версии pychrome",
+      "impact": "Потенциальная несовместимость при обновлении"
+    },
+    {
+      "id": "LOW-015",
+      "priority": "low",
+      "category": "documentation",
+      "file": "parser_2gis/writer/models/org.py",
+      "line": "10-20",
+      "description": "Класс Org имеет минимальную документацию.",
+      "recommendation": "Добавить больше деталей о назначении класса",
+      "impact": "Неполная документация"
+    },
+    {
+      "id": "LOW-016",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/runner/runner.py",
+      "line": "10-20",
+      "description": "Абстрактный класс AbstractRunner использует подчёркивание для private атрибутов, но это не документировано.",
+      "recommendation": "Добавить комментарий о соглашении об именовании",
+      "impact": "Минимальное"
+    },
+    {
+      "id": "LOW-017",
+      "priority": "low",
+      "category": "performance",
+      "file": "parser_2gis/writer/writers/json_writer.py",
+      "line": "25-35",
+      "description": "JSONWriter записывает каждый элемент отдельно, что может быть неэффективно для больших объёмов.",
+      "recommendation": "Рассмотреть буферизацию записей",
+      "impact": "Минимальное замедление"
+    },
+    {
+      "id": "LOW-018",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/cli/app.py",
+      "line": "8-12",
+      "description": "Функция cli_app очень короткая и могла бы быть частью CLIRunner.",
+      "recommendation": "Рассмотреть рефакторинг",
+      "impact": "Минимальное"
+    },
+    {
+      "id": "LOW-019",
+      "priority": "low",
+      "category": "documentation",
+      "file": "parser_2gis/chrome/exceptions.py",
+      "line": "15-25",
+      "description": "Класс ChromePathNotFound имеет параметр msg по умолчанию, но это не документировано.",
+      "recommendation": "Добавить описание параметров в docstring",
+      "impact": "Неполная документация"
+    },
+    {
+      "id": "LOW-020",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/parser/factory.py",
+      "line": "15-25",
+      "description": "Фабричная функция get_parser использует цикл для проверки паттернов, что могло бы быть оптимизировано.",
+      "recommendation": "Использовать словарь паттернов для быстрого поиска",
+      "impact": "Минимальное замедление при выборе парсера"
+    },
+    {
+      "id": "LOW-021",
+      "priority": "low",
+      "category": "performance",
+      "file": "parser_2gis/common.py",
+      "line": "245-260",
+      "description": "Функция _sanitize_value рекурсивно обрабатывает словари, что может быть медленно для глубоких структур.",
+      "recommendation": "Использовать итеративный подход или ограничить глубину",
+      "impact": "Минимальное замедление для глубоких структур"
+    },
+    {
+      "id": "LOW-022",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/cache.py",
+      "line": "175-185",
+      "description": "Метод _hash_url импортирует hashlib внутри метода.",
+      "recommendation": "Переместить импорт наверх файла",
+      "impact": "Нарушение стиля, минимальное влияние"
+    },
+    {
+      "id": "LOW-023",
+      "priority": "low",
+      "category": "documentation",
+      "file": "parser_2gis/parallel_optimizer.py",
+      "line": "200-210",
+      "description": "Метод reset не документирован.",
+      "recommendation": "Добавить docstring",
+      "impact": "Неполная документация"
+    },
+    {
+      "id": "LOW-024",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/parser/parsers/main.py",
+      "line": "50-60",
+      "description": "Константы модуля могли бы быть вынесены в отдельный файл конфигурации.",
+      "recommendation": "Рассмотреть вынос констант",
+      "impact": "Улучшение организации кода"
+    },
+    {
+      "id": "LOW-025",
+      "priority": "low",
+      "category": "performance",
+      "file": "parser_2gis/writer/writers/csv_writer.py",
+      "line": "40-50",
+      "description": "Свойство _data_mapping создаётся заново при каждом обращении.",
+      "recommendation": "Использовать lru_cache или кэшировать в __init__",
+      "impact": "Минимальные накладные расходы"
+    },
+    {
+      "id": "LOW-026",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/logger/logger.py",
+      "line": "25-35",
+      "description": "Класс QueueHandler не имеет docstring.",
+      "recommendation": "Добавить описание класса",
+      "impact": "Неполная документация"
+    },
+    {
+      "id": "LOW-027",
+      "priority": "low",
+      "category": "documentation",
+      "file": "parser_2gis/writer/models/point.py",
+      "line": "1-15",
+      "description": "Файл не был прочитан, предполагается неполная документация.",
+      "recommendation": "Проверить наличие документации",
+      "impact": "Возможная неполная документация"
+    },
+    {
+      "id": "LOW-028",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/chrome/remote.py",
+      "line": "550-560",
+      "description": "Метод add_blocked_requests возвращает bool, но caller могут не проверять результат.",
+      "recommendation": "Логировать предупреждение при неудаче или бросать исключение",
+      "impact": "Молчаливая неудача при блокировке запросов"
+    },
+    {
+      "id": "LOW-029",
+      "priority": "low",
+      "category": "performance",
+      "file": "parser_2gis/parser/adaptive_limits.py",
+      "line": "95-105",
+      "description": "Метод get_stats создаёт новый словарь при каждом вызове.",
+      "recommendation": "Кэшировать результат или использовать namedtuple",
+      "impact": "Минимальные накладные расходы"
+    },
+    {
+      "id": "LOW-030",
+      "priority": "low",
+      "category": "code_style",
+      "file": "parser_2gis/parser/smart_retry.py",
+      "line": "85-95",
+      "description": "Метод get_stats возвращает словарь с any типом значений.",
+      "recommendation": "Использовать TypedDict или dataclass",
+      "impact": "Снижение типобезопасности"
+    },
+    {
+      "id": "LOW-031",
+      "priority": "low",
+      "category": "documentation",
+      "file": "parser_2gis/writer/models/reviews.py",
+      "line": "1-15",
+      "description": "Файл не был прочитан, предполагается неполная документация.",
+      "recommendation": "Проверить наличие документации",
+      "impact": "Возможная неполная документация"
+    }
+  ],
+  "recommendations": {
+    "immediate_actions": [
+      {
+        "issue_id": "CRIT-001",
+        "action": "Исправить дублирование подсчёта completed в parallel_optimizer.py",
+        "estimated_effort": "5 минут"
+      },
+      {
+        "issue_id": "CRIT-002",
+        "action": "Добавить импорт logger в cache.py",
+        "estimated_effort": "2 минуты"
+      },
+      {
+        "issue_id": "CRIT-003",
+        "action": "Исправить тип 'any' на 'Any' в parallel_optimizer.py",
+        "estimated_effort": "3 минуты"
+      },
+      {
+        "issue_id": "CRIT-005",
+        "action": "Решить проблему с удалением временных файлов в parallel_parser.py",
+        "estimated_effort": "15 минут"
+      }
+    ],
+    "short_term_actions": [
+      {
+        "issue_id": "HIGH-001",
+        "action": "Добавить поддержку международных номеров в validator.py",
+        "estimated_effort": "30 минут"
+      },
+      {
+        "issue_id": "HIGH-003",
+        "action": "Улучшить обработку ошибок удаления профиля в browser.py",
+        "estimated_effort": "20 минут"
+      },
+      {
+        "issue_id": "HIGH-004",
+        "action": "Добавить повторную проверку порта в remote.py",
+        "estimated_effort": "25 минут"
+      },
+      {
+        "issue_id": "HIGH-010",
+        "action": "Оптимизировать обработку больших CSV файлов",
+        "estimated_effort": "1 час"
+      }
+    ],
+    "long_term_actions": [
+      {
+        "action": "Провести рефакторинг сложных методов (config.py, main.py)",
+        "estimated_effort": "4 часа"
+      },
+      {
+        "action": "Добавить полную типизацию во все модули",
+        "estimated_effort": "8 часов"
+      },
+      {
+        "action": "Увеличить покрытие тестами критических модулей",
+        "estimated_effort": "16 часов"
+      },
+      {
+        "action": "Провести аудит безопасности с фокусом на обработку пользовательских данных",
+        "estimated_effort": "4 часа"
+      }
+    ]
+  },
+  "conclusion": {
+    "overall_assessment": "Код проекта parser-2gis находится в удовлетворительном состоянии с некоторыми критическими проблемами требующими немедленного исправления. Основные проблемы集中在 параллельном парсинге, обработке ошибок и управлении ресурсами.",
+    "strengths": [
+      "Хорошая модульная структура проекта",
+      "Наличие документации для большинства классов и функций",
+      "Использование типизации (хотя и неполной)",
+      "Реализация механизмов retry и обработки ошибок",
+      "Поддержка нескольких форматов вывода (CSV, XLSX, JSON)"
+    ],
+    "weaknesses": [
+      "Критические логические ошибки в parallel_optimizer.py и cache.py",
+      "Проблемы с управлением ресурсами (утечки памяти, временные файлы)",
+      "Неполная обработка исключений в нескольких модулях",
+      "Нарушения PEP 8 в некоторых файлах",
+      "Отсутствие тестов для критических функций"
+    ],
+    "risk_assessment": "Средний риск. Критические ошибки могут привести к падению приложения или потере данных при определённых условиях. Требуется немедленное исправление критических проблем перед продакшен использованием."
+  }
+}

@@ -18,15 +18,15 @@ from .cli.progress import ProgressManager
 from .logger import logger
 
 __all__ = [
-    'main',
-    '__version__',
-    'ParallelCityParser',
-    'ParallelCityParserThread',
-    'CacheManager',
-    'DataValidator',
-    'ValidationResult',
-    'ParserStatistics',
-    'StatisticsExporter',
-    'ProgressManager',
-    'logger',
+    "main",
+    "__version__",
+    "ParallelCityParser",
+    "ParallelCityParserThread",
+    "CacheManager",
+    "DataValidator",
+    "ValidationResult",
+    "ParserStatistics",
+    "StatisticsExporter",
+    "ProgressManager",
+    "logger",
 ]

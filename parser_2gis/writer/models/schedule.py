@@ -12,8 +12,9 @@ class WorkingHour(BaseModel):
         from_: Время начала работы в формате hh:mm.
         to: Время окончания работы в формате hh:mm.
     """
+
     # Значение в формате hh:mm
-    from_: str = Field(..., alias='from')
+    from_: str = Field(..., alias="from")
 
     # Значение в формате hh:mm
     to: str
@@ -25,6 +26,7 @@ class ScheduleDay(BaseModel):
     Атрибуты:
         working_hours: Список интервалов работы в течение дня.
     """
+
     # Часы работы
     working_hours: List[WorkingHour]
 
@@ -46,6 +48,7 @@ class Schedule(BaseModel):
         date_from: Дата начала изменений в расписании работы. Формат: "YYYY-MM-DD".
         date_to: Дата конца изменений в расписании работы. Формат: "YYYY-MM-DD".
     """
+
     # Понедельник
     Mon: Optional[ScheduleDay] = None
 
@@ -95,8 +98,10 @@ class Schedule(BaseModel):
             Расписание в виде строки.
         """
         # Явно указываем имена дней для совместимости с Pydantic v1 и v2
-        days_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        days_mapping = dict(Mon='Пн', Tue='Вт', Wed='Ср', Thu='Чт', Fri='Пт', Sat='Сб', Sun='Вс')
+        days_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        days_mapping = dict(
+            Mon="Пн", Tue="Вт", Wed="Ср", Thu="Чт", Fri="Пт", Sat="Сб", Sun="Вс"
+        )
 
         slots_list = []
         for day_name in days_names:
@@ -104,16 +109,16 @@ class Schedule(BaseModel):
             if not day_value:
                 continue
 
-            day_slot = f'{days_mapping[day_name]}: '
+            day_slot = f"{days_mapping[day_name]}: "
             for i, time_slot in enumerate(day_value.working_hours):
                 if i > 0:
-                    day_slot += ', '
-                day_slot += f'{time_slot.from_}-{time_slot.to}'
+                    day_slot += ", "
+                day_slot += f"{time_slot.from_}-{time_slot.to}"
 
             slots_list.append(day_slot)
 
         result = join_char.join(slots_list)
         if add_comment and self.comment:
-            result += ' (%s)' % self.comment
+            result += " (%s)" % self.comment
 
         return result

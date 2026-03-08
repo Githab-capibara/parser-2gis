@@ -5,7 +5,7 @@ from typing import Callable
 from pydantic import BaseModel, Field
 
 try:
-    from pydantic import field_validator
+    from pydantic import field_validator  # type: ignore[attr-defined]
 
     PYDANTIC_V2 = True
 except ImportError:

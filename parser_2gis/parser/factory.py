@@ -10,7 +10,9 @@ if TYPE_CHECKING:
     from ..parser.options import ParserOptions
 
 
-def get_parser(url: str, chrome_options: ChromeOptions, parser_options: ParserOptions) -> MainParser | FirmParser | InBuildingParser:
+def get_parser(
+    url: str, chrome_options: ChromeOptions, parser_options: ParserOptions
+) -> MainParser | FirmParser | InBuildingParser:
     """Фабричная функция для получения парсера.
 
     Args:

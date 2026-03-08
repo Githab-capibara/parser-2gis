@@ -3,11 +3,14 @@ from __future__ import annotations
 import re
 
 from pydantic import BaseModel
+
 try:
-    from pydantic import field_validator
+    from pydantic import field_validator  # type: ignore[attr-defined]
+
     PYDANTIC_V2 = True
 except ImportError:
     from pydantic import validator
+
     PYDANTIC_V2 = False
 
 
@@ -21,43 +24,55 @@ class LogOptions(BaseModel):
         cli_datefmt: Формат даты для CLI.
         level: Уровень логирования.
     """
-    gui_format: str = '%(asctime)s.%(msecs)03d | %(message)s'
-    cli_format: str = '%(asctime)s.%(msecs)03d | %(levelname)-8s | %(message)s'
-    gui_datefmt: str = '%H:%M:%S'
-    cli_datefmt: str = '%d/%m/%Y %H:%M:%S'
-    level: str = 'DEBUG'
+
+    gui_format: str = "%(asctime)s.%(msecs)03d | %(message)s"
+    cli_format: str = "%(asctime)s.%(msecs)03d | %(levelname)-8s | %(message)s"
+    gui_datefmt: str = "%H:%M:%S"
+    cli_datefmt: str = "%d/%m/%Y %H:%M:%S"
+    level: str = "DEBUG"
 
     @staticmethod
     def _validate_level(v: str) -> str:
         """Валидирует уровень логирования."""
         v = v.upper()
-        if v not in ('ERROR', 'WARNING', 'WARN', 'INFO',
-                     'DEBUG', 'FATAL', 'CRITICAL', 'NOTSET'):
-            raise ValueError('Неверное имя уровня логирования')
+        if v not in (
+            "ERROR",
+            "WARNING",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "FATAL",
+            "CRITICAL",
+            "NOTSET",
+        ):
+            raise ValueError("Неверное имя уровня логирования")
         return v
 
     @staticmethod
     def _validate_format(v: str) -> str:
         """Проверяет строку формата в процентном стиле."""
-        if not re.search(r'%\(\w+\)[#0+ \-]*(\*|\d+)?(\.(\*|\d+))?[diouxefgcrsa%]', v):
-            raise ValueError('Строка формата неверна')
+        if not re.search(r"%\(\w+\)[#0+ \-]*(\*|\d+)?(\.(\*|\d+))?[diouxefgcrsa%]", v):
+            raise ValueError("Строка формата неверна")
         return v
 
     if PYDANTIC_V2:
-        @field_validator('level')
+
+        @field_validator("level")
         @classmethod
         def level_validation(cls, v: str) -> str:
             return cls._validate_level(v)
 
-        @field_validator('gui_format', 'cli_format')
+        @field_validator("gui_format", "cli_format")
         @classmethod
         def format_validation(cls, v: str) -> str:
             return cls._validate_format(v)
+
     else:
-        @validator('level')
+
+        @validator("level")
         def level_validation(cls, v: str) -> str:
             return cls._validate_level(v)
 
-        @validator('gui_format', 'cli_format')
+        @validator("gui_format", "cli_format")
         def format_validation(cls, v: str) -> str:
             return cls._validate_format(v)

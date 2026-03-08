@@ -15,6 +15,7 @@ class Address(BaseModel):
         postcode: Почтовый индекс.
         makani: Makani адрес объекта (применяется в странах Ближнего Востока).
     """
+
     # Уникальный идентификатор дома, к которому относится данный адрес
     building_id: Optional[str] = None
 

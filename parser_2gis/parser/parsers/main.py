@@ -632,7 +632,11 @@ class MainParser:
                         }
                         next_page_number = min(
                             available_pages_ahead,
-                            key=lambda n: abs(n - walk_page_number) if walk_page_number is not None else 0,
+                            key=lambda n: (
+                                abs(n - walk_page_number)
+                                if walk_page_number is not None
+                                else 0
+                            ),
                             default=current_page_number + 1,
                         )
                     except Exception as pages_error:

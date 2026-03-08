@@ -41,6 +41,7 @@ class CatalogItem(BaseModel):
         type: Тип объекта.
         is_deleted: Признак удаленного объекта.
     """
+
     # Уникальный идентификатор филиала организации (например "141265769336625_f91d4H3777058262347790J0e8g28765")
     id: str
 
@@ -103,30 +104,32 @@ class CatalogItem(BaseModel):
 
     @property
     def url(self) -> str:
-        return 'https://2gis.com/firm/%s' % self.id.split('_')[0]
+        return "https://2gis.com/firm/%s" % self.id.split("_")[0]
 
     @property
     def timezone(self) -> str | None:
         """Возвращает строковое представление часового пояса.
-        
+
         Returns:
             Строка формата '+HH:MM' или '-HH:MM', или None если offset не установлен.
-        
+
         Примечание:
             Проверяет корректность диапазона offset (-12 до +14 часов).
             Возвращает None для некорректных значений.
         """
         if self.timezone_offset is None:
             return None
-        
+
         # Проверка корректности диапазона (-12 до +14 часов в минутах: -720 до +840)
         if self.timezone_offset < -720 or self.timezone_offset > 840:
-            logger.warning('Некорректное значение timezone_offset: %d (ожидалось от -720 до 840)', 
-                          self.timezone_offset)
+            logger.warning(
+                "Некорректное значение timezone_offset: %d (ожидалось от -720 до 840)",
+                self.timezone_offset,
+            )
             return None
-        
-        sign = '-' if self.timezone_offset < 0 else '+'
+
+        sign = "-" if self.timezone_offset < 0 else "+"
         minutes = abs(self.timezone_offset)
         h = minutes // 60
         m = minutes % 60
-        return f'{sign}{h:02d}:{m:02d}'
+        return f"{sign}{h:02d}:{m:02d}"

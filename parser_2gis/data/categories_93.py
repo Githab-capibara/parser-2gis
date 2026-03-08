@@ -199,11 +199,11 @@ def generate_urls_for_city(
         # Гарантируем что query_value это str
         if query_value is None:
             query_value = ""
-        rest_url = f'/search/{url_query_encode(query_value)}'
+        rest_url = f"/search/{url_query_encode(query_value)}"
 
         rubric_code = cat.get("rubric_code")
         if rubric_code:
-            rest_url += f'/rubricId/{rubric_code}'
+            rest_url += f"/rubricId/{rubric_code}"
 
         rest_url += "/filters/sort=name"
         url = base_url + rest_url

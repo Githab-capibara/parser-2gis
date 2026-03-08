@@ -14,15 +14,16 @@ from urllib.parse import urlparse
 @dataclass
 class ValidationResult:
     """Результат валидации данных.
-    
+
     Содержит информацию о результате валидации, включая
     валидированное значение и список ошибок (если есть).
-    
+
     Attributes:
         is_valid: Флаг, указывающий на успешность валидации
         value: Валидированное значение (или None при ошибке)
         errors: Список ошибок валидации (пустой при успехе)
     """
+
     is_valid: bool
     value: Optional[str]
     errors: list[str]
@@ -30,28 +31,24 @@ class ValidationResult:
 
 class DataValidator:
     """Валидатор и очиститель данных.
-    
+
     Этот класс предоставляет методы для валидации и очистки
     различных типов данных (телефоны, email, URL, текст).
     Используется для повышения качества данных перед записью в файлы.
-    
+
     Пример использования:
         >>> validator = DataValidator()
         >>> result = validator.validate_phone('+7 (999) 123-45-67')
         >>> if result.is_valid:
         ...     print(result.value)  # '8 (999) 123-45-67'
     """
-    
+
     # Паттерн для валидации email-адресов
-    EMAIL_PATTERN = re.compile(
-        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    )
-    
+    EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
     # Паттерн для валидации URL
-    URL_PATTERN = re.compile(
-        r'^https?://[^\s/$.?#].[^\s]*$'
-    )
-    
+    URL_PATTERN = re.compile(r"^https?://[^\s/$.?#].[^\s]*$")
+
     def validate_phone(self, phone: str) -> ValidationResult:
         """Валидация и форматирование телефонного номера.
 
@@ -73,46 +70,50 @@ class DataValidator:
         errors = []
 
         # Удаляем все кроме цифр и +
-        cleaned = re.sub(r'[^\d+]', '', phone)
+        cleaned = re.sub(r"[^\d+]", "", phone)
 
         # Проверяем наличие цифр
-        digits_only = re.sub(r'\D', '', cleaned)
+        digits_only = re.sub(r"\D", "", cleaned)
         if not digits_only:
             errors.append("Номер должен содержать цифры")
             return ValidationResult(False, None, errors)
 
         # Обработка российских номеров (+7 или 8)
-        if cleaned.startswith('+7') or cleaned.startswith('8'):
-            if cleaned.startswith('+7'):
-                cleaned = '8' + cleaned[2:]
-            
+        if cleaned.startswith("+7") or cleaned.startswith("8"):
+            if cleaned.startswith("+7"):
+                cleaned = "8" + cleaned[2:]
+
             # Проверяем длину (11 цифр для России)
             if len(cleaned) != 11:
-                errors.append(f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)")
+                errors.append(
+                    f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"
+                )
                 return ValidationResult(False, None, errors)
 
             # Форматируем российский номер
             formatted = self._format_phone(cleaned)
             return ValidationResult(True, formatted, [])
-        
+
         # Обработка международных номеров
-        elif cleaned.startswith('+'):
+        elif cleaned.startswith("+"):
             # Международный номер (не Россия)
             international_digits = cleaned[1:]  # Убираем +
-            
+
             # Проверяем длину (10-15 цифр для международных номеров)
             if len(international_digits) < 10 or len(international_digits) > 15:
-                errors.append(f"Некорректная длина международного номера: {len(international_digits)} (ожидалось 10-15)")
+                errors.append(
+                    f"Некорректная длина международного номера: {len(international_digits)} (ожидалось 10-15)"
+                )
                 return ValidationResult(False, None, errors)
-            
+
             # Возвращаем в международном формате
             return ValidationResult(True, f"+{international_digits}", [])
-        
+
         # Номер без префикса - пробуем определить
         else:
             # Если номер содержит 11 цифр - считаем российским
             if len(digits_only) == 11:
-                if digits_only[0] == '8':
+                if digits_only[0] == "8":
                     formatted = self._format_phone(digits_only)
                     return ValidationResult(True, formatted, [])
                 else:
@@ -123,22 +124,24 @@ class DataValidator:
                 # Международный номер без +
                 return ValidationResult(True, f"+{digits_only}", [])
             else:
-                errors.append(f"Некорректная длина номера: {len(digits_only)} (ожидалось 10-15 цифр)")
+                errors.append(
+                    f"Некорректная длина номера: {len(digits_only)} (ожидалось 10-15 цифр)"
+                )
                 return ValidationResult(False, None, errors)
-    
+
     def _format_phone(self, phone: str) -> str:
         """Форматирование телефонного номера.
-        
+
         Форматирует номер из 11 цифр в формат '8 (XXX) XXX-XX-XX'.
-        
+
         Args:
             phone: Телефонный номер (11 цифр)
-            
+
         Returns:
             Отформатированный телефонный номер
         """
         return f"{phone[0]} ({phone[1:4]}) {phone[4:7]}-{phone[7:9]}-{phone[9:11]}"
-    
+
     def validate_email(self, email: str) -> ValidationResult:
         """Валидация email-адреса.
 
@@ -157,7 +160,7 @@ class DataValidator:
         # Быстрая проверка на пустую строку до обработки
         if not email or not email.strip():
             return ValidationResult(False, None, ["Email пустой"])
-        
+
         # Нормализация email
         email = email.strip().lower()
 
@@ -166,112 +169,112 @@ class DataValidator:
             return ValidationResult(False, None, ["Некорректный формат email"])
 
         return ValidationResult(True, email, [])
-    
+
     def validate_url(self, url: str) -> ValidationResult:
         """Валидация URL.
-        
+
         Проверяет корректность URL (http или https).
-        
+
         Args:
             url: URL для валидации
-            
+
         Returns:
             ValidationResult с URL или ошибками
-            
+
         Примечание:
             URL должен начинаться с http:// или https://
         """
         url = url.strip()
-        
+
         if not url:
             return ValidationResult(False, None, ["URL пустой"])
-        
+
         try:
             parsed = urlparse(url)
             if not parsed.scheme or not parsed.netloc:
                 return ValidationResult(False, None, ["Некорректный формат URL"])
-            
+
             return ValidationResult(True, url, [])
         except Exception as e:
             return ValidationResult(False, None, [str(e)])
-    
+
     def clean_text(self, text: str) -> str:
         """Очистка текста от лишних символов.
-        
+
         Удаляет лишние пробелы и специальные символы,
         сохраняя русский и английский текст, цифры и основные знаки.
-        
+
         Args:
             text: Текст для очистки
-            
+
         Returns:
             Очищенный текст
-            
+
         Примечание:
             Сохраняются: буквы (русский и английский), цифры,
             тире, скобки, запятые, точки, двоеточия,
             вопросительные и восклицательные знаки.
         """
         # Удаляем лишние пробелы
-        text = re.sub(r'\s+', ' ', text)
-        
+        text = re.sub(r"\s+", " ", text)
+
         # Удаляем спецсимволы (кроме русского, английского, цифр и основных знаков)
-        text = re.sub(r'[^\w\s\-–—(),.;:!?а-яА-ЯёЁa-zA-Z0-9]', '', text)
-        
+        text = re.sub(r"[^\w\s\-–—(),.;:!?а-яА-ЯёЁa-zA-Z0-9]", "", text)
+
         # Обрезаем пробелы по краям
         text = text.strip()
-        
+
         return text
-    
+
     def validate_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
         """Валидация записи организации.
-        
+
         Проводит полную валидацию записи организации, включая
         телефоны, email, URL и текстовые поля.
-        
+
         Args:
             record: Запись организации для валидации
-            
+
         Returns:
             Валидированная запись с очищенными данными
-            
+
         Примечание:
             Некорректные данные заменяются на None.
             Текстовые поля очищаются от лишних символов.
         """
         validated = record.copy()
-        
+
         # Валидация телефонов
         for key in list(validated.keys()):
-            if key.startswith('phone_') and validated[key]:
+            if key.startswith("phone_") and validated[key]:
                 result = self.validate_phone(validated[key])
                 if result.is_valid:
                     validated[key] = result.value
                 else:
                     validated[key] = None
-        
+
         # Валидация email
         for key in list(validated.keys()):
-            if key.startswith('email_') and validated[key]:
+            if key.startswith("email_") and validated[key]:
                 result = self.validate_email(validated[key])
                 if result.is_valid:
                     validated[key] = result.value
                 else:
                     validated[key] = None
-        
+
         # Валидация URL
         for key in list(validated.keys()):
-            if key.startswith('website_') and validated[key]:
+            if key.startswith("website_") and validated[key]:
                 result = self.validate_url(validated[key])
                 if result.is_valid:
                     validated[key] = result.value
                 else:
                     validated[key] = None
-        
+
         # Очистка текстовых полей
-        text_fields = ['name', 'description', 'address']
+        text_fields = ["name", "description", "address"]
         for field in text_fields:
             if validated.get(field):
                 validated[field] = self.clean_text(validated[field])
-        
+
         return validated

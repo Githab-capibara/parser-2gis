@@ -75,7 +75,9 @@ class EndOfResultsDetector:
                     return True
 
             # Проверяем DOM-элементы
-            nodes = dom_tree.search(lambda node: bool(node.text) and len(node.text) < 500)
+            nodes = dom_tree.search(
+                lambda node: bool(node.text) and len(node.text) < 500
+            )
             for selector in self.DOM_END_SELECTORS:
                 for node in nodes:
                     try:
