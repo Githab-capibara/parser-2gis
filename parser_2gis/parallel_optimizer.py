@@ -12,7 +12,7 @@ import threading
 import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from parser_2gis.logger import logger
 
@@ -173,38 +173,37 @@ class ParallelOptimizer:
     def complete_task(self, task: ParallelTask, success: bool) -> None:
         """
         Отмечает задачу как завершенную.
-        
+
         Args:
             task: Задача.
             success: Успешно ли выполнена.
         """
         task.finish()
-        
+
         with self._lock:
             self._completed_tasks.append(task)
-            self._stats['completed'] += 1
             
             if success:
-                self._stats['completed'] = self._stats.get('completed', 0) + 1
+                self._stats['completed'] += 1
             else:
-                self._stats['failed'] = self._stats.get('failed', 0) + 1
-            
+                self._stats['failed'] += 1
+
             # Пересчитываем среднюю длительность
             total_duration = sum(t.duration() for t in self._completed_tasks)
             self._stats['avg_duration'] = total_duration / len(self._completed_tasks)
-            
+
             # Удаляем из активных задач
             task_id = id(task)
             if task_id in self._active_tasks:
                 del self._active_tasks[task_id]
-        
+
         logger.info('Задача завершена: %s - %s (успех: %s, время: %.2f сек)',
                   task.city_name, task.category_name, success, task.duration())
     
-    def get_stats(self) -> Dict[str, any]:
+    def get_stats(self) -> Dict[str, Any]:
         """
         Возвращает статистику оптимизатора.
-        
+
         Returns:
             Словарь со статистикой.
         """

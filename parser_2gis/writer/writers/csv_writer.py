@@ -224,14 +224,15 @@ class CSVWriter(FileWriter):
                         normalized_line = line.rstrip('\r\n')
 
                         # Вычисляем хеш для надёжного сравнения
-                        # Используем параметр usedforsecurity только для Python 3.9+
-                        if sys.version_info >= (3, 9):
+                        # Используем try/except для совместимости с разными версиями Python
+                        try:
+                            # Пытаемся использовать usedforsecurity (Python 3.9+)
                             line_hash = hashlib.md5(
                                 normalized_line.encode('utf-8'),
-                                usedforsecurity=False  # Оптимизация для Python 3.9+
+                                usedforsecurity=False
                             ).hexdigest()
-                        else:
-                            # Для Python 3.8 используем обычный md5
+                        except (TypeError, AttributeError):
+                            # Для Python < 3.9 или если параметр недоступен
                             line_hash = hashlib.md5(
                                 normalized_line.encode('utf-8')
                             ).hexdigest()

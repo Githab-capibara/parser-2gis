@@ -323,17 +323,16 @@ class ParallelCityParser:
                     files_to_delete.append(csv_file)
 
                 self.log(f'Объединение завершено. Всего записей: {total_rows}', 'info')
-                
-                # ИЗМЕНЕНИЕ: Исходные файлы НЕ удаляются, они остаются в папке output/
-                # Как требуется: в конце должны остаться ВСЕ 93 файла + 1 объединенный файл
-                # for csv_file in files_to_delete:
-                #     try:
-                #         csv_file.unlink()
-                #         self.log(f'Исходный файл удалён: {csv_file.name}', 'debug')
-                #     except Exception as e:
-                #         self.log(f'Не удалось удалить файл {csv_file}: {e}', 'warning')
-                
-                self.log(f'Исходные файлы сохранены ({len(files_to_delete)} шт.) в папке {self.output_dir}', 'info')
+
+                # Удаляем исходные файлы после успешного объединения
+                for csv_file in files_to_delete:
+                    try:
+                        csv_file.unlink()
+                        self.log(f'Исходный файл удалён: {csv_file.name}', 'debug')
+                    except Exception as e:
+                        self.log(f'Не удалось удалить файл {csv_file}: {e}', 'warning')
+
+                self.log(f'Объединение завершено. Файлы удалены ({len(files_to_delete)} шт.)', 'info')
                 return True
 
         except Exception as e:

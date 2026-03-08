@@ -61,28 +61,38 @@ def _validate_remote_port(port: Any) -> int:
     return port
 
 
-def _check_port_available(port: int, timeout: float = 0.5) -> bool:
+def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> bool:
     """Проверяет доступность порта для подключения.
 
     Args:
         port: Номер порта для проверки.
         timeout: Таймаут проверки в секундах.
+        retries: Количество повторных проверок для снижения race condition.
 
     Returns:
         True если порт доступен для подключения, False иначе.
 
     Примечание:
         Использует TCP socket для проверки доступности порта.
+        Выполняет несколько проверок для снижения race condition.
     """
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(timeout)
-    try:
-        result = sock.connect_ex(('127.0.0.1', port))
-        sock.close()
-        return result == 0
-    except Exception:
-        sock.close()
-        return False
+    for attempt in range(retries):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        try:
+            result = sock.connect_ex(('127.0.0.1', port))
+            sock.close()
+            # Если порт занят (result == 0), возвращаем False немедленно
+            if result == 0:
+                return False
+            # Небольшая задержка между проверками
+            if attempt < retries - 1:
+                time.sleep(0.1)
+        except Exception:
+            sock.close()
+            return False
+    # Порт свободен после всех проверок
+    return True
 
 
 # Применяем все пользовательские патчи
