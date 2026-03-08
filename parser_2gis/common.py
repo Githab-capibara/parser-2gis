@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import functools
-import re
 import sys
 import time
 import urllib.parse
-import warnings
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union
 
 from pydantic import ValidationError

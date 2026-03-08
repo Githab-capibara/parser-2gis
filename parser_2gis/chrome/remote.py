@@ -38,7 +38,7 @@ def _validate_remote_port(port: Any) -> int:
 
     Raises:
         ValueError: Если порт некорректен.
-        
+
     Примечание:
         - Проверяется тип (не bool, только int)
         - Проверяется диапазон 1024-65535
@@ -46,18 +46,24 @@ def _validate_remote_port(port: Any) -> int:
     """
     # Явная проверка на bool, так как bool является подклассом int
     if isinstance(port, bool):
-        raise ValueError(f"remote_port не должен быть bool, получен {type(port).__name__}")
-    
+        raise ValueError(
+            f"remote_port не должен быть bool, получен {type(port).__name__}"
+        )
+
     if not isinstance(port, int):
-        raise ValueError(f"remote_port должен быть integer, получен {type(port).__name__}")
-    
+        raise ValueError(
+            f"remote_port должен быть integer, получен {type(port).__name__}"
+        )
+
     # Проверка диапазона портов
     if port < 1024:
-        raise ValueError(f"remote_port должен быть >= 1024 (зарезервированные порты), получен {port}")
-    
+        raise ValueError(
+            f"remote_port должен быть >= 1024 (зарезервированные порты), получен {port}"
+        )
+
     if port > 65535:
         raise ValueError(f"remote_port должен быть <= 65535, получен {port}")
-    
+
     return port
 
 
@@ -80,7 +86,7 @@ def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
         try:
-            result = sock.connect_ex(('127.0.0.1', port))
+            result = sock.connect_ex(("127.0.0.1", port))
             sock.close()
             # Если порт занят (result == 0), возвращаем False немедленно
             if result == 0:
@@ -106,13 +112,18 @@ class ChromeRemote:
         chrome_options: Параметры ChromeOptions.
         response_patterns: Паттерны URL ответов для перехвата.
     """
-    def __init__(self, chrome_options: ChromeOptions, response_patterns: list[str]) -> None:
+
+    def __init__(
+        self, chrome_options: ChromeOptions, response_patterns: list[str]
+    ) -> None:
         self._chrome_options: ChromeOptions = chrome_options
         self._chrome_browser: ChromeBrowser
         self._chrome_interface: pychrome.Browser
         self._chrome_tab: pychrome.Tab
         self._response_patterns: list[str] = response_patterns
-        self._response_queues: dict[str, queue.Queue[Response]] = {x: queue.Queue() for x in response_patterns}
+        self._response_queues: dict[str, queue.Queue[Response]] = {
+            x: queue.Queue() for x in response_patterns
+        }
         self._requests: dict[str, Request] = {}  # _requests[request_id] = <Request>
         self._requests_lock = threading.Lock()
 
@@ -130,65 +141,86 @@ class ChromeRemote:
         """
         max_attempts = 3
         attempt_delay = 2.0
-        
+
         for attempt in range(max_attempts):
             try:
                 # Извлекаем порт из dev_url для проверки
-                port = int(self._dev_url.split(':')[-1])
+                port = int(self._dev_url.split(":")[-1])
 
                 # Проверка доступности порта перед подключением
                 if not _check_port_available(port, timeout=1.0):
-                    logger.warning('Порт %d недоступен при подключении к DevTools (попытка %d/%d)', port, attempt + 1, max_attempts)
+                    logger.warning(
+                        "Порт %d недоступен при подключении к DevTools (попытка %d/%d)",
+                        port,
+                        attempt + 1,
+                        max_attempts,
+                    )
                     if attempt < max_attempts - 1:
                         time.sleep(attempt_delay)
                         continue
                     return False
 
-                logger.debug('Подключение к Chrome DevTools Protocol по адресу: %s', self._dev_url)
+                logger.debug(
+                    "Подключение к Chrome DevTools Protocol по адресу: %s",
+                    self._dev_url,
+                )
                 self._chrome_interface = pychrome.Browser(url=self._dev_url)
 
-                logger.debug('Создание вкладки через _create_tab()...')
+                logger.debug("Создание вкладки через _create_tab()...")
                 self._chrome_tab = self._create_tab()
 
-                logger.debug('Запуск вкладки...')
+                logger.debug("Запуск вкладки...")
                 self._chrome_tab.start()
-                logger.info('Успешное подключение к Chrome DevTools Protocol')
+                logger.info("Успешное подключение к Chrome DevTools Protocol")
                 return True
 
             except RequestException as e:
                 # Ошибки HTTP/сети
-                logger.error('Ошибка сети при подключении к Chrome DevTools Protocol (%s): %s',
-                            self._dev_url, e)
+                logger.error(
+                    "Ошибка сети при подключении к Chrome DevTools Protocol (%s): %s",
+                    self._dev_url,
+                    e,
+                )
                 if attempt < max_attempts - 1:
                     time.sleep(attempt_delay)
                 continue
 
             except WebSocketException as e:
                 # Ошибки WebSocket соединения
-                logger.error('Ошибка WebSocket при подключении к Chrome DevTools Protocol (%s): %s',
-                            self._dev_url, e)
+                logger.error(
+                    "Ошибка WebSocket при подключении к Chrome DevTools Protocol (%s): %s",
+                    self._dev_url,
+                    e,
+                )
                 if attempt < max_attempts - 1:
                     time.sleep(attempt_delay)
                 continue
 
             except ChromeException as e:
                 # Специфичные ошибки Chrome
-                logger.error('Ошибка Chrome при подключению к DevTools Protocol (%s): %s',
-                            self._dev_url, e)
+                logger.error(
+                    "Ошибка Chrome при подключению к DevTools Protocol (%s): %s",
+                    self._dev_url,
+                    e,
+                )
                 if attempt < max_attempts - 1:
                     time.sleep(attempt_delay)
                 continue
 
             except Exception as e:
                 # Любые другие непредвиденные ошибки
-                logger.error('Непредвиденная ошибка при подключении к Chrome DevTools Protocol (%s): %s',
-                            self._dev_url, e, exc_info=True)
+                logger.error(
+                    "Непредвиденная ошибка при подключении к Chrome DevTools Protocol (%s): %s",
+                    self._dev_url,
+                    e,
+                    exc_info=True,
+                )
                 if attempt < max_attempts - 1:
                     time.sleep(attempt_delay)
                 continue
-        
+
         # Все попытки исчерпаны
-        logger.error('Все %d попыток подключения исчерпаны', max_attempts)
+        logger.error("Все %d попыток подключения исчерпаны", max_attempts)
         return False
 
     def start(self) -> None:
@@ -206,33 +238,36 @@ class ChromeRemote:
 
         # Валидируем порт перед использованием
         remote_port = _validate_remote_port(self._chrome_browser.remote_port)
-        self._dev_url = f'http://127.0.0.1:{remote_port}'
+        self._dev_url = f"http://127.0.0.1:{remote_port}"
 
         # Начальная задержка для запуска Chrome (даём время на старт)
         # При параллельном запуске нескольких браузеров увеличиваем задержку
         initial_delay = 1.5  # Увеличено с 0.5 до 1.5 сек
-        logger.debug('Ожидание запуска Chrome (%.1f сек)...', initial_delay)
+        logger.debug("Ожидание запуска Chrome (%.1f сек)...", initial_delay)
         time.sleep(initial_delay)
 
         # Проверка доступности порта перед подключением с повторными попытками
         max_port_check_attempts = 5
         port_check_delay = 1.0
-        
+
         for attempt in range(max_port_check_attempts):
             if _check_port_available(remote_port, timeout=2.0):
-                logger.debug('Порт %d доступен для подключения', remote_port)
+                logger.debug("Порт %d доступен для подключения", remote_port)
                 break
-            
+
             if attempt < max_port_check_attempts - 1:
                 logger.warning(
-                    'Порт %d недоступен (попытка %d/%d). Ожидание %.1f сек...',
-                    remote_port, attempt + 1, max_port_check_attempts, port_check_delay
+                    "Порт %d недоступен (попытка %d/%d). Ожидание %.1f сек...",
+                    remote_port,
+                    attempt + 1,
+                    max_port_check_attempts,
+                    port_check_delay,
                 )
                 time.sleep(port_check_delay)
             else:
                 raise ChromeException(
-                    f'Порт {remote_port} недоступен после {max_port_check_attempts} попыток. '
-                    'Возможно, Chrome не запустился.'
+                    f"Порт {remote_port} недоступен после {max_port_check_attempts} попыток. "
+                    "Возможно, Chrome не запустился."
                 )
 
         # Подключаем браузер к CDP с проверкой результата
@@ -263,116 +298,124 @@ class ChromeRemote:
 
         for attempt in range(max_attempts):
             try:
-                logger.debug('Попытка %d/%d: создание вкладки...', attempt + 1, max_attempts)
+                logger.debug(
+                    "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
+                )
                 resp = requests.put(
-                    '%s/json/new' % (self._dev_url),
+                    "%s/json/new" % (self._dev_url),
                     json=True,
-                    timeout=60  # Увеличенный timeout для стабильности
+                    timeout=60,  # Увеличенный timeout для стабильности
                 )
                 resp.raise_for_status()
-                logger.debug('Вкладка успешно создана')
+                logger.debug("Вкладка успешно создана")
                 return pychrome.Tab(**resp.json())
 
             except (RequestException, ValueError, KeyError) as e:
                 if attempt < max_attempts - 1:
                     logger.warning(
-                        'Не удалось создать вкладку (попытка %d): %s. Повторная попытка через %.1f сек...',
-                        attempt + 1, e, delay_seconds
+                        "Не удалось создать вкладку (попытка %d): %s. Повторная попытка через %.1f сек...",
+                        attempt + 1,
+                        e,
+                        delay_seconds,
                     )
                     time.sleep(delay_seconds)
                 else:
-                    raise ChromeException(f'Не удалось создать вкладку после {max_attempts} попыток: {e}')
+                    raise ChromeException(
+                        f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
+                    )
 
-        raise ChromeException('Не удалось создать вкладку')
+        raise ChromeException("Не удалось создать вкладку")
 
     def _close_tab(self, tab: pychrome.Tab) -> None:
         """Закрывает Chrome-вкладку."""
         if tab.status == pychrome.Tab.status_started:
             tab.stop()
-        requests.put('%s/json/close/%s' % (self._dev_url, tab.id))
+        requests.put("%s/json/close/%s" % (self._dev_url, tab.id))
 
     def _setup_tab(self) -> None:
         """Скрывает следы webdriver, включает перехват запросов/ответов, исправляет UA.
-        
+
         Примечание:
             Метод устанавливает пользовательский агент, скрывает признаки webdriver
             и настраивает перехват сетевых запросов для последующей обработки.
         """
         # Исправляем user agent для headless браузера
-        original_useragent = self.execute_script('navigator.userAgent')
-        
+        original_useragent = self.execute_script("navigator.userAgent")
+
         # Проверяем успешность получения user agent
         if original_useragent:
-            fixed_useragent = original_useragent.replace('Headless', '')
+            fixed_useragent = original_useragent.replace("Headless", "")
         else:
             # Запасной вариант: стандартный user agent Chrome
             fixed_useragent = (
-                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
-                '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
-            logger.warning('Не удалось получить user agent, используется запасной вариант')
-        
+            logger.warning(
+                "Не удалось получить user agent, используется запасной вариант"
+            )
+
         self._chrome_tab.Network.setUserAgentOverride(userAgent=fixed_useragent)
 
         # Скрываем следы webdriver
-        self.add_start_script(r'''
+        self.add_start_script(r"""
             Object.defineProperty(navigator, 'webdriver', {
                 get: () => undefined
             })
-        ''')
+        """)
 
         def responseReceived(**kwargs) -> None:
             """Собирает ответы."""
             # Извлекаем response до изменения kwargs
-            response = kwargs['response']
-            request_id = kwargs['requestId']
-            resource_type = kwargs.get('type')
-            
+            response = kwargs["response"]
+            request_id = kwargs["requestId"]
+            resource_type = kwargs.get("type")
+
             # Сохраняем метаданные ответа
-            response['meta'] = {k: v for k, v in kwargs.items() if k != 'response'}
+            response["meta"] = {k: v for k, v in kwargs.items() if k != "response"}
 
             # Пропускаем preflight запросы
-            if resource_type == 'Preflight':
+            if resource_type == "Preflight":
                 return
 
             # Добавляем ответ атомарно под блокировкой
             with self._requests_lock:
                 if request_id in self._requests:
                     request = self._requests[request_id]
-                    response['request'] = request
-                    request['response'] = response
+                    response["request"] = request
+                    request["response"] = response
 
                     # Помещаем ответ в очередь атомарно, чтобы избежать гонки
                     for pattern in self._response_patterns:
-                        if re.match(pattern, response['url']):
+                        if re.match(pattern, response["url"]):
                             self._response_queues[pattern].put(response)
 
         def loadingFailed(**kwargs) -> None:
             """Обрабатывает неудачные загрузки запросов."""
-            error_text = kwargs.get('errorText')
-            blocked_reason = kwargs.get('blockedReason')
-            status_text = ''
+            error_text = kwargs.get("errorText")
+            blocked_reason = kwargs.get("blockedReason")
+            status_text = ""
 
             if error_text:
-                status_text = f'error: {error_text}'
+                status_text = f"error: {error_text}"
             if blocked_reason:
                 if status_text:
-                    status_text += ', '
-                status_text += f'blocked_reason: {blocked_reason}'
+                    status_text += ", "
+                status_text += f"blocked_reason: {blocked_reason}"
 
-            request_id = kwargs.get('requestId')
+            request_id = kwargs.get("requestId")
             response = {
-                'status': -1,
-                'statusText': status_text,
+                "status": -1,
+                "statusText": status_text,
             }
 
             # Унифицированный паттерн блокировки: всё под одним локом
             with self._requests_lock:
                 if request_id in self._requests:
                     request = self._requests[request_id]
-                    response['request'] = request
-                    request['response'] = response
-                    request_url = request['url']
+                    response["request"] = request
+                    request["response"] = response
+                    request_url = request["url"]
 
                     # Если ответ нужен, помещаем его в очередь атомарно
                     if request_url:
@@ -381,13 +424,13 @@ class ChromeRemote:
                                 self._response_queues[pattern].put(response)
 
         def requestWillBeSent(**kwargs) -> None:
-            request = kwargs.pop('request')
-            request['meta'] = kwargs
-            request_id = kwargs['requestId']
-            resource_type = kwargs.get('type')
+            request = kwargs.pop("request")
+            request["meta"] = kwargs
+            request_id = kwargs["requestId"]
+            resource_type = kwargs.get("type")
 
             # Пропускаем preflight запросы
-            if resource_type == 'Preflight':
+            if resource_type == "Preflight":
                 return
 
             # Добавляем запрос
@@ -416,9 +459,11 @@ class ChromeRemote:
             и проверяем, жива ли наша вкладка."""
             while not self._chrome_tab._stopped.is_set():
                 try:
-                    ret = requests.get('%s/json' % self._dev_url, json=True, timeout=5)
+                    ret = requests.get("%s/json" % self._dev_url, json=True, timeout=5)
                     with tab_detached_lock:
-                        tab_found = any(x['id'] == self._chrome_tab.id for x in ret.json())
+                        tab_found = any(
+                            x["id"] == self._chrome_tab.id for x in ret.json()
+                        )
                         if not tab_found:
                             tab_detached[0] = True
                             self._chrome_tab._stopped.set()
@@ -444,14 +489,15 @@ class ChromeRemote:
                 except pychrome.UserAbortException:
                     with tab_detached_lock:
                         if tab_detached[0]:
-                            raise pychrome.RuntimeException('Вкладка была остановлена')
+                            raise pychrome.RuntimeException("Вкладка была остановлена")
                         else:
                             raise
+
             return wrapped_send
 
         self._chrome_tab._send = get_send_with_reraise()
 
-    def navigate(self, url: str, referer: str = '', timeout: int = 300) -> None:
+    def navigate(self, url: str, referer: str = "", timeout: int = 300) -> None:
         """Переходит по URL.
 
         Args:
@@ -463,12 +509,14 @@ class ChromeRemote:
             ChromeException: При ошибке навигации.
         """
         try:
-            ret = self._chrome_tab.Page.navigate(url=url, _timeout=timeout, referrer=referer)
-            error_message = ret.get('errorText', None)
+            ret = self._chrome_tab.Page.navigate(
+                url=url, _timeout=timeout, referrer=referer
+            )
+            error_message = ret.get("errorText", None)
             if error_message:
                 raise ChromeException(error_message)
         except Exception as e:
-            logger.error('Ошибка навигации по URL %s: %s', url, e)
+            logger.error("Ошибка навигации по URL %s: %s", url, e)
             raise
 
     @wait_until_finished(timeout=300, throw_exception=False)
@@ -483,21 +531,21 @@ class ChromeRemote:
         """
         try:
             if self._chrome_tab is None:
-                logger.warning('Chrome tab не инициализирован')
+                logger.warning("Chrome tab не инициализирован")
                 return None
-                
+
             if self._chrome_tab._stopped.is_set():
-                logger.warning('Вкладка Chrome была остановлена')
+                logger.warning("Вкладка Chrome была остановлена")
                 return None
-                
+
             return self._response_queues[response_pattern].get(block=False)
         except queue.Empty:
             return None
         except KeyError:
-            logger.warning('Неизвестный паттерн ответа: %s', response_pattern)
+            logger.warning("Неизвестный паттерн ответа: %s", response_pattern)
             return None
         except Exception as e:
-            logger.error('Ошибка при ожидании ответа: %s', e)
+            logger.error("Ошибка при ожидании ответа: %s", e)
             return None
 
     def clear_requests(self) -> None:
@@ -521,91 +569,95 @@ class ChromeRemote:
 
         Returns:
             Тело ответа или пустую строку при ошибке.
-            
+
         Примечание:
             Функция гарантирует очистку временных данных для предотвращения утечки памяти.
         """
         response_data: Optional[Dict[str, Any]] = None
-        response_body: str = ''
-        
+        response_body: str = ""
+
         try:
             # Проверяем наличие необходимых полей
-            if 'meta' not in response:
-                logger.warning('Отсутствует поле meta в response')
-                return ''
-                
-            if 'requestId' not in response['meta']:
-                logger.warning('Отсутствует поле requestId в response.meta')
-                return ''
-            
-            request_id = response['meta']['requestId']
-            
+            if "meta" not in response:
+                logger.warning("Отсутствует поле meta в response")
+                return ""
+
+            if "requestId" not in response["meta"]:
+                logger.warning("Отсутствует поле requestId в response.meta")
+                return ""
+
+            request_id = response["meta"]["requestId"]
+
             # Получаем тело ответа
             response_data = self._chrome_tab.call_method(
-                'Network.getResponseBody',
-                requestId=request_id
+                "Network.getResponseBody", requestId=request_id
             )
-            
+
             if not response_data:
-                logger.debug('Тело ответа пустое для requestId: %s', request_id)
-                return ''
-            
+                logger.debug("Тело ответа пустое для requestId: %s", request_id)
+                return ""
+
             # Декодируем base64 если необходимо
-            if response_data.get('base64Encoded'):
+            if response_data.get("base64Encoded"):
                 try:
-                    encoded_body = response_data.get('body', '')
+                    encoded_body = response_data.get("body", "")
                     if encoded_body:
                         decoded_bytes = base64.b64decode(encoded_body)
-                        response_body = decoded_bytes.decode('utf-8')
+                        response_body = decoded_bytes.decode("utf-8")
                     else:
-                        response_body = ''
+                        response_body = ""
                 except (UnicodeDecodeError, ValueError) as decode_error:
-                    logger.warning('Ошибка декодирования тела ответа (requestId: %s): %s', 
-                                  request_id, decode_error)
-                    response_body = ''
+                    logger.warning(
+                        "Ошибка декодирования тела ответа (requestId: %s): %s",
+                        request_id,
+                        decode_error,
+                    )
+                    response_body = ""
             else:
-                response_body = response_data.get('body', '')
-            
+                response_body = response_data.get("body", "")
+
             # Сохраняем тело в response для удобства
-            response['body'] = response_body
+            response["body"] = response_body
             return response_body
-            
+
         except pychrome.CallMethodException as e:
             # Ошибка вызова метода CDP
-            logger.debug('CallMethodException при получении тела ответа: %s', e)
-            return ''
-            
+            logger.debug("CallMethodException при получении тела ответа: %s", e)
+            return ""
+
         except KeyError as e:
             # Отсутствует необходимое поле
-            logger.warning('Отсутствует поле в response при получении тела ответа: %s', e)
-            return ''
-            
+            logger.warning(
+                "Отсутствует поле в response при получении тела ответа: %s", e
+            )
+            return ""
+
         except Exception as e:
             # Любая другая ошибка
-            logger.warning('Непредвиденная ошибка при получении тела ответа: %s', e)
-            return ''
-            
+            logger.warning("Непредвиденная ошибка при получении тела ответа: %s", e)
+            return ""
+
         finally:
             # Гарантированная очистка временных данных для предотвращения утечки памяти
             if response_data is not None:
                 # Явно удаляем большие данные из памяти
-                response_data.pop('body', None)
+                response_data.pop("body", None)
                 # Обнуляем ссылку для помощи сборщику мусора
                 response_data = None
 
     @wait_until_finished(timeout=None, throw_exception=False)
     def get_responses(self) -> List[Response]:
         """Получает собранные ответы.
-        
+
         Returns:
             Список всех ответов с полем 'response'.
         """
         with self._requests_lock:
-            return [x['response'] for x in self._requests.values() if 'response' in x]
+            return [x["response"] for x in self._requests.values() if "response" in x]
 
     def get_requests(self) -> List[Request]:
         """Получает записанные запросы.
-        
+
         Returns:
             Список всех записанных запросов.
         """
@@ -622,7 +674,7 @@ class ChromeRemote:
             Корневой DOM-узел.
         """
         tree = self._chrome_tab.DOM.getDocument(depth=-1 if full else 1)
-        return DOMNode(**tree['root'])
+        return DOMNode(**tree["root"])
 
     def add_start_script(self, source: str) -> None:
         """Добавляет скрипт, выполняющийся на каждой новой странице.
@@ -658,11 +710,12 @@ class ChromeRemote:
             Значение результата или None при ошибке.
         """
         try:
-            eval_result = self._chrome_tab.Runtime.evaluate(expression=expression,
-                                                            returnByValue=True)
-            return eval_result['result'].get('value', None)
+            eval_result = self._chrome_tab.Runtime.evaluate(
+                expression=expression, returnByValue=True
+            )
+            return eval_result["result"].get("value", None)
         except Exception as e:
-            logger.warning('Ошибка при выполнении скрипта: %s', e)
+            logger.warning("Ошибка при выполнении скрипта: %s", e)
             return None
 
     def perform_click(self, dom_node: DOMNode, timeout: Optional[int] = None) -> None:
@@ -674,21 +727,20 @@ class ChromeRemote:
         """
         try:
             resolved_node = self._chrome_tab.DOM.resolveNode(
-                backendNodeId=dom_node.backend_id, 
-                _timeout=timeout
+                backendNodeId=dom_node.backend_id, _timeout=timeout
             )
-            object_id = resolved_node['object']['objectId']
+            object_id = resolved_node["object"]["objectId"]
             self._chrome_tab.Runtime.callFunctionOn(
-                objectId=object_id, 
-                functionDeclaration='''
-                    (function() { 
-                        this.scrollIntoView({ block: "center", behavior: "instant" }); 
-                        this.click(); 
+                objectId=object_id,
+                functionDeclaration="""
+                    (function() {
+                        this.scrollIntoView({ block: "center", behavior: "instant" });
+                        this.click();
                     })
-                '''
+                """,
             )
         except Exception as e:
-            logger.error('Ошибка при выполнении клика: %s', e)
+            logger.error("Ошибка при выполнении клика: %s", e)
 
     def wait(self, timeout: Optional[float] = None) -> None:
         """Ожидает указанное время.
@@ -700,7 +752,7 @@ class ChromeRemote:
 
     def stop(self) -> None:
         """Закрывает браузер, отключает интерфейс.
-        
+
         Примечание:
             Функция гарантирует очистку всех ресурсов даже при ошибках.
         """
@@ -710,21 +762,21 @@ class ChromeRemote:
                 try:
                     self._close_tab(self._chrome_tab)
                 except (pychrome.RuntimeException, RequestException) as e:
-                    logger.debug('Ошибка при закрытии вкладки: %s', e)
+                    logger.debug("Ошибка при закрытии вкладки: %s", e)
 
             # Закрываем браузер
             if self._chrome_browser is not None:
                 try:
                     self._chrome_browser.close()
                 except Exception as e:
-                    logger.debug('Ошибка при закрытии браузера: %s', e)
+                    logger.debug("Ошибка при закрытии браузера: %s", e)
 
             # Очищаем запросы и очереди
             self.clear_requests()
             self._response_queues = {}
-            
+
         except Exception as e:
-            logger.error('Непредвиденная ошибка при остановке ChromeRemote: %s', e)
+            logger.error("Непредвиденная ошибка при остановке ChromeRemote: %s", e)
 
     def __enter__(self) -> ChromeRemote:
         self.start()
@@ -735,4 +787,4 @@ class ChromeRemote:
 
     def __repr__(self) -> str:
         classname = self.__class__.__name__
-        return f'{classname}(options={self._chrome_options!r}, response_patterns={self._response_patterns!r})'
+        return f"{classname}(options={self._chrome_options!r}, response_patterns={self._response_patterns!r})"

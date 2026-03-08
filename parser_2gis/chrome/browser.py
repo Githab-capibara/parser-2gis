@@ -4,7 +4,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from ..common import wait_until_finished
 from ..logger import logger
@@ -32,7 +32,7 @@ class ChromeBrowser:
         from pathlib import Path
 
         binary_path: str | None = None
-        
+
         if chrome_options.binary_path:
             # Конвертируем Path в str если необходимо
             if isinstance(chrome_options.binary_path, Path):

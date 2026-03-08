@@ -11,12 +11,12 @@ MAX_PATH_LENGTH = 1024
 
 def data_path() -> pathlib.Path:
     """Получает путь к данным пакета."""
-    if '_MEIPASS2' in os.environ:
-        here = os.environ['_MEIPASS2']
+    if "_MEIPASS2" in os.environ:
+        here = os.environ["_MEIPASS2"]
     else:
         here = os.path.dirname(os.path.abspath(__file__))
 
-    path = os.path.join(here, 'data')
+    path = os.path.join(here, "data")
     return pathlib.Path(path)
 
 
@@ -29,11 +29,11 @@ def user_path(is_config: bool = True) -> pathlib.Path:
         * ~/.local/share/parser-2gis (для данных)
     """
     if is_config:
-        path = os.getenv('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
+        path = os.getenv("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
     else:
-        path = os.getenv('XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
+        path = os.getenv("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
 
-    path = os.path.join(path, 'parser-2gis')
+    path = os.path.join(path, "parser-2gis")
     return pathlib.Path(path)
 
 
@@ -48,31 +48,31 @@ def image_path(basename: str, ext: str | None = None) -> str:
 
     Returns:
         Путь к изображению.
-        
+
     Raises:
         ValueError: Если basename содержит недопустимые символы.
         FileNotFoundError: Если изображение не найдено.
     """
     # Валидация basename для предотвращения directory traversal
-    if '/' in basename or '\\' in basename or '..' in basename:
-        raise ValueError(f'Недопустимое имя файла: {basename}')
+    if "/" in basename or "\\" in basename or ".." in basename:
+        raise ValueError(f"Недопустимое имя файла: {basename}")
 
-    images_dir = data_path() / 'images'
+    images_dir = data_path() / "images"
 
     # Оптимизированный поиск: сразу формируем ожидаемое имя файла
     if ext is not None:
-        img_name = f'{basename}.{ext}'
+        img_name = f"{basename}.{ext}"
         img_path = images_dir / img_name
         if img_path.exists():
             return os.path.abspath(img_path)
-        raise FileNotFoundError(f'Изображение {basename}.{ext} не найдено')
+        raise FileNotFoundError(f"Изображение {basename}.{ext} не найдено")
     else:
         # Если расширение не указано, ищем любой файл с таким basename
         for img_name in os.listdir(images_dir):
             img_basename, img_ext = os.path.splitext(img_name)
             if img_basename == basename:
                 return os.path.abspath(images_dir / img_name)
-        raise FileNotFoundError(f'Изображение {basename} не найдено')
+        raise FileNotFoundError(f"Изображение {basename} не найдено")
 
 
 @functools.lru_cache()
@@ -89,8 +89,8 @@ def image_data(basename: str, ext: str | None = None) -> bytes:
     """
     img_path = image_path(basename, ext)
     try:
-        with open(img_path, 'rb') as f_img:
+        with open(img_path, "rb") as f_img:
             return base64.b64encode(f_img.read())
-    except (IOError, OSError) as e:
+    except (IOError, OSError):
         # Файл не может быть прочитан - ошибка логируется и пробрасывается дальше
         raise
