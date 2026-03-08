@@ -11,14 +11,11 @@ if TYPE_CHECKING:
 
 
 # Устанавливаем уровень логирования для сторонних библиотек
-logging.getLogger('urllib3').setLevel(logging.ERROR)
-logging.getLogger('pychrome').setLevel(logging.ERROR)
-warnings.filterwarnings(
-    action='ignore',
-    module='pychrome'
-)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
+logging.getLogger("pychrome").setLevel(logging.ERROR)
+warnings.filterwarnings(action="ignore", module="pychrome")
 
-_LOGGER_NAME = 'parser-2gis'
+_LOGGER_NAME = "parser-2gis"
 
 
 class QueueHandler(logging.Handler):
@@ -31,8 +28,9 @@ class QueueHandler(logging.Handler):
         self._log_queue.put(log_message)
 
 
-def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]],
-                     options: LogOptions) -> None:
+def setup_gui_logger(
+    log_queue: queue.Queue[tuple[str, str]], options: LogOptions
+) -> None:
     """Добавляет обработчик очереди к существующему логгеру, чтобы он
     отправлял логи в указанную очередь.
 
@@ -76,3 +74,4 @@ def setup_logger(level: str, fmt: str, datefmt: str) -> None:
 
 
 logger = logging.getLogger(_LOGGER_NAME)
+Logger = logging.Logger

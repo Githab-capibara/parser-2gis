@@ -9,14 +9,26 @@ import subprocess
 @functools.lru_cache()
 def locate_chrome_path() -> str | None:
     """Определяет путь к исполняемому файлу Chrome для Linux Ubuntu.
-    
+
     Returns:
         Путь к исполняемому файлу Chrome или None, если не найден.
     """
     # Стандартные пути для Chrome на Linux Ubuntu
-    app_dirs = ['/usr/bin', '/usr/sbin', '/usr/local/bin', '/usr/local/sbin', '/sbin', '/opt/google/chrome']
-    browser_executables = ['google-chrome', 'chrome', 'chrome-browser', 'google-chrome-stable']
-    
+    app_dirs = [
+        "/usr/bin",
+        "/usr/sbin",
+        "/usr/local/bin",
+        "/usr/local/sbin",
+        "/sbin",
+        "/opt/google/chrome",
+    ]
+    browser_executables = [
+        "google-chrome",
+        "chrome",
+        "chrome-browser",
+        "google-chrome-stable",
+    ]
+
     # Поиск в стандартных директориях
     for d in app_dirs:
         for f in browser_executables:
@@ -27,8 +39,8 @@ def locate_chrome_path() -> str | None:
     # Использование команды 'which' для поиска исполняемого файла Chrome
     for f in browser_executables:
         try:
-            ret_output = subprocess.check_output(['which', f])
-            binary_path = ret_output.decode('utf-8').strip()
+            ret_output = subprocess.check_output(["which", f])
+            binary_path = ret_output.decode("utf-8").strip()
             if os.path.isfile(binary_path):
                 return binary_path
 
@@ -45,6 +57,6 @@ def free_port() -> int:
         Свободный порт.
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as free_socket:
-        free_socket.bind(('127.0.0.1', 0))
+        free_socket.bind(("127.0.0.1", 0))
         free_socket.listen(5)
         return free_socket.getsockname()[1]

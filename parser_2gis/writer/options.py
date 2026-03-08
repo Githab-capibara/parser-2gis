@@ -3,11 +3,14 @@ from __future__ import annotations
 import codecs
 
 from pydantic import BaseModel, Field
+
 try:
-    from pydantic import field_validator
+    from pydantic import field_validator  # type: ignore[attr-defined]
+
     PYDANTIC_V2 = True
 except ImportError:
     from pydantic import validator
+
     PYDANTIC_V2 = False
 
 
@@ -22,12 +25,13 @@ class CSVOptions(BaseModel):
         remove_duplicates: Удалять дубликаты после парсинга.
         join_char: Разделитель для комплексных значений.
     """
+
     add_rubrics: bool = True
     add_comments: bool = True
     columns_per_entity: int = Field(3, gt=0, le=5)
     remove_empty_columns: bool = True
     remove_duplicates: bool = True
-    join_char: str = '; '
+    join_char: str = "; "
 
 
 class WriterOptions(BaseModel):
@@ -37,9 +41,10 @@ class WriterOptions(BaseModel):
        encoding: Кодировка выходного файла.
        verbose: Выводить названия элементов парсинга.
     """
-    encoding: str = 'utf-8-sig'
+
+    encoding: str = "utf-8-sig"
     verbose: bool = True
-    csv: CSVOptions = CSVOptions()
+    csv: CSVOptions = CSVOptions(columns_per_entity=3)
 
     @staticmethod
     def _validate_encoding(v: str) -> str:
@@ -47,15 +52,18 @@ class WriterOptions(BaseModel):
         try:
             codecs.lookup(v)
         except LookupError:
-            raise ValueError(f'Неизвестная кодировка: {v}')
+            raise ValueError(f"Неизвестная кодировка: {v}")
         return v
 
     if PYDANTIC_V2:
-        @field_validator('encoding')
+
+        @field_validator("encoding")
         @classmethod
         def encoding_exists(cls, v: str) -> str:
             return cls._validate_encoding(v)
+
     else:
-        @validator('encoding')
+
+        @validator("encoding")
         def encoding_exists(cls, v: str) -> str:
             return cls._validate_encoding(v)

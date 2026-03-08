@@ -1,4 +1,4 @@
 """Информация о версии."""
 
-version = '1.2.1'
-config_version = '0.1'
+version = "1.2.1"
+config_version = "0.1"

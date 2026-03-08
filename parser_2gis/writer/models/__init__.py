@@ -10,14 +10,14 @@ from .rubric import Rubric
 from .schedule import Schedule
 
 __all__ = [
-    'Address',
-    'AdmDivItem',
-    'CatalogItem',
-    'ContactGroup',
-    'NameEx',
-    'Org',
-    'Point',
-    'Reviews',
-    'Rubric',
-    'Schedule',
+    "Address",
+    "AdmDivItem",
+    "CatalogItem",
+    "ContactGroup",
+    "NameEx",
+    "Org",
+    "Point",
+    "Reviews",
+    "Rubric",
+    "Schedule",
 ]

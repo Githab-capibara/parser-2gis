@@ -168,8 +168,12 @@ class ProgressManager:
         # Выводим итоговую статистику
         if not self._disable:
             # Рассчитываем прошедшее время с защитой от None
-            started = self._stats.started_at if self._stats.started_at is not None else 0
-            elapsed = self._stats.finished_at - started if self._stats.finished_at else 0
+            started = (
+                self._stats.started_at if self._stats.started_at is not None else 0
+            )
+            elapsed = (
+                self._stats.finished_at - started if self._stats.finished_at else 0
+            )
 
             # Рассчитываем скорость обработки
             records_per_sec = self._stats.current_record / elapsed if elapsed > 0 else 0

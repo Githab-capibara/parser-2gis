@@ -28,6 +28,7 @@ class ParserOptions(BaseModel):
         stop_on_first_404: Останавливать парсинг немедленно при первом 404 ответе (по умолчанию False).
         max_consecutive_empty_pages: Максимальное количество подряд пустых страниц перед остановкой (по умолчанию 3).
     """
+
     skip_404_response: bool = True
     delay_between_clicks: NonNegativeInt = 0
     max_records: PositiveInt = default_max_records()

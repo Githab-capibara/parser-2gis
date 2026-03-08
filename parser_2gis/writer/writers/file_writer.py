@@ -22,7 +22,11 @@ class FileWriter(ABC):
         pass
 
     def _open_file(
-        self, file_path: str, mode: str = "r", newline: Optional[str] = None, **kwargs: Any
+        self,
+        file_path: str,
+        mode: str = "r",
+        newline: Optional[str] = None,
+        **kwargs: Any,
     ) -> IO[Any]:
         """Открывает файл с указанными параметрами.
 
@@ -35,7 +39,10 @@ class FileWriter(ABC):
         Returns:
             Файловый объект.
         """
-        open_kwargs: Dict[str, Any] = {"encoding": self._options.encoding, "errors": "replace"}
+        open_kwargs: Dict[str, Any] = {
+            "encoding": self._options.encoding,
+            "errors": "replace",
+        }
         if newline is not None:
             open_kwargs["newline"] = newline
         open_kwargs.update(kwargs)

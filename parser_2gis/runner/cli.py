@@ -16,6 +16,7 @@ class CLIRunner(AbstractRunner):
         format: Формат `csv`, `xlsx` или `json`.
         config: Конфигурация.
     """
+
     def start(self) -> None:
         """Запускает процесс парсинга в CLI режиме.
 
@@ -23,37 +24,44 @@ class CLIRunner(AbstractRunner):
             Метод последовательно обрабатывает все URL, используя
             writer для записи результатов и parser для извлечения данных.
         """
-        logger.info('Парсинг запущен.')
+        logger.info("Парсинг запущен.")
         try:
-            with get_writer(self._output_path, self._format, self._config.writer) as writer:
+            with get_writer(
+                self._output_path, self._format, self._config.writer
+            ) as writer:
                 for url in self._urls:
-                    logger.info('Парсинг ссылки %s', url)
-                    with get_parser(url,
-                                    chrome_options=self._config.chrome,
-                                    parser_options=self._config.parser) as parser:
+                    logger.info("Парсинг ссылки %s", url)
+                    with get_parser(
+                        url,
+                        chrome_options=self._config.chrome,
+                        parser_options=self._config.parser,
+                    ) as parser:
                         try:
                             parser.parse(writer)
                         finally:
-                            logger.info('Парсинг ссылки завершён.')
+                            logger.info("Парсинг ссылки завершён.")
         except (KeyboardInterrupt, ChromeUserAbortException):
-            logger.error('Работа парсера прервана пользователем.')
+            logger.error("Работа парсера прервана пользователем.")
         except ConnectionError as e:
             # Ошибки сетевого соединения
-            logger.error('Ошибка сетевого соединения: %s', e)
+            logger.error("Ошибка сетевого соединения: %s", e)
         except TimeoutError as e:
             # Таймаут операции
-            logger.error('Таймаут операции: %s', e)
+            logger.error("Таймаут операции: %s", e)
         except Exception as e:
-            if isinstance(e, ChromeRuntimeException) and str(e) == 'Вкладка была остановлена':
-                logger.error('Вкладка браузера была закрыта.')
+            if (
+                isinstance(e, ChromeRuntimeException)
+                and str(e) == "Вкладка была остановлена"
+            ):
+                logger.error("Вкладка браузера была закрыта.")
             else:
-                logger.error('Ошибка во время работы парсера.', exc_info=True)
+                logger.error("Ошибка во время работы парсера.", exc_info=True)
         finally:
-            logger.info('Парсинг завершён.')
+            logger.info("Парсинг завершён.")
 
     def stop(self) -> None:
         """Останавливает процесс парсинга в CLI режиме.
-        
+
         Примечание: В CLI режиме остановка не поддерживается, так как
         процесс выполняется синхронно. Для остановки необходимо
         использовать сочетание клавиш Ctrl+C.
