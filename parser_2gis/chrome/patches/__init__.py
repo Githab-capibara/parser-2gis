@@ -2,5 +2,5 @@ from .pychrome import patch_pychrome
 
 
 def patch_all():
-    """Apply all custom patches."""
+    """Применяет все пользовательские патчи."""
     patch_pychrome()

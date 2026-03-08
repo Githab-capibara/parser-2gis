@@ -17,7 +17,7 @@ from .writer import WriterOptions
 
 
 class Configuration(BaseModel):
-    """Configuration model."""
+    """Модель конфигурации."""
     model_config = ConfigDict(validate_assignment=True)
     
     log: LogOptions = LogOptions()

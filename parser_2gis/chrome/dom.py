@@ -30,8 +30,8 @@ class DOMNode(BaseModel):
     name: str = Field(..., alias='nodeName')
     local_name: str = Field(..., alias='localName')
     value: str = Field(..., alias='nodeValue')
-    children: List[DOMNode] = []
-    attributes: Dict[str, str] = {}
+    children: list['DOMNode'] = []
+    attributes: dict[str, str] = {}
 
     @staticmethod
     def _validate_attributes(attributes_list: list[str]) -> dict[str, str]:

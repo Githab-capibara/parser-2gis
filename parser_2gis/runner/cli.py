@@ -8,7 +8,7 @@ from .runner import AbstractRunner
 
 
 class CLIRunner(AbstractRunner):
-    """CLI runner.
+    """Запуск CLI парсера.
 
     Args:
         urls: URL 2GIS с элементами для сбора.
