@@ -54,41 +54,77 @@ class DataValidator:
     
     def validate_phone(self, phone: str) -> ValidationResult:
         """Валидация и форматирование телефонного номера.
-        
+
         Проверяет корректность телефонного номера и форматирует его
-        в единый формат: '8 (XXX) XXX-XX-XX'.
-        
+        в единый формат: '8 (XXX) XXX-XX-XX' для российских номеров
+        или международный формат для других стран.
+
         Args:
             phone: Телефонный номер для валидации
-            
+
         Returns:
             ValidationResult с отформатированным номером или ошибками
-            
+
         Примечание:
-            Поддерживаются номера, начинающиеся с +7 или 8.
-            Должны содержать ровно 11 цифр.
+            Поддерживаются российские номера (+7/8) и международные.
+            Российские номера должны содержать 11 цифр.
+            Международные номера должны содержать 10-15 цифр.
         """
         errors = []
-        
+
         # Удаляем все кроме цифр и +
         cleaned = re.sub(r'[^\d+]', '', phone)
-        
-        # Проверяем, что номер начинается с +7 или 8
-        if cleaned.startswith('+7'):
-            cleaned = '8' + cleaned[2:]
-        elif not cleaned.startswith('8'):
-            errors.append("Номер должен начинаться с +7 или 8")
+
+        # Проверяем наличие цифр
+        digits_only = re.sub(r'\D', '', cleaned)
+        if not digits_only:
+            errors.append("Номер должен содержать цифры")
             return ValidationResult(False, None, errors)
+
+        # Обработка российских номеров (+7 или 8)
+        if cleaned.startswith('+7') or cleaned.startswith('8'):
+            if cleaned.startswith('+7'):
+                cleaned = '8' + cleaned[2:]
+            
+            # Проверяем длину (11 цифр для России)
+            if len(cleaned) != 11:
+                errors.append(f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)")
+                return ValidationResult(False, None, errors)
+
+            # Форматируем российский номер
+            formatted = self._format_phone(cleaned)
+            return ValidationResult(True, formatted, [])
         
-        # Проверяем длину (11 цифр для России)
-        if len(cleaned) != 11:
-            errors.append(f"Некорректная длина номера: {len(cleaned)} (ожидалось 11)")
-            return ValidationResult(False, None, errors)
+        # Обработка международных номеров
+        elif cleaned.startswith('+'):
+            # Международный номер (не Россия)
+            international_digits = cleaned[1:]  # Убираем +
+            
+            # Проверяем длину (10-15 цифр для международных номеров)
+            if len(international_digits) < 10 or len(international_digits) > 15:
+                errors.append(f"Некорректная длина международного номера: {len(international_digits)} (ожидалось 10-15)")
+                return ValidationResult(False, None, errors)
+            
+            # Возвращаем в международном формате
+            return ValidationResult(True, f"+{international_digits}", [])
         
-        # Форматируем номер
-        formatted = self._format_phone(cleaned)
-        
-        return ValidationResult(True, formatted, [])
+        # Номер без префикса - пробуем определить
+        else:
+            # Если номер содержит 11 цифр - считаем российским
+            if len(digits_only) == 11:
+                if digits_only[0] == '8':
+                    formatted = self._format_phone(digits_only)
+                    return ValidationResult(True, formatted, [])
+                else:
+                    # Считаем что это номер с кодом города без 8
+                    errors.append("Номер должен начинаться с +7, 8 или +[код страны]")
+                    return ValidationResult(False, None, errors)
+            elif 10 <= len(digits_only) <= 15:
+                # Международный номер без +
+                return ValidationResult(True, f"+{digits_only}", [])
+            else:
+                errors.append(f"Некорректная длина номера: {len(digits_only)} (ожидалось 10-15 цифр)")
+                return ValidationResult(False, None, errors)
     
     def _format_phone(self, phone: str) -> str:
         """Форматирование телефонного номера.

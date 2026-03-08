@@ -18,7 +18,7 @@ class CLIRunner(AbstractRunner):
     """
     def start(self) -> None:
         """Запускает процесс парсинга в CLI режиме.
-        
+
         Примечание:
             Метод последовательно обрабатывает все URL, используя
             writer для записи результатов и parser для извлечения данных.
@@ -37,6 +37,12 @@ class CLIRunner(AbstractRunner):
                             logger.info('Парсинг ссылки завершён.')
         except (KeyboardInterrupt, ChromeUserAbortException):
             logger.error('Работа парсера прервана пользователем.')
+        except ConnectionError as e:
+            # Ошибки сетевого соединения
+            logger.error('Ошибка сетевого соединения: %s', e)
+        except TimeoutError as e:
+            # Таймаут операции
+            logger.error('Таймаут операции: %s', e)
         except Exception as e:
             if isinstance(e, ChromeRuntimeException) and str(e) == 'Вкладка была остановлена':
                 logger.error('Вкладка браузера была закрыта.')

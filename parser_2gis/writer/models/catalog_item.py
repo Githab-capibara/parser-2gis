@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
+from ...logger import logger
 from .address import Address
 from .adm_div_item import AdmDivItem
 from .contact_group import ContactGroup
@@ -106,8 +107,24 @@ class CatalogItem(BaseModel):
 
     @property
     def timezone(self) -> str | None:
+        """Возвращает строковое представление часового пояса.
+        
+        Returns:
+            Строка формата '+HH:MM' или '-HH:MM', или None если offset не установлен.
+        
+        Примечание:
+            Проверяет корректность диапазона offset (-12 до +14 часов).
+            Возвращает None для некорректных значений.
+        """
         if self.timezone_offset is None:
             return None
+        
+        # Проверка корректности диапазона (-12 до +14 часов в минутах: -720 до +840)
+        if self.timezone_offset < -720 or self.timezone_offset > 840:
+            logger.warning('Некорректное значение timezone_offset: %d (ожидалось от -720 до 840)', 
+                          self.timezone_offset)
+            return None
+        
         sign = '-' if self.timezone_offset < 0 else '+'
         minutes = abs(self.timezone_offset)
         h = minutes // 60

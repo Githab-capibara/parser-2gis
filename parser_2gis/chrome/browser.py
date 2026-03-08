@@ -140,35 +140,54 @@ class ChromeBrowser():
 
         Returns:
             `True` при успешном удалении, `False` при неудаче.
+        
+        Примечание:
+            Использует многоуровневую стратегию удаления:
+            1. Попытка обычного удаления
+            2. Принудительное удаление с ignore_errors=True
+            3. Логирование ошибки для последующей очистки при перезапуске
         """
         # Проверяем существование профиля перед удалением
         if not os.path.exists(self._profile_path):
             logger.debug('Профиль Chrome уже удалён или не существовал: %s', self._profile_path)
             return True
-            
+
         try:
             # Первая попытка: обычное удаление
             shutil.rmtree(self._profile_path, ignore_errors=False)
             profile_deleted = not os.path.isdir(self._profile_path)
             if profile_deleted:
                 logger.debug('Временный профиль Chrome удалён: %s', self._profile_path)
-            return profile_deleted
+                return True
             
+            # Если профиль остался, пробуем принудительное удаление
+            logger.warning('Профиль Chrome не удалён с первой попытки, пробуем принудительно')
+
         except (OSError, PermissionError) as e:
             # Ошибка при удалении - пробуем принудительно
             logger.warning('Ошибка при удалении профиля Chrome (попытка 1): %s', e)
-            try:
-                # Вторая попытка: игнорируем ошибки
-                shutil.rmtree(self._profile_path, ignore_errors=True)
-                logger.debug('Профиль Chrome удалён принудительно (попытка 2)')
-                return not os.path.isdir(self._profile_path)
-            except Exception as cleanup_error:
-                # Третья попытка не удалась - логируем ошибку
-                logger.error('Не удалось удалить профиль Chrome после 2 попыток: %s', cleanup_error)
-                return False
+        
         except Exception as unexpected_error:
             # Непредвиденная ошибка
             logger.error('Непредвиденная ошибка при удалении профиля Chrome: %s', unexpected_error)
+        
+        # Вторая попытка: игнорируем ошибки для предотвращения утечки дискового пространства
+        try:
+            shutil.rmtree(self._profile_path, ignore_errors=True)
+            logger.debug('Профиль Chrome удалён принудительно (попытка 2)')
+            return not os.path.isdir(self._profile_path)
+        except Exception as cleanup_error:
+            # Третья попытка не удалась - логируем ошибку для последующей очистки
+            logger.error('Не удалось удалить профиль Chrome после 2 попыток: %s. Профиль может остаться на диске.', cleanup_error)
+            # Помечаем профиль для удаления при следующем запуске
+            try:
+                # Создаём маркер для последующей очистки
+                marker_file = os.path.join(os.path.dirname(self._profile_path), '.cleanup_marker')
+                with open(marker_file, 'a', encoding='utf-8') as f:
+                    f.write(f'{self._profile_path}\n')
+                logger.debug('Создан маркер для последующей очистки: %s', marker_file)
+            except Exception:
+                pass  # Не критично если маркер не создан
             return False
 
     def close(self) -> None:
