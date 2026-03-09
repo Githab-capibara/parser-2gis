@@ -318,7 +318,7 @@ def main() -> None:
     args, command_line_config = parse_arguments()
 
     # Обрабатываем аргументы городов
-    urls = list(args.url) if hasattr(args, 'url') and args.url is not None else []
+    urls = args.url or []
 
     # Проверяем режим парсинга по категориям
     categories_mode = getattr(args, "categories_mode", False)

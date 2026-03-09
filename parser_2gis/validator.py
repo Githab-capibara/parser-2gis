@@ -111,9 +111,9 @@ class DataValidator:
             international_digits = cleaned[1:]  # Убираем +
 
             # Проверяем длину (10-15 цифр для международных номеров)
-            if len(international_digits) < self.INTERNATIONAL_PHONE_MIN_LENGTH or len(international_digits) > self.INTERNATIONAL_PHONE_MAX_LENGTH:
+            if len(international_digits) < DataValidator.INTERNATIONAL_PHONE_MIN_LENGTH or len(international_digits) > DataValidator.INTERNATIONAL_PHONE_MAX_LENGTH:
                 errors.append(
-                    f"Некорректная длина международного номера: {len(international_digits)} (ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH})"
+                    f"Некорректная длина м��ждународного номера: {len(international_digits)} (ожидалось {DataValidator.INTERNATIONAL_PHONE_MIN_LENGTH}-{DataValidator.INTERNATIONAL_PHONE_MAX_LENGTH})"
                 )
                 return ValidationResult(False, None, errors)
 
@@ -131,12 +131,12 @@ class DataValidator:
                     # Считаем что это номер с кодом города без 8
                     errors.append("Номер должен начинаться с +7, 8 или +[код страны]")
                     return ValidationResult(False, None, errors)
-            elif self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(digits_only) <= self.INTERNATIONAL_PHONE_MAX_LENGTH:
+            elif DataValidator.INTERNATIONAL_PHONE_MIN_LENGTH <= len(digits_only) <= DataValidator.INTERNATIONAL_PHONE_MAX_LENGTH:
                 # Международный номер без +
                 return ValidationResult(True, f"+{digits_only}", [])
             else:
                 errors.append(
-                    f"Некорректная длина номера: {len(digits_only)} (ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH} цифр)"
+                    f"Некорректная длина номера: {len(digits_only)} (ожидалось {DataValidator.INTERNATIONAL_PHONE_MIN_LENGTH}-{DataValidator.INTERNATIONAL_PHONE_MAX_LENGTH} цифр)"
                 )
                 return ValidationResult(False, None, errors)
 
