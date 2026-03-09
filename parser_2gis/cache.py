@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from parser_2gis.logger import logger
+from .logger import logger
 
 
 class CacheManager:
