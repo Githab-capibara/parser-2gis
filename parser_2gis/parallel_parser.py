@@ -130,6 +130,7 @@ class ParallelCityParser:
             for category in self.categories:
                 # Формируем URL для категории с кодированием
                 base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
+                # Оставляем кириллицу нетронутой, кодируем только пробелы и спецсимволы
                 rest_url = f'/search/{url_query_encode(category["query"])}'
 
                 if category.get("rubric_code"):
@@ -452,11 +453,9 @@ class ParallelCityParser:
         failed_count = 0
 
         # Получаем таймаут из конфигурации (если есть) или используем значение по умолчанию
-        timeout_per_url = (
-            getattr(self.config.parser, "timeout", 300)
-            if hasattr(self.config, "parser")
-            else 300
-        )
+        timeout_per_url = 300  # Значение по умолчанию
+        if hasattr(self.config, "parser") and self.config.parser is not None:
+            timeout_per_url = getattr(self.config.parser, "timeout", 300)
         self.log(f"Таймаут на один URL: {timeout_per_url} секунд", "info")
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:

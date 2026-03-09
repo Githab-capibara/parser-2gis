@@ -8,8 +8,16 @@ from ..common import floor_to_hundreds
 
 def default_max_records() -> int:
     """Пытается найти линейную аппроксимацию для оптимального количества записей."""
-    max_records = floor_to_hundreds((550 * default_memory_limit() / 1024 - 400))
-    return max_records if max_records > 0 else 1
+    memory_limit = default_memory_limit()
+    
+    # Защита от отрицательного или нулевого значения памяти
+    if memory_limit <= 0:
+        return 100
+    
+    max_records = floor_to_hundreds((550 * memory_limit / 1024 - 400))
+    
+    # Гарантируем положительное значение
+    return max(100, max_records)
 
 
 class ParserOptions(BaseModel):

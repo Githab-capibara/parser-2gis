@@ -46,64 +46,83 @@ class Configuration(BaseModel):
             model_target: BaseModel,
             max_depth: int = 10,
             current_depth: int = 0,
+            visited: Optional[set] = None,
         ) -> None:
             """Рекурсивно присваивает новые атрибуты к существующей конфигурации.
 
             Примечание:
                 Корректно определяет версию Pydantic и получает набор установленных полей.
                 Для Pydantic v2 используется model_fields_set, для v1 - __fields_set__.
+                Использует набор visited для предотвращения циклических ссылок.
 
             Args:
                 model_source: Исходная модель.
                 model_target: Целевая модель.
                 max_depth: Максимальная глубина рекурсии (по умолчанию 10).
                 current_depth: Текущая глубина рекурсии.
+                visited: Набор посещённых объектов для предотвращения циклических ссылок.
 
             Raises:
                 RecursionError: При превышении максимальной глубины рекурсии.
             """
-            # Проверка глубины рекурсии
-            if current_depth >= max_depth:
-                raise RecursionError(
-                    f"Превышена максимальная глубина рекурсии ({max_depth}) при объединении конфигурации"
-                )
-
-            # Определяем версию Pydantic и получаем набор установленных полей
-            if hasattr(model_source, "model_fields_set"):
-                # Pydantic v2
-                fields_set: Optional[Set[str]] = model_source.model_fields_set
-            elif hasattr(model_source, "__fields_set__"):
-                # Pydantic v1
-                fields_set = model_source.__fields_set__
-            else:
-                # Неизвестная версия Pydantic
-                fields_set = set()
-
-            if not fields_set:
-                fields_set = set()
-
-            for field in fields_set:
-                try:
-                    source_attr = getattr(model_source, field)
-
-                    if not isinstance(source_attr, BaseModel):
-                        # Присваиваем простое значение
-                        setattr(model_target, field, source_attr)
-                    else:
-                        # Рекурсивно объединяем вложенные модели
-                        target_attr = getattr(model_target, field)
-                        assign_attributes(
-                            source_attr, target_attr, max_depth, current_depth + 1
-                        )
-
-                except (AttributeError, TypeError) as e:
-                    logger.warning("Ошибка при объединении поля %s: %s", field, e)
-                    raise
-                except Exception as e:
-                    logger.error(
-                        "Непредвиденная ошибка при объединении поля %s: %s", field, e
+            # Инициализируем набор посещённых объектов
+            if visited is None:
+                visited = set()
+            
+            # Проверка на циклические ссылки
+            source_id = id(model_source)
+            if source_id in visited:
+                logger.warning("Обнаружена циклическая ссылка при объединении конфигурации")
+                return
+            
+            visited.add(source_id)
+            
+            try:
+                # Проверка глубины рекурсии
+                if current_depth >= max_depth:
+                    raise RecursionError(
+                        f"Превышена максимальная глубина рекурсии ({max_depth}) при объединении конфигурации"
                     )
-                    raise
+
+                # Определяем версию Pydantic и получаем набор установленных полей
+                if hasattr(model_source, "model_fields_set"):
+                    # Pydantic v2
+                    fields_set: Optional[Set[str]] = model_source.model_fields_set
+                elif hasattr(model_source, "__fields_set__"):
+                    # Pydantic v1
+                    fields_set = model_source.__fields_set__
+                else:
+                    # Неизвестная версия Pydantic
+                    fields_set = set()
+
+                if not fields_set:
+                    fields_set = set()
+
+                for field in fields_set:
+                    try:
+                        source_attr = getattr(model_source, field)
+
+                        if not isinstance(source_attr, BaseModel):
+                            # Присваиваем простое значение
+                            setattr(model_target, field, source_attr)
+                        else:
+                            # Рекурсивно объединяем вложенные модели
+                            target_attr = getattr(model_target, field)
+                            assign_attributes(
+                                source_attr, target_attr, max_depth, current_depth + 1, visited
+                            )
+
+                    except (AttributeError, TypeError) as e:
+                        logger.warning("Ошибка при объединении поля %s: %s", field, e)
+                        raise
+                    except Exception as e:
+                        logger.error(
+                            "Непредвиденная ошибка при объединении поля %s: %s", field, e
+                        )
+                        raise
+            finally:
+                # Удаляем из набора после обработки
+                visited.discard(source_id)
 
         try:
             assign_attributes(other_config, self)

@@ -252,8 +252,8 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     p_parser.add_argument(
         "--parallel-workers",
         type=int,
-        default=10,
-        help="Количество одновременных потоков для параллельного парсинга (по умолчанию: 10)",
+        default=3,
+        help="Количество одновременных потоков для параллельного парсинга (по умолчанию: 3)",
     )
 
     other_parser = arg_parser.add_argument_group("Прочие аргументы")
