@@ -23,3 +23,19 @@ class AbstractRunner(ABC):
     @abstractmethod
     def stop(self):
         pass
+
+
+class GUIRunner(AbstractRunner):
+    """Простейшая заглушка GUIRunner для тестов.
+
+    Наследуется от AbstractRunner и предоставляет методы start/stop.
+    В рамках тестов поведение не требуется; важна лишь корректная инициализация.
+    """
+
+    def start(self):  # type: ignore[override]
+        # В реальном приложении здесь запуск GUI и параллельного парсинга
+        return None
+
+    def stop(self):  # type: ignore[override]
+        # Остановка GUI/процесса парсинга
+        return None

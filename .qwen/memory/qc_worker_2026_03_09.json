@@ -1,0 +1,226 @@
+{
+  "qc_status": "critical_fail",
+  "score": 42,
+  "critical_issues": [
+    {
+      "type": "logic",
+      "file": "parser_2gis/main.py",
+      "line": "345",
+      "description": "urls = list(args.url) вызовет TypeError если args.url равен None",
+      "fix_suggestion": "urls = list(args.url) if hasattr(args, 'url') and args.url is not None else []"
+    },
+    {
+      "type": "logic",
+      "file": "parser_2gis/main.py",
+      "line": "378",
+      "description": "Path(args.output_path) может вызвать ошибку если args.output_path None",
+      "fix_suggestion": "output_path_value = getattr(args, 'output_path', None); if output_path_value is not None: output_path_obj = Path(output_path_value)"
+    },
+    {
+      "type": "logic",
+      "file": "parser_2gis/validator.py",
+      "line": "94-97",
+      "description": "Проверка if cleaned.startswith('+8') выполняется ПОСЛЕ конвертации +8 в 8, никогда не сработает",
+      "fix_suggestion": "Переместить проверку +8 перед конвертацией: сначала проверить +8, потом +7, потом 8"
+    },
+    {
+      "type": "security",
+      "file": "parser_2gis/chrome/remote.py",
+      "line": "105-145",
+      "description": "При неудачном подключении в _connect_interface браузер не закрывается, утечка ресурсов",
+      "fix_suggestion": "Обернуть в try/except и закрывать браузер в блоке finally"
+    },
+    {
+      "type": "logic",
+      "file": "parser_2gis/parallel_parser.py",
+      "line": "450",
+      "description": "timeout_per_url может быть None если parser не в конфигурации",
+      "fix_suggestion": "timeout_per_url = 300; if hasattr(self.config, 'parser') and self.config.parser: timeout_per_url = getattr(self.config.parser, 'timeout', 300)"
+    },
+    {
+      "type": "security",
+      "file": "parser_2gis/statistics.py",
+      "line": "230-250",
+      "description": "XSS уязвимость: генерация HTML без экранирования специальных символов в errors",
+      "fix_suggestion": "Использовать html.escape() для экранирования ошибок перед вставкой в HTML"
+    },
+    {
+      "type": "logic",
+      "file": "parser_2gis/config.py",
+      "line": "65",
+      "description": "assign_attributes может вызвать переполнение стека при глубокой вложенности и циклических ссылках",
+      "fix_suggestion": "Добавить отслеживание посещённых объектов через set(id) для обнаружения циклических ссылок"
+    },
+    {
+      "type": "logic",
+      "file": "parser_2gis/parser/parsers/main.py",
+      "line": "450",
+      "description": "Внутренняя функция get_unique_links захватывает visited_links без proper synchronization",
+      "fix_suggestion": "Добавить threading.Lock для потокобезопасного доступа к visited_links"
+    },
+    {
+      "type": "logic",
+      "file": "parser_2gis/chrome/browser.py",
+      "line": "130",
+      "description": "Проверка os.access(binary_path, os.X_OK) не работает корректно на Windows",
+      "fix_suggestion": "Для Windows проверять расширение файла (.exe, .bat, .cmd), для Unix - os.X_OK"
+    },
+    {
+      "type": "logic",
+      "file": "parser_2gis/parser/options.py",
+      "line": "12",
+      "description": "default_max_records() может вернуть отрицательное число если memory_limit маленький",
+      "fix_suggestion": "return max(1, max_records) для гарантии положительного значения"
+    },
+    {
+      "type": "logic",
+      "file": "parser_2gis/parser/parsers/firm.py",
+      "line": "55-65",
+      "description": "Нет обработки случая когда initial_state пустой или не содержит нужных ключей",
+      "fix_suggestion": "Добавить проверку isinstance для каждого уровня вложенности: initial_state, data, entity, profile"
+    }
+  ],
+  "minor_issues": [
+    {
+      "type": "security",
+      "file": "parser_2gis/cache.py",
+      "line": "85",
+      "description": "Потенциальная SQL injection: нет валидации входных данных перед хешированием",
+      "fix_suggestion": "Добавить валидацию URL: проверка на None, тип str, максимальную длину 2048"
+    },
+    {
+      "type": "security",
+      "file": "parser_2gis/common.py",
+      "line": "45-55",
+      "description": "_is_sensitive_key проверяет только частичное совпадение, возможны ложные срабатывания",
+      "fix_suggestion": "Использовать regex с границами слов: r'\\bpass\\b', r'\\btoken\\b'"
+    },
+    {
+      "type": "security",
+      "file": "parser_2gis/chrome/remote.py",
+      "line": "280",
+      "description": "Нет ограничения на количество попыток создания вкладки с exponential backoff",
+      "fix_suggestion": "Добавить exponential backoff с jitter: delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)"
+    },
+    {
+      "type": "security",
+      "file": "parser_2gis/chrome/remote.py",
+      "line": "200",
+      "description": "requests.put/get не проверяют SSL сертификаты явно",
+      "fix_suggestion": "Явно указать verify=True в запросах"
+    },
+    {
+      "type": "style",
+      "file": "parser_2gis/main.py",
+      "line": "120",
+      "description": "Строка длиннее 88 символов (black standard)",
+      "fix_suggestion": "Разбить строку на несколько строк с использованием скобок"
+    },
+    {
+      "type": "style",
+      "file": "parser_2gis/validator.py",
+      "line": "1-10",
+      "description": "Неправильное расположение импортов: re после typing",
+      "fix_suggestion": "Следовать PEP 8: стандартные импорты перед импортами из typing"
+    },
+    {
+      "type": "exception_handling",
+      "file": "parser_2gis/main.py",
+      "line": "425",
+      "description": "Слишком общий except Exception: вместо конкретных исключений",
+      "fix_suggestion": "Заменить на except (SpecificError1, SpecificError2):"
+    },
+    {
+      "type": "exception_handling",
+      "file": "parser_2gis/parallel_parser.py",
+      "line": "200",
+      "description": "Слишком общий except Exception: вместо конкретных исключений",
+      "fix_suggestion": "Заменить на конкретные типы исключений"
+    },
+    {
+      "type": "exception_handling",
+      "file": "parser_2gis/writer/writers/csv_writer.py",
+      "line": "180-250",
+      "description": "Отсутствие обработки KeyboardInterrupt в _remove_empty_columns",
+      "fix_suggestion": "Добавить except KeyboardInterrupt с очисткой временных файлов"
+    },
+    {
+      "type": "exception_handling",
+      "file": "parser_2gis/logger/logger.py",
+      "line": "55",
+      "description": "setup_cli_logger не проверяет что logger.handlers пуст перед добавлением",
+      "fix_suggestion": "Добавить if not logger.handlers: перед добавлением обработчиков"
+    },
+    {
+      "type": "resource_leak",
+      "file": "parser_2gis/cache.py",
+      "line": "85",
+      "description": "sqlite3.connect без контекстного менеджера в некоторых местах",
+      "fix_suggestion": "Использовать with sqlite3.connect(...) as conn:"
+    },
+    {
+      "type": "resource_leak",
+      "file": "parser_2gis/chrome/browser.py",
+      "line": "178",
+      "description": "marker_file создаётся но нет кода для его обработки при следующем запуске",
+      "fix_suggestion": "Добавить код для чтения marker_file и удаления старых профилей при запуске"
+    },
+    {
+      "type": "resource_leak",
+      "file": "parser_2gis/writer/writers/xlsx_writer.py",
+      "line": "23-40",
+      "description": "Дублирование кода удаления временного файла в except и finally",
+      "fix_suggestion": "Вынести удаление в finally блок или использовать контекстный менеджер"
+    },
+    {
+      "type": "typing",
+      "file": "parser_2gis/writer/models/catalog_item.py",
+      "line": "105",
+      "description": "timezone property возвращает str | None но не обрабатывает все случаи корректно",
+      "fix_suggestion": "Добавить явную проверку на None и корректный диапазон перед форматированием"
+    },
+    {
+      "type": "typing",
+      "file": "parser_2gis/common.py",
+      "line": "200",
+      "description": "Dict[str, Any] вместо конкретных типов для вложенных структур",
+      "fix_suggestion": "Создать TypedDict или dataclass для типизации структур"
+    },
+    {
+      "type": "optimization",
+      "file": "parser_2gis/writer/writers/csv_writer.py",
+      "line": "230",
+      "description": "hashlib.sha256 избыточен для дедупликации строк",
+      "fix_suggestion": "Использовать hashlib.md5 или встроенный hash() для скорости"
+    },
+    {
+      "type": "optimization",
+      "file": "parser_2gis/parser/end_of_results.py",
+      "line": "55",
+      "description": "Поиск по всему DOM может быть медленным для больших страниц",
+      "fix_suggestion": "Использовать CSS selectors для точечного поиска или ограничить глубину"
+    },
+    {
+      "type": "optimization",
+      "file": "parser_2gis/writer/writers/*.py",
+      "line": "multiple",
+      "description": "Дублирование кода удаления временных файлов",
+      "fix_suggestion": "Создать общую утилиту cleanup_temp_file(path) в common.py"
+    },
+    {
+      "type": "optimization",
+      "file": "parser_2gis/parser/parsers/main.py",
+      "line": "200-500",
+      "description": "Функция parse содержит вложенные функции на 200+ строк, сложная для понимания",
+      "fix_suggestion": "Вынести вложенные функции в отдельные методы класса"
+    },
+    {
+      "type": "style",
+      "file": "parser_2gis/chrome/utils.py",
+      "line": "multiple",
+      "description": "Отсутствие docstring у публичных функций",
+      "fix_suggestion": "Добавить docstring с описанием аргументов и возвращаемого значения"
+    }
+  ],
+  "verdict": "Код проекта требует критических исправлений. Обнаружено 11 критических проблем включая логические ошибки, утечки ресурсов и XSS уязвимость. 30 проблем высокого приоритета и 60 средних. Общий score: 42/100. Рекомендуется немедленно исправить критические проблемы (приоритет 1), затем устранить проблемы безопасности и обработки исключений. Требуется внедрение pre-commit hooks, CI/CD pipeline и покрытие тестами."
+}
