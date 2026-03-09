@@ -53,3 +53,4 @@ with ChromeRemote(chrome_options, [_REGIONS_LIST_RESPONSE]) as chrome_remote:
     rubrics_path = parser_2gis.paths.data_path() / 'rubrics.json'
     with open(rubrics_path, 'w', encoding='utf-8') as f:
         json.dump(rubrics, f, ensure_ascii=False, indent=4)
+        print(f'Сохранено {len(rubrics)} рубрик в {rubrics_path}')

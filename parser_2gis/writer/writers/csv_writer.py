@@ -5,6 +5,7 @@ import hashlib
 import os
 import re
 import shutil
+import unicodedata
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from pydantic import ValidationError
@@ -225,7 +226,8 @@ class CSVWriter(FileWriter):
         """Постобработка: Удаление дубликатов.
 
         Примечание:
-            Использует хеширование строк для надёжного сравнения.
+            Использует хеширование строк с Unicode-нормализацией для надёжного сравнения.
+            SHA256 используется вместо MD5 для большей безопасности.
             Включает улучшенную обработку ошибок и очистку временных файлов.
         """
         file_root, file_ext = os.path.splitext(self._file_path)
@@ -251,18 +253,13 @@ class CSVWriter(FileWriter):
                         # Нормализуем строку: удаляем завершающие пробелы и newlines
                         normalized_line = line.rstrip("\r\n")
 
-                        # Вычисляем хеш для надёжного сравнения
-                        # Используем try/except для совместимости с разными версиями Python
-                        try:
-                            # Пытаемся использовать usedforsecurity (Python 3.9+)
-                            line_hash = hashlib.md5(
-                                normalized_line.encode("utf-8"), usedforsecurity=False
-                            ).hexdigest()
-                        except (TypeError, AttributeError):
-                            # Для Python < 3.9 или если параметр недоступен
-                            line_hash = hashlib.md5(
-                                normalized_line.encode("utf-8")
-                            ).hexdigest()
+                        # Unicode-нормализация для корректного сравнения
+                        # NFKD разлагает символы на базовые символы + диакритические знаки
+                        normalized = unicodedata.normalize('NFKD', normalized_line)
+
+                        # Вычисляем хеш с использованием SHA256 для большей безопасности
+                        # SHA256 более криптографически надёжный, чем MD5
+                        line_hash = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
                         if line_hash in seen_hashes:
                             duplicates_count += 1

@@ -65,49 +65,67 @@ class FileWriter(ABC):
                     logger.error("Сервер вернул некорректный документ (не dict).")
                 return False
 
-            if "error" in catalog_doc["meta"]:  # Найдена ошибка
+            # Безопасный доступ к meta
+            meta = catalog_doc.get("meta", {})
+            if not isinstance(meta, dict):
                 if verbose:
-                    error_msg = catalog_doc["meta"]["error"].get("message", None)
+                    logger.error("Сервер вернул некорректный документ (meta не dict).")
+                return False
+
+            # Проверка наличия ошибки в meta
+            if meta.get("error"):
+                if verbose:
+                    error_data = meta.get("error", {})
+                    error_msg = error_data.get("message") if isinstance(error_data, dict) else None
                     if error_msg:
                         logger.error("Сервер ответил ошибкой: %s", error_msg)
                     else:
                         logger.error("Сервер ответил неизвестной ошибкой.")
-
                 return False
 
-            if catalog_doc["meta"].get("code") != 200:
+            # Проверка кода ответа
+            if meta.get("code") != 200:
                 if verbose:
                     logger.error(
-                        "Сервер вернул код ответа: %s", catalog_doc["meta"].get("code")
+                        "Сервер вернул код ответа: %s", meta.get("code")
                     )
                 return False
 
+            # Проверка наличия result
             if "result" not in catalog_doc:
                 if verbose:
                     logger.error('Сервер вернул документ без ключа "result".')
                 return False
 
-            if "items" not in catalog_doc["result"]:
+            result = catalog_doc.get("result", {})
+            if not isinstance(result, dict):
+                if verbose:
+                    logger.error('Сервер вернул некорректный тип "result" (не dict).')
+                return False
+
+            # Проверка наличия items
+            if "items" not in result:
                 if verbose:
                     logger.error('Сервер вернул документ без ключа "items".')
                 return False
 
-            if not isinstance(catalog_doc["result"]["items"], list):
+            items = result.get("items", [])
+            if not isinstance(items, list):
                 if verbose:
-                    logger.error('Сервер вернул некорректный тип "items".')
+                    logger.error('Сервер вернул некорректный тип "items" (не list).')
                 return False
 
-            if len(catalog_doc["result"]["items"]) == 0:
+            if len(items) == 0:
                 if verbose:
                     logger.error('Сервер вернул пустой список "items".')
                 return False
 
-            if not isinstance(catalog_doc["result"]["items"][0], dict):
+            if not isinstance(items[0], dict):
                 if verbose:
-                    logger.error('Сервер вернул некорректный тип элемента "items".')
+                    logger.error('Сервер вернул некорректный тип элемента "items" (не dict).')
                 return False
 
-            if len(catalog_doc["result"]["items"]) > 1 and verbose:
+            if len(items) > 1 and verbose:
                 logger.warning("Сервер вернул больше одного ответа.")
 
             return True
