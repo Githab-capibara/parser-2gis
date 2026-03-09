@@ -85,12 +85,12 @@ class DataValidator:
             return ValidationResult(False, None, errors)
 
         # Обработка российских номеров (+7 или 8)
+        # Сначала проверяем +8 ДО конвертации +7
+        if cleaned.startswith("+8"):
+            errors.append("Некорректный международный префикс: +8 (должен быть +7 для России)")
+            return ValidationResult(False, None, errors)
+        
         if cleaned.startswith("+7") or cleaned.startswith("8"):
-            # Номер +8 не является корректным международным форматом
-            if cleaned.startswith("+8"):
-                errors.append("Некорректный международный префикс: +8 (должен быть +7 для России)")
-                return ValidationResult(False, None, errors)
-            
             if cleaned.startswith("+7"):
                 cleaned = "8" + cleaned[2:]
 

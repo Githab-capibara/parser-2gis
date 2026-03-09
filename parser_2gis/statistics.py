@@ -5,6 +5,7 @@
 работы парсера в различные форматы (JSON, CSV, HTML).
 """
 
+import html as html_module
 import json
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -349,8 +350,10 @@ class StatisticsExporter:
             </tr>
 """
             for error in stats.errors:
+                # Экранируем HTML для предотвращения XSS-атак
+                safe_error = html_module.escape(str(error))
                 html += f"""            <tr>
-                <td colspan="2">{error}</td>
+                <td colspan="2">{safe_error}</td>
             </tr>
 """
 

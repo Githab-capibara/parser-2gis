@@ -3,6 +3,7 @@ from __future__ import annotations
 import gc
 import json
 import re
+import threading
 import time
 import urllib.parse
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
@@ -338,6 +339,7 @@ class MainParser:
 
         # Уже посещённые ссылки (с оптимизацией памяти)
         visited_links: Set[str] = set()
+        visited_links_lock = threading.Lock()  # Блокировка для потокобезопасности
 
         # Счётчик подряд пустых страниц (для избежания бесконечного цикла при 404)
         consecutive_empty_pages = 0
@@ -373,15 +375,16 @@ class MainParser:
                     )
 
                     # Усиливаем очистку: очищаем 75% посещённых ссылок вместо 50%
-                    if len(visited_links) > 1000:
-                        links_list = list(visited_links)
-                        keep_count = len(links_list) // 4  # Оставляем 25% старых ссылок
-                        visited_links.clear()
-                        visited_links.update(links_list[keep_count:])
-                        logger.debug(
-                            "Очищено %d ссылок для освобождения памяти",
-                            len(links_list) - keep_count,
-                        )
+                    with visited_links_lock:
+                        if len(visited_links) > 1000:
+                            links_list = list(visited_links)
+                            keep_count = len(links_list) // 4  # Оставляем 25% старых ссылок
+                            visited_links.clear()
+                            visited_links.update(links_list[keep_count:])
+                            logger.debug(
+                                "Очищено %d ссылок для освобождения памяти",
+                                len(links_list) - keep_count,
+                            )
 
                     # Дополнительный вызов сборщика мусора для агрессивной очистки
                     gc.collect()
@@ -432,23 +435,24 @@ class MainParser:
                     x.attributes["href"] for x in links if "href" in x.attributes
                 }
 
-                if link_addresses & visited_links:
-                    # Возвращаем None вместо пустого списка для явного указания на повтор
-                    return None
+                with visited_links_lock:
+                    if link_addresses & visited_links:
+                        # Возвращаем None вместо пустого списка для явного указания на повтор
+                        return None
 
-                visited_links.update(link_addresses)
+                    visited_links.update(link_addresses)
 
-                # Оптимизация памяти: очищаем старые ссылки при превышении лимита
-                if len(visited_links) > MAX_VISITED_LINKS_SIZE:
-                    # Оставляем только последние 25% ссылок (усилено с 50%)
-                    links_list = list(visited_links)
-                    keep_count = len(links_list) // 4  # Оставляем 25% вместо 50%
-                    visited_links.clear()
-                    visited_links.update(links_list[keep_count:])
-                    logger.debug(
-                        "Оптимизация памяти: очищено %d старых ссылок",
-                        len(links_list) - keep_count,
-                    )
+                    # Оптимизация памяти: очищаем старые ссылки при превышении лимита
+                    if len(visited_links) > MAX_VISITED_LINKS_SIZE:
+                        # Оставляем только последние 25% ссылок (усилено с 50%)
+                        links_list = list(visited_links)
+                        keep_count = len(links_list) // 4  # Оставляем 25% вместо 50%
+                        visited_links.clear()
+                        visited_links.update(links_list[keep_count:])
+                        logger.debug(
+                            "Оптимизация памяти: очищено %d старых ссылок",
+                            len(links_list) - keep_count,
+                        )
 
                 return links
             except Exception as e:

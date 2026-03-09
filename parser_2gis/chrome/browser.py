@@ -140,12 +140,20 @@ class ChromeBrowser:
         if not os.path.isfile(binary_path):
             raise ValueError(f"Путь к браузеру должен указывать на файл: {binary_path}")
 
-        # Проверка на исполняемость (для Unix-систем)
-        # Примечание: проверка не учитывает WSL, где исполняемость не требуется
-        if os.name != "nt" and not os.access(binary_path, os.X_OK):
+        # Проверка на исполняемость
+        if os.name == "nt":
+            # Для Windows проверяем расширение файла
+            if not binary_path.lower().endswith(('.exe', '.bat', '.cmd', '.com')):
+                logger.warning(
+                    "Файл браузера может не быть исполняемым в Windows: %s "
+                    "(рекомендуется .exe, .bat, .cmd или .com)",
+                    binary_path
+                )
+        else:
+            # Для Unix-систем проверяем права на выполнение
             # Проверка на WSL через platform
             is_wsl = "microsoft" in platform.uname().release.lower()
-            if not is_wsl:
+            if not is_wsl and not os.access(binary_path, os.X_OK):
                 logger.warning("Файл браузера не имеет прав на выполнение: %s", binary_path)
 
     @property

@@ -71,11 +71,22 @@ class FirmParser(MainParser):
                 return
 
             # Безопасное извлечение данных с проверкой всех ключей
-            data_dict = initial_state.get("data", {})
-            entity = data_dict.get("entity", {})
-            profile = entity.get("profile", {})
-
-            if not profile:
+            if not isinstance(initial_state, dict):
+                logger.warning("initialState не является словарём.")
+                return
+                
+            data_dict = initial_state.get("data")
+            if not data_dict or not isinstance(data_dict, dict):
+                logger.warning("Данные организации не найдены (data отсутствует).")
+                return
+                
+            entity = data_dict.get("entity")
+            if not entity or not isinstance(entity, dict):
+                logger.warning("Данные организации не найдены (entity отсутствует).")
+                return
+                
+            profile = entity.get("profile")
+            if not profile or not isinstance(profile, dict):
                 logger.warning("Данные организации не найдены (profile отсутствует).")
                 return
 

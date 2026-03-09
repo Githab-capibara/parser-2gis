@@ -237,49 +237,56 @@ class ChromeRemote:
             Добавлена задержка после запуска Chrome для стабильного подключения.
             При параллельном запуске нескольких браузеров может потребоваться больше времени.
         """
-        # Открываем браузер
-        self._chrome_browser = ChromeBrowser(self._chrome_options)
+        try:
+            # Открываем браузер
+            self._chrome_browser = ChromeBrowser(self._chrome_options)
 
-        # Валидируем порт перед использованием
-        remote_port = _validate_remote_port(self._chrome_browser.remote_port)
-        self._dev_url = f"http://127.0.0.1:{remote_port}"
+            # Валидируем порт перед использованием
+            remote_port = _validate_remote_port(self._chrome_browser.remote_port)
+            self._dev_url = f"http://127.0.0.1:{remote_port}"
 
-        # Начальная задержка для запуска Chrome (даём время на старт)
-        # При параллельном запуске нескольких браузеров увеличиваем задержку
-        logger.debug("Ожидание запуска Chrome (%.1f сек)...", CHROME_STARTUP_DELAY)
-        time.sleep(CHROME_STARTUP_DELAY)
+            # Начальная задержка для запуска Chrome (даём время на старт)
+            # При параллельном запуске нескольких браузеров увеличиваем задержку
+            logger.debug("Ожидание запуска Chrome (%.1f сек)...", CHROME_STARTUP_DELAY)
+            time.sleep(CHROME_STARTUP_DELAY)
 
-        # Проверка доступности порта перед подключением с повторными попытками
-        max_port_check_attempts = 5
-        port_check_delay = 1.0
+            # Проверка доступности порта перед подключением с повторными попытками
+            max_port_check_attempts = 5
+            port_check_delay = 1.0
 
-        for attempt in range(max_port_check_attempts):
-            if _check_port_available(remote_port, timeout=2.0):
-                logger.debug("Порт %d доступен для подключения", remote_port)
-                break
+            for attempt in range(max_port_check_attempts):
+                if _check_port_available(remote_port, timeout=2.0):
+                    logger.debug("Порт %d доступен для подключения", remote_port)
+                    break
 
-            if attempt < max_port_check_attempts - 1:
-                logger.warning(
-                    "Порт %d недоступен (попытка %d/%d). Ожидание %.1f сек...",
-                    remote_port,
-                    attempt + 1,
-                    max_port_check_attempts,
-                    port_check_delay,
-                )
-                time.sleep(port_check_delay)
-            else:
-                raise ChromeException(
-                    f"Порт {remote_port} недоступен после {max_port_check_attempts} попыток. "
-                    "Возможно, Chrome не запустился."
-                )
+                if attempt < max_port_check_attempts - 1:
+                    logger.warning(
+                        "Порт %d недоступен (попытка %d/%d). Ожидание %.1f сек...",
+                        remote_port,
+                        attempt + 1,
+                        max_port_check_attempts,
+                        port_check_delay,
+                    )
+                    time.sleep(port_check_delay)
+                else:
+                    raise ChromeException(
+                        f"Порт {remote_port} недоступен после {max_port_check_attempts} попыток. "
+                        "Возможно, Chrome не запустился."
+                    )
 
-        # Подключаем браузер к CDP с проверкой результата
-        if not self._connect_interface():
-            self._chrome_browser.close()
-            raise ChromeException("Не удалось подключиться к Chrome DevTools Protocol")
+            # Подключаем браузер к CDP с проверкой результата
+            if not self._connect_interface():
+                raise ChromeException("Не удалось подключиться к Chrome DevTools Protocol")
 
-        self._setup_tab()
-        self._init_tab_monitor()
+            self._setup_tab()
+            self._init_tab_monitor()
+            
+        except Exception:
+            # При любой ошибке закрываем браузер для предотвращения утечки ресурсов
+            if self._chrome_browser:
+                logger.warning("Закрытие браузера из-за ошибки при запуске")
+                self._chrome_browser.close()
+            raise
 
     def _create_tab(self) -> pychrome.Tab:
         """Создаёт Chrome-вкладку с повторными попытками.
