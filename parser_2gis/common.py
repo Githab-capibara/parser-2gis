@@ -59,14 +59,43 @@ def _is_sensitive_key(key: str) -> bool:
 
     Returns:
         True если ключ чувствительный, False иначе.
+
+    Примечание:
+        Проверка включает:
+        - Точное совпадение с известными чувствительными ключами
+        - Совпадение по паттерну с учётом границ слов (избегает ложных
+          срабатываний на ключах вроде 'keyboard', 'passage', 'token_count')
     """
     key_lower = key.lower()
-    # Прямая проверка
+
+    # Прямая проверка на точное совпадение
     if key_lower in _SENSITIVE_KEYS:
         return True
-    # Проверка по паттерну (содержит чувствительное слово)
+
+    # Проверка по паттерну с границами слов
+    # Используем '_' и цифры как разделители для составных ключей
+    # Например: 'api_key', 'access_token', 'secret_key_2'
     sensitive_patterns = ["pass", "secret", "token", "key", "auth", "cred"]
-    return any(pattern in key_lower for pattern in sensitive_patterns)
+    for pattern in sensitive_patterns:
+        # Проверяем наличие паттерна как отдельного слова
+        # Разделителями считаются '_', цифры, начало/конец строки
+        if pattern in key_lower:
+            # Находим все вхождения паттерна
+            idx = key_lower.find(pattern)
+            while idx != -1:
+                # Проверяем левую границу (начало строки или разделитель)
+                left_ok = idx == 0 or key_lower[idx - 1] in "_-0123456789"
+                # Проверяем правую границу (конец строки или разделитель)
+                right_idx = idx + len(pattern)
+                right_ok = right_idx == len(key_lower) or key_lower[right_idx] in "_-0123456789"
+
+                if left_ok and right_ok:
+                    return True
+
+                # Ищем следующее вхождение
+                idx = key_lower.find(pattern, idx + 1)
+
+    return False
 
 
 def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
@@ -98,13 +127,11 @@ def running_linux() -> bool:
     """Определяет, работает ли приложение на Linux.
 
     Returns:
-        True - приложение работает на Linux (любой дистрибутив).
+        True если приложение работает на Linux (любой дистрибутив), False иначе.
 
     Примечание:
-        Функция проверяет любой Linux, не только Ubuntu.
         Приложение официально поддерживает только Linux окружения.
     """
-    # Приложение поддерживает только Linux окружения
     return sys.platform.startswith("linux")
 
 
@@ -140,10 +167,18 @@ def wait_until_finished(
             # Инициализируем finished внутри функции для избежания изменяемого аргумента по умолчанию
             inner_finished = finished if finished is not None else bool
 
-            # Инициализируем ret для избежания UnboundLocalError
             ret: Any = None
-            call_time = time.time()
+            start_time = time.time()
+
             while True:
+                # Проверка таймаута в начале цикла
+                if timeout is not None and time.time() - start_time > timeout:
+                    if throw_exception:
+                        raise TimeoutError(
+                            f"Превышено время ожидания для {func.__name__}"
+                        )
+                    return ret
+
                 try:
                     ret = func(*args, **kwargs)
                     if inner_finished(ret):
@@ -154,25 +189,6 @@ def wait_until_finished(
                     logger.warning(
                         "Ошибка при выполнении функции %s: %s", func.__name__, e
                     )
-                    # Проверяем таймаут даже при ошибках
-                    if timeout is not None and time.time() - call_time > timeout:
-                        if throw_exception:
-                            raise TimeoutError(
-                                f"Превышено время ожидания для {func.__name__}"
-                            )
-                        return None
-                    time.sleep(poll_interval)
-                    continue
-
-                # Проверяем таймаут
-                if timeout is not None:
-                    if time.time() - call_time > timeout:
-                        if throw_exception:
-                            raise TimeoutError(
-                                f"Превышено время ожидания для {func.__name__}"
-                            )
-                        # Возвращаем None явно, так как функция не завершилась успешно
-                        return None
 
                 time.sleep(poll_interval)
 
@@ -296,8 +312,16 @@ def floor_to_hundreds(arg: Union[int, float]) -> int:
 
     Returns:
         Округлённое вниз число до ближайшей сотни.
+
+    Example:
+        >>> floor_to_hundreds(1234)
+        1200
+        >>> floor_to_hundreds(1999)
+        1900
+        >>> floor_to_hundreds(50)
+        0
     """
-    return int(arg // 100 * 100)
+    return int((arg // 100) * 100)
 
 
 def generate_city_urls(
@@ -306,27 +330,30 @@ def generate_city_urls(
     """Генерирует URL для парсинга по списку городов.
 
     Args:
-        cities: Список словарей городов с полями name, code, domain, country_code.
+        cities: Список словарей городов с обязательными полями:
+            - code (str): код города
+            - domain (str): домен региона (например, 'ru', 'kz')
         query: Поисковый запрос (например, "Аптеки", "Рестораны").
-        rubric: Словарь рубрики с полями code, label (опционально).
+        rubric: Словарь рубрики с полем code (опционально).
 
     Returns:
         Список URL для парсинга.
 
     Примечание:
         Функция автоматически пропускает города с отсутствующими обязательными полями
-        и логирует предупреждения для каждого такого случая.
+        или неверными типами данных, логируя предупреждения для каждого такого случая.
     """
     urls: List[str] = []
     logger = _get_logger()
 
     for city in cities:
         try:
-            # Валидация данных города
+            # Валидация типа данных города
             if not isinstance(city, dict):
                 logger.warning("Элемент cities не является словарём: %s", city)
                 continue
 
+            # Проверка наличия обязательных полей
             if not all(key in city for key in ("code", "domain")):
                 logger.warning(
                     "Город не содержит обязательные поля (code, domain): %s", city
@@ -338,6 +365,7 @@ def generate_city_urls(
                 logger.warning("Поля code и domain должны быть строками: %s", city)
                 continue
 
+            # Формирование URL
             base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
             rest_url = f"/search/{url_query_encode(query)}"
 
@@ -349,11 +377,20 @@ def generate_city_urls(
             urls.append(url)
 
         except Exception as e:
-            # Логирование непредвиденных ошибок при обработке города
             logger.error("Ошибка при генерации URL для города %s: %s", city, e)
             continue
 
     return urls
+
+
+# Константы для проверки безопасных символов (кириллица и пробел)
+_CYRILLIC_LOWER_START = 0x0430  # 'а'
+_CYRILLIC_LOWER_END = 0x044F  # 'я'
+_CYRILLIC_UPPER_START = 0x0410  # 'А'
+_CYRILLIC_UPPER_END = 0x042F  # 'Я'
+_CYRILLIC_IO_LOWER = 0x0451  # 'ё'
+_CYRILLIC_IO_UPPER = 0x0401  # 'Ё'
+_SPACE_CODE = 0x20  # пробел
 
 
 def _is_safe_char(char: str) -> bool:
@@ -371,22 +408,14 @@ def _is_safe_char(char: str) -> bool:
         True если символ безопасный, False иначе.
     """
     char_code = ord(char)
-    # Диапазоны кириллических символов
-    cyrillic_lower_start = 0x0430  # 1072 - 'а'
-    cyrillic_lower_end = 0x044F  # 1103 - 'я'
-    cyrillic_upper_start = 0x0410  # 1040 - 'А'
-    cyrillic_upper_end = 0x042F  # 1071 - 'Я'
-    io_lower = 0x0451  # 1105 - 'ё'
-    io_upper = 0x0401  # 1025 - 'Ё'
-    space = 0x20  # 32 - пробел
 
-    return (
-        cyrillic_lower_start <= char_code <= cyrillic_lower_end
-        or cyrillic_upper_start <= char_code <= cyrillic_upper_end
-        or char_code == io_lower
-        or char_code == io_upper
-        or char_code == space
-    )
+    # Проверка диапазонов кириллических символов
+    is_cyrillic_lower = _CYRILLIC_LOWER_START <= char_code <= _CYRILLIC_LOWER_END
+    is_cyrillic_upper = _CYRILLIC_UPPER_START <= char_code <= _CYRILLIC_UPPER_END
+    is_io = char_code in (_CYRILLIC_IO_LOWER, _CYRILLIC_IO_UPPER)
+    is_space = char_code == _SPACE_CODE
+
+    return is_cyrillic_lower or is_cyrillic_upper or is_io or is_space
 
 
 def url_query_encode(query: str) -> str:
