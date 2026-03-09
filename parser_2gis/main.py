@@ -318,7 +318,7 @@ def main() -> None:
     args, command_line_config = parse_arguments()
 
     # Обрабатываем аргументы городов
-    urls = list(args.url) if args.url else []
+    urls = list(args.url) if hasattr(args, 'url') and args.url is not None else []
 
     # Проверяем режим парсинга по категориям
     categories_mode = getattr(args, "categories_mode", False)
@@ -345,9 +345,10 @@ def main() -> None:
         if categories_mode:
             # Режим парсинга по 93 категориям
             # Используем output_path как директорию (если указан) или 'output' по умолчанию
-            if args.output_path:
+            output_path_value = getattr(args, 'output_path', None)
+            if output_path_value is not None:
                 # Если указан путь к файлу, используем его директорию
-                output_path_obj = Path(args.output_path)
+                output_path_obj = Path(output_path_value)
                 if output_path_obj.suffix:  # Это файл, а не директория
                     output_dir = output_path_obj.parent
                 else:
