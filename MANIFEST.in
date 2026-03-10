@@ -1,2 +1,6 @@
 graft parser_2gis
 recursive-exclude * *.pyc *.pyo *.swo *.swp
+include parser_2gis/data/images/*.png
+include parser_2gis/data/images/*.gif
+include parser_2gis/data/images/*.ico
+include parser_2gis/data/images/*.icns

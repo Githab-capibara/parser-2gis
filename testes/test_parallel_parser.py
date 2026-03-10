@@ -88,16 +88,17 @@ class TestGenerateUrlsForCity:
             'name': 'Москва',
             'country_code': 'ru'
         }
-        
+
         categories = [
             {'name': 'Кафе', 'query': 'Кафе', 'rubric_code': '161'}
         ]
-        
+
         urls = generate_urls_for_city(city, categories)
-        
+
         assert len(urls) == 1
         assert '2gis.ru/moscow' in urls[0]
-        assert 'search/Кафе' in urls[0]
+        # URL кодируется, поэтому проверяем кодированное значение
+        assert 'search/%D0%9A%D0%B0%D1%84%D0%B5' in urls[0]  # Кафе в URL-кодировке
         assert 'rubricId/161' in urls[0]
         assert 'filters/sort=name' in urls[0]
     
@@ -129,16 +130,17 @@ class TestGenerateUrlsForCity:
             'name': 'Казань',
             'country_code': 'ru'
         }
-        
+
         categories = [
             {'name': 'Бургерные', 'query': 'Бургерные', 'rubric_code': None}
         ]
-        
+
         urls = generate_urls_for_city(city, categories)
-        
+
         assert len(urls) == 1
         assert 'rubricId' not in urls[0]
-        assert 'search/Бургерные' in urls[0]
+        # URL кодируется, поэтому проверяем кодированное значение
+        assert 'search/%D0%91%D1%83%D1%80%D0%B3%D0%B5%D1%80%D0%BD%D1%8B%D0%B5' in urls[0]  # Бургерные в URL-кодировке
     
     def test_generate_urls_all_93_categories(self):
         """Проверка генерации URL для всех 93 категорий."""
