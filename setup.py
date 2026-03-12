@@ -98,6 +98,8 @@ if __name__ == '__main__':
             'psutil>=5.4.8',
             'requests>=2.13.0',
             'xlsxwriter>=3.0.5',
+            'rich>=13.0.0',
+            'tqdm>=4.65.0',
         ],
         extras_require={
             'dev': [

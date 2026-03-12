@@ -20,11 +20,12 @@ import pydantic
 from .common import generate_city_urls, report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
 from .data.categories_93 import CATEGORIES_93
-from .logger import logger, log_parser_start, log_parser_finish, setup_cli_logger
+from .logger import logger, log_parser_start, log_parser_finish, setup_cli_logger, get_tui_app
 from .parallel_parser import ParallelCityParser
 from .paths import data_path
 from .version import version
 from .cli import cli_app
+from .tui import run_parallel_with_tui
 
 
 class ArgumentHelpFormatter(argparse.HelpFormatter):
@@ -376,28 +377,23 @@ def main() -> None:
             logger.info("Города: %s", [c["name"] for c in selected_cities])
             logger.info("Количество потоков: %d", getattr(args, "parallel_workers", 3))
 
-            # Создаём и запускаем параллельный парсер (синхронно)
+            # Создаём и запускаем параллельный парсер с TUI
             # Приводим тип categories к list[dict] для совместимости с ParallelCityParser
             categories_list: list[dict] = CATEGORIES_93  # type: ignore[assignment]
-            parser = ParallelCityParser(
+            
+            # Используем TUI интерфейс вместо обычного логирования
+            logger.info("🎨 Запуск TUI интерфейса...")
+            
+            output_file = str(output_dir / "merged_result.csv")
+            result = run_parallel_with_tui(
                 cities=selected_cities,
                 categories=categories_list,
                 output_dir=str(output_dir),
                 config=command_line_config,
                 max_workers=getattr(args, "parallel_workers", 3),
+                output_file=output_file,
+                version=version,
             )
-
-            def on_progress(success: int, failed: int, filename: str) -> None:
-                logger.info(
-                    "Прогресс: успешно=%d, ошибок=%d, файл=%s",
-                    success,
-                    failed,
-                    filename,
-                )
-
-            # Запускаем парсинг
-            output_file = str(output_dir / "merged_result.csv")
-            result = parser.run(output_file=output_file, progress_callback=on_progress)
 
             # Вычисляем длительность
             duration = time.time() - start_time
