@@ -98,6 +98,15 @@ class StatisticsExporter:
         """Инициализация экспортера статистики."""
         pass
 
+    @staticmethod
+    def _ensure_dir(file_path: Path) -> None:
+        """Создаёт директорию для файла если она не существует.
+        
+        Args:
+            file_path: Путь к файлу, для которого нужно создать директорию.
+        """
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
     def export_to_json(self, stats: ParserStatistics, output_path: Path) -> None:
         """Экспорт статистики в формат JSON.
 
@@ -111,11 +120,8 @@ class StatisticsExporter:
         Raises:
             IOError: Если не удалось записать файл
         """
-        # Подготавливаем данные для JSON
         data = self._prepare_for_json(stats)
-
-        # Записываем в файл
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        self._ensure_dir(output_path)
         with output_path.open("w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -133,18 +139,11 @@ class StatisticsExporter:
         """
         import csv
 
-        # Подготавливаем данные
         data = self._prepare_for_dict(stats)
-
-        # Записываем в файл
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        self._ensure_dir(output_path)
         with output_path.open("w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
-
-            # Заголовок
             writer.writerow(["Показатель", "Значение"])
-
-            # Данные
             for key, value in data.items():
                 writer.writerow([key, value])
 
@@ -162,9 +161,7 @@ class StatisticsExporter:
             IOError: Если не удалось записать файл
         """
         html_content = self._generate_html(stats)
-
-        # Записываем в файл
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        self._ensure_dir(output_path)
         with output_path.open("w", encoding="utf-8") as f:
             f.write(html_content)
 
@@ -181,9 +178,7 @@ class StatisticsExporter:
             IOError: Если не удалось записать файл
         """
         text_content = self._generate_text(stats)
-
-        # Записываем в файл
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        self._ensure_dir(output_path)
         with output_path.open("w", encoding="utf-8") as f:
             f.write(text_content)
 

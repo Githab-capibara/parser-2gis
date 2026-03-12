@@ -336,10 +336,8 @@ def main() -> None:
     # Обрабатываем аргументы городов
     urls = args.url or []
 
-    # Проверяем режим парсинга по категориям
+    # Проверяем режим парсинга по категориям и наличие городов
     categories_mode = getattr(args, "categories_mode", False)
-
-    # Выносим проверку наличия городов в переменную для избежания дублирования
     has_cities = hasattr(args, "cities") and args.cities is not None
 
     # Если указаны города, генерируем URL
@@ -371,17 +369,8 @@ def main() -> None:
 
         if categories_mode:
             # Режим парсинга по 93 категориям
-            # Используем output_path как директорию (если указан) или 'output' по умолчанию
-            output_path_value = getattr(args, 'output_path', None)
-            if output_path_value is not None:
-                # Если указан путь к файлу, используем его директорию
-                output_path_obj = Path(output_path_value)
-                if output_path_obj.suffix:  # Это файл, а не директория
-                    output_dir = output_path_obj.parent
-                else:
-                    output_dir = output_path_obj
-            else:
-                output_dir = Path("output")
+            # Определяем директорию для результатов
+            output_dir = _get_output_dir(args.output_path)
 
             try:
                 output_dir.mkdir(parents=True, exist_ok=True)
@@ -476,6 +465,23 @@ def main() -> None:
             raise
 
 
+def _get_output_dir(output_path: str | None) -> Path:
+    """Определяет директорию для результатов на основе output_path.
+    
+    Args:
+        output_path: Путь к файлу или директории (может быть None).
+    
+    Returns:
+        Path объект директории.
+    """
+    if output_path is None:
+        return Path("output")
+    
+    output_path_obj = Path(output_path)
+    # Если указан путь с расширением файла, используем его директорию
+    return output_path_obj.parent if output_path_obj.suffix else output_path_obj
+
+
 def _log_startup_info(args: argparse.Namespace, config: Configuration, start_time: datetime) -> None:
     """
     Логирует подробную информацию о запуске парсера.
@@ -484,21 +490,13 @@ def _log_startup_info(args: argparse.Namespace, config: Configuration, start_tim
         args: Аргументы командной строки.
         config: Конфигурация.
         start_time: Время запуска.
-
-    Raises:
-        ValueError: При некорректной конфигурации.
     """
-    # Получаем формат, обрабатывая случай None (для categories-mode)
+    # Получаем формат и output_path с обработкой None
     format_value = getattr(args, "format", None)
     format_str = format_value.upper() if format_value else "CSV (по умолчанию)"
-
-    # Получаем output_path, обрабатывая случай None
+    
     output_path_value = getattr(args, "output_path", None)
-    try:
-        output_path_str = str(output_path_value) if output_path_value else "output/ (по умолчанию)"
-    except (TypeError, ValueError):
-        output_path_str = "output/ (по умолчанию)"
-        logger.warning("Некорректный output_path, используется значение по умолчанию")
+    output_path_str = str(output_path_value) if output_path_value else "output/ (по умолчанию)"
 
     # Формируем сводку конфигурации
     config_summary = {
