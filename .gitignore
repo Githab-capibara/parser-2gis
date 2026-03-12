@@ -1,11 +1,22 @@
+# Виртуальные окружения
 venv/
+.venv/
+
+# Python
 __pycache__/
 dist/
-.vscode/
+build/
 *.egg-info/
 .pytest_cache/
-build/
 .tox/
 .mypy_cache/
-QWEN.md
-KODA.md
+
+# IDE
+.vscode/
+
+# Логи
+*.log
+
+# Временные файлы
+*.tmp
+*.bak
