@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 if TYPE_CHECKING:
-    from parser_2gis.config import Configuration
+    from ..config import Configuration
 
 
 class TUIParallelParserWrapper:
@@ -41,7 +41,7 @@ class TUIParallelParserWrapper:
             config: Конфигурация
             max_workers: Количество потоков
         """
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from .parallel_parser import ParallelCityParser
 
         self._tui = tui_manager
         self._cities = cities
@@ -165,7 +165,7 @@ def run_parallel_with_tui(
     Returns:
         True если успешно
     """
-    from parser_2gis.tui.app import TUIManager
+    from .app import TUIManager
 
     # Создаём TUI менеджер
     tui = TUIManager(version=version, log_dir=Path("logs"), log_level="DEBUG")

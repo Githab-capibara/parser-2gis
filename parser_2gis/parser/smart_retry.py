@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Any
 
-from parser_2gis.logger import logger
+from ..logger import logger
 
 
 class SmartRetryManager:

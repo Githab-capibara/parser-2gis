@@ -16,13 +16,13 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional
 
-from parser_2gis.common import url_query_encode
-from parser_2gis.logger import logger, log_parser_finish, print_progress
-from parser_2gis.parser import get_parser
-from parser_2gis.writer import get_writer
+from .common import url_query_encode
+from .logger import logger, log_parser_finish, print_progress
+from .parser import get_parser
+from .writer import get_writer
 
 if TYPE_CHECKING:
-    from parser_2gis.config import Configuration
+    from .config import Configuration
 
 
 class ParallelCityParser:

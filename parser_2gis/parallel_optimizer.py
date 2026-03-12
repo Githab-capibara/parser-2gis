@@ -14,7 +14,7 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from parser_2gis.logger import logger
+from .logger import logger
 
 
 class ParallelTask:
