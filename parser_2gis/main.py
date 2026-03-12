@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +20,7 @@ import pydantic
 from .common import generate_city_urls, report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
 from .data.categories_93 import CATEGORIES_93
-from .logger import logger
+from .logger import logger, log_parser_start, log_parser_finish, setup_cli_logger
 from .parallel_parser import ParallelCityParser
 from .paths import data_path
 from .version import version
@@ -314,8 +316,18 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
 
 def main() -> None:
     """Точка входа."""
+    # Запоминаем время старта
+    start_time = time.time()
+    start_datetime = datetime.now()
+
     # Парсим аргументы командной строки
     args, command_line_config = parse_arguments()
+
+    # Настраиваем логгер
+    setup_cli_logger(command_line_config.log)
+
+    # Логируем запуск парсера с подробной информацией
+    _log_startup_info(args, command_line_config, start_datetime)
 
     # Обрабатываем аргументы городов
     urls = args.url or []
@@ -387,11 +399,25 @@ def main() -> None:
             output_file = str(output_dir / "merged_result.csv")
             result = parser.run(output_file=output_file, progress_callback=on_progress)
 
+            # Вычисляем длительность
+            duration = time.time() - start_time
+            duration_str = f"{duration:.2f} сек."
+
             if result:
                 logger.info("Параллельный парсинг завершён успешно!")
                 logger.info("Результаты сохранены в папку: %s", output_dir.absolute())
+                log_parser_finish(
+                    success=True,
+                    stats={
+                        "Городов": len(selected_cities),
+                        "Категорий": len(CATEGORIES_93),
+                        "Всего URL": len(selected_cities) * len(CATEGORIES_93),
+                    },
+                    duration=duration_str,
+                )
             else:
                 logger.error("Параллельный парсинг завершён с ошибками")
+                log_parser_finish(success=False, duration=duration_str)
 
             return
         else:
@@ -428,3 +454,51 @@ def main() -> None:
         except Exception as e:
             logger.error("Критическая ошибка приложения: %s", e, exc_info=True)
             raise
+
+
+def _log_startup_info(args: argparse.Namespace, config: Configuration, start_time: datetime) -> None:
+    """
+    Логирует подробную информацию о запуске парсера.
+
+    Args:
+        args: Аргументы командной строки.
+        config: Конфигурация.
+        start_time: Время запуска.
+    """
+    # Формируем сводку конфигурации
+    config_summary = {
+        "chrome": {
+            "Headless": "Да" if config.chrome.headless else "Нет",
+            "Без изображений": "Да" if config.chrome.disable_images else "Нет",
+            "Максимизирован": "Да" if config.chrome.start_maximized else "Нет",
+        },
+        "parser": {
+            "Макс. записей": str(config.parser.max_records),
+            "Задержка (мс)": str(config.parser.delay_between_clicks),
+            "GC включен": "Да" if config.parser.use_gc else "Нет",
+        },
+        "writer": {
+            "Формат": getattr(args, "format", "N/A").upper(),
+            "Кодировка": config.writer.encoding,
+            "Удалить дубликаты": "Да" if config.writer.csv_remove_duplicates else "Нет",
+        },
+    }
+
+    # Получаем количество URL
+    urls_count = len(args.url) if args.url else 0
+    if hasattr(args, "cities") and args.cities:
+        if getattr(args, "categories_mode", False):
+            urls_count = len(args.cities) * len(CATEGORIES_93)
+        else:
+            urls_count = len(args.cities)
+
+    # Логируем запуск
+    log_parser_start(
+        version=version,
+        urls_count=urls_count,
+        output_path=getattr(args, "output_path", "N/A"),
+        format=getattr(args, "format", "N/A"),
+        config_summary=config_summary,
+    )
+
+    logger.info("Время запуска: %s", start_time.strftime("%Y-%m-%d %H:%M:%S"))
