@@ -1,0 +1,76 @@
+{
+  "project_name": "parser-2gis",
+  "generated_at": "2026-03-12T12:00:00Z",
+  "docs": [
+    {
+      "path": "README.md",
+      "type": "readme",
+      "version": "1.2.2",
+      "language": "ru",
+      "lines": 1546,
+      "status": "existing"
+    },
+    {
+      "path": "README_EN.md",
+      "type": "readme",
+      "version": "1.2.2",
+      "language": "en",
+      "lines": 750,
+      "status": "created"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "type": "changelog",
+      "version": "1.2.2",
+      "language": "ru",
+      "lines": 195,
+      "status": "updated"
+    },
+    {
+      "path": "FIXES_SUMMARY_2026_03_12.md",
+      "type": "fixes_summary",
+      "version": "1.2.2",
+      "language": "ru",
+      "lines": 350,
+      "status": "created"
+    },
+    {
+      "path": "CODE_IMPROVEMENTS_2026_03_12.md",
+      "type": "code_improvements",
+      "version": "1.2.2",
+      "language": "ru",
+      "lines": 450,
+      "status": "created"
+    },
+    {
+      "path": "BUG_FIX_REPORT_2026_03_12.md",
+      "type": "bug_fix_report",
+      "version": "1.2.2",
+      "language": "ru",
+      "lines": 294,
+      "status": "existing"
+    },
+    {
+      "path": "CODE_QUALITY_AUDIT_REPORT_2026_03_09.md",
+      "type": "quality_audit",
+      "version": "1.2.2",
+      "language": "ru",
+      "lines": 400,
+      "status": "existing"
+    },
+    {
+      "path": "FINAL_CODE_STATUS_2026_03_09.md",
+      "type": "final_status",
+      "version": "1.2.2",
+      "language": "ru",
+      "lines": 300,
+      "status": "existing"
+    }
+  ],
+  "diagrams_count": 0,
+  "last_updated": "2026-03-12T12:00:00Z",
+  "quality_score": 94,
+  "total_docs": 8,
+  "created_docs": 3,
+  "updated_docs": 1
+}

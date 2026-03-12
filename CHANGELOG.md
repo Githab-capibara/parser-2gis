@@ -15,6 +15,24 @@
 
 ---
 
+## [1.2.2] - 2026-03-12
+
+### Исправления
+- Исправлена логическая ошибка в декораторе wait_until_finished
+- Устранена потенциальная XSS уязвимость в chrome/remote.py
+- Исправлено обращение к несуществующему атрибуту timeout
+- Исправлен стиль кода в validator.py
+- Переведены комментарии на русский язык
+- Удалён неиспользуемый код из common.py
+
+### Улучшения
+- Добавлена валидация JavaScript кода
+- Улучшена обработка ошибок
+- Оптимизирована работа с памятью
+- Улучшена типизация
+
+---
+
 ## [1.2.1] — 14-03-2024
 
 ### Добавлено
@@ -156,7 +174,8 @@
 
 ## Ссылки
 
-[Невошедшее]: https://github.com/Githab-capibara/parser-2gis/compare/v1.2.1...HEAD
+[Невошедшее]: https://github.com/Githab-capibara/parser-2gis/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/Githab-capibara/parser-2gis/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/Githab-capibara/parser-2gis/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Githab-capibara/parser-2gis/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/Githab-capibara/parser-2gis/compare/v1.1.1...v1.1.2
