@@ -183,13 +183,10 @@ class ParallelCityParser:
         filename = f"{safe_city}_{safe_category}.csv"
         filepath = self.output_dir / filename
 
-        # Создаём уникальное временное имя файла с проверкой на коллизии
-        # Используем цикл while для гарантии уникальности имени
-        while True:
-            temp_filename = f"{safe_city}_{safe_category}_{uuid.uuid4().hex}.tmp"
-            temp_filepath = self.output_dir / temp_filename
-            if not temp_filepath.exists():
-                break
+        # Создаём уникальное временное имя файла
+        # uuid.uuid4() гарантирует уникальность, поэтому проверка на коллизии не требуется
+        temp_filename = f"{safe_city}_{safe_category}_{uuid.uuid4().hex}.tmp"
+        temp_filepath = self.output_dir / temp_filename
 
         try:
             self.log(
@@ -340,9 +337,19 @@ class ParallelCityParser:
                         progress_callback(f"Обработка: {csv_file.name}")
 
                     # Извлекаем название категории из имени файла
-                    # Формат: Город_Категория.csv
+                    # Формат: Город_Категория.csv (город может содержать подчёркивания)
+                    # Поэтому берём всё после первого подчёркивания
                     parts = csv_file.stem.split("_", 1)
-                    category_name = parts[1] if len(parts) > 1 else parts[0]
+                    if len(parts) > 1:
+                        # Восстанавливаем категорию с возможными подчёркиваниями
+                        category_name = parts[1].replace("_", " ")
+                    else:
+                        # Файл без категории (некорректное имя)
+                        category_name = parts[0].replace("_", " ")
+                        self.log(
+                            f"Предупреждение: файл {csv_file.name} не содержит категорию в имени",
+                            "warning",
+                        )
 
                     # Логируем извлечение категории для отладки
                     self.log(

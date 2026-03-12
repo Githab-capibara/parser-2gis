@@ -73,52 +73,66 @@ def _is_sensitive_key(key: str) -> bool:
         return True
 
     # Проверка по паттерну с границами слов
-    # Используем '_' и цифры как разделители для составных ключей
-    # Например: 'api_key', 'access_token', 'secret_key_2'
+    # Разделителями считаются '_', '-', цифры, начало/конец строки
     sensitive_patterns = ["pass", "secret", "token", "key", "auth", "cred"]
     for pattern in sensitive_patterns:
-        # Проверяем наличие паттерна как отдельного слова
-        # Разделителями считаются '_', цифры, начало/конец строки
         if pattern in key_lower:
-            # Находим все вхождения паттерна
+            # Находим позицию паттерна
             idx = key_lower.find(pattern)
             while idx != -1:
                 # Проверяем левую границу (начало строки или разделитель)
-                left_ok = idx == 0 or key_lower[idx - 1] in "_-0123456789"
+                left_ok = idx == 0 or key_lower[idx - 1] in "_-"
                 # Проверяем правую границу (конец строки или разделитель)
                 right_idx = idx + len(pattern)
-                right_ok = right_idx == len(key_lower) or key_lower[right_idx] in "_-0123456789"
+                right_ok = right_idx == len(key_lower) or key_lower[right_idx] in "_-"
 
                 if left_ok and right_ok:
                     return True
 
-                # Ищем следующее вхождение
                 idx = key_lower.find(pattern, idx + 1)
 
     return False
 
 
-def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
+def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[set] = None) -> Any:
     """
     Очищает чувствительные данные из значения.
 
     Args:
         value: Значение для очистки.
         key: Имя ключа (опционально).
+        _visited: Внутренний параметр для отслеживания посещённых объектов (защита от циклических ссылок).
 
     Returns:
         Очищенное значение или '<REDACTED>' для чувствительных данных.
     """
+    # Инициализируем множество посещённых объектов для защиты от циклических ссылок
+    if _visited is None:
+        _visited = set()
+    
+    # Проверяем на циклические ссылки
+    value_id = id(value)
+    if value_id in _visited:
+        return "<REDACTED>"  # Возвращаем маркер для циклической ссылки
+    
     if key and _is_sensitive_key(key):
         return "<REDACTED>"
 
     # Рекурсивная обработка словарей
     if isinstance(value, dict):
-        return {k: _sanitize_value(v, k) for k, v in value.items()}
+        _visited.add(value_id)
+        try:
+            return {k: _sanitize_value(v, k, _visited) for k, v in value.items()}
+        finally:
+            _visited.discard(value_id)
 
     # Рекурсивная обработка списков
     if isinstance(value, list):
-        return [_sanitize_value(item) for item in value]
+        _visited.add(value_id)
+        try:
+            return [_sanitize_value(item, _visited=_visited) for item in value]
+        finally:
+            _visited.discard(value_id)
 
     return value
 

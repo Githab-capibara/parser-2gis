@@ -73,72 +73,62 @@ class DataValidator:
             Российские номера должны содержать 11 цифр.
             Международные номера должны содержать 10-15 цифр.
         """
-        errors = []
-
         # Удаляем все кроме цифр и +
         cleaned = re.sub(r"[^\d+]", "", phone)
-
-        # Проверяем наличие цифр
         digits_only = re.sub(r"\D", "", cleaned)
+        
         if not digits_only:
-            errors.append("Номер должен содержать цифры")
-            return ValidationResult(False, None, errors)
+            return ValidationResult(False, None, ["Номер должен содержать цифры"])
 
         # Обработка российских номеров (+7 или 8)
-        # Сначала проверяем +8 ДО конвертации +7
         if cleaned.startswith("+8"):
-            errors.append("Некорректный международный префикс: +8 (должен быть +7 для России)")
-            return ValidationResult(False, None, errors)
-        
+            return ValidationResult(
+                False, None, ["Некорректный международный префикс: +8 (должен быть +7 для России)"]
+            )
+
         if cleaned.startswith("+7") or cleaned.startswith("8"):
+            # Конвертируем +7 в 8
             if cleaned.startswith("+7"):
                 cleaned = "8" + cleaned[2:]
 
-            # Проверяем длину (11 цифр для России)
             if len(cleaned) != 11:
-                errors.append(
-                    f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"
+                return ValidationResult(
+                    False, None, [f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"]
                 )
-                return ValidationResult(False, None, errors)
 
-            # Форматируем российский номер
-            formatted = self._format_phone(cleaned)
-            return ValidationResult(True, formatted, [])
+            return ValidationResult(True, self._format_phone(cleaned), [])
 
         # Обработка международных номеров
-        elif cleaned.startswith("+"):
-            # Международный номер (не Россия)
-            international_digits = cleaned[1:]  # Убираем +
-
-            # Проверяем длину (10-15 цифр для международных номеров)
-            if len(international_digits) < self.INTERNATIONAL_PHONE_MIN_LENGTH or len(international_digits) > self.INTERNATIONAL_PHONE_MAX_LENGTH:
-                errors.append(
-                    f"Некорректная длина м��ждународного номера: {len(international_digits)} (ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH})"
+        if cleaned.startswith("+"):
+            international_digits = cleaned[1:]
+            
+            if not (self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(international_digits) <= self.INTERNATIONAL_PHONE_MAX_LENGTH):
+                return ValidationResult(
+                    False, None, [
+                        f"Некорректная длина международного номера: {len(international_digits)} "
+                        f"(ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH})"
+                    ]
                 )
-                return ValidationResult(False, None, errors)
 
-            # Возвращаем в международном формате
             return ValidationResult(True, f"+{international_digits}", [])
 
         # Номер без префикса - пробуем определить
-        else:
-            # Если номер содержит 11 цифр - считаем российским
-            if len(digits_only) == 11:
-                if digits_only[0] == "8":
-                    formatted = self._format_phone(digits_only)
-                    return ValidationResult(True, formatted, [])
-                else:
-                    # Считаем что это номер с кодом города без 8
-                    errors.append("Номер должен начинаться с +7, 8 или +[код страны]")
-                    return ValidationResult(False, None, errors)
-            elif self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(digits_only) <= self.INTERNATIONAL_PHONE_MAX_LENGTH:
-                # Международный номер без +
-                return ValidationResult(True, f"+{digits_only}", [])
-            else:
-                errors.append(
-                    f"Некорректная длина номера: {len(digits_only)} (ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH} цифр)"
-                )
-                return ValidationResult(False, None, errors)
+        if len(digits_only) == 11:
+            if digits_only[0] == "8":
+                return ValidationResult(True, self._format_phone(digits_only), [])
+            return ValidationResult(
+                False, None, ["Номер должен начинаться с +7, 8 или +[код страны]"]
+            )
+        
+        if self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(digits_only) <= self.INTERNATIONAL_PHONE_MAX_LENGTH:
+            return ValidationResult(True, f"+{digits_only}", [])
+        
+        return ValidationResult(
+            False, None, [
+                f"Некорректная длина номера: {len(digits_only)} "
+                f"(ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH} цифр)"
+            ]
+        )
 
     def _format_phone(self, phone: str) -> str:
         """Форматирование телефонного номера.
@@ -204,7 +194,7 @@ class DataValidator:
             parsed = urlparse(url)
             if not parsed.scheme or not parsed.netloc:
                 return ValidationResult(False, None, ["Некорректный формат URL"])
-            
+
             # Проверяем что схема именно http или https
             if parsed.scheme not in ('http', 'https'):
                 return ValidationResult(False, None, [f"Неподдерживаемая схема URL: {parsed.scheme} (требуется http или https)"])
@@ -234,12 +224,11 @@ class DataValidator:
         text = re.sub(r"\s+", " ", text)
 
         # Удаляем спецсимволы (кроме русского, английского, цифр и основных знаков)
-        text = re.sub(r"[^\w\s\-–—(),.;:!?а-яА-ЯёЁa-zA-Z0-9]", "", text)
+        # \w уже включает буквы и цифры, поэтому явно указываем только кириллицу и дополнительные символы
+        text = re.sub(r"[^\w\s\-–—(),.;:!?а-яА-ЯёЁ]", "", text)
 
         # Обрезаем пробелы по краям
-        text = text.strip()
-
-        return text
+        return text.strip()
 
     def validate_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
         """Валидация записи организации.

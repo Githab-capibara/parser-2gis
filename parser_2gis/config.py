@@ -212,100 +212,78 @@ class Configuration(BaseModel):
             else:
                 config_path = user_config_path / "parser-2gis.config"
 
+        # Обработка случая когда файл не существует
+        if not config_path.is_file():
+            if auto_create:
+                config = cls(path=config_path)
+                config.save_config()
+                logger.debug("Создан файл конфигурации: %s", config_path)
+            else:
+                logger.info("Файл конфигурации не найден, используется конфигурация по умолчанию")
+                config = cls()
+            return config
+
+        # Загружаем существующий файл конфигурации
         try:
-            if not config_path.is_file():
-                if auto_create:
-                    config = cls(path=config_path)
-                    config.save_config()
-                    logger.debug("Создан файл конфигурации: %s", config_path)
-                else:
-                    logger.info(
-                        "Файл конфигурации не найден, используется конфигурация по умолчанию"
-                    )
-                    config = cls()
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_data = f.read()
+        except (FileNotFoundError, PermissionError, OSError) as file_error:
+            logger.error("Ошибка чтения файла конфигурации: %s", file_error)
+            return cls()
+
+        # Парсим конфигурацию
+        try:
+            if hasattr(cls, "model_validate_json"):
+                # Pydantic версия 2
+                config = cls.model_validate_json(config_data)
             else:
-                # Используем model_validate_json для совместимости с Pydantic v2
-                with open(config_path, "r", encoding="utf-8") as f:
-                    config_data = f.read()
+                # Запасной вариант для Pydantic версия 1
+                config = cls.parse_raw(config_data)  # type: ignore
+            config.path = config_path
+            return config
 
-                try:
-                    if hasattr(cls, "model_validate_json"):
-                        # Pydantic версия 2
-                        config = cls.model_validate_json(config_data)
-                    else:
-                        # Запасной вариант для Pydantic версия 1
-                        config = cls.parse_raw(config_data)  # type: ignore
-                    config.path = config_path
-
-                except (json.JSONDecodeError, ValueError) as json_error:
-                    # Повреждённый JSON файл конфигурации
-                    logger.error("Повреждённый JSON в конфигурации: %s", json_error)
-                    config = cls()
-
-        except FileNotFoundError:
-            # Файл конфигурации не найден и auto_create=False
-            logger.warning("Файл конфигурации не найден: %s", config_path)
-            config = cls()
-
-        except PermissionError as e:
-            # Ошибка доступа к файлу конфигурации
-            logger.error("Ошибка доступа к файлу конфигурации (PermissionError): %s", e)
-            config = cls()
-
+        except (json.JSONDecodeError, ValueError) as json_error:
+            logger.error("Повреждённый JSON в конфигурации: %s", json_error)
         except ValidationError as e:
-            # Ошибка валидации Pydantic
             logger.warning("Ошибка валидации конфигурации")
-
-            # Создаём backup повреждённого файла конфигурации для отладки
-            if config_path and config_path.is_file():
-                backup_path = config_path.with_suffix(config_path.suffix + ".bak")
-                try:
-                    shutil.copy2(config_path, backup_path)
-                    if backup_path.exists():
-                        logger.warning(
-                            "Создан backup повреждённой конфигурации: %s", backup_path
-                        )
-                        # Переименовываем оригинальный файл, чтобы избежать перезаписи
-                        renamed_path = config_path.with_suffix(
-                            config_path.suffix + ".corrupted"
-                        )
-                        config_path.rename(renamed_path)
-                        logger.warning(
-                            "Оригинальный файл переименован: %s -> %s",
-                            config_path,
-                            renamed_path,
-                        )
-                    else:
-                        logger.warning("Не удалось создать backup: %s", backup_path)
-                except OSError as copy_err:
-                    logger.warning(
-                        "Ошибка при создании backup конфигурации: %s", copy_err
-                    )
-
-            # Формируем детальное сообщение об ошибках
-            errors = []
-            errors_report = report_from_validation_error(e)
-            for attr_path, error in errors_report.items():
-                error_msg = error.get("error_message", "неизвестная ошибка")
-                errors.append(f"атрибут {attr_path} ({error_msg})")
-
-            if errors:
-                logger.warning("Ошибки валидации: %s", ", ".join(errors))
-            else:
-                logger.warning("Неизвестные ошибки валидации")
-
-            config = cls()
-
-        except OSError as e:
-            # Ошибка доступа к файлу или файловой системе
-            logger.error("Ошибка файловой системы при загрузке конфигурации: %s", e)
-            config = cls()
+            cls._backup_corrupted_config(config_path)
+            cls._log_validation_errors(e)
 
         except Exception as e:
-            # Любая другая непредвиденная ошибка
-            logger.error(
-                "Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=e
-            )
-            config = cls()
+            logger.error("Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=e)
 
-        return config
+        # Возвращаем конфигурацию по умолчанию при любой ошибке
+        return cls()
+
+    @staticmethod
+    def _backup_corrupted_config(config_path: pathlib.Path) -> None:
+        """Создаёт backup повреждённого файла конфигурации."""
+        if not config_path.is_file():
+            return
+
+        backup_path = config_path.with_suffix(config_path.suffix + ".bak")
+        try:
+            shutil.copy2(config_path, backup_path)
+            if backup_path.exists():
+                logger.warning("Создан backup повреждённой конфигурации: %s", backup_path)
+                renamed_path = config_path.with_suffix(config_path.suffix + ".corrupted")
+                config_path.rename(renamed_path)
+                logger.warning("Оригинальный файл переименован: %s -> %s", config_path, renamed_path)
+            else:
+                logger.warning("Не удалось создать backup: %s", backup_path)
+        except OSError as copy_err:
+            logger.warning("Ошибка при создании backup конфигурации: %s", copy_err)
+
+    @staticmethod
+    def _log_validation_errors(ex: ValidationError) -> None:
+        """Формирует детальное сообщение об ошибках валидации."""
+        errors = []
+        errors_report = report_from_validation_error(ex)
+        for attr_path, error in errors_report.items():
+            error_msg = error.get("error_message", "неизвестная ошибка")
+            errors.append(f"атрибут {attr_path} ({error_msg})")
+
+        if errors:
+            logger.warning("Ошибки валидации: %s", ", ".join(errors))
+        else:
+            logger.warning("Неизвестные ошибки валидации")
