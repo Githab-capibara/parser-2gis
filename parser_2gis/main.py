@@ -465,6 +465,14 @@ def _log_startup_info(args: argparse.Namespace, config: Configuration, start_tim
         config: Конфигурация.
         start_time: Время запуска.
     """
+    # Получаем формат, обрабатывая случай None (для categories-mode)
+    format_value = getattr(args, "format", None)
+    format_str = format_value.upper() if format_value else "CSV (по умолчанию)"
+
+    # Получаем output_path, обрабатывая случай None
+    output_path_value = getattr(args, "output_path", None)
+    output_path_str = str(output_path_value) if output_path_value else "output/ (по умолчанию)"
+
     # Формируем сводку конфигурации
     config_summary = {
         "chrome": {
@@ -478,7 +486,7 @@ def _log_startup_info(args: argparse.Namespace, config: Configuration, start_tim
             "GC включен": "Да" if config.parser.use_gc else "Нет",
         },
         "writer": {
-            "Формат": getattr(args, "format", "N/A").upper(),
+            "Формат": format_str,
             "Кодировка": config.writer.encoding,
             "Удалить дубликаты": "Да" if config.writer.csv_remove_duplicates else "Нет",
         },
@@ -496,8 +504,8 @@ def _log_startup_info(args: argparse.Namespace, config: Configuration, start_tim
     log_parser_start(
         version=version,
         urls_count=urls_count,
-        output_path=getattr(args, "output_path", "N/A"),
-        format=getattr(args, "format", "N/A"),
+        output_path=output_path_str,
+        format=format_str,
         config_summary=config_summary,
     )
 
