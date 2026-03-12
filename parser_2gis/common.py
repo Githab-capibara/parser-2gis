@@ -135,6 +135,22 @@ def running_linux() -> bool:
     return sys.platform.startswith("linux")
 
 
+def _default_predicate(value: Any) -> bool:
+    """Предикат по умолчанию для проверки результата.
+
+    Args:
+        value: Значение для проверки.
+
+    Returns:
+        True если значение истинно, False иначе.
+
+    Примечание:
+        Используется вместо bool для избежания проблем с передачей
+        функции как аргумента по умолчанию в декораторе.
+    """
+    return bool(value)
+
+
 def wait_until_finished(
     timeout: Optional[int] = None,
     finished: Optional[Callable[[Any], bool]] = None,
@@ -168,7 +184,7 @@ def wait_until_finished(
             **kwargs: Any,
         ) -> Any:
             # Инициализируем finished внутри функции для избежания изменяемого аргумента по умолчанию
-            inner_finished = finished if finished is not None else bool
+            inner_finished = finished if finished is not None else _default_predicate
 
             ret: Any = None
             start_time = time.time()

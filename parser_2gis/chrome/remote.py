@@ -23,6 +23,94 @@ from .patches import patch_all
 # Константа задержки запуска Chrome для стабильного подключения
 CHROME_STARTUP_DELAY = 1.5
 
+# Максимальная длина JavaScript кода для предотвращения DoS атак
+MAX_JS_CODE_LENGTH = 1_000_000
+
+# Паттерн для обнаружения потенциально опасных конструкций в JS
+_DANGEROUS_JS_PATTERNS = [
+    r'\beval\s*\(',           # eval()
+    r'\bFunction\s*\(',       # new Function()
+    r'\bsetTimeout\s*\([^,]*,\s*["\']',  # setTimeout с строковым кодом
+    r'\bsetInterval\s*\([^,]*,\s*["\']', # setInterval с строковым кодом
+    r'\bdocument\.write\s*\(', # document.write()
+    r'\.innerHTML\s*=',       # прямая установка innerHTML
+    r'\.outerHTML\s*=',       # прямая установка outerHTML
+]
+
+
+def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[bool, str]:
+    """Валидирует JavaScript код на безопасность.
+
+    Args:
+        code: JavaScript код для валидации.
+        max_length: Максимальная допустимая длина кода.
+
+    Returns:
+        Кортеж (is_valid, error_message):
+        - is_valid: True если код безопасен, False иначе
+        - error_message: Сообщение об ошибке или пустая строка
+
+    Примечание:
+        Проверки включают:
+        - Проверка на None и пустую строку
+        - Проверка максимальной длины
+        - Проверка типа данных
+        - Обнаружение опасных паттернов (eval, Function, document.write)
+    """
+    # Проверка на None
+    if code is None:
+        return False, "JavaScript код не может быть None"
+
+    # Проверка типа
+    if not isinstance(code, str):
+        return False, f"JavaScript код должен быть строкой, получен {type(code).__name__}"
+
+    # Проверка на пустую строку
+    if not code.strip():
+        return False, "JavaScript код не может быть пустым"
+
+    # Проверка максимальной длины
+    if len(code) > max_length:
+        return False, f"JavaScript код превышает максимальную длину ({len(code)} > {max_length})"
+
+    # Проверка на опасные паттерны
+    for pattern in _DANGEROUS_JS_PATTERNS:
+        if re.search(pattern, code, re.IGNORECASE):
+            return False, f"Обнаружен опасный паттерн в JavaScript коде: {pattern}"
+
+    return True, ""
+
+
+def _sanitize_js_string(value: str) -> str:
+    """Санитизирует строку для безопасного использования в JavaScript.
+
+    Args:
+        value: Исходная строка.
+
+    Returns:
+        Санитизированная строка с экранированными специальными символами.
+
+    Примечание:
+        Экранирует следующие символы:
+        - Обратные кавычки (`)
+        - Обратные слеши (\\)
+        - Доллар ($) для предотвращения инъекций в template literals
+    """
+    if not isinstance(value, str):
+        value = str(value)
+
+    # Экранируем обратные слеши в первую очередь
+    value = value.replace('\\', '\\\\')
+    # Экранируем обратные кавычки
+    value = value.replace('`', '\\`')
+    # Экранируем доллар для предотвращения инъекций
+    value = value.replace('$', '\\$')
+    # Экранируем кавычки
+    value = value.replace("'", "\\'")
+    value = value.replace('"', '\\"')
+
+    return value
+
 if TYPE_CHECKING:
     from .options import ChromeOptions
 
@@ -686,7 +774,22 @@ class ChromeRemote:
 
         Args:
             source: Текст скрипта.
+
+        Raises:
+            ValueError: Если скрипт не прошёл валидацию безопасности.
+
+        Примечание безопасности:
+            Перед выполнением скрипт проходит проверку на:
+            - Тип данных (должен быть строкой)
+            - Максимальную длину
+            - Наличие опасных паттернов (eval, Function, document.write)
         """
+        # Валидация скрипта на безопасность
+        is_valid, error_msg = _validate_js_code(source)
+        if not is_valid:
+            logger.error("Валидация скрипта не пройдена: %s", error_msg)
+            raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
+
         self._chrome_tab.Page.addScriptToEvaluateOnNewDocument(source=source)
 
     def add_blocked_requests(self, urls: List[str]) -> bool:
@@ -713,7 +816,22 @@ class ChromeRemote:
 
         Returns:
             Значение результата или None при ошибке.
+
+        Raises:
+            ValueError: Если выражение не прошло валидацию безопасности.
+
+        Примечание безопасности:
+            Перед выполнением выражение проходит проверку на:
+            - Тип данных (должен быть строкой)
+            - Максимальную длину
+            - Наличие опасных паттернов (eval, Function, document.write)
         """
+        # Валидация выражения на безопасность
+        is_valid, error_msg = _validate_js_code(expression)
+        if not is_valid:
+            logger.error("Валидация выражения не пройдена: %s", error_msg)
+            raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
+
         try:
             eval_result = self._chrome_tab.Runtime.evaluate(
                 expression=expression, returnByValue=True
