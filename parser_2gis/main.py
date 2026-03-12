@@ -484,7 +484,7 @@ def _log_startup_info(args: argparse.Namespace, config: Configuration, start_tim
         "writer": {
             "Формат": format_str,
             "Кодировка": config.writer.encoding,
-            "Удалить дубликаты": "Да" if config.writer.csv_remove_duplicates else "Нет",
+            "Удалить дубликаты": "Да" if config.writer.csv.remove_duplicates else "Нет",
         },
     }
 
