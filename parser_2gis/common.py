@@ -152,6 +152,9 @@ def wait_until_finished(
 
     Returns:
         Декоратор для функции с ожиданием завершения.
+
+    Raises:
+        TimeoutError: Если истекло время ожидания и throw_exception=True.
     """
 
     def outer(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -183,11 +186,14 @@ def wait_until_finished(
                     ret = func(*args, **kwargs)
                     if inner_finished(ret):
                         return ret
+                except TimeoutError:
+                    # Пробрасываем TimeoutError немедленно
+                    raise
                 except Exception as e:
                     # Логирование ошибок выполнения функции
                     logger = _get_logger()
-                    logger.warning(
-                        "Ошибка при выполнении функции %s: %s", func.__name__, e
+                    logger.debug(
+                        "Ошибка при выполнении функции %s (попытка): %s", func.__name__, e
                     )
 
                 time.sleep(poll_interval)
@@ -228,6 +234,9 @@ def report_from_validation_error(
             },
             ...
         }
+
+    Raises:
+        ValueError: При ошибке обработки данных.
 
     Примечание безопасности:
         Функция автоматически фильтрует чувствительные данные (пароли, токены, ключи API)
@@ -295,10 +304,25 @@ def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
 
     Returns:
         Вложенный словарь с развёрнутой структурой.
+
+    Raises:
+        TypeError: Если входные данные не являются словарём.
+        ValueError: Если ключ содержит недопустимые символы.
     """
+    if not isinstance(d, dict):
+        raise TypeError("Входные данные должны быть словарём")
+
     output: Dict[str, Any] = {}
     for key, value in d.items():
+        if not key:
+            logger.warning("Пустой ключ в словаре, пропускаем")
+            continue
+
         path = key.split(".")
+        if any(not p for p in path):
+            logger.warning("Ключ '%s' содержит пустые сегменты, пропускаем", key)
+            continue
+
         target = functools.reduce(lambda d, k: d.setdefault(k, {}), path[:-1], output)
         target[path[-1]] = value
     return output
