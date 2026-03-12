@@ -96,6 +96,9 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
 
     Returns:
         Кортеж из аргументов командной строки и конфигурации.
+
+    Raises:
+        SystemExit: При отсутствии обязательных аргументов.
     """
     # Преобразуем аргументы в нижний регистр для поддержки верхнего регистра
     # Создаём копию sys.argv вместо модификации оригинального списка
@@ -103,7 +106,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
 
     patch_argparse_translations()  # Патчим переводы
     arg_parser = argparse.ArgumentParser(
-        "Parser2GIS",
+        prog="Parser2GIS",
         description="Парсер данных сайта 2GIS",
         add_help=False,
         formatter_class=ArgumentHelpFormatter,
@@ -344,15 +347,26 @@ def main() -> None:
         # Загружаем список городов
         cities_path = data_path() / "cities.json"
         if not cities_path.is_file():
+            logger.error("Файл городов не найден: %s", cities_path)
             raise FileNotFoundError(f"Файл {cities_path} не найден")
 
-        with open(cities_path, "r", encoding="utf-8") as f:
-            all_cities = json.load(f)
+        try:
+            with open(cities_path, "r", encoding="utf-8") as f:
+                all_cities = json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            logger.error("Ошибка при загрузке файла городов: %s", e)
+            raise ValueError(f"Не удалось загрузить файл городов: {e}")
 
         # Фильтруем города по указанным кодам
         selected_cities = [city for city in all_cities if city["code"] in args.cities]
 
         if not selected_cities:
+            available_cities = [c["code"] for c in all_cities]
+            logger.error(
+                "Города с кодами %s не найдены. Доступные города: %s",
+                args.cities,
+                available_cities[:10],  # Показываем первые 10 для краткости
+            )
             raise ValueError(f"Города с кодами {args.cities} не найдены")
 
         if categories_mode:
@@ -369,7 +383,11 @@ def main() -> None:
             else:
                 output_dir = Path("output")
 
-            output_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                output_dir.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                logger.error("Ошибка при создании директории output: %s", e)
+                raise
 
             logger.info(
                 "Запуск параллельного парсинга по %d категориям", len(CATEGORIES_93)
@@ -447,6 +465,12 @@ def main() -> None:
             cli_app(urls, args.output_path, args.format, command_line_config)
         except KeyboardInterrupt:
             logger.info("Работа приложения прервана пользователем.")
+        except FileNotFoundError as e:
+            logger.error("Файл не найден: %s", e)
+            sys.exit(1)
+        except PermissionError as e:
+            logger.error("Ошибка доступа к файлу: %s", e)
+            sys.exit(1)
         except Exception as e:
             logger.error("Критическая ошибка приложения: %s", e, exc_info=True)
             raise
@@ -460,6 +484,9 @@ def _log_startup_info(args: argparse.Namespace, config: Configuration, start_tim
         args: Аргументы командной строки.
         config: Конфигурация.
         start_time: Время запуска.
+
+    Raises:
+        ValueError: При некорректной конфигурации.
     """
     # Получаем формат, обрабатывая случай None (для categories-mode)
     format_value = getattr(args, "format", None)
@@ -467,7 +494,11 @@ def _log_startup_info(args: argparse.Namespace, config: Configuration, start_tim
 
     # Получаем output_path, обрабатывая случай None
     output_path_value = getattr(args, "output_path", None)
-    output_path_str = str(output_path_value) if output_path_value else "output/ (по умолчанию)"
+    try:
+        output_path_str = str(output_path_value) if output_path_value else "output/ (по умолчанию)"
+    except (TypeError, ValueError):
+        output_path_str = "output/ (по умолчанию)"
+        logger.warning("Некорректный output_path, используется значение по умолчанию")
 
     # Формируем сводку конфигурации
     config_summary = {

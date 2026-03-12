@@ -39,6 +39,7 @@ class Configuration(BaseModel):
 
         Raises:
             ValueError: Если возникает конфликт типов при объединении.
+            RecursionError: При превышении максимальной глубины рекурсии.
         """
 
         def assign_attributes(
@@ -107,10 +108,15 @@ class Configuration(BaseModel):
                             setattr(model_target, field, source_attr)
                         else:
                             # Рекурсивно объединяем вложенные модели
-                            target_attr = getattr(model_target, field)
-                            assign_attributes(
-                                source_attr, target_attr, max_depth, current_depth + 1, visited
-                            )
+                            target_attr = getattr(model_target, field, None)
+                            if target_attr is None:
+                                # Если целевой атрибут не существует, создаём копию
+                                from copy import deepcopy
+                                setattr(model_target, field, deepcopy(source_attr))
+                            else:
+                                assign_attributes(
+                                    source_attr, target_attr, max_depth, current_depth + 1, visited
+                                )
 
                     except (AttributeError, TypeError) as e:
                         logger.warning("Ошибка при объединении поля %s: %s", field, e)
@@ -135,6 +141,8 @@ class Configuration(BaseModel):
 
         Raises:
             OSError: Если не удалось сохранить файл конфигурации.
+            TypeError: Если ошибка сериализации JSON.
+            ValueError: Если ошибка валидации данных.
         """
         if not self.path:
             logger.warning("Путь для сохранения конфигурации не указан")
@@ -239,6 +247,11 @@ class Configuration(BaseModel):
             logger.warning("Файл конфигурации не найден: %s", config_path)
             config = cls()
 
+        except PermissionError as e:
+            # Ошибка доступа к файлу конфигурации
+            logger.error("Ошибка доступа к файлу конфигурации (PermissionError): %s", e)
+            config = cls()
+
         except ValidationError as e:
             # Ошибка валидации Pydantic
             logger.warning("Ошибка валидации конфигурации")
@@ -284,8 +297,8 @@ class Configuration(BaseModel):
             config = cls()
 
         except OSError as e:
-            # Ошибка доступа к файлу
-            logger.error("Ошибка доступа к файлу конфигурации: %s", e)
+            # Ошибка доступа к файлу или файловой системе
+            logger.error("Ошибка файловой системы при загрузке конфигурации: %s", e)
             config = cls()
 
         except Exception as e:
