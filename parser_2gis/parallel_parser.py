@@ -459,9 +459,8 @@ class ParallelCityParser:
         last_progress_time = time.time()
 
         # Получаем таймаут из конфигурации (если есть) или используем значение по умолчанию
-        timeout_per_url = 300  # Значение по умолчанию
-        if hasattr(self.config, "parser") and self.config.parser is not None:
-            timeout_per_url = getattr(self.config.parser, "timeout", 300)
+        timeout_per_url = 300  # Значение по умолчанию: 5 минут на URL
+        # Примечание: ParserOptions не имеет атрибута timeout, используем фиксированное значение
         self.log(f"⏱️ Таймаут на один URL: {timeout_per_url} секунд", "info")
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
