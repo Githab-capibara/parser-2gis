@@ -75,3 +75,80 @@ def setup_logger(level: str, fmt: str, datefmt: str) -> None:
 
 logger = logging.getLogger(_LOGGER_NAME)
 Logger = logging.Logger
+
+
+def log_parser_start(
+    version: str,
+    urls_count: int,
+    output_path: str,
+    format: str,
+    config_summary: dict | None = None,
+) -> None:
+    """
+    Логирует запуск парсера с подробной информацией.
+
+    Args:
+        version: Версия парсера.
+        urls_count: Количество URL для парсинга.
+        output_path: Путь к выходному файлу.
+        format: Формат выходного файла.
+        config_summary: Краткая сводка конфигурации.
+    """
+    from .visual_logger import print_header, print_config, Emoji
+
+    # Заголовок
+    print_header(
+        f"{Emoji.START} Parser2GIS запущен",
+        subtitle=f"Версия: {version}",
+    )
+
+    # Основная информация
+    main_info = {
+        "URL для парсинга": str(urls_count),
+        "Выходной файл": output_path,
+        "Формат": format.upper(),
+    }
+    print_config("📋 Основная информация", main_info)
+
+    # Конфигурация браузера
+    if config_summary:
+        if "chrome" in config_summary:
+            print_config("🌐 Браузер", config_summary["chrome"])
+
+        if "parser" in config_summary:
+            print_config("🔎 Парсер", config_summary["parser"])
+
+        if "writer" in config_summary:
+            print_config("📄 Writer", config_summary["writer"])
+
+
+def log_parser_finish(
+    success: bool = True,
+    stats: dict | None = None,
+    duration: str | None = None,
+) -> None:
+    """
+    Логирует завершение парсера.
+
+    Args:
+        success: Успешно ли завершено.
+        stats: Статистика работы.
+        duration: Продолжительность работы.
+    """
+    from .visual_logger import print_header, print_stats, print_success, print_error, Emoji
+
+    emoji = Emoji.SUCCESS if success else Emoji.ERROR
+    title = f"{emoji} Парсинг завершён"
+
+    if success:
+        print_success(f"Парсинг успешно завершён!")
+    else:
+        print_error("Парсинг завершён с ошибками")
+
+    # Статистика
+    if stats:
+        if duration:
+            stats["Время работы"] = duration
+        print_stats(stats, title="📊 Итоговая статистика")
+
+    print_header(title)

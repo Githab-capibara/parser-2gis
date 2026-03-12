@@ -10,13 +10,14 @@ from __future__ import annotations
 import os
 import shutil
 import threading
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional
 
 from parser_2gis.common import url_query_encode
-from parser_2gis.logger import logger
+from parser_2gis.logger import logger, log_parser_finish, print_progress
 from parser_2gis.parser import get_parser
 from parser_2gis.writer import get_writer
 
@@ -437,26 +438,31 @@ class ParallelCityParser:
         Returns:
             True если успешно.
         """
-        self.log(f"Запуск параллельного парсинга ({self.max_workers} потока)", "info")
-        self.log(f'Города: {[c["name"] for c in self.cities]}', "info")
-        self.log(f"Категории: {len(self.categories)}", "info")
+        start_time = time.time()
+        total_tasks = len(self.cities) * len(self.categories)
+
+        self.log(f"🚀 Запуск параллельного парсинга ({self.max_workers} потока)", "info")
+        self.log(f'📍 Города: {[c["name"] for c in self.cities]}', "info")
+        self.log(f"📑 Категории: {len(self.categories)}", "info")
+        self.log(f"📊 Всего задач: {total_tasks}", "info")
 
         # Генерируем все URL
         all_urls = self.generate_all_urls()
 
         if not all_urls:
-            self.log("Нет URL для парсинга", "error")
+            self.log("❌ Нет URL для парсинга", "error")
             return False
 
         # Запускаем параллельный парсинг
         success_count = 0
         failed_count = 0
+        last_progress_time = time.time()
 
         # Получаем таймаут из конфигурации (если есть) или используем значение по умолчанию
         timeout_per_url = 300  # Значение по умолчанию
         if hasattr(self.config, "parser") and self.config.parser is not None:
             timeout_per_url = getattr(self.config.parser, "timeout", 300)
-        self.log(f"Таймаут на один URL: {timeout_per_url} секунд", "info")
+        self.log(f"⏱️ Таймаут на один URL: {timeout_per_url} секунд", "info")
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Создаём futures
@@ -472,7 +478,7 @@ class ParallelCityParser:
             }
 
             # Обрабатываем результаты
-            for future in as_completed(futures):
+            for idx, future in enumerate(as_completed(futures), 1):
                 url, category_name, city_name = futures[future]
 
                 try:
@@ -483,40 +489,85 @@ class ParallelCityParser:
                     else:
                         failed_count += 1
                         self.log(
-                            f"Не удалось: {city_name} - {category_name}: {result}",
+                            f"❌ Не удалось: {city_name} - {category_name}: {result}",
                             "error",
                         )
+
+                    # Выводим прогресс каждые 3 секунды
+                    current_time = time.time()
+                    if current_time - last_progress_time >= 3 or idx == len(futures):
+                        progress_bar = print_progress(
+                            success_count + failed_count,
+                            len(futures),
+                            prefix="   Прогресс"
+                        )
+                        self.log(progress_bar, "info")
+                        last_progress_time = current_time
 
                 except FuturesTimeoutError:
                     failed_count += 1
                     self.log(
-                        f"Таймаут при парсинге {city_name} - {category_name} ({timeout_per_url} сек)",
+                        f"❌ Таймаут при парсинге {city_name} - {category_name} ({timeout_per_url} сек)",
                         "error",
                     )
 
                 except Exception as e:
                     failed_count += 1
                     self.log(
-                        f"Исключение при парсинге {city_name} - {category_name}: {e}",
+                        f"❌ Исключение при парсинге {city_name} - {category_name}: {e}",
                         "error",
                     )
 
+        # Вычисляем длительность
+        duration = time.time() - start_time
+        duration_str = f"{duration:.2f} сек."
+
         self.log(
-            f"Парсинг завершён. Успешно: {success_count}, Ошибок: {failed_count}",
+            f"🏁 Парсинг завершён. Успешно: {success_count}, Ошибок: {failed_count}",
             "info",
         )
 
         # Объединяем CSV файлы
         if success_count > 0:
-            self.log("Начало объединения результатов...", "info")
+            self.log("📁 Начало объединения результатов...", "info")
             merge_success = self.merge_csv_files(output_file, merge_callback)
 
             if not merge_success:
-                self.log("Не удалось объединить CSV файлы", "error")
+                self.log("❌ Не удалось объединить CSV файлы", "error")
+                log_parser_finish(
+                    success=False,
+                    stats={
+                        "Городов": len(self.cities),
+                        "Категорий": len(self.categories),
+                        "Успешно": success_count,
+                        "Ошибки": failed_count,
+                    },
+                    duration=duration_str,
+                )
                 return False
         else:
-            self.log("Нет успешных результатов для объединения", "warning")
+            self.log("⚠️ Нет успешных результатов для объединения", "warning")
+            log_parser_finish(
+                success=False,
+                stats={
+                    "Городов": len(self.cities),
+                    "Категорий": len(self.categories),
+                    "Успешно": 0,
+                    "Ошибки": failed_count,
+                },
+                duration=duration_str,
+            )
             return False
+
+        # Финальный отчёт
+        stats = {
+            "Городов": len(self.cities),
+            "Категорий": len(self.categories),
+            "Всего URL": total_tasks,
+            "Успешно": success_count,
+            "Ошибки": failed_count,
+        }
+        log_parser_finish(success=True, stats=stats, duration=duration_str)
 
         return True
 
