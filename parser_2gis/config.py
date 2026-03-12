@@ -87,10 +87,10 @@ class Configuration(BaseModel):
 
                 # Определяем версию Pydantic и получаем набор установленных полей
                 if hasattr(model_source, "model_fields_set"):
-                    # Pydantic v2
+                    # Pydantic версия 2
                     fields_set: Optional[Set[str]] = model_source.model_fields_set
                 elif hasattr(model_source, "__fields_set__"):
-                    # Pydantic v1
+                    # Pydantic версия 1
                     fields_set = model_source.__fields_set__
                 else:
                     # Неизвестная версия Pydantic
@@ -230,10 +230,10 @@ class Configuration(BaseModel):
 
                 try:
                     if hasattr(cls, "model_validate_json"):
-                        # Pydantic v2
+                        # Pydantic версия 2
                         config = cls.model_validate_json(config_data)
                     else:
-                        # Запасной вариант для Pydantic v1
+                        # Запасной вариант для Pydantic версия 1
                         config = cls.parse_raw(config_data)  # type: ignore
                     config.path = config_path
 

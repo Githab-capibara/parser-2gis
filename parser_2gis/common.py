@@ -407,41 +407,6 @@ def generate_city_urls(
     return urls
 
 
-# Константы для проверки безопасных символов (кириллица и пробел)
-_CYRILLIC_LOWER_START = 0x0430  # 'а'
-_CYRILLIC_LOWER_END = 0x044F  # 'я'
-_CYRILLIC_UPPER_START = 0x0410  # 'А'
-_CYRILLIC_UPPER_END = 0x042F  # 'Я'
-_CYRILLIC_IO_LOWER = 0x0451  # 'ё'
-_CYRILLIC_IO_UPPER = 0x0401  # 'Ё'
-_SPACE_CODE = 0x20  # пробел
-
-
-def _is_safe_char(char: str) -> bool:
-    """
-    Проверяет, является ли символ безопасным для URL (не требует кодирования).
-
-    Безопасные символы:
-    - Кириллица (а-я, А-Я, ё, Ё)
-    - Пробел
-
-    Args:
-        char: Символ для проверки.
-
-    Returns:
-        True если символ безопасный, False иначе.
-    """
-    char_code = ord(char)
-
-    # Проверка диапазонов кириллических символов
-    is_cyrillic_lower = _CYRILLIC_LOWER_START <= char_code <= _CYRILLIC_LOWER_END
-    is_cyrillic_upper = _CYRILLIC_UPPER_START <= char_code <= _CYRILLIC_UPPER_END
-    is_io = char_code in (_CYRILLIC_IO_LOWER, _CYRILLIC_IO_UPPER)
-    is_space = char_code == _SPACE_CODE
-
-    return is_cyrillic_lower or is_cyrillic_upper or is_io or is_space
-
-
 def url_query_encode(query: str) -> str:
     """Кодирует строку запроса для URL.
 
