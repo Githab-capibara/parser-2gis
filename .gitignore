@@ -7,4 +7,5 @@ dist/
 build/
 .tox/
 .mypy_cache/
-QWEN.mdKODA.md
+QWEN.md
+KODA.md

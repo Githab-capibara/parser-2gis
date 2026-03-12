@@ -13,10 +13,10 @@ import threading
 import time
 from typing import TYPE_CHECKING, Optional, TypedDict
 
-from parser_2gis.logger import logger
+from .logger import logger
 
 if TYPE_CHECKING:
-    from parser_2gis.chrome.browser import ChromeBrowser
+    from .browser import ChromeBrowser
 
 
 class HealthStatusDict(TypedDict, total=False):

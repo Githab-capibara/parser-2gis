@@ -29,13 +29,13 @@ from .visual_logger import (
 # TUI импорт (ленивый - при необходимости)
 def get_tui_app():
     """Получить TUI приложение (ленивый импорт)."""
-    from parser_2gis.tui.app import TUIApp, TUIManager
+    from ..tui.app import TUIApp, TUIManager
     return TUIApp, TUIManager
 
 
 def get_tui_logger():
     """Получить TUI логгер (ленивый импорт)."""
-    from parser_2gis.tui.logger import TUILogger, setup_tui_logger
+    from ..tui.logger import TUILogger, setup_tui_logger
     return TUILogger, setup_tui_logger
 
 

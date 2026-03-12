@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from parser_2gis.logger import logger
+from ..logger import logger
 
 
 class AdaptiveLimits:
