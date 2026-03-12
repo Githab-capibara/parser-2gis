@@ -41,7 +41,7 @@ class TUIParallelParserWrapper:
             config: Конфигурация
             max_workers: Количество потоков
         """
-        from .parallel_parser import ParallelCityParser
+        from ..parallel_parser import ParallelCityParser
 
         self._tui = tui_manager
         self._cities = cities
