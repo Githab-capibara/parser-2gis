@@ -1312,9 +1312,7 @@ Fixes #<номер_задачи>
 
 ### Отчеты
 
-- 📄 [CODE_QUALITY_AUDIT_REPORT_2026_03_09.md](CODE_QUALITY_AUDIT_REPORT_2026_03_09.md) — полный отчет о качестве кода
-- 📄 [CODE_IMPROVEMENTS_REPORT_2026_03_08.md](CODE_IMPROVEMENTS_REPORT_2026_03_08.md) — отчет об улучшениях
-- 📄 [FIXES_APPLIED_2026_03_09.md](FIXES_APPLIED_2026_03_09.md) — примененные исправления
+> Отчеты о качестве кода доступны в [wiki проекта](https://github.com/Githab-capibara/parser-2gis/wiki).
 
 ---
 

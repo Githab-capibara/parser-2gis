@@ -20,7 +20,7 @@
 
 | Компонент | Версия | Примечание |
 |-----------|--------|------------|
-| Python | 3.8 – 3.11 | Обязательно |
+| Python | 3.10 – 3.12 | Обязательно |
 | Google Chrome | Любая актуальная | Для парсинга |
 | ОС | Linux Ubuntu | Единственная поддерживаемая ОС |
 | Git | Любая актуальная | Для работы с репозиторием |
@@ -74,10 +74,14 @@ parser-2gis/
 │   │   │   └── json_writer.py # JSON writer
 │   │   └── models/           # Модели данных
 │   │
-│   ├── gui/                  # GUI приложение
-│   │   ├── app.py            # Главное окно
-│   │   ├── city_selector.py  # Выбор городов
-│   │   └── urls_generator.py # Генератор URL
+│   ├── tui/                  # TUI интерфейс
+│   │   ├── app.py            # Главное окно TUI
+│   │   ├── components.py     # Компоненты интерфейса
+│   │   └── logger.py         # Визуальный логгер
+│   │
+│   ├── cli/                  # CLI интерфейс
+│   │   ├── app.py            # CLI приложение
+│   │   └── progress.py       # Менеджер прогресса
 │   │
 │   └── data/                 # Данные
 │       ├── cities.json       # Города (204 города)
@@ -98,7 +102,7 @@ parser-2gis/
 # Запуск с аргументами
 parser-2gis -i "https://2gis.ru/moscow/search/Аптеки" -o result.csv -f csv
 
-# Запуск GUI
+# Запуск TUI
 parser-2gis
 ```
 
@@ -155,7 +159,7 @@ pytest -m slow
 |--------|----------|
 | `slow` | Медленные тесты |
 | `integration` | Интеграционные тесты |
-| `gui` | Тесты GUI |
+| `tui` | Тесты TUI |
 | `requires_chrome` | Тесты, требующие Chrome |
 | `requires_network` | Тесты, требующие сеть |
 
@@ -233,19 +237,19 @@ def parse_data(url: str, config: Configuration) -> list[dict]:
 ```yaml
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
       - id: check-json
       - id: check-ast
-  
+
   - repo: https://github.com/pycqa/flake8
-    rev: 4.0.1
+    rev: 7.0.0
     hooks:
       - id: flake8
-  
+
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.950
+    rev: v1.8.0
     hooks:
       - id: mypy
 ```
