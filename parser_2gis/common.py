@@ -94,7 +94,7 @@ def _is_sensitive_key(key: str) -> bool:
     return False
 
 
-def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[set] = None) -> Any:
+def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[set[int]] = None) -> Any:
     """
     Очищает чувствительные данные из значения.
 
@@ -191,22 +191,26 @@ def wait_until_finished(
         @functools.wraps(func)
         def inner(
             *args: Any,
-            timeout: Optional[int] = timeout,
-            finished: Optional[Callable[[Any], bool]] = finished,
-            throw_exception: bool = throw_exception,
-            poll_interval: float = poll_interval,
+            # Переопределяем параметры для возможности перезаписи при вызове
+            override_timeout: Optional[int] = None,
+            override_finished: Optional[Callable[[Any], bool]] = None,
+            override_throw_exception: Optional[bool] = None,
+            override_poll_interval: Optional[float] = None,
             **kwargs: Any,
         ) -> Any:
-            # Инициализируем finished внутри функции для избежания изменяемого аргумента по умолчанию
-            inner_finished = finished if finished is not None else _default_predicate
+            # Используем переданные значения или значения из декоратора
+            effective_timeout = override_timeout if override_timeout is not None else timeout
+            effective_finished = override_finished if override_finished is not None else _default_predicate
+            effective_throw = override_throw_exception if override_throw_exception is not None else throw_exception
+            effective_poll = override_poll_interval if override_poll_interval is not None else poll_interval
 
             ret: Any = None
             start_time = time.time()
 
             while True:
                 # Проверка таймаута в начале цикла
-                if timeout is not None and time.time() - start_time > timeout:
-                    if throw_exception:
+                if effective_timeout is not None and time.time() - start_time > effective_timeout:
+                    if effective_throw:
                         raise TimeoutError(
                             f"Превышено время ожидания для {func.__name__}"
                         )
@@ -214,7 +218,7 @@ def wait_until_finished(
 
                 try:
                     ret = func(*args, **kwargs)
-                    if inner_finished(ret):
+                    if effective_finished(ret):
                         return ret
                 except TimeoutError:
                     # Пробрасываем TimeoutError немедленно
@@ -226,7 +230,7 @@ def wait_until_finished(
                         "Ошибка при выполнении функции %s (попытка): %s", func.__name__, e
                     )
 
-                time.sleep(poll_interval)
+                time.sleep(effective_poll)
 
         return inner
 

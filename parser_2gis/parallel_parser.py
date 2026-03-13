@@ -131,8 +131,10 @@ class ParallelCityParser:
             for category in self.categories:
                 # Формируем URL для категории с кодированием
                 base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
+                # Получаем query категории с проверкой наличия ключа
+                category_query = category.get("query", category.get("name", ""))
                 # Оставляем кириллицу нетронутой, кодируем только пробелы и спецсимволы
-                rest_url = f'/search/{url_query_encode(category["query"])}'
+                rest_url = f'/search/{url_query_encode(category_query)}'
 
                 if category.get("rubric_code"):
                     rest_url += f'/rubricId/{category["rubric_code"]}'

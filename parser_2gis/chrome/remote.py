@@ -24,17 +24,17 @@ from .patches import patch_all
 CHROME_STARTUP_DELAY = 1.5
 
 # Максимальная длина JavaScript кода для предотвращения DoS атак
-MAX_JS_CODE_LENGTH = 1_000_000
+MAX_JS_CODE_LENGTH = 1_000_000  # 1MB лимит
 
 # Паттерн для обнаружения потенциально опасных конструкций в JS
 _DANGEROUS_JS_PATTERNS = [
-    r'\beval\s*\(',           # eval()
-    r'\bFunction\s*\(',       # new Function()
-    r'\bsetTimeout\s*\([^,]*,\s*["\']',  # setTimeout с строковым кодом
-    r'\bsetInterval\s*\([^,]*,\s*["\']', # setInterval с строковым кодом
-    r'\bdocument\.write\s*\(', # document.write()
-    r'\.innerHTML\s*=',       # прямая установка innerHTML
-    r'\.outerHTML\s*=',       # прямая установка outerHTML
+    (r'\beval\s*\(', 'eval() запрещён'),
+    (r'\bFunction\s*\(', 'конструктор Function запрещён'),
+    (r'\bsetTimeout\s*\([^,]*,\s*["\']', 'setTimeout с строковым кодом запрещён'),
+    (r'\bsetInterval\s*\([^,]*,\s*["\']', 'setInterval с строковым кодом запрещён'),
+    (r'\bdocument\.write\s*\(', 'document.write() запрещён'),
+    (r'\.innerHTML\s*=', 'прямая установка innerHTML запрещена'),
+    (r'\.outerHTML\s*=', 'прямая установка outerHTML запрещена'),
 ]
 
 
@@ -71,12 +71,12 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
 
     # Проверка максимальной длины
     if len(code) > max_length:
-        return False, f"JavaScript код превышает максимальную длину ({len(code)} > {max_length})"
+        return False, f"JavaScript код превышает максимальную длину ({len(code)} > {max_length} символов)"
 
     # Проверка на опасные паттерны
-    for pattern in _DANGEROUS_JS_PATTERNS:
+    for pattern, description in _DANGEROUS_JS_PATTERNS:
         if re.search(pattern, code, re.IGNORECASE):
-            return False, f"Обнаружен опасный паттерн в JavaScript коде: {pattern}"
+            return False, f"Обнаружен опасный паттерн в JavaScript коде: {description}"
 
     return True, ""
 
