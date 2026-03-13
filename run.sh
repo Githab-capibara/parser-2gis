@@ -31,18 +31,18 @@ print_help() {
     echo "  ./run.sh [опции]"
     echo ""
     echo -e "${GREEN}Режимы работы:${NC}"
-    echo "  Без аргументов    - Запуск параллельного парсинга Омска по категориям с TUI"
+    echo "  Без аргументов    - Запуск параллельного парсинга Омска (10 браузеров, 93 категории)"
     echo "  С аргументами     - Запуск с указанными параметрами"
     echo ""
     echo -e "${GREEN}Примеры:${NC}"
-    echo "  ./run.sh                                          # Омск, все категории, TUI"
+    echo "  ./run.sh                                          # Омск, 93 категории, 10 потоков"
     echo "  ./run.sh --cities omsk spb --categories-mode      # Омск + СПб, категории"
     echo "  ./run.sh -i URL1 URL2 -o result.csv -f csv        # Парсинг по URL"
     echo ""
     echo -e "${GREEN}Основные опции:${NC}"
     echo "  --cities CITY1 CITY2      - Коды городов для парсинга"
     echo "  --categories-mode         - Режим парсинга по 93 категориям"
-    echo "  --parallel-workers N      - Количество потоков (по умолчанию: 3)"
+    echo "  --parallel-workers N      - Количество потоков (по умолчанию: 10)"
     echo "  -i URL                    - URL для парсинга"
     echo "  -o PATH                   - Путь к выходному файлу"
     echo "  -f FORMAT                 - Формат: csv, xlsx, json"
@@ -87,28 +87,34 @@ fi
 
 # Обработка аргументов
 if [ $# -eq 0 ]; then
-    # Без аргументов - запускаем параллельный парсинг Омска с TUI
+    # Без аргументов - запускаем параллельный парсинг Омска с 10 браузерами
     print_header
     echo -e "${GREEN}🚀 Запуск параллельного парсинга города Омск${NC}"
     echo -e "${BLUE}📊 Режим: 93 категории${NC}"
-    echo -e "${BLUE}🔧 Потоков: 10${NC}"
+    echo -e "${BLUE}🔧 Потоков: 10 (одновременных браузеров)${NC}"
     echo -e "${YELLOW}🎨 Интерфейс: TUI с прогресс-барами${NC}"
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    
-    # Запускаем с TUI
+
+    # Запускаем с TUI и 10 потоками
     python "$SCRIPT_DIR/parser-2gis.py" \
         --cities omsk \
         --categories-mode \
         --parallel-workers 10 \
+        --chrome.headless yes \
+        --chrome.disable-images yes \
+        --parser.stop-on-first-404 yes \
+        --parser.max-consecutive-empty-pages 5 \
+        --parser.max-retries 3 \
+        --parser.retry-on-network-errors yes \
         2>&1 | grep -v -E "(PySimpleGUI|pip uninstall|pip cache|pip install.*--extra-index-url|PySimpleGUI\.net|The version you just installed|Then install the latest|You can also force|Use python3 command|if you're running on the Mac)"
-    
+
     EXIT_CODE=$?
-    
+
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    
+
     if [ $EXIT_CODE -eq 0 ]; then
         echo -e "${GREEN}✅ Парсинг завершён успешно!${NC}"
         echo -e "${BLUE}📁 Результаты в папке: ${YELLOW}output/${NC}"
@@ -116,7 +122,7 @@ if [ $# -eq 0 ]; then
     else
         echo -e "${RED}❌ Парсинг завершён с ошибками${NC}"
     fi
-    
+
     exit $EXIT_CODE
     
 elif [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ "$1" = "help" ]; then
