@@ -186,23 +186,45 @@ def wait_until_finished(
     Raises:
         TimeoutError: Если истекло время ожидания и throw_exception=True.
     """
+    # Сохраняем значения декоратора в замыкании
+    decorator_timeout = timeout
+    decorator_finished = finished
+    decorator_throw_exception = throw_exception
+    decorator_poll_interval = poll_interval
 
     def outer(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
         def inner(
             *args: Any,
-            # Переопределяем параметры для возможности перезаписи при вызове
+            # Поддерживаем оба варианта: override_* и оригинальные имена для обратной совместимости
             override_timeout: Optional[int] = None,
             override_finished: Optional[Callable[[Any], bool]] = None,
             override_throw_exception: Optional[bool] = None,
             override_poll_interval: Optional[float] = None,
+            # Оригинальные имена для обратной совместимости с тестами
+            timeout: Optional[int] = None,
+            finished: Optional[Callable[[Any], bool]] = None,
+            throw_exception: Optional[bool] = None,
+            poll_interval: Optional[float] = None,
             **kwargs: Any,
         ) -> Any:
-            # Используем переданные значения или значения из декоратора
-            effective_timeout = override_timeout if override_timeout is not None else timeout
-            effective_finished = override_finished if override_finished is not None else _default_predicate
-            effective_throw = override_throw_exception if override_throw_exception is not None else throw_exception
-            effective_poll = override_poll_interval if override_poll_interval is not None else poll_interval
+            # Приоритет: override_* > оригинальные имена > значения из декоратора
+            effective_timeout = (
+                override_timeout if override_timeout is not None
+                else (timeout if timeout is not None else decorator_timeout)
+            )
+            effective_finished = (
+                override_finished if override_finished is not None
+                else (finished if finished is not None else decorator_finished or _default_predicate)
+            )
+            effective_throw = (
+                override_throw_exception if override_throw_exception is not None
+                else (throw_exception if throw_exception is not None else decorator_throw_exception)
+            )
+            effective_poll = (
+                override_poll_interval if override_poll_interval is not None
+                else (poll_interval if poll_interval is not None else decorator_poll_interval)
+            )
 
             ret: Any = None
             start_time = time.time()
