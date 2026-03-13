@@ -20,13 +20,17 @@ if TYPE_CHECKING:
 class ChromeBrowser:
     """Браузер Chrome с временным профилем.
 
+    Этот класс управляет запуском браузера Chrome с временным профилем,
+    который автоматически удаляется после закрытия браузера.
+
     Args:
-        chrome_options: Опции Chrome.
+        chrome_options: Опции Chrome для настройки браузера.
 
     Raises:
         ChromePathNotFound: Если путь к Chrome не найден.
         ValueError: Если путь к браузеру некорректен.
         FileNotFoundError: Если файл браузера не существует.
+        PermissionError: Если файл браузера не исполняемый.
     """
 
     def __init__(self, chrome_options: ChromeOptions) -> None:
@@ -124,9 +128,9 @@ class ChromeBrowser:
             binary_path: Путь к браузеру для валидации.
 
         Raises:
-            ValueError: Если путь не абсолютный.
+            ValueError: Если путь не абсолютный или указывает на директорию.
             FileNotFoundError: Если файл не существует.
-            PermissionError: Если файл не исполняемый.
+            PermissionError: Если файл не исполняемый (для Unix).
         """
         # Проверка на абсолютный путь
         if not os.path.isabs(binary_path):
@@ -234,6 +238,10 @@ class ChromeBrowser:
 
         Примечание:
             Функция гарантирует попытку закрытия даже при ошибках.
+            Используется многоуровневая стратегия завершения:
+            1. Корректное завершение через terminate()
+            2. Принудительное завершение через kill()
+            3. Удаление временного профиля
         """
         logger.debug("Завершение работы Chrome браузера.")
 

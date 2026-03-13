@@ -1,11 +1,18 @@
 """
-Parser2GIS - парсер сайта 2GIS для сбора данных об организациях.
+Parser2GIS — парсер сайта 2GIS для сбора данных об организациях.
 
 Экспортируемые компоненты:
 - main: Точка входа CLI
 - __version__: Версия пакета
 - ParallelCityParser: Параллельный парсер городов
 - ParallelCityParserThread: Поток для параллельного парсинга
+- CacheManager: Менеджер кэширования результатов
+- DataValidator: Валидатор данных
+- ValidationResult: Результат валидации
+- ParserStatistics: Статистика парсера
+- StatisticsExporter: Экспортёр статистики
+- ProgressManager: Менеджер прогресс-баров
+- logger: Логгер приложения
 """
 
 from .main import main

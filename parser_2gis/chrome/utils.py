@@ -11,7 +11,13 @@ def locate_chrome_path() -> str | None:
     """Определяет путь к исполняемому файлу Chrome для Linux Ubuntu.
 
     Returns:
-        Путь к исполняемому файлу Chrome или None, если не найден.
+        Путь к исполняемому файлу Chrome или None, если браузер не найден.
+
+    Примечание:
+        Поиск выполняется в стандартных директориях Linux:
+        - /usr/bin, /usr/sbin, /usr/local/bin, /usr/local/sbin
+        - /opt/google/chrome
+        Также используется команда 'which' для поиска.
     """
     # Стандартные пути для Chrome на Linux Ubuntu
     app_dirs = [
@@ -54,7 +60,11 @@ def free_port() -> int:
     """Получает свободный порт с помощью сокетов.
 
     Returns:
-        Свободный порт.
+        Номер свободного порта на localhost.
+
+    Примечание:
+        Порт выбирается автоматически операционной системой.
+        После вызова функции порт остаётся свободным для использования.
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as free_socket:
         free_socket.bind(("127.0.0.1", 0))

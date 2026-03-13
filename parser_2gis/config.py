@@ -67,15 +67,15 @@ class Configuration(BaseModel):
             # Инициализируем набор посещённых объектов
             if visited is None:
                 visited = set()
-            
+
             # Проверка на циклические ссылки
             source_id = id(model_source)
             if source_id in visited:
                 logger.warning("Обнаружена циклическая ссылка при объединении конфигурации")
                 return
-            
+
             visited.add(source_id)
-            
+
             try:
                 # Проверка глубины рекурсии
                 if current_depth >= max_depth:
@@ -84,7 +84,7 @@ class Configuration(BaseModel):
                     )
 
                 # Определяем набор установленных полей (Pydantic v2)
-                fields_set: Optional[Set[str]] = model_source.model_fields_set
+                fields_set: Optional[set[str]] = model_source.model_fields_set
 
                 if not fields_set:
                     fields_set = set()
@@ -224,20 +224,23 @@ class Configuration(BaseModel):
 
         except (json.JSONDecodeError, ValueError) as json_error:
             logger.error("Повреждённый JSON в конфигурации: %s", json_error)
+            return cls()
         except ValidationError as e:
             logger.warning("Ошибка валидации конфигурации")
             cls._backup_corrupted_config(config_path)
             cls._log_validation_errors(e)
+            return cls()
 
         except Exception as e:
             logger.error("Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=e)
+            return cls()
 
         # Возвращаем конфигурацию по умолчанию при любой ошибке
         return cls()
 
     @staticmethod
     def _backup_corrupted_config(config_path: pathlib.Path) -> None:
-        """Создаёт backup повреждённого файла конфигурации."""
+        """Создаёт резервную копию повреждённого файла конфигурации."""
         if not config_path.is_file():
             return
 
@@ -245,14 +248,14 @@ class Configuration(BaseModel):
         try:
             shutil.copy2(config_path, backup_path)
             if backup_path.exists():
-                logger.warning("Создан backup повреждённой конфигурации: %s", backup_path)
+                logger.warning("Создана резервная копия повреждённой конфигурации: %s", backup_path)
                 renamed_path = config_path.with_suffix(config_path.suffix + ".corrupted")
                 config_path.rename(renamed_path)
                 logger.warning("Оригинальный файл переименован: %s -> %s", config_path, renamed_path)
             else:
-                logger.warning("Не удалось создать backup: %s", backup_path)
+                logger.warning("Не удалось создать резервную копию: %s", backup_path)
         except OSError as copy_err:
-            logger.warning("Ошибка при создании backup конфигурации: %s", copy_err)
+            logger.warning("Ошибка при создании резервной копии конфигурации: %s", copy_err)
 
     @staticmethod
     def _log_validation_errors(ex: ValidationError) -> None:

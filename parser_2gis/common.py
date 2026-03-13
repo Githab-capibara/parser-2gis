@@ -109,12 +109,12 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
     # Инициализируем множество посещённых объектов для защиты от циклических ссылок
     if _visited is None:
         _visited = set()
-    
+
     # Проверяем на циклические ссылки
     value_id = id(value)
     if value_id in _visited:
         return "<REDACTED>"  # Возвращаем маркер для циклической ссылки
-    
+
     if key and _is_sensitive_key(key):
         return "<REDACTED>"
 
@@ -144,7 +144,7 @@ def running_linux() -> bool:
         True если приложение работает на Linux (любой дистрибутив), False иначе.
 
     Примечание:
-        Приложение официально поддерживает только Linux окружения.
+        Приложение разработано в первую очередь для Linux окружений.
     """
     return sys.platform.startswith("linux")
 

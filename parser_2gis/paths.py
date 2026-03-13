@@ -27,6 +27,12 @@ def user_path(is_config: bool = True) -> pathlib.Path:
         Расположение пути для Linux Ubuntu:
         * ~/.config/parser-2gis (для конфигурации)
         * ~/.local/share/parser-2gis (для данных)
+
+    Args:
+        is_config: Если True, возвращает путь к конфигурации, иначе к данным.
+
+    Returns:
+        Путь к пользовательской директории.
     """
     if is_config:
         path = os.getenv("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
@@ -44,10 +50,10 @@ def image_path(basename: str, ext: str | None = None) -> str:
 
     Args:
         basename: Базовое имя изображения.
-        ext: Расширение изображения.
+        ext: Расширение изображения (опционально).
 
     Returns:
-        Путь к изображению.
+        Абсолютный путь к изображению.
 
     Raises:
         ValueError: Если basename содержит недопустимые символы.
@@ -82,10 +88,14 @@ def image_data(basename: str, ext: str | None = None) -> bytes:
 
     Args:
         basename: Базовое имя изображения.
-        ext: Расширение изображения.
+        ext: Расширение изображения (опционально).
 
     Returns:
-        Данные изображения.
+        Данные изображения в кодировке base64.
+
+    Raises:
+        FileNotFoundError: Если изображение не найдено.
+        IOError: Если файл не может быть прочитан.
     """
     img_path = image_path(basename, ext)
     try:
