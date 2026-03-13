@@ -1,9 +1,8 @@
-import distutils.cmd
 import pathlib
 import re
 import sys
 
-from setuptools import setup
+from setuptools import setup, Command
 
 
 PACKAGE_NAME = 'parser_2gis'
@@ -20,9 +19,9 @@ assert match
 version = match.group('version')
 
 
-class BuildStandaloneCommand(distutils.cmd.Command):
-    """A custom command to build standalone app."""
-    description = 'Build standalone app with PyInstaller'
+class BuildStandaloneCommand(Command):
+    """Собственная команда для сборки автономного приложения."""
+    description = 'Сборка автономного приложения с помощью PyInstaller'
     user_options = []
 
     def initialize_options(self):
@@ -38,10 +37,10 @@ class BuildStandaloneCommand(distutils.cmd.Command):
         import sys
 
         try:
-            # Target filename
+            # Имя файла дистрибутива
             dist_filename = 'Parser2GIS'
 
-            # Dist
+            # Команда сборки
             build_cmd = [
                 'pyinstaller',
                 '--clean',
@@ -50,13 +49,13 @@ class BuildStandaloneCommand(distutils.cmd.Command):
                 '-n', dist_filename,
             ]
 
-            # Icon
+            # Иконка
             if sys.platform.startswith('linux'):
                 build_cmd += [
                     '--icon', 'parser_2gis/data/images/icon.png',
                 ]
 
-            # Add data
+            # Добавление данных
             build_cmd += [
                 '--add-data', f'parser_2gis/data{os.pathsep}parser_2gis/data',
                 'parser-2gis.py',
@@ -65,7 +64,7 @@ class BuildStandaloneCommand(distutils.cmd.Command):
             print('Running command: %s' % ' '.join(build_cmd), file=sys.stderr)
             subprocess.check_call(build_cmd)
         finally:
-            # Cleanup
+            # Очистка
             shutil.rmtree(ROOT_DIR / 'build', ignore_errors=True)
             try:
                 os.remove(ROOT_DIR / f'{dist_filename}.spec')
@@ -104,9 +103,9 @@ if __name__ == '__main__':
         extras_require={
             'dev': [
                 "pytest>=6.2,<8",
-                "tox>=3.5,<4",
+                "tox>=4.0",
                 "pre-commit>=2.6",
-                "wheel>=0.36.2,<0.38",
+                "wheel>=0.36.2",
                 "pyinstaller>=6.6.0",
             ],
         },
@@ -116,10 +115,9 @@ if __name__ == '__main__':
             "Operating System :: POSIX :: Linux",
             "Environment :: X11 Applications",
             "Programming Language :: Python :: 3 :: Only",
-            "Programming Language :: Python :: 3.8",
-            "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",
+            "Programming Language :: Python :: 3.12",
             "Natural Language :: Russian",
             "Intended Audience :: End Users/Desktop",
             "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",

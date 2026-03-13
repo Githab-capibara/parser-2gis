@@ -51,10 +51,8 @@ class Configuration(BaseModel):
         ) -> None:
             """Рекурсивно присваивает новые атрибуты к существующей конфигурации.
 
-            Примечание:
-                Корректно определяет версию Pydantic и получает набор установленных полей.
-                Для Pydantic v2 используется model_fields_set, для v1 - __fields_set__.
-                Использует набор visited для предотвращения циклических ссылок.
+            Использует model_fields_set для получения набора установленных полей (Pydantic v2).
+            Использует набор visited для предотвращения циклических ссылок.
 
             Args:
                 model_source: Исходная модель.
@@ -85,16 +83,8 @@ class Configuration(BaseModel):
                         f"Превышена максимальная глубина рекурсии ({max_depth}) при объединении конфигурации"
                     )
 
-                # Определяем версию Pydantic и получаем набор установленных полей
-                if hasattr(model_source, "model_fields_set"):
-                    # Pydantic версия 2
-                    fields_set: Optional[Set[str]] = model_source.model_fields_set
-                elif hasattr(model_source, "__fields_set__"):
-                    # Pydantic версия 1
-                    fields_set = model_source.__fields_set__
-                else:
-                    # Неизвестная версия Pydantic
-                    fields_set = set()
+                # Определяем набор установленных полей (Pydantic v2)
+                fields_set: Optional[Set[str]] = model_source.model_fields_set
 
                 if not fields_set:
                     fields_set = set()
@@ -151,13 +141,8 @@ class Configuration(BaseModel):
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Используем model_dump() для Pydantic v2 или dict() для v1
-            if hasattr(self, "model_dump"):
-                # Pydantic v2
-                config_dict: Dict[str, Any] = self.model_dump(exclude={"path"})
-            else:
-                # Pydantic v1
-                config_dict = self.dict(exclude={"path"})
+            # Сериализация конфигурации в словарь (Pydantic v2)
+            config_dict: Dict[str, Any] = self.model_dump(exclude={"path"})
 
             json_str = json.dumps(config_dict, ensure_ascii=False, indent=4)
 
@@ -233,12 +218,7 @@ class Configuration(BaseModel):
 
         # Парсим конфигурацию
         try:
-            if hasattr(cls, "model_validate_json"):
-                # Pydantic версия 2
-                config = cls.model_validate_json(config_data)
-            else:
-                # Запасной вариант для Pydantic версия 1
-                config = cls.parse_raw(config_data)  # type: ignore
+            config = cls.model_validate_json(config_data)
             config.path = config_path
             return config
 

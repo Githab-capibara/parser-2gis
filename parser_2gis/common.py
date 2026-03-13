@@ -345,12 +345,12 @@ def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
     output: Dict[str, Any] = {}
     for key, value in d.items():
         if not key:
-            logger.warning("Пустой ключ в словаре, пропускаем")
+            _get_logger().warning("Пустой ключ в словаре, пропускаем")
             continue
 
         path = key.split(".")
         if any(not p for p in path):
-            logger.warning("Ключ '%s' содержит пустые сегменты, пропускаем", key)
+            _get_logger().warning("Ключ '%s' содержит пустые сегменты, пропускаем", key)
             continue
 
         target = functools.reduce(lambda d, k: d.setdefault(k, {}), path[:-1], output)

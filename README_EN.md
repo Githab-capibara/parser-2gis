@@ -3,7 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-LGPLv3%2B-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-269%20passed-brightgreen.svg)](testes/)
-[![Code Quality](https://img.shields.io/badge/score-95/100-brightgreen.svg)](CODE_QUALITY_AUDIT_REPORT_2026_03_09.md)
+[![Code Quality](https://img.shields.io/badge/score-95/100-brightgreen.svg)](https://github.com/Githab-capibara/parser-2gis/wiki)
 [![GitHub](https://img.shields.io/badge/GitHub-Githab--capibara-orange.svg)](https://github.com/Githab-capibara/parser-2gis)
 
 **Parser2GIS** is a powerful tool for parsing data from the 2GIS service, using Chrome browser to bypass anti-bot protections.
@@ -1076,11 +1076,7 @@ See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 ## 📊 Code Quality Reports
 
-| Report | Date | Score | Status |
-|--------|------|-------|--------|
-| [CODE_QUALITY_AUDIT_REPORT_2026_03_09.md](CODE_QUALITY_AUDIT_REPORT_2026_03_09.md) | 2026-03-09 | 95/100 | ✅ Excellent |
-| [FINAL_CODE_STATUS_2026_03_09.md](FINAL_CODE_STATUS_2026_03_09.md) | 2026-03-09 | 94/100 | ✅ Excellent |
-| [BUG_FIX_REPORT_2026_03_12.md](BUG_FIX_REPORT_2026_03_12.md) | 2026-03-12 | 94/100 | ✅ Excellent |
+> Code quality reports are available in the [project wiki](https://github.com/Githab-capibara/parser-2gis/wiki).
 
 ---
 
@@ -1130,7 +1126,7 @@ A: By default, results are saved to the specified output file or directory. Use 
 
 - 📖 [Russian README](README.md)
 - 📝 [Changelog](CHANGELOG.md)
-- 📊 [Code Quality Reports](CODE_QUALITY_AUDIT_REPORT_2026_03_09.md)
+- 📊 [Code Quality Reports](https://github.com/Githab-capibara/parser-2gis/wiki)
 
 ### Issues
 
