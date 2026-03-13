@@ -440,18 +440,22 @@ def main() -> None:
             logger.error("Не указан источник URL. Используйте -i/--url или --cities")
             sys.exit(1)
 
-        if not args.output_path:
+        # Получаем output_path и format с проверкой на None
+        output_path = getattr(args, "output_path", None)
+        output_format = getattr(args, "format", None)
+
+        if not output_path:
             logger.error(
                 "Не указан путь к выходному файлу. Используйте -o/--output-path"
             )
             sys.exit(1)
 
-        if not args.format:
+        if not output_format:
             logger.error("Не указан формат выходного файла. Используйте -f/--format")
             sys.exit(1)
 
         try:
-            cli_app(urls, args.output_path, args.format, command_line_config)
+            cli_app(urls, output_path, output_format, command_line_config)
         except KeyboardInterrupt:
             logger.info("Работа приложения прервана пользователем.")
         except FileNotFoundError as e:
@@ -467,19 +471,23 @@ def main() -> None:
 
 def _get_output_dir(output_path: str | None) -> Path:
     """Определяет директорию для результатов на основе output_path.
-    
+
     Args:
         output_path: Путь к файлу или директории (может быть None).
-    
+
     Returns:
         Path объект директории.
     """
     if output_path is None:
         return Path("output")
-    
+
     output_path_obj = Path(output_path)
     # Если указан путь с расширением файла, используем его директорию
-    return output_path_obj.parent if output_path_obj.suffix else output_path_obj
+    # Если путь не существует или не имеет расширения, используем как директорию
+    if output_path_obj.suffix and output_path_obj.parent.exists():
+        return output_path_obj.parent
+    # Если путь не существует, возвращаем родителя или сам путь если нет родителя
+    return output_path_obj.parent if output_path_obj.parent != Path(".") else output_path_obj
 
 
 def _log_startup_info(args: argparse.Namespace, config: Configuration, start_time: datetime) -> None:
@@ -517,7 +525,7 @@ def _log_startup_info(args: argparse.Namespace, config: Configuration, start_tim
         },
     }
 
-    # Получаем количество URL
+    # Получаем количество URL с защитой от None
     urls_count = len(args.url) if args.url else 0
     if hasattr(args, "cities") and args.cities:
         if getattr(args, "categories_mode", False):

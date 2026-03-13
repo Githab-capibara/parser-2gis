@@ -50,9 +50,15 @@ class ParserStatistics:
 
         Returns:
             Разница между end_time и start_time, или None если работа не завершена
+            или если end_time < start_time (некорректные данные).
         """
         if self.start_time and self.end_time:
-            return self.end_time - self.start_time
+            delta = self.end_time - self.start_time
+            # Проверяем что end_time >= start_time
+            if delta.total_seconds() >= 0:
+                return delta
+            # Возвращаем None если время некорректно
+            return None
         return None
 
     @property
@@ -63,6 +69,9 @@ class ParserStatistics:
             Процент успешных записей от общего количества
         """
         if self.total_records == 0:
+            return 0.0
+        # Защита от деления на ноль и отрицательных значений
+        if self.successful_records < 0 or self.successful_records > self.total_records:
             return 0.0
         return (self.successful_records / self.total_records) * 100
 
@@ -75,6 +84,9 @@ class ParserStatistics:
         """
         total_cache_requests = self.cache_hits + self.cache_misses
         if total_cache_requests == 0:
+            return 0.0
+        # Защита от некорректных значений
+        if self.cache_hits < 0 or self.cache_hits > total_cache_requests:
             return 0.0
         return (self.cache_hits / total_cache_requests) * 100
 
@@ -331,11 +343,21 @@ class StatisticsExporter:
         for key, value in data.items():
             value_class = ""
             if "Успешность" in key:
-                value_class = "success" if float(value.rstrip("%")) > 80 else "error"
+                try:
+                    # Экранируем значение перед парсингом
+                    safe_value = html_module.escape(str(value))
+                    value_num = float(safe_value.rstrip("%"))
+                    value_class = "success" if value_num > 80 else "error"
+                except (ValueError, TypeError):
+                    value_class = ""
+
+            # Экранируем ключ и значение для предотвращения XSS
+            safe_key = html_module.escape(str(key))
+            safe_value = html_module.escape(str(value))
 
             html += "            <tr>\n"
-            html += f"                <td>{key}</td>\n"
-            html += f'                <td class="{value_class}">{value}</td>\n'
+            html += f"                <td>{safe_key}</td>\n"
+            html += f'                <td class="{value_class}">{safe_value}</td>\n'
             html += "            </tr>\n"
 
         # Добавляем ошибки, если есть

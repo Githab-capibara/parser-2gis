@@ -73,10 +73,14 @@ class DataValidator:
             Российские номера должны содержать 11 цифр.
             Международные номера должны содержать 10-15 цифр.
         """
+        # Проверяем на None и пустую строку
+        if not phone or not phone.strip():
+            return ValidationResult(False, None, ["Номер должен содержать цифры"])
+
         # Удаляем все кроме цифр и +
         cleaned = re.sub(r"[^\d+]", "", phone)
         digits_only = re.sub(r"\D", "", cleaned)
-        
+
         if not digits_only:
             return ValidationResult(False, None, ["Номер должен содержать цифры"])
 
@@ -87,7 +91,7 @@ class DataValidator:
             )
 
         if cleaned.startswith("+7") or cleaned.startswith("8"):
-            # Конвертируем +7 в 8
+            # Конвертируем +7 в 8 для внутреннего представления
             if cleaned.startswith("+7"):
                 cleaned = "8" + cleaned[2:]
 
@@ -101,7 +105,7 @@ class DataValidator:
         # Обработка международных номеров
         if cleaned.startswith("+"):
             international_digits = cleaned[1:]
-            
+
             if not (self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(international_digits) <= self.INTERNATIONAL_PHONE_MAX_LENGTH):
                 return ValidationResult(
                     False, None, [
@@ -116,13 +120,12 @@ class DataValidator:
         if len(digits_only) == 11:
             if digits_only[0] == "8":
                 return ValidationResult(True, self._format_phone(digits_only), [])
-            return ValidationResult(
-                False, None, ["Номер должен начинаться с +7, 8 или +[код страны]"]
-            )
-        
+            # Предполагаем российский номер без префикса
+            return ValidationResult(True, self._format_phone("8" + digits_only), [])
+
         if self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(digits_only) <= self.INTERNATIONAL_PHONE_MAX_LENGTH:
             return ValidationResult(True, f"+{digits_only}", [])
-        
+
         return ValidationResult(
             False, None, [
                 f"Некорректная длина номера: {len(digits_only)} "
@@ -157,13 +160,18 @@ class DataValidator:
         Примечание:
             Email приводится к нижнему регистру и удаляются пробелы.
             Проверка на пустую строку выполняется до обработки для оптимизации.
+            Максимальная длина email: 254 символа (RFC 5321).
         """
-        # Быстрая проверка на пустую строку до обработки
+        # Быстрая проверка на None и пустую строку
         if not email or not email.strip():
             return ValidationResult(False, None, ["Email пустой"])
 
         # Нормализация email
         email = email.strip().lower()
+
+        # Проверка максимальной длины (RFC 5321)
+        if len(email) > 254:
+            return ValidationResult(False, None, ["Email превышает максимальную длину (254 символа)"])
 
         # Проверка формата email
         if not self.EMAIL_PATTERN.match(email):
