@@ -494,7 +494,7 @@ def _log_startup_info(args: argparse.Namespace, config: Configuration, start_tim
     # Получаем формат и output_path с обработкой None
     format_value = getattr(args, "format", None)
     format_str = format_value.upper() if format_value else "CSV (по умолчанию)"
-    
+
     output_path_value = getattr(args, "output_path", None)
     output_path_str = str(output_path_value) if output_path_value else "output/ (по умолчанию)"
 
