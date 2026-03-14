@@ -9,8 +9,10 @@
 """
 
 from .app import Parser2GISTUI, TUIApp
+from .run_parallel import run_omsk_parallel
 
 __all__ = [
     "Parser2GISTUI",
     "TUIApp",
+    "run_omsk_parallel",
 ]
