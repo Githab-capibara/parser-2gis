@@ -345,8 +345,8 @@ class ParallelCityParser:
                         # Удаляем временный файл при отмене
                         try:
                             temp_output.unlink()
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            self.log(f"Не удалось удалить временный файл при отмене: {e}", "debug")
                         return False
 
                     if progress_callback:
@@ -438,8 +438,8 @@ class ParallelCityParser:
                 if temp_output.exists():
                     temp_output.unlink()
                     self.log("Временный файл удалён после ошибки", "debug")
-            except Exception:
-                pass
+            except Exception as e:
+                self.log(f"Не удалось удалить временный файл после ошибки: {e}", "debug")
             self.log(
                 "Исходные файлы НЕ были удалены (ошибка до завершения объединения)",
                 "warning",
