@@ -51,41 +51,49 @@ pre-commit install
 parser-2gis/
 ├── parser_2gis/              # Основной пакет
 │   ├── main.py               # Точка входа CLI
+│   ├── __main__.py           # Запуск через python -m parser_2gis
 │   ├── config.py             # Конфигурация (Pydantic)
 │   ├── common.py             # Общие утилиты
 │   ├── version.py            # Версия пакета
 │   ├── exceptions.py         # Исключения
-│   ├── cache.py              # Менеджер кэша
+│   ├── cache.py              # Менеджер кэша (SQLite)
 │   ├── validator.py          # Валидатор данных
 │   ├── statistics.py         # Экспорт статистики
 │   ├── paths.py              # Утилиты путей
 │   ├── parallel_optimizer.py # Оптимизатор параллельного парсинга
 │   ├── parallel_parser.py    # Параллельный парсер
+│   ├── pydantic_compat.py    # Совместимость Pydantic v2
 │   │
 │   ├── chrome/               # Работа с Chrome
 │   │   ├── browser.py        # Запуск браузера
 │   │   ├── remote.py         # Chrome DevTools Protocol
 │   │   ├── options.py        # Опции Chrome
 │   │   ├── dom.py            # Работа с DOM
-│   │   ├── health_monitor.py # Монитор здоровья браузера
-│   │   └── utils.py          # Утилиты Chrome
+│   │   ├── health_monitor.py # Монитор здоровья браузера (v2.1)
+│   │   ├── utils.py          # Утилиты Chrome
+│   │   └── exceptions.py     # Исключения Chrome
 │   │
 │   ├── parser/               # Парсеры данных
 │   │   ├── parsers/
 │   │   │   ├── main.py       # Основной парсер
 │   │   │   ├── firm.py       # Парсер фирм
 │   │   │   └── in_building.py # Парсер "В здании"
-│   │   ├── adaptive_limits.py # Адаптивные лимиты
-│   │   ├── smart_retry.py    # Интеллектуальный retry
-│   │   ├── end_of_results.py # Детектор окончания результатов
-│   │   └── options.py        # Опции парсера
+│   │   ├── adaptive_limits.py # Адаптивные лимиты (v2.1)
+│   │   ├── smart_retry.py    # Интеллектуальный retry (v2.1)
+│   │   ├── end_of_results.py # Детектор окончания (v2.1)
+│   │   ├── factory.py        # Фабрика парсеров
+│   │   ├── options.py        # Опции парсера
+│   │   ├── utils.py          # Утилиты парсера
+│   │   └── exceptions.py     # Исключения парсера
 │   │
 │   ├── writer/               # Писатели файлов
 │   │   ├── writers/
 │   │   │   ├── csv_writer.py # CSV writer
 │   │   │   ├── xlsx_writer.py # XLSX writer
 │   │   │   └── json_writer.py # JSON writer
-│   │   └── models/           # Модели данных
+│   │   ├── factory.py        # Фабрика writers
+│   │   ├── options.py        # Опции writers
+│   │   └── models/           # Модели данных (Pydantic)
 │   │
 │   ├── runner/               # Запуск парсера
 │   │   ├── runner.py         # Базовый класс
@@ -94,22 +102,32 @@ parser-2gis/
 │   ├── logger/               # Логирование
 │   │   ├── logger.py         # Основной логгер
 │   │   ├── file_handler.py   # Обработчик файлов
-│   │   └── visual_logger.py  # Визуальный логгер
+│   │   ├── visual_logger.py  # Визуальный логгер
+│   │   └── options.py        # Опции логирования
 │   │
 │   ├── cli/                  # CLI приложение
 │   │   ├── app.py            # CLI приложение
-│   │   └── progress.py       # Менеджер прогресса
+│   │   └── progress.py       # ProgressManager
 │   │
-│   ├── tui/                  # TUI интерфейс
+│   ├── tui/                  # TUI приложение (Rich, устарел)
 │   │   ├── app.py            # Главное окно TUI
-│   │   └── components.py     # Компоненты интерфейса
+│   │   ├── components.py     # Компоненты интерфейса
+│   │   └── logger.py         # Визуальный логгер
+│   │
+│   ├── tui_pytermgui/        # Новый TUI (pytermgui, рекомендуется)
+│   │   ├── app.py            # Главное приложение
+│   │   ├── screens/          # Экраны приложения
+│   │   ├── components/       # Компоненты интерфейса
+│   │   ├── widgets/          # Виджеты
+│   │   └── README.md         # Документация TUI
 │   │
 │   └── data/                 # Данные
 │       ├── cities.json       # Города (204 города)
 │       ├── rubrics.json      # Рубрики (1786 рубрик)
-│       └── categories_93.py  # 93 категории
+│       ├── categories_93.py  # 93 категории
+│       └── images/           # Изображения
 │
-├── testes/                   # Тесты (pytest)
+├── tests/                    # Тесты (pytest)
 │   ├── conftest.py           # Конфигурация pytest
 │   ├── test_common.py        # Тесты common.py
 │   ├── test_config.py        # Тесты config.py
@@ -120,10 +138,31 @@ parser-2gis/
 │   ├── test_file_logger.py   # Тесты file_handler.py
 │   ├── test_runner.py        # Тесты runner/
 │   ├── test_integration.py   # Интеграционные тесты
-│   └── test_main_categories_mode.py # Тесты categories-mode
+│   ├── test_main_categories_mode.py # Тесты categories-mode
+│   ├── test_parallel_parser.py # Тесты параллельного парсера
+│   ├── test_parser_options.py # Тесты опций парсера
+│   ├── test_paths.py         # Тесты paths.py
+│   ├── test_version_exceptions.py # Тесты версии
+│   └── test_cli_arguments.py # Тесты аргументов CLI
 │
 ├── scripts/                  # Скрипты обновления данных
-└── setup.py                  # Установка пакета
+│   ├── update_cities_list.py # Обновление городов
+│   └── update_rubrics_list.py # Обновление рубрик
+│
+├── output/                   # Выходные файлы (по умолчанию)
+├── logs/                     # Логи парсера
+├── README.md                 # Основная документация
+├── CHANGELOG.md              # История изменений
+├── CONTRIBUTING.md           # Руководство для разработчиков
+├── SECURITY.md               # Политики безопасности
+├── LICENSE                   # Лицензия LGPLv3+
+├── setup.py                  # Установка пакета
+├── setup.cfg                 # Конфигурация setup.py
+├── pytest.ini                # Конфигурация pytest
+├── tox.ini                   # Конфигурация tox
+├── .pre-commit-config.yaml   # Pre-commit хуки
+├── .gitignore                # Игнорируемые файлы
+└── MANIFEST.in               # Манифест пакета
 ```
 
 ---
@@ -150,7 +189,7 @@ pytest
 pytest --cov=parser_2gis
 
 # Конкретный тест
-pytest testes/test_parser.py
+pytest tests/test_parser.py
 ```
 
 ### Pre-commit хуки
