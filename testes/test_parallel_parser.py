@@ -6,6 +6,7 @@
 import csv
 import pytest
 import sys
+import urllib.parse
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -88,16 +89,17 @@ class TestGenerateUrlsForCity:
             'name': 'Москва',
             'country_code': 'ru'
         }
-        
+
         categories = [
             {'name': 'Кафе', 'query': 'Кафе', 'rubric_code': '161'}
         ]
-        
+
         urls = generate_urls_for_city(city, categories)
-        
+
         assert len(urls) == 1
         assert '2gis.ru/moscow' in urls[0]
-        assert 'search/Кафе' in urls[0]
+        # Проверяем кодированный URL (urllib.parse.quote кодирует кириллицу)
+        assert f'search/{urllib.parse.quote("Кафе")}' in urls[0]
         assert 'rubricId/161' in urls[0]
         assert 'filters/sort=name' in urls[0]
     
@@ -129,16 +131,17 @@ class TestGenerateUrlsForCity:
             'name': 'Казань',
             'country_code': 'ru'
         }
-        
+
         categories = [
             {'name': 'Бургерные', 'query': 'Бургерные', 'rubric_code': None}
         ]
-        
+
         urls = generate_urls_for_city(city, categories)
-        
+
         assert len(urls) == 1
         assert 'rubricId' not in urls[0]
-        assert 'search/Бургерные' in urls[0]
+        # Проверяем кодированный URL
+        assert f'search/{urllib.parse.quote("Бургерные")}' in urls[0]
     
     def test_generate_urls_all_93_categories(self):
         """Проверка генерации URL для всех 93 категорий."""

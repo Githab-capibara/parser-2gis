@@ -27,9 +27,10 @@ CHROME_STARTUP_DELAY = 1.5
 MAX_JS_CODE_LENGTH = 1_000_000  # 1MB лимит
 
 # Паттерн для обнаружения потенциально опасных конструкций в JS
+# new Function() и Function() как конструктор - опасны, но function() как выражение - безопасно
 _DANGEROUS_JS_PATTERNS = [
     (r'\beval\s*\(', 'eval() запрещён'),
-    (r'\bFunction\s*\(', 'конструктор Function запрещён'),
+    (r'(?<![\w])Function\s*\(', 'конструктор Function запрещён'),  # Только Function с заглавной буквы как конструктор
     (r'\bsetTimeout\s*\([^,]*,\s*["\']', 'setTimeout с строковым кодом запрещён'),
     (r'\bsetInterval\s*\([^,]*,\s*["\']', 'setInterval с строковым кодом запрещён'),
     (r'\bdocument\.write\s*\(', 'document.write() запрещён'),
@@ -74,8 +75,9 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         return False, f"JavaScript код превышает максимальную длину ({len(code)} > {max_length} символов)"
 
     # Проверка на опасные паттерны
+    # re.IGNORECASE не используется, чтобы различать Function() (конструктор) и function() (выражение)
     for pattern, description in _DANGEROUS_JS_PATTERNS:
-        if re.search(pattern, code, re.IGNORECASE):
+        if re.search(pattern, code):
             return False, f"Обнаружен опасный паттерн в JavaScript коде: {description}"
 
     return True, ""
