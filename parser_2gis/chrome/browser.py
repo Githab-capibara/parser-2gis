@@ -51,13 +51,22 @@ class ChromeBrowser:
             logger.error("Путь к Chrome браузеру не найден")
             raise ChromePathNotFound
 
+        # Нормализация пути через realpath для предотвращения атак с символическими ссылками
+        binary_path = os.path.realpath(binary_path)
+
         # Строгая валидация binary_path
         self._validate_binary_path(binary_path)
 
         logger.debug("Запуск Chrome браузера по пути: %s", binary_path)
 
-        # Инициализация профиля и порта
-        self._profile_path = tempfile.mkdtemp()
+        # Инициализация профиля с безопасными правами (0o700 - только владелец)
+        # Используем mkdtemp() так как профиль должен существовать всё время жизни браузера
+        self._profile_path = tempfile.mkdtemp(prefix="chrome_profile_")
+        # Устанавливаем restrictive права на директорию профиля
+        try:
+            os.chmod(self._profile_path, 0o700)
+        except OSError as e:
+            logger.debug("Не удалось установить права 0o700 на профиль: %s", e)
         self._remote_port = free_port()
 
         # Валидация memory_limit перед формированием команды
@@ -115,8 +124,8 @@ class ChromeBrowser:
             # Очистка профиля при ошибке запуска
             try:
                 shutil.rmtree(self._profile_path, ignore_errors=True)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Не удалось удалить профиль при ошибке запуска: %s", e)
             raise
 
     def _validate_binary_path(self, binary_path: str) -> None:
@@ -228,8 +237,8 @@ class ChromeBrowser:
                 with open(marker_file, "a", encoding="utf-8") as f:
                     f.write(f"{self._profile_path}\n")
                 logger.debug("Создан маркер для последующей очистки: %s", marker_file)
-            except Exception:
-                pass  # Не критично если маркер не создан
+            except Exception as e:
+                logger.debug("Не удалось создать маркер очистки профиля: %s", e)
             return False
 
     def close(self) -> None:
