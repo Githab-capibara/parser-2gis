@@ -40,7 +40,8 @@ def locate_chrome_path() -> str | None:
         for f in browser_executables:
             binary_path = os.path.join(d, f)
             if os.path.isfile(binary_path):
-                return binary_path
+                # Валидация пути через realpath для предотвращения атак
+                return os.path.realpath(binary_path)
 
     # Использование команды 'which' для поиска исполняемого файла Chrome
     for f in browser_executables:
@@ -48,7 +49,8 @@ def locate_chrome_path() -> str | None:
             ret_output = subprocess.check_output(["which", f])
             binary_path = ret_output.decode("utf-8").strip()
             if os.path.isfile(binary_path):
-                return binary_path
+                # Валидация пути через realpath для предотвращения атак
+                return os.path.realpath(binary_path)
 
         except subprocess.CalledProcessError:
             pass
