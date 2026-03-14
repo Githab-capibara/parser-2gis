@@ -6,7 +6,7 @@ import re
 import socket
 import threading
 import time
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pychrome
 import requests
@@ -112,6 +112,7 @@ def _sanitize_js_string(value: str) -> str:
     value = value.replace('"', '\\"')
 
     return value
+
 
 if TYPE_CHECKING:
     from .options import ChromeOptions
@@ -370,7 +371,7 @@ class ChromeRemote:
 
             self._setup_tab()
             self._init_tab_monitor()
-            
+
         except Exception:
             # При любой ошибке закрываем браузер для предотвращения утечки ресурсов
             if self._chrome_browser:

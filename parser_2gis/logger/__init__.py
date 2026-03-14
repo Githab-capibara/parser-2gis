@@ -26,6 +26,7 @@ from .visual_logger import (
     ColorCodes,
 )
 
+
 # TUI импорт (ленивый - при необходимости)
 def get_tui_app():
     """Получить TUI приложение (ленивый импорт)."""

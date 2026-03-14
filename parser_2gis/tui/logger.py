@@ -9,7 +9,6 @@ TUI логгер для Parser2GIS.
 from __future__ import annotations
 
 import logging
-import os
 import queue
 from datetime import datetime
 from pathlib import Path

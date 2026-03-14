@@ -192,6 +192,6 @@ def run_parallel_with_tui(
 
         return result
 
-    except Exception as e:
+    except Exception:
         tui.stop(success=False)
         raise

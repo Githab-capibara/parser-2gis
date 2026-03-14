@@ -5,7 +5,6 @@ import platform
 import shutil
 import subprocess
 import tempfile
-from subprocess import TimeoutExpired
 from typing import TYPE_CHECKING
 
 from ..common import wait_until_finished

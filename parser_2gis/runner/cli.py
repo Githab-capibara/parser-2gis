@@ -1,16 +1,12 @@
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
 
 from ..exceptions import ChromeRuntimeException, ChromeUserAbortException
 from ..logger import logger, log_parser_finish
 from ..parser import get_parser
 from ..writer import get_writer
 from .runner import AbstractRunner
-
-if TYPE_CHECKING:
-    from ..config import Configuration
 
 
 class CLIRunner(AbstractRunner):
