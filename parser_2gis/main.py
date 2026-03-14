@@ -437,8 +437,12 @@ def _get_output_dir(output_path: str | None) -> Path:
     return output_path_obj.parent if output_path_obj.parent != Path(".") else output_path_obj
 
 
-    def main() -> None:
-        """Точка входа."""
+def main() -> None:
+    """Точка входа для CLI приложения.
+    
+    Парсит аргументы командной строки, обрабатывает различные режимы
+    работы (TUI, CLI, параллельный парсинг) и запускает приложение.
+    """
     # Запоминаем время старта
     start_time = time.time()
     start_datetime = datetime.now()
