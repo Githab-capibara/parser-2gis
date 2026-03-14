@@ -84,7 +84,8 @@ class EndOfResultsDetector:
                         if selector(node):
                             logger.debug("Обнаружен DOM-элемент окончания")
                             return True
-                    except Exception:
+                    except Exception as e:
+                        logger.debug("Ошибка при проверке DOM-элемента: %s", e)
                         continue
 
             return False
