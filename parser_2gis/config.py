@@ -4,7 +4,7 @@ import json
 import pathlib
 import shutil
 from copy import deepcopy
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, cast
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -249,8 +249,8 @@ class Configuration(BaseModel):
         # Парсим конфигурацию
         try:
             config = model_validate_json_class(cls, config_data)
-            config.path = config_path
-            return config
+            config.path = config_path  # type: ignore[assignment]
+            return config  # type: ignore[return-value]
 
         except (json.JSONDecodeError, ValueError) as json_error:
             logger.error("Повреждённый JSON в конфигурации: %s", json_error)

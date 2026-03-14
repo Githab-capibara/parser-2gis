@@ -86,4 +86,4 @@ class ProgressBar:
         """Процент выполнения."""
         if self._total <= 0:
             return 0.0
-        return min(100.0, max(0.0, (self._completed / self._total) * 100))
+        return float(min(100.0, max(0.0, (self._completed / self._total) * 100)))

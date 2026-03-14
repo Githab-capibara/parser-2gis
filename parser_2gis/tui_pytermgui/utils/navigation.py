@@ -25,6 +25,7 @@ class ScreenManager:
         self._app = app
         self._screen_stack: list[tuple[str, Any]] = []
         self._current_screen: Optional[str] = None
+        self._current_instance: Optional[Any] = None
 
     def push(self, screen_name: str, screen_instance: Any) -> None:
         """

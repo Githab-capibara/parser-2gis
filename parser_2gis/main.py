@@ -13,7 +13,8 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+from urllib.parse import urlparse
 
 import pydantic
 
@@ -40,12 +41,34 @@ except ImportError as e:
     logger.error("Убедитесь, что все зависимости установлены: pip install -e .")
     raise
 
+run_new_tui_omsk: Callable[[], None] | None = None
 try:
     from .tui_pytermgui import run_omsk_parallel as run_new_tui_omsk
 except ImportError as e:
     logger.warning("Не удалось импортировать новый TUI модуль (pytermgui): %s", e)
     logger.warning("Функция --tui-new-omsk будет недоступна")
-    run_new_tui_omsk = None
+
+
+def _validate_url(url: str) -> bool:
+    """Валидирует URL на корректность формата.
+
+    Args:
+        url: URL для валидации.
+
+    Returns:
+        True если URL корректен, False иначе.
+
+    Примечание:
+        Проверяет:
+        - Схема (http или https)
+        - Наличие сетевого расположения (netloc)
+        - Общий формат URL
+    """
+    try:
+        result = urlparse(url)
+        return all([result.scheme in ('http', 'https'), result.netloc])
+    except Exception:
+        return False
 
 
 class ArgumentHelpFormatter(argparse.HelpFormatter):
@@ -367,6 +390,15 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     if categories_mode and not has_cities:
         arg_parser.error("--categories-mode требует указания --cities")
 
+    # Валидация URL если они указаны
+    if args.url:
+        invalid_urls = [url for url in args.url if not _validate_url(url)]
+        if invalid_urls:
+            arg_parser.error(
+                f"Некорректный формат URL: {', '.join(invalid_urls)}. "
+                "URL должен начинаться с http:// или https:// и содержать домен."
+            )
+
     try:
         # Инициализируем конфигурацию аргументами командной строки
         config = Configuration(**config_args)
@@ -410,7 +442,6 @@ def main() -> None:
 
     if getattr(args, "tui", False):
         # Запуск старого TUI (rich)
-        from .tui import TUIApp as OldTUIApp
         # Запустить старый TUI с парсингом
         # Для этого нужно передать параметры
         pass
@@ -547,15 +578,28 @@ def main() -> None:
             cli_app(urls, output_path, output_format, command_line_config)
         except KeyboardInterrupt:
             logger.info("Работа приложения прервана пользователем.")
+            sys.exit(0)
         except FileNotFoundError as e:
             logger.error("Файл не найден: %s", e)
             sys.exit(1)
         except PermissionError as e:
             logger.error("Ошибка доступа к файлу: %s", e)
             sys.exit(1)
+        except ValueError as e:
+            logger.error("Ошибка валидации данных: %s", e)
+            sys.exit(1)
+        except TimeoutError as e:
+            logger.error("Превышено время ожидания операции: %s", e)
+            sys.exit(1)
+        except ConnectionError as e:
+            logger.error("Ошибка соединения: %s", e)
+            sys.exit(1)
+        except OSError as e:
+            logger.error("Ошибка операционной системы: %s", e)
+            sys.exit(1)
         except Exception as e:
             logger.error("Критическая ошибка приложения: %s", e, exc_info=True)
-            raise
+            sys.exit(1)
 
 
 def _get_output_dir(output_path: str | None) -> Path:

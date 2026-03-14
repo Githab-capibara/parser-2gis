@@ -24,7 +24,7 @@ from .patches import patch_all
 CHROME_STARTUP_DELAY = 1.5
 
 # Максимальная длина JavaScript кода для предотвращения DoS атак
-MAX_JS_CODE_LENGTH = 1_000_000  # 1MB лимит
+MAX_JS_CODE_LENGTH = 5_000_000  # 5MB лимит
 
 # Паттерн для обнаружения потенциально опасных конструкций в JS
 # new Function() и Function() как конструктор - опасны, но function() как выражение - безопасно
@@ -271,6 +271,17 @@ class ChromeRemote:
 
                 logger.debug("Запуск вкладки...")
                 self._chrome_tab.start()
+
+                # Проверка работоспособности соединения после подключения
+                if not self._verify_connection():
+                    logger.warning("Проверка соединения не пройдена, повторная попытка")
+                    self._cleanup_interface()
+                    if attempt < max_attempts - 1:
+                        time.sleep(attempt_delay)
+                        continue
+                    logger.error("Все попытки подключения исчерпаны (проверка соединения не пройдена)")
+                    return False
+
                 logger.info("Успешное подключение к Chrome DevTools Protocol")
                 return True
 
@@ -364,6 +375,41 @@ class ChromeRemote:
 
         except Exception as e:
             logger.warning("Непредвиденная ошибка при очистке ресурсов: %s", e)
+
+    def _verify_connection(self) -> bool:
+        """Проверяет работоспособность соединения с Chrome.
+
+        Returns:
+            True если соединение работоспособно, False иначе.
+
+        Примечание:
+            Метод выполняет простой JavaScript запрос для проверки
+            работоспособности соединения с вкладкой.
+        """
+        try:
+            # Проверяем, что вкладка существует
+            if self._chrome_tab is None:
+                logger.error("Chrome tab не инициализирован при проверке соединения")
+                return False
+
+            # Выполняем простой JavaScript запрос
+            result = self._chrome_tab.Runtime.evaluate(
+                expression="1+1",
+                returnByValue=True,
+                timeout=5000,  # 5 секунд таймаут
+            )
+
+            # Проверяем результат
+            if result and result.get("result", {}).get("value") == 2:
+                logger.debug("Проверка соединения пройдена")
+                return True
+            else:
+                logger.warning("Проверка соединения вернула неожиданный результат: %s", result)
+                return False
+
+        except Exception as e:
+            logger.warning("Ошибка при проверке соединения: %s", e)
+            return False
 
     def start(self) -> None:
         """Открывает браузер, создаёт новую вкладку, настраивает удалённый интерфейс.

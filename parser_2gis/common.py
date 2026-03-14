@@ -4,9 +4,12 @@ import functools
 import sys
 import time
 import urllib.parse
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union
 
 from pydantic import ValidationError
+
+if TYPE_CHECKING:
+    from .logger import Logger
 
 # Экспортируемые символы модуля
 __all__ = [
@@ -18,7 +21,8 @@ __all__ = [
     'generate_city_urls',
     'generate_category_url',
     'url_query_encode',
-    'sanitize_for_logging',
+    '_validate_city',
+    '_validate_category',
 ]
 
 # Кэшированный logger для избежания циклических зависимостей и накладных расходов
@@ -414,6 +418,68 @@ def floor_to_hundreds(arg: Union[int, float]) -> int:
     return int((arg // 100) * 100)
 
 
+def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
+    """Валидирует структуру города.
+
+    Args:
+        city: Словарь города для валидации.
+        field_name: Имя поля для сообщений об ошибках (по умолчанию "city").
+
+    Returns:
+        Валидированный словарь города.
+
+    Raises:
+        ValueError: Если город некорректен.
+
+    Примечание:
+        Проверяет:
+        - Тип данных (должен быть dict)
+        - Наличие обязательных полей (code, domain)
+        - Типы полей (должны быть str)
+    """
+    logger = _get_logger()
+
+    if not isinstance(city, dict):
+        logger.warning("%s не является словарём: %s", field_name, city)
+        raise ValueError(f"{field_name} должен быть словарём")
+
+    if not all(key in city for key in ("code", "domain")):
+        logger.warning("Город не содержит обязательные поля (code, domain): %s", city)
+        raise ValueError(f"{field_name} должен содержать поля code и domain")
+
+    if not isinstance(city["code"], str) or not isinstance(city["domain"], str):
+        logger.warning("Поля code и domain должны быть строками: %s", city)
+        raise ValueError("code и domain должны быть строками")
+
+    return city
+
+
+def _validate_category(category: Any) -> Dict[str, Any]:
+    """Валидирует структуру категории.
+
+    Args:
+        category: Словарь категории для валидации.
+
+    Returns:
+        Валидированный словарь категории.
+
+    Raises:
+        ValueError: Если категория некорректна.
+
+    Примечание:
+        Проверяет:
+        - Тип данных (должен быть dict)
+        - Наличие query или name
+    """
+    logger = _get_logger()
+
+    if not isinstance(category, dict):
+        logger.warning("category не является словарём: %s", category)
+        raise ValueError("category должен быть словарём")
+
+    return category
+
+
 def generate_category_url(
     city: Dict[str, Any],
     category: Dict[str, Any],
@@ -438,49 +504,32 @@ def generate_category_url(
     """
     logger = _get_logger()
 
-    try:
-        # Валидация города
-        if not isinstance(city, dict):
-            logger.warning("city не является словарём: %s", city)
-            raise ValueError("city должен быть словарём")
+    # Валидация города
+    city = _validate_city(city)
 
-        if not all(key in city for key in ("code", "domain")):
-            logger.warning("Город не содержит обязательные поля (code, domain): %s", city)
-            raise ValueError("city должен содержать поля code и domain")
+    # Валидация категории
+    category = _validate_category(category)
 
-        if not isinstance(city["code"], str) or not isinstance(city["domain"], str):
-            logger.warning("Поля code и domain должны быть строками: %s", city)
-            raise ValueError("code и domain должны быть строками")
+    # Формируем базовый URL
+    base_url = f'https://{city["domain"]}/{city["code"]}'
 
-        # Валидация категории
-        if not isinstance(category, dict):
-            logger.warning("category не является словарём: %s", category)
-            raise ValueError("category должен быть словарём")
+    # Получаем query категории с fallback на name
+    category_query = category.get("query", category.get("name", ""))
+    if not category_query:
+        logger.warning("Категория не содержит query или name: %s", category)
+        raise ValueError("category должен содержать query или name")
 
-        # Формируем базовый URL
-        base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
+    # Кодируем query для URL
+    rest_url = f'/search/{url_query_encode(category_query)}'
 
-        # Получаем query категории с fallback на name
-        category_query = category.get("query", category.get("name", ""))
-        if not category_query:
-            logger.warning("Категория не содержит query или name: %s", category)
-            raise ValueError("category должен содержать query или name")
+    # Добавляем rubric_code если есть
+    if category.get("rubric_code"):
+        rest_url += f'/rubricId/{category["rubric_code"]}'
 
-        # Кодируем query для URL
-        rest_url = f'/search/{url_query_encode(category_query)}'
+    # Добавляем сортировку
+    rest_url += "/filters/sort=name"
 
-        # Добавляем rubric_code если есть
-        if category.get("rubric_code"):
-            rest_url += f'/rubricId/{category["rubric_code"]}'
-
-        # Добавляем сортировку
-        rest_url += "/filters/sort=name"
-
-        return base_url + rest_url
-
-    except Exception as e:
-        logger.error("Ошибка при генерации URL для категории %s в городе %s: %s", category, city, e)
-        raise
+    return base_url + rest_url
 
 
 def generate_city_urls(
@@ -507,25 +556,11 @@ def generate_city_urls(
 
     for city in cities:
         try:
-            # Валидация типа данных города
-            if not isinstance(city, dict):
-                logger.warning("Элемент cities не является словарём: %s", city)
-                continue
-
-            # Проверка наличия обязательных полей
-            if not all(key in city for key in ("code", "domain")):
-                logger.warning(
-                    "Город не содержит обязательные поля (code, domain): %s", city
-                )
-                continue
-
-            # Проверка типов полей
-            if not isinstance(city["code"], str) or not isinstance(city["domain"], str):
-                logger.warning("Поля code и domain должны быть строками: %s", city)
-                continue
+            # Валидация города с использованием общей функции
+            city = _validate_city(city, field_name="Элемент cities")
 
             # Формирование URL
-            base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
+            base_url = f'https://{city["domain"]}/{city["code"]}'
             rest_url = f"/search/{url_query_encode(query)}"
 
             if rubric and "code" in rubric:
@@ -535,6 +570,9 @@ def generate_city_urls(
             url = base_url + rest_url
             urls.append(url)
 
+        except ValueError as e:
+            logger.warning("Пропуск города из-за ошибки валидации: %s", e)
+            continue
         except Exception as e:
             logger.error("Ошибка при генерации URL для города %s: %s", city, e)
             continue
