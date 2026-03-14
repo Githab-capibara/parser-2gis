@@ -37,6 +37,7 @@ class ParallelCityParser:
         output_dir: Папка для сохранения результатов.
         config: Конфигурация.
         max_workers: Максимальное количество одновременных браузеров.
+        timeout_per_url: Таймаут на один URL в секундах (по умолчанию 300).
     """
 
     def __init__(
@@ -46,6 +47,7 @@ class ParallelCityParser:
         output_dir: str,
         config: Configuration,
         max_workers: int = 3,
+        timeout_per_url: int = 300,
     ) -> None:
         # Валидация входных данных: проверка списка городов
         if not cities:
@@ -59,11 +61,16 @@ class ParallelCityParser:
         if not 1 <= max_workers <= 20:
             raise ValueError("max_workers должен быть от 1 до 20")
 
+        # Валидация timeout_per_url (60-3600 секунд)
+        if not 60 <= timeout_per_url <= 3600:
+            raise ValueError("timeout_per_url должен быть от 60 до 3600 секунд")
+
         self.cities = cities
         self.categories = categories
         self.output_dir = Path(output_dir)
         self.config = config
         self.max_workers = max_workers
+        self.timeout_per_url = timeout_per_url
 
         # Проверка существования output_dir и прав на запись
         if self.output_dir.exists():
@@ -339,10 +346,12 @@ class ParallelCityParser:
 
                     # Извлекаем название категории из имени файла
                     # Формат: Город_Категория.csv (город может содержать подчёркивания)
-                    # Поэтому берём всё после первого подчёркивания
-                    parts = csv_file.stem.split("_", 1)
+                    # Поэтому берём всё ПОСЛЕ последнего подчёркивания для категории
+                    # Пример: "Санкт-Петербург_Кафе.csv" -> город="Санкт-Петербург", категория="Кафе"
+                    # Пример: "Новый_Город_Рестораны.csv" -> город="Новый_Город", категория="Рестораны"
+                    parts = csv_file.stem.rsplit("_", 1)  # Используем rsplit для разделения справа
                     if len(parts) > 1:
-                        # Восстанавливаем категорию с возможными подчёркиваниями
+                        # Категория - это последняя часть после последнего подчёркивания
                         category_name = parts[1].replace("_", " ")
                     else:
                         # Файл без категории (некорректное имя)
@@ -466,10 +475,8 @@ class ParallelCityParser:
         failed_count = 0
         last_progress_time = time.time()
 
-        # Получаем таймаут из конфигурации (если есть) или используем значение по умолчанию
-        timeout_per_url = 300  # Значение по умолчанию: 5 минут на URL
-        # Примечание: ParserOptions не имеет атрибута timeout, используем фиксированное значение
-        self.log(f"⏱️ Таймаут на один URL: {timeout_per_url} секунд", "info")
+        # Используем таймаут из конфигурации объекта
+        self.log(f"⏱️ Таймаут на один URL: {self.timeout_per_url} секунд", "info")
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Создаём futures
@@ -490,7 +497,7 @@ class ParallelCityParser:
 
                 try:
                     # Получаем результат с таймаутом
-                    success, result = future.result(timeout=timeout_per_url)
+                    success, result = future.result(timeout=self.timeout_per_url)
                     if success:
                         success_count += 1
                     else:
@@ -514,7 +521,7 @@ class ParallelCityParser:
                 except FuturesTimeoutError:
                     failed_count += 1
                     self.log(
-                        f"❌ Таймаут при парсинге {city_name} - {category_name} ({timeout_per_url} сек)",
+                        f"❌ Таймаут при парсинге {city_name} - {category_name} ({self.timeout_per_url} сек)",
                         "error",
                     )
 
@@ -598,6 +605,7 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
         output_dir: str,
         config: Configuration,
         max_workers: int = 3,
+        timeout_per_url: int = 300,
         output_file: Optional[str] = None,
     ) -> None:
         ParallelCityParser.__init__(
@@ -607,6 +615,7 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
             output_dir,
             config,
             max_workers,
+            timeout_per_url,
         )
         threading.Thread.__init__(self)
 

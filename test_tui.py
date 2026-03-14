@@ -12,7 +12,7 @@ from pathlib import Path
 # Добавляем путь к модулю
 sys.path.insert(0, str(Path(__file__).parent))
 
-from parser_2gis.tui.app import TUIManager
+from parser_2gis.tui.app import TUIManager  # noqa: E402
 
 
 def test_tui_demo():
@@ -66,7 +66,7 @@ def test_tui_demo():
     else:
         tui.stop(success=True)
 
-    print(f"✅ Демонстрация завершена!")
+    print("✅ Демонстрация завершена!")
     print(f"📄 Лог файл: {tui.log_file}")
 
 

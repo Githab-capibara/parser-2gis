@@ -7,8 +7,6 @@
 - Полная цепочка парсинга
 """
 
-import csv
-import json
 import os
 import tempfile
 from pathlib import Path
@@ -16,11 +14,11 @@ from pathlib import Path
 import pytest
 
 from parser_2gis.config import Configuration
-from parser_2gis.parser import ParserOptions, get_parser
 from parser_2gis.writer import (CSVWriter, JSONWriter, XLSXWriter,
                                 WriterOptions, get_writer)
 from parser_2gis.chrome import ChromeOptions
 from parser_2gis.logger import LogOptions
+from parser_2gis.parser import ParserOptions
 
 
 class TestConfigWithParser:
@@ -45,7 +43,6 @@ class TestConfigWithParser:
         config = Configuration()
         # get_parser требует URL, chrome_options и parser_options
         # Для теста просто проверяем, что функция существует и принимает правильные аргументы
-        from parser_2gis.chrome import ChromeOptions
         parser_options = config.parser
         chrome_options = config.chrome
         # Не создаём реальный парсер, так как это требует запуска браузера
@@ -132,13 +129,13 @@ class TestFullIntegration:
     def test_config_all_components(self):
         """Проверка всех компонентов в конфигурации."""
         config = Configuration()
-        
+
         # Проверяем наличие всех компонентов
         assert config.parser is not None
         assert config.writer is not None
         assert config.chrome is not None
         assert config.log is not None
-        
+
         # Проверяем, что все компоненты имеют правильные типы
         assert isinstance(config.parser, ParserOptions)
         assert isinstance(config.writer, WriterOptions)
@@ -147,7 +144,7 @@ class TestFullIntegration:
         """Проверка слияния всех компонентов."""
         # Создаём config1 с настройками по умолчанию
         config1 = Configuration()
-        
+
         # Создаём config2 с явными настройками через конструктор
         # Это гарантирует, что поля будут в model_fields_set
         config2 = Configuration()
@@ -169,17 +166,17 @@ class TestFullIntegration:
         """Проверка сохранения и загрузки конфигурации."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = Path(tmpdir) / 'test.config'
-            
+
             # Создаём и настраиваем конфигурацию
             config1 = Configuration(path=config_path)
             config1.parser.max_records = 75
             config1.chrome.headless = True
             config1.writer.verbose = False
             config1.save_config()
-            
+
             # Загружаем конфигурацию
             config2 = Configuration.load_config(config_path)
-            
+
             # Проверяем, что значения сохранились
             assert config2.parser.max_records == 75
             assert config2.chrome.headless is True
@@ -240,10 +237,10 @@ class TestParserOptionsIntegration:
     def test_parser_options_validation(self):
         """Проверка валидации опций."""
         from pydantic import ValidationError
-        
+
         with pytest.raises(ValidationError):
             Configuration(parser={'max_records': 0})
-        
+
         with pytest.raises(ValidationError):
             Configuration(parser={'delay_between_clicks': -1})
 
@@ -261,10 +258,10 @@ class TestWriterOptionsIntegration:
     def test_writer_options_validation(self):
         """Проверка валидации опций."""
         from pydantic import ValidationError
-        
+
         with pytest.raises(ValidationError):
             Configuration(writer={'encoding': 'invalid-encoding'})
-        
+
         with pytest.raises(ValidationError):
             Configuration(writer={'csv': {'columns_per_entity': 0}})
 
@@ -283,6 +280,6 @@ class TestChromeOptionsIntegration:
     def test_chrome_options_validation(self):
         """Проверка валидации опций."""
         from pydantic import ValidationError
-        
+
         with pytest.raises(ValidationError):
             Configuration(chrome={'memory_limit': 0})

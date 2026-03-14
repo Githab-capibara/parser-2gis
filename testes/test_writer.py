@@ -10,11 +10,8 @@
 - FileWriter
 """
 
-import csv
-import json
 import os
 import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -56,7 +53,7 @@ class TestCSVOptions:
         """Проверка валидации columns_per_entity."""
         with pytest.raises(Exception):
             CSVOptions(columns_per_entity=0)
-        
+
         with pytest.raises(Exception):
             CSVOptions(columns_per_entity=6)
 
@@ -153,7 +150,7 @@ class TestFileWriter:
         """Проверка, что FileWriter - базовый класс."""
         from parser_2gis.writer.writers.file_writer import FileWriter
         from parser_2gis.writer.writers.csv_writer import CSVWriter
-        
+
         assert issubclass(CSVWriter, FileWriter)
         assert issubclass(JSONWriter, FileWriter)
         assert issubclass(XLSXWriter, FileWriter)

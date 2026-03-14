@@ -10,12 +10,9 @@
 
 import logging
 import queue
-from unittest.mock import patch
-
-import pytest
 
 from parser_2gis.logger import logger, setup_cli_logger, setup_gui_logger
-from parser_2gis.logger.logger import QueueHandler, setup_logger
+from parser_2gis.logger.logger import QueueHandler
 from parser_2gis.logger.options import LogOptions
 
 
@@ -36,13 +33,13 @@ class TestLoggerSetup:
         """Проверка создания обработчика."""
         test_logger = logging.getLogger('test-logger')
         original_handlers = test_logger.handlers.copy()
-        
+
         handler = logging.StreamHandler()
         formatter = logging.Formatter('%(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         test_logger.addHandler(handler)
         test_logger.setLevel(logging.INFO)
-        
+
         assert len(test_logger.handlers) == len(original_handlers) + 1
 
     def test_setup_cli_logger(self):
@@ -60,7 +57,7 @@ class TestLoggerSetup:
         handler.setFormatter(formatter)
         test_logger.addHandler(handler)
         test_logger.setLevel(logging.DEBUG)
-        
+
         assert len(test_logger.handlers) >= 1
 
 
@@ -100,18 +97,18 @@ class TestQueueHandler:
         """Проверка создания QueueHandler."""
         log_queue = queue.Queue()
         handler = QueueHandler(log_queue)
-        
+
         assert handler._log_queue == log_queue
         assert isinstance(handler, logging.Handler)
 
     def test_queue_handler_emit(self):
         """Проверка отправки сообщений в очередь."""
         log_queue = queue.Queue()
-        
+
         handler = QueueHandler(log_queue)
         formatter = logging.Formatter('%(levelname)s - %(message)s')
         handler.setFormatter(formatter)
-        
+
         record = logging.LogRecord(
             name='test',
             level=logging.INFO,
@@ -121,9 +118,9 @@ class TestQueueHandler:
             args=(),
             exc_info=None
         )
-        
+
         handler.emit(record)
-        
+
         assert not log_queue.empty()
         level, message = log_queue.get()
         assert level == 'INFO'
@@ -134,7 +131,7 @@ class TestQueueHandler:
         log_queue = queue.Queue()
         options = LogOptions()
         setup_gui_logger(log_queue, options)
-        
+
         # Должен быть добавлен обработчик
         assert len(logger.handlers) >= 1
 
@@ -183,13 +180,13 @@ class TestLoggerMessageFormatting:
         """Проверка форматирования с аргументами."""
         test_logger = logging.getLogger('test-format-args')
         test_logger.setLevel(logging.INFO)
-        
+
         if not test_logger.handlers:
             handler = logging.StreamHandler()
             formatter = logging.Formatter('%(message)s - %(args)s')
             handler.setFormatter(formatter)
             test_logger.addHandler(handler)
-        
+
         # Если нет ошибок, тест пройден
         test_logger.info('Test with args')
 
@@ -197,13 +194,13 @@ class TestLoggerMessageFormatting:
         """Проверка форматирования исключений."""
         test_logger = logging.getLogger('test-format-exception')
         test_logger.setLevel(logging.ERROR)
-        
+
         if not test_logger.handlers:
             handler = logging.StreamHandler()
             formatter = logging.Formatter('%(message)s\n%(exc_text)s')
             handler.setFormatter(formatter)
             test_logger.addHandler(handler)
-        
+
         try:
             raise ValueError('Test exception')
         except ValueError:

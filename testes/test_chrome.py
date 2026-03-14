@@ -51,7 +51,7 @@ class TestChromeOptions:
         """Проверка валидации memory_limit."""
         with pytest.raises(Exception):
             ChromeOptions(memory_limit=0)
-        
+
         with pytest.raises(Exception):
             ChromeOptions(memory_limit=-1)
 

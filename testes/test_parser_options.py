@@ -49,7 +49,7 @@ class TestParserOptions:
         """Проверка валидации max_records."""
         with pytest.raises(Exception):
             ParserOptions(max_records=0)
-        
+
         with pytest.raises(Exception):
             ParserOptions(max_records=-1)
 
