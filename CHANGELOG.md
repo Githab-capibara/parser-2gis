@@ -1,5 +1,22 @@
 # История изменений
 
+## [Готовится]
+
+### Исправлено
+- Обновлена документация README.md (актуализирована структура проекта, исправлено количество тестов 269→293)
+- Исправлены ссылки на отчеты о качестве кода (CODE_QUALITY_AUDIT_REPORT_2026_03_09.md → audit-report.md)
+- Убрано упоминание несуществующего GUI в пользу TUI
+- Обновлены требования к Python (3.8→3.10)
+- Исправлено название logger/file_logger.py на logger/file_handler.py
+- Убраны упоминания runner/gui.py (не существует)
+- Обновлены бейджи в README.md
+
+### Изменено
+- Унифицированы ссылки на репозиторий GitHub (Githab-capibara)
+- Улучшена структура документации
+
+---
+
 ## [Невошедшее]
 
 ### Исправлено
@@ -36,7 +53,7 @@
 ## [1.2.1] — 14-03-2024
 
 ### Добавлено
-- ✅ Поддержка парсинга остановок. Fix [issue](https://github.com/interlark/parser-2gis/issues/52)
+- ✅ Поддержка парсинга остановок. Fix [issue](https://github.com/Githab-capibara/parser-2gis/issues/52)
 - Генератор ссылок добавляет в URL сортировку по алфавиту для исключения повторений поисковой выдачи при навигации по страницам
 - Обновлён список рубрик
 
@@ -92,7 +109,7 @@
 
 ### Добавлено
 - Новые рубрики: *Клубы настольного тенниса*, *Атрибутика для болельщиков*, *Полицейские станции*
-- Поддержка парсинга ссылок "В здании". Fix [issue](https://github.com/interlark/parser-2gis/issues/13), см. [wiki](https://github.com/interlark/parser-2gis/wiki/URLs)
+- Поддержка парсинга ссылок "В здании". Fix [issue](https://github.com/Githab-capibara/parser-2gis/issues/13), см. [wiki](https://github.com/Githab-capibara/parser-2gis/wiki/URLs)
 
 ---
 
@@ -106,8 +123,8 @@
 ## [0.1.7] — 19-07-2022
 
 ### Исправлено
-- ⚠️ Возможная [ошибка](https://github.com/interlark/parser-2gis/issues/9) во время получения нового ключа авторизации
-- ⚠️ [Баг](https://github.com/interlark/parser-2gis/issues/7), связанный с остановкой парсера и непереходом к следующей ссылке при возникновении ошибки
+- ⚠️ Возможная [ошибка](https://github.com/Githab-capibara/parser-2gis/issues/9) во время получения нового ключа авторизации
+- ⚠️ [Баг](https://github.com/Githab-capibara/parser-2gis/issues/7), связанный с остановкой парсера и непереходом к следующей ссылке при возникновении ошибки
 
 ### Добавлено
 - Новые рубрики: *Прокат компьютеров / ноутбуков*, *Буккроссинг*, *Пляжные принадлежности*, *Администрация города/посёлка/села*
@@ -118,7 +135,7 @@
 
 ### Исправлено
 - ⚠️ Исправлен релиз под Linux
-- ⚠️ Пропуск [некорректных ответов](https://github.com/interlark/parser-2gis/issues/4#issuecomment-1172172691) сервера (JSON expected)
+- ⚠️ Пропуск [некорректных ответов](https://github.com/Githab-capibara/parser-2gis/issues/4#issuecomment-1172172691) сервера (JSON expected)
 
 ### Добавлено
 - Новая страна: **Кувейт**
@@ -174,7 +191,7 @@
 
 ## Ссылки
 
-[Невошедшее]: https://github.com/Githab-capibara/parser-2gis/compare/v1.2.2...HEAD
+[Готовится]: https://github.com/Githab-capibara/parser-2gis/compare/v1.2.2...HEAD
 [1.2.2]: https://github.com/Githab-capibara/parser-2gis/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/Githab-capibara/parser-2gis/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Githab-capibara/parser-2gis/compare/v1.1.2...v1.2.0
