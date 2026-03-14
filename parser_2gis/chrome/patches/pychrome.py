@@ -27,7 +27,7 @@ def patch_pychrome():
                 return
 
             if self.debug:  # pragma: no cover
-                print("< RECV %s" % message_json)
+                pychrome_logger.debug("< RECV %s", message_json)
 
             if "method" in message:
                 self.event_queue.put(message)
