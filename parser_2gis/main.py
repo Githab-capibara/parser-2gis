@@ -415,8 +415,30 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     return args, config
 
 
-def main() -> None:
-    """Точка входа."""
+
+def _get_output_dir(output_path: str | None) -> Path:
+    """Определяет директорию для результатов на основе output_path.
+
+    Args:
+        output_path: Путь к файлу или директории (может быть None).
+
+    Returns:
+        Path объект директории.
+    """
+    if output_path is None:
+        return Path("output")
+
+    output_path_obj = Path(output_path)
+    # Если указан путь с расширением файла, используем его директорию
+    # Если путь не существует или не имеет расширения, используем как директорию
+    if output_path_obj.suffix and output_path_obj.parent.exists():
+        return output_path_obj.parent
+    # Если путь не существует, возвращаем родителя или сам путь если нет родителя
+    return output_path_obj.parent if output_path_obj.parent != Path(".") else output_path_obj
+
+
+    def main() -> None:
+        """Точка входа."""
     # Запоминаем время старта
     start_time = time.time()
     start_datetime = datetime.now()
@@ -600,27 +622,6 @@ def main() -> None:
         except Exception as e:
             logger.error("Критическая ошибка приложения: %s", e, exc_info=True)
             sys.exit(1)
-
-
-def _get_output_dir(output_path: str | None) -> Path:
-    """Определяет директорию для результатов на основе output_path.
-
-    Args:
-        output_path: Путь к файлу или директории (может быть None).
-
-    Returns:
-        Path объект директории.
-    """
-    if output_path is None:
-        return Path("output")
-
-    output_path_obj = Path(output_path)
-    # Если указан путь с расширением файла, используем его директорию
-    # Если путь не существует или не имеет расширения, используем как директорию
-    if output_path_obj.suffix and output_path_obj.parent.exists():
-        return output_path_obj.parent
-    # Если путь не существует, возвращаем родителя или сам путь если нет родителя
-    return output_path_obj.parent if output_path_obj.parent != Path(".") else output_path_obj
 
 
 def _log_startup_info(args: argparse.Namespace, config: Configuration, start_time: datetime) -> None:

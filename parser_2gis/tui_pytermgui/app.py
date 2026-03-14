@@ -18,7 +18,6 @@ import pytermgui as ptg
 from ..config import Configuration
 from ..data.categories_93 import CATEGORIES_93
 from ..parallel_parser import ParallelCityParser
-from ..paths import user_path
 from .screens import (
     AboutScreen,
     BrowserSettingsScreen,

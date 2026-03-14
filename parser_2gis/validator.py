@@ -106,7 +106,9 @@ class DataValidator:
         if cleaned.startswith("+"):
             international_digits = cleaned[1:]
 
-            if not (self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(international_digits) <= self.INTERNATIONAL_PHONE_MAX_LENGTH):
+            min_len = self.INTERNATIONAL_PHONE_MIN_LENGTH
+            max_len = self.INTERNATIONAL_PHONE_MAX_LENGTH
+            if not (min_len <= len(international_digits) <= max_len):
                 return ValidationResult(
                     False, None, [
                         f"Некорректная длина международного номера: {len(international_digits)} "
@@ -205,7 +207,9 @@ class DataValidator:
 
             # Проверяем что схема именно http или https
             if parsed.scheme not in ('http', 'https'):
-                return ValidationResult(False, None, [f"Неподдерживаемая схема URL: {parsed.scheme} (требуется http или https)"])
+                error_msg = (f"Неподдерживаемая схема URL: {parsed.scheme} "
+                            "(требуется http или https)")
+                return ValidationResult(False, None, [error_msg])
 
             return ValidationResult(True, url, [])
         except Exception as e:
