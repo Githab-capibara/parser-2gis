@@ -1472,6 +1472,40 @@ pip install -e .[dev]
 pre-commit install
 ```
 
+### Настройка переменной окружения GITHUB_TOKEN
+
+Для работы с GitHub API (например, для автоматической синхронизации изменений) необходимо настроить переменную окружения:
+
+1. **Получите токен GitHub:**
+   - Перейдите в Settings → Developer settings → Personal access tokens → Fine-grained tokens
+   - Создайте новый токен с разрешениями: `contents` (read/write), `repository` (полный доступ)
+
+2. **Установите переменную окружения:**
+
+   **Linux/macOS:**
+   ```bash
+   export GITHUB_TOKEN="ghp_..."
+   ```
+
+   **Windows (cmd):**
+   ```cmd
+   set GITHUB_TOKEN=ghp_...
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
+   $env:GITHUB_TOKEN="ghp_..."
+   ```
+
+3. **Проверка установки:**
+   ```bash
+   echo $GITHUB_TOKEN  # Linux/macOS
+   echo %GITHUB_TOKEN%  # Windows cmd
+   echo $env:GITHUB_TOKEN  # Windows PowerShell
+   ```
+
+> ⚠️ **Важно:** Никогда не коммитьте токен в репозиторий! Используйте файл `.env` (добавлен в `.gitignore`) или копируйте команду `export` в `.bashrc`/`.zshrc`.
+
 ### Утилиты
 
 #### Обновление списка городов
