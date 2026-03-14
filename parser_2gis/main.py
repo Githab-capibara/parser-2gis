@@ -247,11 +247,13 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     )
     p_parser.add_argument(
         "--parser.gc-pages-interval",
+        type=int,
         metavar="{5,10,...}",
         help="Запуск сборщика мусора каждую N-ую страницу результатов (если сборщик включен)",
     )
     p_parser.add_argument(
         "--parser.max-records",
+        type=int,
         metavar="{1000,2000,...}",
         help="Максимальное количество спарсенных записей с одного URL",
     )
@@ -267,16 +269,19 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     )
     p_parser.add_argument(
         "--parser.max-consecutive-empty-pages",
+        type=int,
         metavar="{2,3,5,...}",
         help="Максимальное количество подряд пустых страниц перед остановкой (по умолчанию: 3)",
     )
     p_parser.add_argument(
         "--parser.delay-between-clicks",
+        type=int,
         metavar="{0,100,...}",
         help="Задержка между кликами по записям (миллисекунд)",
     )
     p_parser.add_argument(
         "--parser.max-retries",
+        type=int,
         metavar="{1,2,3,...}",
         help="Максимальное количество повторных попыток при ошибках сети (по умолчанию: 3)",
     )
@@ -287,11 +292,13 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     )
     p_parser.add_argument(
         "--parser.retry-delay-base",
+        type=int,
         metavar="{1,2,3,...}",
         help="Базовая задержка между повторными попытками в секундах (по умолчанию: 1)",
     )
     p_parser.add_argument(
         "--parser.memory-threshold",
+        type=int,
         metavar="{512,1024,2048,...}",
         help="Порог использования памяти в МБ для автоматической очистки (по умолчанию: 2048)",
     )
