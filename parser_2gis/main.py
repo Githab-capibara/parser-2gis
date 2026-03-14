@@ -32,7 +32,7 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._default_config = Configuration().model_dump()
+        self._default_config = Configuration().model_dump()  # type: ignore[attr-defined]
 
     def _get_default_value(self, dest: str) -> Any:
         if dest == "version":

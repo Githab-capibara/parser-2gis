@@ -128,7 +128,9 @@ class FileLogger:
         session_logger.info("=" * 80)
         session_logger.info("НАЧАЛО НОВОЙ СЕССИИ")
         session_logger.info(f"Время запуска: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        session_logger.info(f"Файл лога: {self._log_file.absolute()}")
+        # Проверяем, что файл лога существует перед вызовом absolute()
+        if self._log_file:
+            session_logger.info(f"Файл лога: {self._log_file.absolute()}")
         session_logger.info("=" * 80)
 
     def setup_logger(self, logger: logging.Logger) -> None:

@@ -102,6 +102,11 @@ class TUIParallelParserWrapper:
         Returns:
             True если успешно
         """
+        # Проверяем, что output_file указан
+        if output_file is None:
+            self._tui.log("output_file не указан", "ERROR")
+            return False
+
         # Инициализируем TUI
         self._tui.update(
             total_urls=self._total_urls,
