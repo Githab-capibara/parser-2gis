@@ -108,8 +108,9 @@ class MainParser:
                         # Декодируем base64 данные для проверки корректности
                         urllib.parse.unquote(link_match.group("data"))
                         return True
-                    except Exception:
+                    except Exception as e:
                         # Ошибка декодирования - ссылка невалидна
+                        logger.debug("Ошибка декодирования ссылки: %s", e)
                         pass
 
             return False
@@ -680,8 +681,8 @@ class MainParser:
             # Гарантируем очистку ресурсов
             try:
                 self._chrome_remote.clear_requests()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Ошибка при очистке запросов: %s", e)
 
     def close(self) -> None:
         self._chrome_remote.stop()
