@@ -127,9 +127,12 @@ class TestAllParserOptionsArguments:
             model_fields = getattr(ParserOptions, 'model_fields', None) or getattr(ParserOptions, '__fields__', {})
             field_info = model_fields[field]
             field_type = field_info.annotation if hasattr(field_info, 'annotation') else field_info.type_
+            
+            # Проверяем тип поля с учётом специальных типов Pydantic
             if field_type == bool:
                 test_args.append("yes")
-            elif field_type in (int,):
+            elif field_type == int or (isinstance(field_type, type) and issubclass(field_type, int)):
+                # Для числовых типов (int, NonNegativeInt, PositiveInt)
                 test_args.append("1" if field != "max_records" else "1000")
             
             with patch.object(sys, "argv", test_args):
