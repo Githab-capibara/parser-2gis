@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
@@ -16,6 +17,7 @@ import pytermgui as ptg
 
 from ..config import Configuration
 from ..data.categories_93 import CATEGORIES_93
+from ..parallel_parser import ParallelCityParser
 from ..paths import user_path
 from .screens import (
     AboutScreen,
@@ -261,8 +263,134 @@ class TUIApp:
         self._running = True
         self._started_at = datetime.now()
 
-        # TODO: Интеграция с парсером
-        # Здесь будет запуск параллельного парсера
+        # Получить конфигурацию
+        config = self._config
+
+        # Настроить параметры для парсинга
+        config.chrome.headless = True
+        config.chrome.disable_images = True
+        config.chrome.silent_browser = True
+
+        config.parser.stop_on_first_404 = True
+        config.parser.max_consecutive_empty_pages = 5
+        config.parser.max_retries = 3
+        config.parser.retry_on_network_errors = True
+
+        # Загрузить города
+        cities_data = self.get_cities()
+        selected_cities_data = [
+            city for city in cities_data
+            if city.get("name") in self.selected_cities
+        ]
+
+        if not selected_cities_data:
+            self._add_log_to_parsing_screen("Ошибка: не выбраны города", "ERROR")
+            return
+
+        # Загрузить категории
+        all_categories = self.get_categories()
+        selected_categories_data = [
+            cat for cat in all_categories
+            if cat.get("name") in self.selected_categories
+        ]
+
+        if not selected_categories_data:
+            self._add_log_to_parsing_screen("Ошибка: не выбраны категории", "ERROR")
+            return
+
+        # Добавить лог
+        self._add_log_to_parsing_screen(
+            f"Запуск парсинга: {len(selected_cities_data)} городов × {len(selected_categories_data)} категорий",
+            "INFO",
+        )
+        self._add_log_to_parsing_screen(f"Потоков: {self._config.parser.max_retries}", "DEBUG")
+
+        # Запустить парсер в отдельном потоке
+        thread = threading.Thread(
+            target=self._run_parallel_parser,
+            args=(selected_cities_data, selected_categories_data, config),
+            daemon=True,
+        )
+        thread.start()
+
+    def _run_parallel_parser(
+        self,
+        cities: list[dict],
+        categories: list[dict],
+        config: Configuration,
+    ) -> None:
+        """
+        Запустить параллельный парсер.
+
+        Args:
+            cities: Список городов
+            categories: Список категорий
+            config: Конфигурация
+        """
+        try:
+            # Создать парсер
+            parser = ParallelCityParser(
+                cities=cities,
+                categories=categories,
+                output_dir="output",
+                config=config,
+                max_workers=10,  # 10 параллельных браузеров
+                timeout_per_url=300,
+            )
+
+            # Обновить состояние
+            total_urls = len(cities) * len(categories)
+            self.update_state(total_urls=total_urls)
+
+            # Создать callback для обновления прогресса
+            def progress_callback(success: int, failed: int, filename: str) -> None:
+                # Извлечь категорию из имени файла
+                category = filename.replace(".csv", "").split("_")[-1] if "_" in filename else ""
+
+                # Обновить состояние
+                self.update_state(
+                    success_count=success,
+                    error_count=failed,
+                    current_category=category,
+                    current_record=success + failed,
+                )
+
+                # Добавить лог
+                if success % 5 == 0 or failed > 0:
+                    self._add_log_to_parsing_screen(
+                        f"Обработано: {success} успешно, {failed} ошибок",
+                        "INFO",
+                    )
+
+            # Запустить парсинг
+            output_file = f"Омск_парсинг_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            result = parser.run(
+                output_file=output_file,
+                progress_callback=progress_callback,
+            )
+
+            # Завершить
+            self._stop_parsing(success=result)
+
+        except KeyboardInterrupt:
+            self._add_log_to_parsing_screen("Парсинг прерван пользователем", "WARNING")
+            self._stop_parsing(success=False)
+        except Exception as e:
+            self._add_log_to_parsing_screen(f"Критическая ошибка: {e}", "ERROR")
+            self._stop_parsing(success=False)
+
+    def _add_log_to_parsing_screen(self, message: str, level: str = "INFO") -> None:
+        """
+        Добавить лог на экран парсинга.
+
+        Args:
+            message: Сообщение лога
+            level: Уровень лога
+        """
+        if self._screen_manager:
+            screen = self._screen_manager.current_instance
+            if screen and hasattr(screen, "add_log"):
+                screen.add_log(message, level)
 
     def _stop_parsing(self, success: bool = True) -> None:
         """

@@ -40,6 +40,13 @@ except ImportError as e:
     logger.error("Убедитесь, что все зависимости установлены: pip install -e .")
     raise
 
+try:
+    from .tui_pytermgui import run_omsk_parallel as run_new_tui_omsk
+except ImportError as e:
+    logger.warning("Не удалось импортировать новый TUI модуль (pytermgui): %s", e)
+    logger.warning("Функция --tui-new-omsk будет недоступна")
+    run_new_tui_omsk = None
+
 
 class ArgumentHelpFormatter(argparse.HelpFormatter):
     """Форматировщик справки, добавляющий значения по умолчанию к описанию аргументов."""
@@ -306,6 +313,24 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         metavar="{utf8,1251,...}",
         help="Кодировка результирующего файла",
     )
+    other_parser.add_argument(
+        "--tui",
+        action="store_true",
+        default=False,
+        help="Запустить TUI интерфейс (старый, на rich)",
+    )
+    other_parser.add_argument(
+        "--tui-new",
+        action="store_true",
+        default=False,
+        help="Запустить новый TUI интерфейс на pytermgui",
+    )
+    other_parser.add_argument(
+        "--tui-new-omsk",
+        action="store_true",
+        default=False,
+        help="Запустить новый TUI интерфейс с автоматическим парсингом Омска (10 потоков, 93 категории)",
+    )
 
     rest_parser = arg_parser.add_argument_group("Служебные аргументы")
     rest_parser.add_argument(
@@ -359,6 +384,29 @@ def main() -> None:
 
     # Парсим аргументы командной строки
     args, command_line_config = parse_arguments()
+
+    # Обработка нового TUI интерфейса
+    if getattr(args, "tui_new_omsk", False):
+        # Запуск нового TUI с автоматическим парсингом Омска
+        if run_new_tui_omsk is None:
+            logger.error("Новый TUI модуль (pytermgui) недоступен")
+            sys.exit(1)
+        run_new_tui_omsk()
+        return
+
+    if getattr(args, "tui_new", False):
+        # Запуск нового TUI без автоматического парсинга
+        from .tui_pytermgui import Parser2GISTUI
+        app = Parser2GISTUI()
+        app.run()
+        return
+
+    if getattr(args, "tui", False):
+        # Запуск старого TUI (rich)
+        from .tui import TUIApp as OldTUIApp
+        # Запустить старый TUI с парсингом
+        # Для этого нужно передать параметры
+        pass
 
     # Настраиваем логгер
     setup_cli_logger(command_line_config.log)
