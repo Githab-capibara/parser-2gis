@@ -145,9 +145,24 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     Raises:
         SystemExit: При отсутствии обязательных аргументов.
     """
-    # Преобразуем аргументы в нижний регистр для поддержки верхнего регистра
+    # Преобразуем флаги в нижний регистр для поддержки верхнего регистра
     # Создаём копию sys.argv вместо модификации оригинального списка
-    argv_copy = [arg.lower() if arg.startswith("-") else arg for arg in sys.argv]
+    # Приводим к нижнему регистру только флаги (начинающиеся с -), не значения
+    argv_copy = []
+    for i, arg in enumerate(sys.argv):
+        if arg.startswith("-"):
+            # Это флаг - приводим к нижнему регистру
+            argv_copy.append(arg.lower())
+        elif i > 0 and sys.argv[i-1].startswith("-"):
+            # Это значение флага - приводим к нижнему регистру только если это похоже на yes/no
+            # Не трогаем URL, пути и другие значения
+            if arg.lower() in ("yes", "no", "true", "false"):
+                argv_copy.append(arg.lower())
+            else:
+                argv_copy.append(arg)
+        else:
+            # Это позиционный аргумент или значение - не трогаем
+            argv_copy.append(arg)
 
     patch_argparse_translations()  # Патчим переводы
     arg_parser = argparse.ArgumentParser(
@@ -467,12 +482,6 @@ def main() -> None:
         app = Parser2GISTUI()
         app.run()
         return
-
-    if getattr(args, "tui", False):
-        # Запуск старого TUI (rich)
-        # Запустить старый TUI с парсингом
-        # Для этого нужно передать параметры
-        pass
 
     # Настраиваем логгер
     setup_cli_logger(command_line_config.log)
