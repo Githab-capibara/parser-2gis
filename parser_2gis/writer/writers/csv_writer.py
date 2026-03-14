@@ -242,10 +242,11 @@ class CSVWriter(FileWriter):
 
         try:
             # Чтение исходного файла и запись нового без дубликатов
+            # Используем кодировку из конфигурации для консистентности
             with self._open_file(
                 self._file_path, "r", encoding="utf-8-sig"
             ) as f_csv, self._open_file(
-                tmp_csv_name, "w", encoding="utf-8", newline=""
+                tmp_csv_name, "w", encoding=self._options.encoding, newline=""
             ) as f_tmp_csv:
 
                 for line_num, line in enumerate(f_csv, 1):
