@@ -15,11 +15,11 @@ PYDANTIC_V2 = pydantic.VERSION.startswith("2.")
 def get_model_dump(model: pydantic.BaseModel, **kwargs) -> dict:
     """
     Сериализует модель Pydantic в словарь.
-    
+
     Args:
         model: Модель Pydantic.
         **kwargs: Дополнительные аргументы для model_dump (Pydantic v2).
-    
+
     Returns:
         Словарь с данными модели.
     """
@@ -34,10 +34,10 @@ def get_model_dump(model: pydantic.BaseModel, **kwargs) -> dict:
 def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
     """
     Получает набор установленных полей модели.
-    
+
     Args:
         model: Модель Pydantic.
-    
+
     Returns:
         Набор имён установленных полей.
     """

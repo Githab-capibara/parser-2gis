@@ -275,7 +275,8 @@ class ParserSettingsScreen:
         self._fields["use_gc"].value = default_options.use_gc  # type: ignore
         self._fields["gc_pages_interval"].value = str(default_options.gc_pages_interval)  # type: ignore
         self._fields["stop_on_first_404"].value = default_options.stop_on_first_404  # type: ignore
-        self._fields["max_consecutive_empty_pages"].value = str(default_options.max_consecutive_empty_pages)  # type: ignore
+        max_empty_pages = default_options.max_consecutive_empty_pages
+        self._fields["max_consecutive_empty_pages"].value = str(max_empty_pages)  # type: ignore
         self._fields["max_retries"].value = str(default_options.max_retries)  # type: ignore
         self._fields["retry_on_network_errors"].value = default_options.retry_on_network_errors  # type: ignore
         self._fields["retry_delay_base"].value = str(default_options.retry_delay_base)  # type: ignore

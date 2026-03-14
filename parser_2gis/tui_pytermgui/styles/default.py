@@ -2,8 +2,6 @@
 Стили по умолчанию для TUI Parser2GIS.
 """
 
-import pytermgui as ptg
-
 
 def get_default_styles() -> str:
     """

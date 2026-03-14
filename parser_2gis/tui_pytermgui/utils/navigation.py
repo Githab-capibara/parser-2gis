@@ -2,10 +2,7 @@
 Менеджер навигации между экранами.
 """
 
-from typing import TYPE_CHECKING, Any, Dict, Optional
-
-if TYPE_CHECKING:
-    import pytermgui as ptg
+from typing import TYPE_CHECKING, Any, Optional
 
 
 class ScreenManager:

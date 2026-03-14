@@ -4,7 +4,7 @@ import json
 import pathlib
 import shutil
 from copy import deepcopy
-from typing import Any, Dict, Optional, Set, cast
+from typing import Any, Dict, Optional, Set
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
