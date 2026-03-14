@@ -187,7 +187,8 @@ def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> 
             # Небольшая задержка между проверками
             if attempt < retries - 1:
                 time.sleep(0.1)
-        except Exception:
+        except Exception as e:
+            logger.debug("Ошибка при проверке порта %d: %s", port, e)
             return False
         finally:
             sock.close()
