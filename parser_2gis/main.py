@@ -22,6 +22,7 @@ from .config import Configuration
 from .data.categories_93 import CATEGORIES_93
 from .logger import logger, log_parser_start, log_parser_finish, setup_cli_logger
 from .paths import data_path
+from .pydantic_compat import get_model_dump
 from .version import version
 
 # Импорты с обработкой отсутствия зависимостей
@@ -45,7 +46,7 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._default_config = Configuration().model_dump()  # type: ignore[attr-defined]
+        self._default_config = get_model_dump(Configuration())
 
     def _get_default_value(self, dest: str) -> Any:
         if dest == "version":
