@@ -13,6 +13,9 @@ from typing import Optional, Dict, Any
 
 from .logger import logger
 
+# Экспортируемые символы модуля
+__all__ = ['CacheManager']
+
 
 class CacheManager:
     """Менеджер кэша результатов парсинга.

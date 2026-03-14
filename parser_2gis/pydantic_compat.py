@@ -52,10 +52,10 @@ def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
 def model_validate_json(json_str: str) -> type[pydantic.BaseModel]:
     """
     Создаёт модель из JSON строки.
-    
+
     Args:
         json_str: JSON строка.
-    
+
     Returns:
         Модель Pydantic.
     """
@@ -65,3 +65,22 @@ def model_validate_json(json_str: str) -> type[pydantic.BaseModel]:
     else:
         # Pydantic v1 использует parse_raw
         return pydantic.BaseModel.parse_raw(json_str)
+
+
+def model_validate_json_class(cls: type[pydantic.BaseModel], json_str: str) -> pydantic.BaseModel:
+    """
+    Создаёт модель из JSON строки для указанного класса.
+
+    Args:
+        cls: Класс модели Pydantic.
+        json_str: JSON строка.
+
+    Returns:
+        Экземпляр модели Pydantic.
+    """
+    if PYDANTIC_V2:
+        # Pydantic v2 использует model_validate_json
+        return cls.model_validate_json(json_str)  # type: ignore[attr-defined]
+    else:
+        # Pydantic v1 использует parse_raw
+        return cls.parse_raw(json_str)
