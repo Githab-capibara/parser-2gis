@@ -26,8 +26,9 @@ class TestFileLoggerInitialization:
     
     def test_file_logger_without_file(self):
         """Проверка создания FileLogger без файла логов."""
-        file_logger = FileLogger(log_file=None)
-        
+        # Отключаем автоматическую сессию, чтобы log_file остался None
+        file_logger = FileLogger(log_file=None, auto_session=False)
+
         assert file_logger is not None
         assert file_logger.log_file is None
         assert not file_logger.is_enabled
@@ -260,9 +261,9 @@ class TestFileLoggerProperties:
         finally:
             if log_file.exists():
                 log_file.unlink()
-        
-        # Выключено
-        file_logger = FileLogger(log_file=None)
+
+        # Выключено (отключаем автоматическую сессию)
+        file_logger = FileLogger(log_file=None, auto_session=False)
         assert file_logger.is_enabled is False
 
 
