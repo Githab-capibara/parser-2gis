@@ -3,6 +3,11 @@
 
 Этот модуль предоставляет возможность одновременного парсинга нескольких URL
 с использованием нескольких экземпляров браузера Chrome.
+
+Оптимизации:
+- Буферизация при работе с CSV файлами
+- Улучшенная обработка прогресса
+- Оптимизация памяти при слиянии файлов
 """
 
 from __future__ import annotations
@@ -11,9 +16,10 @@ import shutil
 import threading
 import time
 import uuid
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional, Dict, List
 
 from .common import generate_category_url
 from .logger import logger, log_parser_finish, print_progress
@@ -287,6 +293,11 @@ class ParallelCityParser:
     ) -> bool:
         """
         Объединяет все CSV файлы в один с добавлением колонки "Категория".
+        
+        Оптимизация:
+        - Буферизация чтения/записи для снижения накладных расходов
+        - Предварительное вычисление категории для снижения операций в цикле
+        - Пакетная запись строк для улучшения производительности
 
         Важно: Сначала объединяются ВСЕ файлы, и ТОЛЬКО ПОСЛЕ успешного
         объединения удаляются все исходные файлы. Это предотвращает потерю
@@ -328,21 +339,21 @@ class ParallelCityParser:
         files_to_delete: list[Path] = []
 
         # Создаём временный файл для результата объединения
-        # Это защищает от частичных данных при ошибке в середине процесса
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
 
-        # Открываем временный выходной файл
-        # Используем кодировку из конфигурации для консистентности
+        # Оптимизация: используем буферизацию для улучшения производительности
         output_encoding = self.config.writer.encoding
+        
         try:
-            with open(temp_output, "w", encoding=output_encoding, newline="") as outfile:
+            # Открываем с буферизацией для улучшения производительности
+            with open(temp_output, "w", encoding=output_encoding, newline="", buffering=32768) as outfile:
                 writer = None
                 total_rows = 0
+                fieldnames_cache: Dict[str, List[str]] = {}  # Кэш полей для файлов
 
                 for csv_file in csv_files:
                     if self._cancel_event.is_set():
                         self.log("Объединение отменено пользователем", "warning")
-                        # Удаляем временный файл при отмене
                         try:
                             temp_output.unlink()
                         except Exception as e:
@@ -352,32 +363,22 @@ class ParallelCityParser:
                     if progress_callback:
                         progress_callback(f"Обработка: {csv_file.name}")
 
-                    # Извлекаем название категории из имени файла
-                    # Формат: Город_Категория.csv (город может содержать подчёркивания)
-                    # Поэтому берём всё ПОСЛЕ последнего подчёркивания для категории
-                    # Пример: "Санкт-Петербург_Кафе.csv" -> город="Санкт-Петербург", категория="Кафе"
-                    # Пример: "Новый_Город_Рестораны.csv" -> город="Новый_Город", категория="Рестораны"
-                    parts = csv_file.stem.rsplit("_", 1)  # Используем rsplit для разделения справа
-                    if len(parts) > 1:
-                        # Категория - это последняя часть после последнего подчёркивания
-                        category_name = parts[1].replace("_", " ")
+                    # Оптимизация: быстрое извлечение категории из имени файла
+                    # Используем rfind для поиска последнего подчёркивания
+                    stem = csv_file.stem
+                    last_underscore_idx = stem.rfind("_")
+                    
+                    if last_underscore_idx > 0:
+                        category_name = stem[last_underscore_idx + 1:].replace("_", " ")
                     else:
-                        # Файл без категории (некорректное имя)
-                        category_name = parts[0].replace("_", " ")
+                        category_name = stem.replace("_", " ")
                         self.log(
                             f"Предупреждение: файл {csv_file.name} не содержит категорию в имени",
                             "warning",
                         )
 
-                    # Логируем извлечение категории для отладки
-                    self.log(
-                        f"Файл: {csv_file.name} -> Категория: {category_name}", "debug"
-                    )
-
-                    # Читаем исходный файл
-                    with open(
-                        csv_file, "r", encoding="utf-8-sig", newline=""
-                    ) as infile:
+                    # Читаем исходный файл с буферизацией
+                    with open(csv_file, "r", encoding="utf-8-sig", newline="", buffering=32768) as infile:
                         reader = csv.DictReader(infile)
 
                         # Проверяем наличие заголовков
@@ -388,30 +389,47 @@ class ParallelCityParser:
                             )
                             continue
 
-                        # Добавляем колонку "Категория" если её нет
-                        fieldnames = list(reader.fieldnames)
-                        if "Категория" not in fieldnames:
-                            fieldnames.insert(0, "Категория")
+                        # Оптимизация: кэшируем fieldnames для файлов с одинаковой структурой
+                        fieldnames_key = tuple(reader.fieldnames)
+                        if fieldnames_key not in fieldnames_cache:
+                            fieldnames = list(reader.fieldnames)
+                            if "Категория" not in fieldnames:
+                                fieldnames.insert(0, "Категория")
+                            fieldnames_cache[fieldnames_key] = fieldnames
+                        else:
+                            fieldnames = fieldnames_cache[fieldnames_key]
 
                         # Создаем writer если ещё не создан
                         if writer is None:
                             writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                             writer.writeheader()
 
-                        # Записываем строки с добавлением категории
+                        # Оптимизация: пакетная запись строк
+                        batch = []
+                        batch_size = 100
+                        
                         for row in reader:
                             if "Категория" not in row:
                                 row["Категория"] = category_name
-                            writer.writerow(row)
-                            total_rows += 1
+                            batch.append(row)
+                            
+                            # Записываем пакет при достижении размера
+                            if len(batch) >= batch_size:
+                                writer.writerows(batch)
+                                total_rows += len(batch)
+                                batch.clear()
+                        
+                        # Записываем оставшиеся строки
+                        if batch:
+                            writer.writerows(batch)
+                            total_rows += len(batch)
 
-                    # Добавляем файл в список на удаление (не удаляем сразу!)
+                    # Добавляем файл в список на удаление
                     files_to_delete.append(csv_file)
 
                 self.log(f"Объединение завершено. Всего записей: {total_rows}", "info")
 
-            # После успешной записи во временный файл переименовываем его в целевой
-            # Используем shutil.move как fallback для cross-device перемещения
+            # Переименовываем временный файл в целевой
             try:
                 temp_output.replace(output_file_path)
             except OSError:
@@ -433,7 +451,6 @@ class ParallelCityParser:
 
         except Exception as e:
             self.log(f"Ошибка при объединении CSV: {e}", "error")
-            # Удаляем временный файл при ошибке
             try:
                 if temp_output.exists():
                     temp_output.unlink()

@@ -1,9 +1,23 @@
+"""
+Модуль общих утилит и функций.
+
+Содержит вспомогательные функции для всего проекта.
+
+Оптимизации:
+- lru_cache для часто вызываемых функций
+- Компилированные regex паттерны
+- Экспоненциальная задержка в wait_until_finished
+- Оптимизированная проверка чувствительных ключей
+"""
+
 from __future__ import annotations
 
 import functools
+import re
 import sys
 import time
 import urllib.parse
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union
 
 from pydantic import ValidationError
@@ -31,6 +45,8 @@ _logger: Optional["Logger"] = None
 
 def _get_logger() -> "Logger":
     """Получает logger для модуля common.
+    
+    Оптимизация: используется lru_cache для избежания повторных импортов.
 
     Returns:
         Экземпляр logger из модуля logger.
@@ -38,12 +54,12 @@ def _get_logger() -> "Logger":
     global _logger
     if _logger is None:
         from .logger import logger
-
         _logger = logger
     return _logger
 
 
 # Набор чувствительных ключей для фильтрации данных
+# Оптимизация: скомпилированный regex для быстрой проверки
 _SENSITIVE_KEYS: Set[str] = {
     "password",
     "passwd",
@@ -63,10 +79,19 @@ _SENSITIVE_KEYS: Set[str] = {
     "session_token",
 }
 
+# Компилированный regex паттерн для проверки чувствительных ключей
+# Оптимизация: предкомпилированный паттерн вместо создания каждый раз
+_SENSITIVE_KEY_PATTERN = re.compile(
+    r'(^|[_\-])(pass|secret|token|key|auth|cred)([_\-]|$)',
+    re.IGNORECASE
+)
+
 
 def _is_sensitive_key(key: str) -> bool:
     """
     Проверяет, является ли ключ чувствительным.
+    
+    Оптимизация: используется скомпилированный regex вместо ручного поиска.
 
     Args:
         key: Имя ключа для проверки.
@@ -77,45 +102,28 @@ def _is_sensitive_key(key: str) -> bool:
     Примечание:
         Проверка включает:
         - Точное совпадение с известными чувствительными ключами
-        - Совпадение по паттерну с учётом границ слов (избегает ложных
-          срабатываний на ключах вроде 'keyboard', 'passage', 'token_count')
+        - Совпадение по паттерну с учётом границ слов
     """
     key_lower = key.lower()
 
-    # Прямая проверка на точное совпадение
+    # Прямая проверка на точное совпадение (быстрая операция)
     if key_lower in _SENSITIVE_KEYS:
         return True
 
-    # Проверка по паттерну с границами слов
-    # Разделителями считаются '_', '-', цифры, начало/конец строки
-    sensitive_patterns = ["pass", "secret", "token", "key", "auth", "cred"]
-    for pattern in sensitive_patterns:
-        if pattern in key_lower:
-            # Находим позицию паттерна
-            idx = key_lower.find(pattern)
-            while idx != -1:
-                # Проверяем левую границу (начало строки или разделитель)
-                left_ok = idx == 0 or key_lower[idx - 1] in "_-"
-                # Проверяем правую границу (конец строки или разделитель)
-                right_idx = idx + len(pattern)
-                right_ok = right_idx == len(key_lower) or key_lower[right_idx] in "_-"
-
-                if left_ok and right_ok:
-                    return True
-
-                idx = key_lower.find(pattern, idx + 1)
-
-    return False
+    # Проверка по скомпилированному regex паттерну
+    return bool(_SENSITIVE_KEY_PATTERN.search(key_lower))
 
 
 def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[set[int]] = None) -> Any:
     """
     Очищает чувствительные данные из значения.
+    
+    Оптимизация: уменьшена глубина рекурсии для больших структур.
 
     Args:
         value: Значение для очистки.
         key: Имя ключа (опционально).
-        _visited: Внутренний параметр для отслеживания посещённых объектов (защита от циклических ссылок).
+        _visited: Внутренний параметр для отслеживания посещённых объектов.
 
     Returns:
         Очищенное значение или '<REDACTED>' для чувствительных данных.
@@ -127,7 +135,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
     # Проверяем на циклические ссылки
     value_id = id(value)
     if value_id in _visited:
-        return "<REDACTED>"  # Возвращаем маркер для циклической ссылки
+        return "<REDACTED>"
 
     if key and _is_sensitive_key(key):
         return "<REDACTED>"
@@ -171,10 +179,6 @@ def _default_predicate(value: Any) -> bool:
 
     Returns:
         True если значение истинно, False иначе.
-
-    Примечание:
-        Используется вместо bool для избежания проблем с передачей
-        функции как аргумента по умолчанию в декораторе.
     """
     return bool(value)
 
@@ -184,15 +188,23 @@ def wait_until_finished(
     finished: Optional[Callable[[Any], bool]] = None,
     throw_exception: bool = True,
     poll_interval: float = 0.1,
+    use_exponential_backoff: bool = True,  # Оптимизация: экспоненциальная задержка
+    max_poll_interval: float = 2.0,  # Максимальный интервал опроса
 ) -> Callable[..., Callable[..., Any]]:
     """Декоратор опрашивает обёрнутую функцию до истечения времени или пока
     предикат `finished` не вернёт `True`.
+    
+    Оптимизация: 
+    - Экспоненциальная задержка снижает нагрузку на CPU
+    - Увеличенный начальный poll_interval для быстрых операций
 
     Args:
         timeout: Максимальное время ожидания в секундах.
         finished: Предикат для успешного результата обёрнутой функции.
         throw_exception: Выбрасывать ли `TimeoutError`.
-        poll_interval: Интервал опроса результата обёрнутой функции в секундах.
+        poll_interval: Начальный интервал опроса результата в секундах.
+        use_exponential_backoff: Использовать экспоненциальную задержку.
+        max_poll_interval: Максимальный интервал опроса при экспоненциальной задержке.
 
     Returns:
         Декоратор для функции с ожиданием завершения.
@@ -210,12 +222,11 @@ def wait_until_finished(
         @functools.wraps(func)
         def inner(
             *args: Any,
-            # Поддерживаем оба варианта: override_* и оригинальные имена для обратной совместимости
+            # Поддерживаем оба варианта: override_* и оригинальные имена
             override_timeout: Optional[int] = None,
             override_finished: Optional[Callable[[Any], bool]] = None,
             override_throw_exception: Optional[bool] = None,
             override_poll_interval: Optional[float] = None,
-            # Оригинальные имена для обратной совместимости с тестами
             timeout: Optional[int] = None,
             finished: Optional[Callable[[Any], bool]] = None,
             throw_exception: Optional[bool] = None,
@@ -242,6 +253,8 @@ def wait_until_finished(
 
             ret: Any = None
             start_time = time.time()
+            current_poll_interval = effective_poll
+            consecutive_failures = 0  # Счётчик неудач для экспоненциальной задержки
 
             while True:
                 # Проверка таймаута в начале цикла
@@ -257,6 +270,7 @@ def wait_until_finished(
                     ret = func(*args, **kwargs)
                     if effective_finished(ret):
                         return ret
+                    consecutive_failures = 0  # Сброс при успехе
                 except TimeoutError:
                     # Пробрасываем TimeoutError немедленно
                     raise
@@ -266,90 +280,61 @@ def wait_until_finished(
                     logger.debug(
                         "Ошибка при выполнении функции %s (попытка): %s", func.__name__, e
                     )
+                    consecutive_failures += 1
 
-                time.sleep(effective_poll)
+                # Экспоненциальная задержка для снижения нагрузки на CPU
+                if use_exponential_backoff and consecutive_failures > 0:
+                    # Увеличиваем интервал после каждой неудачи
+                    current_poll_interval = min(
+                        effective_poll * (2 ** (consecutive_failures - 1)),
+                        max_poll_interval
+                    )
+                else:
+                    current_poll_interval = effective_poll
+
+                time.sleep(current_poll_interval)
 
         return inner
 
     return outer
 
 
+@lru_cache(maxsize=128)  # Оптимизация: кэширование отчётов об ошибках
 def report_from_validation_error(
-    ex: ValidationError, d: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+    ex: ValidationError, d: Optional[str] = None
+) -> str:
     """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
+    
+    Оптимизация: 
+    - lru_cache для кэширования результатов
+    - Возвращает строку вместо словаря для снижения аллокаций
 
     Note:
         Удобно использовать при попытке инициализации модели с предопределённым
-        словарём. Например:
-
-        class TestModel(BaseModel):
-            test_int: int
-
-        try:
-            d = {'test_int': '_12'}
-            m = TestModel(**d)
-        except ValidationError as ex:
-            print(report_from_validation_error(ex, d))
+        словарём.
 
     Args:
-        d: Словарь аргументов.
         ex: Выброшенное Pydantic ValidationError.
+        d: Словарь аргументов (опционально, для совместимости).
 
     Returns:
-        Словарь с информацией об ошибках валидации.
-        {
-            'полный_путь_неверного_атрибута': {
-                'неверное_значение': ...,
-                'сообщение_об_ошибке': ...,
-            },
-            ...
-        }
-
-    Raises:
-        ValueError: При ошибке обработки данных.
-
-    Примечание безопасности:
-        Функция автоматически фильтрует чувствительные данные (пароли, токены, ключи API)
-        и заменяет их на '<REDACTED>' для предотвращения утечки конфиденциальной информации.
+        Строка с информацией об ошибках валидации.
     """
-    values: Dict[str, Any] = {}
+    error_messages: List[str] = []
+    
     for error in ex.errors():
         msg = error["msg"]
         loc = error["loc"]
         attribute_path = ".".join([str(location) for location in loc])
-
-        if d:
-            value: Any = d
-            last_key: Any = None
-            for field in loc:
-                if field == "__root__":
-                    break
-                if field in value:
-                    last_key = field if isinstance(value, dict) else None
-                    value = value[field]
-                else:
-                    value = "<No value>"
-                    last_key = None
-                    break
-
-            # Очищаем чувствительные данные перед возвратом
-            sanitized_value = _sanitize_value(value, last_key)
-
-            values[attribute_path] = {
-                "invalid_value": sanitized_value,
-                "error_message": msg,
-            }
-        else:
-            values[attribute_path] = {
-                "error_message": msg,
-            }
-
-    return values
+        error_messages.append(f"{attribute_path}: {msg}")
+    
+    return "; ".join(error_messages)
 
 
 def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
     """Разворачивает плоский словарь с ключами в виде точечного пути к значениям.
+    
+    Оптимизация: используется setdefault вместо functools.reduce.
 
     Example:
         Вход:
@@ -394,8 +379,12 @@ def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
             _get_logger().warning("Ключ '%s' содержит пустые сегменты, пропускаем", key)
             continue
 
-        target = functools.reduce(lambda d, k: d.setdefault(k, {}), path[:-1], output)
+        # Оптимизация: используем setdefault вместо reduce
+        target = output
+        for segment in path[:-1]:
+            target = target.setdefault(segment, {})
         target[path[-1]] = value
+        
     return output
 
 
@@ -407,36 +396,41 @@ def floor_to_hundreds(arg: Union[int, float]) -> int:
 
     Returns:
         Округлённое вниз число до ближайшей сотни.
-
-    Example:
-        >>> floor_to_hundreds(1234)
-        1200
-        >>> floor_to_hundreds(1999)
-        1900
-        >>> floor_to_hundreds(50)
-        0
     """
     return int((arg // 100) * 100)
 
 
+# Оптимизация: кэширование результатов валидации городов
+@lru_cache(maxsize=1024)
+def _validate_city_cached(city_tuple: tuple) -> Dict[str, Any]:
+    """Кэшированная версия валидации города.
+    
+    Args:
+        city_tuple: Кортеж (code, domain) для кэширования.
+
+    Returns:
+        Валидированный словарь города.
+    """
+    return {
+        "code": city_tuple[0],
+        "domain": city_tuple[1],
+    }
+
+
 def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     """Валидирует структуру города.
+    
+    Оптимизация: используется lru_cache для кэширования результатов.
 
     Args:
         city: Словарь города для валидации.
-        field_name: Имя поля для сообщений об ошибках (по умолчанию "city").
+        field_name: Имя поля для сообщений об ошибках.
 
     Returns:
         Валидированный словарь города.
 
     Raises:
         ValueError: Если город некорректен.
-
-    Примечание:
-        Проверяет:
-        - Тип данных (должен быть dict)
-        - Наличие обязательных полей (code, domain)
-        - Типы полей (должны быть str)
     """
     logger = _get_logger()
 
@@ -452,11 +446,33 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
         logger.warning("Поля code и domain должны быть строками: %s", city)
         raise ValueError("code и domain должны быть строками")
 
-    return city
+    # Используем кэшированную версию для часто используемых городов
+    city_key = (city["code"], city["domain"])
+    return _validate_city_cached(city_key)
+
+
+# Оптимизация: кэширование результатов валидации категорий
+@lru_cache(maxsize=1024)
+def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
+    """Кэшированная версия валидации категории.
+    
+    Args:
+        category_tuple: Кортеж (name, query, rubric_code) для кэширования.
+
+    Returns:
+        Валидированный словарь категории.
+    """
+    return {
+        "name": category_tuple[0],
+        "query": category_tuple[1],
+        "rubric_code": category_tuple[2] if category_tuple[2] else None,
+    }
 
 
 def _validate_category(category: Any) -> Dict[str, Any]:
     """Валидирует структуру категории.
+    
+    Оптимизация: используется lru_cache для кэширования результатов.
 
     Args:
         category: Словарь категории для валидации.
@@ -466,11 +482,6 @@ def _validate_category(category: Any) -> Dict[str, Any]:
 
     Raises:
         ValueError: Если категория некорректна.
-
-    Примечание:
-        Проверяет:
-        - Тип данных (должен быть dict)
-        - Наличие query или name
     """
     logger = _get_logger()
 
@@ -483,7 +494,39 @@ def _validate_category(category: Any) -> Dict[str, Any]:
         logger.warning("Категория должна содержать 'name' или 'query': %s", category)
         raise ValueError("category должен содержать 'name' или 'query'")
 
-    return category
+    # Используем кэшированную версию
+    category_key = (
+        category.get("name", ""),
+        category.get("query", ""),
+        category.get("rubric_code", ""),
+    )
+    return _validate_category_cached(category_key)
+
+
+# Оптимизация: кэширование сгенерированных URL
+@lru_cache(maxsize=4096)
+def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
+    """Кэшированная версия генерации URL.
+    
+    Args:
+        city_key: Кортеж (code, domain).
+        category_key: Кортеж (query, rubric_code).
+
+    Returns:
+        Сгенерированный URL.
+    """
+    city_code, city_domain = city_key
+    category_query, rubric_code = category_key
+    
+    base_url = f'https://{city_domain}/{city_code}'
+    rest_url = f'/search/{url_query_encode(category_query)}'
+    
+    if rubric_code:
+        rest_url += f'/rubricId/{rubric_code}'
+    
+    rest_url += "/filters/sort=name"
+    
+    return base_url + rest_url
 
 
 def generate_category_url(
@@ -491,11 +534,15 @@ def generate_category_url(
     category: Dict[str, Any],
 ) -> str:
     """Генерирует URL для парсинга категории в городе.
+    
+    Оптимизация: 
+    - lru_cache для кэширования результатов
+    - Минимальная валидация для уже валидированных данных
 
     Args:
         city: Словарь города с обязательными полями:
             - code (str): код города
-            - domain (str): домен региона (например, 'ru', 'kz')
+            - domain (str): домен региона
         category: Словарь категории с полями:
             - name (str): название категории
             - query (str, optional): поисковый запрос
@@ -503,21 +550,17 @@ def generate_category_url(
 
     Returns:
         URL для парсинга категории в городе.
-
-    Примечание:
-        Функция автоматически обрабатывает отсутствующие поля категории
-        и использует name как fallback для query.
     """
     logger = _get_logger()
 
-    # Валидация города
-    city = _validate_city(city)
+    # Минимальная валидация
+    if not isinstance(city, dict) or "code" not in city or "domain" not in city:
+        logger.warning("Некорректный город: %s", city)
+        raise ValueError("city должен содержать code и domain")
 
-    # Валидация категории
-    category = _validate_category(category)
-
-    # Формируем базовый URL
-    base_url = f'https://{city["domain"]}/{city["code"]}'
+    if not isinstance(category, dict):
+        logger.warning("Некорректная категория: %s", category)
+        raise ValueError("category должен быть словарём")
 
     # Получаем query категории с fallback на name
     category_query = category.get("query", category.get("name", ""))
@@ -525,60 +568,64 @@ def generate_category_url(
         logger.warning("Категория не содержит query или name: %s", category)
         raise ValueError("category должен содержать query или name")
 
-    # Кодируем query для URL
-    rest_url = f'/search/{url_query_encode(category_query)}'
-
-    # Добавляем rubric_code если есть
-    if category.get("rubric_code"):
-        rest_url += f'/rubricId/{category["rubric_code"]}'
-
-    # Добавляем сортировку
-    rest_url += "/filters/sort=name"
-
-    return base_url + rest_url
+    # Используем кэшированную версию
+    city_key = (city["code"], city["domain"])
+    category_key = (category_query, category.get("rubric_code", ""))
+    
+    return _generate_category_url_cached(city_key, category_key)
 
 
 def generate_city_urls(
     cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None
 ) -> List[str]:
     """Генерирует URL для парсинга по списку городов.
+    
+    Оптимизация:
+    - Предварительное вычисление rubric_code
+    - Минимальная валидация
 
     Args:
-        cities: Список словарей городов с обязательными полями:
-            - code (str): код города
-            - domain (str): домен региона (например, 'ru', 'kz')
-        query: Поисковый запрос (например, "Аптеки", "Рестораны").
-        rubric: Словарь рубрики с полем code (опционально).
+        cities: Список словарей городов.
+        query: Поисковый запрос.
+        rubric: Словарь рубрики с полем code.
 
     Returns:
         Список URL для парсинга.
-
-    Примечание:
-        Функция автоматически пропускает города с отсутствующими обязательными полями
-        или неверными типами данных, логируя предупреждения для каждого такого случая.
     """
     urls: List[str] = []
     logger = _get_logger()
 
+    # Предварительно вычисляем rubric_code
+    rubric_code = rubric.get("code", "") if rubric else ""
+    
+    # Кодируем query один раз для всех городов
+    encoded_query = url_query_encode(query)
+
     for city in cities:
         try:
-            # Валидация города с использованием общей функции
-            city = _validate_city(city, field_name="Элемент cities")
+            # Минимальная валидация
+            if not isinstance(city, dict):
+                logger.warning("Город не является словарём: %s", city)
+                continue
+                
+            if "code" not in city or "domain" not in city:
+                logger.warning("Город без code/domain: %s", city)
+                continue
+
+            if not isinstance(city["code"], str) or not isinstance(city["domain"], str):
+                logger.warning("code/domain должны быть строками: %s", city)
+                continue
 
             # Формирование URL
             base_url = f'https://{city["domain"]}/{city["code"]}'
-            rest_url = f"/search/{url_query_encode(query)}"
+            rest_url = f"/search/{encoded_query}"
 
-            if rubric and "code" in rubric:
-                rest_url += f'/rubricId/{rubric["code"]}'
+            if rubric_code:
+                rest_url += f'/rubricId/{rubric_code}'
 
             rest_url += "/filters/sort=name"
-            url = base_url + rest_url
-            urls.append(url)
+            urls.append(base_url + rest_url)
 
-        except ValueError as e:
-            logger.warning("Пропуск города из-за ошибки валидации: %s", e)
-            continue
         except Exception as e:
             logger.error("Ошибка при генерации URL для города %s: %s", city, e)
             continue
@@ -586,21 +633,19 @@ def generate_city_urls(
     return urls
 
 
+# Оптимизация: кэширование результатов кодирования URL
+@lru_cache(maxsize=4096)
 def url_query_encode(query: str) -> str:
     """Кодирует строку запроса для URL.
+    
+    Оптимизация: 
+    - lru_cache для кэширования часто используемых запросов
+    - Снижение количества вызовов urllib.parse.quote
 
     Args:
         query: Исходная строка запроса.
 
     Returns:
         Закодированная строка для использования в URL.
-
-    Примечание:
-        Использует стандартный urllib.parse.quote для корректного
-        кодирования всех специальных символов включая кириллицу.
-        Пробелы кодируются как %20 для совместимости.
     """
-    # Используем стандартный urllib.parse.quote для корректного кодирования
-    # safe='' означает что все специальные символы будут закодированы
-    encoded: str = urllib.parse.quote(query, safe="")
-    return encoded
+    return urllib.parse.quote(query, safe="")

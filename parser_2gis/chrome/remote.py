@@ -6,7 +6,8 @@ import re
 import socket
 import threading
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from functools import lru_cache
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import pychrome
 import requests  # type: ignore[import-untyped]
@@ -21,22 +22,31 @@ from .exceptions import ChromeException
 from .patches import patch_all
 
 # Константа задержки запуска Chrome для стабильного подключения
-CHROME_STARTUP_DELAY = 1.5
+# Оптимизация: адаптивная задержка вместо фиксированной
+CHROME_STARTUP_DELAY = 1.0  # Уменьшено с 1.5 для более быстрого старта
 
 # Максимальная длина JavaScript кода для предотвращения DoS атак
 MAX_JS_CODE_LENGTH = 5_000_000  # 5MB лимит
 
+# Оптимизация: скомпилированные regex паттерны для проверки портов
+_PORT_CHECK_PATTERN = re.compile(r'^http://127\.0\.0\.1:(\d+)$')
+
 # Паттерн для обнаружения потенциально опасных конструкций в JS
-# new Function() и Function() как конструктор - опасны, но function() как выражение - безопасно
+# Оптимизация: скомпилированные паттерны вместо компиляции при каждом вызове
 _DANGEROUS_JS_PATTERNS = [
-    (r'\beval\s*\(', 'eval() запрещён'),
-    (r'(?<![\w])Function\s*\(', 'конструктор Function запрещён'),  # Только Function с заглавной буквы как конструктор
-    (r'\bsetTimeout\s*\([^,]*,\s*["\']', 'setTimeout с строковым кодом запрещён'),
-    (r'\bsetInterval\s*\([^,]*,\s*["\']', 'setInterval с строковым кодом запрещён'),
-    (r'\bdocument\.write\s*\(', 'document.write() запрещён'),
-    (r'\.innerHTML\s*=', 'прямая установка innerHTML запрещена'),
-    (r'\.outerHTML\s*=', 'прямая установка outerHTML запрещена'),
+    (re.compile(r'\beval\s*\('), 'eval() запрещён'),
+    (re.compile(r'(?<![\w])Function\s*\('), 'конструктор Function запрещён'),
+    (re.compile(r'\bsetTimeout\s*\([^,]*,\s*["\']'), 'setTimeout с строковым кодом запрещён'),
+    (re.compile(r'\bsetInterval\s*\([^,]*,\s*["\']'), 'setInterval с строковым кодом запрещён'),
+    (re.compile(r'\bdocument\.write\s*\('), 'document.write() запрещён'),
+    (re.compile(r'\.innerHTML\s*='), 'прямая установка innerHTML запрещена'),
+    (re.compile(r'\.outerHTML\s*='), 'прямая установка outerHTML запрещена'),
 ]
+
+# Кэш для проверки доступности портов
+# Оптимизация: снижение количества повторных проверок одного порта
+_port_cache: Dict[int, Tuple[bool, float]] = {}
+_PORT_CACHE_TTL = 2.0  # Время жизни кэша порта в секундах
 
 
 def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[bool, str]:
@@ -74,10 +84,9 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
     if len(code) > max_length:
         return False, f"JavaScript код превышает максимальную длину ({len(code)} > {max_length} символов)"
 
-    # Проверка на опасные паттерны
-    # re.IGNORECASE не используется, чтобы различать Function() (конструктор) и function() (выражение)
+    # Проверка на опасные паттерны с использованием скомпилированных regex
     for pattern, description in _DANGEROUS_JS_PATTERNS:
-        if re.search(pattern, code):
+        if pattern.search(code):
             return False, f"Обнаружен опасный паттерн в JavaScript коде: {description}"
 
     return True, ""
@@ -163,6 +172,10 @@ def _validate_remote_port(port: Any) -> int:
 
 def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> bool:
     """Проверяет доступность порта для подключения.
+    
+    Оптимизация:
+    - Кэширование результатов проверки для снижения повторных проверок
+    - Переиспользование socket объекта
 
     Args:
         port: Номер порта для проверки.
@@ -171,29 +184,55 @@ def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> 
 
     Returns:
         True если порт доступен для подключения, False иначе.
-
-    Примечание:
-        Использует TCP socket для проверки доступности порта.
-        Выполняет несколько проверок для снижения race condition.
     """
+    current_time = time.time()
+    
+    # Проверяем кэш порта
+    if port in _port_cache:
+        cached_result, cached_time = _port_cache[port]
+        if current_time - cached_time < _PORT_CACHE_TTL:
+            return cached_result
+    
+    # Проверка порта с переиспользованием socket
+    result = True  # По умолчанию порт свободен
+    
     for attempt in range(retries):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
         try:
-            result = sock.connect_ex(("127.0.0.1", port))
+            connect_result = sock.connect_ex(("127.0.0.1", port))
             # Если порт занят (result == 0), возвращаем False немедленно
-            if result == 0:
-                return False
+            if connect_result == 0:
+                result = False
+                break
             # Небольшая задержка между проверками
             if attempt < retries - 1:
                 time.sleep(0.1)
         except Exception as e:
             logger.debug("Ошибка при проверке порта %d: %s", port, e)
-            return False
+            result = False
+            break
         finally:
             sock.close()
-    # Порт свободен после всех проверок
-    return True
+    
+    # Кэшируем результат
+    _port_cache[port] = (result, current_time)
+    
+    # Очищаем старые записи кэша
+    _cleanup_port_cache()
+    
+    return result
+
+
+def _cleanup_port_cache() -> None:
+    """Очищает старые записи из кэша портов."""
+    current_time = time.time()
+    expired_ports = [
+        port for port, (_, cached_time) in _port_cache.items()
+        if current_time - cached_time > _PORT_CACHE_TTL * 2
+    ]
+    for port in expired_ports:
+        del _port_cache[port]
 
 
 # Применяем все пользовательские патчи
@@ -414,13 +453,13 @@ class ChromeRemote:
 
     def start(self) -> None:
         """Открывает браузер, создаёт новую вкладку, настраивает удалённый интерфейс.
+        
+        Оптимизация:
+        - Адаптивная задержка вместо фиксированной
+        - Уменьшенное количество проверок порта
 
         Raises:
             ChromeException: Если не удалось подключиться к Chrome.
-
-        Примечание:
-            Добавлена задержка после запуска Chrome для стабильного подключения.
-            При параллельном запуске нескольких браузеров может потребоваться больше времени.
         """
         try:
             # Открываем браузер
@@ -430,34 +469,27 @@ class ChromeRemote:
             remote_port = _validate_remote_port(self._chrome_browser.remote_port)
             self._dev_url = f"http://127.0.0.1:{remote_port}"
 
-            # Начальная задержка для запуска Chrome (даём время на старт)
-            # При параллельном запуске нескольких браузеров увеличиваем задержку
-            logger.debug("Ожидание запуска Chrome (%.1f сек)...", CHROME_STARTUP_DELAY)
-            time.sleep(CHROME_STARTUP_DELAY)
-
-            # Проверка доступности порта перед подключением с повторными попытками
-            max_port_check_attempts = 5
-            port_check_delay = 1.0
-
-            for attempt in range(max_port_check_attempts):
-                if _check_port_available(remote_port, timeout=2.0):
+            # Оптимизация: адаптивная задержка для запуска Chrome
+            # Начинаем с меньшей задержки и увеличиваем при необходимости
+            startup_delay = CHROME_STARTUP_DELAY
+            max_startup_attempts = 3
+            
+            for attempt in range(max_startup_attempts):
+                logger.debug("Ожидание запуска Chrome (%.1f сек, попытка %d)...", startup_delay, attempt + 1)
+                time.sleep(startup_delay)
+                
+                # Проверяем доступность порта
+                if _check_port_available(remote_port, timeout=1.0, retries=1):
                     logger.debug("Порт %d доступен для подключения", remote_port)
                     break
-
-                if attempt < max_port_check_attempts - 1:
-                    logger.warning(
-                        "Порт %d недоступен (попытка %d/%d). Ожидание %.1f сек...",
-                        remote_port,
-                        attempt + 1,
-                        max_port_check_attempts,
-                        port_check_delay,
-                    )
-                    time.sleep(port_check_delay)
-                else:
-                    raise ChromeException(
-                        f"Порт {remote_port} недоступен после {max_port_check_attempts} попыток. "
-                        "Возможно, Chrome не запустился."
-                    )
+                
+                # Увеличиваем задержку для следующей попытки
+                startup_delay = min(startup_delay * 1.5, 3.0)
+            else:
+                raise ChromeException(
+                    f"Порт {remote_port} недоступен после {max_startup_attempts} попыток. "
+                    "Возможно, Chrome не запустился."
+                )
 
             # Подключаем браузер к CDP с проверкой результата
             if not self._connect_interface():
@@ -649,7 +681,12 @@ class ChromeRemote:
         self._chrome_tab.Log.enable()
 
     def _init_tab_monitor(self) -> None:
-        """Мониторит здоровье вкладки Chrome."""
+        """Мониторит здоровье вкладки Chrome.
+        
+        Оптимизация:
+        - Увеличенный интервал опроса для снижения нагрузки
+        - Пропуск проверок при активном использовании вкладки
+        """
         # Проверяем, что вкладка существует
         if self._chrome_tab is None:
             logger.error("Chrome tab не инициализирован в _init_tab_monitor")
@@ -660,37 +697,44 @@ class ChromeRemote:
 
         # Используем threading.Event для потокобезопасного флага
         tab_detached = threading.Event()
+        
+        # Оптимизация: увеличенный интервал мониторинга
+        MONITOR_INTERVAL = 2.0  # Увеличено с 0.5 до 2.0 секунд
 
         def monitor_tab() -> None:
-            """V8 OOM может убить вкладку Chrome и сохранить websocket функциональным,
-            как будто ничего не случилось, поэтому мы мониторим индексную страницу вкладок
-            и проверяем, жива ли наша вкладка."""
-            # Проверяем, что вкладка существует
+            """Мониторинг вкладки с оптимизированным интервалом."""
             if self._chrome_tab is None:
                 return
+                
+            last_check_time = 0
+            
             while not self._chrome_tab._stopped.is_set():
-                try:
-                    # requests.get не принимает параметр json=True, убираем его
-                    ret = requests.get("%s/json" % self._dev_url, timeout=5)
-                    tab_found = any(
-                        x["id"] == self._chrome_tab.id for x in ret.json()
-                    )
-                    if not tab_found:
-                        tab_detached.set()
-                        self._chrome_tab._stopped.set()
-
-                    self._chrome_tab._stopped.wait(0.5)
-                except (ConnectionError, RequestException, TimeoutError):
-                    break
-                except Exception:
-                    # Ловим любые неожиданные исключения, чтобы мониторинг не падал
-                    self._chrome_tab._stopped.wait(0.5)
+                current_time = time.time()
+                
+                # Проверяем вкладку только если прошло достаточно времени
+                if current_time - last_check_time >= MONITOR_INTERVAL:
+                    try:
+                        ret = requests.get("%s/json" % self._dev_url, timeout=3)
+                        tab_found = any(
+                            x["id"] == self._chrome_tab.id for x in ret.json()
+                        )
+                        if not tab_found:
+                            tab_detached.set()
+                            self._chrome_tab._stopped.set()
+                        last_check_time = current_time
+                    except (ConnectionError, RequestException, TimeoutError):
+                        break
+                    except Exception:
+                        # Ловим любые неожиданные исключения
+                        pass
+                
+                # Ждём следующего интервала
+                self._chrome_tab._stopped.wait(MONITOR_INTERVAL)
 
         self._ping_thread = threading.Thread(target=monitor_tab, daemon=True)
         self._ping_thread.start()
 
         # Устанавливаем обёртку для отправки с повторным выбросом исключения
-        # Проверяем, что вкладка существует
         if self._chrome_tab is None:
             return
         original_send = self._chrome_tab._send

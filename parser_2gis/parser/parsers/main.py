@@ -6,6 +6,7 @@ import re
 import threading
 import time
 import urllib.parse
+from collections import deque
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 try:
@@ -339,34 +340,49 @@ class MainParser:
         collected_records = 0
 
         # Уже посещённые ссылки (с оптимизацией памяти)
+        # Оптимизация: используем deque для эффективного удаления старых ссылок
         visited_links: Set[str] = set()
+        visited_links_order: deque[str] = deque()  # Для отслеживания порядка добавления
         visited_links_lock = threading.Lock()  # Блокировка для потокобезопасности
+
+        # Оптимизация: кэшируем psutil.Process объект для снижения накладных расходов
+        _process_cache = None
+        if PSUTIL_AVAILABLE:
+            try:
+                _process_cache = psutil.Process()
+            except Exception:
+                pass
 
         # Счётчик подряд пустых страниц (для избежания бесконечного цикла при 404)
         consecutive_empty_pages = 0
+        
+        # Счётчик вызовов оптимизации памяти
+        memory_check_counter = 0
 
         # Проверка и автоматическая оптимизация памяти при больших объёмах данных
         def check_and_optimize_memory():
             """Проверяет использование памяти и выполняет автоматическую оптимизацию.
-
-            Эта функция вызывается периодически для предотвращения OutOfMemory ошибок
-            при парсинге больших объёмов данных (>10000 записей).
-
-            Примечание:
-                Требуется установленный пакет psutil для мониторинга памяти.
+            
+            Оптимизация:
+            - Кэширование psutil.Process объекта
+            - Снижение частоты вызовов gc.collect()
+            - Использование deque для эффективной очистки старых ссылок
             """
+            nonlocal memory_check_counter
+            memory_check_counter += 1
+            
             # Проверяем доступность psutil
-            if not PSUTIL_AVAILABLE:
-                logger.debug("psutil не установлен - пропускаем проверку памяти")
+            if not PSUTIL_AVAILABLE or _process_cache is None:
+                logger.debug("psutil не доступен - пропускаем проверку памяти")
                 return
 
             try:
                 # Получаем текущее использование памяти процесса в МБ
-                process = psutil.Process()
-                memory_info = process.memory_info()
+                # Оптимизация: используем кэшированный Process объект
+                memory_info = _process_cache.memory_info()
                 memory_mb = memory_info.rss / 1024 / 1024  # Конвертируем в МБ
 
-                # Проверяем превышение порога (увеличен с 500 до 2048 МБ)
+                # Проверяем превышение порога
                 if memory_mb > self._options.memory_threshold:
                     logger.warning(
                         "Использование памяти %.1f МБ превышает порог %d МБ. "
@@ -375,21 +391,26 @@ class MainParser:
                         self._options.memory_threshold,
                     )
 
-                    # Усиливаем очистку: очищаем 75% посещённых ссылок вместо 50%
+                    # Оптимизация: используем deque для эффективного удаления старых ссылок
                     with visited_links_lock:
                         if len(visited_links) > 1000:
-                            links_list = list(visited_links)
-                            keep_count = len(links_list) // 4  # Оставляем 25% старых ссылок
-                            visited_links.clear()
-                            visited_links.update(links_list[keep_count:])
+                            # Очищаем 75% старых ссылок используя deque
+                            removed_count = 0
+                            target_remove = len(visited_links_order) * 3 // 4
+                            
+                            while visited_links_order and removed_count < target_remove:
+                                old_link = visited_links_order.popleft()
+                                if old_link in visited_links:
+                                    visited_links.remove(old_link)
+                                    removed_count += 1
+                            
                             logger.debug(
                                 "Очищено %d ссылок для освобождения памяти",
-                                len(links_list) - keep_count,
+                                removed_count,
                             )
 
-                    # Дополнительный вызов сборщика мусора для агрессивной очистки
+                    # Оптимизация: одиночный вызов gc.collect() вместо двойного
                     gc.collect()
-                    gc.collect()  # Двойной вызов для лучшей очистки
 
                     # Очищаем кэш запросов Chrome если возможно
                     try:
@@ -399,7 +420,7 @@ class MainParser:
                         logger.debug("Ошибка при очистке кэша: %s", cache_error)
 
                     # Проверяем, освободилась ли память
-                    new_memory_info = process.memory_info()
+                    new_memory_info = _process_cache.memory_info()
                     new_memory_mb = new_memory_info.rss / 1024 / 1024
                     saved_mb = memory_mb - new_memory_mb
 
@@ -410,7 +431,7 @@ class MainParser:
                             (saved_mb / memory_mb) * 100,
                         )
                     else:
-                        logger.warning(
+                        logger.debug(
                             "Не удалось освободить значительный объём памяти"
                         )
 
@@ -422,6 +443,10 @@ class MainParser:
         @wait_until_finished(timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False)
         def get_unique_links() -> Optional[DOMNodeList]:
             """Получает уникальные ссылки, которые ещё не были посещены.
+            
+            Оптимизация:
+            - Использование deque для отслеживания порядка ссылок
+            - Эффективное удаление старых ссылок без полного пересоздания множества
 
             Returns:
                 Список уникальных DOM-узлов ссылок или None при ошибке/повторе.
@@ -441,18 +466,27 @@ class MainParser:
                         # Возвращаем None вместо пустого списка для явного указания на повтор
                         return None
 
-                    visited_links.update(link_addresses)
+                    # Оптимизация: добавляем ссылки в множество и deque
+                    for link in link_addresses:
+                        if link not in visited_links:
+                            visited_links.add(link)
+                            visited_links_order.append(link)
 
                     # Оптимизация памяти: очищаем старые ссылки при превышении лимита
                     if len(visited_links) > MAX_VISITED_LINKS_SIZE:
-                        # Оставляем только последние 25% ссылок (усилено с 50%)
-                        links_list = list(visited_links)
-                        keep_count = len(links_list) // 4  # Оставляем 25% вместо 50%
-                        visited_links.clear()
-                        visited_links.update(links_list[keep_count:])
+                        # Очищаем 75% старых ссылок используя deque
+                        removed_count = 0
+                        target_remove = len(visited_links_order) * 3 // 4
+                        
+                        while visited_links_order and removed_count < target_remove:
+                            old_link = visited_links_order.popleft()
+                            if old_link in visited_links:
+                                visited_links.remove(old_link)
+                                removed_count += 1
+                        
                         logger.debug(
                             "Оптимизация памяти: очищено %d старых ссылок",
-                            len(links_list) - keep_count,
+                            removed_count,
                         )
 
                 return links
