@@ -3,6 +3,13 @@
 ## [Готовится]
 
 ### Исправлено
+- **Исправлены ошибки типизации**: корректировка float/int типов в progress_bar.py и cache_viewer.py
+- **Исправлены Optional типы**: добавлены проверки ScreenManager | None в методах app.py (8 методов)
+- **Исправлена типизация Pydantic**: корректировка возвращаемого типа model_validate_json() с type[BaseModel] на BaseModel
+- **Исправлены импорты**: ParallelParser → ParallelCityParser в tui_pytermgui/app.py
+- **Исправлена инициализация**: добавлена инициализация _current_instance в ScreenManager.__init__
+- **Исправлена типизация категорий**: обновлена сигнатура get_categories() для list[dict[str, str | int]]
+- **Исправлены глобальные переменные**: корректировка декларации run_new_tui_omsk перед try-except блоком
 - **Добавлены отсутствующие аргументы CLI**: `--parser.max-retries`, `--parser.retry-on-network-errors`, `--parser.retry-delay-base`, `--parser.memory-threshold`
 - Исправлена ошибка запуска `run.sh`: аргументы парсера не были зарегистрированы в `argparse`
 - Обновлена документация README.md (актуализирована структура проекта, исправлено количество тестов 269→293)
