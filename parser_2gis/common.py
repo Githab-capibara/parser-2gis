@@ -478,6 +478,11 @@ def _validate_category(category: Any) -> Dict[str, Any]:
         logger.warning("category не является словарём: %s", category)
         raise ValueError("category должен быть словарём")
 
+    # Проверка наличия name или query
+    if "name" not in category and "query" not in category:
+        logger.warning("Категория должна содержать 'name' или 'query': %s", category)
+        raise ValueError("category должен содержать 'name' или 'query'")
+
     return category
 
 
