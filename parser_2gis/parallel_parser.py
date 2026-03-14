@@ -332,8 +332,10 @@ class ParallelCityParser:
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
 
         # Открываем временный выходной файл
+        # Используем кодировку из конфигурации для консистентности
+        output_encoding = self.config.writer.encoding
         try:
-            with open(temp_output, "w", encoding="utf-8-sig", newline="") as outfile:
+            with open(temp_output, "w", encoding=output_encoding, newline="") as outfile:
                 writer = None
                 total_rows = 0
 
