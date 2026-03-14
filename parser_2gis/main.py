@@ -20,8 +20,7 @@ import pydantic
 from .common import generate_city_urls, report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
 from .data.categories_93 import CATEGORIES_93
-from .logger import logger, log_parser_start, log_parser_finish, setup_cli_logger, get_tui_app
-from .parallel_parser import ParallelCityParser
+from .logger import logger, log_parser_start, log_parser_finish, setup_cli_logger
 from .paths import data_path
 from .version import version
 from .cli import cli_app
@@ -387,10 +386,10 @@ def main() -> None:
             # Создаём и запускаем параллельный парсер с TUI
             # Приводим тип categories к list[dict] для совместимости с ParallelCityParser
             categories_list: list[dict] = CATEGORIES_93  # type: ignore[assignment]
-            
+
             # Используем TUI интерфейс вместо обычного логирования
             logger.info("🎨 Запуск TUI интерфейса...")
-            
+
             output_file = str(output_dir / "merged_result.csv")
             result = run_parallel_with_tui(
                 cities=selected_cities,

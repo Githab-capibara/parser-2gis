@@ -141,7 +141,7 @@ def log_parser_finish(
     title = f"{emoji} Парсинг завершён"
 
     if success:
-        print_success(f"Парсинг успешно завершён!")
+        print_success("Парсинг успешно завершён!")
     else:
         print_error("Парсинг завершён с ошибками")
 

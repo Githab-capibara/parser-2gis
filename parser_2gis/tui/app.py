@@ -7,25 +7,19 @@
 
 from __future__ import annotations
 
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from rich.console import Console
 from rich.live import Live
-from rich.text import Text
 
 from .components import (
     HeaderPanel,
-    LogPanel,
-    ProgressPanel,
-    StatsPanel,
     TUIComponents,
     TUIState,
-    create_main_layout,
 )
-from .logger import TUILogger, setup_tui_logger
+from .logger import TUILogger
 
 if TYPE_CHECKING:
     import logging

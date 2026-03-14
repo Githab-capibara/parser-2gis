@@ -214,11 +214,15 @@ class VisualLogger:
         if self.use_colors:
             print(f"\n{ColorCodes.CYAN}{ColorCodes.BOLD}╔{border}╗{ColorCodes.RESET}")
             print(
-                f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET} {ColorCodes.BOLD}{title.center(width)}{ColorCodes.RESET} {ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}"
+                f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET} "
+                f"{ColorCodes.BOLD}{title.center(width)}{ColorCodes.RESET} "
+                f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}"
             )
             if subtitle:
                 print(
-                    f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET} {subtitle.center(width)} {ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}"
+                    f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET} "
+                    f"{subtitle.center(width)} "
+                    f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}"
                 )
             print(f"{ColorCodes.CYAN}{ColorCodes.BOLD}╚{border}╝{ColorCodes.RESET}\n")
         else:

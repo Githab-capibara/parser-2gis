@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
-from rich.console import Console, RenderableType
 from rich.layout import Layout
 from rich.panel import Panel
 from rich.progress import (
@@ -298,7 +297,7 @@ class LogPanel:
 
         # Ограничиваем количество строк
         if len(self._logs) > self._max_lines:
-            self._logs = self._logs[-self._max_lines :]
+            self._logs = self._logs[-self._max_lines:]
 
     def clear(self) -> None:
         """Очистить логи."""

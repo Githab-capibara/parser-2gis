@@ -113,7 +113,7 @@ class StatisticsExporter:
     @staticmethod
     def _ensure_dir(file_path: Path) -> None:
         """Создаёт директорию для файла если она не существует.
-        
+
         Args:
             file_path: Путь к файлу, для которого нужно создать директорию.
         """
