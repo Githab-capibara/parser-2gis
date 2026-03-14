@@ -12,6 +12,7 @@ from pathlib import Path
 
 from ..config import Configuration
 from ..data.categories_93 import CATEGORIES_93
+from ..logger import logger
 from .app import TUIApp
 
 
@@ -59,7 +60,7 @@ def run_omsk_parallel() -> None:
             break
 
     if not omsk_city:
-        print("Ошибка: город Омск не найден в базе городов")
+        logger.error("Ошибка: город Омск не найден в базе городов")
         return
 
     # Создать приложение

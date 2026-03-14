@@ -214,8 +214,12 @@ def generate_urls_for_city(
 
 if __name__ == "__main__":
     # Тестовый запуск
-    print(f"Всего категорий: {len(CATEGORIES_93)}")
-    print("\nСписок категорий:")
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    
+    logger.info("Всего категорий: %d", len(CATEGORIES_93))
+    logger.info("Список категорий:")
     for i, cat in enumerate(CATEGORIES_93, 1):  # type: ignore[union-attr]
         rubric = cat.get("rubric_code", "Нет")  # type: ignore[union-attr,attr-defined]
-        print(f"{i:2}. {cat['name']}: {cat['query']} (rubric: {rubric})")  # type: ignore[index]
+        logger.info("%2d. %s: %s (rubric: %s)", i, cat['name'], cat['query'], rubric)  # type: ignore[index]
