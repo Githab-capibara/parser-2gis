@@ -204,6 +204,7 @@ def run_parallel_with_tui(
 
         return result
 
-    except Exception:
+    except Exception as e:
+        logger.error("Ошибка при параллельном парсинге: %s", e, exc_info=True)
         tui.stop(success=False)
         raise
