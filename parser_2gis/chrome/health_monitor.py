@@ -13,7 +13,7 @@ import threading
 import time
 from typing import TYPE_CHECKING, Optional, TypedDict
 
-from .logger import logger
+from parser_2gis.logger import logger
 
 if TYPE_CHECKING:
     from .browser import ChromeBrowser
