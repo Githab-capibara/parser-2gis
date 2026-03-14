@@ -73,7 +73,7 @@ class SmartRetryManager:
             )
             return True
 
-        # 404 ошибки
+        # 404 ошибки - зависит от контекста
         if "404" in error_lower:
             # Если были записи до 404 - возможно временная проблема, retry
             if self._total_records_collected > 0:
@@ -90,9 +90,9 @@ class SmartRetryManager:
                 logger.info("404 без записей. Завершаем парсинг.")
                 return False
 
-        # 403 ошибки (блокировка) - не retry
+        # 403 ошибки (блокировка) - не retry, но логируем
         if "403" in error_lower:
-            logger.error("Ошибка 403 (блокировка). Повторные попытки бесполезны.")
+            logger.warning("Ошибка 403 (блокировка). Повторные попытки не помогут.")
             return False
 
         # 500 ошибки (ошибка сервера) - retry
@@ -105,10 +105,10 @@ class SmartRetryManager:
             )
             return True
 
-        # По умолчанию - retry для других ошибок
+        # По умолчанию - retry для других ошибок (с логированием)
         self._retry_count += 1  # Увеличиваем только при фактическом retry
-        logger.info(
-            "Неизвестная ошибка: %s. Повторная попытка %d/%d",
+        logger.debug(
+            "Неклассифицированная ошибка: %s. Повторная попытка %d/%d",
             error,
             self._retry_count,
             self._max_retries,
