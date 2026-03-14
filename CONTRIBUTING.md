@@ -22,7 +22,7 @@
 |-----------|--------|------------|
 | Python | 3.10 – 3.12 | Обязательно |
 | Google Chrome | Любая актуальная | Для парсинга |
-| ОС | Linux Ubuntu | Единственная поддерживаемая ОС |
+| ОС | Linux Ubuntu | Основная поддерживаемая ОС |
 | Git | Любая актуальная | Для работы с репозиторием |
 
 ### Установка для разработки
@@ -54,17 +54,30 @@ parser-2gis/
 │   ├── config.py             # Конфигурация (Pydantic)
 │   ├── common.py             # Общие утилиты
 │   ├── version.py            # Версия пакета
+│   ├── exceptions.py         # Исключения
+│   ├── cache.py              # Менеджер кэша
+│   ├── validator.py          # Валидатор данных
+│   ├── statistics.py         # Экспорт статистики
+│   ├── paths.py              # Утилиты путей
+│   ├── parallel_optimizer.py # Оптимизатор параллельного парсинга
+│   ├── parallel_parser.py    # Параллельный парсер
 │   │
 │   ├── chrome/               # Работа с Chrome
 │   │   ├── browser.py        # Запуск браузера
 │   │   ├── remote.py         # Chrome DevTools Protocol
-│   │   └── options.py        # Опции Chrome
+│   │   ├── options.py        # Опции Chrome
+│   │   ├── dom.py            # Работа с DOM
+│   │   ├── health_monitor.py # Монитор здоровья браузера
+│   │   └── utils.py          # Утилиты Chrome
 │   │
 │   ├── parser/               # Парсеры данных
 │   │   ├── parsers/
 │   │   │   ├── main.py       # Основной парсер
 │   │   │   ├── firm.py       # Парсер фирм
 │   │   │   └── in_building.py # Парсер "В здании"
+│   │   ├── adaptive_limits.py # Адаптивные лимиты
+│   │   ├── smart_retry.py    # Интеллектуальный retry
+│   │   ├── end_of_results.py # Детектор окончания результатов
 │   │   └── options.py        # Опции парсера
 │   │
 │   ├── writer/               # Писатели файлов
@@ -74,20 +87,41 @@ parser-2gis/
 │   │   │   └── json_writer.py # JSON writer
 │   │   └── models/           # Модели данных
 │   │
-│   ├── tui/                  # TUI интерфейс
-│   │   ├── app.py            # Главное окно TUI
-│   │   ├── components.py     # Компоненты интерфейса
-│   │   └── logger.py         # Визуальный логгер
+│   ├── runner/               # Запуск парсера
+│   │   ├── runner.py         # Базовый класс
+│   │   └── cli.py            # CLI запуск
 │   │
-│   ├── cli/                  # CLI интерфейс
+│   ├── logger/               # Логирование
+│   │   ├── logger.py         # Основной логгер
+│   │   ├── file_handler.py   # Обработчик файлов
+│   │   └── visual_logger.py  # Визуальный логгер
+│   │
+│   ├── cli/                  # CLI приложение
 │   │   ├── app.py            # CLI приложение
 │   │   └── progress.py       # Менеджер прогресса
 │   │
+│   ├── tui/                  # TUI интерфейс
+│   │   ├── app.py            # Главное окно TUI
+│   │   └── components.py     # Компоненты интерфейса
+│   │
 │   └── data/                 # Данные
 │       ├── cities.json       # Города (204 города)
-│       └── rubrics.json      # Рубрики (1786 рубрик)
+│       ├── rubrics.json      # Рубрики (1786 рубрик)
+│       └── categories_93.py  # 93 категории
 │
 ├── testes/                   # Тесты (pytest)
+│   ├── conftest.py           # Конфигурация pytest
+│   ├── test_common.py        # Тесты common.py
+│   ├── test_config.py        # Тесты config.py
+│   ├── test_chrome.py        # Тесты chrome/
+│   ├── test_parser.py        # Тесты parser/
+│   ├── test_writer.py        # Тесты writer/
+│   ├── test_logger.py        # Тесты logger/
+│   ├── test_file_logger.py   # Тесты file_handler.py
+│   ├── test_runner.py        # Тесты runner/
+│   ├── test_integration.py   # Интеграционные тесты
+│   └── test_main_categories_mode.py # Тесты categories-mode
+│
 ├── scripts/                  # Скрипты обновления данных
 └── setup.py                  # Установка пакета
 ```
@@ -188,7 +222,7 @@ def test_parser_initialization():
 
 ### Основные правила
 
-- **flake8**: max-line-length=130, игнорируемые правила: E501, W503, C901, W503, E722, E731
+- **flake8**: max-line-length=130, игнорируемые правила: E501, W503, C901, E722, E731
 - **mypy**: строгая проверка типов
 - **Форматирование**: 4 пробела, UTF-8 кодировка
 - **Комментарии**: на русском языке
@@ -252,6 +286,7 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
+        additional_dependencies: [pydantic>=2.0]
 ```
 
 ---
@@ -407,7 +442,7 @@ python scripts/update_rubrics_list.py
 
 - [Документация Pydantic](https://docs.pydantic.dev/)
 - [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/)
-- [PySimpleGUI Documentation](https://pysimplegui.readthedocs.io/)
+- [Rich Documentation](https://rich.readthedocs.io/)
 - [pytest Documentation](https://docs.pytest.org/)
 
 ---

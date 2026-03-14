@@ -1,9 +1,9 @@
 # Parser2GIS 🌍
 
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-LGPLv3%2B-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-269%20passed-brightgreen.svg)](testes/)
-[![Code Quality](https://img.shields.io/badge/score-95/100-brightgreen.svg)](CODE_QUALITY_AUDIT_REPORT_2026_03_09.md)
+[![Tests](https://img.shields.io/badge/tests-293%20passed-brightgreen.svg)](testes/)
+[![Code Quality](https://img.shields.io/badge/score-95/100-brightgreen.svg)](audit-report.md)
 [![GitHub](https://img.shields.io/badge/GitHub-Githab--capibara-orange.svg)](https://github.com/Githab-capibara/parser-2gis)
 
 **Parser2GIS** — мощный инструмент для парсинга данных с сервиса 2GIS (2ГИС), использующий браузер Chrome для обхода анти-бот защит.
@@ -54,10 +54,10 @@ Parser2GIS — Python-приложение для автоматизирован
 
 | Компонент | Версия | Назначение |
 |-----------|--------|------------|
-| **Python** | 3.8–3.12 | Основной язык |
+| **Python** | 3.10–3.12 | Основной язык |
 | **Pydantic v2** | Актуальная | Валидация данных |
 | **Chrome DevTools Protocol** | Актуальная | Управление браузером |
-| **PySimpleGUI** | Опционально | Графический интерфейс |
+| **Rich** | Актуальная | Прогресс-бары и вывод в CLI |
 | **pytest** | Актуальная | Тестирование |
 | **SQLite** | Встроенная | Кэширование результатов |
 | **psutil** | Актуальная | Мониторинг ресурсов |
@@ -66,8 +66,7 @@ Parser2GIS — Python-приложение для автоматизирован
 ### Поддерживаемые ОС
 
 - ✅ **Linux Ubuntu** — основная поддерживаемая ОС
-- ⚠️ **Windows** — ограниченная поддержка (требуется дополнительная настройка)
-- ⚠️ **macOS** — ограниченная поддержка
+- ⚠️ **Windows/macOS** — ограниченная поддержка (требуется дополнительная настройка)
 
 ---
 
@@ -112,7 +111,7 @@ Parser2GIS — Python-приложение для автоматизирован
 
 | Компонент | Версия | Примечание |
 |-----------|--------|------------|
-| **Python** | 3.8–3.12 | Обязательно |
+| **Python** | 3.10–3.12 | Обязательно |
 | **Google Chrome** | Любая актуальная | Для парсинга |
 | **Git** | Любая актуальная | Для работы с репозиторием |
 | **pip** | Актуальная | Установка зависимостей |
@@ -410,9 +409,9 @@ parser-2gis \
 
 ---
 
-## 🖥️ GUI интерфейс
+## 🖥️ TUI интерфейс
 
-**Внимание:** в текущей сборке репозитория GUI может отсутствовать. Раздел описывает опциональные возможности.
+**Примечание:** В текущей версии используется текстовый интерфейс (TUI) на основе Rich.
 
 ### Возможности
 
@@ -1029,9 +1028,10 @@ parser-2gis/
 │   ├── common.py             # Общие утилиты
 │   ├── version.py            # Версия пакета
 │   ├── exceptions.py         # Исключения
-│   ├── cache.py              # Менеджер кэша (новое!)
-│   ├── validator.py          # Валидатор данных (новое!)
-│   ├── statistics.py         # Экспорт статистики (новое!)
+│   ├── cache.py              # Менеджер кэша
+│   ├── validator.py          # Валидатор данных
+│   ├── statistics.py         # Экспорт статистики
+│   ├── paths.py              # Утилиты путей
 │   ├── parallel_optimizer.py # Оптимизатор параллельного парсинга
 │   ├── parallel_parser.py    # Параллельный парсер
 │   │
@@ -1040,7 +1040,7 @@ parser-2gis/
 │   │   ├── remote.py         # Chrome DevTools Protocol
 │   │   ├── options.py        # Опции Chrome
 │   │   ├── dom.py            # Работа с DOM
-│   │   ├── health_monitor.py # Монитор здоровья (новое!)
+│   │   ├── health_monitor.py # Монитор здоровья браузера
 │   │   ├── utils.py          # Утилиты Chrome
 │   │   └── exceptions.py     # Исключения Chrome
 │   │
@@ -1049,9 +1049,10 @@ parser-2gis/
 │   │   │   ├── main.py       # Основной парсер
 │   │   │   ├── firm.py       # Парсер фирм
 │   │   │   └── in_building.py # Парсер "В здании"
-│   │   ├── adaptive_limits.py # Адаптивные лимиты (новое!)
-│   │   ├── smart_retry.py    # Интеллектуальный retry (новое!)
-│   │   ├── end_of_results.py # Детектор окончания (новое!)
+│   │   ├── adaptive_limits.py # Адаптивные лимиты
+│   │   ├── smart_retry.py    # Интеллектуальный retry
+│   │   ├── end_of_results.py # Детектор окончания результатов
+│   │   ├── factory.py        # Фабрика парсеров
 │   │   ├── options.py        # Опции парсера
 │   │   ├── utils.py          # Утилиты парсера
 │   │   └── exceptions.py     # Исключения парсера
@@ -1061,36 +1062,34 @@ parser-2gis/
 │   │   │   ├── csv_writer.py # CSV writer
 │   │   │   ├── xlsx_writer.py # XLSX writer
 │   │   │   └── json_writer.py # JSON writer
-│   │   ├── file_writer.py    # Базовый класс
 │   │   ├── factory.py        # Фабрика writers
 │   │   ├── options.py        # Опции writers
 │   │   └── models/           # Модели данных (Pydantic)
 │   │
 │   ├── runner/               # Запуск парсера
 │   │   ├── runner.py         # Базовый класс
-│   │   ├── cli.py            # CLI запуск
-│   │   └── gui.py            # GUI запуск
+│   │   └── cli.py            # CLI запуск
 │   │
 │   ├── logger/               # Логирование
 │   │   ├── logger.py         # Основной логгер
-│   │   ├── file_logger.py    # FileLogger (новое!)
+│   │   ├── file_handler.py   # Обработчик файлов
+│   │   ├── visual_logger.py  # Визуальный логгер
 │   │   └── options.py        # Опции логирования
 │   │
 │   ├── cli/                  # CLI приложение
 │   │   ├── app.py            # CLI приложение
-│   │   └── progress.py       # ProgressManager (новое!)
+│   │   └── progress.py       # ProgressManager
 │   │
-│   ├── gui/                  # GUI приложение (опционально)
-│   │   ├── app.py            # Главное окно
-│   │   ├── city_selector.py  # Выбор городов
-│   │   ├── category_selector.py # Выбор категорий
-│   │   └── urls_generator.py # Генератор URL
+│   ├── tui/                  # TUI приложение
+│   │   ├── app.py            # Главное окно TUI
+│   │   ├── components.py     # Компоненты интерфейса
+│   │   └── logger.py         # Визуальный логгер
 │   │
 │   └── data/                 # Данные
 │       ├── cities.json       # Города (204 города)
 │       ├── rubrics.json      # Рубрики (1786 рубрик)
 │       ├── categories_93.py  # 93 категории
-│       └── images/           # Изображения для GUI
+│       └── images/           # Изображения
 │
 ├── testes/                   # Тесты (pytest)
 │   ├── conftest.py           # Конфигурация pytest
@@ -1099,11 +1098,15 @@ parser-2gis/
 │   ├── test_chrome.py        # Тесты chrome/
 │   ├── test_parser.py        # Тесты parser/
 │   ├── test_writer.py        # Тесты writer/
-│   ├── test_logger.py        # Тесты logger/ (20 новых тестов!)
+│   ├── test_logger.py        # Тесты logger/
+│   ├── test_file_logger.py   # Тесты file_handler.py
 │   ├── test_runner.py        # Тесты runner/
 │   ├── test_integration.py   # Интеграционные тесты
 │   ├── test_main_categories_mode.py # Тесты categories-mode
-│   └── ...                   # Остальные тесты
+│   ├── test_parallel_parser.py # Тесты параллельного парсера
+│   ├── test_parser_options.py # Тесты опций парсера
+│   ├── test_paths.py         # Тесты paths.py
+│   └── test_version_exceptions.py # Тесты версии
 │
 ├── scripts/                  # Скрипты обновления
 │   ├── update_cities_list.py # Обновление городов
@@ -1149,10 +1152,8 @@ pytest -m slow
 
 ### Статистика тестов
 
-- ✅ **269 тестов** — все проходят
-- ⏭️ **26 тестов** — требуют GUI (опционально)
+- ✅ **293 тестов** — все проходят
 - 📊 **Покрытие:** ~80%
-- 🆕 **20 новых тестов** — для FileLogger
 
 ### Маркеры тестов
 
@@ -1160,7 +1161,7 @@ pytest -m slow
 |--------|----------|
 | `slow` | Медленные тесты |
 | `integration` | Интеграционные тесты |
-| `gui` | Тесты GUI |
+| `tui` | Тесты TUI |
 | `requires_chrome` | Тесты, требующие Chrome |
 | `requires_network` | Тесты, требующие сеть |
 
@@ -1312,7 +1313,7 @@ Fixes #<номер_задачи>
 
 ### Отчеты
 
-> Отчеты о качестве кода доступны в [wiki проекта](https://github.com/Githab-capibara/parser-2gis/wiki).
+> Отчеты о качестве кода доступны в файле [audit-report.md](audit-report.md).
 
 ---
 
@@ -1449,7 +1450,7 @@ validated = validator.validate_record(record)
 
 | Компонент | Версия | Примечание |
 |-----------|--------|------------|
-| **Python** | 3.8–3.12 | Обязательно |
+| **Python** | 3.10–3.12 | Обязательно |
 | **Google Chrome** | Любая актуальная | Для парсинга |
 | **Git** | Любая актуальная | Для работы с репозиторием |
 
@@ -1506,7 +1507,6 @@ python scripts/update_rubrics_list.py
 - 💬 [Обсуждения](https://github.com/Githab-capibara/parser-2gis/discussions)
 - 📝 [Руководство для разработчиков](CONTRIBUTING.md)
 - 📋 [История изменений](CHANGELOG.md)
-- 🔧 [Отчёт об исправлениях](FIXES_REPORT.md)
 
 ---
 
