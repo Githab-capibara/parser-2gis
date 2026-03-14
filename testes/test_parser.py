@@ -46,6 +46,8 @@ testdata = [
 
 
 @pytest.mark.parametrize('format, result_checker', testdata)
+@pytest.mark.requires_network
+@pytest.mark.requires_chrome
 def test_parser(monkeypatch, format, result_checker, num_records=5):
     """Парсинг TOP `num_records` записей и проверка результирующего файла.
 

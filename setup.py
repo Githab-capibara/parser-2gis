@@ -93,7 +93,7 @@ if __name__ == '__main__':
         },
         install_requires=[
             'pychrome==0.2.4',
-            'pydantic>=2.0.0',
+            'pydantic>=2.0.0,<3',
             'psutil>=5.4.8',
             'requests>=2.13.0',
             'xlsxwriter>=3.0.5',
