@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 @pytest.fixture(scope='session')
 def test_data_dir():
     """Фикстура для директории с тестовыми данными.
-    
+
     Returns:
         Путь к директории с тестовыми данными.
     """
@@ -26,10 +26,10 @@ def test_data_dir():
 @pytest.fixture
 def temp_file(tmp_path):
     """Фикстура для временного файла.
-    
+
     Args:
         tmp_path: pytest tmp_path fixture.
-    
+
     Returns:
         Путь к временному файлу.
     """
@@ -41,7 +41,7 @@ def temp_file(tmp_path):
 @pytest.fixture
 def sample_urls():
     """Фикстура для примеров URL.
-    
+
     Returns:
         Список примеров URL.
     """
@@ -55,7 +55,7 @@ def sample_urls():
 @pytest.fixture
 def sample_config_dict():
     """Фикстура для примера конфигурации в виде словаря.
-    
+
     Returns:
         Словарь с примером конфигурации.
     """
@@ -84,7 +84,7 @@ def sample_config_dict():
 @pytest.fixture
 def sample_org_data():
     """Фикстура для примера данных организации.
-    
+
     Returns:
         Словарь с примером данных организации.
     """
@@ -101,14 +101,14 @@ def sample_org_data():
 @pytest.fixture(autouse=True)
 def setup_test_environment():
     """Автоматическая фикстура для настройки тестового окружения.
-    
+
     Выполняется перед каждым тестом.
     """
     # Настройка перед тестом
     os.environ['TESTING'] = 'True'
-    
+
     yield
-    
+
     # Очистка после теста
     if 'TESTING' in os.environ:
         del os.environ['TESTING']
@@ -117,7 +117,7 @@ def setup_test_environment():
 @pytest.fixture
 def mock_response():
     """Фикстура для мок-ответа.
-    
+
     Returns:
         Словарь с примером ответа.
     """
@@ -133,7 +133,7 @@ def mock_response():
 @pytest.fixture(params=['csv', 'json', 'xlsx'])
 def output_format(request):
     """Фикстура для перебора форматов вывода.
-    
+
     Returns:
         Формат вывода.
     """
@@ -143,7 +143,7 @@ def output_format(request):
 @pytest.fixture(params=[True, False])
 def headless_mode(request):
     """Фикстура для перебора режимов headless.
-    
+
     Returns:
         Значение headless режима.
     """
@@ -153,7 +153,7 @@ def headless_mode(request):
 @pytest.fixture(params=[1, 5, 10, 50, 100])
 def num_records(request):
     """Фикстура для перебора количества записей.
-    
+
     Returns:
         Количество записей.
     """

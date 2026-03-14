@@ -29,6 +29,7 @@ class TUIParallelParserWrapper:
         output_dir: str,
         config: Configuration,
         max_workers: int = 3,
+        timeout_per_url: int = 300,
     ) -> None:
         """
         Инициализация обёртки.
@@ -40,6 +41,7 @@ class TUIParallelParserWrapper:
             output_dir: Директория для выходных файлов
             config: Конфигурация
             max_workers: Количество потоков
+            timeout_per_url: Таймаут на один URL в секундах
         """
         from ..parallel_parser import ParallelCityParser
 
@@ -49,6 +51,7 @@ class TUIParallelParserWrapper:
         self._output_dir = output_dir
         self._config = config
         self._max_workers = max_workers
+        self._timeout_per_url = timeout_per_url
 
         # Создаём парсер
         self._parser = ParallelCityParser(
@@ -57,6 +60,7 @@ class TUIParallelParserWrapper:
             output_dir=output_dir,
             config=config,
             max_workers=max_workers,
+            timeout_per_url=timeout_per_url,
         )
 
         # Счётчики
@@ -152,6 +156,7 @@ def run_parallel_with_tui(
     output_dir: str,
     config: Configuration,
     max_workers: int = 3,
+    timeout_per_url: int = 300,
     output_file: Optional[str] = None,
     version: str = "1.0",
 ) -> bool:
@@ -164,6 +169,7 @@ def run_parallel_with_tui(
         output_dir: Директория для выходных файлов
         config: Конфигурация
         max_workers: Количество потоков
+        timeout_per_url: Таймаут на один URL в секундах
         output_file: Файл для объединённого результата
         version: Версия приложения
 
@@ -187,6 +193,7 @@ def run_parallel_with_tui(
             output_dir=output_dir,
             config=config,
             max_workers=max_workers,
+            timeout_per_url=timeout_per_url,
         )
 
         # Запускаем парсинг

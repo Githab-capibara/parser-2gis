@@ -166,13 +166,13 @@ class TestImagePathVsImageData:
     def test_image_data_matches_file(self):
         """Проверка, что image_data соответствует файлу."""
         import base64
-        
+
         path = image_path('icon', 'png')
         data = image_data('icon', 'png')
-        
+
         with open(path, 'rb') as f:
             file_data = base64.b64encode(f.read())
-        
+
         assert data == file_data
 
 
@@ -181,7 +181,7 @@ class TestImageFormats:
 
     def test_png_images(self):
         """Проверка PNG изображений."""
-        png_images = ['icon', 'logo', 'rubric_folder', 'rubric_item', 
+        png_images = ['icon', 'logo', 'rubric_folder', 'rubric_item',
                       'settings', 'settings_inverted']
         for name in png_images:
             try:

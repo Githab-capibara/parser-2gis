@@ -52,7 +52,7 @@ class TestConfigurationSaveLoad:
             config_path = pathlib.Path(tmpdir) / 'test.config'
             config = Configuration(path=config_path)
             config.save_config()
-            
+
             assert config_path.exists()
             with open(config_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -65,7 +65,7 @@ class TestConfigurationSaveLoad:
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / 'test.config'
             config = Configuration.load_config(config_path, auto_create=True)
-            
+
             assert config_path.exists()
             assert config.path == config_path
 
@@ -73,15 +73,15 @@ class TestConfigurationSaveLoad:
         """Проверка загрузки существующей конфигурации."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / 'test.config'
-            
+
             # Создаём и сохраняем конфигурацию
             original_config = Configuration(path=config_path)
             original_config.chrome.headless = True
             original_config.save_config()
-            
+
             # Загружаем конфигурацию
             loaded_config = Configuration.load_config(config_path)
-            
+
             assert loaded_config.chrome.headless is True
             assert loaded_config.path == config_path
 
@@ -89,11 +89,11 @@ class TestConfigurationSaveLoad:
         """Проверка загрузки с невалидным JSON."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / 'test.config'
-            
+
             # Создаём невалидный JSON
             with open(config_path, 'w', encoding='utf-8') as f:
                 f.write('{ invalid json }')
-            
+
             # Должна загрузиться конфигурация по умолчанию
             config = Configuration.load_config(config_path)
             assert isinstance(config, Configuration)
@@ -102,7 +102,7 @@ class TestConfigurationSaveLoad:
         """Проверка загрузки с ошибкой валидации."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / 'test.config'
-            
+
             # Создаём JSON с невалидными данными
             invalid_data = {
                 'chrome': {
@@ -111,7 +111,7 @@ class TestConfigurationSaveLoad:
             }
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(invalid_data, f)
-            
+
             # Должна загрузиться конфигурация по умолчанию
             config = Configuration.load_config(config_path)
             assert isinstance(config, Configuration)
@@ -216,7 +216,7 @@ class TestConfigurationAutoCreate:
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / 'nonexistent.config'
             config = Configuration.load_config(config_path, auto_create=True)
-            
+
             assert config_path.exists()
             assert config.path == config_path
 
@@ -225,7 +225,7 @@ class TestConfigurationAutoCreate:
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / 'nonexistent.config'
             config = Configuration.load_config(config_path, auto_create=False)
-            
+
             assert not config_path.exists()
             assert config.path is None
 
@@ -244,7 +244,7 @@ class TestConfigurationVersion:
             config_path = pathlib.Path(tmpdir) / 'test.config'
             config = Configuration(path=config_path)
             config.save_config()
-            
+
             with open(config_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             assert data['version'] == '0.1'

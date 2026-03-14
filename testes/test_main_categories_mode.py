@@ -3,15 +3,16 @@
 Тесты для проверки валидации аргументов --categories-mode в main.py.
 """
 
-import pytest
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
+import pytest
 
 # Добавляем путь к пакету
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from parser_2gis.main import parse_arguments
+from parser_2gis.main import parse_arguments  # noqa: E402
 
 
 class TestCategoriesModeValidation:
@@ -89,7 +90,11 @@ class TestCategoriesModeValidation:
             cities_file.write_text('[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]')
 
             try:
-                with patch('sys.argv', ['parser-2gis', '-i', 'https://2gis.ru/moscow/search/Аптеки', '--cities', 'omsk', '-o', 'output.csv', '-f', 'csv']):
+                with patch('sys.argv', [
+                    'parser-2gis', '-i',
+                    'https://2gis.ru/moscow/search/Аптеки',
+                    '--cities', 'omsk', '-o', 'output.csv', '-f', 'csv'
+                ]):
                     args, config = parse_arguments()
 
                 assert args.url is not None
@@ -136,7 +141,11 @@ class TestParallelWorkersValidation:
             cities_file.write_text('[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]')
 
             try:
-                with patch('sys.argv', ['parser-2gis', '--cities', 'omsk', '--categories-mode', '--parallel-workers', '5', '-o', 'output/', '-f', 'csv']):
+                with patch('sys.argv', [
+                    'parser-2gis', '--cities', 'omsk',
+                    '--categories-mode', '--parallel-workers', '5',
+                    '-o', 'output/', '-f', 'csv'
+                ]):
                     args, config = parse_arguments()
 
                 assert args.parallel_workers == 5

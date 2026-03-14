@@ -85,11 +85,11 @@ if __name__ == '__main__':
         include_package_data=True,
         python_requires='>=3.10',
         keywords='parser scraper 2gis',
-        url='https://github.com/interlark/parser-2gis',
+        url='https://github.com/Githab-capibara/parser-2gis',
         project_urls={
-            'Documentation': 'https://github.com/interlark/parser-2gis/wiki',
-            'GitHub': 'https://github.com/interlark/parser-2gis',
-            'Changelog': 'https://github.com/interlark/parser-2gis/blob/main/CHANGELOG.md',
+            'Documentation': 'https://github.com/Githab-capibara/parser-2gis/wiki',
+            'GitHub': 'https://github.com/Githab-capibara/parser-2gis',
+            'Changelog': 'https://github.com/Githab-capibara/parser-2gis/blob/main/CHANGELOG.md',
         },
         install_requires=[
             'pychrome==0.2.4',

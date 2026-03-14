@@ -7,8 +7,9 @@
 - CLIRunner
 """
 
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
 
 from parser_2gis.runner.runner import AbstractRunner
 
@@ -27,10 +28,10 @@ class TestAbstractRunner:
         class ConcreteRunner(AbstractRunner):
             def start(self):
                 pass
-            
+
             def stop(self):
                 pass
-        
+
         config = MagicMock()
         runner = ConcreteRunner(['url1'], 'output.csv', 'csv', config)
         assert runner._urls == ['url1']
@@ -42,10 +43,10 @@ class TestAbstractRunner:
         class ConcreteRunner(AbstractRunner):
             def start(self):
                 return 'started'
-            
+
             def stop(self):
                 return 'stopped'
-        
+
         config = MagicMock()
         runner = ConcreteRunner([], '', '', config)
         assert hasattr(runner, 'start')
@@ -56,10 +57,10 @@ class TestAbstractRunner:
         class ConcreteRunner(AbstractRunner):
             def start(self):
                 pass
-            
+
             def stop(self):
                 return 'stopped'
-        
+
         config = MagicMock()
         runner = ConcreteRunner([], '', '', config)
         assert hasattr(runner, 'stop')
@@ -70,10 +71,10 @@ class TestAbstractRunner:
         class ConcreteRunner(AbstractRunner):
             def start(self):
                 pass
-            
+
             def stop(self):
                 pass
-        
+
         urls = ['url1', 'url2', 'url3']
         config = MagicMock()
         runner = ConcreteRunner(urls, '', '', config)
@@ -84,10 +85,10 @@ class TestAbstractRunner:
         class ConcreteRunner(AbstractRunner):
             def start(self):
                 pass
-            
+
             def stop(self):
                 pass
-        
+
         config = MagicMock()
         runner = ConcreteRunner([], 'output.csv', '', config)
         assert runner._output_path == 'output.csv'
@@ -97,10 +98,10 @@ class TestAbstractRunner:
         class ConcreteRunner(AbstractRunner):
             def start(self):
                 pass
-            
+
             def stop(self):
                 pass
-        
+
         config = MagicMock()
         runner = ConcreteRunner([], '', 'json', config)
         assert runner._format == 'json'
@@ -110,10 +111,10 @@ class TestAbstractRunner:
         class ConcreteRunner(AbstractRunner):
             def start(self):
                 pass
-            
+
             def stop(self):
                 pass
-        
+
         config = MagicMock()
         runner = ConcreteRunner([], '', '', config)
         assert runner._config is config
@@ -135,7 +136,7 @@ class TestGUIRunner:
     def test_gui_runner_creation(self):
         """Проверка создания GUIRunner."""
         from parser_2gis.runner import GUIRunner
-        
+
         config = MagicMock()
         runner = GUIRunner(['url1'], 'output.csv', 'csv', config)
         assert runner is not None
@@ -144,7 +145,7 @@ class TestGUIRunner:
     def test_gui_runner_has_start(self):
         """Проверка наличия метода start."""
         from parser_2gis.runner import GUIRunner
-        
+
         config = MagicMock()
         runner = GUIRunner([], '', '', config)
         assert hasattr(runner, 'start')
@@ -153,7 +154,7 @@ class TestGUIRunner:
     def test_gui_runner_has_stop(self):
         """Проверка наличия метода stop."""
         from parser_2gis.runner import GUIRunner
-        
+
         config = MagicMock()
         runner = GUIRunner([], '', '', config)
         assert hasattr(runner, 'stop')
@@ -176,7 +177,7 @@ class TestCLIRunner:
     def test_cli_runner_creation(self):
         """Проверка создания CLIRunner."""
         from parser_2gis.runner import CLIRunner
-        
+
         config = MagicMock()
         runner = CLIRunner(['url1'], 'output.csv', 'csv', config)
         assert runner is not None
@@ -185,7 +186,7 @@ class TestCLIRunner:
     def test_cli_runner_has_start(self):
         """Проверка наличия метода start."""
         from parser_2gis.runner import CLIRunner
-        
+
         config = MagicMock()
         runner = CLIRunner([], '', '', config)
         assert hasattr(runner, 'start')
@@ -194,7 +195,7 @@ class TestCLIRunner:
     def test_cli_runner_has_stop(self):
         """Проверка наличия метода stop."""
         from parser_2gis.runner import CLIRunner
-        
+
         config = MagicMock()
         runner = CLIRunner([], '', '', config)
         assert hasattr(runner, 'stop')
@@ -207,7 +208,7 @@ class TestRunnerModule:
     def test_runner_module_exports(self):
         """Проверка экспорта модуля."""
         from parser_2gis import runner
-        
+
         assert hasattr(runner, 'AbstractRunner')
         assert hasattr(runner, 'GUIRunner')
         assert hasattr(runner, 'CLIRunner')
@@ -215,7 +216,7 @@ class TestRunnerModule:
     def test_runner_all(self):
         """Проверка __all__."""
         from parser_2gis.runner import __all__
-        
+
         assert 'AbstractRunner' in __all__
         assert 'GUIRunner' in __all__
         assert 'CLIRunner' in __all__
@@ -227,11 +228,11 @@ class TestRunnerWithMockConfig:
     def test_gui_runner_with_mock_config(self):
         """Проверка GUIRunner с mock конфигурацией."""
         from parser_2gis.runner import GUIRunner
-        
+
         config = MagicMock()
         config.chrome.headless = True
         config.parser.max_records = 10
-        
+
         runner = GUIRunner(['url1'], 'output.csv', 'csv', config)
         assert runner._config.chrome.headless is True
         assert runner._config.parser.max_records == 10
@@ -239,11 +240,11 @@ class TestRunnerWithMockConfig:
     def test_cli_runner_with_mock_config(self):
         """Проверка CLIRunner с mock конфигурацией."""
         from parser_2gis.runner import CLIRunner
-        
+
         config = MagicMock()
         config.chrome.headless = False
         config.parser.max_records = 50
-        
+
         runner = CLIRunner(['url1'], 'output.json', 'json', config)
         assert runner._config.chrome.headless is False
         assert runner._config.parser.max_records == 50

@@ -23,8 +23,21 @@ from .data.categories_93 import CATEGORIES_93
 from .logger import logger, log_parser_start, log_parser_finish, setup_cli_logger
 from .paths import data_path
 from .version import version
-from .cli import cli_app
-from .tui import run_parallel_with_tui
+
+# Импорты с обработкой отсутствия зависимостей
+try:
+    from .cli import cli_app
+except ImportError as e:
+    logger.error("Не удалось импортировать CLI модуль: %s", e)
+    logger.error("Убедитесь, что все зависимости установлены: pip install -e .")
+    raise
+
+try:
+    from .tui import run_parallel_with_tui
+except ImportError as e:
+    logger.error("Не удалось импортировать TUI модуль: %s", e)
+    logger.error("Убедитесь, что все зависимости установлены: pip install -e .")
+    raise
 
 
 class ArgumentHelpFormatter(argparse.HelpFormatter):
@@ -397,6 +410,7 @@ def main() -> None:
                 output_dir=str(output_dir),
                 config=command_line_config,
                 max_workers=getattr(args, "parallel_workers", 3),
+                timeout_per_url=300,  # Таймаут по умолчанию: 5 минут
                 output_file=output_file,
                 version=version,
             )
