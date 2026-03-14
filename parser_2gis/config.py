@@ -84,7 +84,7 @@ class Configuration(BaseModel):
                     )
 
                 # Определяем набор установленных полей (Pydantic v2)
-                fields_set: Optional[set[str]] = model_source.model_fields_set
+                fields_set: Optional[set[str]] = model_source.model_fields_set  # type: ignore[attr-defined]
 
                 if not fields_set:
                     fields_set = set()
@@ -142,7 +142,7 @@ class Configuration(BaseModel):
             self.path.parent.mkdir(parents=True, exist_ok=True)
 
             # Сериализация конфигурации в словарь (Pydantic v2)
-            config_dict: Dict[str, Any] = self.model_dump(exclude={"path"})
+            config_dict: Dict[str, Any] = self.model_dump(exclude={"path"})  # type: ignore[attr-defined]
 
             json_str = json.dumps(config_dict, ensure_ascii=False, indent=4)
 
@@ -218,7 +218,7 @@ class Configuration(BaseModel):
 
         # Парсим конфигурацию
         try:
-            config = cls.model_validate_json(config_data)
+            config = cls.model_validate_json(config_data)  # type: ignore[attr-defined]
             config.path = config_path
             return config
 

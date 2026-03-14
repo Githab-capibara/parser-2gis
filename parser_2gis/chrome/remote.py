@@ -9,8 +9,8 @@ import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pychrome
-import requests
-from requests.exceptions import RequestException
+import requests  # type: ignore[import-untyped]
+from requests.exceptions import RequestException  # type: ignore[import-untyped]
 from websocket import WebSocketException
 
 from ..common import wait_until_finished
@@ -240,6 +240,10 @@ class ChromeRemote:
         for attempt in range(max_attempts):
             try:
                 # Извлекаем порт из dev_url для проверки
+                # Проверяем, что dev_url не None перед использованием
+                if self._dev_url is None:
+                    logger.error("dev_url не установлен при подключении")
+                    return False
                 port = int(self._dev_url.split(":")[-1])
 
                 # Проверка доступности порта перед подключением
@@ -441,6 +445,11 @@ class ChromeRemote:
             Метод устанавливает пользовательский агент, скрывает признаки webdriver
             и настраивает перехват сетевых запросов для последующей обработки.
         """
+        # Проверяем, что вкладка существует
+        if self._chrome_tab is None:
+            logger.error("Chrome tab не инициализирован в _setup_tab")
+            return
+
         # Исправляем user agent для headless браузера
         original_useragent = self.execute_script("navigator.userAgent")
 
@@ -551,6 +560,14 @@ class ChromeRemote:
 
     def _init_tab_monitor(self) -> None:
         """Мониторит здоровье вкладки Chrome."""
+        # Проверяем, что вкладка существует
+        if self._chrome_tab is None:
+            logger.error("Chrome tab не инициализирован в _init_tab_monitor")
+            return
+        if self._dev_url is None:
+            logger.error("dev_url не установлен в _init_tab_monitor")
+            return
+
         # Используем threading.Event для потокобезопасного флага
         tab_detached = threading.Event()
 
@@ -558,6 +575,9 @@ class ChromeRemote:
             """V8 OOM может убить вкладку Chrome и сохранить websocket функциональным,
             как будто ничего не случилось, поэтому мы мониторим индексную страницу вкладок
             и проверяем, жива ли наша вкладка."""
+            # Проверяем, что вкладка существует
+            if self._chrome_tab is None:
+                return
             while not self._chrome_tab._stopped.is_set():
                 try:
                     # requests.get не принимает параметр json=True, убираем его
@@ -580,6 +600,9 @@ class ChromeRemote:
         self._ping_thread.start()
 
         # Устанавливаем обёртку для отправки с повторным выбросом исключения
+        # Проверяем, что вкладка существует
+        if self._chrome_tab is None:
+            return
         original_send = self._chrome_tab._send
 
         def wrapped_send(*args, **kwargs) -> Any:
@@ -604,6 +627,9 @@ class ChromeRemote:
         Raises:
             ChromeException: При ошибке навигации.
         """
+        if self._chrome_tab is None:
+            logger.error("Chrome tab не инициализирован в navigate")
+            return
         try:
             ret = self._chrome_tab.Page.navigate(
                 url=url, _timeout=timeout, referrer=referer
@@ -669,6 +695,11 @@ class ChromeRemote:
         Примечание:
             Функция гарантирует очистку временных данных для предотвращения утечки памяти.
         """
+        # Проверяем, что вкладка существует
+        if self._chrome_tab is None:
+            logger.error("Chrome tab не инициализирован в get_response_body")
+            return ""
+
         response_data: Optional[Dict[str, Any]] = None
         response_body: str = ""
 
@@ -769,6 +800,17 @@ class ChromeRemote:
         Returns:
             Корневой DOM-узел.
         """
+        if self._chrome_tab is None:
+            logger.error("Chrome tab не инициализирован в get_document")
+            # Возвращаем пустой DOMNode как fallback, используя алиасы полей pydantic
+            return DOMNode(
+                nodeId=0,
+                backendNodeId=0,
+                nodeType=0,
+                nodeName="",
+                localName="",
+                nodeValue="",
+            )
         tree = self._chrome_tab.DOM.getDocument(depth=-1 if full else 1)
         return DOMNode(**tree["root"])
 
@@ -787,6 +829,10 @@ class ChromeRemote:
             - Максимальную длину
             - Наличие опасных паттернов (eval, Function, document.write)
         """
+        if self._chrome_tab is None:
+            logger.error("Chrome tab не инициализирован в add_start_script")
+            return
+
         # Валидация скрипта на безопасность
         is_valid, error_msg = _validate_js_code(source)
         if not is_valid:
@@ -804,6 +850,9 @@ class ChromeRemote:
         Returns:
             `True` при успехе, `False` при неудаче.
         """
+        if self._chrome_tab is None:
+            logger.error("Chrome tab не инициализирован в add_blocked_requests")
+            return False
         try:
             self._chrome_tab.Network.setBlockedURLs(urls=urls)
             return True
@@ -829,6 +878,10 @@ class ChromeRemote:
             - Максимальную длину
             - Наличие опасных паттернов (eval, Function, document.write)
         """
+        if self._chrome_tab is None:
+            logger.error("Chrome tab не инициализирован в execute_script")
+            return None
+
         # Валидация выражения на безопасность
         is_valid, error_msg = _validate_js_code(expression)
         if not is_valid:
@@ -851,6 +904,9 @@ class ChromeRemote:
             dom_node: Элемент DOMNode.
             timeout: Таймаут операции в секундах (опционально).
         """
+        if self._chrome_tab is None:
+            logger.error("Chrome tab не инициализирован в perform_click")
+            return
         try:
             resolved_node = self._chrome_tab.DOM.resolveNode(
                 backendNodeId=dom_node.backend_id, _timeout=timeout
@@ -874,6 +930,9 @@ class ChromeRemote:
         Args:
             timeout: Время ожидания в секундах.
         """
+        if self._chrome_tab is None:
+            logger.error("Chrome tab не инициализирован в wait")
+            return
         self._chrome_tab.wait(timeout)
 
     def stop(self) -> None:

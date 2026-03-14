@@ -373,7 +373,7 @@ class TUIManager:
         if not self._app:
             return
 
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if total_urls is not None:
             kwargs["total_urls"] = total_urls
             self._app._components.progress.set_url_total(total_urls)

@@ -21,6 +21,7 @@ from rich.progress import (
     MofNCompleteColumn,
     Progress,
     SpinnerColumn,
+    TaskID,
     TaskProgressColumn,
     TextColumn,
     TimeElapsedColumn,
@@ -110,9 +111,9 @@ class ProgressPanel:
         )
 
         # Задачи прогресса
-        self._url_task_id: Optional[int] = None
-        self._page_task_id: Optional[int] = None
-        self._record_task_id: Optional[int] = None
+        self._url_task_id: Optional[TaskID] = None
+        self._page_task_id: Optional[TaskID] = None
+        self._record_task_id: Optional[TaskID] = None
 
     def start(self, total_urls: int, total_pages: int = 100, total_records: int = 1000) -> None:
         """
@@ -312,6 +313,8 @@ class LogPanel:
         """
         from rich.console import Group
 
+        # Используем Union type для content, так как он может быть Text или Group
+        content: Text | Group
         if not self._logs:
             content = Text("[dim]Ожидание логов...[/dim]")
         else:
