@@ -269,6 +269,26 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         help="Задержка между кликами по записям (миллисекунд)",
     )
     p_parser.add_argument(
+        "--parser.max-retries",
+        metavar="{1,2,3,...}",
+        help="Максимальное количество повторных попыток при ошибках сети (по умолчанию: 3)",
+    )
+    p_parser.add_argument(
+        "--parser.retry-on-network-errors",
+        metavar="{yes/no}",
+        help="Выполнять повторные попытки при ошибках сети: 502, 503, 504, TimeoutError (по умолчанию: yes)",
+    )
+    p_parser.add_argument(
+        "--parser.retry-delay-base",
+        metavar="{1,2,3,...}",
+        help="Базовая задержка между повторными попытками в секундах (по умолчанию: 1)",
+    )
+    p_parser.add_argument(
+        "--parser.memory-threshold",
+        metavar="{512,1024,2048,...}",
+        help="Порог использования памяти в МБ для автоматической очистки (по умолчанию: 2048)",
+    )
+    p_parser.add_argument(
         "--parallel-workers",
         type=int,
         default=10,
