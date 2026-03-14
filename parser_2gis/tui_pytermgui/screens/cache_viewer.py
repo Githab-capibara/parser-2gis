@@ -198,7 +198,7 @@ class CacheViewerScreen:
         for unit in ["Б", "КБ", "МБ", "ГБ"]:
             if size < 1024:
                 return f"{size:.1f} {unit}"
-            size /= 1024
+            size = size / 1024
         return f"{size:.1f} ТБ"
 
     def _clear_all(self, *args) -> None:

@@ -49,7 +49,7 @@ def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
         return model.__fields_set__
 
 
-def model_validate_json(json_str: str) -> type[pydantic.BaseModel]:
+def model_validate_json(json_str: str) -> pydantic.BaseModel:
     """
     Создаёт модель из JSON строки.
 

@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-LGPLv3%2B-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-330%20passed-brightgreen.svg)](testes/)
+[![Tests](https://img.shields.io/badge/tests-20%20passed-brightgreen.svg)](tests/)
 [![Code Quality](https://img.shields.io/badge/score-95/100-brightgreen.svg)](https://github.com/Githab-capibara/parser-2gis)
 [![GitHub](https://img.shields.io/badge/GitHub-Githab--capibara-orange.svg)](https://github.com/Githab-capibara/parser-2gis)
 
@@ -93,7 +93,7 @@ Parser2GIS — Python-приложение для автоматизирован
 ### Режимы работы
 
 - ✅ **CLI** — командная строка для автоматизации
-- ✅ **GUI** — графический интерфейс для интерактивной работы
+- ✅ **TUI** — текстовый интерфейс для интерактивной работы
 - ✅ **Параллельный парсинг** — до 20 потоков для ускорения
 
 ### Настройки
@@ -215,11 +215,17 @@ parser-2gis \
   -f csv
 ```
 
-### GUI режим
+### TUI режим
 
 ```bash
-# Запуск графического интерфейса
+# Запуск текстового интерфейса
 parser-2gis
+
+# Запуск нового TUI (pytermgui)
+parser-2gis --tui-new
+
+# Запуск TUI с автоматическим парсингом Омска
+parser-2gis --tui-new-omsk
 ```
 
 ### Примеры использования API
@@ -326,15 +332,16 @@ exporter.export_to_text(stats, Path('stats.txt'))
 - 🎛️ Полный контроль через аргументы
 - 📊 Красивые прогресс-бары (через ProgressManager)
 
-### GUI режим
+### TUI режим
 
-Графический интерфейс для интерактивной работы.
+Текстовый интерфейс для интерактивной работы.
 
 **Преимущества:**
-- 🖼️ Удобный интерфейс
+- 🖼️ Удобный текстовый интерфейс
 - 🏙️ Визуальный выбор городов и категорий
 - 📈 Просмотр прогресса в реальном времени
 - 🎓 Не требует знаний командной строки
+- 🖱️ Поддержка мыши и навигации с клавиатуры
 
 ---
 
@@ -411,7 +418,7 @@ parser-2gis \
 
 ## 🖥️ TUI интерфейс
 
-**Примечание:** В текущей версии используется текстовый интерфейс (TUI) на основе Rich.
+**Примечание:** В текущей версии используется текстовый интерфейс (TUI) на основе Rich и pytermgui.
 
 ### Возможности
 
@@ -421,16 +428,34 @@ parser-2gis \
 - 🔧 Настройки Chrome и парсера
 - 📊 Прогресс-бар и логирование
 - 💾 Выбор формата вывода
+- 🖱️ Поддержка мыши и клавиатурной навигации
 
 ### Запуск
 
 ```bash
-# Linux/macOS
+# Запуск старого TUI (rich)
 parser-2gis
+
+# Запуск нового TUI (pytermgui)
+parser-2gis --tui-new
+
+# Запуск TUI с парсингом Омска
+parser-2gis --tui-new-omsk
 
 # Windows
 python.exe -m parser_2gis
 ```
+
+### Новый TUI (pytermgui)
+
+Современный интерактивный интерфейс с поддержкой:
+- Многоэкранной навигации
+- Поиска городов и категорий
+- Настройки через формы
+- Прогресс-баров в реальном времени
+- Просмотра кэша и статистики
+
+Подробнее см. [parser_2gis/tui_pytermgui/README.md](parser_2gis/tui_pytermgui/README.md)
 
 ---
 

@@ -34,7 +34,7 @@ from .styles import get_default_styles
 from .utils import ScreenManager
 
 if TYPE_CHECKING:
-    from ..parallel_parser import ParallelParser
+    from ..parallel_parser import ParallelCityParser as ParallelParser
 
 
 class TUIApp:
@@ -103,7 +103,7 @@ class TUIApp:
 
     def _show_main_menu(self) -> None:
         """Показать главное меню."""
-        if not self._manager:
+        if not self._manager or not self._screen_manager:
             return
 
         # Очистить все окна
@@ -118,7 +118,7 @@ class TUIApp:
 
     def _show_city_selector(self) -> None:
         """Показать экран выбора городов."""
-        if not self._manager:
+        if not self._manager or not self._screen_manager:
             return
 
         # Очистить все окна
@@ -133,7 +133,7 @@ class TUIApp:
 
     def _show_category_selector(self) -> None:
         """Показать экран выбора категорий."""
-        if not self._manager:
+        if not self._manager or not self._screen_manager:
             return
 
         # Очистить все окна
@@ -148,7 +148,7 @@ class TUIApp:
 
     def _show_browser_settings(self) -> None:
         """Показать экран настроек браузера."""
-        if not self._manager:
+        if not self._manager or not self._screen_manager:
             return
 
         # Очистить все окна
@@ -163,7 +163,7 @@ class TUIApp:
 
     def _show_parser_settings(self) -> None:
         """Показать экран настроек парсера."""
-        if not self._manager:
+        if not self._manager or not self._screen_manager:
             return
 
         # Очистить все окна
@@ -178,7 +178,7 @@ class TUIApp:
 
     def _show_output_settings(self) -> None:
         """Показать экран настроек вывода."""
-        if not self._manager:
+        if not self._manager or not self._screen_manager:
             return
 
         # Очистить все окна
@@ -193,7 +193,7 @@ class TUIApp:
 
     def _show_cache_viewer(self) -> None:
         """Показать экран просмотра кэша."""
-        if not self._manager:
+        if not self._manager or not self._screen_manager:
             return
 
         # Очистить все окна
@@ -208,7 +208,7 @@ class TUIApp:
 
     def _show_about(self) -> None:
         """Показать экран О программе."""
-        if not self._manager:
+        if not self._manager or not self._screen_manager:
             return
 
         # Очистить все окна
@@ -223,7 +223,7 @@ class TUIApp:
 
     def _show_parsing_screen(self) -> None:
         """Показать экран парсинга."""
-        if not self._manager:
+        if not self._manager or not self._screen_manager:
             return
 
         # Очистить все окна
@@ -460,14 +460,14 @@ class TUIApp:
                 return json.load(f)
         return []
 
-    def get_categories(self) -> list[dict[str, str]]:
+    def get_categories(self) -> list[dict[str, str | int]]:
         """
         Получить список категорий.
 
         Returns:
-            Список категорий
+            Список категорий с полями name, query, rubric_code
         """
-        return CATEGORIES_93
+        return CATEGORIES_93  # type: ignore[return-value]
 
     @property
     def selected_cities(self) -> list[str]:
