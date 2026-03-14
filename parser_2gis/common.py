@@ -246,10 +246,11 @@ def wait_until_finished(
             while True:
                 # Проверка таймаута в начале цикла
                 if effective_timeout is not None and time.time() - start_time > effective_timeout:
+                    timeout_msg = f"Превышено время ожидания для {func.__name__}"
                     if effective_throw:
-                        raise TimeoutError(
-                            f"Превышено время ожидания для {func.__name__}"
-                        )
+                        raise TimeoutError(timeout_msg)
+                    # Логируем timeout для диагностики
+                    _get_logger().warning(timeout_msg)
                     return ret
 
                 try:

@@ -67,7 +67,9 @@ def _validate_url(url: str) -> bool:
     try:
         result = urlparse(url)
         return all([result.scheme in ('http', 'https'), result.netloc])
-    except Exception:
+    except (ValueError, TypeError):
+        # Ловим только ожидаемые исключения типизации/значений
+        # Остальные ошибки (NameError, AttributeError) указывают на баги
         return False
 
 

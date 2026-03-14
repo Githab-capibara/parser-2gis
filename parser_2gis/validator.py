@@ -212,7 +212,8 @@ class DataValidator:
                 return ValidationResult(False, None, [error_msg])
 
             return ValidationResult(True, url, [])
-        except Exception as e:
+        except (ValueError, TypeError) as e:
+            # Ловим только ожидаемые исключения парсинга URL
             return ValidationResult(False, None, [str(e)])
 
     def clean_text(self, text: str) -> str:
