@@ -36,8 +36,9 @@ class XLSXWriter(CSVWriter):
 
             # Замена оригинального файла новым
             shutil.move(tmp_xlsx_name, self._file_path)
-        except Exception:
+        except Exception as e:
             # Удаляем временный файл если он был создан
             if os.path.exists(tmp_xlsx_name):
                 os.remove(tmp_xlsx_name)
+            logger.error("Ошибка при конвертации в XLSX: %s", e)
             raise
