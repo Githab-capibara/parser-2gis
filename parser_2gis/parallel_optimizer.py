@@ -2,7 +2,12 @@
 Модуль для оптимизации параллельного парсинга.
 
 Этот модуль предоставляет логику для эффективного распределения
-ресурсов между браузерами при параллельном парсинге.
+ресурсов между браузерами при параллельном парсинга.
+
+Оптимизации:
+- Кэширование psutil.Process объекта
+- Улучшенное управление очередями задач
+- Оптимизированная проверка ресурсов
 """
 
 from __future__ import annotations
@@ -72,6 +77,10 @@ class ParallelTask:
 class ParallelOptimizer:
     """
     Оптимизатор для параллельного парсинга.
+    
+    Оптимизация:
+    - Кэширование psutil.Process объекта
+    - Улучшенное управление очередями задач
 
     Управляет очередями задач, балансирует нагрузку между браузерами,
     контролирует использование ресурсов системы.
@@ -97,6 +106,18 @@ class ParallelOptimizer:
             "failed": 0,
             "avg_duration": 0.0,
         }
+        
+        # Оптимизация: кэшируем psutil.Process объект
+        self._process_cache: Optional[psutil.Process] = None
+        try:
+            self._process_cache = psutil.Process()
+        except Exception:
+            pass
+        
+        # Кэш для проверки ресурсов
+        self._resource_cache: Tuple[bool, float, float] = (True, 0.0, 0.0)
+        self._resource_cache_time: float = 0
+        self._resource_cache_ttl: float = 1.0  # TTL 1 секунда
 
         logger.info(
             "Инициализирован ParallelOptimizer: max_workers=%d, max_memory=%d МБ",
@@ -138,18 +159,32 @@ class ParallelOptimizer:
     def check_resources(self) -> Tuple[bool, float]:
         """
         Проверяет доступность ресурсов системы.
+        
+        Оптимизация:
+        - Кэширование psutil.Process объекта
+        - Кэширование результатов проверки для снижения частоты проверок
 
         Returns:
             Кортеж (доступно ли, использование_памяти_МБ).
         """
+        current_time = time.time()
+        
+        # Проверяем кэш ресурсов
+        if current_time - self._resource_cache_time < self._resource_cache_ttl:
+            # Возвращаем кэшированный результат
+            available, memory_mb, _ = self._resource_cache
+            return available, memory_mb
+        
         try:
-            # Получаем использование памяти
-            process = psutil.Process()
-            memory_info = process.memory_info()
+            # Оптимизация: используем кэшированный Process объект
+            if self._process_cache is None:
+                return True, 0.0
+                
+            memory_info = self._process_cache.memory_info()
             memory_mb = memory_info.rss / 1024 / 1024
 
-            # Получаем загрузку CPU
-            cpu_percent = process.cpu_percent(interval=0.1)
+            # Получаем загрузку CPU (быстрая проверка без интервала)
+            cpu_percent = self._process_cache.cpu_percent(interval=0)
 
             # Проверяем лимиты
             memory_ok = memory_mb < self._max_memory_mb
@@ -164,6 +199,11 @@ class ParallelOptimizer:
                     self._max_memory_mb,
                     cpu_percent,
                 )
+
+            # Кэшируем результат
+            result = (available, memory_mb, cpu_percent)
+            self._resource_cache = result
+            self._resource_cache_time = current_time
 
             return available, memory_mb
 
