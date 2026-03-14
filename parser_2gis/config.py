@@ -12,6 +12,7 @@ from .common import report_from_validation_error
 from .logger import LogOptions, logger
 from .parser import ParserOptions
 from .paths import user_path
+from .pydantic_compat import get_model_dump, get_model_fields_set
 from .version import config_version
 from .writer import WriterOptions
 
@@ -83,8 +84,8 @@ class Configuration(BaseModel):
                         f"Превышена максимальная глубина рекурсии ({max_depth}) при объединении конфигурации"
                     )
 
-                # Определяем набор установленных полей (Pydantic v2)
-                fields_set: Optional[set[str]] = model_source.model_fields_set  # type: ignore[attr-defined]
+                # Определяем набор установленных полей (поддержка Pydantic v1 и v2)
+                fields_set: Optional[set[str]] = get_model_fields_set(model_source)
 
                 if not fields_set:
                     fields_set = set()
@@ -141,8 +142,8 @@ class Configuration(BaseModel):
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Сериализация конфигурации в словарь (Pydantic v2)
-            config_dict: Dict[str, Any] = self.model_dump(exclude={"path"})  # type: ignore[attr-defined]
+            # Сериализация конфигурации в словарь (поддержка Pydantic v1 и v2)
+            config_dict: Dict[str, Any] = get_model_dump(self, exclude={"path"})
 
             json_str = json.dumps(config_dict, ensure_ascii=False, indent=4)
 
