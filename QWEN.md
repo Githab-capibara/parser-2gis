@@ -24,7 +24,11 @@
 - НИКОГДА не добавляй в репозиторий файл QWEN.md!
 - НИКОГДА не добавляй в репозиторий файл KODA.md!
 - НИКОГДА не храни токены и секреты в файлах проекта! Используй переменные окружения!
-- Для работы с GitHub используй токен из переменной окружения GITHUB_TOKEN
+- Для работы с GitHub используй переменную окружения GITHUB_TOKEN
+  - Установка в Linux/Mac: `export GITHUB_TOKEN="твой_токен"`
+  - Установка в Windows: `set GITHUB_TOKEN=твой_токен` или `$env:GITHUB_TOKEN="твой_токен"` в PowerShell
+  - Токен можно получить в настройках GitHub: Settings → Developer settings → Personal access tokens → Fine-grained tokens
+  - Необходимые разрешения для токена: contents (read/write), repository (полный доступ)
 - Для работы с GitHub используй следующие инструменты:
   - mcp__github__add_issue_comment
   - mcp__github__create_branch
