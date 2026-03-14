@@ -123,7 +123,10 @@ class TestAllParserOptionsArguments:
                 cli_arg,
             ]
             # Добавляем значение в зависимости от типа поля
-            field_type = ParserOptions.model_fields[field].annotation
+            # Используем getattr для совместимости с Pydantic v1 и v2
+            model_fields = getattr(ParserOptions, 'model_fields', None) or getattr(ParserOptions, '__fields__', {})
+            field_info = model_fields[field]
+            field_type = field_info.annotation if hasattr(field_info, 'annotation') else field_info.type_
             if field_type == bool:
                 test_args.append("yes")
             elif field_type in (int,):

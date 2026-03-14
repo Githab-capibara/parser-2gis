@@ -88,6 +88,16 @@ class CLIRunner(AbstractRunner):
             logger.error("❌ Таймаут операции: %s", e)
             log_parser_finish(success=False)
             return
+        except PermissionError as e:
+            # Ошибка доступа к файлу
+            logger.error("❌ Ошибка доступа к файлу: %s", e)
+            log_parser_finish(success=False)
+            return
+        except OSError as e:
+            # Ошибки файловой системы
+            logger.error("❌ Ошибка файловой системы: %s", e)
+            log_parser_finish(success=False)
+            return
         except Exception as e:
             if (
                 isinstance(e, ChromeRuntimeException)

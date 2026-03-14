@@ -233,6 +233,7 @@ class ChromeRemote:
             Функция детально логирует все ошибки подключения для отладки.
             Перед подключением проверяется доступность порта.
             Выполняется до 3 попыток подключения.
+            При ошибке после создания вкладки выполняется очистка ресурсов.
         """
         max_attempts = 3
         attempt_delay = 2.0
@@ -280,6 +281,8 @@ class ChromeRemote:
                     self._dev_url,
                     e,
                 )
+                # Очистка ресурсов при ошибке
+                self._cleanup_interface()
                 if attempt < max_attempts - 1:
                     time.sleep(attempt_delay)
                 continue
@@ -291,6 +294,8 @@ class ChromeRemote:
                     self._dev_url,
                     e,
                 )
+                # Очистка ресурсов при ошибке
+                self._cleanup_interface()
                 if attempt < max_attempts - 1:
                     time.sleep(attempt_delay)
                 continue
@@ -302,6 +307,8 @@ class ChromeRemote:
                     self._dev_url,
                     e,
                 )
+                # Очистка ресурсов при ошибке
+                self._cleanup_interface()
                 if attempt < max_attempts - 1:
                     time.sleep(attempt_delay)
                 continue
@@ -314,6 +321,8 @@ class ChromeRemote:
                     e,
                     exc_info=True,
                 )
+                # Очистка ресурсов при ошибке
+                self._cleanup_interface()
                 if attempt < max_attempts - 1:
                     time.sleep(attempt_delay)
                 continue
@@ -321,6 +330,40 @@ class ChromeRemote:
         # Все попытки исчерпаны
         logger.error("Все %d попыток подключения исчерпаны", max_attempts)
         return False
+
+    def _cleanup_interface(self) -> None:
+        """Очищает ресурсы Chrome interface при ошибке.
+
+        Примечание:
+            Метод безопасно закрывает вкладку и интерфейс,
+            игнорируя любые ошибки для предотвращения утечек ресурсов.
+        """
+        try:
+            if self._chrome_tab is not None:
+                try:
+                    if self._chrome_tab.status == pychrome.Tab.status_started:
+                        self._chrome_tab.stop()
+                    # Закрываем вкладку через API
+                    if self._dev_url:
+                        requests.put(
+                            "%s/json/close/%s" % (self._dev_url, self._chrome_tab.id),
+                            timeout=5,
+                        )
+                except Exception as e:
+                    logger.debug("Ошибка при очистке вкладки: %s", e)
+                finally:
+                    self._chrome_tab = None
+
+            if self._chrome_interface is not None:
+                try:
+                    self._chrome_interface.close()
+                except Exception as e:
+                    logger.debug("Ошибка при закрытии интерфейса: %s", e)
+                finally:
+                    self._chrome_interface = None
+
+        except Exception as e:
+            logger.warning("Непредвиденная ошибка при очистке ресурсов: %s", e)
 
     def start(self) -> None:
         """Открывает браузер, создаёт новую вкладку, настраивает удалённый интерфейс.

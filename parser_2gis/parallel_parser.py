@@ -15,10 +15,20 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional
 
-from .common import url_query_encode
+from .common import generate_category_url
 from .logger import logger, log_parser_finish, print_progress
 from .parser import get_parser
 from .writer import get_writer
+
+# Константы для валидации параметров
+MIN_WORKERS = 1
+MAX_WORKERS = 20
+MIN_TIMEOUT = 60  # секунд
+MAX_TIMEOUT = 3600  # секунд
+DEFAULT_TIMEOUT = 300  # секунд
+
+# Константы для прогресса
+PROGRESS_UPDATE_INTERVAL = 3  # секунд
 
 if TYPE_CHECKING:
     from .config import Configuration
@@ -47,7 +57,7 @@ class ParallelCityParser:
         output_dir: str,
         config: Configuration,
         max_workers: int = 3,
-        timeout_per_url: int = 300,
+        timeout_per_url: int = DEFAULT_TIMEOUT,
     ) -> None:
         # Валидация входных данных: проверка списка городов
         if not cities:
@@ -58,12 +68,12 @@ class ParallelCityParser:
             raise ValueError("Список категорий не может быть пустым")
 
         # Валидация входных данных: ограничение max_workers (1-20)
-        if not 1 <= max_workers <= 20:
-            raise ValueError("max_workers должен быть от 1 до 20")
+        if not MIN_WORKERS <= max_workers <= MAX_WORKERS:
+            raise ValueError(f"max_workers должен быть от {MIN_WORKERS} до {MAX_WORKERS}")
 
         # Валидация timeout_per_url (60-3600 секунд)
-        if not 60 <= timeout_per_url <= 3600:
-            raise ValueError("timeout_per_url должен быть от 60 до 3600 секунд")
+        if not MIN_TIMEOUT <= timeout_per_url <= MAX_TIMEOUT:
+            raise ValueError(f"timeout_per_url должен быть от {MIN_TIMEOUT} до {MAX_TIMEOUT} секунд")
 
         self.cities = cities
         self.categories = categories
@@ -135,20 +145,16 @@ class ParallelCityParser:
 
         for city in self.cities:
             for category in self.categories:
-                # Формируем URL для категории с кодированием
-                base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
-                # Получаем query категории с проверкой наличия ключа
-                category_query = category.get("query", category.get("name", ""))
-                # Оставляем кириллицу нетронутой, кодируем только пробелы и спецсимволы
-                rest_url = f'/search/{url_query_encode(category_query)}'
-
-                if category.get("rubric_code"):
-                    rest_url += f'/rubricId/{category["rubric_code"]}'
-
-                rest_url += "/filters/sort=name"
-                url = base_url + rest_url
-
-                all_urls.append((url, category["name"], city["name"]))
+                try:
+                    # Используем общую функцию генерации URL
+                    url = generate_category_url(city, category)
+                    all_urls.append((url, category["name"], city["name"]))
+                except Exception as e:
+                    self.log(
+                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
+                        "error",
+                    )
+                    continue
 
         with self._lock:
             self._stats["total"] = len(all_urls)
@@ -509,7 +515,7 @@ class ParallelCityParser:
 
                     # Выводим прогресс каждые 3 секунды
                     current_time = time.time()
-                    if current_time - last_progress_time >= 3 or idx == len(futures):
+                    if current_time - last_progress_time >= PROGRESS_UPDATE_INTERVAL or idx == len(futures):
                         progress_bar = print_progress(
                             success_count + failed_count,
                             len(futures),
@@ -605,7 +611,7 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
         output_dir: str,
         config: Configuration,
         max_workers: int = 3,
-        timeout_per_url: int = 300,
+        timeout_per_url: int = DEFAULT_TIMEOUT,
         output_file: Optional[str] = None,
     ) -> None:
         ParallelCityParser.__init__(

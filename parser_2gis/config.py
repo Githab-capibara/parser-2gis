@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 import pathlib
 import shutil
-from typing import Any, Dict, Optional
+from copy import deepcopy
+from typing import Any, Dict, Optional, Set
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -12,7 +13,7 @@ from .common import report_from_validation_error
 from .logger import LogOptions, logger
 from .parser import ParserOptions
 from .paths import user_path
-from .pydantic_compat import get_model_dump, get_model_fields_set
+from .pydantic_compat import get_model_dump, get_model_fields_set, model_validate_json_class
 from .version import config_version
 from .writer import WriterOptions
 
@@ -41,90 +42,118 @@ class Configuration(BaseModel):
         Raises:
             ValueError: Если возникает конфликт типов при объединении.
             RecursionError: При превышении максимальной глубины рекурсии.
+
+        Example:
+            >>> config = Configuration()
+            >>> other = Configuration(chrome=ChromeOptions(headless=True))
+            >>> config.merge_with(other)  # Обновляет только chrome.headless
         """
+        self._merge_models(
+            source=other_config,
+            target=self,
+            max_depth=10,
+            current_depth=0,
+            visited=set(),
+        )
 
-        def assign_attributes(
-            model_source: BaseModel,
-            model_target: BaseModel,
-            max_depth: int = 10,
-            current_depth: int = 0,
-            visited: Optional[set] = None,
-        ) -> None:
-            """Рекурсивно присваивает новые атрибуты к существующей конфигурации.
+    @staticmethod
+    def _merge_models(
+        source: BaseModel,
+        target: BaseModel,
+        max_depth: int = 10,
+        current_depth: int = 0,
+        visited: Optional[Set[int]] = None,
+    ) -> None:
+        """Рекурсивно объединяет две Pydantic модели.
 
-            Использует model_fields_set для получения набора установленных полей (Pydantic v2).
-            Использует набор visited для предотвращения циклических ссылок.
+        Args:
+            source: Исходная модель для чтения значений.
+            target: Целевая модель для обновления.
+            max_depth: Максимальная глубина рекурсии.
+            current_depth: Текущая глубина рекурсии.
+            visited: Набор ID посещённых объектов для предотвращения циклических ссылок.
 
-            Args:
-                model_source: Исходная модель.
-                model_target: Целевая модель.
-                max_depth: Максимальная глубина рекурсии (по умолчанию 10).
-                current_depth: Текущая глубина рекурсии.
-                visited: Набор посещённых объектов для предотвращения циклических ссылок.
+        Raises:
+            RecursionError: При превышении максимальной глубины рекурсии.
+        """
+        # Инициализируем набор посещённых объектов
+        if visited is None:
+            visited = set()
 
-            Raises:
-                RecursionError: При превышении максимальной глубины рекурсии.
-            """
-            # Инициализируем набор посещённых объектов
-            if visited is None:
-                visited = set()
+        # Проверка на циклические ссылки
+        source_id = id(source)
+        if source_id in visited:
+            logger.warning("Обнаружена циклическая ссылка при объединении конфигурации")
+            return
 
-            # Проверка на циклические ссылки
-            source_id = id(model_source)
-            if source_id in visited:
-                logger.warning("Обнаружена циклическая ссылка при объединении конфигурации")
-                return
-
-            visited.add(source_id)
-
-            try:
-                # Проверка глубины рекурсии
-                if current_depth >= max_depth:
-                    raise RecursionError(
-                        f"Превышена максимальная глубина рекурсии ({max_depth}) при объединении конфигурации"
-                    )
-
-                # Определяем набор установленных полей (поддержка Pydantic v1 и v2)
-                fields_set: Optional[set[str]] = get_model_fields_set(model_source)
-
-                if not fields_set:
-                    fields_set = set()
-
-                for field in fields_set:
-                    try:
-                        source_attr = getattr(model_source, field)
-
-                        if not isinstance(source_attr, BaseModel):
-                            # Присваиваем простое значение
-                            setattr(model_target, field, source_attr)
-                        else:
-                            # Рекурсивно объединяем вложенные модели
-                            target_attr = getattr(model_target, field, None)
-                            if target_attr is None:
-                                # Если целевой атрибут не существует, создаём копию
-                                from copy import deepcopy
-                                setattr(model_target, field, deepcopy(source_attr))
-                            else:
-                                assign_attributes(
-                                    source_attr, target_attr, max_depth, current_depth + 1, visited
-                                )
-
-                    except (AttributeError, TypeError) as e:
-                        logger.warning("Ошибка при объединении поля %s: %s", field, e)
-                        raise
-                    except Exception as e:
-                        logger.error(
-                            "Непредвиденная ошибка при объединении поля %s: %s", field, e
-                        )
-                        raise
-            finally:
-                # Удаляем из набора после обработки
-                visited.discard(source_id)
+        visited.add(source_id)
 
         try:
-            assign_attributes(other_config, self)
+            # Проверка глубины рекурсии
+            if current_depth >= max_depth:
+                raise RecursionError(
+                    f"Превышена максимальная глубина рекурсии ({max_depth}) при объединении конфигурации"
+                )
+
+            # Получаем набор установленных полей
+            fields_set = Configuration._get_fields_set(source)
+
+            for field in fields_set:
+                Configuration._merge_field(source, target, field)
+
+        finally:
+            # Удаляем из набора после обработки
+            visited.discard(source_id)
+
+    @staticmethod
+    def _get_fields_set(model: BaseModel) -> Set[str]:
+        """Получает набор установленных полей модели.
+
+        Args:
+            model: Pydantic модель.
+
+        Returns:
+            Набор имён установленных полей.
+        """
+        fields_set: Optional[Set[str]] = get_model_fields_set(model)
+        return fields_set if fields_set else set()
+
+    @staticmethod
+    def _merge_field(source: BaseModel, target: BaseModel, field: str) -> None:
+        """Объединяет одно поле между двумя моделями.
+
+        Args:
+            source: Исходная модель.
+            target: Целевая модель.
+            field: Имя поля для объединения.
+
+        Raises:
+            (AttributeError, TypeError): При ошибке доступа к полю.
+        """
+        try:
+            source_value = getattr(source, field)
+
+            if not isinstance(source_value, BaseModel):
+                # Простое значение - прямое присваивание
+                setattr(target, field, source_value)
+            else:
+                # Вложенная модель - рекурсивное объединение
+                target_value = getattr(target, field, None)
+                if target_value is None:
+                    # Целевой атрибут не существует - создаём копию
+                    setattr(target, field, deepcopy(source_value))
+                else:
+                    Configuration._merge_models(
+                        source=source_value,
+                        target=target_value,
+                        current_depth=1,  # Увеличиваем глубину на 1
+                    )
+
+        except (AttributeError, TypeError) as e:
+            logger.warning("Ошибка при объединении поля %s: %s", field, e)
+            raise
         except Exception as e:
-            logger.error("Критическая ошибка при объединении конфигураций: %s", e)
+            logger.error("Непредвиденная ошибка при объединении поля %s: %s", field, e)
             raise
 
     def save_config(self) -> None:
@@ -219,7 +248,7 @@ class Configuration(BaseModel):
 
         # Парсим конфигурацию
         try:
-            config = cls.model_validate_json(config_data)  # type: ignore[attr-defined]
+            config = model_validate_json_class(cls, config_data)
             config.path = config_path
             return config
 
