@@ -27,19 +27,6 @@ from .visual_logger import (
 )
 
 
-# TUI импорт (ленивый - при необходимости)
-def get_tui_app():
-    """Получить TUI приложение (ленивый импорт)."""
-    from ..tui.app import TUIApp, TUIManager
-    return TUIApp, TUIManager
-
-
-def get_tui_logger():
-    """Получить TUI логгер (ленивый импорт)."""
-    from ..tui.logger import TUILogger, setup_tui_logger
-    return TUILogger, setup_tui_logger
-
-
 __all__ = [
     "logger",
     "Logger",
@@ -64,6 +51,4 @@ __all__ = [
     "ColorCodes",
     "log_parser_start",
     "log_parser_finish",
-    "get_tui_app",
-    "get_tui_logger",
 ]

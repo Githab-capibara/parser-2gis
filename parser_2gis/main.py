@@ -34,13 +34,6 @@ except ImportError as e:
     logger.error("Убедитесь, что все зависимости установлены: pip install -e .")
     raise
 
-try:
-    from .tui import run_parallel_with_tui
-except ImportError as e:
-    logger.error("Не удалось импортировать TUI модуль: %s", e)
-    logger.error("Убедитесь, что все зависимости установлены: pip install -e .")
-    raise
-
 run_new_tui_omsk: Callable[[], None] | None = None
 try:
     from .tui_pytermgui import run_omsk_parallel as run_new_tui_omsk
@@ -441,12 +434,6 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         help="Кодировка результирующего файла",
     )
     other_parser.add_argument(
-        "--tui",
-        action="store_true",
-        default=False,
-        help="Запустить TUI интерфейс (старый, на rich)",
-    )
-    other_parser.add_argument(
         "--tui-new",
         action="store_true",
         default=False,
@@ -475,7 +462,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     config_args = unwrap_dot_dict(vars(args))
 
     # Пропускаем валидацию URL для TUI режимов - там выбор происходит в интерфейсе
-    is_tui_mode = getattr(args, "tui_new", False) or getattr(args, "tui_new_omsk", False) or getattr(args, "tui", False)
+    is_tui_mode = getattr(args, "tui_new", False) or getattr(args, "tui_new_omsk", False)
 
     # Ручная валидация: требуется хотя бы один источник URL (кроме TUI режимов)
     if not is_tui_mode:
@@ -623,19 +610,21 @@ def main() -> None:
             # Приводим тип categories к list[dict] для совместимости с ParallelCityParser
             categories_list: list[dict] = CATEGORIES_93  # type: ignore[assignment]
 
-            # Используем TUI интерфейс вместо обычного логирования
+            # Используем новый TUI интерфейс
             logger.info("🎨 Запуск TUI интерфейса...")
 
             output_file = str(output_dir / "merged_result.csv")
-            result = run_parallel_with_tui(
+            
+            # Запускаем новый TUI с параллельным парсингом
+            from .tui_pytermgui.run_parallel import run_parallel_with_tui as run_parallel_new_tui
+            result = run_parallel_new_tui(
                 cities=selected_cities,
                 categories=categories_list,
                 output_dir=str(output_dir),
                 config=command_line_config,
                 max_workers=getattr(args, "parallel_workers", 3),
-                timeout_per_url=300,  # Таймаут по умолчанию: 5 минут
+                timeout_per_url=300,
                 output_file=output_file,
-                version=version,
             )
 
             # Вычисляем длительность
