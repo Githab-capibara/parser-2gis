@@ -166,14 +166,14 @@ class TUIApp:
                 try:
                     self._tui_logger.close()
                 except Exception as e:
-                    self._console.print(f"[dim red]Ошибка закрытия логгера: {e}[/dim red]")
-    
+                    self._console.print(f"[dim red]Ошибка закрытия логгера: {e}[/]")
+
             # Останавливаем Live display с обработкой ошибок
             if self._live:
                 try:
                     self._live.stop()
                 except Exception as e:
-                    self._console.print(f"[dim red]Ошибка остановки Live display: {e}[/dim red]")
+                    self._console.print(f"[dim red]Ошибка остановки Live display: {e}[/]")
     
             # Финальный вывод с обработкой ошибок
             try:
