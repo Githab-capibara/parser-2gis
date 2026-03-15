@@ -48,7 +48,8 @@ class LogViewer:
         color = level_colors.get(level, "[white]")
         log_line = f"{color}[{timestamp}] {level}: {message}[/]"
 
-        self._logs.append(log_line)
+        # Преобразовать TIM-теги в ANSI-коды для правильного отображения
+        self._logs.append(ptg.tim.parse(log_line))
 
     def _render_text(self) -> str:
         """
@@ -58,7 +59,8 @@ class LogViewer:
             Строка с логами
         """
         if not self._logs:
-            return "[dim]Нет логов...[/]"
+            # Преобразовать TIM-теги в ANSI-коды для правильного отображения
+            return ptg.tim.parse("[dim]Нет логов...[/]")
 
         return "\n".join(self._logs)
 
@@ -70,13 +72,14 @@ class LogViewer:
             Container с логами
         """
         if not self._logs:
+            # Преобразовать TIM-теги в ANSI-коды для правильного отображения
             return ptg.Container(
-                ptg.Label("[dim]Нет логов...[/]"),
+                ptg.Label(ptg.tim.parse("[dim]Нет логов...[/]")),
                 height=10,
             )
 
-        # Создать контейнер с логами
-        log_labels = [ptg.Label(log) for log in self._logs]
+        # Создать контейнер с логами, преобразуя TIM-теги в ANSI-коды
+        log_labels = [ptg.Label(ptg.tim.parse(log)) for log in self._logs]
 
         return ptg.Container(
             *log_labels,

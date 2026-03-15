@@ -308,7 +308,9 @@ class ButtonWidget(NavigableWidget):
             Список строк для рендеринга
         """
         style = self._focused_style if self._focused else self._base_style
-        return [f"{style} {self._label}[/]"]
+        line = f"{style} {self._label}[/]"
+        # Преобразовать TIM-теги в ANSI-коды для правильного отображения
+        return [ptg.tim.parse(line)]
 
     def handle_key(self, key: str) -> bool:
         """

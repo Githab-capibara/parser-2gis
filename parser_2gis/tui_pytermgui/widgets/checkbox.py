@@ -97,8 +97,12 @@ class Checkbox(ptg.Widget):
 
         # Добавляем визуальное отображение фокуса
         if self._focused:
-            return [f"{prefix}[bold cyan]{symbol} {self._label}[/]"]
-        return [f"{prefix}{symbol} {self._label}"]
+            line = f"{prefix}[bold cyan]{symbol} {self._label}[/]"
+            # Преобразовать TIM-теги в ANSI-коды для правильного отображения
+            return [ptg.tim.parse(line)]
+        line = f"{prefix}{symbol} {self._label}"
+        # Преобразовать TIM-теги в ANSI-коды для правильного отображения
+        return [ptg.tim.parse(line)]
 
     def handle_key(self, key: str) -> bool:
         """

@@ -53,8 +53,11 @@ class ProgressBar:
         # Создать строку прогресс-бара
         bar = "█" * filled_width + "░" * empty_width
 
-        # Создать метку
-        return f"{self._label}: [{bar}] {percent:.1f}% ({self._completed}/{self._total})"
+        # Создать метку с TIM-тегами для стилизации
+        line = f"[bold]{self._label}[/]: [green]{bar}[/] [cyan]{percent:.1f}%[/] ([dim]{self._completed}/{self._total}[/])"
+        
+        # Преобразовать TIM-теги в ANSI-коды для правильного отображения
+        return ptg.tim.parse(line)
 
     def render(self) -> ptg.Label:
         """
