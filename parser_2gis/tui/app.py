@@ -72,34 +72,66 @@ class TUIApp:
         self._started_at: Optional[datetime] = None
 
     def start(self) -> None:
-        """Запустить TUI приложение."""
-        self._started_at = datetime.now()
-        self._state.start_time = self._started_at
-        self._running = True
-
-        # Настраиваем TUI логгер
-        self._tui_logger = TUILogger(
-            self._components.logs,
-            self._log_dir,
-            self._log_level,
-        )
-        self._logger = self._tui_logger.setup()
-
-        # Инициализируем Live display
-        self._live = Live(
-            self._render(),
-            console=self._console,
-            refresh_per_second=int(1 / self._refresh_rate),
-            screen=True,
-            redirect_stdout=False,
-            redirect_stderr=False,
-        )
-        self._live.start()
-
-        # Обновляем заголовок
-        self._update_header()
-
-        self._logger.info("TUI приложение запущено")
+        """Запустить TUI приложение.
+        
+        Raises:
+            OSError: При ошибке создания директории для логов.
+            RuntimeError: При ошибке настройки TUI логгера.
+            Exception: При других ошибках запуска.
+        """
+        try:
+            self._started_at = datetime.now()
+            self._state.start_time = self._started_at
+            self._running = True
+    
+            # Настраиваем TUI логгер с обработкой ошибок
+            try:
+                self._tui_logger = TUILogger(
+                    self._components.logs,
+                    self._log_dir,
+                    self._log_level,
+                )
+                self._logger = self._tui_logger.setup()
+            except (OSError, IOError) as e:
+                raise OSError(
+                    f"Ошибка настройки TUI логгера: {e}. "
+                    f"Функция: {self.start.__name__}, "
+                    f"Директория: {self._log_dir}"
+                ) from e
+            except Exception as e:
+                raise RuntimeError(
+                    f"Ошибка инициализации TUI логгера: {e}. "
+                    f"Функция: {self.start.__name__}"
+                ) from e
+    
+            # Инициализируем Live display с обработкой ошибок
+            try:
+                self._live = Live(
+                    self._render(),
+                    console=self._console,
+                    refresh_per_second=int(1 / self._refresh_rate),
+                    screen=True,
+                    redirect_stdout=False,
+                    redirect_stderr=False,
+                )
+                self._live.start()
+            except Exception as e:
+                raise RuntimeError(
+                    f"Ошибка запуска Live display: {e}. "
+                    f"Функция: {self.start.__name__}"
+                ) from e
+    
+            # Обновляем заголовок
+            self._update_header()
+    
+            if self._logger:
+                self._logger.info("TUI приложение запущено")
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            import sys
+            sys.stderr.write(f"Критическая ошибка при запуске TUI: {e}\n")
+            raise
 
     def stop(self, success: bool = True) -> None:
         """
@@ -107,43 +139,67 @@ class TUIApp:
 
         Args:
             success: Успешно ли завершение
+            
+        Raises:
+            Exception: При ошибке остановки приложения.
         """
-        self._running = False
-
-        # Логируем завершение
-        if self._logger:
-            end_time = datetime.now()
-            duration = end_time - self._started_at if self._started_at else None
-            duration_str = str(duration).split(".")[0] if duration else "0:00:00"
-
-            self._logger.info("=" * 80)
-            self._logger.info("ЗАВЕРШЕНИЕ РАБОТЫ")
-            self._logger.info(f"Статус: {'УСПЕШНО' if success else 'С ОШИБКАМИ'}")
-            self._logger.info(f"Время работы: {duration_str}")
-            self._logger.info(f"Всего записей: {self._state.current_record}")
-            self._logger.info(f"Успешно: {self._state.success_count}")
-            self._logger.info(f"Ошибок: {self._state.error_count}")
-            self._logger.info("=" * 80)
-
-        # Закрываем TUI логгер
-        if self._tui_logger:
-            self._tui_logger.close()
-
-        # Останавливаем Live display
-        if self._live:
-            self._live.stop()
-
-        # Финальный вывод
-        self._console.print()
-        if success:
-            self._console.print("[bold green]✅ Парсинг завершён успешно![/bold green]")
-        else:
-            self._console.print("[bold red]❌ Парсинг завершён с ошибками[/bold red]")
-
-        if self._tui_logger and self._tui_logger.log_file:
-            self._console.print(
-                f"[dim]Подробный лог сохранён в: {self._tui_logger.log_file.absolute()}[/dim]"
-            )
+        try:
+            self._running = False
+    
+            # Логируем завершение
+            if self._logger:
+                end_time = datetime.now()
+                duration = end_time - self._started_at if self._started_at else None
+                duration_str = str(duration).split(".")[0] if duration else "0:00:00"
+    
+                self._logger.info("=" * 80)
+                self._logger.info("ЗАВЕРШЕНИЕ РАБОТЫ")
+                self._logger.info(f"Статус: {'УСПЕШНО' if success else 'С ОШИБКАМИ'}")
+                self._logger.info(f"Время работы: {duration_str}")
+                self._logger.info(f"Всего записей: {self._state.current_record}")
+                self._logger.info(f"Успешно: {self._state.success_count}")
+                self._logger.info(f"Ошибок: {self._state.error_count}")
+                self._logger.info("=" * 80)
+    
+            # Закрываем TUI логгер с обработкой ошибок
+            if self._tui_logger:
+                try:
+                    self._tui_logger.close()
+                except Exception as e:
+                    self._console.print(f"[dim red]Ошибка закрытия логгера: {e}[/dim red]")
+    
+            # Останавливаем Live display с обработкой ошибок
+            if self._live:
+                try:
+                    self._live.stop()
+                except Exception as e:
+                    self._console.print(f"[dim red]Ошибка остановки Live display: {e}[/dim red]")
+    
+            # Финальный вывод с обработкой ошибок
+            try:
+                self._console.print()
+                if success:
+                    self._console.print("[bold green]✅ Парсинг завершён успешно![/bold green]")
+                else:
+                    self._console.print("[bold red]❌ Парсинг завершён с ошибками[/bold red]")
+    
+                if self._tui_logger and self._tui_logger.log_file:
+                    self._console.print(
+                        f"[dim]Подробный лог сохранён в: {self._tui_logger.log_file.absolute()}[/dim]"
+                    )
+            except (IOError, OSError) as e:
+                # Если не удалось вывести в консоль, пишем в stderr
+                import sys
+                status = "УСПЕШНО" if success else "С ОШИБКАМИ"
+                sys.stderr.write(f"\nПарсинг завершён {status}\n")
+                if self._tui_logger and self._tui_logger.log_file:
+                    sys.stderr.write(f"Лог файл: {self._tui_logger.log_file.absolute()}\n")
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            import sys
+            sys.stderr.write(f"Критическая ошибка при остановке TUI: {e}\n")
+            raise
 
     def update_state(self, **kwargs: Any) -> None:
         """
@@ -192,13 +248,29 @@ class TUIApp:
         Args:
             message: Сообщение лога
             level: Уровень лога
+            
+        Raises:
+            Exception: При ошибке добавления лога.
         """
-        self._components.logs.add_log(message, level)
-
-        # Также логируем в файловый логгер
-        if self._logger:
-            log_method = getattr(self._logger, level.lower(), self._logger.info)
-            log_method(message)
+        try:
+            self._components.logs.add_log(message, level)
+    
+            # Также логируем в файловый логгер
+            if self._logger:
+                log_method = getattr(self._logger, level.lower(), self._logger.info)
+                log_method(message)
+        except Exception as e:
+            # Если не удалось добавить лог, пишем в stderr
+            import sys
+            sys.stderr.write(
+                f"Ошибка добавления лога: {e}. "
+                f"Функция: {self.add_log.__name__}, "
+                f"Уровень: {level}, "
+                f"Сообщение: {message}\n"
+            )
+            # Пробрасываем ошибку только для критичных уровней
+            if level in ("ERROR", "CRITICAL"):
+                raise
 
     def _update_header(self) -> None:
         """Обновить заголовок."""
@@ -261,26 +333,37 @@ class TUIApp:
 
         Returns:
             Строка для отображения
+            
+        Raises:
+            Exception: При ошибке рендеринга.
         """
-        from io import StringIO
-
-        output = StringIO()
-        console = Console(file=output, force_terminal=True)
-
-        # Заголовок
-        console.print(HeaderPanel.render(self._version))
-        console.print()
-
-        # Прогресс
-        console.print(self._components.progress.render())
-        console.print()
-
-        # Статистика и логи
-        console.print(self._components.stats.render())
-        console.print()
-        console.print(self._components.logs.render())
-
-        return output.getvalue()
+        try:
+            from io import StringIO
+    
+            output = StringIO()
+            console = Console(file=output, force_terminal=True)
+    
+            # Заголовок
+            console.print(HeaderPanel.render(self._version))
+            console.print()
+    
+            # Прогресс
+            console.print(self._components.progress.render())
+            console.print()
+    
+            # Статистика и логи
+            console.print(self._components.stats.render())
+            console.print()
+            console.print(self._components.logs.render())
+    
+            return output.getvalue()
+        except Exception as e:
+            # Логируем ошибку рендеринга
+            if self._logger:
+                self._logger.exception(f"Ошибка рендеринга TUI: {e}. Функция: {self._render.__name__}")
+            import sys
+            sys.stderr.write(f"Ошибка рендеринга TUI: {e}\n")
+            raise
 
     @property
     def logger(self) -> Optional[logging.Logger]:

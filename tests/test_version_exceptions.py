@@ -77,7 +77,11 @@ class TestChromeExceptions:
     def test_chrome_exception_base(self):
         """Проверка базового исключения Chrome."""
         exc = ChromeException('Test error')
-        assert str(exc) == 'Test error'
+        # Новое сообщение включает контекстную информацию
+        assert 'Test error' in str(exc)
+        assert 'Функция:' in str(exc)
+        assert 'Строка:' in str(exc)
+        assert 'Файл:' in str(exc)
         assert isinstance(exc, Exception)
 
     def test_chrome_path_not_found(self):
@@ -91,14 +95,20 @@ class TestChromeExceptions:
     def test_chrome_runtime_exception(self):
         """Проверка исключения ChromeRuntimeException."""
         exc = ChromeRuntimeException('Runtime error')
-        assert str(exc) == 'Runtime error'
+        # Новое сообщение включает контекстную информацию
+        assert 'Runtime error' in str(exc)
+        assert 'Функция:' in str(exc)
+        assert 'Строка:' in str(exc)
         assert isinstance(exc, ChromeException)
         assert isinstance(exc, Exception)
 
     def test_chrome_user_abort_exception(self):
         """Проверка исключения ChromeUserAbortException."""
         exc = ChromeUserAbortException('User aborted')
-        assert str(exc) == 'User aborted'
+        # Новое сообщение включает контекстную информацию
+        assert 'User aborted' in str(exc)
+        assert 'Функция:' in str(exc)
+        assert 'Строка:' in str(exc)
         assert isinstance(exc, ChromeException)
         assert isinstance(exc, Exception)
 
@@ -116,13 +126,17 @@ class TestParserException:
     def test_parser_exception_creation(self):
         """Проверка создания исключения."""
         exc = ParserException('Parser error')
-        assert str(exc) == 'Parser error'
+        # Новое сообщение включает контекстную информацию
+        assert 'Parser error' in str(exc)
+        assert 'Функция:' in str(exc)
+        assert 'Строка:' in str(exc)
         assert isinstance(exc, Exception)
 
     def test_parser_exception_with_args(self):
         """Проверка исключения с аргументами."""
-        exc = ParserException('Error with %s', 'details')
-        # Исключение должно создаваться
+        # Новый конструктор поддерживает только одно сообщение
+        exc = ParserException('Error with details')
+        assert 'Error with details' in str(exc)
         assert exc is not None
 
 
@@ -181,14 +195,20 @@ class TestExceptionMessages:
         messages = ['Error 1', 'Error 2', 'Some error message']
         for msg in messages:
             exc = ChromeException(msg)
-            assert str(exc) == msg
+            # Новое сообщение включает контекстную информацию
+            assert msg in str(exc)
+            assert 'Функция:' in str(exc)
+            assert 'Строка:' in str(exc)
 
     def test_parser_exception_message(self):
         """Проверка сообщения ParserException."""
         messages = ['Error 1', 'Error 2', 'Some error message']
         for msg in messages:
             exc = ParserException(msg)
-            assert str(exc) == msg
+            # Новое сообщение включает контекстную информацию
+            assert msg in str(exc)
+            assert 'Функция:' in str(exc)
+            assert 'Строка:' in str(exc)
 
     def test_chrome_path_not_found_message(self):
         """Проверка сообщения ChromePathNotFound."""

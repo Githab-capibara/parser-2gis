@@ -5,6 +5,7 @@
 с использованием библиотеки tqdm.
 """
 
+import logging
 import time
 from dataclasses import dataclass
 from typing import Optional
@@ -16,6 +17,9 @@ try:
 except ImportError:
     TQDM_AVAILABLE = False
     tqdm = None
+
+# Получаем логгер для вывода сообщений
+_logger = logging.getLogger("parser-2gis.progress")
 
 
 @dataclass
@@ -155,33 +159,61 @@ class ProgressManager:
 
         Закрывает все прогресс-бары и выводит итоговую статистику,
         включая общее время работы и скорость обработки.
+        
+        Raises:
+            Exception: При ошибке закрытия прогресс-баров или вывода статистики.
         """
-        self._stats.finished_at = time.time()
+        try:
+            self._stats.finished_at = time.time()
 
-        # Закрываем прогресс-бары
-        if self._page_bar:
-            self._page_bar.close()
+            # Закрываем прогресс-бары с обработкой ошибок
+            if self._page_bar:
+                try:
+                    self._page_bar.close()
+                except Exception as e:
+                    _logger.warning(
+                        f"Ошибка закрытия прогресс-бара страниц: {e}. "
+                        f"Функция: {self.finish.__name__}"
+                    )
 
-        if self._record_bar:
-            self._record_bar.close()
+            if self._record_bar:
+                try:
+                    self._record_bar.close()
+                except Exception as e:
+                    _logger.warning(
+                        f"Ошибка закрытия прогресс-бара записей: {e}. "
+                        f"Функция: {self.finish.__name__}"
+                    )
 
-        # Выводим итоговую статистику
-        if not self._disable:
-            # Рассчитываем прошедшее время с защитой от None
-            started = (
-                self._stats.started_at if self._stats.started_at is not None else 0
+            # Выводим итоговую статистику
+            if not self._disable:
+                # Рассчитываем прошедшее время с защитой от None
+                started = (
+                    self._stats.started_at if self._stats.started_at is not None else 0
+                )
+                elapsed = (
+                    self._stats.finished_at - started if self._stats.finished_at else 0
+                )
+
+                # Рассчитываем скорость обработки с защитой от деления на ноль
+                records_per_sec = (
+                    self._stats.current_record / elapsed if elapsed > 0 else 0
+                )
+
+                # Выводим результаты через logger вместо print
+                _logger.info(
+                    f"✅ Завершено за {elapsed:.1f} сек ({records_per_sec:.1f} записей/сек). "
+                    f"Всего страниц: {self._stats.current_page}, "
+                    f"Всего записей: {self._stats.current_record}"
+                )
+        except Exception as e:
+            _logger.exception(
+                f"Ошибка при завершении прогресс-бара: {e}. "
+                f"Функция: {self.finish.__name__}, "
+                f"Статистика: страницы={self._stats.current_page}/{self._stats.total_pages}, "
+                f"записи={self._stats.current_record}/{self._stats.total_records}"
             )
-            elapsed = (
-                self._stats.finished_at - started if self._stats.finished_at else 0
-            )
-
-            # Рассчитываем скорость обработки
-            records_per_sec = self._stats.current_record / elapsed if elapsed > 0 else 0
-
-            # Выводим результаты
-            print(
-                f"\n✅ Завершено за {elapsed:.1f} сек ({records_per_sec:.1f} записей/сек)"
-            )
+            raise
 
     def get_stats(self) -> ProgressStats:
         """Получение текущей статистики прогресса.
@@ -196,16 +228,39 @@ class ProgressManager:
 
         Сбрасывает всю статистику и закрывает прогресс-бары.
         Полезно для повторного использования того же менеджера.
+        
+        Raises:
+            Exception: При ошибке закрытия прогресс-баров.
         """
-        if self._page_bar:
-            self._page_bar.close()
+        try:
+            # Закрываем прогресс-бары с обработкой ошибок
+            if self._page_bar:
+                try:
+                    self._page_bar.close()
+                except Exception as e:
+                    _logger.warning(
+                        f"Ошибка закрытия прогресс-бара страниц при сбросе: {e}. "
+                        f"Функция: {self.reset.__name__}"
+                    )
 
-        if self._record_bar:
-            self._record_bar.close()
+            if self._record_bar:
+                try:
+                    self._record_bar.close()
+                except Exception as e:
+                    _logger.warning(
+                        f"Ошибка закрытия прогресс-бара записей при сбросе: {e}. "
+                        f"Функция: {self.reset.__name__}"
+                    )
 
-        self._stats = ProgressStats()
-        self._page_bar = None
-        self._record_bar = None
+            self._stats = ProgressStats()
+            self._page_bar = None
+            self._record_bar = None
+        except Exception as e:
+            _logger.exception(
+                f"Ошибка при сбросе прогресс-бара: {e}. "
+                f"Функция: {self.reset.__name__}"
+            )
+            raise
 
     @property
     def is_started(self) -> bool:

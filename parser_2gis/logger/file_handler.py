@@ -102,36 +102,66 @@ class FileLogger:
         и настраивает RotatingFileHandler для автоматического
         вращения логов при достижении максимального размера.
         Добавляет запись о начале новой сессии.
+        
+        Raises:
+            OSError: При ошибке создания директории для логов.
+            IOError: При ошибке создания файлового обработчика.
         """
-        # Создаём директорию для логов, если её нет
-        if self._log_file:
-            self._log_file.parent.mkdir(parents=True, exist_ok=True)
-
-        # Создаём rotating file handler
-        self._file_handler = RotatingFileHandler(
-            filename=str(self._log_file),
-            maxBytes=self._max_bytes,
-            backupCount=self._backup_count,
-            encoding="utf-8",
-        )
-
-        # Форматирование логов с детальной информацией
-        formatter = logging.Formatter(
-            fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-        self._file_handler.setFormatter(formatter)
-        self._file_handler.setLevel(self._log_level)
-
-        # Логируем начало сессии
-        session_logger = logging.getLogger("parser-2gis")
-        session_logger.info("=" * 80)
-        session_logger.info("НАЧАЛО НОВОЙ СЕССИИ")
-        session_logger.info(f"Время запуска: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        # Проверяем, что файл лога существует перед вызовом absolute()
-        if self._log_file:
-            session_logger.info(f"Файл лога: {self._log_file.absolute()}")
-        session_logger.info("=" * 80)
+        try:
+            # Создаём директорию для логов, если её нет
+            if self._log_file:
+                try:
+                    self._log_file.parent.mkdir(parents=True, exist_ok=True)
+                except OSError as e:
+                    raise OSError(
+                        f"Не удалось создать директорию для логов: {self._log_file.parent}. "
+                        f"Ошибка: {e}. "
+                        f"Функция: {self._setup_file_handler.__name__}"
+                    ) from e
+    
+            # Создаём rotating file handler
+            try:
+                self._file_handler = RotatingFileHandler(
+                    filename=str(self._log_file),
+                    maxBytes=self._max_bytes,
+                    backupCount=self._backup_count,
+                    encoding="utf-8",
+                )
+            except IOError as e:
+                raise IOError(
+                    f"Ошибка создания RotatingFileHandler: {e}. "
+                    f"Файл: {self._log_file}. "
+                    f"Функция: {self._setup_file_handler.__name__}"
+                ) from e
+    
+            # Форматирование логов с детальной информацией
+            formatter = logging.Formatter(
+                fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+            self._file_handler.setFormatter(formatter)
+            self._file_handler.setLevel(self._log_level)
+    
+            # Логируем начало сессии
+            session_logger = logging.getLogger("parser-2gis")
+            session_logger.info("=" * 80)
+            session_logger.info("НАЧАЛО НОВОЙ СЕССИИ")
+            session_logger.info(f"Время запуска: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            # Проверяем, что файл лога существует перед вызовом absolute()
+            if self._log_file:
+                session_logger.info(f"Файл лога: {self._log_file.absolute()}")
+            session_logger.info("=" * 80)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            # Логируем ошибку в stderr
+            import sys
+            sys.stderr.write(
+                f"Критическая ошибка при настройке файлового обработчика: {e}. "
+                f"Функция: {self._setup_file_handler.__name__}, "
+                f"Файл: {self._log_file}\n"
+            )
+            raise
 
     def setup_logger(self, logger: logging.Logger) -> None:
         """Настройка логгера для записи в файл.
@@ -140,12 +170,22 @@ class FileLogger:
 
         Args:
             logger: Логгер для настройки (экземпляр logging.Logger).
+            
+        Raises:
+            RuntimeError: При ошибке добавления обработчика.
         """
-        if self._file_handler:
-            logger.addHandler(self._file_handler)
-            # Устанавливаем минимальный уровень логирования
-            if logger.level == 0 or logger.level > self._log_level:
-                logger.setLevel(self._log_level)
+        try:
+            if self._file_handler:
+                logger.addHandler(self._file_handler)
+                # Устанавливаем минимальный уровень логирования
+                if logger.level == 0 or logger.level > self._log_level:
+                    logger.setLevel(self._log_level)
+        except Exception as e:
+            raise RuntimeError(
+                f"Ошибка добавления файлового обработчика к логгеру: {e}. "
+                f"Функция: {self.setup_logger.__name__}, "
+                f"Логгер: {logger.name}"
+            ) from e
 
     def close(self) -> None:
         """Закрытие обработчика файла.
@@ -153,17 +193,37 @@ class FileLogger:
         Корректно закрывает файловый обработчик и освобождает ресурсы.
         Добавляет запись о завершении сессии.
         Должен вызываться при завершении работы программы.
+        
+        Raises:
+            Exception: При ошибке закрытия обработчика.
         """
-        if self._file_handler:
-            # Логируем завершение сессии
-            session_logger = logging.getLogger("parser-2gis")
-            session_logger.info("=" * 80)
-            session_logger.info("ЗАВЕРШЕНИЕ СЕССИИ")
-            session_logger.info(f"Время завершения: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            session_logger.info("=" * 80)
-
-            self._file_handler.close()
-            self._file_handler = None
+        try:
+            if self._file_handler:
+                # Логируем завершение сессии
+                session_logger = logging.getLogger("parser-2gis")
+                session_logger.info("=" * 80)
+                session_logger.info("ЗАВЕРШЕНИЕ СЕССИИ")
+                session_logger.info(f"Время завершения: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                session_logger.info("=" * 80)
+    
+                try:
+                    self._file_handler.close()
+                except Exception as e:
+                    session_logger.error(
+                        f"Ошибка закрытия файлового обработчика: {e}. "
+                        f"Функция: {self.close.__name__}"
+                    )
+                finally:
+                    self._file_handler = None
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            import sys
+            sys.stderr.write(
+                f"Ошибка при закрытии файлового логгера: {e}. "
+                f"Функция: {self.close.__name__}\n"
+            )
+            # Не пробрасываем ошибку, чтобы не нарушить завершение работы
 
     def __enter__(self) -> "FileLogger":
         """Контекстный менеджер для автоматического закрытия.
