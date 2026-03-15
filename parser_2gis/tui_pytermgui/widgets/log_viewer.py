@@ -50,6 +50,18 @@ class LogViewer:
 
         self._logs.append(log_line)
 
+    def _render_text(self) -> str:
+        """
+        Получить текстовое представление логов.
+
+        Returns:
+            Строка с логами
+        """
+        if not self._logs:
+            return "[dim]Нет логов...[/dim]"
+
+        return "\n".join(self._logs)
+
     def render(self) -> ptg.Container:
         """
         Рендерить лог-вьювер.

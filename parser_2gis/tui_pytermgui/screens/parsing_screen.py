@@ -79,16 +79,16 @@ class ParsingScreen:
         )
 
         # Прогресс-бары - создаём Label для динамического обновления
-        self._url_progress_label = ptg.Label(self._url_progress.render())
-        self._page_progress_label = ptg.Label(self._page_progress.render())
-        self._record_progress_label = ptg.Label(self._record_progress.render())
+        self._url_progress_label = ptg.Label(self._url_progress._render_text())
+        self._page_progress_label = ptg.Label(self._page_progress._render_text())
+        self._record_progress_label = ptg.Label(self._record_progress._render_text())
 
         # Статистика
         self._stats_label = ptg.Label(self._render_stats())
 
         # Логи
         self._log_viewer.add_log("Запуск парсинга...", "INFO")
-        self._log_viewer_label = ptg.Label(self._log_viewer.render())
+        self._log_viewer_label = ptg.Label(self._log_viewer._render_text())
 
         # Кнопки управления - используем синтаксис [label, callback]
         self._button_pause = ["⏸ Пауза", self._toggle_pause]
@@ -273,19 +273,19 @@ class ParsingScreen:
                     eta_hours = eta_minutes / 60
                     self._stats["eta"] = f"{eta_hours:.1f} ч"
 
-            self._stats_label.set_format(self._render_stats())
+            self._stats_label.value = self._render_stats()
 
     def _update_progress_labels(self) -> None:
         """Обновить отображение прогресс-баров."""
         if self._window:
-            self._url_progress_label.set_format(self._url_progress.render())
-            self._page_progress_label.set_format(self._page_progress.render())
-            self._record_progress_label.set_format(self._record_progress.render())
+            self._url_progress_label.value = self._url_progress._render_text()
+            self._page_progress_label.value = self._page_progress._render_text()
+            self._record_progress_label.value = self._record_progress._render_text()
 
     def _update_log_label(self) -> None:
         """Обновить отображение логов."""
         if self._log_viewer_label and self._window:
-            self._log_viewer_label.set_format(self._log_viewer.render())
+            self._log_viewer_label.value = self._log_viewer._render_text()
 
     def _update_display(self) -> None:
         """Обновить отображение."""

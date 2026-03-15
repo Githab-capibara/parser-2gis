@@ -33,12 +33,12 @@ class ProgressBar:
         self._completed = completed
         self._bar_width = bar_width
 
-    def render(self) -> ptg.Label:
+    def _render_text(self) -> str:
         """
-        Рендерить прогресс-бар.
+        Получить текстовое представление прогресс-бара.
 
         Returns:
-            Label с прогресс-баром
+            Строка с прогресс-баром
         """
         # Вычислить процент
         if self._total <= 0:
@@ -54,9 +54,16 @@ class ProgressBar:
         bar = "█" * filled_width + "░" * empty_width
 
         # Создать метку
-        label_text = f"{self._label}: [{bar}] {percent:.1f}% ({self._completed}/{self._total})"
+        return f"{self._label}: [{bar}] {percent:.1f}% ({self._completed}/{self._total})"
 
-        return ptg.Label(label_text)
+    def render(self) -> ptg.Label:
+        """
+        Рендерить прогресс-бар.
+
+        Returns:
+            Label с прогресс-баром
+        """
+        return ptg.Label(self._render_text())
 
     def update(self, completed: int) -> None:
         """
