@@ -96,24 +96,46 @@ class ParallelCityParser:
                 )
             # EAFP подход: проверяем права попыткой записи тестового файла
             # Это защищает от race condition между проверкой и фактической записью
+            test_file: Optional[Path] = None
             try:
                 test_file = self.output_dir / ".write_test"
                 test_file.touch()
-                test_file.unlink()
             except (OSError, PermissionError) as e:
                 raise ValueError(f"Нет прав на запись в директорию: {output_dir}. Ошибка: {e}")
+            finally:
+                # Гарантируем удаление тестового файла
+                if test_file is not None and test_file.exists():
+                    try:
+                        test_file.unlink()
+                    except Exception as cleanup_error:
+                        logger.warning(
+                            "Не удалось удалить тестовый файл %s: %s",
+                            test_file,
+                            cleanup_error
+                        )
         else:
             # Попытка создать директорию
+            test_file = None
             try:
                 self.output_dir.mkdir(parents=True, exist_ok=True)
                 # EAFP проверка прав после создания
                 test_file = self.output_dir / ".write_test"
                 test_file.touch()
-                test_file.unlink()
             except (OSError, PermissionError) as e:
                 raise ValueError(
                     f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}"
                 )
+            finally:
+                # Гарантируем удаление тестового файла
+                if test_file is not None and test_file.exists():
+                    try:
+                        test_file.unlink()
+                    except Exception as cleanup_error:
+                        logger.warning(
+                            "Не удалось удалить тестовый файл %s: %s",
+                            test_file,
+                            cleanup_error
+                        )
 
         # Статистика (все операции защищены _lock)
         self._stats = {

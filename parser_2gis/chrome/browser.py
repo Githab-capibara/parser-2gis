@@ -62,11 +62,27 @@ class ChromeBrowser:
         # Инициализация профиля с безопасными правами (0o700 - только владелец)
         # Используем mkdtemp() так как профиль должен существовать всё время жизни браузера
         self._profile_path = tempfile.mkdtemp(prefix="chrome_profile_")
+        
         # Устанавливаем restrictive права на директорию профиля
+        # При ошибке удаляем профиль чтобы не оставлять небезопасные данные
         try:
             os.chmod(self._profile_path, 0o700)
-        except OSError as e:
-            logger.debug("Не удалось установить права 0o700 на профиль: %s", e)
+        except OSError as chmod_error:
+            logger.warning(
+                "Не удалось установить права 0o700 на профиль %s: %s. Профиль удаляется.",
+                self._profile_path,
+                chmod_error
+            )
+            try:
+                shutil.rmtree(self._profile_path, ignore_errors=True)
+                logger.debug("Профиль удалён после ошибки chmod")
+            except Exception as cleanup_error:
+                logger.error(
+                    "Не удалось удалить профиль после ошибки chmod: %s",
+                    cleanup_error
+                )
+            raise
+        
         self._remote_port = free_port()
 
         # Валидация memory_limit перед формированием команды

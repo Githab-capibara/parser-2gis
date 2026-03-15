@@ -17,6 +17,7 @@ import re
 import sys
 import time
 import urllib.parse
+import weakref
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union
 
@@ -114,11 +115,12 @@ def _is_sensitive_key(key: str) -> bool:
     return bool(_SENSITIVE_KEY_PATTERN.search(key_lower))
 
 
-def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[set[int]] = None) -> Any:
+def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[weakref.WeakSet] = None) -> Any:
     """
     Очищает чувствительные данные из значения.
-    
+
     Оптимизация: уменьшена глубина рекурсии для больших структур.
+    Используется weakref.WeakSet для автоматического отслеживания объектов.
 
     Args:
         value: Значение для очистки.
@@ -127,34 +129,33 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
 
     Returns:
         Очищенное значение или '<REDACTED>' для чувствительных данных.
+    
+    Примечание:
+        weakref.WeakSet автоматически удаляет объекты, когда на них
+        не остаётся сильных ссылок, что предотвращает утечки памяти.
     """
-    # Инициализируем множество посещённых объектов для защиты от циклических ссылок
+    # Инициализируем WeakSet для отслеживания посещённых объектов
+    # WeakSet автоматически очищается при удалении объектов
     if _visited is None:
-        _visited = set()
+        _visited = weakref.WeakSet()
 
     # Проверяем на циклические ссылки
-    value_id = id(value)
-    if value_id in _visited:
-        return "<REDACTED>"
+    # Для неизменяемых типов (str, int, tuple) проверка не требуется
+    if isinstance(value, (dict, list)):
+        if value in _visited:
+            return "<REDACTED>"
+        _visited.add(value)
 
     if key and _is_sensitive_key(key):
         return "<REDACTED>"
 
     # Рекурсивная обработка словарей
     if isinstance(value, dict):
-        _visited.add(value_id)
-        try:
-            return {k: _sanitize_value(v, k, _visited) for k, v in value.items()}
-        finally:
-            _visited.discard(value_id)
+        return {k: _sanitize_value(v, k, _visited) for k, v in value.items()}
 
     # Рекурсивная обработка списков
     if isinstance(value, list):
-        _visited.add(value_id)
-        try:
-            return [_sanitize_value(item, _visited=_visited) for item in value]
-        finally:
-            _visited.discard(value_id)
+        return [_sanitize_value(item, _visited=_visited) for item in value]
 
     return value
 

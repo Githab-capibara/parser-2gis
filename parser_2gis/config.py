@@ -4,7 +4,7 @@ import json
 import pathlib
 import shutil
 from copy import deepcopy
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -41,68 +41,88 @@ class Configuration(BaseModel):
 
         Raises:
             ValueError: Если возникает конфликт типов при объединении.
-            RecursionError: При превышении максимальной глубины рекурсии.
 
         Example:
             >>> config = Configuration()
             >>> other = Configuration(chrome=ChromeOptions(headless=True))
             >>> config.merge_with(other)  # Обновляет только chrome.headless
         """
-        self._merge_models(
+        self._merge_models_iterative(
             source=other_config,
             target=self,
             max_depth=10,
-            current_depth=0,
-            visited=set(),
         )
 
     @staticmethod
-    def _merge_models(
+    def _merge_models_iterative(
         source: BaseModel,
         target: BaseModel,
         max_depth: int = 10,
-        current_depth: int = 0,
-        visited: Optional[Set[int]] = None,
     ) -> None:
-        """Рекурсивно объединяет две Pydantic модели.
+        """Итеративно объединяет две Pydantic модели без рекурсии.
+
+        Использует стек для обработки вложенных моделей, что предотвращает
+        RecursionError при глубокой вложенности.
 
         Args:
             source: Исходная модель для чтения значений.
             target: Целевая модель для обновления.
-            max_depth: Максимальная глубина рекурсии.
-            current_depth: Текущая глубина рекурсии.
-            visited: Набор ID посещённых объектов для предотвращения циклических ссылок.
+            max_depth: Максимальная глубина обработки.
 
         Raises:
-            RecursionError: При превышении максимальной глубины рекурсии.
+            RecursionError: При превышении максимальной глубины.
         """
-        # Инициализируем набор посещённых объектов
-        if visited is None:
-            visited = set()
+        # Стек содержит кортежи: (source_model, target_model, current_depth)
+        stack: List[tuple[BaseModel, BaseModel, int]] = [(source, target, 0)]
+        
+        # Набор для отслеживания посещённых объектов (предотвращение циклических ссылок)
+        visited: Set[int] = set()
 
-        # Проверка на циклические ссылки
-        source_id = id(source)
-        if source_id in visited:
-            logger.warning("Обнаружена циклическая ссылка при объединении конфигурации")
-            return
+        while stack:
+            current_source, current_target, current_depth = stack.pop()
 
-        visited.add(source_id)
+            # Проверка на циклические ссылки
+            source_id = id(current_source)
+            if source_id in visited:
+                logger.warning("Обнаружена циклическая ссылка при объединении конфигурации")
+                continue
 
-        try:
-            # Проверка глубины рекурсии
+            visited.add(source_id)
+
+            # Проверка глубины
             if current_depth >= max_depth:
                 raise RecursionError(
-                    f"Превышена максимальная глубина рекурсии ({max_depth}) при объединении конфигурации"
+                    f"Превышена максимальная глубина обработки ({max_depth}) при объединении конфигурации"
                 )
 
             # Получаем набор установленных полей
-            fields_set = Configuration._get_fields_set(source)
+            fields_set = Configuration._get_fields_set(current_source)
 
             for field in fields_set:
-                Configuration._merge_field(source, target, field)
+                try:
+                    source_value = getattr(current_source, field)
 
-        finally:
-            # Удаляем из набора после обработки
+                    if not isinstance(source_value, BaseModel):
+                        # Простое значение - прямое присваивание
+                        setattr(current_target, field, source_value)
+                    else:
+                        # Вложенная модель - добавляем в стек для обработки
+                        target_value = getattr(current_target, field, None)
+                        if target_value is None:
+                            # Целевой атрибут не существует - создаём копию
+                            setattr(current_target, field, deepcopy(source_value))
+                        else:
+                            # Добавляем в стек для рекурсивной обработки
+                            stack.append((source_value, target_value, current_depth + 1))
+
+                except (AttributeError, TypeError) as e:
+                    logger.warning("Ошибка при объединении поля %s: %s", field, e)
+                    raise
+                except Exception as e:
+                    logger.error("Непредвиденная ошибка при объединении поля %s: %s", field, e)
+                    raise
+
+            # Удаляем из посещённых после обработки
             visited.discard(source_id)
 
     @staticmethod
@@ -117,44 +137,6 @@ class Configuration(BaseModel):
         """
         fields_set: Optional[Set[str]] = get_model_fields_set(model)
         return fields_set if fields_set else set()
-
-    @staticmethod
-    def _merge_field(source: BaseModel, target: BaseModel, field: str) -> None:
-        """Объединяет одно поле между двумя моделями.
-
-        Args:
-            source: Исходная модель.
-            target: Целевая модель.
-            field: Имя поля для объединения.
-
-        Raises:
-            (AttributeError, TypeError): При ошибке доступа к полю.
-        """
-        try:
-            source_value = getattr(source, field)
-
-            if not isinstance(source_value, BaseModel):
-                # Простое значение - прямое присваивание
-                setattr(target, field, source_value)
-            else:
-                # Вложенная модель - рекурсивное объединение
-                target_value = getattr(target, field, None)
-                if target_value is None:
-                    # Целевой атрибут не существует - создаём копию
-                    setattr(target, field, deepcopy(source_value))
-                else:
-                    Configuration._merge_models(
-                        source=source_value,
-                        target=target_value,
-                        current_depth=1,  # Увеличиваем глубину на 1
-                    )
-
-        except (AttributeError, TypeError) as e:
-            logger.warning("Ошибка при объединении поля %s: %s", field, e)
-            raise
-        except Exception as e:
-            logger.error("Непредвиденная ошибка при объединении поля %s: %s", field, e)
-            raise
 
     def save_config(self) -> None:
         """Сохраняет конфигурацию, если она была загружена из пути.
