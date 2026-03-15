@@ -81,25 +81,25 @@ class CategorySelectorScreen:
         # Кнопки управления
         button_select_all = ptg.Button(
             "Выбрать все",
-            callback=self._select_all,
+            onclick=self._select_all,
             style="primary",
         )
 
         button_deselect_all = ptg.Button(
             "Снять все",
-            callback=self._deselect_all,
+            onclick=self._deselect_all,
             style="primary",
         )
 
         button_back = ptg.Button(
             "Назад",
-            callback=self._go_back,
+            onclick=self._go_back,
             style="primary",
         )
 
         button_next = ptg.Button(
             "Далее",
-            callback=self._next,
+            onclick=self._next,
             style="secondary",
         )
 
@@ -121,16 +121,14 @@ class CategorySelectorScreen:
                 height=15,
             ),
             "",
-            ptg.Container(
+            ptg.Splitter(
                 button_select_all,
                 button_deselect_all,
-                box="EMPTY_HORIZONTAL",
             ),
             "",
-            ptg.Container(
+            ptg.Splitter(
                 button_back,
                 button_next,
-                box="EMPTY_HORIZONTAL",
             ),
             width=80,
             box="DOUBLE",

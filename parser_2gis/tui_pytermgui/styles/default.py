@@ -26,27 +26,27 @@ aliases:
 config:
     Label:
         styles:
-            value: "@text"
+            value: "text"
 
     InputField:
         styles:
-            prompt: "@primary bold"
-            cursor: "@accent"
-            text: "@text"
+            prompt: "primary bold"
+            cursor: "accent"
+            text: "text"
 
     Button:
         styles:
-            label: "@secondary bold"
-            border: "@primary"
-            background: "@surface"
+            label: "secondary bold"
+            border: "primary"
+            background: "surface"
         meta:
             corner: "╭─"
 
     Window:
         styles:
-            border: "@primary"
-            corner: "@primary"
-            title: "@primary bold"
+            border: "primary"
+            corner: "primary"
+            title: "primary bold"
         meta:
             corner: "╭─"
 """

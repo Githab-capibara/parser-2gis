@@ -135,19 +135,19 @@ class CacheViewerScreen:
         # Кнопки управления
         button_clear_all = ptg.Button(
             "Очистить весь кэш",
-            callback=self._clear_all,
+            onclick=self._clear_all,
             style="error",
         )
 
         button_clear_expired = ptg.Button(
             "Очистить истёкшее",
-            callback=self._clear_expired,
+            onclick=self._clear_expired,
             style="primary",
         )
 
         button_back = ptg.Button(
             "Назад",
-            callback=self._go_back,
+            onclick=self._go_back,
             style="primary",
         )
 

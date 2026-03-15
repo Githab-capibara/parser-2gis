@@ -89,19 +89,19 @@ class ParsingScreen:
         # Кнопки управления
         self._button_pause = ptg.Button(
             "⏸ Пауза",
-            callback=self._toggle_pause,
+            onclick=self._toggle_pause,
             style="primary",
         )
 
         self._button_stop = ptg.Button(
             "⏹ Стоп",
-            callback=self._stop_parsing,
+            onclick=self._stop_parsing,
             style="error",
         )
 
         self._button_minimize = ptg.Button(
             "🗕 Свернуть",
-            callback=self._minimize,
+            onclick=self._minimize,
             style="primary",
         )
 

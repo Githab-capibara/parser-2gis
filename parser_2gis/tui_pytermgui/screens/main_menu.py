@@ -49,55 +49,55 @@ class MainMenuScreen:
         # Кнопки меню
         button_start = ptg.Button(
             "🚀 Запустить парсинг",
-            callback=self._start_parsing,
+            onclick=self._start_parsing,
             style="primary",
         )
 
         button_cities = ptg.Button(
             "📁 Выбрать города",
-            callback=self._select_cities,
+            onclick=self._select_cities,
             style="primary",
         )
 
         button_categories = ptg.Button(
             "📂 Выбрать категории",
-            callback=self._select_categories,
+            onclick=self._select_categories,
             style="primary",
         )
 
         button_browser = ptg.Button(
             "⚙️ Настройки браузера",
-            callback=self._browser_settings,
+            onclick=self._browser_settings,
             style="primary",
         )
 
         button_parser = ptg.Button(
             "🔧 Настройки парсера",
-            callback=self._parser_settings,
+            onclick=self._parser_settings,
             style="primary",
         )
 
         button_output = ptg.Button(
             "📊 Настройки вывода",
-            callback=self._output_settings,
+            onclick=self._output_settings,
             style="primary",
         )
 
         button_cache = ptg.Button(
             "📈 Просмотр кэша",
-            callback=self._view_cache,
+            onclick=self._view_cache,
             style="primary",
         )
 
         button_about = ptg.Button(
             "ℹ️ О программе",
-            callback=self._show_about,
+            onclick=self._show_about,
             style="primary",
         )
 
         button_exit = ptg.Button(
             "Выход",
-            callback=self._exit,
+            onclick=self._exit,
             style="error",
         )
 
@@ -107,38 +107,26 @@ class MainMenuScreen:
             header,
             subtitle,
             "",
-            ptg.Container(
-                ptg.Label("[bold]Основное меню:[/bold]"),
-                box="EMPTY_VERTICAL",
-            ),
+            ptg.Label("[bold]Основное меню:[/bold]"),
             "",
-            ptg.Container(button_start, box="EMPTY_VERTICAL"),
-            ptg.Container(button_cities, box="EMPTY_VERTICAL"),
-            ptg.Container(button_categories, box="EMPTY_VERTICAL"),
+            button_start,
+            button_cities,
+            button_categories,
             "",
-            ptg.Container(
-                ptg.Label("[bold]Настройки:[/bold]"),
-                box="EMPTY_VERTICAL",
-            ),
+            ptg.Label("[bold]Настройки:[/bold]"),
             "",
-            ptg.Container(button_browser, box="EMPTY_VERTICAL"),
-            ptg.Container(button_parser, box="EMPTY_VERTICAL"),
-            ptg.Container(button_output, box="EMPTY_VERTICAL"),
+            button_browser,
+            button_parser,
+            button_output,
             "",
-            ptg.Container(
-                ptg.Label("[bold]Дополнительно:[/bold]"),
-                box="EMPTY_VERTICAL",
-            ),
+            ptg.Label("[bold]Дополнительно:[/bold]"),
             "",
-            ptg.Container(button_cache, box="EMPTY_VERTICAL"),
-            ptg.Container(button_about, box="EMPTY_VERTICAL"),
+            button_cache,
+            button_about,
             "",
-            ptg.Container(
-                ptg.Label("[dim]Навигация: Tab/Shift+Tab - переключение, Enter - выбор, Esc - назад[/dim]"),
-                box="EMPTY_VERTICAL",
-            ),
+            ptg.Label("[dim]Навигация: Tab/Shift+Tab - переключение, Enter - выбор, Esc - назад[/dim]"),
             "",
-            ptg.Container(button_exit, box="EMPTY_VERTICAL"),
+            button_exit,
             width=70,
             box="DOUBLE",
         ).set_title("[bold green]Parser2GIS - Главное меню[/bold green]")

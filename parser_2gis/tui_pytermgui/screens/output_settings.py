@@ -102,19 +102,19 @@ class OutputSettingsScreen:
         # Кнопки управления
         button_save = ptg.Button(
             "Сохранить",
-            callback=self._save,
+            onclick=self._save,
             style="secondary",
         )
 
         button_reset = ptg.Button(
             "Сбросить",
-            callback=self._reset,
+            onclick=self._reset,
             style="primary",
         )
 
         button_back = ptg.Button(
             "Назад",
-            callback=self._go_back,
+            onclick=self._go_back,
             style="primary",
         )
 

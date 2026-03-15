@@ -102,7 +102,7 @@ class AboutScreen:
         # Кнопка назад
         button_back = ptg.Button(
             "Назад",
-            callback=self._go_back,
+            onclick=self._go_back,
             style="primary",
         )
 
