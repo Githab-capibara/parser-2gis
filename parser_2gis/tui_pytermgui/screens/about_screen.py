@@ -101,12 +101,8 @@ class AboutScreen:
             justify="center",
         )
 
-        # Кнопка назад
-        button_back = ptg.Button(
-            "Назад",
-            onclick=self._go_back,
-            style="primary",
-        )
+        # Кнопка назад - используем синтаксис [label, callback]
+        button_back = ["Назад", self._go_back]
 
         # Создание окна
         window = ptg.Window(

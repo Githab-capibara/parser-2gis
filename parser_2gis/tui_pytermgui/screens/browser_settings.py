@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
-from ..widgets import Checkbox
+from ..widgets import Checkbox, ScrollArea
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -33,7 +33,7 @@ class BrowserSettingsScreen:
         self._chrome_config = self._config.chrome
 
         # Поля формы
-        self._fields: dict[str, ptg.InputField | Checkbox] = {}
+        self._fields: dict[str, ptg.InputField | "Checkbox"] = {}
 
     def create_window(self) -> ptg.Window:
         """
@@ -86,24 +86,10 @@ class BrowserSettingsScreen:
             placeholder="/usr/bin/google-chrome",
         )
 
-        # Кнопки управления
-        button_save = ptg.Button(
-            "Сохранить",
-            onclick=self._save,
-            style="secondary",
-        )
-
-        button_reset = ptg.Button(
-            "Сбросить",
-            onclick=self._reset,
-            style="primary",
-        )
-
-        button_back = ptg.Button(
-            "Назад",
-            onclick=self._go_back,
-            style="primary",
-        )
+        # Кнопки управления - используем синтаксис [label, callback]
+        button_save = ["Сохранить", self._save]
+        button_reset = ["Сбросить", self._reset]
+        button_back = ["Назад", self._go_back]
 
         # Создание окна
         window = ptg.Window(

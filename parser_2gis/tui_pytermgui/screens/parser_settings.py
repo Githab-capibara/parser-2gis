@@ -121,24 +121,10 @@ class ParserSettingsScreen:
             validators=[self._validate_positive_int],
         )
 
-        # Кнопки управления
-        button_save = ptg.Button(
-            "Сохранить",
-            onclick=self._save,
-            style="secondary",
-        )
-
-        button_reset = ptg.Button(
-            "Сбросить",
-            onclick=self._reset,
-            style="primary",
-        )
-
-        button_back = ptg.Button(
-            "Назад",
-            onclick=self._go_back,
-            style="primary",
-        )
+        # Кнопки управления - используем синтаксис [label, callback]
+        button_save = ["Сохранить", self._save]
+        button_reset = ["Сбросить", self._reset]
+        button_back = ["Назад", self._go_back]
 
         # Создание окна
         window = ptg.Window(

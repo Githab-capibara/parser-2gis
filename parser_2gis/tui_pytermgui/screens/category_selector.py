@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
-from ..widgets import ScrollArea
+from ..widgets import Checkbox, ScrollArea
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -35,6 +35,8 @@ class CategorySelectorScreen:
         self._search_field: ptg.InputField | None = None
         self._category_container: ptg.Container | None = None
         self._counter_label: ptg.Label | None = None
+        # Хранилище для checkbox виджетов
+        self._checkboxes: list[Checkbox] = []
 
         self._load_categories()
 
@@ -81,29 +83,10 @@ class CategorySelectorScreen:
         )
 
         # Кнопки управления
-        button_select_all = ptg.Button(
-            "Выбрать все",
-            onclick=self._select_all,
-            style="primary",
-        )
-
-        button_deselect_all = ptg.Button(
-            "Снять все",
-            onclick=self._deselect_all,
-            style="primary",
-        )
-
-        button_back = ptg.Button(
-            "Назад",
-            onclick=self._go_back,
-            style="primary",
-        )
-
-        button_next = ptg.Button(
-            "Далее",
-            onclick=self._next,
-            style="secondary",
-        )
+        button_select_all = ["Выбрать все", self._select_all]
+        button_deselect_all = ["Снять все", self._deselect_all]
+        button_back = ["Назад", self._go_back]
+        button_next = ["Далее", self._next]
 
         # Создание окна
         window = ptg.Window(
@@ -143,18 +126,23 @@ class CategorySelectorScreen:
         if not self._category_container:
             return
 
+        # Очистить контейнер
         self._category_container.widgets.clear()
+        self._checkboxes.clear()
 
         for i, category in enumerate(self._filtered_categories):
             category_name = category.get("name", "Неизвестно")
 
             is_selected = i in self._selected_indices
-            checkbox = ptg.Checkbox(
+            
+            # Создать checkbox с правильным API
+            checkbox = Checkbox(
                 label=category_name,
                 value=is_selected,
                 on_change=lambda checked, idx=i: self._toggle_category(idx, checked),
             )
-
+            
+            self._checkboxes.append(checkbox)
             self._category_container.add_widget(checkbox)
 
     def _filter_categories(self, field: ptg.InputField) -> None:
@@ -203,13 +191,20 @@ class CategorySelectorScreen:
             original_index = self._categories.index(original_category)
             self._selected_indices.add(original_index)
 
-        self._populate_categories()
+        # Обновить checkbox виджеты
+        for checkbox in self._checkboxes:
+            checkbox.value = True
+
         self._update_counter()
 
     def _deselect_all(self, *args) -> None:
         """Снять все категории."""
         self._selected_indices.clear()
-        self._populate_categories()
+        
+        # Обновить checkbox виджеты
+        for checkbox in self._checkboxes:
+            checkbox.value = False
+        
         self._update_counter()
 
     def _update_counter(self) -> None:

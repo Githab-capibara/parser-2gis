@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytermgui as ptg
 
-from ..widgets import ScrollArea
+from ..widgets import Checkbox, ScrollArea
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -35,6 +35,8 @@ class CitySelectorScreen:
         self._search_field: ptg.InputField | None = None
         self._city_container: ptg.Container | None = None
         self._counter_label: ptg.Label | None = None
+        # Хранилище для checkbox виджетов
+        self._checkboxes: list[Checkbox] = []
 
         self._load_cities()
 
@@ -81,29 +83,10 @@ class CitySelectorScreen:
         )
 
         # Кнопки управления
-        button_select_all = ptg.Button(
-            "Выбрать все",
-            onclick=self._select_all,
-            style="primary",
-        )
-
-        button_deselect_all = ptg.Button(
-            "Снять все",
-            onclick=self._deselect_all,
-            style="primary",
-        )
-
-        button_back = ptg.Button(
-            "Назад",
-            onclick=self._go_back,
-            style="primary",
-        )
-
-        button_next = ptg.Button(
-            "Далее",
-            onclick=self._next,
-            style="secondary",
-        )
+        button_select_all = ["Выбрать все", self._select_all]
+        button_deselect_all = ["Снять все", self._deselect_all]
+        button_back = ["Назад", self._go_back]
+        button_next = ["Далее", self._next]
 
         # Создание окна
         window = ptg.Window(
@@ -143,19 +126,24 @@ class CitySelectorScreen:
         if not self._city_container:
             return
 
+        # Очистить контейнер
         self._city_container.widgets.clear()
+        self._checkboxes.clear()
 
         for i, city in enumerate(self._filtered_cities):
             city_name = city.get("name", "Неизвестно")
             country = city.get("country_code", "").upper()
 
             is_selected = i in self._selected_indices
-            checkbox = ptg.Checkbox(
+            
+            # Создать checkbox с правильным API
+            checkbox = Checkbox(
                 label=f"{city_name} ({country})",
                 value=is_selected,
                 on_change=lambda checked, idx=i: self._toggle_city(idx, checked),
             )
-
+            
+            self._checkboxes.append(checkbox)
             self._city_container.add_widget(checkbox)
 
     def _filter_cities(self, field: ptg.InputField) -> None:
@@ -204,13 +192,20 @@ class CitySelectorScreen:
             original_index = self._cities.index(original_city)
             self._selected_indices.add(original_index)
 
-        self._populate_cities()
+        # Обновить checkbox виджеты
+        for i, checkbox in enumerate(self._checkboxes):
+            checkbox.value = True
+
         self._update_counter()
 
     def _deselect_all(self, *args) -> None:
         """Снять все города."""
         self._selected_indices.clear()
-        self._populate_cities()
+        
+        # Обновить checkbox виджеты
+        for checkbox in self._checkboxes:
+            checkbox.value = False
+        
         self._update_counter()
 
     def _update_counter(self) -> None:

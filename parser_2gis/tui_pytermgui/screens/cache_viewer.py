@@ -134,24 +134,10 @@ class CacheViewerScreen:
         else:
             cache_table = ptg.Label("[dim]Кэш пуст[/dim]")
 
-        # Кнопки управления
-        button_clear_all = ptg.Button(
-            "Очистить весь кэш",
-            onclick=self._clear_all,
-            style="error",
-        )
-
-        button_clear_expired = ptg.Button(
-            "Очистить истёкшее",
-            onclick=self._clear_expired,
-            style="primary",
-        )
-
-        button_back = ptg.Button(
-            "Назад",
-            onclick=self._go_back,
-            style="primary",
-        )
+        # Кнопки управления - используем синтаксис [label, callback]
+        button_clear_all = ["Очистить весь кэш", self._clear_all]
+        button_clear_expired = ["Очистить истёкшее", self._clear_expired]
+        button_back = ["Назад", self._go_back]
 
         # Создание окна
         window = ptg.Window(

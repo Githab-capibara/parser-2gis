@@ -55,11 +55,15 @@ class ParsingScreen:
         self._start_time: datetime | None = None
 
         # Кнопки
-        self._button_pause: ptg.Button | None = None
-        self._button_stop: ptg.Button | None = None
-        self._button_minimize: ptg.Button | None = None
+        self._button_pause: list | None = None
+        self._button_stop: list | None = None
+        self._button_minimize: list | None = None
 
         self._paused = False
+        
+        # Флаги для обновления UI
+        self._window: ptg.Window | None = None
+        self._stats_label: ptg.Label | None = None
 
     def create_window(self) -> ptg.Window:
         """
@@ -74,39 +78,25 @@ class ParsingScreen:
             justify="center",
         )
 
-        # Прогресс-бары
-        url_progress_label = self._url_progress.render()
-        page_progress_label = self._page_progress.render()
-        record_progress_label = self._record_progress.render()
+        # Прогресс-бары - создаём Label для динамического обновления
+        self._url_progress_label = ptg.Label(self._url_progress.render())
+        self._page_progress_label = ptg.Label(self._page_progress.render())
+        self._record_progress_label = ptg.Label(self._record_progress.render())
 
         # Статистика
-        stats_label = self._render_stats()
+        self._stats_label = ptg.Label(self._render_stats())
 
         # Логи
         self._log_viewer.add_log("Запуск парсинга...", "INFO")
-        logs_box = self._log_viewer.render()
+        self._log_viewer_label = ptg.Label(self._log_viewer.render())
 
-        # Кнопки управления
-        self._button_pause = ptg.Button(
-            "⏸ Пауза",
-            onclick=self._toggle_pause,
-            style="primary",
-        )
-
-        self._button_stop = ptg.Button(
-            "⏹ Стоп",
-            onclick=self._stop_parsing,
-            style="error",
-        )
-
-        self._button_minimize = ptg.Button(
-            "🗕 Свернуть",
-            onclick=self._minimize,
-            style="primary",
-        )
+        # Кнопки управления - используем синтаксис [label, callback]
+        self._button_pause = ["⏸ Пауза", self._toggle_pause]
+        self._button_stop = ["⏹ Стоп", self._stop_parsing]
+        self._button_minimize = ["🗕 Свернуть", self._minimize]
 
         # Создание окна
-        window = ptg.Window(
+        self._window = ptg.Window(
             "",
             header,
             "",
@@ -115,23 +105,23 @@ class ParsingScreen:
                 box="EMPTY_VERTICAL",
             ),
             "",
-            url_progress_label,
-            page_progress_label,
-            record_progress_label,
+            self._url_progress_label,
+            self._page_progress_label,
+            self._record_progress_label,
             "",
             ptg.Container(
                 ptg.Label("[bold]Статистика:[/bold]"),
                 box="EMPTY_VERTICAL",
             ),
             "",
-            stats_label,
+            self._stats_label,
             "",
             ptg.Container(
                 ptg.Label("[bold]Логи:[/bold]"),
                 box="EMPTY_VERTICAL",
             ),
             "",
-            logs_box,
+            self._log_viewer_label,
             "",
             ptg.Container(
                 self._button_pause,
@@ -143,14 +133,25 @@ class ParsingScreen:
             box="DOUBLE",
         ).set_title("[bold green]Parser2GIS - Парсинг[/bold green]")
 
-        return window.center()
+        # Запустить обновление
+        self._start_time = datetime.now()
+        self._start_auto_update()
 
-    def _render_stats(self) -> ptg.Label:
+        return self._window.center()
+
+    def _start_auto_update(self) -> None:
+        """Запустить автоматическое обновление отображения."""
+        # Используем Monitor из pytermgui для периодического обновления
+        if hasattr(ptg, 'Monitor'):
+            monitor = ptg.Monitor().start()
+            monitor.attach(self._update_display, period=0.5)
+
+    def _render_stats(self) -> str:
         """
         Рендерить статистику.
 
         Returns:
-            Label со статистикой
+            Строка со статистикой
         """
         stats_text = (
             f"[bold]Город:[/bold] {self._stats['current_city'] or 'N/A'}\n"
@@ -161,8 +162,7 @@ class ParsingScreen:
             f"[bold]Время:[/bold] {self._stats['elapsed']}\n"
             f"[bold]ETA:[/bold] {self._stats['eta']}"
         )
-
-        return ptg.Label(stats_text)
+        return stats_text
 
     def update_progress(
         self,
@@ -199,7 +199,8 @@ class ParsingScreen:
         if record_completed > 0:
             self._record_progress.update(record_completed)
 
-        self._update_stats()
+        # Обновить UI
+        self._update_progress_labels()
 
     def add_log(self, message: str, level: str = "INFO") -> None:
         """
@@ -210,6 +211,8 @@ class ParsingScreen:
             level: Уровень лога
         """
         self._log_viewer.add_log(message, level)  # type: ignore
+        # Обновить UI
+        self._update_log_label()
 
     def update_stats(
         self,
@@ -236,38 +239,59 @@ class ParsingScreen:
         if error_count is not None:
             self._stats["error_count"] = error_count
 
-        self._update_stats()
+        self._update_stats_label()
 
-    def _update_stats(self) -> None:
+    def _update_stats_label(self) -> None:
         """Обновить отображение статистики."""
-        # Вычислить прошедшее время
-        if self._start_time:
-            delta = datetime.now() - self._start_time
-            self._stats["elapsed"] = str(delta).split(".")[0]
+        if self._stats_label and self._window:
+            # Вычислить прошедшее время
+            if self._start_time:
+                delta = datetime.now() - self._start_time
+                self._stats["elapsed"] = str(delta).split(".")[0]
 
-            # Вычислить скорость
-            if self._stats["success_count"] > 0:
-                elapsed_seconds = delta.total_seconds()
-                if elapsed_seconds > 0:
-                    records_per_sec = self._stats["success_count"] / elapsed_seconds
-                    self._stats["speed"] = f"{records_per_sec:.1f} записей/сек"
+                # Вычислить скорость
+                if self._stats["success_count"] > 0:
+                    elapsed_seconds = delta.total_seconds()
+                    if elapsed_seconds > 0:
+                        records_per_sec = self._stats["success_count"] / elapsed_seconds
+                        self._stats["speed"] = f"{records_per_sec:.1f} записей/сек"
 
-        # Вычислить ETA
-        total_records = self._record_progress._total
-        current_record = self._record_progress._completed
+            # Вычислить ETA
+            total_records = self._record_progress._total
+            current_record = self._record_progress._completed
 
-        if current_record > 0 and total_records > 0:
-            elapsed_seconds = (datetime.now() - self._start_time).total_seconds() if self._start_time else 1
-            records_per_sec = current_record / elapsed_seconds if elapsed_seconds > 0 else 1
-            remaining = total_records - current_record
-            eta_seconds = remaining / records_per_sec if records_per_sec > 0 else 0
+            if current_record > 0 and total_records > 0:
+                elapsed_seconds = (datetime.now() - self._start_time).total_seconds() if self._start_time else 1
+                records_per_sec = current_record / elapsed_seconds if elapsed_seconds > 0 else 1
+                remaining = total_records - current_record
+                eta_seconds = remaining / records_per_sec if records_per_sec > 0 else 0
 
-            eta_minutes = eta_seconds / 60
-            if eta_minutes < 60:
-                self._stats["eta"] = f"{eta_minutes:.1f} мин"
-            else:
-                eta_hours = eta_minutes / 60
-                self._stats["eta"] = f"{eta_hours:.1f} ч"
+                eta_minutes = eta_seconds / 60
+                if eta_minutes < 60:
+                    self._stats["eta"] = f"{eta_minutes:.1f} мин"
+                else:
+                    eta_hours = eta_minutes / 60
+                    self._stats["eta"] = f"{eta_hours:.1f} ч"
+
+            self._stats_label.set_format(self._render_stats())
+
+    def _update_progress_labels(self) -> None:
+        """Обновить отображение прогресс-баров."""
+        if self._window:
+            self._url_progress_label.set_format(self._url_progress.render())
+            self._page_progress_label.set_format(self._page_progress.render())
+            self._record_progress_label.set_format(self._record_progress.render())
+
+    def _update_log_label(self) -> None:
+        """Обновить отображение логов."""
+        if self._log_viewer_label and self._window:
+            self._log_viewer_label.set_format(self._log_viewer.render())
+
+    def _update_display(self) -> None:
+        """Обновить отображение."""
+        self._update_stats_label()
+        self._update_progress_labels()
+        self._update_log_label()
 
     def _toggle_pause(self, *args) -> None:
         """Переключить паузу."""
@@ -275,10 +299,10 @@ class ParsingScreen:
 
         if self._button_pause:
             if self._paused:
-                self._button_pause.set_label("▶ Продолжить")
+                self._button_pause[0] = "▶ Продолжить"
                 self.add_log("Парсинг приостановлен", "WARNING")
             else:
-                self._button_pause.set_label("⏸ Пауза")
+                self._button_pause[0] = "⏸ Пауза"
                 self.add_log("Парсинг продолжен", "INFO")
 
     def _stop_parsing(self, *args) -> None:
@@ -299,13 +323,3 @@ class ParsingScreen:
 
         # TODO: Интеграция с ParallelParser
         # Здесь будет запуск реального парсера
-
-    def _update_display(self) -> None:
-        """Обновить отображение."""
-        # Проверить, нужно ли обновлять
-        now = datetime.now()
-        delta = (now - self._last_update).total_seconds()
-
-        if delta >= 0.5:  # Обновлять каждые 0.5 секунды
-            self._update_stats()
-            self._last_update = now
