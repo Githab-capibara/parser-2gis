@@ -7,6 +7,7 @@ from .log_viewer import LogViewer
 from .city_list import CityList
 from .category_list import CategoryList
 from .scroll_area import ScrollArea
+from .checkbox import Checkbox
 
 __all__ = [
     "ProgressBar",
@@ -14,4 +15,5 @@ __all__ = [
     "CityList",
     "CategoryList",
     "ScrollArea",
+    "Checkbox",
 ]
