@@ -366,7 +366,8 @@ class MainParser:
             Оптимизация:
             - Кэширование psutil.Process объекта
             - Снижение частоты вызовов gc.collect()
-            - Использование deque для эффективной очистки старых ссылок
+            - Пакетное удаление ссылок с использованием set.difference_update
+            - Избегание повторных вызовов memory_info()
             """
             nonlocal memory_check_counter
             memory_check_counter += 1
@@ -391,23 +392,32 @@ class MainParser:
                         self._options.memory_threshold,
                     )
 
-                    # Оптимизация: используем deque для эффективного удаления старых ссылок
+                    # Оптимизация: пакетное удаление ссылок с использованием set operations
                     with visited_links_lock:
                         if len(visited_links) > 1000:
-                            # Очищаем 75% старых ссылок используя deque
-                            removed_count = 0
-                            target_remove = len(visited_links_order) * 3 // 4
-
-                            while visited_links_order and removed_count < target_remove:
-                                old_link = visited_links_order.popleft()
-                                if old_link in visited_links:
-                                    visited_links.remove(old_link)
-                                    removed_count += 1
-
-                            logger.debug(
-                                "Очищено %d ссылок для освобождения памяти",
-                                removed_count,
-                            )
+                            # Вычисляем количество элементов для сохранения (25%)
+                            target_keep = len(visited_links_order) // 4
+                            
+                            if target_keep > 0:
+                                from itertools import islice
+                                
+                                # Получаем элементы для сохранения (последние 25%)
+                                links_to_keep = set(islice(visited_links_order, len(visited_links_order) - target_keep, None))
+                                
+                                # Вычисляем элементы для удаления
+                                links_to_remove = visited_links - links_to_keep
+                                
+                                # Пакетное удаление
+                                visited_links.difference_update(links_to_remove)
+                                
+                                # Обновляем deque
+                                for _ in range(len(visited_links_order) - target_keep):
+                                    visited_links_order.popleft()
+                                
+                                logger.debug(
+                                    "Очищено %d ссылок для освобождения памяти",
+                                    len(links_to_remove),
+                                )
 
                     # Оптимизация: одиночный вызов gc.collect() вместо двойного
                     gc.collect()
@@ -419,7 +429,7 @@ class MainParser:
                     except Exception as cache_error:
                         logger.debug("Ошибка при очистке кэша: %s", cache_error)
 
-                    # Проверяем, освободилась ли память
+                    # Проверяем, освободилась ли память (один вызов memory_info())
                     new_memory_info = _process_cache.memory_info()
                     new_memory_mb = new_memory_info.rss / 1024 / 1024
                     saved_mb = memory_mb - new_memory_mb
@@ -445,7 +455,8 @@ class MainParser:
             """Получает уникальные ссылки, которые ещё не были посещены.
 
             Оптимизация:
-            - Использование deque для отслеживания порядка ссылок
+            - Использование set intersection для быстрой проверки пересечений
+            - Пакетное добавление ссылок вместо поэлементного
             - Эффективное удаление старых ссылок без полного пересоздания множества
 
             Returns:
@@ -457,36 +468,48 @@ class MainParser:
                 if links is None:
                     return None
 
+                # Оптимизация: используем set comprehension для быстрого создания множества
                 link_addresses = {
                     x.attributes["href"] for x in links if "href" in x.attributes
                 }
 
                 with visited_links_lock:
-                    if link_addresses & visited_links:
+                    # Оптимизация: используем set.intersection для быстрой проверки
+                    if link_addresses.intersection(visited_links):
                         # Возвращаем None вместо пустого списка для явного указания на повтор
                         return None
 
-                    # Оптимизация: добавляем ссылки в множество и deque
-                    for link in link_addresses:
-                        if link not in visited_links:
-                            visited_links.add(link)
-                            visited_links_order.append(link)
+                    # Оптимизация: пакетное добавление ссылок (быстрее чем цикл for)
+                    new_links = link_addresses - visited_links
+                    visited_links.update(new_links)
+                    visited_links_order.extend(new_links)
 
                     # Оптимизация памяти: очищаем старые ссылки при превышении лимита
                     if len(visited_links) > MAX_VISITED_LINKS_SIZE:
-                        # Очищаем 75% старых ссылок используя deque
-                        removed_count = 0
-                        target_remove = len(visited_links_order) * 3 // 4
-
-                        while visited_links_order and removed_count < target_remove:
-                            old_link = visited_links_order.popleft()
-                            if old_link in visited_links:
-                                visited_links.remove(old_link)
-                                removed_count += 1
-
+                        # Оптимизация: используем islice для эффективного получения первых элементов
+                        from itertools import islice
+                        
+                        # Вычисляем количество элементов для удаления (75%)
+                        target_keep = len(visited_links_order) // 4
+                        
+                        # Оставляем только последние 25% элементов
+                        if target_keep > 0:
+                            # Создаём новое множество из оставшихся элементов
+                            links_to_keep = set(islice(visited_links_order, len(visited_links_order) - target_keep, None))
+                            visited_links.clear()
+                            visited_links.update(links_to_keep)
+                            
+                            # Обновляем deque, оставляя только последние элементы
+                            for _ in range(len(visited_links_order) - target_keep):
+                                visited_links_order.popleft()
+                        else:
+                            # Если элементов мало, очищаем всё
+                            visited_links.clear()
+                            visited_links_order.clear()
+                        
                         logger.debug(
                             "Оптимизация памяти: очищено %d старых ссылок",
-                            removed_count,
+                            len(visited_links_order),
                         )
 
                 return links

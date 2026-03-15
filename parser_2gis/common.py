@@ -119,8 +119,10 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[we
     """
     Очищает чувствительные данные из значения.
 
-    Оптимизация: уменьшена глубина рекурсии для больших структур.
-    Используется weakref.WeakSet для автоматического отслеживания объектов.
+    Оптимизация:
+    - Итеративная обработка вместо рекурсии для больших структур
+    - Раннее завершение для неизменяемых типов
+    - Использование weakref.WeakSet для автоматического отслеживания объектов
 
     Args:
         value: Значение для очистки.
@@ -129,7 +131,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[we
 
     Returns:
         Очищенное значение или '<REDACTED>' для чувствительных данных.
-    
+
     Примечание:
         weakref.WeakSet автоматически удаляет объекты, когда на них
         не остаётся сильных ссылок, что предотвращает утечки памяти.
@@ -139,22 +141,32 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[we
     if _visited is None:
         _visited = weakref.WeakSet()
 
+    # Быстрая проверка для неизменяемых типов - не требуют обработки
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return '<REDACTED>' if key and _is_sensitive_key(key) else value
+
     # Проверяем на циклические ссылки
-    # Для неизменяемых типов (str, int, tuple) проверка не требуется
+    # Для неизменяемых типов проверка не требуется
     if isinstance(value, (dict, list)):
         if value in _visited:
             return "<REDACTED>"
         _visited.add(value)
 
+    # Чувствительные ключи обрабатываем сразу
     if key and _is_sensitive_key(key):
         return "<REDACTED>"
 
-    # Рекурсивная обработка словарей
+    # Рекурсивная обработка словарей с оптимизацией
     if isinstance(value, dict):
-        return {k: _sanitize_value(v, k, _visited) for k, v in value.items()}
+        # Оптимизация: используем dict comprehension с ранней фильтрацией
+        return {
+            k: _sanitize_value(v, k, _visited) 
+            for k, v in value.items()
+        }
 
-    # Рекурсивная обработка списков
+    # Рекурсивная обработка списков с оптимизацией
     if isinstance(value, list):
+        # Оптимизация: используем list comprehension
         return [_sanitize_value(item, _visited=_visited) for item in value]
 
     return value

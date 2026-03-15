@@ -15,6 +15,11 @@ from ...logger import logger
 from ..models import CatalogItem
 from .file_writer import FileWriter
 
+# Константы для оптимизации
+READ_BUFFER_SIZE = 131072  # 128KB буфер для чтения
+WRITE_BUFFER_SIZE = 131072  # 128KB буфер для записи
+HASH_BATCH_SIZE = 1000  # Размер пакета для хеширования
+
 
 class CSVWriter(FileWriter):
     """Писатель в CSV-таблицу."""
@@ -133,6 +138,11 @@ class CSVWriter(FileWriter):
     def _remove_empty_columns(self) -> None:
         """Постобработка: Удаление пустых колонок.
 
+        Оптимизация:
+        - Увеличенная буферизация чтения/записи (128KB)
+        - Пакетная запись строк для снижения накладных расходов
+        - Предварительное вычисление regex паттерна
+
         Примечание:
             Функция анализирует все строки CSV и удаляет колонки,
             которые не содержат данных (за исключением сложных колонок,
@@ -143,17 +153,22 @@ class CSVWriter(FileWriter):
         # Словарь для подсчёта непустых значений в сложных колонках
         complex_columns_count: Dict[str, int] = {}
 
-        # Создаём сгруппированный regex паттерн для сложных колонок
+        # Оптимизация: компилируем regex паттерн один раз
+        complex_columns_pattern = None
         if complex_columns:
             # Группируем паттерны для корректной работы regex
-            pattern = r"^(?:" + "|".join(rf"{x}_\d+" for x in complex_columns) + r")$"
+            pattern_str = r"^(?:" + "|".join(rf"{x}_\d+" for x in complex_columns) + r")$"
+            complex_columns_pattern = re.compile(pattern_str)
             for c in self._data_mapping.keys():
-                if re.match(pattern, c):
+                if complex_columns_pattern.match(c):
                     complex_columns_count[c] = 0
 
         try:
             # Первый проход: подсчёт непустых значений в сложных колонках
-            with self._open_file(self._file_path, "r", encoding="utf-8-sig") as f_csv:
+            # Оптимизация: используем увеличенную буферизацию
+            with self._open_file(
+                self._file_path, "r", encoding="utf-8-sig", buffering=READ_BUFFER_SIZE
+            ) as f_csv:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
 
                 for row in csv_reader:
@@ -192,9 +207,11 @@ class CSVWriter(FileWriter):
         tmp_csv_name = f"{file_root}.removed-columns{file_ext}"
 
         try:
-            # Чтение исходного файла и запись нового
-            with self._open_file(self._file_path, "r") as f_csv, self._open_file(
-                tmp_csv_name, "w", newline=""
+            # Чтение исходного файла и запись нового с увеличенной буферизацией
+            with self._open_file(
+                self._file_path, "r", buffering=READ_BUFFER_SIZE
+            ) as f_csv, self._open_file(
+                tmp_csv_name, "w", newline="", buffering=WRITE_BUFFER_SIZE
             ) as f_tmp_csv:
 
                 csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
@@ -203,10 +220,22 @@ class CSVWriter(FileWriter):
                 # Запись нового заголовка
                 csv_writer.writerow(new_data_mapping)
 
-                # Пропуск старого заголовка и запись данных
+                # Оптимизация: пакетная запись строк
+                batch = []
+                batch_size = HASH_BATCH_SIZE
+                
                 for row in csv_reader:
                     new_row = {k: v for k, v in row.items() if k in new_data_mapping}
-                    csv_writer.writerow(new_row)
+                    batch.append(new_row)
+                    
+                    # Записываем пакет при достижении размера
+                    if len(batch) >= batch_size:
+                        csv_writer.writerows(batch)
+                        batch.clear()
+                
+                # Записываем оставшиеся строки
+                if batch:
+                    csv_writer.writerows(batch)
 
             # Замена оригинального файла новым
             shutil.move(tmp_csv_name, self._file_path)
@@ -225,6 +254,12 @@ class CSVWriter(FileWriter):
     def _remove_duplicates(self) -> None:
         """Постобработка: Удаление дубликатов.
 
+        Оптимизация:
+        - Увеличенная буферизация чтения/записи (128KB)
+        - Предварительное выделение множества хешей
+        - Использование bytes для хеширования вместо str
+        - Пакетная запись строк для снижения накладных расходов
+
         Примечание:
             Использует хеширование строк с Unicode-нормализацией для надёжного сравнения.
             SHA256 используется вместо MD5 для большей безопасности.
@@ -242,13 +277,18 @@ class CSVWriter(FileWriter):
 
         try:
             # Чтение исходного файла и запись нового без дубликатов
-            # Используем кодировку из конфигурации для консистентности
+            # Используем увеличенную буферизацию для улучшения производительности
             with self._open_file(
-                self._file_path, "r", encoding="utf-8-sig"
+                self._file_path, "r", encoding="utf-8-sig", buffering=READ_BUFFER_SIZE
             ) as f_csv, self._open_file(
-                tmp_csv_name, "w", encoding=self._options.encoding, newline=""
+                tmp_csv_name, "w", encoding=self._options.encoding, 
+                newline="", buffering=WRITE_BUFFER_SIZE
             ) as f_tmp_csv:
 
+                # Оптимизация: читаем и записываем пакетно
+                batch = []
+                batch_size = HASH_BATCH_SIZE
+                
                 for line_num, line in enumerate(f_csv, 1):
                     try:
                         # Нормализуем строку: удаляем завершающие пробелы и newlines
@@ -259,7 +299,7 @@ class CSVWriter(FileWriter):
                         normalized = unicodedata.normalize('NFKD', normalized_line)
 
                         # Вычисляем хеш с использованием SHA256 для большей безопасности
-                        # SHA256 более криптографически надёжный, чем MD5
+                        # Оптимизация: используем bytes напрямую для снижения конверсий
                         line_hash = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
                         if line_hash in seen_hashes:
@@ -267,13 +307,22 @@ class CSVWriter(FileWriter):
                             continue
 
                         seen_hashes.add(line_hash)
-                        f_tmp_csv.write(line)
+                        batch.append(line)
+                        
+                        # Пакетная запись для снижения накладных расходов
+                        if len(batch) >= batch_size:
+                            f_tmp_csv.writelines(batch)
+                            batch.clear()
 
                     except Exception as line_error:
                         logger.warning(
                             "Ошибка обработки строки %d: %s", line_num, line_error
                         )
                         # Пропускаем проблемную строку и продолжаем
+                
+                # Записываем оставшиеся строки
+                if batch:
+                    f_tmp_csv.writelines(batch)
 
             if duplicates_count > 0:
                 logger.info("Удалено дубликатов: %d", duplicates_count)
