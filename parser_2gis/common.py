@@ -299,15 +299,10 @@ def wait_until_finished(
     return outer
 
 
-@lru_cache(maxsize=128)  # Оптимизация: кэширование отчётов об ошибках
 def report_from_validation_error(
-    ex: ValidationError, d: Optional[str] = None
-) -> str:
+    ex: ValidationError, d: Optional[Dict[str, Any]] = None
+) -> Dict[str, Dict[str, Any]]:
     """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
-    
-    Оптимизация: 
-    - lru_cache для кэширования результатов
-    - Возвращает строку вместо словаря для снижения аллокаций
 
     Note:
         Удобно использовать при попытке инициализации модели с предопределённым
@@ -318,17 +313,28 @@ def report_from_validation_error(
         d: Словарь аргументов (опционально, для совместимости).
 
     Returns:
-        Строка с информацией об ошибках валидации.
+        Словарь с информацией об ошибках валидации.
+        Формат: {field_name: {'invalid_value': value, 'error_message': msg}}
     """
-    error_messages: List[str] = []
-    
+    error_report: Dict[str, Dict[str, Any]] = {}
+
     for error in ex.errors():
         msg = error["msg"]
         loc = error["loc"]
-        attribute_path = ".".join([str(location) for location in loc])
-        error_messages.append(f"{attribute_path}: {msg}")
-    
-    return "; ".join(error_messages)
+        # Берём только имя поля (последний элемент loc)
+        field_name = str(loc[-1]) if loc else "unknown"
+        
+        # Получаем значение из словаря d если он предоставлен
+        invalid_value = "<No value>"
+        if d is not None and isinstance(d, dict):
+            invalid_value = d.get(field_name, "<No value>")
+        
+        error_report[field_name] = {
+            "invalid_value": invalid_value,
+            "error_message": msg
+        }
+
+    return error_report
 
 
 def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
