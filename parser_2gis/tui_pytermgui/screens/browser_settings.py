@@ -110,9 +110,9 @@ class BrowserSettingsScreen:
             "",
             ptg.Label("[dim]Настройте параметры браузера Chrome:[/dim]"),
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Основные настройки:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             self._fields["headless"],
@@ -120,19 +120,19 @@ class BrowserSettingsScreen:
             self._fields["start_maximized"],
             self._fields["silent_browser"],
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Расширенные настройки:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             self._fields["memory_limit"],
             self._fields["binary_path"],
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 button_save,
                 button_reset,
                 button_back,
-                direction="horizontal",
+                box="EMPTY_HORIZONTAL",
             ),
             width=70,
             box="DOUBLE",

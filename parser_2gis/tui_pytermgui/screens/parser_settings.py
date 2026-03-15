@@ -145,46 +145,46 @@ class ParserSettingsScreen:
             "",
             ptg.Label("[dim]Настройте параметры парсера:[/dim]"),
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Основные настройки:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             self._fields["max_records"],
             self._fields["delay_between_clicks"],
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Обработка ошибок:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             self._fields["skip_404_response"],
             self._fields["stop_on_first_404"],
             self._fields["max_consecutive_empty_pages"],
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Retry настройки:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             self._fields["retry_on_network_errors"],
             self._fields["max_retries"],
             self._fields["retry_delay_base"],
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Оптимизация:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             self._fields["use_gc"],
             self._fields["gc_pages_interval"],
             self._fields["memory_threshold"],
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 button_save,
                 button_reset,
                 button_back,
-                direction="horizontal",
+                box="EMPTY_HORIZONTAL",
             ),
             width=70,
             box="DOUBLE",

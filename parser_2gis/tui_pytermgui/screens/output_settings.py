@@ -125,17 +125,17 @@ class OutputSettingsScreen:
             "",
             ptg.Label("[dim]Настройте параметры вывода данных:[/dim]"),
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Формат и кодировка:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             self._fields["encoding"],
             self._fields["verbose"],
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]CSV настройки:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             self._fields["add_rubrics"],
@@ -143,19 +143,19 @@ class OutputSettingsScreen:
             self._fields["columns_per_entity"],
             self._fields["join_char"],
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Очистка данных:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             self._fields["remove_empty_columns"],
             self._fields["remove_duplicates"],
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 button_save,
                 button_reset,
                 button_back,
-                direction="horizontal",
+                box="EMPTY_HORIZONTAL",
             ),
             width=70,
             box="DOUBLE",

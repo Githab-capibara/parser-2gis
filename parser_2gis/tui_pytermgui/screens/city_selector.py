@@ -121,16 +121,16 @@ class CitySelectorScreen:
                 height=15,
             ),
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 button_select_all,
                 button_deselect_all,
-                direction="horizontal",
+                box="EMPTY_HORIZONTAL",
             ),
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 button_back,
                 button_next,
-                direction="horizontal",
+                box="EMPTY_HORIZONTAL",
             ),
             width=80,
             box="DOUBLE",

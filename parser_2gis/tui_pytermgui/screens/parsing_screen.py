@@ -110,34 +110,34 @@ class ParsingScreen:
             "",
             header,
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Прогресс:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             url_progress_label,
             page_progress_label,
             record_progress_label,
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Статистика:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             stats_label,
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Логи:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             logs_box,
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 self._button_pause,
                 self._button_stop,
                 self._button_minimize,
-                direction="horizontal",
+                box="EMPTY_HORIZONTAL",
             ),
             width=90,
             box="DOUBLE",

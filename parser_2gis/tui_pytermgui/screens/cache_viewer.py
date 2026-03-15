@@ -156,16 +156,16 @@ class CacheViewerScreen:
             "",
             header,
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Статистика кэша:[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             stats_label,
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.Label("[bold]Записи кэша (первые 20):[/bold]"),
-                direction="vertical",
+                box="EMPTY_VERTICAL",
             ),
             "",
             ptg.ScrollArea(
@@ -173,11 +173,11 @@ class CacheViewerScreen:
                 height=10,
             ),
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 button_clear_all,
                 button_clear_expired,
                 button_back,
-                direction="horizontal",
+                box="EMPTY_HORIZONTAL",
             ),
             width=80,
             box="DOUBLE",

@@ -119,7 +119,7 @@ class AboutScreen:
                 formats_title,
             ),
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 ptg.ScrollArea(
                     features_list,
                     height=8,
@@ -128,7 +128,7 @@ class AboutScreen:
                     formats_list,
                     height=3,
                 ),
-                direction="horizontal",
+                box="EMPTY_HORIZONTAL",
             ),
             "",
             links_title,
@@ -136,10 +136,9 @@ class AboutScreen:
             "",
             copyright_label,
             "",
-            ptg.BoxLayout(
+            ptg.Container(
                 button_back,
-                direction="horizontal",
-                justify="center",
+                box="EMPTY_HORIZONTAL",
             ),
             width=80,
             box="DOUBLE",
