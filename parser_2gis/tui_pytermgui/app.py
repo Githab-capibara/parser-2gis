@@ -91,8 +91,28 @@ class TUIApp:
             self._screen_manager = ScreenManager(self)
             self._show_main_menu()
 
+            # Установить глобальный обработчик клавиш
+            self._manager.preprocess_key = self._handle_global_key
+
             # Запуск цикла событий
             self._manager.run()
+
+    def _handle_global_key(self, key: str) -> str | None:
+        """
+        Глобальный обработчик клавиш.
+
+        Args:
+            key: Код нажатой клавиши
+
+        Returns:
+            Обработанный ключ или None
+        """
+        # Обработка Esc для возврата назад
+        if key == ptg.keys.ESC:
+            self.go_back()
+            return None
+
+        return key
 
     def _load_styles(self) -> None:
         """Загрузить стили из YAML."""
@@ -238,12 +258,12 @@ class TUIApp:
     def _clear_all_windows(self) -> None:
         """
         Очистить все окна из менеджера.
-        
+
         Использует безопасный метод удаления окон.
         """
         if not self._manager:
             return
-            
+
         # Создаём копию списка окон для безопасного удаления
         windows_to_remove = list(self._manager._windows)
         for window in windows_to_remove:
@@ -254,7 +274,11 @@ class TUIApp:
                 pass
 
     def go_back(self) -> None:
-        """Вернуться к предыдущему экрану."""
+        """
+        Вернуться к предыдущему экрану.
+
+        Обрабатывает нажатие Esc для навигации назад.
+        """
         if not self._manager or not self._screen_manager:
             return
 

@@ -1,5 +1,11 @@
 """
 Экран выбора категорий для парсинга.
+
+Поддерживает навигацию с клавиатуры:
+- Tab/Shift+Tab - переключение между элементами
+- Enter - активация checkbox/кнопки
+- Esc - возврат назад
+- Фокус на InputField для поиска
 """
 
 from __future__ import annotations
@@ -8,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
-from ..widgets import Checkbox, ScrollArea
+from ..widgets import Checkbox, NavigableContainer, ButtonWidget
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -18,7 +24,7 @@ class CategorySelectorScreen:
     """
     Экран выбора категорий.
 
-    Предоставляет поиск и множественный выбор категорий.
+    Предоставляет поиск и множественный выбор категорий с поддержкой навигации.
     """
 
     def __init__(self, app: TUIApp) -> None:
@@ -33,10 +39,12 @@ class CategorySelectorScreen:
         self._filtered_categories: list[dict[str, str]] = []
         self._selected_indices: set[int] = set()
         self._search_field: ptg.InputField | None = None
-        self._category_container: ptg.Container | None = None
+        self._category_container: NavigableContainer | None = None
         self._counter_label: ptg.Label | None = None
         # Хранилище для checkbox виджетов
         self._checkboxes: list[Checkbox] = []
+        # Контейнер для кнопок
+        self._button_container: NavigableContainer | None = None
 
         self._load_categories()
 
@@ -71,7 +79,8 @@ class CategorySelectorScreen:
         )
 
         # Контейнер для категорий (будет заполнен динамически)
-        self._category_container = ptg.Container()
+        self._category_container = NavigableContainer()
+        self._category_container.set_app(self._app)
         self._populate_categories()
 
         # Счётчик выбранных категорий
@@ -82,11 +91,16 @@ class CategorySelectorScreen:
             justify="center",
         )
 
-        # Кнопки управления
-        button_select_all = ["Выбрать все", self._select_all]
-        button_deselect_all = ["Снять все", self._deselect_all]
-        button_back = ["Назад", self._go_back]
-        button_next = ["Далее", self._next]
+        # Кнопки управления в навигируемом контейнере
+        self._button_container = NavigableContainer(
+            box="EMPTY",
+        )
+        self._button_container.set_app(self._app)
+        
+        self._button_container.add_widget(ButtonWidget("Выбрать все", self._select_all))
+        self._button_container.add_widget(ButtonWidget("Снять все", self._deselect_all))
+        self._button_container.add_widget(ButtonWidget("Назад", self._go_back))
+        self._button_container.add_widget(ButtonWidget("Далее", self._next))
 
         # Создание окна
         window = ptg.Window(
@@ -101,23 +115,19 @@ class CategorySelectorScreen:
                 self._counter_label,
             ),
             "",
-            ScrollArea(
+            ptg.ScrollArea(
                 self._category_container,
                 height=15,
             ),
             "",
-            ptg.Splitter(
-                button_select_all,
-                button_deselect_all,
-            ),
-            "",
-            ptg.Splitter(
-                button_back,
-                button_next,
-            ),
+            self._button_container,
             width=80,
             box="DOUBLE",
         ).set_title("[bold green]Выбор категорий для парсинга[/bold green]")
+
+        # Установить фокус на поле поиска
+        if self._search_field:
+            self._search_field.focus()
 
         return window.center()
 
@@ -134,14 +144,14 @@ class CategorySelectorScreen:
             category_name = category.get("name", "Неизвестно")
 
             is_selected = i in self._selected_indices
-            
+
             # Создать checkbox с правильным API
             checkbox = Checkbox(
                 label=category_name,
                 value=is_selected,
                 on_change=lambda checked, idx=i: self._toggle_category(idx, checked),
             )
-            
+
             self._checkboxes.append(checkbox)
             self._category_container.add_widget(checkbox)
 
@@ -200,11 +210,11 @@ class CategorySelectorScreen:
     def _deselect_all(self, *args) -> None:
         """Снять все категории."""
         self._selected_indices.clear()
-        
+
         # Обновить checkbox виджеты
         for checkbox in self._checkboxes:
             checkbox.value = False
-        
+
         self._update_counter()
 
     def _update_counter(self) -> None:

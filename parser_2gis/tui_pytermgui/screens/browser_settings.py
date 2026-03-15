@@ -1,14 +1,20 @@
 """
 Экран настроек браузера.
+
+Поддерживает навигацию с клавиатуры:
+- Tab/Shift+Tab - переключение между полями
+- Enter - активация checkbox/кнопки
+- Esc - возврат назад
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
-from ..widgets import Checkbox, ScrollArea
+from ..widgets import Checkbox, NavigableContainer, ButtonWidget
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -18,7 +24,7 @@ class BrowserSettingsScreen:
     """
     Экран настроек браузера Chrome.
 
-    Предоставляет форму для настройки всех параметров Chrome.
+    Предоставляет форму для настройки всех параметров Chrome с поддержкой навигации.
     """
 
     def __init__(self, app: TUIApp) -> None:
@@ -33,7 +39,10 @@ class BrowserSettingsScreen:
         self._chrome_config = self._config.chrome
 
         # Поля формы
-        self._fields: dict[str, ptg.InputField | "Checkbox"] = {}
+        self._fields: dict[str, ptg.InputField | Checkbox] = {}
+        # Контейнер для навигации
+        self._form_container: NavigableContainer | None = None
+        self._button_container: NavigableContainer | None = None
 
     def create_window(self) -> ptg.Window:
         """
@@ -48,29 +57,39 @@ class BrowserSettingsScreen:
             justify="center",
         )
 
+        # Основной контейнер формы с навигацией
+        self._form_container = NavigableContainer(
+            box="EMPTY",
+        )
+        self._form_container.set_app(self._app)
+
         # Поле: Headless
         self._fields["headless"] = Checkbox(
             label="Headless (фоновый режим)",
             value=self._chrome_config.headless,
         )
+        self._form_container.add_widget(self._fields["headless"])
 
         # Поле: Disable images
         self._fields["disable_images"] = Checkbox(
             label="Отключить изображения",
             value=self._chrome_config.disable_images,
         )
+        self._form_container.add_widget(self._fields["disable_images"])
 
         # Поле: Start maximized
         self._fields["start_maximized"] = Checkbox(
             label="Запускать развёрнутым",
             value=self._chrome_config.start_maximized,
         )
+        self._form_container.add_widget(self._fields["start_maximized"])
 
         # Поле: Silent browser
         self._fields["silent_browser"] = Checkbox(
             label="Тихий режим (без отладочной информации)",
             value=self._chrome_config.silent_browser,
         )
+        self._form_container.add_widget(self._fields["silent_browser"])
 
         # Поле: Memory limit
         self._fields["memory_limit"] = ptg.InputField(
@@ -78,6 +97,7 @@ class BrowserSettingsScreen:
             value=str(self._chrome_config.memory_limit),
             validators=[self._validate_positive_int],
         )
+        self._form_container.add_widget(self._fields["memory_limit"])
 
         # Поле: Binary path
         self._fields["binary_path"] = ptg.InputField(
@@ -85,11 +105,17 @@ class BrowserSettingsScreen:
             value=str(self._chrome_config.binary_path or ""),
             placeholder="/usr/bin/google-chrome",
         )
+        self._form_container.add_widget(self._fields["binary_path"])
 
-        # Кнопки управления - используем синтаксис [label, callback]
-        button_save = ["Сохранить", self._save]
-        button_reset = ["Сбросить", self._reset]
-        button_back = ["Назад", self._go_back]
+        # Кнопки управления в навигируемом контейнере
+        self._button_container = NavigableContainer(
+            box="EMPTY",
+        )
+        self._button_container.set_app(self._app)
+        
+        self._button_container.add_widget(ButtonWidget("Сохранить", self._save))
+        self._button_container.add_widget(ButtonWidget("Сбросить", self._reset))
+        self._button_container.add_widget(ButtonWidget("Назад", self._go_back))
 
         # Создание окна
         window = ptg.Window(
@@ -98,33 +124,17 @@ class BrowserSettingsScreen:
             "",
             ptg.Label("[dim]Настройте параметры браузера Chrome:[/dim]"),
             "",
-            ptg.Container(
-                ptg.Label("[bold]Основные настройки:[/bold]"),
-                box="EMPTY_VERTICAL",
-            ),
+            ptg.Label("[bold]Основные настройки:[/bold]"),
             "",
-            self._fields["headless"],
-            self._fields["disable_images"],
-            self._fields["start_maximized"],
-            self._fields["silent_browser"],
+            self._form_container,
             "",
-            ptg.Container(
-                ptg.Label("[bold]Расширенные настройки:[/bold]"),
-                box="EMPTY_VERTICAL",
-            ),
-            "",
-            self._fields["memory_limit"],
-            self._fields["binary_path"],
-            "",
-            ptg.Container(
-                button_save,
-                button_reset,
-                button_back,
-                box="EMPTY_HORIZONTAL",
-            ),
+            self._button_container,
             width=70,
             box="DOUBLE",
         ).set_title("[bold green]Настройки браузера[/bold green]")
+
+        # Установить фокус на первый элемент
+        self._form_container.focus_first()
 
         return window.center()
 
@@ -173,7 +183,6 @@ class BrowserSettingsScreen:
         self._chrome_config.memory_limit = memory_limit
 
         if binary_path_str.strip():
-            from pathlib import Path
             self._chrome_config.binary_path = Path(binary_path_str)
         else:
             self._chrome_config.binary_path = None

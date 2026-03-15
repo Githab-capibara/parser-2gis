@@ -1,5 +1,10 @@
 """
 Экран настроек парсера.
+
+Поддерживает навигацию с клавиатуры:
+- Tab/Shift+Tab - переключение между полями
+- Enter - активация checkbox/кнопки
+- Esc - возврат назад
 """
 
 from __future__ import annotations
@@ -8,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
-from ..widgets import Checkbox
+from ..widgets import Checkbox, NavigableContainer, ButtonWidget
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -18,7 +23,7 @@ class ParserSettingsScreen:
     """
     Экран настроек парсера.
 
-    Предоставляет форму для настройки всех параметров парсера.
+    Предоставляет форму для настройки всех параметров парсера с поддержкой навигации.
     """
 
     def __init__(self, app: TUIApp) -> None:
@@ -34,6 +39,9 @@ class ParserSettingsScreen:
 
         # Поля формы
         self._fields: dict[str, ptg.InputField | Checkbox] = {}
+        # Контейнер для навигации
+        self._form_container: NavigableContainer | None = None
+        self._button_container: NavigableContainer | None = None
 
     def create_window(self) -> ptg.Window:
         """
@@ -48,12 +56,19 @@ class ParserSettingsScreen:
             justify="center",
         )
 
+        # Основной контейнер формы с навигацией
+        self._form_container = NavigableContainer(
+            box="EMPTY",
+        )
+        self._form_container.set_app(self._app)
+
         # Поле: Max records
         self._fields["max_records"] = ptg.InputField(
             label="Макс. записей:",
             value=str(self._parser_config.max_records),
             validators=[self._validate_positive_int],
         )
+        self._form_container.add_widget(self._fields["max_records"])
 
         # Поле: Delay between clicks
         self._fields["delay_between_clicks"] = ptg.InputField(
@@ -61,18 +76,21 @@ class ParserSettingsScreen:
             value=str(self._parser_config.delay_between_clicks),
             validators=[self._validate_non_negative_int],
         )
+        self._form_container.add_widget(self._fields["delay_between_clicks"])
 
         # Поле: Skip 404
         self._fields["skip_404_response"] = Checkbox(
             label="Пропускать 404 ответы",
             value=self._parser_config.skip_404_response,
         )
+        self._form_container.add_widget(self._fields["skip_404_response"])
 
         # Поле: Use GC
         self._fields["use_gc"] = Checkbox(
             label="Использовать сборщик мусора",
             value=self._parser_config.use_gc,
         )
+        self._form_container.add_widget(self._fields["use_gc"])
 
         # Поле: GC pages interval
         self._fields["gc_pages_interval"] = ptg.InputField(
@@ -80,12 +98,14 @@ class ParserSettingsScreen:
             value=str(self._parser_config.gc_pages_interval),
             validators=[self._validate_positive_int],
         )
+        self._form_container.add_widget(self._fields["gc_pages_interval"])
 
         # Поле: Stop on first 404
         self._fields["stop_on_first_404"] = Checkbox(
             label="Останавливать при первом 404",
             value=self._parser_config.stop_on_first_404,
         )
+        self._form_container.add_widget(self._fields["stop_on_first_404"])
 
         # Поле: Max consecutive empty pages
         self._fields["max_consecutive_empty_pages"] = ptg.InputField(
@@ -93,6 +113,7 @@ class ParserSettingsScreen:
             value=str(self._parser_config.max_consecutive_empty_pages),
             validators=[self._validate_positive_int],
         )
+        self._form_container.add_widget(self._fields["max_consecutive_empty_pages"])
 
         # Поле: Max retries
         self._fields["max_retries"] = ptg.InputField(
@@ -100,12 +121,14 @@ class ParserSettingsScreen:
             value=str(self._parser_config.max_retries),
             validators=[self._validate_positive_int],
         )
+        self._form_container.add_widget(self._fields["max_retries"])
 
         # Поле: Retry on network errors
         self._fields["retry_on_network_errors"] = Checkbox(
             label="Retry при сетевых ошибках",
             value=self._parser_config.retry_on_network_errors,
         )
+        self._form_container.add_widget(self._fields["retry_on_network_errors"])
 
         # Поле: Retry delay base
         self._fields["retry_delay_base"] = ptg.InputField(
@@ -113,6 +136,7 @@ class ParserSettingsScreen:
             value=str(self._parser_config.retry_delay_base),
             validators=[self._validate_positive_int],
         )
+        self._form_container.add_widget(self._fields["retry_delay_base"])
 
         # Поле: Memory threshold
         self._fields["memory_threshold"] = ptg.InputField(
@@ -120,11 +144,17 @@ class ParserSettingsScreen:
             value=str(self._parser_config.memory_threshold),
             validators=[self._validate_positive_int],
         )
+        self._form_container.add_widget(self._fields["memory_threshold"])
 
-        # Кнопки управления - используем синтаксис [label, callback]
-        button_save = ["Сохранить", self._save]
-        button_reset = ["Сбросить", self._reset]
-        button_back = ["Назад", self._go_back]
+        # Кнопки управления в навигируемом контейнере
+        self._button_container = NavigableContainer(
+            box="EMPTY",
+        )
+        self._button_container.set_app(self._app)
+        
+        self._button_container.add_widget(ButtonWidget("Сохранить", self._save))
+        self._button_container.add_widget(ButtonWidget("Сбросить", self._reset))
+        self._button_container.add_widget(ButtonWidget("Назад", self._go_back))
 
         # Создание окна
         window = ptg.Window(
@@ -133,50 +163,17 @@ class ParserSettingsScreen:
             "",
             ptg.Label("[dim]Настройте параметры парсера:[/dim]"),
             "",
-            ptg.Container(
-                ptg.Label("[bold]Основные настройки:[/bold]"),
-                box="EMPTY_VERTICAL",
-            ),
+            ptg.Label("[bold]Основные настройки:[/bold]"),
             "",
-            self._fields["max_records"],
-            self._fields["delay_between_clicks"],
+            self._form_container,
             "",
-            ptg.Container(
-                ptg.Label("[bold]Обработка ошибок:[/bold]"),
-                box="EMPTY_VERTICAL",
-            ),
-            "",
-            self._fields["skip_404_response"],
-            self._fields["stop_on_first_404"],
-            self._fields["max_consecutive_empty_pages"],
-            "",
-            ptg.Container(
-                ptg.Label("[bold]Retry настройки:[/bold]"),
-                box="EMPTY_VERTICAL",
-            ),
-            "",
-            self._fields["retry_on_network_errors"],
-            self._fields["max_retries"],
-            self._fields["retry_delay_base"],
-            "",
-            ptg.Container(
-                ptg.Label("[bold]Оптимизация:[/bold]"),
-                box="EMPTY_VERTICAL",
-            ),
-            "",
-            self._fields["use_gc"],
-            self._fields["gc_pages_interval"],
-            self._fields["memory_threshold"],
-            "",
-            ptg.Container(
-                button_save,
-                button_reset,
-                button_back,
-                box="EMPTY_HORIZONTAL",
-            ),
+            self._button_container,
             width=70,
             box="DOUBLE",
         ).set_title("[bold green]Настройки парсера[/bold green]")
+
+        # Установить фокус на первый элемент
+        self._form_container.focus_first()
 
         return window.center()
 

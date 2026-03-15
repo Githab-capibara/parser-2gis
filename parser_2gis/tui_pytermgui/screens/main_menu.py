@@ -1,5 +1,10 @@
 """
 Главное меню TUI Parser2GIS.
+
+Поддерживает навигацию с клавиатуры:
+- Tab/Shift+Tab - переключение между кнопками
+- Enter - активация кнопки
+- Esc - возврат назад
 """
 
 from __future__ import annotations
@@ -7,6 +12,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytermgui as ptg
+
+from ..widgets import NavigableContainer, ButtonWidget
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -16,7 +23,7 @@ class MainMenuScreen:
     """
     Класс главного меню.
 
-    Отображает основные опции приложения.
+    Отображает основные опции приложения с поддержкой навигации.
     """
 
     def __init__(self, app: TUIApp) -> None:
@@ -27,6 +34,7 @@ class MainMenuScreen:
             app: Главное приложение TUI
         """
         self._app = app
+        self._menu_container: NavigableContainer | None = None
 
     def create_window(self) -> ptg.Window:
         """
@@ -46,16 +54,31 @@ class MainMenuScreen:
             justify="center",
         )
 
-        # Кнопки меню - используем синтаксис [label, callback]
-        button_start = ["🚀 Запустить парсинг", self._start_parsing]
-        button_cities = ["📁 Выбрать города", self._select_cities]
-        button_categories = ["📂 Выбрать категории", self._select_categories]
-        button_browser = ["⚙️ Настройки браузера", self._browser_settings]
-        button_parser = ["🔧 Настройки парсера", self._parser_settings]
-        button_output = ["📊 Настройки вывода", self._output_settings]
-        button_cache = ["📈 Просмотр кэша", self._view_cache]
-        button_about = ["ℹ️ О программе", self._show_about]
-        button_exit = ["Выход", self._exit]
+        # Создаём кнопки с поддержкой навигации
+        self._menu_container = NavigableContainer(
+            box="EMPTY",
+        )
+        self._menu_container.set_app(self._app)
+
+        # Кнопки меню
+        self._menu_container.add_widget(ButtonWidget("🚀 Запустить парсинг", self._start_parsing))
+        self._menu_container.add_widget(ButtonWidget("📁 Выбрать города", self._select_cities))
+        self._menu_container.add_widget(ButtonWidget("📂 Выбрать категории", self._select_categories))
+
+        self._menu_container.add_widget(ptg.Label(""))
+        self._menu_container.add_widget(ptg.Label("[bold]Настройки:[/bold]"))
+
+        self._menu_container.add_widget(ButtonWidget("⚙️ Настройки браузера", self._browser_settings))
+        self._menu_container.add_widget(ButtonWidget("🔧 Настройки парсера", self._parser_settings))
+        self._menu_container.add_widget(ButtonWidget("📊 Настройки вывода", self._output_settings))
+
+        self._menu_container.add_widget(ptg.Label(""))
+        self._menu_container.add_widget(ptg.Label("[bold]Дополнительно:[/bold]"))
+
+        self._menu_container.add_widget(ButtonWidget("📈 Просмотр кэша", self._view_cache))
+        self._menu_container.add_widget(ButtonWidget("ℹ️ О программе", self._show_about))
+        self._menu_container.add_widget(ptg.Label(""))
+        self._menu_container.add_widget(ButtonWidget("Выход", self._exit))
 
         # Создание окна
         window = ptg.Window(
@@ -65,27 +88,15 @@ class MainMenuScreen:
             "",
             ptg.Label("[bold]Основное меню:[/bold]"),
             "",
-            button_start,
-            button_cities,
-            button_categories,
-            "",
-            ptg.Label("[bold]Настройки:[/bold]"),
-            "",
-            button_browser,
-            button_parser,
-            button_output,
-            "",
-            ptg.Label("[bold]Дополнительно:[/bold]"),
-            "",
-            button_cache,
-            button_about,
+            self._menu_container,
             "",
             ptg.Label("[dim]Навигация: Tab/Shift+Tab - переключение, Enter - выбор, Esc - назад[/dim]"),
-            "",
-            button_exit,
             width=70,
             box="DOUBLE",
         ).set_title("[bold green]Parser2GIS - Главное меню[/bold green]")
+
+        # Установить фокус на первую кнопку
+        self._menu_container.focus_first()
 
         return window.center()
 
