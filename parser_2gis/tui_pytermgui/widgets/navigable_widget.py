@@ -297,8 +297,9 @@ class ButtonWidget(NavigableWidget):
         super().__init__(**kwargs)
         self._label = label
         self._onclick = onclick
-        self._base_style = "[bold white on blue]"
-        self._focused_style = "[bold black on cyan]"
+        # Используем правильный синтаксис TIM-тегов: @color для фона
+        self._base_style = "[bold white @blue]"
+        self._focused_style = "[bold black @cyan]"
 
     def get_lines(self) -> list[str]:
         """

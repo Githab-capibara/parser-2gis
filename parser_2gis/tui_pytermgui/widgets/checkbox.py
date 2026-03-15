@@ -54,7 +54,9 @@ class Checkbox(ptg.Widget):
         self._unchecked_symbol = "[dim]○[/]"
 
         # Стили для отображения фокуса
-        self._focused_prefix = "[bold cyan on dark_gray]>[/]"
+        # Используем правильный синтаксис TIM-тегов: @color для фона
+        # dark_gray не существует, используем gray
+        self._focused_prefix = "[bold cyan @gray]>[/]"
         self._unfocused_prefix = "  "
 
     @property
