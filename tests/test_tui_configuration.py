@@ -37,8 +37,10 @@ pytestmark = pytest.mark.skipif(
     reason="pytermgui не установлен. Установите: pip install pytermgui"
 )
 
-from parser_2gis.tui_pytermgui.styles import get_default_styles
-from parser_2gis.tui_pytermgui.app import TUIApp, Parser2GISTUI
+# Условные импорты - выполняются только если pytermgui доступен
+if PYTERMGUI_AVAILABLE:
+    from parser_2gis.tui_pytermgui.styles import get_default_styles
+    from parser_2gis.tui_pytermgui.app import TUIApp, Parser2GISTUI
 
 
 class TestTUIStylesConfiguration:
