@@ -223,9 +223,7 @@ class CitySelectorScreen:
         if self._counter_label:
             selected_count = len(self._selected_indices)
             total_count = len(self._cities)
-            self._counter_label.set_format(
-                f"[green]Выбрано: {selected_count}[/green] из {total_count}"
-            )
+            self._counter_label.value = f"[green]Выбрано: {selected_count}[/green] из {total_count}"
 
     def _go_back(self, *args) -> None:
         """Вернуться назад."""
