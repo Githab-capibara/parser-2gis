@@ -138,6 +138,20 @@ class BrowserSettingsScreen:
 
         return window.center()
 
+    def _set_input_field_value(self, field: ptg.InputField, value: str) -> None:
+        """
+        Установить значение для InputField.
+
+        Args:
+            field: Поле для установки значения
+            value: Новое значение
+        """
+        # Очищаем текущее значение
+        for _ in range(len(field.value)):
+            field.delete_back()
+        # Вставляем новое значение
+        field.insert_text(value)
+
     def _validate_positive_int(self, value: str) -> tuple[bool, str]:
         """
         Проверить, что значение - положительное целое число.
@@ -199,13 +213,17 @@ class BrowserSettingsScreen:
 
         default_options = ChromeOptions()
 
-        # Обновить поля
+        # Обновить поля Checkbox (можно использовать .value = )
         self._fields["headless"].value = default_options.headless  # type: ignore
         self._fields["disable_images"].value = default_options.disable_images  # type: ignore
         self._fields["start_maximized"].value = default_options.start_maximized  # type: ignore
         self._fields["silent_browser"].value = default_options.silent_browser  # type: ignore
-        self._fields["memory_limit"].value = str(default_options.memory_limit)  # type: ignore
-        self._fields["binary_path"].value = ""  # type: ignore
+
+        # Обновить поля InputField (нужно использовать delete_back() + insert_text())
+        self._set_input_field_value(
+            self._fields["memory_limit"], str(default_options.memory_limit)
+        )
+        self._set_input_field_value(self._fields["binary_path"], "")
 
         # Обновить конфигурацию
         self._chrome_config.headless = default_options.headless

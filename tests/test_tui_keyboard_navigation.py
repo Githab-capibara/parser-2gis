@@ -504,18 +504,18 @@ class TestFullNavigationCycle:
     def test_navigation_button_widget(self):
         """
         Проверка активации кнопки через Enter.
-        
+
         Проверяет, что ButtonWidget корректно обрабатывает Enter
         и вызывает callback.
         """
         mock_callback = MagicMock()
-        
-        # Создаём кнопку
-        button = ButtonWidget(label="Test Button", callback=mock_callback)
-        
+
+        # Создаём кнопку (используем onclick вместо callback)
+        button = ButtonWidget(label="Test Button", onclick=mock_callback)
+
         # Эмулируем нажатие Enter
         result = button.handle_key(ptg.keys.ENTER)
-        
+
         # Клавиша должна быть обработана
         assert result is True
         # Callback должен быть вызван
@@ -524,15 +524,16 @@ class TestFullNavigationCycle:
     def test_button_widget_on_enter(self):
         """
         Проверка метода on_enter() у ButtonWidget.
-        
+
         Проверяет, что on_enter() вызывает activate().
         """
         mock_callback = MagicMock()
-        button = ButtonWidget(label="Test Button", callback=mock_callback)
-        
+        # Используем onclick вместо callback
+        button = ButtonWidget(label="Test Button", onclick=mock_callback)
+
         # Вызываем on_enter
         result = button.on_enter()
-        
+
         # Должен вернуть True
         assert result is True
         # Callback должен быть вызван

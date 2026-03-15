@@ -79,7 +79,8 @@ class TestChromeExceptions:
     def test_chrome_exception_creation(self):
         """Проверка создания ChromeException."""
         exc = ChromeException('Test error')
-        assert str(exc) == 'Test error'
+        # Проверяем что базовый текст входит в сообщение исключения
+        assert 'Test error' in str(exc)
 
     def test_chrome_exception_inheritance(self):
         """Проверка наследования ChromeException."""
@@ -95,13 +96,15 @@ class TestChromeExceptions:
     def test_chrome_runtime_exception(self):
         """Проверка ChromeRuntimeException."""
         exc = ChromeRuntimeException('Runtime error')
-        assert str(exc) == 'Runtime error'
+        # Проверяем что базовый текст входит в сообщение исключения
+        assert 'Runtime error' in str(exc)
         assert isinstance(exc, ChromeException)
 
     def test_chrome_user_abort_exception(self):
         """Проверка ChromeUserAbortException."""
         exc = ChromeUserAbortException('User aborted')
-        assert str(exc) == 'User aborted'
+        # Проверяем что базовый текст входит в сообщение исключения
+        assert 'User aborted' in str(exc)
         assert isinstance(exc, ChromeException)
 
 

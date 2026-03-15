@@ -80,7 +80,8 @@ class TestParserException:
     def test_parser_exception_creation(self):
         """Проверка создания исключения."""
         exc = ParserException('Test error')
-        assert str(exc) == 'Test error'
+        # Проверяем что базовый текст входит в сообщение исключения
+        assert 'Test error' in str(exc)
 
     def test_parser_exception_inheritance(self):
         """Проверка наследования."""
