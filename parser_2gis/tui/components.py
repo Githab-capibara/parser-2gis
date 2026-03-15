@@ -238,9 +238,9 @@ class StatsPanel:
             # Цвет для числовых значений
             if isinstance(value, int):
                 if value > 0 and key == "Успешно":
-                    value_str = f"[green]{value}[/green]"
+                    value_str = f"[green]{value}[/]"
                 elif value > 0 and key == "Ошибки":
-                    value_str = f"[red]{value}[/red]"
+                    value_str = f"[red]{value}[/]"
                 else:
                     value_str = str(value)
             else:
@@ -250,7 +250,7 @@ class StatsPanel:
 
         return Panel(
             table,
-            title="[bold]📊 Статистика[/bold]",
+            title="[bold]📊 Статистика[/]",
             border_style="green",
             padding=(1, 2),
         )
@@ -316,13 +316,13 @@ class LogPanel:
         # Используем Union type для content, так как он может быть Text или Group
         content: Text | Group
         if not self._logs:
-            content = Text("[dim]Ожидание логов...[/dim]")
+            content = Text("[dim]Ожидание логов...[/]")
         else:
             content = Group(*self._logs)
 
         return Panel(
             content,
-            title="[bold]📋 Логи[/bold]",
+            title="[bold]📋 Логи[/]",
             border_style="blue",
             padding=(1, 2),
         )

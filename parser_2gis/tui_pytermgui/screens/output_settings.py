@@ -45,7 +45,7 @@ class OutputSettingsScreen:
         """
         # Заголовок
         header = ptg.Label(
-            "[bold cyan]Настройки вывода[/bold cyan]",
+            "[bold cyan]Настройки вывода[/]",
             justify="center",
         )
 
@@ -111,10 +111,10 @@ class OutputSettingsScreen:
             "",
             header,
             "",
-            ptg.Label("[dim]Настройте параметры вывода данных:[/dim]"),
+            ptg.Label("[dim]Настройте параметры вывода данных:[/]"),
             "",
             ptg.Container(
-                ptg.Label("[bold]Формат и кодировка:[/bold]"),
+                ptg.Label("[bold]Формат и кодировка:[/]"),
                 box="EMPTY_VERTICAL",
             ),
             "",
@@ -122,7 +122,7 @@ class OutputSettingsScreen:
             self._fields["verbose"],
             "",
             ptg.Container(
-                ptg.Label("[bold]CSV настройки:[/bold]"),
+                ptg.Label("[bold]CSV настройки:[/]"),
                 box="EMPTY_VERTICAL",
             ),
             "",
@@ -132,7 +132,7 @@ class OutputSettingsScreen:
             self._fields["join_char"],
             "",
             ptg.Container(
-                ptg.Label("[bold]Очистка данных:[/bold]"),
+                ptg.Label("[bold]Очистка данных:[/]"),
                 box="EMPTY_VERTICAL",
             ),
             "",
@@ -147,7 +147,7 @@ class OutputSettingsScreen:
             ),
             width=70,
             box="DOUBLE",
-        ).set_title("[bold green]Настройки вывода[/bold green]")
+        ).set_title("[bold green]Настройки вывода[/]")
 
         return window.center()
 

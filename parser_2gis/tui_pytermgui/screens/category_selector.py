@@ -68,7 +68,7 @@ class CategorySelectorScreen:
         """
         # Заголовок
         header = ptg.Label(
-            "[bold cyan]Выбор категорий[/bold cyan]",
+            "[bold cyan]Выбор категорий[/]",
             justify="center",
         )
 
@@ -87,7 +87,7 @@ class CategorySelectorScreen:
         selected_count = len(self._selected_indices)
         total_count = len(self._categories)
         self._counter_label = ptg.Label(
-            f"[green]Выбрано: {selected_count}[/green] из {total_count}",
+            f"[green]Выбрано: {selected_count}[/] из {total_count}",
             justify="center",
         )
 
@@ -107,11 +107,11 @@ class CategorySelectorScreen:
             "",
             header,
             "",
-            ptg.Label("[dim]Введите название категории для поиска:[/dim]"),
+            ptg.Label("[dim]Введите название категории для поиска:[/]"),
             self._search_field,
             "",
             ptg.Splitter(
-                ptg.Label("[bold]Список категорий:[/bold]"),
+                ptg.Label("[bold]Список категорий:[/]"),
                 self._counter_label,
             ),
             "",
@@ -123,7 +123,7 @@ class CategorySelectorScreen:
             self._button_container,
             width=80,
             box="DOUBLE",
-        ).set_title("[bold green]Выбор категорий для парсинга[/bold green]")
+        ).set_title("[bold green]Выбор категорий для парсинга[/]")
 
         # В pytermgui InputField не имеет метода focus().
         # Фокус на виджетах управляется автоматически через handle_key().
@@ -222,7 +222,7 @@ class CategorySelectorScreen:
         if self._counter_label:
             selected_count = len(self._selected_indices)
             total_count = len(self._categories)
-            self._counter_label.value = f"[green]Выбрано: {selected_count}[/green] из {total_count}"
+            self._counter_label.value = f"[green]Выбрано: {selected_count}[/] из {total_count}"
 
     def _go_back(self, *args) -> None:
         """Вернуться назад."""

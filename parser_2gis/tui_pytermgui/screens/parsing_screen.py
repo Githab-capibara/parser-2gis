@@ -74,7 +74,7 @@ class ParsingScreen:
         """
         # Заголовок
         header = ptg.Label(
-            "[bold cyan]Парсинг данных[/bold cyan]",
+            "[bold cyan]Парсинг данных[/]",
             justify="center",
         )
 
@@ -101,7 +101,7 @@ class ParsingScreen:
             header,
             "",
             ptg.Container(
-                ptg.Label("[bold]Прогресс:[/bold]"),
+                ptg.Label("[bold]Прогресс:[/]"),
                 box="EMPTY_VERTICAL",
             ),
             "",
@@ -110,14 +110,14 @@ class ParsingScreen:
             self._record_progress_label,
             "",
             ptg.Container(
-                ptg.Label("[bold]Статистика:[/bold]"),
+                ptg.Label("[bold]Статистика:[/]"),
                 box="EMPTY_VERTICAL",
             ),
             "",
             self._stats_label,
             "",
             ptg.Container(
-                ptg.Label("[bold]Логи:[/bold]"),
+                ptg.Label("[bold]Логи:[/]"),
                 box="EMPTY_VERTICAL",
             ),
             "",
@@ -131,7 +131,7 @@ class ParsingScreen:
             ),
             width=90,
             box="DOUBLE",
-        ).set_title("[bold green]Parser2GIS - Парсинг[/bold green]")
+        ).set_title("[bold green]Parser2GIS - Парсинг[/]")
 
         # Запустить обновление
         self._start_time = datetime.now()
@@ -154,13 +154,13 @@ class ParsingScreen:
             Строка со статистикой
         """
         stats_text = (
-            f"[bold]Город:[/bold] {self._stats['current_city'] or 'N/A'}\n"
-            f"[bold]Категория:[/bold] {self._stats['current_category'] or 'N/A'}\n"
-            f"[bold]Успешно:[/bold] [green]{self._stats['success_count']}[/green]\n"
-            f"[bold]Ошибок:[/bold] [red]{self._stats['error_count']}[/red]\n"
-            f"[bold]Скорость:[/bold] {self._stats['speed']}\n"
-            f"[bold]Время:[/bold] {self._stats['elapsed']}\n"
-            f"[bold]ETA:[/bold] {self._stats['eta']}"
+            f"[bold]Город:[/] {self._stats['current_city'] or 'N/A'}\n"
+            f"[bold]Категория:[/] {self._stats['current_category'] or 'N/A'}\n"
+            f"[bold]Успешно:[/] [green]{self._stats['success_count']}[/]\n"
+            f"[bold]Ошибок:[/] [red]{self._stats['error_count']}[/]\n"
+            f"[bold]Скорость:[/] {self._stats['speed']}\n"
+            f"[bold]Время:[/] {self._stats['elapsed']}\n"
+            f"[bold]ETA:[/] {self._stats['eta']}"
         )
         return stats_text
 

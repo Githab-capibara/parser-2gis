@@ -179,13 +179,13 @@ class TUIApp:
             try:
                 self._console.print()
                 if success:
-                    self._console.print("[bold green]✅ Парсинг завершён успешно![/bold green]")
+                    self._console.print("[bold green]✅ Парсинг завершён успешно![/]")
                 else:
-                    self._console.print("[bold red]❌ Парсинг завершён с ошибками[/bold red]")
+                    self._console.print("[bold red]❌ Парсинг завершён с ошибками[/]")
     
                 if self._tui_logger and self._tui_logger.log_file:
                     self._console.print(
-                        f"[dim]Подробный лог сохранён в: {self._tui_logger.log_file.absolute()}[/dim]"
+                        f"[dim]Подробный лог сохранён в: {self._tui_logger.log_file.absolute()}[/]"
                     )
             except (IOError, OSError) as e:
                 # Если не удалось вывести в консоль, пишем в stderr

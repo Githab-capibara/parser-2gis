@@ -58,7 +58,7 @@ class LogViewer:
             Строка с логами
         """
         if not self._logs:
-            return "[dim]Нет логов...[/dim]"
+            return "[dim]Нет логов...[/]"
 
         return "\n".join(self._logs)
 
@@ -71,7 +71,7 @@ class LogViewer:
         """
         if not self._logs:
             return ptg.Container(
-                ptg.Label("[dim]Нет логов...[/dim]"),
+                ptg.Label("[dim]Нет логов...[/]"),
                 height=10,
             )
 

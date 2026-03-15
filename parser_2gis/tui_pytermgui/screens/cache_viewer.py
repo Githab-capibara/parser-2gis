@@ -99,16 +99,16 @@ class CacheViewerScreen:
         """
         # Заголовок
         header = ptg.Label(
-            "[bold cyan]Просмотр кэша[/bold cyan]",
+            "[bold cyan]Просмотр кэша[/]",
             justify="center",
         )
 
         # Статистика кэша
         stats_text = (
-            f"[bold]Размер кэша:[/bold] {self._format_size(self._cache_stats['size'])}\n"
-            f"[bold]Количество записей:[/bold] {self._cache_stats['count']}\n"
-            f"[bold]Старейшая запись:[/bold] {self._cache_stats['oldest']}\n"
-            f"[bold]Новейшая запись:[/bold] {self._cache_stats['newest']}"
+            f"[bold]Размер кэша:[/] {self._format_size(self._cache_stats['size'])}\n"
+            f"[bold]Количество записей:[/] {self._cache_stats['count']}\n"
+            f"[bold]Старейшая запись:[/] {self._cache_stats['oldest']}\n"
+            f"[bold]Новейшая запись:[/] {self._cache_stats['newest']}"
         )
 
         stats_label = ptg.Label(stats_text)
@@ -132,7 +132,7 @@ class CacheViewerScreen:
                 column_widths=[20, 40, 10],
             )
         else:
-            cache_table = ptg.Label("[dim]Кэш пуст[/dim]")
+            cache_table = ptg.Label("[dim]Кэш пуст[/]")
 
         # Кнопки управления - используем синтаксис [label, callback]
         button_clear_all = ["Очистить весь кэш", self._clear_all]
@@ -145,14 +145,14 @@ class CacheViewerScreen:
             header,
             "",
             ptg.Container(
-                ptg.Label("[bold]Статистика кэша:[/bold]"),
+                ptg.Label("[bold]Статистика кэша:[/]"),
                 box="EMPTY_VERTICAL",
             ),
             "",
             stats_label,
             "",
             ptg.Container(
-                ptg.Label("[bold]Записи кэша (первые 20):[/bold]"),
+                ptg.Label("[bold]Записи кэша (первые 20):[/]"),
                 box="EMPTY_VERTICAL",
             ),
             "",
@@ -169,7 +169,7 @@ class CacheViewerScreen:
             ),
             width=80,
             box="DOUBLE",
-        ).set_title("[bold green]Управление кэшем[/bold green]")
+        ).set_title("[bold green]Управление кэшем[/]")
 
         return window.center()
 

@@ -39,26 +39,26 @@ class AboutScreen:
         """
         # Заголовок
         header = ptg.Label(
-            "[bold cyan]О программе Parser2GIS[/bold cyan]",
+            "[bold cyan]О программе Parser2GIS[/]",
             justify="center",
         )
 
         # Версия
         version_label = ptg.Label(
-            "[bold green]Версия: 2.1[/bold green]",
+            "[bold green]Версия: 2.1[/]",
             justify="center",
         )
 
         # Описание
         description = ptg.Label(
-            "[italic]Современный парсер данных 2GIS с поддержкой многопоточности,[/italic]\n"
-            "[italic]кэширования и интеллектуальной системы повторных попыток.[/italic]",
+            "[italic]Современный парсер данных 2GIS с поддержкой многопоточности,[/]\n"
+            "[italic]кэширования и интеллектуальной системы повторных попыток.[/]",
             justify="center",
         )
 
         # Возможности
         features_title = ptg.Label(
-            "\n[bold]Возможности:[/bold]",
+            "\n[bold]Возможности:[/]",
         )
 
         features_list = ptg.Label(
@@ -76,7 +76,7 @@ class AboutScreen:
 
         # Форматы вывода
         formats_title = ptg.Label(
-            "\n[bold]Форматы вывода:[/bold]",
+            "\n[bold]Форматы вывода:[/]",
         )
 
         formats_list = ptg.Label(
@@ -87,17 +87,17 @@ class AboutScreen:
 
         # Ссылки
         links_title = ptg.Label(
-            "\n[bold]Ссылки:[/bold]",
+            "\n[bold]Ссылки:[/]",
         )
 
         links_list = ptg.Label(
-            "[cyan]GitHub:[/cyan] https://github.com/Githab-capibara/parser-2gis.git\n"
-            "[cyan]Документация:[/cyan] https://github.com/Githab-capibara/parser-2gis/wiki",
+            "[cyan]GitHub:[/] https://github.com/Githab-capibara/parser-2gis.git\n"
+            "[cyan]Документация:[/] https://github.com/Githab-capibara/parser-2gis/wiki",
         )
 
         # Копирайт
         copyright_label = ptg.Label(
-            "\n[dim]© 2026 Parser2GIS. Все права защищены.[/dim]",
+            "\n[dim]© 2026 Parser2GIS. Все права защищены.[/]",
             justify="center",
         )
 
@@ -140,7 +140,7 @@ class AboutScreen:
             ),
             width=80,
             box="DOUBLE",
-        ).set_title("[bold green]Информация о программе[/bold green]")
+        ).set_title("[bold green]Информация о программе[/]")
 
         return window.center()
 

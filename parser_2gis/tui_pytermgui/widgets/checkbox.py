@@ -50,11 +50,11 @@ class Checkbox(ptg.Widget):
         self._focused = False
 
         # Символы для checkbox
-        self._checked_symbol = "[green]✓[/green]"
-        self._unchecked_symbol = "[dim]○[/dim]"
+        self._checked_symbol = "[green]✓[/]"
+        self._unchecked_symbol = "[dim]○[/]"
 
         # Стили для отображения фокуса
-        self._focused_prefix = "[bold cyan on dark_gray]>[/bold cyan on dark_gray] "
+        self._focused_prefix = "[bold cyan on dark_gray]>[/]"
         self._unfocused_prefix = "  "
 
     @property
@@ -97,7 +97,7 @@ class Checkbox(ptg.Widget):
 
         # Добавляем визуальное отображение фокуса
         if self._focused:
-            return [f"{prefix}[bold cyan]{symbol} {self._label}[/bold cyan]"]
+            return [f"{prefix}[bold cyan]{symbol} {self._label}[/]"]
         return [f"{prefix}{symbol} {self._label}"]
 
     def handle_key(self, key: str) -> bool:

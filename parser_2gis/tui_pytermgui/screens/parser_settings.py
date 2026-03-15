@@ -52,7 +52,7 @@ class ParserSettingsScreen:
         """
         # Заголовок
         header = ptg.Label(
-            "[bold cyan]Настройки парсера[/bold cyan]",
+            "[bold cyan]Настройки парсера[/]",
             justify="center",
         )
 
@@ -161,16 +161,16 @@ class ParserSettingsScreen:
             "",
             header,
             "",
-            ptg.Label("[dim]Настройте параметры парсера:[/dim]"),
+            ptg.Label("[dim]Настройте параметры парсера:[/]"),
             "",
-            ptg.Label("[bold]Основные настройки:[/bold]"),
+            ptg.Label("[bold]Основные настройки:[/]"),
             "",
             self._form_container,
             "",
             self._button_container,
             width=70,
             box="DOUBLE",
-        ).set_title("[bold green]Настройки парсера[/bold green]")
+        ).set_title("[bold green]Настройки парсера[/]")
 
         # Установить фокус на первый элемент
         self._form_container.focus_first()

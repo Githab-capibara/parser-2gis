@@ -53,7 +53,7 @@ class BrowserSettingsScreen:
         """
         # Заголовок
         header = ptg.Label(
-            "[bold cyan]Настройки браузера Chrome[/bold cyan]",
+            "[bold cyan]Настройки браузера Chrome[/]",
             justify="center",
         )
 
@@ -122,16 +122,16 @@ class BrowserSettingsScreen:
             "",
             header,
             "",
-            ptg.Label("[dim]Настройте параметры браузера Chrome:[/dim]"),
+            ptg.Label("[dim]Настройте параметры браузера Chrome:[/]"),
             "",
-            ptg.Label("[bold]Основные настройки:[/bold]"),
+            ptg.Label("[bold]Основные настройки:[/]"),
             "",
             self._form_container,
             "",
             self._button_container,
             width=70,
             box="DOUBLE",
-        ).set_title("[bold green]Настройки браузера[/bold green]")
+        ).set_title("[bold green]Настройки браузера[/]")
 
         # Установить фокус на первый элемент
         self._form_container.focus_first()

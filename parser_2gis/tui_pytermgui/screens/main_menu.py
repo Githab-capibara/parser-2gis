@@ -45,12 +45,12 @@ class MainMenuScreen:
         """
         # Заголовок
         header = ptg.Label(
-            "[bold cyan]Parser2GIS v2.1[/bold cyan]",
+            "[bold cyan]Parser2GIS v2.1[/]",
             justify="center",
         )
 
         subtitle = ptg.Label(
-            "[italic]Современный парсер данных 2GIS[/italic]",
+            "[italic]Современный парсер данных 2GIS[/]",
             justify="center",
         )
 
@@ -66,14 +66,14 @@ class MainMenuScreen:
         self._menu_container.add_widget(ButtonWidget("📂 Выбрать категории", onclick=self._select_categories))
 
         self._menu_container.add_widget(ptg.Label(""))
-        self._menu_container.add_widget(ptg.Label("[bold]Настройки:[/bold]"))
+        self._menu_container.add_widget(ptg.Label("[bold]Настройки:[/]"))
 
         self._menu_container.add_widget(ButtonWidget("⚙️ Настройки браузера", onclick=self._browser_settings))
         self._menu_container.add_widget(ButtonWidget("🔧 Настройки парсера", onclick=self._parser_settings))
         self._menu_container.add_widget(ButtonWidget("📊 Настройки вывода", onclick=self._output_settings))
 
         self._menu_container.add_widget(ptg.Label(""))
-        self._menu_container.add_widget(ptg.Label("[bold]Дополнительно:[/bold]"))
+        self._menu_container.add_widget(ptg.Label("[bold]Дополнительно:[/]"))
 
         self._menu_container.add_widget(ButtonWidget("📈 Просмотр кэша", onclick=self._view_cache))
         self._menu_container.add_widget(ButtonWidget("ℹ️ О программе", onclick=self._show_about))
@@ -86,14 +86,14 @@ class MainMenuScreen:
             header,
             subtitle,
             "",
-            ptg.Label("[bold]Основное меню:[/bold]"),
+            ptg.Label("[bold]Основное меню:[/]"),
             "",
             self._menu_container,
             "",
-            ptg.Label("[dim]Навигация: Tab/Shift+Tab - переключение, Enter - выбор, Esc - назад[/dim]"),
+            ptg.Label("[dim]Навигация: Tab/Shift+Tab - переключение, Enter - выбор, Esc - назад[/]"),
             width=70,
             box="DOUBLE",
-        ).set_title("[bold green]Parser2GIS - Главное меню[/bold green]")
+        ).set_title("[bold green]Parser2GIS - Главное меню[/]")
 
         # Установить фокус на первую кнопку
         self._menu_container.focus_first()

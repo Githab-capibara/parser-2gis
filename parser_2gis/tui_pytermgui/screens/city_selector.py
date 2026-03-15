@@ -68,7 +68,7 @@ class CitySelectorScreen:
         """
         # Заголовок
         header = ptg.Label(
-            "[bold cyan]Выбор городов[/bold cyan]",
+            "[bold cyan]Выбор городов[/]",
             justify="center",
         )
 
@@ -87,7 +87,7 @@ class CitySelectorScreen:
         selected_count = len(self._selected_indices)
         total_count = len(self._cities)
         self._counter_label = ptg.Label(
-            f"[green]Выбрано: {selected_count}[/green] из {total_count}",
+            f"[green]Выбрано: {selected_count}[/] из {total_count}",
             justify="center",
         )
 
@@ -107,11 +107,11 @@ class CitySelectorScreen:
             "",
             header,
             "",
-            ptg.Label("[dim]Введите название города для поиска:[/dim]"),
+            ptg.Label("[dim]Введите название города для поиска:[/]"),
             self._search_field,
             "",
             ptg.Splitter(
-                ptg.Label("[bold]Список городов:[/bold]"),
+                ptg.Label("[bold]Список городов:[/]"),
                 self._counter_label,
             ),
             "",
@@ -123,7 +123,7 @@ class CitySelectorScreen:
             self._button_container,
             width=80,
             box="DOUBLE",
-        ).set_title("[bold green]Выбор городов для парсинга[/bold green]")
+        ).set_title("[bold green]Выбор городов для парсинга[/]")
 
         # В pytermgui InputField не имеет метода focus().
         # Фокус на виджетах управляется автоматически через handle_key().
@@ -223,7 +223,7 @@ class CitySelectorScreen:
         if self._counter_label:
             selected_count = len(self._selected_indices)
             total_count = len(self._cities)
-            self._counter_label.value = f"[green]Выбрано: {selected_count}[/green] из {total_count}"
+            self._counter_label.value = f"[green]Выбрано: {selected_count}[/] из {total_count}"
 
     def _go_back(self, *args) -> None:
         """Вернуться назад."""
