@@ -208,7 +208,7 @@ class CitySelectorScreen:
             ButtonWidget(f"{UnicodeIcons.ARROW_CIRCLE_RIGHT} Далее", self._next)
         )
         self._button_container.add_widget(
-            ButtonWidget(f"{UnicodeIcons.ARROW_CIRCLE_LEFT} Назад", self._go_back)
+            ButtonWidget(f"{UnicodeIcons.ARROW_LEFT} Назад", self._go_back)
         )
 
         return ptg.Window(

@@ -404,6 +404,26 @@ class GradientText:
         """Создать огненный текст."""
         return cls.apply_gradient(text, "fire")
 
+    @classmethod
+    def ocean(cls, text: str) -> str:
+        """Создать текст в стиле океана."""
+        return cls.apply_gradient(text, "ocean")
+
+    @classmethod
+    def forest(cls, text: str) -> str:
+        """Создать текст в стиле леса."""
+        return cls.apply_gradient(text, "forest")
+
+    @classmethod
+    def blue_green(cls, text: str) -> str:
+        """Создать текст в сине-зелёном стиле."""
+        return cls.apply_gradient(text, "blue_green")
+
+    @classmethod
+    def monochrome(cls, text: str) -> str:
+        """Создать монохромный текст."""
+        return cls.apply_gradient(text, "monochrome")
+
 
 class BoxDrawing:
     """

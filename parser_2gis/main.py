@@ -435,9 +435,11 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     )
     other_parser.add_argument(
         "--tui-new",
+        "--tui",  # Алиас для совместимости
         action="store_true",
+        dest="tui_new",
         default=False,
-        help="Запустить новый TUI интерфейс на pytermgui",
+        help="Запустить новый TUI интерфейс на pytermgui (алиас: --tui)",
     )
     other_parser.add_argument(
         "--tui-new-omsk",

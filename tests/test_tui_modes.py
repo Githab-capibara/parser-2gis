@@ -91,7 +91,8 @@ class TestTUIModeArguments:
         with patch.object(sys, "argv", test_args):
             # Не должно быть ошибки валидации
             args, config = parse_arguments()
-            assert args.tui is True
+            # --tui теперь алиас для --tui-new
+            assert args.tui_new is True
 
     def test_cli_mode_requires_url_or_cities(self):
         """
@@ -211,7 +212,8 @@ class TestTUIModeExecution:
         with patch.object(sys, "argv", test_args):
             # Не должно быть ошибки импорта или валидации
             args, config = parse_arguments()
-            assert args.tui is True
+            # --tui теперь алиас для --tui-new
+            assert args.tui_new is True
 
 
 class TestRunShCompatibility:

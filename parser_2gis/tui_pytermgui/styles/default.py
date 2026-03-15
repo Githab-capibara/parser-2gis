@@ -79,6 +79,7 @@ aliases:
     gradient_end: "#FFD700"
 
 # Конфигурация виджетов
+# Примечание: Стили применяются только к встроенным виджетам pytermgui
 config:
     # Поля ввода
     InputField:
@@ -88,7 +89,7 @@ config:
             text: "text_primary"
             background: "surface_dark"
             border: "border"
-    
+
     # Кнопки
     Button:
         styles:
@@ -98,7 +99,7 @@ config:
             focus_label: "accent bold"
             focus_border: "accent"
             hover_background: "surface_light"
-    
+
     # Окна
     Window:
         styles:
@@ -107,59 +108,26 @@ config:
             title: "primary bold"
             background: "background"
             subtitle: "text_dim italic"
-    
+
     # Контейнеры
     Container:
         styles:
             border: "border_dim"
             background: "surface"
             label: "text_secondary"
-    
+
     # Метки
     Label:
         styles:
             text: "text"
             background: "background"
-    
-    # Списки
-    ListView:
-        styles:
-            highlight: "primary"
-            highlight_text: "background"
-            selected_border: "accent"
-    
+
     # Чекбоксы
     Checkbox:
         styles:
             checked: "success"
             unchecked: "text_dim"
             label: "text"
-    
-    # Прогресс-бары
-    ProgressBar:
-        styles:
-            complete: "success"
-            incomplete: "text_muted"
-            finished: "accent"
-    
-    # Таблицы
-    Table:
-        styles:
-            header: "primary bold"
-            row: "text"
-            alt_row: "text_secondary"
-            border: "border_dim"
-    
-    # Разделители
-    Divider:
-        styles:
-            line: "border_dim"
-    
-    # Спиннеры
-    Spinner:
-        styles:
-            spinner: "accent"
-            text: "text_secondary"
 
 # Специальные стили для Parser2GIS
 parser2gis:

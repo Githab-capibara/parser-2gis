@@ -270,6 +270,11 @@ class TestTUIFormattingTags:
                 # Проверяем только строковые литералы
                 string_literals = extract_string_literals(line)
                 for literal in string_literals:
+                    # Пропускаем экранированные теги вида [[TAG]]
+                    # Это специальные префиксы для логгера
+                    if re.search(r'\[\[[A-Z]{2,5}\]\]', literal):
+                        continue
+                    
                     # Находим все открывающие теги
                     open_tags = open_tag_pattern.findall(literal)
 
