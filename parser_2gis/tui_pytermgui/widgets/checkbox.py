@@ -131,10 +131,6 @@ class Checkbox(ptg.Widget):
         Returns:
             True если событие обработано
         """
-        # Вызываем базовый обработчик
-        if super().on_left_click(event):
-            return True
-
         # Переключаем состояние
         self._value = not self._value
 

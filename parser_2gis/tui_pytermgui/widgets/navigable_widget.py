@@ -345,8 +345,6 @@ class ButtonWidget(NavigableWidget):
         Returns:
             True если событие обработано
         """
-        if super().on_left_click(event):
-            return True
-
+        # Активируем кнопку при клике
         self.activate()
         return True
