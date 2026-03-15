@@ -31,6 +31,8 @@ except ImportError:
     pass
 
 
+# Пропускаем тесты, требующие выполнения TUI, если pytermgui не установлен
+# Тесты аргументов командной строки работают без pytermgui
 class TestTUIModeArguments:
     """Тесты для проверки аргументов TUI режимов."""
 

@@ -8,15 +8,34 @@
 3. Отсутствие необходимых импортов
 4. Ошибки в путях к файлам данных
 5. Ошибки инициализации компонентов TUI
+
+Примечание:
+    Тесты требуют установки pytermgui:
+    pip install pytermgui
+
+    Если pytermgui не установлен, тесты будут пропущены.
 """
 
 import pytest
-import pytermgui as ptg
 from pathlib import Path
 import sys
 
 # Добавляем путь к модулю
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Проверяем доступность pytermgui
+PYTERMGUI_AVAILABLE = False
+try:
+    import pytermgui as ptg
+    PYTERMGUI_AVAILABLE = True
+except ImportError:
+    pass
+
+# Пропускаем все тесты в этом файле, если pytermgui не установлен
+pytestmark = pytest.mark.skipif(
+    not PYTERMGUI_AVAILABLE,
+    reason="pytermgui не установлен. Установите: pip install pytermgui"
+)
 
 from parser_2gis.tui_pytermgui.styles import get_default_styles
 from parser_2gis.tui_pytermgui.app import TUIApp, Parser2GISTUI

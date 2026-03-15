@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -e .[dev]
+        python -m pip install -e .[dev,tui]
         python -m pip install tox-gh-actions
 
     - name: Test with tox
@@ -53,7 +53,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -e .[dev]
+        python -m pip install -e .[dev,tui]
 
     - name: Test on Ubuntu
       run: pytest -v
