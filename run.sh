@@ -134,7 +134,7 @@ elif [ "$1" = "--tui" ]; then
     echo ""
 
     # Запускаем TUI вручную
-    python "$SCRIPT_DIR/parser-2gis.py" --tui
+    python "$SCRIPT_DIR/parser-2gis.py" --tui-new
 
     exit $?
 

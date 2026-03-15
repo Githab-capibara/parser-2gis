@@ -394,18 +394,22 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
     args = arg_parser.parse_args(argv_copy[1:])
     config_args = unwrap_dot_dict(vars(args))
 
-    # Ручная валидация: требуется хотя бы один источник URL
-    has_cities = hasattr(args, "cities") and args.cities is not None
-    has_url_source = args.url is not None or has_cities
-    if not has_url_source:
-        arg_parser.error(
-            "Требуется указать хотя бы один источник URL: -i/--url или --cities"
-        )
+    # Пропускаем валидацию URL для TUI режимов - там выбор происходит в интерфейсе
+    is_tui_mode = getattr(args, "tui_new", False) or getattr(args, "tui_new_omsk", False) or getattr(args, "tui", False)
 
-    # Валидация: --categories-mode требует --cities
-    categories_mode = getattr(args, "categories_mode", False)
-    if categories_mode and not has_cities:
-        arg_parser.error("--categories-mode требует указания --cities")
+    # Ручная валидация: требуется хотя бы один источник URL (кроме TUI режимов)
+    if not is_tui_mode:
+        has_cities = hasattr(args, "cities") and args.cities is not None
+        has_url_source = args.url is not None or has_cities
+        if not has_url_source:
+            arg_parser.error(
+                "Требуется указать хотя бы один источник URL: -i/--url или --cities"
+            )
+
+        # Валидация: --categories-mode требует --cities
+        categories_mode = getattr(args, "categories_mode", False)
+        if categories_mode and not has_cities:
+            arg_parser.error("--categories-mode требует указания --cities")
 
     # Валидация URL если они указаны
     if args.url:
@@ -467,7 +471,7 @@ def main() -> None:
     # Парсим аргументы командной строки
     args, command_line_config = parse_arguments()
 
-    # Обработка нового TUI интерфейса
+    # Обработка TUI интерфейсов
     if getattr(args, "tui_new_omsk", False):
         # Запуск нового TUI с автоматическим парсингом Омска
         if run_new_tui_omsk is None:
