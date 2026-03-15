@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
+from ..widgets import Checkbox
+
 if TYPE_CHECKING:
     from .app import TUIApp
 
@@ -32,7 +34,7 @@ class OutputSettingsScreen:
         self._csv_config = self._config.writer.csv
 
         # Поля формы
-        self._fields: dict[str, ptg.InputField | ptg.Checkbox | ptg.SelectMenu] = {}
+        self._fields: dict[str, ptg.InputField | Checkbox | ptg.SelectMenu] = {}
 
     def create_window(self) -> ptg.Window:
         """
@@ -56,19 +58,19 @@ class OutputSettingsScreen:
         )
 
         # Поле: Verbose
-        self._fields["verbose"] = ptg.Checkbox(
+        self._fields["verbose"] = Checkbox(
             label="Отображать наименования во время парсинга",
             value=self._writer_config.verbose,
         )
 
         # Поле: Add rubrics
-        self._fields["add_rubrics"] = ptg.Checkbox(
+        self._fields["add_rubrics"] = Checkbox(
             label="Добавлять колонку 'Рубрики'",
             value=self._csv_config.add_rubrics,
         )
 
         # Поле: Add comments
-        self._fields["add_comments"] = ptg.Checkbox(
+        self._fields["add_comments"] = Checkbox(
             label="Добавлять комментарии к ячейкам",
             value=self._csv_config.add_comments,
         )
@@ -81,13 +83,13 @@ class OutputSettingsScreen:
         )
 
         # Поле: Remove empty columns
-        self._fields["remove_empty_columns"] = ptg.Checkbox(
+        self._fields["remove_empty_columns"] = Checkbox(
             label="Удалять пустые колонки",
             value=self._csv_config.remove_empty_columns,
         )
 
         # Поле: Remove duplicates
-        self._fields["remove_duplicates"] = ptg.Checkbox(
+        self._fields["remove_duplicates"] = Checkbox(
             label="Удалять дубликаты",
             value=self._csv_config.remove_duplicates,
         )

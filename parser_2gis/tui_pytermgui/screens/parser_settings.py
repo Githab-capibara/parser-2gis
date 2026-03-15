@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
+from ..widgets import Checkbox
+
 if TYPE_CHECKING:
     from .app import TUIApp
 
@@ -31,7 +33,7 @@ class ParserSettingsScreen:
         self._parser_config = self._config.parser
 
         # Поля формы
-        self._fields: dict[str, ptg.InputField | ptg.Checkbox] = {}
+        self._fields: dict[str, ptg.InputField | Checkbox] = {}
 
     def create_window(self) -> ptg.Window:
         """
@@ -61,13 +63,13 @@ class ParserSettingsScreen:
         )
 
         # Поле: Skip 404
-        self._fields["skip_404_response"] = ptg.Checkbox(
+        self._fields["skip_404_response"] = Checkbox(
             label="Пропускать 404 ответы",
             value=self._parser_config.skip_404_response,
         )
 
         # Поле: Use GC
-        self._fields["use_gc"] = ptg.Checkbox(
+        self._fields["use_gc"] = Checkbox(
             label="Использовать сборщик мусора",
             value=self._parser_config.use_gc,
         )
@@ -80,7 +82,7 @@ class ParserSettingsScreen:
         )
 
         # Поле: Stop on first 404
-        self._fields["stop_on_first_404"] = ptg.Checkbox(
+        self._fields["stop_on_first_404"] = Checkbox(
             label="Останавливать при первом 404",
             value=self._parser_config.stop_on_first_404,
         )
@@ -100,7 +102,7 @@ class ParserSettingsScreen:
         )
 
         # Поле: Retry on network errors
-        self._fields["retry_on_network_errors"] = ptg.Checkbox(
+        self._fields["retry_on_network_errors"] = Checkbox(
             label="Retry при сетевых ошибках",
             value=self._parser_config.retry_on_network_errors,
         )

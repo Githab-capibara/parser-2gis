@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
+from ..widgets import Checkbox
+
 if TYPE_CHECKING:
     from .app import TUIApp
 
@@ -31,7 +33,7 @@ class BrowserSettingsScreen:
         self._chrome_config = self._config.chrome
 
         # Поля формы
-        self._fields: dict[str, ptg.InputField | ptg.Checkbox] = {}
+        self._fields: dict[str, ptg.InputField | Checkbox] = {}
 
     def create_window(self) -> ptg.Window:
         """
@@ -47,25 +49,25 @@ class BrowserSettingsScreen:
         )
 
         # Поле: Headless
-        self._fields["headless"] = ptg.Checkbox(
+        self._fields["headless"] = Checkbox(
             label="Headless (фоновый режим)",
             value=self._chrome_config.headless,
         )
 
         # Поле: Disable images
-        self._fields["disable_images"] = ptg.Checkbox(
+        self._fields["disable_images"] = Checkbox(
             label="Отключить изображения",
             value=self._chrome_config.disable_images,
         )
 
         # Поле: Start maximized
-        self._fields["start_maximized"] = ptg.Checkbox(
+        self._fields["start_maximized"] = Checkbox(
             label="Запускать развёрнутым",
             value=self._chrome_config.start_maximized,
         )
 
         # Поле: Silent browser
-        self._fields["silent_browser"] = ptg.Checkbox(
+        self._fields["silent_browser"] = Checkbox(
             label="Тихий режим (без отладочной информации)",
             value=self._chrome_config.silent_browser,
         )
