@@ -1,5 +1,46 @@
 # История изменений
 
+## [2.1.1] — 2026-03-15
+
+### Исправлено
+
+#### TUI (pytermgui)
+- **Исправлена проблема с отображением [text]** — удалён неправильный стиль `value: "text"` для Label в `styles/default.py`
+- **Исправлена ошибка `AttributeError: module 'pytermgui' has no attribute 'ScrollArea'`** — создан кастомный виджет `ScrollArea` на основе `ScrollableWidget`
+- **Заменён `ptg.ScrollArea` на кастомный `ScrollArea`** во всех экранах (city_selector, category_selector, about_screen, cache_viewer)
+- **Исправлена кривая правая рамка** — удалены `meta corner` из стилей Button и Window
+
+#### Тесты
+- **Обновлён тест `test_styles_yaml_structure`** — Label больше не требуется в конфигурации стилей
+- **Добавлено 19 новых тестов** для выявления подобных ошибок:
+  - `TestScrollAreaImport` — проверка импорта ScrollArea
+  - `TestNoPtgScrollAreaUsage` — проверка отсутствия `ptg.ScrollArea` в коде
+  - `TestNoTextTagInStyles` — проверка отсутствия тега `[text]`
+  - `TestWindowWidthSpecification` — проверка указания ширины окон
+  - `TestAllScreensImport` — проверка импорта всех экранов
+
+### Изменено
+
+#### Документация
+- Обновлена информация о количестве тестов (376 passed)
+
+### Технические детали
+
+#### Новые файлы
+- `parser_2gis/tui_pytermgui/widgets/scroll_area.py` — кастомный виджет ScrollArea
+- `test_tui_new_tests.py` — новые тесты для TUI
+
+#### Изменённые файлы
+- `parser_2gis/tui_pytermgui/styles/default.py` — удалён стиль Label и meta corner
+- `parser_2gis/tui_pytermgui/widgets/__init__.py` — добавлен экспорт ScrollArea
+- `parser_2gis/tui_pytermgui/screens/city_selector.py` — заменён ptg.ScrollArea
+- `parser_2gis/tui_pytermgui/screens/category_selector.py` — заменён ptg.ScrollArea
+- `parser_2gis/tui_pytermgui/screens/about_screen.py` — заменён ptg.ScrollArea
+- `parser_2gis/tui_pytermgui/screens/cache_viewer.py` — заменён ptg.ScrollArea
+- `tests/test_dependencies.py` — обновлён тест стилей
+
+---
+
 ## [2.1.0] — 2026-03-15
 
 ### Добавлено

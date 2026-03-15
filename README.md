@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-LGPLv3%2B-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-316%20passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-376%20passed-brightgreen.svg)](tests/)
 [![Code Quality](https://img.shields.io/badge/quality-production-brightgreen.svg)](https://github.com/Githab-capibara/parser-2gis)
 [![GitHub](https://img.shields.io/badge/GitHub-Githab--capibara-orange.svg)](https://github.com/Githab-capibara/parser-2gis)
 
