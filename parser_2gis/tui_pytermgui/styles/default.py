@@ -24,29 +24,21 @@ aliases:
     text: "#FFFFFF"
 
 config:
-    Label:
-        styles:
-            value: "text"
-
     InputField:
         styles:
             prompt: "primary bold"
             cursor: "accent"
-            text: "text"
+            text: "#FFFFFF"
 
     Button:
         styles:
             label: "secondary bold"
             border: "primary"
             background: "surface"
-        meta:
-            corner: "╭─"
 
     Window:
         styles:
             border: "primary"
             corner: "primary"
             title: "primary bold"
-        meta:
-            corner: "╭─"
 """

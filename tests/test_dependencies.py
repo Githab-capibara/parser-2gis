@@ -117,9 +117,10 @@ class TestTUIStyles:
         # Проверяем наличие секции config
         assert 'config' in parsed, "Конфигурация должна содержать секцию 'config'"
         config = parsed['config']
-        
+
         # Проверяем наличие основных виджетов
-        required_widgets = ['Label', 'Button', 'Window', 'InputField']
+        # Label больше не требует специальной конфигурации (исправлена проблема с [text])
+        required_widgets = ['Button', 'Window', 'InputField']
         for widget in required_widgets:
             assert widget in config, f"Конфигурация должна содержать виджет '{widget}'"
 

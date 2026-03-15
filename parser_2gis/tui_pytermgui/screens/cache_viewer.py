@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytermgui as ptg
 
+from ..widgets import ScrollArea
+
 if TYPE_CHECKING:
     from .app import TUIApp
 
@@ -168,7 +170,7 @@ class CacheViewerScreen:
                 box="EMPTY_VERTICAL",
             ),
             "",
-            ptg.ScrollArea(
+            ScrollArea(
                 cache_table,
                 height=10,
             ),

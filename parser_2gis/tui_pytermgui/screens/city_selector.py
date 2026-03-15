@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytermgui as ptg
 
+from ..widgets import ScrollArea
+
 if TYPE_CHECKING:
     from .app import TUIApp
 
@@ -116,7 +118,7 @@ class CitySelectorScreen:
                 self._counter_label,
             ),
             "",
-            ptg.ScrollArea(
+            ScrollArea(
                 self._city_container,
                 height=15,
             ),
