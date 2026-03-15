@@ -145,7 +145,7 @@ class NavigableContainer(ptg.Container):
         """
         self._app = app
         # Передать app всем дочерним виджетам
-        for widget in self.widgets:
+        for widget in self._widgets:
             if hasattr(widget, 'set_app'):
                 widget.set_app(app)
 
@@ -163,22 +163,22 @@ class NavigableContainer(ptg.Container):
             value: Новый индекс фокуса
         """
         # Снять фокус с текущего виджета
-        if 0 <= self._focus_index < len(self.widgets):
-            widget = self.widgets[self._focus_index]
+        if 0 <= self._focus_index < len(self._widgets):
+            widget = self._widgets[self._focus_index]
             if hasattr(widget, 'blur'):
                 widget.blur()
 
         # Циклическая навигация
         if value < 0:
-            value = len(self.widgets) - 1
-        elif value >= len(self.widgets):
+            value = len(self._widgets) - 1
+        elif value >= len(self._widgets):
             value = 0
 
         self._focus_index = value
 
         # Установить фокус на новый виджет
-        if 0 <= self._focus_index < len(self.widgets):
-            widget = self.widgets[self._focus_index]
+        if 0 <= self._focus_index < len(self._widgets):
+            widget = self._widgets[self._focus_index]
             if hasattr(widget, 'focus'):
                 widget.focus()
 
@@ -213,8 +213,8 @@ class NavigableContainer(ptg.Container):
             return True
 
         # Если есть сфокусированный виджет, передать клавишу ему
-        if 0 <= self._focus_index < len(self.widgets):
-            widget = self.widgets[self._focus_index]
+        if 0 <= self._focus_index < len(self._widgets):
+            widget = self._widgets[self._focus_index]
             if hasattr(widget, 'handle_key'):
                 if widget.handle_key(key):
                     return True
@@ -231,7 +231,7 @@ class NavigableContainer(ptg.Container):
 
     def focus_first(self) -> None:
         """Установить фокус на первый виджет."""
-        if self.widgets:
+        if self._widgets:
             self.focus_index = 0
 
     def add_widget(self, widget, focus: bool = False) -> None:
@@ -242,13 +242,13 @@ class NavigableContainer(ptg.Container):
             widget: Виджет для добавления
             focus: Установить ли фокус на этот виджет
         """
-        super().add_widget(widget)
+        self._add_widget(widget)
         # Передать app новому виджету
         if self._app and hasattr(widget, 'set_app'):
             widget.set_app(self._app)
         # Установить фокус если нужно
         if focus:
-            self.focus_index = len(self.widgets) - 1
+            self.focus_index = len(self._widgets) - 1
 
     def get_focused_widget(self):
         """
@@ -257,8 +257,8 @@ class NavigableContainer(ptg.Container):
         Returns:
             Сфокусированный виджет или None
         """
-        if 0 <= self._focus_index < len(self.widgets):
-            return self.widgets[self._focus_index]
+        if 0 <= self._focus_index < len(self._widgets):
+            return self._widgets[self._focus_index]
         return None
 
 
