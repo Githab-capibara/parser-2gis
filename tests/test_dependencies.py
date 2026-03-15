@@ -105,16 +105,23 @@ class TestTUIStyles:
         styles_yaml = get_default_styles()
         parsed = yaml.safe_load(styles_yaml)
 
-        # Проверяем наличие основных компонентов
-        assert 'config' in parsed
-        config = parsed['config']
-        assert 'palette' in config, "Конфигурация должна содержать палитру"
-
-        # Проверяем наличие основных цветов
-        palette = config['palette']
-        required_colors = ['primary', 'secondary', 'accent', 'error']
+        # Проверяем наличие секции aliases (новый формат)
+        assert 'aliases' in parsed, "Конфигурация должна содержать секцию 'aliases' для цветов"
+        
+        # Проверяем наличие основных цветов в aliases
+        aliases = parsed['aliases']
+        required_colors = ['primary', 'secondary', 'accent', 'error', 'text']
         for color in required_colors:
-            assert color in palette, f"Палитра должна содержать цвет '{color}'"
+            assert color in aliases, f"Aliases должен содержать цвет '{color}'"
+        
+        # Проверяем наличие секции config
+        assert 'config' in parsed, "Конфигурация должна содержать секцию 'config'"
+        config = parsed['config']
+        
+        # Проверяем наличие основных виджетов
+        required_widgets = ['Label', 'Button', 'Window', 'InputField']
+        for widget in required_widgets:
+            assert widget in config, f"Конфигурация должна содержать виджет '{widget}'"
 
 
 class TestTUIAppImport:

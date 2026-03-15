@@ -11,19 +11,19 @@ def get_default_styles() -> str:
         YAML строка с конфигурацией стилей
     """
     return """
-config:
-    palette:
-        primary: "#00FFFF"
-        secondary: "#00FF00"
-        accent: "#FFD700"
-        error: "#FF0000"
-        warning: "#FFFF00"
-        info: "#00BFFF"
-        dim: "#666666"
-        background: "#1A1A1A"
-        surface: "#2D2D2D"
-        text: "#FFFFFF"
+aliases:
+    primary: "#00FFFF"
+    secondary: "#00FF00"
+    accent: "#FFD700"
+    error: "#FF0000"
+    warning: "#FFFF00"
+    info: "#00BFFF"
+    dim: "#666666"
+    background: "#1A1A1A"
+    surface: "#2D2D2D"
+    text: "#FFFFFF"
 
+config:
     Label:
         styles:
             value: "@text"
@@ -42,18 +42,6 @@ config:
         meta:
             corner: "╭─"
 
-    Checkbox:
-        styles:
-            label: "@text"
-            selected: "@secondary bold"
-            indicator: "@primary"
-
-    ProgressBar:
-        styles:
-            complete: "@secondary"
-            incomplete: "@dim"
-            finished: "@accent"
-
     Window:
         styles:
             border: "@primary"
@@ -61,16 +49,4 @@ config:
             title: "@primary bold"
         meta:
             corner: "╭─"
-
-    TextBox:
-        styles:
-            text: "@text"
-            cursor: "@accent"
-            highlight: "@surface"
-
-    Table:
-        styles:
-            cell: "@text"
-            header: "@primary bold"
-            selected: "@surface"
 """

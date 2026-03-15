@@ -105,8 +105,9 @@ class TUIApp:
         if not self._manager or not self._screen_manager:
             return
 
-        # Очистить все окна
-        self._manager.windows.clear()
+        # Очистить все окна - удалить все существующие
+        for window in list(self._manager._windows):
+            self._manager.remove(window)
 
         # Создать главное меню
         main_menu = MainMenuScreen(self)
@@ -120,8 +121,9 @@ class TUIApp:
         if not self._manager or not self._screen_manager:
             return
 
-        # Очистить все окна
-        self._manager.windows.clear()
+        # Очистить все окна - удалить все существующие
+        for window in list(self._manager._windows):
+            self._manager.remove(window)
 
         # Создать экран выбора городов
         city_selector = CitySelectorScreen(self)
@@ -135,8 +137,9 @@ class TUIApp:
         if not self._manager or not self._screen_manager:
             return
 
-        # Очистить все окна
-        self._manager.windows.clear()
+        # Очистить все окна - удалить все существующие
+        for window in list(self._manager._windows):
+            self._manager.remove(window)
 
         # Создать экран выбора категорий
         category_selector = CategorySelectorScreen(self)
@@ -150,8 +153,9 @@ class TUIApp:
         if not self._manager or not self._screen_manager:
             return
 
-        # Очистить все окна
-        self._manager.windows.clear()
+        # Очистить все окна - удалить все существующие
+        for window in list(self._manager._windows):
+            self._manager.remove(window)
 
         # Создать экран настроек браузера
         browser_settings = BrowserSettingsScreen(self)
@@ -165,8 +169,9 @@ class TUIApp:
         if not self._manager or not self._screen_manager:
             return
 
-        # Очистить все окна
-        self._manager.windows.clear()
+        # Очистить все окна - удалить все существующие
+        for window in list(self._manager._windows):
+            self._manager.remove(window)
 
         # Создать экран настроек парсера
         parser_settings = ParserSettingsScreen(self)
@@ -180,8 +185,9 @@ class TUIApp:
         if not self._manager or not self._screen_manager:
             return
 
-        # Очистить все окна
-        self._manager.windows.clear()
+        # Очистить все окна - удалить все существующие
+        for window in list(self._manager._windows):
+            self._manager.remove(window)
 
         # Создать экран настроек вывода
         output_settings = OutputSettingsScreen(self)
@@ -195,8 +201,9 @@ class TUIApp:
         if not self._manager or not self._screen_manager:
             return
 
-        # Очистить все окна
-        self._manager.windows.clear()
+        # Очистить все окна - удалить все существующие
+        for window in list(self._manager._windows):
+            self._manager.remove(window)
 
         # Создать экран просмотра кэша
         cache_viewer = CacheViewerScreen(self)
@@ -210,8 +217,9 @@ class TUIApp:
         if not self._manager or not self._screen_manager:
             return
 
-        # Очистить все окна
-        self._manager.windows.clear()
+        # Очистить все окна - удалить все существующие
+        for window in list(self._manager._windows):
+            self._manager.remove(window)
 
         # Создать экран О программе
         about_screen = AboutScreen(self)
@@ -225,8 +233,9 @@ class TUIApp:
         if not self._manager or not self._screen_manager:
             return
 
-        # Очистить все окна
-        self._manager.windows.clear()
+        # Очистить все окна - удалить все существующие
+        for window in list(self._manager._windows):
+            self._manager.remove(window)
 
         # Создать экран парсинга
         parsing_screen = ParsingScreen(self)
@@ -246,8 +255,9 @@ class TUIApp:
         previous_screen = self._screen_manager.pop()
 
         if previous_screen:
-            # Очистить все окна
-            self._manager.windows.clear()
+            # Очистить все окна - удалить все существующие
+            for window in list(self._manager._windows):
+                self._manager.remove(window)
 
             # Восстановить предыдущий экран
             if self._screen_manager.current_instance:
