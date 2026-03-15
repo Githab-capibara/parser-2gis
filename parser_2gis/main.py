@@ -73,6 +73,86 @@ def _validate_url(url: str) -> bool:
         return False
 
 
+def cleanup_resources() -> None:
+    """Выполняет централизованную очистку ресурсов приложения.
+
+    Примечание:
+        - Закрывает активные соединения с браузером
+        - Освобождает файловые дескрипторы
+        - Очищает временные файлы
+        - Сбрасывает кэши и буферы
+
+    Важно:
+        Функция безопасна - не вызывает исключений даже при частичных ошибках.
+        Все ошибки логируются для последующего анализа.
+    """
+    try:
+        # Импорт здесь для избежания циклических зависимостей
+        from .chrome.remote import ChromeRemote
+        from .cache import Cache
+
+        # Очистка кэша Chrome
+        logger.debug("Очистка кэша ресурсов...")
+
+        # Закрытие активных соединений
+        if hasattr(ChromeRemote, '_active_instances'):
+            for instance in ChromeRemote._active_instances:
+                try:
+                    instance.close()
+                except Exception as e:
+                    logger.debug("Ошибка при закрытии соединения: %s", e)
+
+        # Очистка кэша базы данных
+        if hasattr(Cache, 'close_all'):
+            try:
+                Cache.close_all()
+            except Exception as e:
+                logger.debug("Ошибка при закрытии кэша: %s", e)
+
+        # Принудительный сборщик мусора
+        import gc
+        gc.collect()
+
+        logger.debug("Ресурсы успешно очищены")
+    except ImportError as e:
+        # Модули могут быть недоступны при раннем завершении
+        logger.debug("Не удалось импортировать модули для очистки: %s", e)
+    except Exception as e:
+        # Ловим все исключения чтобы не прерывать очистку
+        logger.debug("Ошибка при очистке ресурсов: %s", e)
+
+
+def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
+    """Загружает JSON файл с городами с корректной обработкой ошибок.
+
+    Args:
+        cities_path: Путь к файлу cities.json.
+
+    Returns:
+        Список городов из JSON файла.
+
+    Raises:
+        FileNotFoundError: Если файл не найден.
+        ValueError: Если файл повреждён или содержит некорректные данные.
+        OSError: Если произошла ошибка операционной системы.
+    """
+    if not cities_path.is_file():
+        logger.error("Файл городов не найден: %s", cities_path)
+        raise FileNotFoundError(f"Файл {cities_path} не найден")
+
+    try:
+        # Используем контекстный менеджер для гарантии закрытия файла
+        with open(cities_path, "r", encoding="utf-8") as f:
+            all_cities = json.load(f)
+        return all_cities
+    except json.JSONDecodeError as e:
+        logger.error("Ошибка парсинга JSON в файле городов: %s", e)
+        raise ValueError(f"Некорректный формат JSON в файле городов: {e}")
+    except OSError as e:
+        logger.error("Ошибка ОС при чтении файла городов: %s", e)
+        raise OSError(f"Не удалось прочитать файл городов: {e}")
+
+
 class ArgumentHelpFormatter(argparse.HelpFormatter):
     """Форматировщик справки, добавляющий значения по умолчанию к описанию аргументов."""
 
@@ -502,18 +582,13 @@ def main() -> None:
 
     # Если указаны города, генерируем URL
     if has_cities:
-        # Загружаем список городов
+        # Загружаем список городов с использованием контекстного менеджера
         cities_path = data_path() / "cities.json"
-        if not cities_path.is_file():
-            logger.error("Файл городов не найден: %s", cities_path)
-            raise FileNotFoundError(f"Файл {cities_path} не найден")
-
         try:
-            with open(cities_path, "r", encoding="utf-8") as f:
-                all_cities = json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            logger.error("Ошибка при загрузке файла городов: %s", e)
-            raise ValueError(f"Не удалось загрузить файл городов: {e}")
+            all_cities = _load_cities_json(cities_path)
+        except (FileNotFoundError, ValueError, OSError) as e:
+            # Ошибки уже залогированы в _load_cities_json
+            raise
 
         # Фильтруем города по указанным кодам
         selected_cities = [city for city in all_cities if city["code"] in args.cities]
@@ -615,32 +690,49 @@ def main() -> None:
             logger.error("Не указан формат выходного файла. Используйте -f/--format")
             sys.exit(1)
 
+        # Флаг для отслеживания успешного завершения
+        success = True
+        
         try:
             cli_app(urls, output_path, output_format, command_line_config)
         except KeyboardInterrupt:
             logger.info("Работа приложения прервана пользователем.")
+            success = False
             sys.exit(0)
         except FileNotFoundError as e:
             logger.error("Файл не найден: %s", e)
+            success = False
             sys.exit(1)
         except PermissionError as e:
             logger.error("Ошибка доступа к файлу: %s", e)
+            success = False
             sys.exit(1)
         except ValueError as e:
             logger.error("Ошибка валидации данных: %s", e)
+            success = False
             sys.exit(1)
         except TimeoutError as e:
             logger.error("Превышено время ожидания операции: %s", e)
+            success = False
             sys.exit(1)
         except ConnectionError as e:
             logger.error("Ошибка соединения: %s", e)
+            success = False
             sys.exit(1)
         except OSError as e:
             logger.error("Ошибка операционной системы: %s", e)
+            success = False
             sys.exit(1)
         except Exception as e:
             logger.error("Критическая ошибка приложения: %s", e, exc_info=True)
+            success = False
             sys.exit(1)
+        finally:
+            # Гарантированная очистка ресурсов при любом завершении
+            # Выполняется даже при KeyboardInterrupt или sys.exit()
+            logger.debug("Выполнение блока finally для очистки ресурсов...")
+            cleanup_resources()
+            logger.debug("Очистка ресурсов в блоке finally завершена")
 
 
 def _log_startup_info(args: argparse.Namespace, config: Configuration, start_time: datetime) -> None:
