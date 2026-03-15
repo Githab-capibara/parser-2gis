@@ -253,19 +253,35 @@ class ParserSettingsScreen:
 
         default_options = ParserOptions()
 
-        # Обновить поля
-        self._fields["max_records"].value = str(default_options.max_records)  # type: ignore
-        self._fields["delay_between_clicks"].value = str(default_options.delay_between_clicks)  # type: ignore
+        # Обновить поля Checkbox (можно использовать .value = )
         self._fields["skip_404_response"].value = default_options.skip_404_response  # type: ignore
         self._fields["use_gc"].value = default_options.use_gc  # type: ignore
-        self._fields["gc_pages_interval"].value = str(default_options.gc_pages_interval)  # type: ignore
         self._fields["stop_on_first_404"].value = default_options.stop_on_first_404  # type: ignore
-        max_empty_pages = default_options.max_consecutive_empty_pages
-        self._fields["max_consecutive_empty_pages"].value = str(max_empty_pages)  # type: ignore
-        self._fields["max_retries"].value = str(default_options.max_retries)  # type: ignore
         self._fields["retry_on_network_errors"].value = default_options.retry_on_network_errors  # type: ignore
-        self._fields["retry_delay_base"].value = str(default_options.retry_delay_base)  # type: ignore
-        self._fields["memory_threshold"].value = str(default_options.memory_threshold)  # type: ignore
+
+        # Обновить поля InputField (нужно использовать delete_back() + insert_text())
+        self._set_input_field_value(
+            self._fields["max_records"], str(default_options.max_records)
+        )
+        self._set_input_field_value(
+            self._fields["delay_between_clicks"], str(default_options.delay_between_clicks)
+        )
+        self._set_input_field_value(
+            self._fields["gc_pages_interval"], str(default_options.gc_pages_interval)
+        )
+        max_empty_pages = default_options.max_consecutive_empty_pages
+        self._set_input_field_value(
+            self._fields["max_consecutive_empty_pages"], str(max_empty_pages)
+        )
+        self._set_input_field_value(
+            self._fields["max_retries"], str(default_options.max_retries)
+        )
+        self._set_input_field_value(
+            self._fields["retry_delay_base"], str(default_options.retry_delay_base)
+        )
+        self._set_input_field_value(
+            self._fields["memory_threshold"], str(default_options.memory_threshold)
+        )
 
         # Обновить конфигурацию
         self._parser_config.max_records = default_options.max_records
@@ -283,6 +299,20 @@ class ParserSettingsScreen:
     def _go_back(self, *args) -> None:
         """Вернуться назад."""
         self._app.go_back()
+
+    def _set_input_field_value(self, field: ptg.InputField, value: str) -> None:
+        """
+        Установить значение для InputField.
+
+        Args:
+            field: Поле для установки значения
+            value: Новое значение
+        """
+        # Очищаем текущее значение
+        for _ in range(len(field.value)):
+            field.delete_back()
+        # Вставляем новое значение
+        field.insert_text(value)
 
     def _show_message(self, message: str, level: str = "info") -> None:
         """

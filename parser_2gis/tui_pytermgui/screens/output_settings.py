@@ -197,6 +197,20 @@ class OutputSettingsScreen:
         # Показать сообщение об успехе
         self._show_message("Настройки сохранены!", "success")
 
+    def _set_input_field_value(self, field: ptg.InputField, value: str) -> None:
+        """
+        Установить значение для InputField.
+
+        Args:
+            field: Поле для установки значения
+            value: Новое значение
+        """
+        # Очищаем текущее значение
+        for _ in range(len(field.value)):
+            field.delete_back()
+        # Вставляем новое значение
+        field.insert_text(value)
+
     def _reset(self, *args) -> None:
         """Сбросить настройки к значениям по умолчанию."""
         from ...writer.options import CSVOptions, WriterOptions
@@ -204,15 +218,21 @@ class OutputSettingsScreen:
         default_writer = WriterOptions()
         default_csv = CSVOptions(columns_per_entity=3)
 
-        # Обновить поля
-        self._fields["encoding"].value = default_writer.encoding  # type: ignore
+        # Обновить поля Checkbox (можно использовать .value = )
         self._fields["verbose"].value = default_writer.verbose  # type: ignore
         self._fields["add_rubrics"].value = default_csv.add_rubrics  # type: ignore
         self._fields["add_comments"].value = default_csv.add_comments  # type: ignore
-        self._fields["columns_per_entity"].value = str(default_csv.columns_per_entity)  # type: ignore
-        self._fields["join_char"].value = default_csv.join_char  # type: ignore
         self._fields["remove_empty_columns"].value = default_csv.remove_empty_columns  # type: ignore
         self._fields["remove_duplicates"].value = default_csv.remove_duplicates  # type: ignore
+
+        # Обновить поля InputField (нужно использовать delete_back() + insert_text())
+        self._set_input_field_value(
+            self._fields["encoding"], default_writer.encoding
+        )
+        self._set_input_field_value(
+            self._fields["columns_per_entity"], str(default_csv.columns_per_entity)
+        )
+        self._set_input_field_value(self._fields["join_char"], default_csv.join_char)
 
         # Обновить конфигурацию
         self._writer_config.encoding = default_writer.encoding
