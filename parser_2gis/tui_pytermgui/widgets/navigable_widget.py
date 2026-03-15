@@ -177,10 +177,20 @@ class NavigableContainer(ptg.Container):
         self._focus_index = value
 
         # Установить фокус на новый виджет
+        # Снимаем фокус со всех виджетов сначала
+        for widget in self._widgets:
+            if hasattr(widget, 'blur'):
+                widget.blur()
+        
+        # Устанавливаем фокус на текущий виджет
         if 0 <= self._focus_index < len(self._widgets):
             widget = self._widgets[self._focus_index]
-            if hasattr(widget, 'focus'):
-                widget.focus()
+            # Используем свойство focused вместо метода focus()
+            # Это работает для NavigableWidget и его наследников
+            if hasattr(widget, 'focused'):
+                widget.focused = True
+            # Для стандартных виджетов pytermgui (InputField и др.)
+            # фокус управляется автоматически через handle_key()
 
         # Принудительная перерисовка
         if self._app and hasattr(self._app, '_manager'):

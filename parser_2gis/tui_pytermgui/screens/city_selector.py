@@ -125,9 +125,9 @@ class CitySelectorScreen:
             box="DOUBLE",
         ).set_title("[bold green]Выбор городов для парсинга[/bold green]")
 
-        # Установить фокус на поле поиска
-        if self._search_field:
-            self._search_field.focus()
+        # В pytermgui InputField не имеет метода focus().
+        # Фокус на виджетах управляется автоматически через handle_key().
+        # InputField автоматически получает ввод, когда окно активно.
 
         return window.center()
 
