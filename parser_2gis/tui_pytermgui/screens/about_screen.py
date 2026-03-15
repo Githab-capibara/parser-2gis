@@ -89,7 +89,7 @@ class AboutScreen:
         
         # Версия
         version = self._app_info["version"]
-        version_badge = f"[bold #00FF88] v{version} [/]"
+        version_badge = f"[bold #00FF88]v{version}[/]"
         
         # Описание
         description = self._app_info["description"]
@@ -100,12 +100,11 @@ class AboutScreen:
             "",
             ptg.tim.parse(f"[italic #B0B0B0]{description}[/]"),
         ]
-        
-        return ptg.Container(
+
+        return ptg.Window(
             *[ptg.Label(line, justify="center") for line in header_lines],
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_INFO} О программе[/]")
+            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_INFO} О программе[/]"),
         )
     
     def _create_info_panel(self) -> ptg.Container:
@@ -122,12 +121,11 @@ class AboutScreen:
             f"[bold #FFAA00]{UnicodeIcons.EMOJI_USER} Автор:[/] [white]{self._app_info['author']}[/]",
             f"[bold #9400D3]{UnicodeIcons.EMOJI_FILE} Лицензия:[/] [white]{self._app_info['license']}[/]",
         ]
-        
-        return ptg.Container(
+
+        return ptg.Window(
             *[ptg.Label(ptg.tim.parse(line)) for line in info_lines],
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Информация[/]")
+            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Информация[/]"),
         )
     
     def _create_links_panel(self) -> ptg.Container:
@@ -156,12 +154,11 @@ class AboutScreen:
             f"[bold #FFAA00]{UnicodeIcons.EMOJI_HELP} Issues:[/]",
             f"  [underline #00BFFF]{shorten_url(self._links['issues'])}[/]",
         ]
-        
-        return ptg.Container(
+
+        return ptg.Window(
             *[ptg.Label(ptg.tim.parse(line)) for line in links_lines],
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #FFD700]{UnicodeIcons.EMOJI_LINK} Ссылки[/]")
+            title=ptg.tim.parse(f"[bold #FFD700]{UnicodeIcons.EMOJI_LINK} Ссылки[/]"),
         )
     
     def _create_features_panel(self) -> ptg.Container:
@@ -176,12 +173,11 @@ class AboutScreen:
             features_lines.append(
                 ptg.tim.parse(f"[green]{UnicodeIcons.CHECK}[/] [white]{feature}[/]")
             )
-        
-        return ptg.Container(
+
+        return ptg.Window(
             *features_lines,
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_STAR} Возможности[/]")
+            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_STAR} Возможности[/]"),
         )
     
     def _create_technologies_panel(self) -> ptg.Container:
@@ -196,12 +192,11 @@ class AboutScreen:
             tech_lines.append(
                 ptg.tim.parse(f"[cyan]{UnicodeIcons.BULLET}[/] [white]{tech}[/]")
             )
-        
-        return ptg.Container(
+
+        return ptg.Window(
             *tech_lines,
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_TOOLS} Технологии[/]")
+            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_TOOLS} Технологии[/]"),
         )
     
     def _create_footer(self) -> ptg.Container:
@@ -267,8 +262,7 @@ class AboutScreen:
             footer,
             width=90,
             box="DOUBLE",
-        ).set_title(
-            ptg.tim.parse(f"[bold #FFD700]{UnicodeIcons.EMOJI_USER} О программе[/]")
+            title=ptg.tim.parse(f"[bold #FFD700]{UnicodeIcons.EMOJI_USER} О программе[/]"),
         )
-        
+
         return window.center()

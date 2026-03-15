@@ -170,7 +170,8 @@ class ParserSettingsScreen:
             self._button_container,
             width=70,
             box="DOUBLE",
-        ).set_title("[bold green]Настройки парсера[/]")
+            title="[bold green]Настройки парсера[/]",
+        )
 
         # Установить фокус на первый элемент
         self._form_container.focus_first()

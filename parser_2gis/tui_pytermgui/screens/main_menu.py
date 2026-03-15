@@ -206,13 +206,12 @@ class MainMenuScreen:
             self._create_footer(),
             width=75,
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Главное меню[/]")
+            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Главное меню[/]"),
         )
-        
+
         # Установить фокус на первую кнопку
         self._menu_container.focus_first()
-        
+
         return window.center()
     
     def _create_footer(self) -> ptg.Container:
@@ -287,8 +286,9 @@ class MainMenuScreen:
                 "",
                 width=50,
                 box="ROUNDED",
-            ).set_title("[bold red]Подтверждение выхода[/]")
-            
+                title="[bold red]Подтверждение выхода[/]",
+            )
+
             # Обработка подтверждения (упрощённо)
             self._app._manager.add(confirm_window)
             self._app._manager.stop()

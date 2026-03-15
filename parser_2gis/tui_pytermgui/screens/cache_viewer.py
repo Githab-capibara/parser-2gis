@@ -169,7 +169,8 @@ class CacheViewerScreen:
             ),
             width=80,
             box="DOUBLE",
-        ).set_title("[bold green]Управление кэшем[/]")
+            title="[bold green]Управление кэшем[/]",
+        )
 
         return window.center()
 

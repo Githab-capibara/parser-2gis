@@ -147,7 +147,8 @@ class OutputSettingsScreen:
             ),
             width=70,
             box="DOUBLE",
-        ).set_title("[bold green]Настройки вывода[/]")
+            title="[bold green]Настройки вывода[/]",
+        )
 
         return window.center()
 

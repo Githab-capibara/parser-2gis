@@ -63,25 +63,24 @@ class CitySelectorScreen:
             if city.get("name") in selected_names:
                 self._selected_indices.add(i)
     
-    def _create_header(self) -> ptg.Container:
+    def _create_header(self) -> ptg.Window:
         """
         Создать заголовок экрана.
-        
+
         Returns:
-            Container с заголовком
+            Window с заголовком
         """
         title_text = GradientText.ocean("Выбор городов")
-        
+
         header_lines = [
             ptg.tim.parse(title_text),
             ptg.tim.parse("[dim]Выберите города для парсинга[/]"),
         ]
-        
-        return ptg.Container(
+
+        return ptg.Window(
             *[ptg.Label(line, justify="center") for line in header_lines],
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Города[/]")
+            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Города[/]"),
         )
     
     def _create_search_panel(self) -> ptg.Container:
@@ -102,13 +101,12 @@ class CitySelectorScreen:
             ),
             justify="center",
         )
-        
-        return ptg.Container(
+
+        return ptg.Window(
             search_hint,
             self._search_field,
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #FFD700]{UnicodeIcons.EMOJI_SEARCH} Поиск[/]")
+            title=ptg.tim.parse(f"[bold #FFD700]{UnicodeIcons.EMOJI_SEARCH} Поиск[/]"),
         )
     
     def _create_counter_panel(self) -> ptg.Container:
@@ -174,8 +172,8 @@ class CitySelectorScreen:
         self._city_container = NavigableContainer()
         self._city_container.set_app(self._app)
         self._populate_cities()
-        
-        return ptg.Container(
+
+        return ptg.Window(
             ptg.Label(
                 ptg.tim.parse(f"[bold]Список городов ({len(self._filtered_cities)}):[/]")
             ),
@@ -184,8 +182,7 @@ class CitySelectorScreen:
                 height=15,
             ),
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_FOLDER} Список[/]")
+            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_FOLDER} Список[/]"),
         )
     
     def _create_buttons(self) -> ptg.Container:
@@ -213,12 +210,11 @@ class CitySelectorScreen:
         self._button_container.add_widget(
             ButtonWidget(f"{UnicodeIcons.ARROW_CIRCLE_LEFT} Назад", self._go_back)
         )
-        
-        return ptg.Container(
+
+        return ptg.Window(
             self._button_container,
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #FFAA00]{UnicodeIcons.EMOJI_TOOLS} Управление[/]")
+            title=ptg.tim.parse(f"[bold #FFAA00]{UnicodeIcons.EMOJI_TOOLS} Управление[/]"),
         )
     
     def _create_footer(self) -> ptg.Container:
@@ -270,10 +266,9 @@ class CitySelectorScreen:
             footer,
             width=85,
             box="DOUBLE",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Выбор городов[/]")
+            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Выбор городов[/]"),
         )
-        
+
         return window.center()
     
     def _filter_cities(self, field: ptg.InputField) -> None:

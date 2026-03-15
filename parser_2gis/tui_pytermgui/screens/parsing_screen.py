@@ -144,12 +144,11 @@ class ParsingScreen:
         ]
         
         labels = [ptg.Label(ptg.tim.parse(line)) for line in stats_lines]
-        
-        return ptg.Container(
+
+        return ptg.Window(
             *labels,
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Статистика[/]")
+            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Статистика[/]"),
         )
     
     def _create_control_buttons(self) -> ptg.Container:
@@ -193,25 +192,23 @@ class ParsingScreen:
         )
         
         # Прогресс-бары
-        progress_container = ptg.Container(
+        progress_container = ptg.Window(
             ptg.Label(ptg.tim.parse("[bold]Прогресс выполнения:[/]")),
             self._url_progress.render(),
             self._page_progress.render(),
             self._record_progress.render(),
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_START} Прогресс[/]")
+            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_START} Прогресс[/]"),
         )
         
         # Статистика
         stats_container = self._create_stats_cards()
         
         # Логи
-        log_container = ptg.Container(
+        log_container = ptg.Window(
             ptg.Label(ptg.tim.parse("[bold]Логи в реальном времени:[/]")),
             box="ROUNDED",
-        ).set_title(
-            ptg.tim.parse(f"[bold #FFD700]{UnicodeIcons.EMOJI_FILE} Логи[/]")
+            title=ptg.tim.parse(f"[bold #FFD700]{UnicodeIcons.EMOJI_FILE} Логи[/]"),
         )
         
         # Добавить начальный лог
@@ -244,8 +241,7 @@ class ParsingScreen:
             ),
             width=95,
             box="DOUBLE",
-        ).set_title(
-            ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_ROCKET} Parser2GIS - Парсинг[/]")
+            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_ROCKET} Parser2GIS - Парсинг[/]"),
         )
         
         # Запустить обновление

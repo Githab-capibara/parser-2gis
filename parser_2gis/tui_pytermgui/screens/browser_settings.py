@@ -131,7 +131,8 @@ class BrowserSettingsScreen:
             self._button_container,
             width=70,
             box="DOUBLE",
-        ).set_title("[bold green]Настройки браузера[/]")
+            title="[bold green]Настройки браузера[/]",
+        )
 
         # Установить фокус на первый элемент
         self._form_container.focus_first()
