@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
-from ..widgets import Checkbox, NavigableContainer, ButtonWidget
+from ..widgets import Checkbox, NavigableContainer, ButtonWidget, ScrollArea
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -115,7 +115,7 @@ class CategorySelectorScreen:
                 self._counter_label,
             ),
             "",
-            ptg.ScrollArea(
+            ScrollArea(
                 self._category_container,
                 height=15,
             ),

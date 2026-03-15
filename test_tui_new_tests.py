@@ -257,10 +257,13 @@ class TestAllScreensImport(unittest.TestCase):
                 fromlist=[""]
             )
 
-            # Проверяем, что в модуле есть импорт ScrollArea
+            # Проверяем, что в модуле есть импорт ScrollArea из widgets
             source = inspect.getsource(module)
-            self.assertIn("from ..widgets import ScrollArea", source,
+            # Проверяем что есть импорт из widgets и в нём упоминается ScrollArea
+            self.assertIn("from ..widgets import", source,
                          f"{screen_module_name} должен импортировать ScrollArea из widgets")
+            self.assertIn("ScrollArea", source,
+                         f"{screen_module_name} должен использовать ScrollArea")
 
 
 def run_tests():

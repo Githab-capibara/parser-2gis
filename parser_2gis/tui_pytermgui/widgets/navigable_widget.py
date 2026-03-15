@@ -273,7 +273,7 @@ class ButtonWidget(NavigableWidget):
     def __init__(
         self,
         label: str,
-        callback=None,
+        onclick=None,
         **kwargs
     ) -> None:
         """
@@ -281,12 +281,12 @@ class ButtonWidget(NavigableWidget):
 
         Args:
             label: Текст кнопки
-            callback: Функция обратного вызова при активации
+            onclick: Функция обратного вызова при активации
             **kwargs: Дополнительные аргументы для NavigableWidget
         """
         super().__init__(**kwargs)
         self._label = label
-        self._callback = callback
+        self._onclick = onclick
         self._base_style = "[bold white on blue]"
         self._focused_style = "[bold black on cyan]"
 
@@ -331,9 +331,9 @@ class ButtonWidget(NavigableWidget):
         return True
 
     def activate(self) -> None:
-        """Активировать кнопку (вызвать callback)."""
-        if self._callback:
-            self._callback()
+        """Активировать кнопку (вызвать onclick)."""
+        if self._onclick:
+            self._onclick()
 
     def on_left_click(self, event: ptg.MouseEvent) -> bool:
         """

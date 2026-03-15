@@ -61,24 +61,24 @@ class TestButtonWidgetMouseHandling:
         """
         button = ButtonWidget(label="Test Button")
         callback = MagicMock()
-        button._callback = callback
-        
+        button._onclick = callback
+
         # Создаём реальное событие мыши pytermgui
         mock_event = ptg.MouseEvent(
             ptg.MouseAction.LEFT_CLICK,
             (5, 0)  # (x, y) позиция
         )
-        
+
         # Проверяем что on_left_click существует
         assert hasattr(button, 'on_left_click'), \
             "ButtonWidget должен иметь метод on_left_click()"
-        
+
         # Вызываем on_left_click
         result = button.on_left_click(mock_event)
-        
+
         # Проверяем что callback был вызван (кнопка активирована)
         callback.assert_called_once()
-        
+
         # Проверяем что метод возвращает bool
         assert isinstance(result, bool), \
             "on_left_click должен возвращать bool"
@@ -91,17 +91,17 @@ class TestButtonWidgetMouseHandling:
         """
         button = ButtonWidget(label="Click Me")
         callback = MagicMock()
-        button._callback = callback
-        
+        button._onclick = callback
+
         # Создаём событие левого клика
         mock_event = ptg.MouseEvent(
             ptg.MouseAction.LEFT_CLICK,
             (5, 0)  # (x, y) позиция
         )
-        
+
         # Обрабатываем клик
         button.on_left_click(mock_event)
-        
+
         # Проверяем что callback был вызван ровно один раз
         assert callback.call_count == 1, \
             "Callback должен быть вызван один раз при клике"

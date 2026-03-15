@@ -61,24 +61,24 @@ class MainMenuScreen:
         self._menu_container.set_app(self._app)
 
         # Кнопки меню
-        self._menu_container.add_widget(ButtonWidget("🚀 Запустить парсинг", self._start_parsing))
-        self._menu_container.add_widget(ButtonWidget("📁 Выбрать города", self._select_cities))
-        self._menu_container.add_widget(ButtonWidget("📂 Выбрать категории", self._select_categories))
+        self._menu_container.add_widget(ButtonWidget("🚀 Запустить парсинг", onclick=self._start_parsing))
+        self._menu_container.add_widget(ButtonWidget("📁 Выбрать города", onclick=self._select_cities))
+        self._menu_container.add_widget(ButtonWidget("📂 Выбрать категории", onclick=self._select_categories))
 
         self._menu_container.add_widget(ptg.Label(""))
         self._menu_container.add_widget(ptg.Label("[bold]Настройки:[/bold]"))
 
-        self._menu_container.add_widget(ButtonWidget("⚙️ Настройки браузера", self._browser_settings))
-        self._menu_container.add_widget(ButtonWidget("🔧 Настройки парсера", self._parser_settings))
-        self._menu_container.add_widget(ButtonWidget("📊 Настройки вывода", self._output_settings))
+        self._menu_container.add_widget(ButtonWidget("⚙️ Настройки браузера", onclick=self._browser_settings))
+        self._menu_container.add_widget(ButtonWidget("🔧 Настройки парсера", onclick=self._parser_settings))
+        self._menu_container.add_widget(ButtonWidget("📊 Настройки вывода", onclick=self._output_settings))
 
         self._menu_container.add_widget(ptg.Label(""))
         self._menu_container.add_widget(ptg.Label("[bold]Дополнительно:[/bold]"))
 
-        self._menu_container.add_widget(ButtonWidget("📈 Просмотр кэша", self._view_cache))
-        self._menu_container.add_widget(ButtonWidget("ℹ️ О программе", self._show_about))
+        self._menu_container.add_widget(ButtonWidget("📈 Просмотр кэша", onclick=self._view_cache))
+        self._menu_container.add_widget(ButtonWidget("ℹ️ О программе", onclick=self._show_about))
         self._menu_container.add_widget(ptg.Label(""))
-        self._menu_container.add_widget(ButtonWidget("Выход", self._exit))
+        self._menu_container.add_widget(ButtonWidget("Выход", onclick=self._exit))
 
         # Создание окна
         window = ptg.Window(
