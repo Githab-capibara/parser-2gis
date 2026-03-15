@@ -200,7 +200,7 @@ class BrowserSettingsScreen:
 
     def _reset(self, *args) -> None:
         """Сбросить настройки к значениям по умолчанию."""
-        from ..chrome.options import ChromeOptions
+        from ...chrome.options import ChromeOptions
 
         default_options = ChromeOptions()
 

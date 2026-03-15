@@ -266,7 +266,7 @@ class ParserSettingsScreen:
 
     def _reset(self, *args) -> None:
         """Сбросить настройки к значениям по умолчанию."""
-        from ..parser.options import ParserOptions
+        from ...parser.options import ParserOptions
 
         default_options = ParserOptions()
 

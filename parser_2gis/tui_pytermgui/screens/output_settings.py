@@ -213,7 +213,7 @@ class OutputSettingsScreen:
 
     def _reset(self, *args) -> None:
         """Сбросить настройки к значениям по умолчанию."""
-        from ..writer.options import CSVOptions, WriterOptions
+        from ...writer.options import CSVOptions, WriterOptions
 
         default_writer = WriterOptions()
         default_csv = CSVOptions(columns_per_entity=3)
