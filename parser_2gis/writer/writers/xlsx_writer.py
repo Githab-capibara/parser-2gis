@@ -6,6 +6,7 @@ import shutil
 
 from xlsxwriter.workbook import Workbook
 
+from ...logger import logger
 from .csv_writer import CSVWriter
 
 

@@ -1,6 +1,6 @@
 # Parser2GIS 🌍
 
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-LGPLv3%2B-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-269%20passed-brightgreen.svg)](testes/)
 [![Code Quality](https://img.shields.io/badge/score-95/100-brightgreen.svg)](https://github.com/Githab-capibara/parser-2gis/wiki)
@@ -39,7 +39,7 @@ Parser2GIS is a Python application for automated data collection from the 2GIS w
 
 - ✅ Parse organizations by cities and categories
 - ✅ Save data in CSV, XLSX, JSON formats
-- ✅ Work in CLI and GUI modes
+- ✅ Work in CLI and TUI modes
 - ✅ Use parallel parsing (up to 20 threads)
 - ✅ Configure parameters via config files
 - ✅ Cache results (10-100x speedup)
@@ -53,10 +53,11 @@ Parser2GIS is a Python application for automated data collection from the 2GIS w
 
 | Component | Version | Purpose |
 |-----------|---------|---------|
-| **Python** | 3.8–3.12 | Main language |
+| **Python** | 3.10–3.12 | Main language |
 | **Pydantic v2** | Latest | Data validation |
 | **Chrome DevTools Protocol** | Latest | Browser control |
-| **PySimpleGUI** | Optional | GUI |
+| **Rich** | Latest | CLI output |
+| **pytermgui** | Optional | TUI interface |
 | **pytest** | Latest | Testing |
 | **SQLite** | Built-in | Result caching |
 | **psutil** | Latest | Resource monitoring |
@@ -93,7 +94,7 @@ Parser2GIS is a Python application for automated data collection from the 2GIS w
 ### Operating Modes
 
 - ✅ **CLI** — command line for automation
-- ✅ **GUI** — graphical interface for interactive work
+- ✅ **TUI** — text-based interface for interactive work
 - ✅ **Parallel parsing** — up to 20 threads for speedup
 
 ### Settings
@@ -111,7 +112,7 @@ Parser2GIS is a Python application for automated data collection from the 2GIS w
 
 | Component | Version | Note |
 |-----------|---------|------|
-| **Python** | 3.8–3.12 | Required |
+| **Python** | 3.10–3.12 | Required |
 | **Google Chrome** | Any latest | For parsing |
 | **Git** | Any latest | For repository work |
 | **pip** | Latest | Dependency installation |
@@ -215,11 +216,14 @@ parser-2gis \
   -f csv
 ```
 
-### GUI Mode
+### TUI Mode
 
 ```bash
-# Launch graphical interface
-parser-2gis
+# Launch text interface (pytermgui)
+parser-2gis --tui-new
+
+# Launch TUI with automatic Omsk parsing
+parser-2gis --tui-new-omsk
 ```
 
 ---

@@ -355,14 +355,14 @@ class MainParser:
 
         # Счётчик подряд пустых страниц (для избежания бесконечного цикла при 404)
         consecutive_empty_pages = 0
-        
+
         # Счётчик вызовов оптимизации памяти
         memory_check_counter = 0
 
         # Проверка и автоматическая оптимизация памяти при больших объёмах данных
         def check_and_optimize_memory():
             """Проверяет использование памяти и выполняет автоматическую оптимизацию.
-            
+
             Оптимизация:
             - Кэширование psutil.Process объекта
             - Снижение частоты вызовов gc.collect()
@@ -370,7 +370,7 @@ class MainParser:
             """
             nonlocal memory_check_counter
             memory_check_counter += 1
-            
+
             # Проверяем доступность psutil
             if not PSUTIL_AVAILABLE or _process_cache is None:
                 logger.debug("psutil не доступен - пропускаем проверку памяти")
@@ -397,13 +397,13 @@ class MainParser:
                             # Очищаем 75% старых ссылок используя deque
                             removed_count = 0
                             target_remove = len(visited_links_order) * 3 // 4
-                            
+
                             while visited_links_order and removed_count < target_remove:
                                 old_link = visited_links_order.popleft()
                                 if old_link in visited_links:
                                     visited_links.remove(old_link)
                                     removed_count += 1
-                            
+
                             logger.debug(
                                 "Очищено %d ссылок для освобождения памяти",
                                 removed_count,
@@ -443,7 +443,7 @@ class MainParser:
         @wait_until_finished(timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False)
         def get_unique_links() -> Optional[DOMNodeList]:
             """Получает уникальные ссылки, которые ещё не были посещены.
-            
+
             Оптимизация:
             - Использование deque для отслеживания порядка ссылок
             - Эффективное удаление старых ссылок без полного пересоздания множества
@@ -477,13 +477,13 @@ class MainParser:
                         # Очищаем 75% старых ссылок используя deque
                         removed_count = 0
                         target_remove = len(visited_links_order) * 3 // 4
-                        
+
                         while visited_links_order and removed_count < target_remove:
                             old_link = visited_links_order.popleft()
                             if old_link in visited_links:
                                 visited_links.remove(old_link)
                                 removed_count += 1
-                        
+
                         logger.debug(
                             "Оптимизация памяти: очищено %d старых ссылок",
                             removed_count,

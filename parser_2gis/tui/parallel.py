@@ -10,6 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
+from ..logger import logger
+
 if TYPE_CHECKING:
     from ..config import Configuration
 
