@@ -235,14 +235,39 @@ class ParallelCityParser:
             # После успешного парсинга переименовываем временный файл в целевой
             # Это атомарная операция на большинстве файловых систем
             # Используем shutil.move как fallback для cross-device перемещения
+            move_success = False
             try:
                 temp_filepath.replace(filepath)
-            except OSError:
+                move_success = True
+            except OSError as replace_error:
                 # Fallback для перемещения между разными файловыми системами
-                shutil.move(str(temp_filepath), str(filepath))
-            self.log(
-                f"Временный файл переименован: {temp_filename} → {filename}", "debug"
-            )
+                try:
+                    shutil.move(str(temp_filepath), str(filepath))
+                    move_success = True
+                except Exception as move_error:
+                    # Очистка временного файла при ошибке перемещения
+                    self.log(
+                        f"Не удалось переместить временный файл {temp_filename}: {move_error}",
+                        "error",
+                    )
+                    try:
+                        if temp_filepath.exists():
+                            temp_filepath.unlink()
+                            self.log(
+                                f"Временный файл удалён после ошибки перемещения: {temp_filename}",
+                                "debug",
+                            )
+                    except Exception as cleanup_error:
+                        self.log(
+                            f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
+                            "warning",
+                        )
+                    raise move_error
+            
+            if move_success:
+                self.log(
+                    f"Временный файл переименован: {temp_filename} → {filename}", "debug"
+                )
 
             self.log(
                 f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info"
@@ -427,13 +452,51 @@ class ParallelCityParser:
                     # Добавляем файл в список на удаление
                     files_to_delete.append(csv_file)
 
+                # Проверка: если writer остался None, значит все файлы были пустыми
+                if writer is None:
+                    self.log(
+                        "Все CSV файлы пустые или не имеют заголовков. Объединение невозможно.",
+                        "warning",
+                    )
+                    # Очищаем временный файл
+                    try:
+                        temp_output.unlink()
+                        self.log("Временный файл удалён (все файлы пустые)", "debug")
+                    except Exception as e:
+                        self.log(f"Не удалось удалить временный файл: {e}", "debug")
+                    return False
+
                 self.log(f"Объединение завершено. Всего записей: {total_rows}", "info")
 
             # Переименовываем временный файл в целевой
+            # Используем shutil.move как fallback для cross-device перемещения
+            rename_success = False
             try:
                 temp_output.replace(output_file_path)
-            except OSError:
-                shutil.move(str(temp_output), str(output_file_path))
+                rename_success = True
+            except OSError as replace_error:
+                try:
+                    shutil.move(str(temp_output), str(output_file_path))
+                    rename_success = True
+                except Exception as move_error:
+                    # Очистка временного файла при ошибке перемещения
+                    self.log(
+                        f"Не удалось переместить временный файл в {output_file}: {move_error}",
+                        "error",
+                    )
+                    try:
+                        if temp_output.exists():
+                            temp_output.unlink()
+                            self.log(
+                                "Временный файл удалён после ошибки перемещения",
+                                "debug",
+                            )
+                    except Exception as cleanup_error:
+                        self.log(
+                            f"Не удалось удалить временный файл: {cleanup_error}",
+                            "debug",
+                        )
+                    raise move_error
 
             # Удаляем исходные файлы после успешного переименования
             for csv_file in files_to_delete:
@@ -657,7 +720,8 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
             # Вызываем метод родительского класса ParallelCityParser.run
             self._result = ParallelCityParser.run(self, output_file=output_file)
         except Exception as e:
-            logger.error("Ошибка в потоке параллельного парсинга: %s", e, exc_info=True)
+            # Используем self.log() вместо прямого вызова logger для потокобезопасности
+            self.log(f"Ошибка в потоке параллельного парсинга: {e}", "error")
             self._result = False
 
     def get_result(self) -> Optional[bool]:
