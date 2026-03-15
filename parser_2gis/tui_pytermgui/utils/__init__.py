@@ -9,6 +9,7 @@
     SpinnerAnimation: Анимация спиннеров
     GradientText: Градиентный текст
     BoxDrawing: Рисование рамок и границ
+    ScreenManager: Менеджер навигации между экранами
 
 Функции:
     format_number: Форматирование чисел с разделителями
@@ -22,6 +23,21 @@ from __future__ import annotations
 
 import time
 from typing import Generator, Literal
+
+from .navigation import ScreenManager
+
+__all__ = [
+    "UnicodeIcons",
+    "SpinnerAnimation",
+    "GradientText",
+    "BoxDrawing",
+    "ScreenManager",
+    "format_number",
+    "format_time",
+    "truncate_text",
+    "center_text",
+    "create_ascii_art",
+]
 
 
 class UnicodeIcons:
