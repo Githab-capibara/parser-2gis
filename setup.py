@@ -103,6 +103,7 @@ if __name__ == '__main__':
             'pillow>=10.3.0',
             'urllib3>=2.6.3',
             'setuptools>=78.1.1',
+            'pyyaml>=6.0',
         ],
         extras_require={
             'dev': [
