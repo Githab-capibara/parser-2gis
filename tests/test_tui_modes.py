@@ -8,12 +8,27 @@
 - TUI режимы не требуют указания URL или --cities
 - TUI режимы корректно обрабатываются в main()
 - Валидация URL пропускается для TUI режимов
+
+Примечание:
+    Тесты выполнения TUI требуют установки pytermgui:
+    pip install pytermgui
+    
+    Если pytermgui не установлен, тесты выполнения будут пропущены.
 """
 
 import sys
 from unittest.mock import patch, MagicMock
 
 import pytest
+
+
+# Проверяем доступность pytermgui для тестов выполнения
+PYTERMGUI_AVAILABLE = False
+try:
+    import pytermgui  # noqa: F401
+    PYTERMGUI_AVAILABLE = True
+except ImportError:
+    pass
 
 
 class TestTUIModeArguments:
@@ -121,6 +136,7 @@ class TestTUIModeArguments:
 class TestTUIModeExecution:
     """Тесты выполнения TUI режимов."""
 
+    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен. Установите: pip install pytermgui")
     def test_tui_new_execution(self):
         """
         Проверка, что --tui-new запускает TUI приложение.
@@ -148,6 +164,7 @@ class TestTUIModeExecution:
                 mock_tui.assert_called_once()
                 mock_app.run.assert_called_once()
 
+    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен. Установите: pip install pytermgui")
     def test_tui_new_omsk_execution(self):
         """
         Проверка, что --tui-new-omsk запускает TUI с парсингом Омска.
@@ -155,7 +172,11 @@ class TestTUIModeExecution:
         Этот тест предотвращает ошибку, когда парсинг Омска
         не запускается из-за неправильной обработки аргументов.
         """
+        import importlib
         from parser_2gis.main import main
+
+        # Импортируем модуль правильно (не функцию main)
+        main_module = importlib.import_module('parser_2gis.main')
 
         test_args = [
             "parser-2gis",
@@ -163,8 +184,9 @@ class TestTUIModeExecution:
         ]
 
         # Мокаем функцию запуска парсинга Омска
+        # run_new_tui_omsk - это переменная модуля, а не атрибут функции main
         with patch.object(sys, "argv", test_args):
-            with patch("parser_2gis.main.run_new_tui_omsk") as mock_run:
+            with patch.object(main_module, "run_new_tui_omsk") as mock_run:
                 # Запускаем main - не должно быть ошибок
                 main()
 

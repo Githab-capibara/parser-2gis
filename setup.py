@@ -113,6 +113,17 @@ if __name__ == '__main__':
                 "wheel>=0.46.2",
                 "pyinstaller>=6.6.0",
             ],
+            'tui': [
+                "pytermgui>=7.0.0",
+            ],
+            'all': [
+                "pytermgui>=7.0.0",
+                "pytest>=6.2,<8",
+                "tox>=4.0",
+                "pre-commit>=2.6",
+                "wheel>=0.46.2",
+                "pyinstaller>=6.6.0",
+            ],
         },
         classifiers=[
             "Topic :: Internet",
