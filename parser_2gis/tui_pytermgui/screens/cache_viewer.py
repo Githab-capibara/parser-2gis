@@ -76,7 +76,7 @@ class CacheViewerScreen:
                         "file": cache_file.name,
                         "url": cache_data.get("url", "N/A"),
                         "size": stat.st_size,
-                        "modified": str(Path(cache_file).stat().st_mtime),
+                        "modified": str(stat.st_mtime),
                     })
             except (OSError, json.JSONDecodeError):
                 continue

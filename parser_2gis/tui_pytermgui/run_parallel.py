@@ -68,6 +68,7 @@ def run_omsk_parallel() -> None:
 
     # Установить выбранные города и категории
     app.selected_cities = ["Омск"]
+    # CATEGORIES_93 имеет правильную структуру list[dict], но mypy может ошибаться
     app.selected_categories = [cat.get("name", "") for cat in CATEGORIES_93]  # type: ignore[attr-defined, union-attr]
 
     # Запустить TUI - парсинг начнётся автоматически

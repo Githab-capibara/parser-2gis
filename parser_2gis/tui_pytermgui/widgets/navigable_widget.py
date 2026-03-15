@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import pytermgui as ptg
 
@@ -244,7 +244,30 @@ class NavigableContainer(ptg.Container):
         if self._widgets:
             self.focus_index = 0
 
-    def add_widget(self, widget, focus: bool = False) -> None:
+    def clear_widgets(self) -> None:
+        """
+        Очистить все виджеты из контейнера.
+        
+        Публичный метод для безопасной очистки контейнера.
+        """
+        self._widgets.clear()
+        self._focus_index = -1
+
+    def append_widget(self, widget: ptg.Widget) -> None:
+        """
+        Добавить виджет в контейнер.
+        
+        Публичный метод для безопасного добавления виджета.
+        
+        Args:
+            widget: Виджет для добавления
+        """
+        self._widgets.append(widget)
+        # Передать app новому виджету
+        if self._app and hasattr(widget, 'set_app'):
+            widget.set_app(self._app)
+
+    def add_widget(self, widget: ptg.Widget, focus: bool = False) -> None:
         """
         Добавить виджет в контейнер.
 
@@ -252,10 +275,7 @@ class NavigableContainer(ptg.Container):
             widget: Виджет для добавления
             focus: Установить ли фокус на этот виджет
         """
-        self._add_widget(widget)
-        # Передать app новому виджету
-        if self._app and hasattr(widget, 'set_app'):
-            widget.set_app(self._app)
+        self.append_widget(widget)
         # Установить фокус если нужно
         if focus:
             self.focus_index = len(self._widgets) - 1
@@ -283,8 +303,8 @@ class ButtonWidget(NavigableWidget):
     def __init__(
         self,
         label: str,
-        onclick=None,
-        **kwargs
+        onclick: Optional[Callable[[], None]] = None,
+        **kwargs: Any
     ) -> None:
         """
         Инициализация кнопки.

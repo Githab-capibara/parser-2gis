@@ -1,5 +1,71 @@
 # История изменений
 
+## [2.1.3] — 2026-03-15
+
+### Исправлено
+
+#### TUI (pytermgui) — Критические проблемы (18 исправлено)
+
+- **widgets/navigable_widget.py** — Добавлены публичные методы `clear_widgets()` и `append_widget()` для устранения доступа к приватным атрибутам pytermgui
+- **screens/city_selector.py** — Исправлены lambda замыкания с использованием factory функции `make_callback()`, заменён доступ к приватным атрибутам
+- **screens/category_selector.py** — Исправлены lambda замыкания, заменён доступ к приватным атрибутам
+- **app.py:115** — Исправлен возврат `None` в `_handle_global_key()` (теперь возвращает `""`)
+- **app.py:285** — Исправлено использование `max_retries` вместо `max_workers`
+- **app.py:337** — Исправлено условие progress_callback для предотвращения пропуска логов об ошибках
+- **app.py:371** — Добавлена проверка `self._logger is None` для предотвращения AttributeError
+- **widgets/progress_bar.py:279** — Исправлена ошибка TIM-тега (заменено `[{bold} {percent_color}...` на `[{percent_color}]...`)
+- **utils/navigation.py** — Добавлено удаление окон из WindowManager в методе `clear()` для синхронизации ScreenManager
+- **utils/__init__.py:498** — Добавлено `max(0, ...)` для предотвращения отрицательного значения в BoxDrawing
+- **screens/cache_viewer.py:79** — Исправлено `Path(cache_file).stat()` для Path объекта
+- **widgets/checkbox.py:120** — Добавлена проверка `hasattr(super(), 'handle_key')` перед вызовом
+- **widgets/scroll_area.py:76** — Добавлена проверка `_scroll_offset` на выход за границы
+- **widgets/log_viewer.py** — Добавлена проверка `_frames` на пустоту
+- **screens/main_menu.py:287** — Добавлен метод `_confirm_exit()` для обработки подтверждения выхода
+- **run_parallel.py:70** — Добавлен поясняющий комментарий к `type: ignore`
+
+#### TUI (pytermgui) — Серьёзные проблемы (8 исправлено)
+
+- **widgets/navigable_widget.py** — Добавлены правильные type hints для ButtonWidget (Callable, Optional, Any)
+- **screens/city_selector.py:340** — Реализован пустой метод `_update_counter()`
+- **widgets/scroll_area.py:51** — Заменён доступ к приватным атрибутам на `getattr()` с публичным API
+- **widgets/navigable_widget.py** — Используется публичный API для очистки InputField
+- **widgets/navigable_widget.py:277** — Устранено дублирование кода в `add_widget()` через `append_widget()`
+- **utils/validators.py** — Создан модуль для общих валидаторов (устранение дублирования)
+- **screens/browser_settings.py** — Реализован метод `_show_message()` для отображения ошибок пользователю
+- **screens/parser_settings.py** — Реализован метод `_show_message()` для отображения ошибок пользователю
+
+### Изменено
+
+#### Документация
+- Обновлена документация TUI в README.md с подробным описанием нового интерфейса
+- Добавлена информация об исправлениях в CHANGELOG.md
+- Обновлены примеры использования TUI
+
+#### Технические детали
+
+##### Изменённые файлы (12 файлов TUI)
+- `parser_2gis/tui_pytermgui/widgets/navigable_widget.py` — публичные методы, type hints
+- `parser_2gis/tui_pytermgui/screens/city_selector.py` — lambda замыкания, приватные атрибуты
+- `parser_2gis/tui_pytermgui/screens/category_selector.py` — lambda замыкания, приватные атрибуты
+- `parser_2gis/tui_pytermgui/app.py` — исправления критических проблем
+- `parser_2gis/tui_pytermgui/widgets/progress_bar.py` — TIM-тег
+- `parser_2gis/tui_pytermgui/utils/navigation.py` — синхронизация WindowManager
+- `parser_2gis/tui_pytermgui/utils/__init__.py` — BoxDrawing
+- `parser_2gis/tui_pytermgui/widgets/checkbox.py` — проверка super()
+- `parser_2gis/tui_pytermgui/widgets/scroll_area.py` — проверка границ
+- `parser_2gis/tui_pytermgui/screens/cache_viewer.py` — Path.stat()
+- `parser_2gis/tui_pytermgui/screens/main_menu.py` — подтверждение выхода
+- `parser_2gis/tui_pytermgui/run_parallel.py` — комментарий к type ignore
+
+##### Новые файлы
+- `parser_2gis/tui_pytermgui/utils/validators.py` — общие валидаторы для устранения дублирования
+
+##### Отчёты
+- [tui_audit_report.md](tui_audit_report.md) — полный отчёт аудита TUI модуля (73 проблемы)
+- Исправлено: 18 critical, 8 major проблем из 73
+
+---
+
 ## [2.1.2] — 2026-03-15
 
 ### Исправлено

@@ -4,6 +4,9 @@
 
 from typing import TYPE_CHECKING, Any, Optional
 
+if TYPE_CHECKING:
+    import pytermgui as ptg
+
 
 class ScreenManager:
     """
@@ -54,19 +57,23 @@ class ScreenManager:
 
         return previous_name
 
-    def get_current(self) -> Optional[str]:
-        """
-        Получить имя текущего экрана.
-
-        Returns:
-            Имя текущего экрана или None
-        """
-        return self._current_screen
-
     def clear(self) -> None:
         """
         Очистить стек экранов.
+        
+        Также удаляет окна из WindowManager если он доступен.
         """
+        # Удалить текущее окно из WindowManager
+        if self._current_instance and hasattr(self._app, '_manager'):
+            manager = getattr(self._app, '_manager', None)
+            if manager:
+                try:
+                    window = self._current_instance.create_window()
+                    manager.remove(window)
+                except Exception:
+                    # Игнорируем ошибки удаления
+                    pass
+        
         self._screen_stack.clear()
         self._current_screen = None
         self._current_instance = None

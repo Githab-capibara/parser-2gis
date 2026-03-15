@@ -110,7 +110,8 @@ class TUIApp:
         # Обработка Esc для возврата назад
         if key == ptg.keys.ESC:
             self.go_back()
-            return None
+            # Возвращаем пустую строку вместо None чтобы не ломать цепочку
+            return ""
 
         return key
 
@@ -341,7 +342,7 @@ class TUIApp:
             f"Запуск парсинга: {len(selected_cities_data)} городов × {len(selected_categories_data)} категорий",
             "INFO",
         )
-        self._add_log_to_parsing_screen(f"Потоков: {self._config.parser.max_retries}", "DEBUG")
+        self._add_log_to_parsing_screen(f"Потоков: {self._config.parser.max_workers}", "DEBUG")
 
         # Запустить парсер в отдельном потоке
         thread = threading.Thread(
@@ -393,8 +394,8 @@ class TUIApp:
                     current_record=success + failed,
                 )
 
-                # Добавить лог
-                if success % 5 == 0 or failed > 0:
+                # Добавить лог - проверяем success > 0 чтобы не пропускать ошибки
+                if (success > 0 and success % 5 == 0) or failed > 0:
                     self._add_log_to_parsing_screen(
                         f"Обработано: {success} успешно, {failed} ошибок",
                         "INFO",
@@ -439,20 +440,23 @@ class TUIApp:
         """
         self._running = False
 
-        # Логируем завершение
-        if self._logger:
-            end_time = datetime.now()
-            duration = end_time - self._started_at if self._started_at else None
-            duration_str = str(duration).split(".")[0] if duration else "0:00:00"
+        # Проверка на None для предотвращения AttributeError
+        if self._logger is None:
+            return
 
-            self._logger.info("=" * 80)
-            self._logger.info("ЗАВЕРШЕНИЕ РАБОТЫ")
-            self._logger.info(f"Статус: {'УСПЕШНО' if success else 'С ОШИБКАМИ'}")
-            self._logger.info(f"Время работы: {duration_str}")
-            self._logger.info(f"Всего записей: {self._state['current_record']}")
-            self._logger.info(f"Успешно: {self._state['success_count']}")
-            self._logger.info(f"Ошибок: {self._state['error_count']}")
-            self._logger.info("=" * 80)
+        # Логируем завершение
+        end_time = datetime.now()
+        duration = end_time - self._started_at if self._started_at else None
+        duration_str = str(duration).split(".")[0] if duration else "0:00:00"
+
+        self._logger.info("=" * 80)
+        self._logger.info("ЗАВЕРШЕНИЕ РАБОТЫ")
+        self._logger.info(f"Статус: {'УСПЕШНО' if success else 'С ОШИБКАМИ'}")
+        self._logger.info(f"Время работы: {duration_str}")
+        self._logger.info(f"Всего записей: {self._state['current_record']}")
+        self._logger.info(f"Успешно: {self._state['success_count']}")
+        self._logger.info(f"Ошибок: {self._state['error_count']}")
+        self._logger.info("=" * 80)
 
     def update_state(self, **kwargs: Any) -> None:
         """

@@ -137,8 +137,8 @@ class CategorySelectorScreen:
         if not self._category_container:
             return
 
-        # Очистить контейнер
-        self._category_container.widgets.clear()
+        # Очистить контейнер используя публичный метод
+        self._category_container.clear_widgets()
         self._checkboxes.clear()
 
         for i, category in enumerate(self._filtered_categories):
@@ -146,15 +146,18 @@ class CategorySelectorScreen:
 
             is_selected = i in self._selected_indices
 
-            # Создать checkbox с правильным API
+            # Создать checkbox с правильным API используя factory функцию для замыкания
+            def make_callback(cat_index: int):
+                return lambda checked: self._toggle_category(cat_index, checked)
+
             checkbox = Checkbox(
                 label=category_name,
                 value=is_selected,
-                on_change=lambda checked, idx=i: self._toggle_category(idx, checked),
+                on_change=make_callback(i),
             )
 
             self._checkboxes.append(checkbox)
-            self._category_container.add_widget(checkbox)
+            self._category_container.append_widget(checkbox)
 
     def _filter_categories(self, field: ptg.InputField) -> None:
         """

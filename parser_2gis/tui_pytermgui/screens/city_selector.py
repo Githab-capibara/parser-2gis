@@ -141,26 +141,29 @@ class CitySelectorScreen:
         """Заполнить контейнер городами."""
         if not self._city_container:
             return
-        
-        # Очистить контейнер
-        self._city_container._widgets.clear()
+
+        # Очистить контейнер используя публичный метод
+        self._city_container.clear_widgets()
         self._checkboxes.clear()
-        
+
         for i, city in enumerate(self._filtered_cities):
             city_name = city.get("name", "Неизвестно")
             country = city.get("country_code", "").upper()
-            
+
             is_selected = i in self._selected_indices
-            
-            # Создать checkbox с иконкой
+
+            # Создать checkbox с иконкой используя factory функцию для замыкания
+            def make_callback(city_index: int):
+                return lambda checked: self._toggle_city(city_index, checked)
+
             checkbox = Checkbox(
                 label=f"{city_name} ({country})",
                 value=is_selected,
-                on_change=lambda checked, idx=i: self._toggle_city(idx, checked),
+                on_change=make_callback(i),
             )
-            
+
             self._checkboxes.append(checkbox)
-            self._city_container._add_widget(checkbox)
+            self._city_container.append_widget(checkbox)
     
     def _create_city_list(self) -> ptg.Container:
         """
@@ -335,8 +338,13 @@ class CitySelectorScreen:
     
     def _update_counter(self) -> None:
         """Обновить счётчик выбранных городов."""
-        # Пересоздать counter panel при обновлении
-        pass
+        # Обновляем счётчик через пересоздание панели
+        # В pytermgui нет прямого метода обновления Label.value
+        # Поэтому просто вызываем перерисовку через менеджер
+        if self._app and hasattr(self._app, '_manager'):
+            manager = getattr(self._app, '_manager', None)
+            if manager:
+                manager.force_full_redraw = True
     
     def _go_back(self, *args) -> None:
         """Вернуться назад."""

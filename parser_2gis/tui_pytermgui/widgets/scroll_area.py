@@ -38,27 +38,30 @@ class ScrollArea(ptg.ScrollableWidget):
     def get_lines(self) -> list[str]:
         """
         Получить линии для отображения.
-        
+
         Returns:
             Список строк для отображения
         """
         # Получить строки от контента
         content_lines = []
-        
+
         # Если контент - контейнер с виджетами
         if hasattr(self._content, 'widgets'):
-            for widget in self._content.widgets:
-                if hasattr(widget, 'get_lines'):
-                    try:
-                        lines = widget.get_lines()
-                        if isinstance(lines, (list, tuple)):
-                            content_lines.extend(lines)
-                        else:
-                            content_lines.append(str(lines))
-                    except Exception:
+            # Используем публичный API для доступа к виджетам
+            widgets = getattr(self._content, 'widgets', [])
+            if widgets:
+                for widget in widgets:
+                    if hasattr(widget, 'get_lines'):
+                        try:
+                            lines = widget.get_lines()
+                            if isinstance(lines, (list, tuple)):
+                                content_lines.extend(lines)
+                            else:
+                                content_lines.append(str(lines))
+                        except Exception:
+                            content_lines.append(str(widget))
+                    else:
                         content_lines.append(str(widget))
-                else:
-                    content_lines.append(str(widget))
         elif hasattr(self._content, 'get_lines'):
             lines = self._content.get_lines()
             if isinstance(lines, (list, tuple)):
@@ -69,11 +72,11 @@ class ScrollArea(ptg.ScrollableWidget):
             # Преобразовать контент в строки
             content_str = str(self._content)
             content_lines = content_str.split('\n')
-        
-        # Применить прокрутку
-        if self._scroll_offset > 0:
+
+        # Применить прокрутку с проверкой на выход за границы
+        if self._scroll_offset > 0 and self._scroll_offset < len(content_lines):
             content_lines = content_lines[self._scroll_offset:]
-        
+
         # Обрезать по высоте
         return content_lines[:self._height]
 

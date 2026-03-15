@@ -276,7 +276,7 @@ class ProgressBar:
         # Проценты
         if self._show_percentage:
             percent_color = self._get_percentage_color(percent)
-            parts.append(f" [{bold} {percent_color}{percent:5.1f}%[/{bold}]")
+            parts.append(f" [{percent_color}]{percent:5.1f}%[/]")
         
         # Счётчик
         if self._show_count:

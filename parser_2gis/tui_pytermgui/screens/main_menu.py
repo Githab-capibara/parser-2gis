@@ -284,11 +284,26 @@ class MainMenuScreen:
                     justify="center",
                 ),
                 "",
+                # Поле для обработки Enter/Esc
+                ptg.InputField(
+                    placeholder="Enter - выход, Esc - отмена",
+                    on_change=self._confirm_exit,
+                ),
                 width=50,
                 box="ROUNDED",
                 title="[bold red]Подтверждение выхода[/]",
             )
 
-            # Обработка подтверждения (упрощённо)
+            # Обработка подтверждения
             self._app._manager.add(confirm_window)
+
+    def _confirm_exit(self, field: ptg.InputField) -> None:
+        """
+        Обработать подтверждение выхода.
+
+        Args:
+            field: Поле ввода
+        """
+        # При вводе любого символа подтверждаем выход
+        if self._app._manager:
             self._app._manager.stop()

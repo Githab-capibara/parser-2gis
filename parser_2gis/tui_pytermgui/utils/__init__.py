@@ -496,7 +496,7 @@ class BoxDrawing:
         
         # Верхняя граница
         if title:
-            title_space = width - 4 - len(title)
+            title_space = max(0, width - 4 - len(title))
             left_space = title_space // 2
             right_space = title_space - left_space
             top_line = (

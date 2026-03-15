@@ -116,9 +116,10 @@ class Checkbox(ptg.Widget):
         Returns:
             True если клавиша обработана
         """
-        # Вызываем базовый обработчик
-        if super().handle_key(key):
-            return True
+        # Вызываем базовый обработчик с проверкой
+        if hasattr(super(), 'handle_key'):
+            if super().handle_key(key):
+                return True
 
         # Обработка клавиши Enter для переключения состояния
         if key == ptg.keys.ENTER:

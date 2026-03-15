@@ -5,6 +5,7 @@
 [![Tests](https://img.shields.io/badge/tests-443%20collected-brightgreen.svg)](tests/)
 [![Code Quality](https://img.shields.io/badge/quality-production-brightgreen.svg)](https://github.com/Githab-capibara/parser-2gis)
 [![GitHub](https://img.shields.io/badge/GitHub-Githab--capibara-orange.svg)](https://github.com/Githab-capibara/parser-2gis)
+[![Version](https://img.shields.io/badge/version-2.1.3-blue.svg)](https://github.com/Githab-capibara/parser-2gis/releases)
 
 **Parser2GIS** — мощный инструмент для парсинга данных с сервиса 2GIS (2ГИС), использующий браузер Chrome для обхода анти-бот защит.
 
