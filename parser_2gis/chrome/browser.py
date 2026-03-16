@@ -4,7 +4,10 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import TYPE_CHECKING
+import time
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional
 
 from ..common import wait_until_finished
 from ..logger import logger
@@ -239,3 +242,129 @@ class ChromeBrowser:
     def __repr__(self) -> str:
         classname = self.__class__.__name__
         return f"{classname}(arguments={self._chrome_cmd!r})"
+
+
+# Константы для очистки профилей
+ORPHANED_PROFILE_MARKER = ".chrome_profile_marker"
+ORPHANED_PROFILE_MAX_AGE_HOURS = 24  # Максимальный возраст профиля перед удалением
+
+
+def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours: int = ORPHANED_PROFILE_MAX_AGE_HOURS) -> int:
+    """
+    Очищает осиротевшие профили Chrome от предыдущих запусков.
+    
+    Профили могут оставаться после аварийного завершения приложения (KeyboardInterrupt,
+    сбой питания, падение процесса). Эта функция находит и удаляет такие профили.
+    
+    Args:
+        profiles_dir: Директория для поиска профилей. Если None, используется временная
+                     директория системы (tempfile.gettempdir()).
+        max_age_hours: Максимальный возраст профиля в часах. Профили моложе этого 
+                      порога не удаляются для защиты активных сессий.
+    
+    Returns:
+        Количество удалённых профилей.
+    
+    Примечание:
+        - Функция безопасна - не удаляет профили моложе max_age_hours
+        - Использует маркер-файл для идентификации профилей Chrome
+        - Логирует все действия для отладки
+    """
+    if profiles_dir is None:
+        profiles_dir = Path(tempfile.gettempdir())
+    
+    if not profiles_dir.exists():
+        logger.debug("Директория профилей не существует: %s", profiles_dir)
+        return 0
+    
+    deleted_count = 0
+    current_time = time.time()
+    max_age_seconds = max_age_hours * 3600
+    
+    logger.debug("Поиск осиротевших профилей Chrome в %s (макс. возраст: %d ч)...", 
+                 profiles_dir, max_age_hours)
+    
+    try:
+        # Ищем директории с префиксом chrome_profile_
+        for item in profiles_dir.iterdir():
+            if not item.is_dir():
+                continue
+            
+            # Проверяем имя директории
+            if not item.name.startswith("chrome_profile_"):
+                continue
+            
+            # Проверяем наличие маркера (для надёжности)
+            marker_file = item / ORPHANED_PROFILE_MARKER
+            
+            # Если маркер существует, проверяем его возраст
+            if marker_file.exists():
+                try:
+                    marker_mtime = marker_file.stat().st_mtime
+                    age_seconds = current_time - marker_mtime
+                    
+                    if age_seconds > max_age_seconds:
+                        # Профиль старый - удаляем
+                        _safe_remove_profile(item)
+                        deleted_count += 1
+                        logger.debug("Удалён осиротевший профиль: %s (возраст: %.1f ч)", 
+                                     item.name, age_seconds / 3600)
+                except OSError as stat_error:
+                    logger.debug("Ошибка получения информации о файле %s: %s", marker_file, stat_error)
+                    # Если не можем получить информацию - удаляем профиль
+                    _safe_remove_profile(item)
+                    deleted_count += 1
+            else:
+                # Маркера нет - проверяем возраст директории
+                try:
+                    dir_mtime = item.stat().st_mtime
+                    age_seconds = current_time - dir_mtime
+                    
+                    if age_seconds > max_age_seconds:
+                        # Профиль старый - удаляем
+                        _safe_remove_profile(item)
+                        deleted_count += 1
+                        logger.debug("Удалён осиротевший профиль (без маркера): %s (возраст: %.1f ч)", 
+                                     item.name, age_seconds / 3600)
+                except OSError as stat_error:
+                    logger.debug("Ошибка получения информации о директории %s: %s", item, stat_error)
+    
+    except PermissionError as perm_error:
+        logger.warning("Нет прав для доступа к директории профилей: %s", perm_error)
+    except Exception as e:
+        logger.warning("Ошибка при очистке осиротевших профилей: %s", e)
+    
+    if deleted_count > 0:
+        logger.info("Очищено %d осиротевших профилей Chrome", deleted_count)
+    else:
+        logger.debug("Осиротевшие профили не найдены")
+    
+    return deleted_count
+
+
+def _safe_remove_profile(profile_path: Path) -> None:
+    """
+    Безопасно удаляет профиль Chrome с обработкой ошибок.
+    
+    Args:
+        profile_path: Путь к директории профиля для удаления.
+    """
+    try:
+        # Создаём маркер удаления (для отладки)
+        marker_file = profile_path / ".deleting_marker"
+        try:
+            marker_file.touch(exist_ok=True)
+        except OSError:
+            pass  # Не критично
+        
+        # Удаляем профиль
+        shutil.rmtree(profile_path, ignore_errors=True)
+        
+        # Проверяем успешность удаления
+        if profile_path.exists():
+            logger.warning("Не удалось полностью удалить профиль: %s", profile_path)
+        else:
+            logger.debug("Профиль успешно удалён: %s", profile_path)
+            
+    except Exception as e:
+        logger.warning("Ошибка при удалении профиля %s: %s", profile_path, e)

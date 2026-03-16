@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import signal
 import sys
@@ -43,28 +44,55 @@ except ImportError as e:
     logger.warning("Функция --tui-new-omsk будет недоступна")
 
 
-def _validate_url(url: str) -> bool:
-    """Валидирует URL на корректность формата.
+def _validate_url(url: str) -> tuple[bool, str | None]:
+    """Валидирует URL на корректность формата и безопасность.
 
     Args:
         url: URL для валидации.
 
     Returns:
-        True если URL корректен, False иначе.
+        Кортеж (is_valid, error_message):
+        - is_valid: True если URL корректен и безопасен, False иначе.
+        - error_message: Сообщение об ошибке или None если URL валиден.
 
     Примечание:
         Проверяет:
         - Схема (http или https)
         - Наличие сетевого расположения (netloc)
         - Общий формат URL
+        - Блокировка localhost и внутренних IP адресов (127.x.x.x, 10.x.x.x, 192.168.x.x, 172.16-31.x.x)
     """
     try:
         result = urlparse(url)
-        return all([result.scheme in ('http', 'https'), result.netloc])
-    except (ValueError, TypeError):
+        
+        # Проверка схемы и netloc
+        if not all([result.scheme in ('http', 'https'), result.netloc]):
+            return False, "URL должен начинаться с http:// или https:// и содержать домен"
+        
+        # Извлекаем хост для проверки на внутренние IP
+        hostname = result.hostname
+        if hostname is None:
+            return False, "URL должен содержать домен"
+        
+        # Проверяем, не является ли хост localhost
+        if hostname.lower() in ('localhost', '127.0.0.1'):
+            return False, "Использование localhost запрещено"
+        
+        # Проверяем, не является ли хост IP адресом
+        try:
+            ip_addr = ipaddress.ip_address(hostname)
+            # Проверяем на private и loopback адреса
+            if ip_addr.is_private or ip_addr.is_loopback or ip_addr.is_link_local:
+                return False, f"Использование внутренних IP адресов запрещено ({hostname})"
+        except ValueError:
+            # Это доменное имя, а не IP адрес - это нормально
+            pass
+        
+        return True, None
+        
+    except (ValueError, TypeError) as e:
         # Ловим только ожидаемые исключения типизации/значений
-        # Остальные ошибки (NameError, AttributeError) указывают на баги
-        return False
+        return False, f"Ошибка парсинга URL: {e}"
 
 
 # Глобальный флаг для отслеживания прерывания
@@ -530,11 +558,17 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
 
     # Валидация URL если они указаны
     if args.url:
-        invalid_urls = [url for url in args.url if not _validate_url(url)]
+        invalid_urls = []
+        url_errors = []
+        for url in args.url:
+            is_valid, error_msg = _validate_url(url)
+            if not is_valid:
+                invalid_urls.append(url)
+                url_errors.append(f"{url} ({error_msg})")
+        
         if invalid_urls:
             arg_parser.error(
-                f"Некорректный формат URL: {', '.join(invalid_urls)}. "
-                "URL должен начинаться с http:// или https:// и содержать домен."
+                f"Некорректный формат URL: {'; '.join(url_errors)}."
             )
 
     try:

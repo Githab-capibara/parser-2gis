@@ -50,7 +50,12 @@ class DataValidator:
     INTERNATIONAL_PHONE_MAX_LENGTH = 15
 
     # Паттерн для валидации email-адресов
-    EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+    # Улучшенный паттерн с поддержкой IDN (Internationalized Domain Names)
+    # Поддерживает Unicode символы в доменной части (например: почта@пример.рф)
+    EMAIL_PATTERN = re.compile(
+        r"^[a-zA-Z0-9._%+-]+@"  # Локальная часть
+        r"[a-zA-Z0-9\u0080-\uFFFF.-]+\.[a-zA-Z\u0080-\uFFFF]{2,}$"  # Домен с поддержкой IDN
+    )
 
     # Паттерн для валидации URL
     URL_PATTERN = re.compile(r"^https?://[^\s/$.?#].[^\s]*$")
@@ -148,21 +153,24 @@ class DataValidator:
         """
         return f"{phone[0]} ({phone[1:4]}) {phone[4:7]}-{phone[7:9]}-{phone[9:11]}"
 
-    def validate_email(self, email: str) -> ValidationResult:
+    def validate_email(self, email: str, check_mx: bool = False) -> ValidationResult:
         """Валидация email-адреса.
 
         Проверяет корректность email-адреса по стандартному паттерну.
 
         Args:
-            email: Email-адрес для валидации
+            email: Email-адрес для валидации.
+            check_mx: Опциональная проверка MX записей домена (требует dns.resolver).
+                     По умолчанию False для производительности.
 
         Returns:
-            ValidationResult с email или ошибками
+            ValidationResult с email или ошибками.
 
         Примечание:
             Email приводится к нижнему регистру и удаляются пробелы.
             Проверка на пустую строку выполняется до обработки для оптимизации.
             Максимальная длина email: 254 символа (RFC 5321).
+            Поддерживаются IDN домены (например: почта@пример.рф).
         """
         # Быстрая проверка на None и пустую строку
         if not email or not email.strip():
@@ -175,11 +183,61 @@ class DataValidator:
         if len(email) > 254:
             return ValidationResult(False, None, ["Email превышает максимальную длину (254 символа)"])
 
-        # Проверка формата email
+        # Проверка наличия @ - быстрая предварительная проверка
+        if "@" not in email:
+            return ValidationResult(False, None, ["Email должен содержать символ @"])
+
+        # Проверка формата email с улучшенным regex (поддержка IDN)
         if not self.EMAIL_PATTERN.match(email):
             return ValidationResult(False, None, ["Некорректный формат email"])
 
+        # Опциональная проверка MX записей домена
+        if check_mx:
+            mx_valid = self._check_mx_records(email)
+            if not mx_valid:
+                return ValidationResult(False, None, ["Домен email не имеет MX записей"])
+
         return ValidationResult(True, email, [])
+
+    def _check_mx_records(self, email: str) -> bool:
+        """
+        Проверяет наличие MX записей для домена email.
+
+        Args:
+            email: Email для проверки.
+
+        Returns:
+            True если MX записи существуют, False иначе.
+
+        Примечание:
+            Метод требует установленную библиотеку dnspython.
+            При отсутствии библиотеки возвращает True (проверка пропускается).
+        """
+        try:
+            import dns.resolver
+        except ImportError:
+            # dnspython не установлен - пропускаем проверку
+            logger.debug("dnspython не установлен, проверка MX записей пропущена")
+            return True
+
+        try:
+            # Извлекаем домен из email
+            domain = email.split("@")[1]
+            
+            # Пытаемся получить MX записи
+            answers = dns.resolver.resolve(domain, "MX")
+            
+            # Проверяем, что есть хотя бы одна запись
+            return len(answers) > 0
+            
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
+            # Домен не существует или нет MX записей
+            logger.debug("Домен %s не имеет MX записей", domain)
+            return False
+        except Exception as e:
+            # Любая другая ошибка - пропускаем проверку
+            logger.debug("Ошибка при проверке MX записей для %s: %s", domain, e)
+            return True
 
     def validate_url(self, url: str) -> ValidationResult:
         """Валидация URL.

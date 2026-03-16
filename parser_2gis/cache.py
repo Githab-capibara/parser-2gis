@@ -309,8 +309,15 @@ class CacheManager:
         except sqlite3.Error as db_error:
             logger.warning("Ошибка БД при получении кэша: %s", db_error)
             return None
-        except json.JSONDecodeError as json_error:
-            logger.warning("Ошибка JSON при чтении кэша: %s", json_error)
+        except (json.JSONDecodeError, UnicodeDecodeError) as decode_error:
+            # Обрабатываем как ошибки JSON, так и ошибки декодирования Unicode
+            # UnicodeDecodeError может возникнуть при чтении повреждённых данных в кэше
+            error_type = "Unicode" if isinstance(decode_error, UnicodeDecodeError) else "JSON"
+            logger.warning(
+                "Ошибка %s при чтении кэша: %s. Кэш будет считаться невалидным.",
+                error_type,
+                decode_error
+            )
             return None
         finally:
             cursor.close()

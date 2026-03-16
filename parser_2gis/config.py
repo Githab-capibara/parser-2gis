@@ -30,7 +30,7 @@ class Configuration(BaseModel):
     path: Optional[pathlib.Path] = None
     version: str = config_version
 
-    def merge_with(self, other_config: Configuration) -> None:
+    def merge_with(self, other_config: Configuration, max_depth: int = 50) -> None:
         """Объединяет конфигурацию с другой.
 
         Рекурсивно обновляет поля текущей конфигурации значениями из other_config.
@@ -38,26 +38,30 @@ class Configuration(BaseModel):
 
         Args:
             other_config: Конфигурация для объединения.
+            max_depth: Максимальная глубина рекурсии при объединении (по умолчанию 50).
+                      Увеличьте если конфигурация имеет глубокую вложенность.
 
         Raises:
             ValueError: Если возникает конфликт типов при объединении.
+            RecursionWarning: При приближении к лимиту глубины (80% от max_depth).
 
         Example:
             >>> config = Configuration()
             >>> other = Configuration(chrome=ChromeOptions(headless=True))
             >>> config.merge_with(other)  # Обновляет только chrome.headless
+            >>> config.merge_with(other, max_depth=100)  # С увеличенной глубиной
         """
         self._merge_models_iterative(
             source=other_config,
             target=self,
-            max_depth=10,
+            max_depth=max_depth,
         )
 
     @staticmethod
     def _merge_models_iterative(
         source: BaseModel,
         target: BaseModel,
-        max_depth: int = 10,
+        max_depth: int = 50,
     ) -> None:
         """Итеративно объединяет две Pydantic модели без рекурсии.
 
@@ -67,16 +71,23 @@ class Configuration(BaseModel):
         Args:
             source: Исходная модель для чтения значений.
             target: Целевая модель для обновления.
-            max_depth: Максимальная глубина обработки.
+            max_depth: Максимальная глубина обработки (по умолчанию 50).
 
         Raises:
             RecursionError: При превышении максимальной глубины.
+
+        Note:
+            При достижении 80% от max_depth выводится предупреждение в лог.
         """
         # Стек содержит кортежи: (source_model, target_model, current_depth)
         stack: List[tuple[BaseModel, BaseModel, int]] = [(source, target, 0)]
-        
+
         # Набор для отслеживания посещённых объектов (предотвращение циклических ссылок)
         visited: Set[int] = set()
+        
+        # Порог для предупреждения (80% от max_depth)
+        warning_threshold = int(max_depth * 0.8)
+        warning_shown = False
 
         while stack:
             current_source, current_target, current_depth = stack.pop()
@@ -94,6 +105,16 @@ class Configuration(BaseModel):
                 raise RecursionError(
                     f"Превышена максимальная глубина обработки ({max_depth}) при объединении конфигурации"
                 )
+            
+            # Предупреждение при приближении к лимиту глубины
+            if current_depth >= warning_threshold and not warning_shown:
+                logger.warning(
+                    "Внимание: глубина обработки достигла %d/%d (80%% от лимита). "
+                    "Возможна сложная вложенность конфигурации.",
+                    current_depth,
+                    max_depth
+                )
+                warning_shown = True
 
             # Получаем набор установленных полей
             fields_set = Configuration._get_fields_set(current_source)

@@ -618,11 +618,15 @@ class ChromeRemote:
         Примечание:
             Метод устанавливает пользовательский агент, скрывает признаки webdriver
             и настраивает перехват сетевых запросов для последующей обработки.
+        
+        Raises:
+            RuntimeError: Если вкладка не инициализирована (_chrome_tab is None).
         """
-        # Проверяем, что вкладка существует
+        # Строгая проверка, что вкладка существует
         if self._chrome_tab is None:
-            logger.error("Chrome tab не инициализирован в _setup_tab")
-            return
+            error_msg = "Chrome tab не инициализирован в _setup_tab. Вкладка не была создана."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
         # Исправляем user agent для headless браузера
         original_useragent = self.execute_script("navigator.userAgent")

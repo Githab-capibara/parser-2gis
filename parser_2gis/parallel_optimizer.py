@@ -99,7 +99,9 @@ class ParallelOptimizer:
         self._tasks: deque[ParallelTask] = deque()
         self._active_tasks: Dict[int, ParallelTask] = {}
         self._completed_tasks: List[ParallelTask] = []
-        self._lock = threading.Lock()
+        # ИСПОЛЬЗУЕМ RLock (Reentrant Lock) для предотвращения deadlock
+        # RLock позволяет одному и тому же потоку захватывать блокировку несколько раз
+        self._lock = threading.RLock()
         self._stats = {
             "total_tasks": 0,
             "completed": 0,
@@ -215,15 +217,38 @@ class ParallelOptimizer:
         """
         Получает следующую задачу из очереди.
 
+        Оптимизация:
+        - Уменьшена область блокировки для снижения contention
+        - Используется timeout для предотвращения бесконечного ожидания
+
         Returns:
             Следующая задача или None если очередь пуста.
         """
-        with self._lock:
+        # Уменьшаем область блокировки - захватываем только на время доступа к очереди
+        task: Optional[ParallelTask] = None
+        
+        # Используем acquire с timeout для предотвращения deadlock
+        # Таймаут 5 секунд - достаточно для разблокировки в нормальных условиях
+        lock_acquired = self._lock.acquire(timeout=5.0)
+        
+        if not lock_acquired:
+            logger.warning("Не удалось получить блокировку в get_next_task() после 5 сек ожидания")
+            return None
+        
+        try:
             if self._tasks:
+                # Извлекаем задачу из начала очереди (для приоритетных задач)
                 task = self._tasks.popleft()
-                task.start()
-                return task
-        return None
+                # Отмечаем начало выполнения задачи ПОСЛЕ освобождения блокировки
+        finally:
+            # Всегда освобождаем блокировку
+            self._lock.release()
+        
+        # Отмечаем начало выполнения задачи вне блокировки для лучшей производительности
+        if task is not None:
+            task.start()
+        
+        return task
 
     def complete_task(self, task: ParallelTask, success: bool) -> None:
         """
