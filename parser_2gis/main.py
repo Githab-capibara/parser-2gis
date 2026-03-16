@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import signal
 import sys
 import time
 from datetime import datetime
@@ -64,6 +65,53 @@ def _validate_url(url: str) -> bool:
         # Ловим только ожидаемые исключения типизации/значений
         # Остальные ошибки (NameError, AttributeError) указывают на баги
         return False
+
+
+# Глобальный флаг для отслеживания прерывания
+_interrupted = False
+
+
+def _signal_handler(signum: int, frame: Any) -> None:
+    """
+    Обработчик сигналов SIGINT (KeyboardInterrupt) и SIGTERM.
+
+    Args:
+        signum: Номер сигнала.
+        frame: Текущий фрейм.
+
+    Примечание:
+        Обработчик гарантирует безопасную очистку ресурсов:
+        - Закрывает все активные браузеры
+        - Очищает кэш
+        - Удаляет временные файлы
+        - Логирует факт прерывания
+    """
+    global _interrupted
+    _interrupted = True
+
+    logger.warning("Получен сигнал %d. Начинается безопасная очистка ресурсов...", signum)
+
+    # Немедленная очистка ресурсов
+    try:
+        cleanup_resources()
+    except Exception as cleanup_error:
+        logger.error("Ошибка при очистке ресурсов в signal handler: %s", cleanup_error)
+
+    logger.info("Очистка ресурсов завершена. Выход из приложения...")
+    sys.exit(128 + signum)
+
+
+def _setup_signal_handlers() -> None:
+    """
+    Устанавливает обработчики сигналов для безопасной очистки ресурсов.
+
+    Примечание:
+        - SIGINT (Ctrl+C) - прерывание пользователем
+        - SIGTERM - сигнал завершения от системы
+    """
+    signal.signal(signal.SIGINT, _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
+    logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены")
 
 
 def cleanup_resources() -> None:
@@ -529,13 +577,20 @@ def _get_output_dir(output_path: str | None) -> Path:
 
 def main() -> None:
     """Точка входа для CLI приложения.
-    
+
     Парсит аргументы командной строки, обрабатывает различные режимы
     работы (TUI, CLI, параллельный парсинг) и запускает приложение.
+
+    Примечание:
+        Использует контекстный менеджер и signal handlers для гарантированной
+        очистки ресурсов при KeyboardInterrupt и других исключениях.
     """
     # Запоминаем время старта
     start_time = time.time()
     start_datetime = datetime.now()
+
+    # ВАЖНО: Устанавливаем обработчики сигналов для безопасной очистки ресурсов
+    _setup_signal_handlers()
 
     # Парсим аргументы командной строки
     args, command_line_config = parse_arguments()
@@ -683,11 +738,12 @@ def main() -> None:
 
         # Флаг для отслеживания успешного завершения
         success = True
-        
+
         try:
             cli_app(urls, output_path, output_format, command_line_config)
         except KeyboardInterrupt:
-            logger.info("Работа приложения прервана пользователем.")
+            # ВАЖНО: Signal handler уже вызвал cleanup_resources, но дублируем в finally
+            logger.info("Работа приложения прервана пользователем (KeyboardInterrupt).")
             success = False
             sys.exit(0)
         except FileNotFoundError as e:
@@ -719,10 +775,14 @@ def main() -> None:
             success = False
             sys.exit(1)
         finally:
-            # Гарантированная очистка ресурсов при любом завершении
+            # ВАЖНО: Гарантированная очистка ресурсов при любом завершении
             # Выполняется даже при KeyboardInterrupt или sys.exit()
+            # Signal handler уже мог вызвать cleanup_resources, но повторный вызов безопасен
             logger.debug("Выполнение блока finally для очистки ресурсов...")
-            cleanup_resources()
+            try:
+                cleanup_resources()
+            except Exception as cleanup_error:
+                logger.error("Ошибка при очистке ресурсов в finally: %s", cleanup_error)
             logger.debug("Очистка ресурсов в блоке finally завершена")
 
 

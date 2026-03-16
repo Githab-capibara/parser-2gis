@@ -29,6 +29,12 @@ __all__ = ["CacheManager"]
 DEFAULT_BATCH_SIZE = 100  # Размер пакета для пакетных операций
 MAX_CONNECTION_AGE = 300  # Максимальный возраст соединения в секундах (5 минут)
 
+# Константы безопасности и ограничения
+MAX_BATCH_SIZE = 1000  # Максимальный размер пакета для предотвращения DoS
+MAX_CACHE_SIZE_MB = 500  # Максимальный размер кэша в мегабайтах
+LRU_EVICT_BATCH = 100  # Количество записей для удаления при LRU eviction
+SHA256_HASH_LENGTH = 64  # Длина SHA256 хеша в hex формате
+
 
 class _ConnectionPool:
     """
@@ -183,6 +189,19 @@ class CacheManager:
         WHERE expires_at < ?
     """
 
+    SQL_DELETE_LRU = """
+        DELETE FROM cache
+        WHERE url_hash IN (
+            SELECT url_hash FROM cache
+            ORDER BY timestamp ASC
+            LIMIT ?
+        )
+    """
+
+    SQL_GET_CACHE_SIZE = """
+        SELECT COUNT(*) FROM cache
+    """
+
     def __init__(self, cache_dir: Path, ttl_hours: int = 24, pool_size: int = 5):
         """Инициализация менеджера кэша.
 
@@ -325,6 +344,9 @@ class CacheManager:
         cursor = conn.cursor()
 
         try:
+            # ПРОВЕРКА: Ограничение размера кэша перед вставкой
+            self._enforce_cache_size_limit(conn)
+
             # Сохраняем данные в базу с использованием подготовленного запроса
             cursor.execute(
                 self.SQL_INSERT_OR_REPLACE,
@@ -374,6 +396,9 @@ class CacheManager:
                 except (TypeError, ValueError) as e:
                     logger.warning("Ошибка сериализации данных для кэша: %s", e)
                     continue
+
+            # ПРОВЕРКА: Ограничение размера кэша перед пакетной вставкой
+            self._enforce_cache_size_limit(conn)
 
             # Один коммит для всех записей
             conn.commit()
@@ -446,9 +471,24 @@ class CacheManager:
 
         Returns:
             Количество удалённых записей.
+
+        Raises:
+            ValueError: Если размер пакета превышает MAX_BATCH_SIZE.
         """
         if not self._pool or not url_hashes:
             return 0
+
+        # ВАЖНО: Ограничиваем максимальный размер пакета для предотвращения DoS
+        if len(url_hashes) > MAX_BATCH_SIZE:
+            raise ValueError(
+                f"Размер пакета {len(url_hashes)} превышает максимальный лимит {MAX_BATCH_SIZE}"
+            )
+
+        # ВАЖНО: Строгая валидация каждого хеша (64 символа, hex)
+        # Это предотвращает SQL injection через некорректные хеши
+        for hash_val in url_hashes:
+            if not self._validate_hash(hash_val):
+                raise ValueError(f"Некорректный формат хеша: {hash_val}")
 
         conn = self._pool.get_connection()
         cursor = conn.cursor()
@@ -555,3 +595,66 @@ class CacheManager:
             SHA256 хеш URL в виде шестнадцатеричной строки
         """
         return hashlib.sha256(url.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _validate_hash(hash_val: str) -> bool:
+        """Валидация хеша.
+
+        Проверяет, что хеш имеет корректный формат:
+        - Длина ровно 64 символа (SHA256 hex)
+        - Содержит только шестнадцатеричные символы (0-9, a-f)
+
+        Args:
+            hash_val: Хеш для валидации
+
+        Returns:
+            True если хеш корректен, False иначе
+        """
+        if len(hash_val) != SHA256_HASH_LENGTH:
+            return False
+        try:
+            int(hash_val, 16)
+            return True
+        except ValueError:
+            return False
+
+    def _enforce_cache_size_limit(self, conn: sqlite3.Connection) -> None:
+        """Принудительное ограничение размера кэша.
+
+        Реализует LRU (Least Recently Used) политику eviction:
+        - Проверяет размер файла кэша
+        - Если размер превышает MAX_CACHE_SIZE_MB, удаляет LRU_EVICT_BATCH
+          старых записей (по timestamp)
+
+        Args:
+            conn: SQLite соединение для выполнения запросов
+        """
+        try:
+            # Проверяем размер файла кэша
+            if self._cache_file.exists():
+                cache_size_bytes = self._cache_file.stat().st_size
+                cache_size_mb = cache_size_bytes / (1024 * 1024)
+
+                if cache_size_mb > MAX_CACHE_SIZE_MB:
+                    logger.warning(
+                        "Размер кэша %.2f MB превышает лимит %d MB. "
+                        "Удаление %d старых записей (LRU eviction)",
+                        cache_size_mb,
+                        MAX_CACHE_SIZE_MB,
+                        LRU_EVICT_BATCH,
+                    )
+
+                    cursor = conn.cursor()
+                    try:
+                        cursor.execute(self.SQL_DELETE_LRU, (LRU_EVICT_BATCH,))
+                        deleted_count = cursor.rowcount
+                        conn.commit()
+
+                        if deleted_count > 0:
+                            logger.debug("LRU eviction: удалено %d записей", deleted_count)
+                    finally:
+                        cursor.close()
+        except OSError as os_error:
+            logger.warning("Ошибка при проверке размера кэша: %s", os_error)
+        except sqlite3.Error as db_error:
+            logger.warning("Ошибка БД при LRU eviction: %s", db_error)

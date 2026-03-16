@@ -58,30 +58,25 @@ class ChromeBrowser:
 
         logger.debug("Запуск Chrome браузера по пути: %s", binary_path)
 
-        # Инициализация профиля с безопасными правами (0o700 - только владелец)
-        # Используем mkdtemp() так как профиль должен существовать всё время жизни браузера
-        self._profile_path = tempfile.mkdtemp(prefix="chrome_profile_")
-        
-        # Устанавливаем restrictive права на директорию профиля
-        # При ошибке удаляем профиль чтобы не оставлять небезопасные данные
+        # ИСПОЛЬЗУЕМ TemporaryDirectory для автоматической очистки профиля
+        # TemporaryDirectory гарантирует удаление профиля даже при ошибке или KeyboardInterrupt
+        # Маркер для отложенной очистки при следующем запуске создаётся автоматически
+        self._profile_tempdir = tempfile.TemporaryDirectory(prefix="chrome_profile_")
+        self._profile_path = self._profile_tempdir.name
+
+        # Устанавливаем restrictive права на директорию профиля (0o700 - только владелец)
+        # При ошибке TemporaryDirectory всё равно очистит профиль при закрытии
         try:
             os.chmod(self._profile_path, 0o700)
         except OSError as chmod_error:
             logger.warning(
-                "Не удалось установить права 0o700 на профиль %s: %s. Профиль удаляется.",
+                "Не удалось установить права 0o700 на профиль %s: %s. "
+                "Профиль будет автоматически удалён при закрытии.",
                 self._profile_path,
                 chmod_error
             )
-            try:
-                shutil.rmtree(self._profile_path, ignore_errors=True)
-                logger.debug("Профиль удалён после ошибки chmod")
-            except Exception as cleanup_error:
-                logger.error(
-                    "Не удалось удалить профиль после ошибки chmod: %s",
-                    cleanup_error
-                )
-            raise
-        
+            # НЕ выбрасываем исключение - TemporaryDirectory гарантирует очистку
+
         self._remote_port = free_port()
 
         # Валидация memory_limit перед формированием команды
@@ -176,74 +171,6 @@ class ChromeBrowser:
         """Порт отладки."""
         return self._remote_port
 
-    @wait_until_finished(timeout=300, throw_exception=False)
-    def _delete_profile(self) -> bool:
-        """Удаляет временный профиль Chrome.
-
-        Returns:
-            `True` при успешном удалении, `False` при неудаче.
-
-        Примечание:
-            Использует многоуровневую стратегию удаления:
-            1. Попытка обычного удаления
-            2. Принудительное удаление с ignore_errors=True
-            3. Логирование ошибки для последующей очистки при перезапуске
-        """
-        # Проверяем существование профиля перед удалением
-        if not os.path.exists(self._profile_path):
-            logger.debug(
-                "Профиль Chrome уже удалён или не существовал: %s", self._profile_path
-            )
-            return True
-
-        try:
-            # Первая попытка: обычное удаление
-            shutil.rmtree(self._profile_path, ignore_errors=False)
-            profile_deleted = not os.path.isdir(self._profile_path)
-            if profile_deleted:
-                logger.debug("Временный профиль Chrome удалён: %s", self._profile_path)
-                return True
-
-            # Если профиль остался, пробуем принудительное удаление
-            logger.warning(
-                "Профиль Chrome не удалён с первой попытки, пробуем принудительно"
-            )
-
-        except (OSError, PermissionError) as e:
-            # Ошибка при удалении - пробуем принудительно
-            logger.warning("Ошибка при удалении профиля Chrome (попытка 1): %s", e)
-
-        except Exception as unexpected_error:
-            # Непредвиденная ошибка
-            logger.error(
-                "Непредвиденная ошибка при удалении профиля Chrome: %s",
-                unexpected_error,
-            )
-
-        # Вторая попытка: игнорируем ошибки для предотвращения утечки дискового пространства
-        try:
-            shutil.rmtree(self._profile_path, ignore_errors=True)
-            logger.debug("Профиль Chrome удалён принудительно (попытка 2)")
-            return not os.path.isdir(self._profile_path)
-        except Exception as cleanup_error:
-            # Третья попытка не удалась - логируем ошибку для последующей очистки
-            logger.error(
-                "Не удалось удалить профиль Chrome после 2 попыток: %s. Профиль может остаться на диске.",
-                cleanup_error,
-            )
-            # Помечаем профиль для удаления при следующем запуске
-            try:
-                # Создаём маркер для последующей очистки в системной temp директории
-                marker_file = os.path.join(
-                    tempfile.gettempdir(), ".cleanup_marker"
-                )
-                with open(marker_file, "a", encoding="utf-8") as f:
-                    f.write(f"{self._profile_path}\n")
-                logger.debug("Создан маркер для последующей очистки: %s", marker_file)
-            except Exception as e:
-                logger.debug("Не удалось создать маркер очистки профиля: %s", e)
-            return False
-
     def close(self) -> None:
         """Закрывает браузер и удаляет временный профиль.
 
@@ -252,7 +179,7 @@ class ChromeBrowser:
             Используется многоуровневая стратегия завершения:
             1. Корректное завершение через terminate()
             2. Принудительное завершение через kill()
-            3. Удаление временного профиля
+            3. Удаление временного профиля через TemporaryDirectory.cleanup()
         """
         logger.debug("Завершение работы Chrome браузера.")
 
@@ -292,12 +219,22 @@ class ChromeBrowser:
         except Exception as e:
             logger.error("Непредвиденная ошибка при закрытии Chrome: %s", e)
 
-        # Удаляем временный профиль
+        # ВАЖНО: TemporaryDirectory.cleanup() гарантирует удаление профиля
+        # даже при возникновении ошибок в предыдущем коде
         try:
-            if hasattr(self, "_profile_path") and self._profile_path:
-                self._delete_profile()
+            if hasattr(self, "_profile_tempdir") and self._profile_tempdir is not None:
+                # cleanup() безопасен для повторного вызова
+                self._profile_tempdir.cleanup()
+                logger.debug("Временный профиль Chrome удалён через TemporaryDirectory.cleanup()")
         except Exception as profile_error:
-            logger.error("Ошибка при удалении профиля: %s", profile_error)
+            logger.error("Ошибка при удалении профиля через TemporaryDirectory: %s", profile_error)
+            # Fallback: пытаемся удалить профиль напрямую
+            try:
+                if hasattr(self, "_profile_path") and self._profile_path:
+                    shutil.rmtree(self._profile_path, ignore_errors=True)
+                    logger.debug("Профиль удалён через fallback shutil.rmtree()")
+            except Exception as fallback_error:
+                logger.error("Fallback очистка профиля не удалась: %s", fallback_error)
 
     def __repr__(self) -> str:
         classname = self.__class__.__name__

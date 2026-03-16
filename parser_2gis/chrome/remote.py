@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 import pychrome
 import requests  # type: ignore[import-untyped]
 from requests.exceptions import RequestException  # type: ignore[import-untyped]
-from websocket import WebSocketException
+from websocket import WebSocketException, WebSocketTimeoutException
 
 from ..common import wait_until_finished
 from ..logger import logger
@@ -309,8 +309,9 @@ class ChromeRemote:
                 logger.debug("Создание вкладки через _create_tab()...")
                 self._chrome_tab = self._create_tab()
 
-                logger.debug("Запуск вкладки...")
-                self._chrome_tab.start()
+                logger.debug("Запуск вкладки с timeout=30...")
+                # ВАЖНО: Запуск вкладки с таймаутом 30 секунд для предотвращения зависаний
+                self._start_tab_with_timeout(self._chrome_tab, timeout=30)
 
                 # Проверка работоспособности соединения после подключения
                 if not self._verify_connection():
@@ -329,6 +330,19 @@ class ChromeRemote:
                 # Ошибки HTTP/сети
                 logger.error(
                     "Ошибка сети при подключении к Chrome DevTools Protocol (%s): %s",
+                    self._dev_url,
+                    e,
+                )
+                # Очистка ресурсов при ошибке
+                self._cleanup_interface()
+                if attempt < max_attempts - 1:
+                    time.sleep(attempt_delay)
+                continue
+
+            except WebSocketTimeoutException as e:
+                # ВАЖНО: Таймаут WebSocket соединения (timeout=30)
+                logger.error(
+                    "Таймаут WebSocket соединения при подключении к Chrome DevTools Protocol (%s): %s",
                     self._dev_url,
                     e,
                 )
@@ -504,6 +518,44 @@ class ChromeRemote:
                 logger.warning("Закрытие браузера из-за ошибки при запуске")
                 self._chrome_browser.close()
             raise
+
+    def _start_tab_with_timeout(self, tab: pychrome.Tab, timeout: int = 30) -> None:
+        """Запускает вкладку с таймаутом.
+
+        Использует threading для установки таймаута на операцию start().
+        Это предотвращает зависание при проблемах с WebSocket соединением.
+
+        Args:
+            tab: pychrome.Tab для запуска.
+            timeout: Таймаут в секундах (по умолчанию 30).
+
+        Raises:
+            TimeoutError: Если запуск превысил таймаут.
+        """
+        import threading
+
+        result = {"error": None}
+
+        def start_target() -> None:
+            try:
+                tab.start()
+            except Exception as e:
+                result["error"] = e
+
+        thread = threading.Thread(target=start_target, daemon=True)
+        thread.start()
+        thread.join(timeout=timeout)
+
+        if thread.is_alive():
+            # Поток всё ещё активен - таймаут
+            logger.error("Таймаут при запуске вкладки (%d секунд)", timeout)
+            raise TimeoutError(f"Запуск вкладки превысил таймаут {timeout} секунд")
+
+        if result["error"]:
+            logger.error("Ошибка при запуске вкладки: %s", result["error"])
+            raise result["error"]
+
+        logger.debug("Вкладка успешно запущена")
 
     def _create_tab(self) -> pychrome.Tab:
         """Создаёт Chrome-вкладку с повторными попытками.
@@ -1015,6 +1067,9 @@ class ChromeRemote:
         if self._chrome_tab is None:
             logger.error("Chrome tab не инициализирован в execute_script")
             return None
+
+        # ВАЖНО: Логирование всех вызовов execute_script для аудита безопасности
+        logger.debug("Выполнение JavaScript: %s", expression[:100] + "..." if len(expression) > 100 else expression)
 
         # Валидация выражения на безопасность
         is_valid, error_msg = _validate_js_code(expression)

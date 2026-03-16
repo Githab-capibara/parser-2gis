@@ -222,15 +222,50 @@ class ParallelCityParser:
         filepath = self.output_dir / filename
 
         # Создаём уникальное временное имя файла
-        # uuid.uuid4() гарантирует уникальность, поэтому проверка на коллизии не требуется
-        temp_filename = f"{safe_city}_{safe_category}_{uuid.uuid4().hex}.tmp"
+        # ВАЖНО: Используем PID процесса для уникальности и предотвращения race condition
+        # uuid.uuid4() + pid гарантирует уникальность даже при параллельном запуске
+        temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
         temp_filepath = self.output_dir / temp_filename
+
+        # ВАЖНО: Атомарное создание временного файла для предотвращения race condition
+        # pathlib.Path.touch(exist_ok=False) выбрасывает FileExistsError если файл уже существует
+        # Это позволяет обнаружить и обработать коллизии имён
+        max_attempts = 10  # Максимальное количество попыток создания уникального имени
+        for attempt in range(max_attempts):
+            try:
+                # Атомарное создание файла
+                temp_filepath.touch(exist_ok=False)
+                logger.debug("Временный файл атомарно создан: %s", temp_filename)
+                break  # Успех - выходим из цикла
+            except FileExistsError:
+                # Файл уже существует (race condition) - генерируем новое имя
+                if attempt < max_attempts - 1:
+                    logger.debug(
+                        "Временный файл уже существует (попытка %d): %s. Генерация нового имени...",
+                        attempt + 1,
+                        temp_filename,
+                    )
+                    temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+                    temp_filepath = self.output_dir / temp_filename
+                else:
+                    logger.error(
+                        "Не удалось создать уникальный временный файл после %d попыток: %s",
+                        max_attempts,
+                        temp_filename,
+                    )
+                    raise
 
         try:
             self.log(
                 f"Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filename})",
                 "info",
             )
+
+            # Удаляем созданный пустой файл - writer создаст свой файл
+            try:
+                temp_filepath.unlink()
+            except OSError:
+                pass  # Файл может быть уже удалён
 
             # Создаем парсер
             with get_parser(

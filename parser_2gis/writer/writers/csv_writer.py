@@ -206,6 +206,9 @@ class CSVWriter(FileWriter):
         file_root, file_ext = os.path.splitext(self._file_path)
         tmp_csv_name = f"{file_root}.removed-columns{file_ext}"
 
+        # ВАЖНО: Флаг для отслеживания создания временного файла
+        temp_created = False
+
         try:
             # Чтение исходного файла и запись нового с увеличенной буферизацией
             with self._open_file(
@@ -213,6 +216,9 @@ class CSVWriter(FileWriter):
             ) as f_csv, self._open_file(
                 tmp_csv_name, "w", newline="", buffering=WRITE_BUFFER_SIZE
             ) as f_tmp_csv:
+
+                # ВАЖНО: Помечаем что временный файл создан
+                temp_created = True
 
                 csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
@@ -223,16 +229,16 @@ class CSVWriter(FileWriter):
                 # Оптимизация: пакетная запись строк
                 batch = []
                 batch_size = HASH_BATCH_SIZE
-                
+
                 for row in csv_reader:
                     new_row = {k: v for k, v in row.items() if k in new_data_mapping}
                     batch.append(new_row)
-                    
+
                     # Записываем пакет при достижении размера
                     if len(batch) >= batch_size:
                         csv_writer.writerows(batch)
                         batch.clear()
-                
+
                 # Записываем оставшиеся строки
                 if batch:
                     csv_writer.writerows(batch)
@@ -240,16 +246,25 @@ class CSVWriter(FileWriter):
             # Замена оригинального файла новым
             shutil.move(tmp_csv_name, self._file_path)
             logger.info("Удалены пустые колонки из CSV")
+            temp_created = False  # Файл успешно перемещён, очистка не требуется
 
         except Exception as e:
             logger.error("Ошибка при записи CSV без пустых колонок: %s", e)
-            # Удаляем временный файл если он существует
-            if os.path.exists(tmp_csv_name):
+            raise
+
+        finally:
+            # ВАЖНО: Гарантированная очистка временного файла в любом случае
+            # finally выполняется даже при KeyboardInterrupt и sys.exit()
+            if temp_created and os.path.exists(tmp_csv_name):
                 try:
                     os.remove(tmp_csv_name)
-                except OSError:
-                    pass
-            raise
+                    logger.debug("Временный файл удалён в блоке finally: %s", tmp_csv_name)
+                except OSError as cleanup_error:
+                    logger.warning(
+                        "Не удалось удалить временный файл %s: %s",
+                        tmp_csv_name,
+                        cleanup_error
+                    )
 
     def _remove_duplicates(self) -> None:
         """Постобработка: Удаление дубликатов.
@@ -270,6 +285,9 @@ class CSVWriter(FileWriter):
         seen_hashes: Set[str] = set()
         duplicates_count = 0
 
+        # ВАЖНО: Флаг для отслеживания создания временного файла
+        temp_created = False
+
         # Проверка существования файла
         if not os.path.exists(self._file_path):
             logger.error("Файл CSV не найден: %s", self._file_path)
@@ -281,14 +299,17 @@ class CSVWriter(FileWriter):
             with self._open_file(
                 self._file_path, "r", encoding="utf-8-sig", buffering=READ_BUFFER_SIZE
             ) as f_csv, self._open_file(
-                tmp_csv_name, "w", encoding=self._options.encoding, 
+                tmp_csv_name, "w", encoding=self._options.encoding,
                 newline="", buffering=WRITE_BUFFER_SIZE
             ) as f_tmp_csv:
+
+                # ВАЖНО: Помечаем что временный файл создан
+                temp_created = True
 
                 # Оптимизация: читаем и записываем пакетно
                 batch = []
                 batch_size = HASH_BATCH_SIZE
-                
+
                 for line_num, line in enumerate(f_csv, 1):
                     try:
                         # Нормализуем строку: удаляем завершающие пробелы и newlines
@@ -308,7 +329,7 @@ class CSVWriter(FileWriter):
 
                         seen_hashes.add(line_hash)
                         batch.append(line)
-                        
+
                         # Пакетная запись для снижения накладных расходов
                         if len(batch) >= batch_size:
                             f_tmp_csv.writelines(batch)
@@ -319,7 +340,7 @@ class CSVWriter(FileWriter):
                             "Ошибка обработки строки %d: %s", line_num, line_error
                         )
                         # Пропускаем проблемную строку и продолжаем
-                
+
                 # Записываем оставшиеся строки
                 if batch:
                     f_tmp_csv.writelines(batch)
@@ -331,36 +352,33 @@ class CSVWriter(FileWriter):
 
             # Замена оригинального файла новым
             shutil.move(tmp_csv_name, self._file_path)
+            temp_created = False  # Файл успешно перемещён, очистка не требуется
 
         except (OSError, IOError) as e:
             logger.error("Ошибка при удалении дубликатов: %s", e)
-            # Удаляем временный файл если он существует
-            if os.path.exists(tmp_csv_name):
-                try:
-                    os.remove(tmp_csv_name)
-                except OSError:
-                    pass
             raise
 
         except KeyboardInterrupt:
             logger.info("Операция удаления дубликатов прервана пользователем")
-            # Удаляем временный файл при прерывании
-            if os.path.exists(tmp_csv_name):
-                try:
-                    os.remove(tmp_csv_name)
-                except OSError:
-                    pass
             raise
 
         except Exception as e:
             logger.error("Непредвиденная ошибка при удалении дубликатов: %s", e)
-            # Удаляем временный файл если он существует
-            if os.path.exists(tmp_csv_name):
+            raise
+
+        finally:
+            # ВАЖНО: Гарантированная очистка временного файла в любом случае
+            # finally выполняется даже при KeyboardInterrupt и sys.exit()
+            if temp_created and os.path.exists(tmp_csv_name):
                 try:
                     os.remove(tmp_csv_name)
-                except OSError:
-                    pass
-            raise
+                    logger.debug("Временный файл удалён в блоке finally: %s", tmp_csv_name)
+                except OSError as cleanup_error:
+                    logger.warning(
+                        "Не удалось удалить временный файл %s: %s",
+                        tmp_csv_name,
+                        cleanup_error
+                    )
 
     def write(self, catalog_doc: Any) -> None:
         """Записывает JSON-документ Catalog Item API в CSV-таблицу.
