@@ -6,6 +6,8 @@ from typing import Any, Callable, Optional
 
 import pytermgui as ptg
 
+from .checkbox import Checkbox
+
 
 class CityList:
     """
@@ -19,7 +21,6 @@ class CityList:
         cities: list[dict[str, Any]],
         selected_indices: Optional[set[int]] = None,
         on_select: Optional[Callable[[int, bool], None]] = None,
-        height: int = 10,
     ) -> None:
         """
         Инициализация списка городов.
@@ -28,12 +29,10 @@ class CityList:
             cities: Список городов (словари с ключами name, code, domain, country_code)
             selected_indices: Индексы выбранных городов
             on_select: Callback при изменении выбора
-            height: Высота виджета
         """
         self._cities = cities
         self._selected_indices = selected_indices or set()
         self._on_select = on_select
-        self._height = height
         self._container: Optional[ptg.Container] = None
 
         self._populate()
@@ -50,7 +49,7 @@ class CityList:
             country = city.get("country_code", "").upper()
 
             is_selected = i in self._selected_indices
-            checkbox = ptg.Checkbox(
+            checkbox = Checkbox(
                 label=f"{city_name} ({country})",
                 value=is_selected,
                 on_change=lambda checked, idx=i: self._toggle_city(idx, checked),
@@ -108,10 +107,7 @@ class CityList:
         Returns:
             Список названий выбранных городов
         """
-        return [
-            self._cities[i].get("name", "")
-            for i in sorted(self._selected_indices)
-        ]
+        return [self._cities[i].get("name", "") for i in sorted(self._selected_indices)]
 
     @property
     def selected_count(self) -> int:

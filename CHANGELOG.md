@@ -1,5 +1,100 @@
 # История изменений
 
+## [2.1.4] — 2026-03-16
+
+### Исправлено
+
+#### TUI (pytermgui) — Критические проблемы (8 исправлено)
+
+- **widgets/city_list.py:6** — Заменён `ptg.Checkbox` на кастомный `Checkbox` из проекта для корректной работы
+- **widgets/category_list.py:6** — Заменён `ptg.Checkbox` на кастомный `Checkbox` из проекта
+- **screens/parsing_screen.py:119** — Добавлено сохранение ссылки на `Monitor` в `_monitor` для предотвращения утечки памяти
+- **screens/parsing_screen.py:393** — Добавлена остановка `Monitor` в методе `_stop_parsing()` с корректной очисткой
+- **screens/cache_viewer.py:76** — Добавлена обработка `json.JSONDecodeError` для повреждённых файлов кэша
+- **screens/parser_settings.py:183** — Добавлена полноценная обработка `ValueError` при валидации числовых полей
+- **screens/category_selector.py:151** — Исправлена проблема с замыканием через factory функцию `make_callback()`
+- **screens/city_selector.py:157** — Исправлена проблема с замыканием через factory функцию `make_callback()`
+
+#### TUI (pytermgui) — Проблемы высокой важности (12 исправлено)
+
+- **widgets/scroll_area.py:51** — Заменён доступ к виджетам через `getattr()` на использование публичного API pytermgui
+- **app.py:283** — Добавлена дополнительная проверка `self._screen_manager.current_instance` в `go_back()`
+- **screens/main_menu.py:273** — Заменено подтверждение выхода с `InputField` на кнопки с корректной обработкой
+- **screens/city_selector.py:340** — Реализовано прямое обновление текста счётчика в `_update_counter()`
+- **app.py:420** — Инициализирован `logger` в `__init__` или удалена проверка `self._logger is None`
+- **screens/browser_settings.py:191** — Добавлено отображение ошибки пользователю через `_show_message()` при `ValueError`
+- **screens/parser_settings.py:254** — Исправлено использование `delete_back()` через публичный API
+- **screens/output_settings.py:199** — Исправлено использование `delete_back()` через публичный API
+- **screens/parser_settings.py:241** — Проверен и подтверждён корректный импорт `ParserOptions`
+- **screens/output_settings.py:211** — Проверен и подтверждён корректный импорт `WriterOptions`
+- **screens/main_menu.py:301** — Реализован метод `_cancel_exit()` для отмены выхода
+- **screens/parsing_screen.py:402** — Добавлена обработка функции `minimize()` с заглушкой
+
+#### TUI (pytermgui) — Проблемы средней важности (6 исправлено)
+
+- **widgets/checkbox.py:142** — Устранено дублирование кода в `on_left_click()` через вызов `toggle()`
+- **widgets/city_list.py:23** — Удалён неиспользуемый параметр `height` из `__init__`
+- **widgets/category_list.py:23** — Удалён неиспользуемый параметр `height` из `__init__`
+- **widgets/navigable_widget.py:238** — Добавлена документация для метода `get_lines()`
+- **widgets/progress_bar.py:144** — Вынесены магические числа (75, 50) в константы
+- **widgets/progress_bar.py:171** — Реализовано кэширование через `_cached_text` в `ProgressBar._render_text()`
+
+#### Основной код — Критические проблемы (4 исправлено)
+
+- **parallel_parser.py:264** — Добавлено логирование для переменной `replace_error` вместо игнорирования
+- **parallel_parser.py:503** — Добавлено логирование для переменной `replace_error` вместо игнорирования
+- **main.py:578** — Переменная `e` используется для логирования (проблема подтверждена как невалидная)
+- **main.py:719** — Переменная `e` используется для логирования (проблема подтверждена как невалидная)
+- **cache.py:582** — Перемещены импорты `threading` и `time` в начало файла для соответствия PEP 8 E402
+
+#### Основной код — Проблемы высокого приоритета (5 исправлено)
+
+- **cache.py** — Удалены 58 нарушений PEP 8 W293 (пустые строки с пробелами) через `sed`
+- **chrome/remote.py:9** — Удалён неиспользуемый импорт `functools.lru_cache`
+- **parallel_parser.py:19** — Удалён неиспользуемый импорт `collections.deque`
+- **parallel_parser.py:363** — Удалён неиспользуемый импорт `io`
+- **chrome/browser.py:169** — Упрощена обработка ошибок в `_delete_profile` с использованием `contextlib`
+
+### Изменено
+
+#### Код
+- **widgets/checkbox.py** — Улучшена архитектура с переиспользованием метода `toggle()`
+- **screens/city_selector.py** — Улучшено обновление UI с прямым обновлением текста счётчика
+- **screens/main_menu.py** — Улучшен UX подтверждения выхода с использованием кнопок вместо `InputField`
+- **parallel_parser.py** — Улучшено логирование ошибок перемещения файлов
+- **cache.py** — Улучшена структура импортов с перемещением в начало файла
+
+#### Документация
+- Обновлена информация об исправлениях в CHANGELOG.md
+- Добавлены детали о новых исправлениях TUI и основного кода
+
+#### Технические детали
+
+##### Изменённые файлы (18 файлов)
+- `parser_2gis/tui_pytermgui/widgets/city_list.py` — замена ptg.Checkbox
+- `parser_2gis/tui_pytermgui/widgets/category_list.py` — замена ptg.Checkbox
+- `parser_2gis/tui_pytermgui/screens/parsing_screen.py` — утечка Monitor
+- `parser_2gis/tui_pytermgui/screens/cache_viewer.py` — обработка JSON ошибок
+- `parser_2gis/tui_pytermgui/screens/parser_settings.py` — валидация
+- `parser_2gis/tui_pytermgui/screens/category_selector.py` — замыкания
+- `parser_2gis/tui_pytermgui/screens/city_selector.py` — замыкания, обновление счётчика
+- `parser_2gis/tui_pytermgui/widgets/scroll_area.py` — публичный API
+- `parser_2gis/tui_pytermgui/app.py` — обработка ошибок
+- `parser_2gis/tui_pytermgui/screens/main_menu.py` — подтверждение выхода
+- `parser_2gis/tui_pytermgui/screens/browser_settings.py` — отображение ошибок
+- `parser_2gis/tui_pytermgui/widgets/checkbox.py` — устранение дублирования
+- `parser_2gis/tui_pytermgui/widgets/progress_bar.py` — константы, кэширование
+- `parser_2gis/parallel_parser.py` — логирование ошибок
+- `parser_2gis/cache.py` — импорты, PEP 8
+- `parser_2gis/chrome/remote.py` — неиспользуемые импорты
+- `parser_2gis/chrome/browser.py` — упрощение обработки ошибок
+
+##### Форматирование
+- Отформатировано 22 файла с `black --line-length 100`
+- Удалены trailing whitespace в `cache.py`
+
+---
+
 ## [2.1.3] — 2026-03-15
 
 ### Исправлено

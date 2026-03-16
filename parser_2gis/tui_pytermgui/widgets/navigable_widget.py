@@ -62,8 +62,8 @@ class NavigableWidget(ptg.Widget):
         """
         self._focused = value
         # Принудительная перерисовка при изменении фокуса
-        if self._app and hasattr(self._app, '_manager'):
-            manager = getattr(self._app, '_manager', None)
+        if self._app and hasattr(self._app, "_manager"):
+            manager = getattr(self._app, "_manager", None)
             if manager:
                 manager.force_full_redraw = True
 
@@ -146,7 +146,7 @@ class NavigableContainer(ptg.Container):
         self._app = app
         # Передать app всем дочерним виджетам
         for widget in self._widgets:
-            if hasattr(widget, 'set_app'):
+            if hasattr(widget, "set_app"):
                 widget.set_app(app)
 
     @property
@@ -165,7 +165,7 @@ class NavigableContainer(ptg.Container):
         # Снять фокус с текущего виджета
         if 0 <= self._focus_index < len(self._widgets):
             widget = self._widgets[self._focus_index]
-            if hasattr(widget, 'blur'):
+            if hasattr(widget, "blur"):
                 widget.blur()
 
         # Циклическая навигация
@@ -179,22 +179,22 @@ class NavigableContainer(ptg.Container):
         # Установить фокус на новый виджет
         # Снимаем фокус со всех виджетов сначала
         for widget in self._widgets:
-            if hasattr(widget, 'blur'):
+            if hasattr(widget, "blur"):
                 widget.blur()
-        
+
         # Устанавливаем фокус на текущий виджет
         if 0 <= self._focus_index < len(self._widgets):
             widget = self._widgets[self._focus_index]
             # Используем свойство focused вместо метода focus()
             # Это работает для NavigableWidget и его наследников
-            if hasattr(widget, 'focused'):
+            if hasattr(widget, "focused"):
                 widget.focused = True
             # Для стандартных виджетов pytermgui (InputField и др.)
             # фокус управляется автоматически через handle_key()
 
         # Принудительная перерисовка
-        if self._app and hasattr(self._app, '_manager'):
-            manager = getattr(self._app, '_manager', None)
+        if self._app and hasattr(self._app, "_manager"):
+            manager = getattr(self._app, "_manager", None)
             if manager:
                 manager.force_full_redraw = True
 
@@ -225,7 +225,7 @@ class NavigableContainer(ptg.Container):
         # Если есть сфокусированный виджет, передать клавишу ему
         if 0 <= self._focus_index < len(self._widgets):
             widget = self._widgets[self._focus_index]
-            if hasattr(widget, 'handle_key'):
+            if hasattr(widget, "handle_key"):
                 if widget.handle_key(key):
                     return True
 
@@ -247,7 +247,7 @@ class NavigableContainer(ptg.Container):
     def clear_widgets(self) -> None:
         """
         Очистить все виджеты из контейнера.
-        
+
         Публичный метод для безопасной очистки контейнера.
         """
         self._widgets.clear()
@@ -256,15 +256,15 @@ class NavigableContainer(ptg.Container):
     def append_widget(self, widget: ptg.Widget) -> None:
         """
         Добавить виджет в контейнер.
-        
+
         Публичный метод для безопасного добавления виджета.
-        
+
         Args:
             widget: Виджет для добавления
         """
         self._widgets.append(widget)
         # Передать app новому виджету
-        if self._app and hasattr(widget, 'set_app'):
+        if self._app and hasattr(widget, "set_app"):
             widget.set_app(self._app)
 
     def add_widget(self, widget: ptg.Widget, focus: bool = False) -> None:
@@ -301,10 +301,7 @@ class ButtonWidget(NavigableWidget):
     """
 
     def __init__(
-        self,
-        label: str,
-        onclick: Optional[Callable[[], None]] = None,
-        **kwargs: Any
+        self, label: str, onclick: Optional[Callable[[], None]] = None, **kwargs: Any
     ) -> None:
         """
         Инициализация кнопки.

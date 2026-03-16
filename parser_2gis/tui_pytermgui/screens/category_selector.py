@@ -96,7 +96,7 @@ class CategorySelectorScreen:
             box="EMPTY",
         )
         self._button_container.set_app(self._app)
-        
+
         self._button_container.add_widget(ButtonWidget("Выбрать все", self._select_all))
         self._button_container.add_widget(ButtonWidget("Снять все", self._deselect_all))
         self._button_container.add_widget(ButtonWidget("Назад", self._go_back))
@@ -172,8 +172,7 @@ class CategorySelectorScreen:
             self._filtered_categories = self._categories.copy()
         else:
             self._filtered_categories = [
-                cat for cat in self._categories
-                if query in cat.get("name", "").lower()
+                cat for cat in self._categories if query in cat.get("name", "").lower()
             ]
 
         self._populate_categories()
@@ -236,8 +235,7 @@ class CategorySelectorScreen:
         """Перейти к следующему экрану."""
         # Сохранить выбранные категории
         selected_names = [
-            self._categories[i].get("name", "")
-            for i in sorted(self._selected_indices)
+            self._categories[i].get("name", "") for i in sorted(self._selected_indices)
         ]
         self._app.selected_categories = selected_names
 

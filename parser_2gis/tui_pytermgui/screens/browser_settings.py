@@ -112,7 +112,7 @@ class BrowserSettingsScreen:
             box="EMPTY",
         )
         self._button_container.set_app(self._app)
-        
+
         self._button_container.add_widget(ButtonWidget("Сохранить", self._save))
         self._button_container.add_widget(ButtonWidget("Сбросить", self._reset))
         self._button_container.add_widget(ButtonWidget("Назад", self._go_back))
@@ -186,8 +186,10 @@ class BrowserSettingsScreen:
             memory_limit = int(memory_limit_str)
             if memory_limit <= 0:
                 raise ValueError("Лимит памяти должен быть положительным")
-        except ValueError:
-            # Показать ошибку
+        except ValueError as e:
+            # Показать ошибку пользователю
+            error_message = str(e) if str(e) else "Неверное значение для лимита памяти"
+            self._show_message(error_message, "error")
             return
 
         # Обновить конфигурацию
@@ -221,9 +223,7 @@ class BrowserSettingsScreen:
         self._fields["silent_browser"].value = default_options.silent_browser  # type: ignore
 
         # Обновить поля InputField (нужно использовать delete_back() + insert_text())
-        self._set_input_field_value(
-            self._fields["memory_limit"], str(default_options.memory_limit)
-        )
+        self._set_input_field_value(self._fields["memory_limit"], str(default_options.memory_limit))
         self._set_input_field_value(self._fields["binary_path"], "")
 
         # Обновить конфигурацию

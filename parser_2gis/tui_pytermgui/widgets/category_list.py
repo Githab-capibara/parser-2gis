@@ -6,6 +6,8 @@ from typing import Any, Callable, Optional
 
 import pytermgui as ptg
 
+from .checkbox import Checkbox
+
 
 class CategoryList:
     """
@@ -19,7 +21,6 @@ class CategoryList:
         categories: list[dict[str, Any]],
         selected_indices: Optional[set[int]] = None,
         on_select: Optional[Callable[[int, bool], None]] = None,
-        height: int = 10,
     ) -> None:
         """
         Инициализация списка категорий.
@@ -28,12 +29,10 @@ class CategoryList:
             categories: Список категорий (словари с ключами name, query, rubric_code)
             selected_indices: Индексы выбранных категорий
             on_select: Callback при изменении выбора
-            height: Высота виджета
         """
         self._categories = categories
         self._selected_indices = selected_indices or set()
         self._on_select = on_select
-        self._height = height
         self._container: Optional[ptg.Container] = None
 
         self._populate()
@@ -49,7 +48,7 @@ class CategoryList:
             category_name = category.get("name", "Неизвестно")
 
             is_selected = i in self._selected_indices
-            checkbox = ptg.Checkbox(
+            checkbox = Checkbox(
                 label=category_name,
                 value=is_selected,
                 on_change=lambda checked, idx=i: self._toggle_category(idx, checked),
@@ -107,10 +106,7 @@ class CategoryList:
         Returns:
             Список названий выбранных категорий
         """
-        return [
-            self._categories[i].get("name", "")
-            for i in sorted(self._selected_indices)
-        ]
+        return [self._categories[i].get("name", "") for i in sorted(self._selected_indices)]
 
     @property
     def selected_count(self) -> int:

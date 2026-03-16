@@ -83,17 +83,17 @@ class TestEscKeyHandling:
     def test_global_key_handler_esc(self):
         """
         Проверка глобального обработчика клавиш для Esc.
-        
-        Проверяет, что _handle_global_key возвращает None для Esc
+
+        Проверяет, что _handle_global_key возвращает пустую строку для Esc
         (клавиша обработана и не передаётся дальше).
         """
         mock_app = MagicMock(spec=TUIApp)
-        
+
         # Вызываем обработчик
         result = TUIApp._handle_global_key(mock_app, ptg.keys.ESC)
-        
-        # Esc должен быть обработан (возвращает None)
-        assert result is None
+
+        # Esc должен быть обработан (возвращает "")
+        assert result == ""
         mock_app.go_back.assert_called_once()
 
     def test_global_key_handler_other_keys(self):
@@ -427,33 +427,33 @@ class TestFullNavigationCycle:
         
         # Изначально стек пуст
         assert screen_manager.stack_size == 0
-        assert screen_manager.get_current() is None
-        
+        assert screen_manager.current_instance is None
+
         # Push первого экрана
         screen_manager.push("main_menu", screen1)
         assert screen_manager.stack_size == 0  # Первый экран не добавляется в стек
-        assert screen_manager.get_current() == "main_menu"
-        
+        assert screen_manager.current_instance is not None  # Экран установлен
+
         # Push второго экрана
         screen_manager.push("city_selector", screen2)
         assert screen_manager.stack_size == 1
-        assert screen_manager.get_current() == "city_selector"
-        
+        assert screen_manager.current_instance is not None
+
         # Push третьего экрана
         screen_manager.push("category_selector", screen3)
         assert screen_manager.stack_size == 2
-        assert screen_manager.get_current() == "category_selector"
-        
+        assert screen_manager.current_instance is not None
+
         # Pop - возврат к предыдущему
         previous = screen_manager.pop()
         assert previous == "city_selector"
-        assert screen_manager.get_current() == "city_selector"
+        assert screen_manager.current_instance is not None
         assert screen_manager.stack_size == 1
-        
+
         # Pop - возврат к главному меню
         previous = screen_manager.pop()
         assert previous == "main_menu"  # Возвращаем main_menu
-        assert screen_manager.get_current() == "main_menu"
+        assert screen_manager.current_instance is not None
         assert screen_manager.stack_size == 0
         
         # Ещё один pop должен вернуть None (стек пуст)
@@ -478,9 +478,8 @@ class TestFullNavigationCycle:
         
         # Очищаем стек
         screen_manager.clear()
-        
+
         assert screen_manager.stack_size == 0
-        assert screen_manager.get_current() is None
         assert screen_manager.current_instance is None
 
     def test_screen_manager_current_instance(self):

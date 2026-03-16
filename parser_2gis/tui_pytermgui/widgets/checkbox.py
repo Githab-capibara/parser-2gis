@@ -117,7 +117,7 @@ class Checkbox(ptg.Widget):
             True если клавиша обработана
         """
         # Вызываем базовый обработчик с проверкой
-        if hasattr(super(), 'handle_key'):
+        if hasattr(super(), "handle_key"):
             if super().handle_key(key):
                 return True
 
@@ -138,13 +138,8 @@ class Checkbox(ptg.Widget):
         Returns:
             True если событие обработано
         """
-        # Переключаем состояние
-        self._value = not self._value
-
-        # Вызываем callback если есть
-        if self._on_change:
-            self._on_change(self._value)
-
+        # Переключаем состояние используя метод toggle()
+        self.toggle()
         return True
 
     def toggle(self) -> None:

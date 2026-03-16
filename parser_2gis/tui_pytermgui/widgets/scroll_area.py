@@ -12,10 +12,10 @@ import pytermgui as ptg
 class ScrollArea(ptg.ScrollableWidget):
     """
     Виджет области с прокруткой.
-    
+
     Обёртка над ScrollableWidget для создания прокручиваемой области
     с фиксированной высотой.
-    
+
     Attributes:
         content: Контент для отображения
         height: Фиксированная высота области
@@ -24,7 +24,7 @@ class ScrollArea(ptg.ScrollableWidget):
     def __init__(self, content: ptg.Widget, height: int = 10, **kwargs: Any) -> None:
         """
         Инициализация области прокрутки.
-        
+
         Args:
             content: Виджет контента для отображения
             height: Высота области прокрутки
@@ -46,12 +46,12 @@ class ScrollArea(ptg.ScrollableWidget):
         content_lines = []
 
         # Если контент - контейнер с виджетами
-        if hasattr(self._content, 'widgets'):
+        if hasattr(self._content, "widgets"):
             # Используем публичный API для доступа к виджетам
-            widgets = getattr(self._content, 'widgets', [])
+            widgets = getattr(self._content, "widgets", [])
             if widgets:
                 for widget in widgets:
-                    if hasattr(widget, 'get_lines'):
+                    if hasattr(widget, "get_lines"):
                         try:
                             lines = widget.get_lines()
                             if isinstance(lines, (list, tuple)):
@@ -62,7 +62,7 @@ class ScrollArea(ptg.ScrollableWidget):
                             content_lines.append(str(widget))
                     else:
                         content_lines.append(str(widget))
-        elif hasattr(self._content, 'get_lines'):
+        elif hasattr(self._content, "get_lines"):
             lines = self._content.get_lines()
             if isinstance(lines, (list, tuple)):
                 content_lines.extend(lines)
@@ -71,14 +71,14 @@ class ScrollArea(ptg.ScrollableWidget):
         else:
             # Преобразовать контент в строки
             content_str = str(self._content)
-            content_lines = content_str.split('\n')
+            content_lines = content_str.split("\n")
 
         # Применить прокрутку с проверкой на выход за границы
         if self._scroll_offset > 0 and self._scroll_offset < len(content_lines):
-            content_lines = content_lines[self._scroll_offset:]
+            content_lines = content_lines[self._scroll_offset :]
 
         # Обрезать по высоте
-        return content_lines[:self._height]
+        return content_lines[: self._height]
 
     def __len__(self) -> int:
         """Вернуть высоту области."""

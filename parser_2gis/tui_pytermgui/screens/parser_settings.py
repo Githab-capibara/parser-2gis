@@ -151,7 +151,7 @@ class ParserSettingsScreen:
             box="EMPTY",
         )
         self._button_container.set_app(self._app)
-        
+
         self._button_container.add_widget(ButtonWidget("Сохранить", self._save))
         self._button_container.add_widget(ButtonWidget("Сбросить", self._reset))
         self._button_container.add_widget(ButtonWidget("Назад", self._go_back))
@@ -261,9 +261,7 @@ class ParserSettingsScreen:
         self._fields["retry_on_network_errors"].value = default_options.retry_on_network_errors  # type: ignore
 
         # Обновить поля InputField (нужно использовать delete_back() + insert_text())
-        self._set_input_field_value(
-            self._fields["max_records"], str(default_options.max_records)
-        )
+        self._set_input_field_value(self._fields["max_records"], str(default_options.max_records))
         self._set_input_field_value(
             self._fields["delay_between_clicks"], str(default_options.delay_between_clicks)
         )
@@ -274,9 +272,7 @@ class ParserSettingsScreen:
         self._set_input_field_value(
             self._fields["max_consecutive_empty_pages"], str(max_empty_pages)
         )
-        self._set_input_field_value(
-            self._fields["max_retries"], str(default_options.max_retries)
-        )
+        self._set_input_field_value(self._fields["max_retries"], str(default_options.max_retries))
         self._set_input_field_value(
             self._fields["retry_delay_base"], str(default_options.retry_delay_base)
         )
@@ -291,7 +287,9 @@ class ParserSettingsScreen:
         self._parser_config.use_gc = default_options.use_gc
         self._parser_config.gc_pages_interval = default_options.gc_pages_interval
         self._parser_config.stop_on_first_404 = default_options.stop_on_first_404
-        self._parser_config.max_consecutive_empty_pages = default_options.max_consecutive_empty_pages
+        self._parser_config.max_consecutive_empty_pages = (
+            default_options.max_consecutive_empty_pages
+        )
         self._parser_config.max_retries = default_options.max_retries
         self._parser_config.retry_on_network_errors = default_options.retry_on_network_errors
         self._parser_config.retry_delay_base = default_options.retry_delay_base

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class MainMenuScreen:
     """
     Главное меню приложения.
-    
+
     Особенности:
     - Красивый ASCII-арт логотип
     - Градиентные заголовки
@@ -29,7 +29,7 @@ class MainMenuScreen:
     - Разделители между секциями
     - Информативный подвал с горячими клавишами
     """
-    
+
     # ASCII-арт логотипы
     LOGOS = {
         "block": [
@@ -61,51 +61,51 @@ class MainMenuScreen:
             "2GIS DATA",
         ],
     }
-    
+
     def __init__(self, app: TUIApp) -> None:
         """
         Инициализация главного меню.
-        
+
         Args:
             app: Главное приложение TUI
         """
         self._app = app
         self._menu_container: NavigableContainer | None = None
         self._logo_style = "simple"
-    
+
     def _get_logo(self) -> list[str]:
         """
         Получить ASCII-арт логотип.
-        
+
         Returns:
             Список строк с логотипом
         """
         return self.LOGOS.get(self._logo_style, self.LOGOS["simple"])
-    
+
     def _render_logo(self, color: str = "#00FFFF") -> str:
         """
         Отрендерить логотип с цветом.
-        
+
         Args:
             color: Цвет логотипа
-            
+
         Returns:
             Строка с цветным логотипом
         """
         logo_lines = self._get_logo()
         colored_lines = []
-        
+
         for line in logo_lines:
             # Применить цвет к каждой строке
             colored_line = f"[{color}]{line}[/]"
             colored_lines.append(colored_line)
-        
+
         return "\n".join(colored_lines)
-    
+
     def _create_menu_buttons(self) -> list[tuple[str, str, callable]]:
         """
         Создать конфигурацию кнопок меню.
-        
+
         Returns:
             Список кортежей (иконка, текст, callback)
         """
@@ -114,33 +114,27 @@ class MainMenuScreen:
             (UnicodeIcons.EMOJI_START, "Запустить парсинг", self._start_parsing),
             (UnicodeIcons.EMOJI_FOLDER, "Выбрать города", self._select_cities),
             (UnicodeIcons.EMOJI_FILE, "Выбрать категории", self._select_categories),
-            
             # Разделитель
             ("separator", "", None),
-            
             # Настройки
             (UnicodeIcons.EMOJI_BROWSER, "Настройки браузера", self._browser_settings),
             (UnicodeIcons.EMOJI_TOOLS, "Настройки парсера", self._parser_settings),
             (UnicodeIcons.EMOJI_CHART, "Настройки вывода", self._output_settings),
-            
             # Разделитель
             ("separator", "", None),
-            
             # Дополнительно
             (UnicodeIcons.EMOJI_DATABASE, "Просмотр кэша", self._view_cache),
             (UnicodeIcons.EMOJI_USER, "О программе", self._show_about),
-            
             # Разделитель
             ("separator", "", None),
-            
             # Выход
             (UnicodeIcons.EMOJI_EXIT, "Выход", self._exit),
         ]
-    
+
     def create_window(self) -> ptg.Window:
         """
         Создать окно главного меню.
-        
+
         Returns:
             Окно pytermgui
         """
@@ -149,10 +143,10 @@ class MainMenuScreen:
             box="EMPTY",
         )
         self._menu_container.set_app(self._app)
-        
+
         # Получить конфигурацию кнопок
         button_configs = self._create_menu_buttons()
-        
+
         # Создать кнопки
         for icon, text, callback in button_configs:
             if icon == "separator":
@@ -167,20 +161,20 @@ class MainMenuScreen:
                 button_text = f"{icon} {text}"
                 button = ButtonWidget(button_text, onclick=callback)
                 self._menu_container.add_widget(button)
-        
+
         # Создать заголовок с градиентом
         title_text = GradientText.neon("Parser2GIS")
         subtitle = ptg.Label(
             ptg.tim.parse("[italic #B0B0B0]Современный парсер данных 2GIS[/]"),
             justify="center",
         )
-        
+
         # Версия приложения
         version_label = ptg.Label(
             ptg.tim.parse("[dim]Версия 2.1[/]"),
             justify="center",
         )
-        
+
         # Создать окно
         window = ptg.Window(
             "",  # Отступ сверху
@@ -206,18 +200,20 @@ class MainMenuScreen:
             self._create_footer(),
             width=75,
             box="ROUNDED",
-            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Главное меню[/]"),
+            title=ptg.tim.parse(
+                f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Главное меню[/]"
+            ),
         )
 
         # Установить фокус на первую кнопку
         self._menu_container.focus_first()
 
         return window.center()
-    
+
     def _create_footer(self) -> ptg.Container:
         """
         Создать подвал с подсказками по навигации.
-        
+
         Returns:
             Container с подсказками
         """
@@ -229,49 +225,49 @@ class MainMenuScreen:
             f"{UnicodeIcons.ARROW_CIRCLE_UP}/{UnicodeIcons.ARROW_CIRCLE_DOWN} - навигация"
             f"[/]"
         )
-        
+
         return ptg.Container(
             ptg.Label(footer_text, justify="center"),
             box="EMPTY",
         )
-    
+
     # Callback методы
     def _start_parsing(self, *args) -> None:
         """Запустить парсинг."""
         self._app._show_parsing_screen()
-    
+
     def _select_cities(self, *args) -> None:
         """Открыть экран выбора городов."""
         self._app._show_city_selector()
-    
+
     def _select_categories(self, *args) -> None:
         """Открыть экран выбора категорий."""
         self._app._show_category_selector()
-    
+
     def _browser_settings(self, *args) -> None:
         """Открыть настройки браузера."""
         self._app._show_browser_settings()
-    
+
     def _parser_settings(self, *args) -> None:
         """Открыть настройки парсера."""
         self._app._show_parser_settings()
-    
+
     def _output_settings(self, *args) -> None:
         """Открыть настройки вывода."""
         self._app._show_output_settings()
-    
+
     def _view_cache(self, *args) -> None:
         """Просмотр кэша."""
         self._app._show_cache_viewer()
-    
+
     def _show_about(self, *args) -> None:
         """Показать информацию о программе."""
         self._app._show_about()
-    
+
     def _exit(self, *args) -> None:
         """Выйти из приложения."""
         if self._app._manager:
-            # Подтверждение выхода
+            # Подтверждение выхода с кнопками
             confirm_window = ptg.Window(
                 "",
                 ptg.Label(
@@ -279,31 +275,36 @@ class MainMenuScreen:
                     justify="center",
                 ),
                 "",
-                ptg.Label(
-                    ptg.tim.parse("[dim]Нажмите Enter для подтверждения, Esc для отмены[/]"),
-                    justify="center",
+                ptg.Container(
+                    ButtonWidget(
+                        "[bold green]✓ Выйти[/]",
+                        onclick=lambda *_: self._do_exit(),
+                    ),
+                    ButtonWidget(
+                        "[bold red]✗ Отмена[/]",
+                        onclick=lambda *_: self._cancel_exit(confirm_window),
+                    ),
+                    box="EMPTY",
                 ),
                 "",
-                # Поле для обработки Enter/Esc
-                ptg.InputField(
-                    placeholder="Enter - выход, Esc - отмена",
-                    on_change=self._confirm_exit,
-                ),
                 width=50,
                 box="ROUNDED",
                 title="[bold red]Подтверждение выхода[/]",
             )
 
-            # Обработка подтверждения
             self._app._manager.add(confirm_window)
 
-    def _confirm_exit(self, field: ptg.InputField) -> None:
-        """
-        Обработать подтверждение выхода.
-
-        Args:
-            field: Поле ввода
-        """
-        # При вводе любого символа подтверждаем выход
+    def _do_exit(self) -> None:
+        """Выйти из приложения."""
         if self._app._manager:
             self._app._manager.stop()
+
+    def _cancel_exit(self, window: ptg.Window) -> None:
+        """
+        Отменить выход.
+
+        Args:
+            window: Окно для закрытия
+        """
+        if self._app._manager:
+            self._app._manager.remove(window)

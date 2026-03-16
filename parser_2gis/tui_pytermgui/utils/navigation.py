@@ -60,12 +60,12 @@ class ScreenManager:
     def clear(self) -> None:
         """
         Очистить стек экранов.
-        
+
         Также удаляет окна из WindowManager если он доступен.
         """
         # Удалить текущее окно из WindowManager
-        if self._current_instance and hasattr(self._app, '_manager'):
-            manager = getattr(self._app, '_manager', None)
+        if self._current_instance and hasattr(self._app, "_manager"):
+            manager = getattr(self._app, "_manager", None)
             if manager:
                 try:
                     window = self._current_instance.create_window()
@@ -73,7 +73,7 @@ class ScreenManager:
                 except Exception:
                     # Игнорируем ошибки удаления
                     pass
-        
+
         self._screen_stack.clear()
         self._current_screen = None
         self._current_instance = None

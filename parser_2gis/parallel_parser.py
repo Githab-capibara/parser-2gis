@@ -79,7 +79,9 @@ class ParallelCityParser:
 
         # Валидация timeout_per_url (60-3600 секунд)
         if not MIN_TIMEOUT <= timeout_per_url <= MAX_TIMEOUT:
-            raise ValueError(f"timeout_per_url должен быть от {MIN_TIMEOUT} до {MAX_TIMEOUT} секунд")
+            raise ValueError(
+                f"timeout_per_url должен быть от {MIN_TIMEOUT} до {MAX_TIMEOUT} секунд"
+            )
 
         self.cities = cities
         self.categories = categories
@@ -91,9 +93,7 @@ class ParallelCityParser:
         # Проверка существования output_dir и прав на запись
         if self.output_dir.exists():
             if not self.output_dir.is_dir():
-                raise ValueError(
-                    f"output_dir существует, но не является директорией: {output_dir}"
-                )
+                raise ValueError(f"output_dir существует, но не является директорией: {output_dir}")
             # EAFP подход: проверяем права попыткой записи тестового файла
             # Это защищает от race condition между проверкой и фактической записью
             test_file: Optional[Path] = None
@@ -109,9 +109,7 @@ class ParallelCityParser:
                         test_file.unlink()
                     except Exception as cleanup_error:
                         logger.warning(
-                            "Не удалось удалить тестовый файл %s: %s",
-                            test_file,
-                            cleanup_error
+                            "Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error
                         )
         else:
             # Попытка создать директорию
@@ -132,9 +130,7 @@ class ParallelCityParser:
                         test_file.unlink()
                     except Exception as cleanup_error:
                         logger.warning(
-                            "Не удалось удалить тестовый файл %s: %s",
-                            test_file,
-                            cleanup_error
+                            "Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error
                         )
 
         # Статистика (все операции защищены _lock)
@@ -243,9 +239,7 @@ class ParallelCityParser:
                 parser_options=self.config.parser,
             ) as parser:
                 # Создаем writer для этого URL (запись во временный файл)
-                with get_writer(
-                    str(temp_filepath), "csv", self.config.writer
-                ) as writer:
+                with get_writer(str(temp_filepath), "csv", self.config.writer) as writer:
                     # Парсим с гарантированной очисткой ресурсов
                     try:
                         parser.parse(writer)
@@ -263,6 +257,10 @@ class ParallelCityParser:
                 move_success = True
             except OSError as replace_error:
                 # Fallback для перемещения между разными файловыми системами
+                self.log(
+                    f"Не удалось переименовать файл (OSError): {replace_error}. Используем shutil.move",
+                    "debug",
+                )
                 try:
                     shutil.move(str(temp_filepath), str(filepath))
                     move_success = True
@@ -285,15 +283,11 @@ class ParallelCityParser:
                             "warning",
                         )
                     raise move_error
-            
-            if move_success:
-                self.log(
-                    f"Временный файл переименован: {temp_filename} → {filename}", "debug"
-                )
 
-            self.log(
-                f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info"
-            )
+            if move_success:
+                self.log(f"Временный файл переименован: {temp_filename} → {filename}", "debug")
+
+            self.log(f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info")
 
             # Потокобезопасное обновление статистики
             with self._lock:
@@ -313,9 +307,7 @@ class ParallelCityParser:
             try:
                 if temp_filepath.exists():
                     temp_filepath.unlink()
-                    self.log(
-                        f"Временный файл удалён после ошибки: {temp_filename}", "debug"
-                    )
+                    self.log(f"Временный файл удалён после ошибки: {temp_filename}", "debug")
             except Exception as cleanup_error:
                 self.log(
                     f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
@@ -395,10 +387,12 @@ class ParallelCityParser:
         output_encoding = self.config.writer.encoding
         buffer_size = 131072  # 128KB буфер для чтения/записи
         batch_size = 500  # Увеличенный размер пакета для записи
-        
+
         try:
             # Открываем с увеличенной буферизацией для улучшения производительности
-            with open(temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size) as outfile:
+            with open(
+                temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
+            ) as outfile:
                 writer = None
                 total_rows = 0
                 fieldnames_cache: Dict[str, List[str]] = {}  # Кэш полей для файлов
@@ -421,7 +415,7 @@ class ParallelCityParser:
                     last_underscore_idx = stem.rfind("_")
 
                     if last_underscore_idx > 0:
-                        category_name = stem[last_underscore_idx + 1:].replace("_", " ")
+                        category_name = stem[last_underscore_idx + 1 :].replace("_", " ")
                     else:
                         category_name = stem.replace("_", " ")
                         self.log(
@@ -430,7 +424,9 @@ class ParallelCityParser:
                         )
 
                     # Читаем исходный файл с увеличенной буферизацией
-                    with open(csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size) as infile:
+                    with open(
+                        csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size
+                    ) as infile:
                         reader = csv.DictReader(infile)
 
                         # Проверяем наличие заголовков
@@ -458,7 +454,7 @@ class ParallelCityParser:
 
                         # Оптимизация: пакетная запись строк с увеличенным размером пакета
                         batch = []
-                        
+
                         for row in reader:
                             # Оптимизация: создаём новую строку сразу с категорией
                             row["Категория"] = category_name
@@ -501,6 +497,11 @@ class ParallelCityParser:
                 temp_output.replace(output_file_path)
                 rename_success = True
             except OSError as replace_error:
+                # Fallback для перемещения между разными файловыми системами
+                self.log(
+                    f"Не удалось переименовать файл (OSError): {replace_error}. Используем shutil.move",
+                    "debug",
+                )
                 try:
                     shutil.move(str(temp_output), str(output_file_path))
                     rename_success = True
@@ -623,11 +624,11 @@ class ParallelCityParser:
 
                     # Выводим прогресс каждые 3 секунды
                     current_time = time.time()
-                    if current_time - last_progress_time >= PROGRESS_UPDATE_INTERVAL or idx == len(futures):
+                    if current_time - last_progress_time >= PROGRESS_UPDATE_INTERVAL or idx == len(
+                        futures
+                    ):
                         progress_bar = print_progress(
-                            success_count + failed_count,
-                            len(futures),
-                            prefix="   Прогресс"
+                            success_count + failed_count, len(futures), prefix="   Прогресс"
                         )
                         self.log(progress_bar, "info")
                         last_progress_time = current_time
@@ -740,9 +741,7 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
         """Точка входа потока."""
         try:
             # Используем переданный output_file или путь по умолчанию
-            output_file = self._output_file or str(
-                self.output_dir / "merged_result.csv"
-            )
+            output_file = self._output_file or str(self.output_dir / "merged_result.csv")
             # Вызываем метод родительского класса ParallelCityParser.run
             self._result = ParallelCityParser.run(self, output_file=output_file)
         except Exception as e:

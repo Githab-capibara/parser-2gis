@@ -227,9 +227,7 @@ class OutputSettingsScreen:
         self._fields["remove_duplicates"].value = default_csv.remove_duplicates  # type: ignore
 
         # Обновить поля InputField (нужно использовать delete_back() + insert_text())
-        self._set_input_field_value(
-            self._fields["encoding"], default_writer.encoding
-        )
+        self._set_input_field_value(self._fields["encoding"], default_writer.encoding)
         self._set_input_field_value(
             self._fields["columns_per_entity"], str(default_csv.columns_per_entity)
         )

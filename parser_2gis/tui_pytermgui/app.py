@@ -318,8 +318,7 @@ class TUIApp:
         # Загрузить города
         cities_data = self.get_cities()
         selected_cities_data = [
-            city for city in cities_data
-            if city.get("name") in self.selected_cities
+            city for city in cities_data if city.get("name") in self.selected_cities
         ]
 
         if not selected_cities_data:
@@ -329,8 +328,7 @@ class TUIApp:
         # Загрузить категории
         all_categories = self.get_categories()
         selected_categories_data = [
-            cat for cat in all_categories
-            if cat.get("name") in self.selected_categories
+            cat for cat in all_categories if cat.get("name") in self.selected_categories
         ]
 
         if not selected_categories_data:

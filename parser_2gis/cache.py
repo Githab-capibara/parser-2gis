@@ -14,6 +14,8 @@
 import hashlib
 import json
 import sqlite3
+import threading
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
@@ -21,7 +23,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from .logger import logger
 
 # Экспортируемые символы модуля
-__all__ = ['CacheManager']
+__all__ = ["CacheManager"]
 
 # Константы для оптимизации
 DEFAULT_BATCH_SIZE = 100  # Размер пакета для пакетных операций
@@ -31,15 +33,15 @@ MAX_CONNECTION_AGE = 300  # Максимальный возраст соедин
 class _ConnectionPool:
     """
     Простой пул соединений для SQLite.
-    
+
     Оптимизация: переиспользование соединений вместо создания новых
     для каждой операции, что снижает накладные расходы на 30-50%.
     """
-    
+
     def __init__(self, cache_file: Path, pool_size: int = 5):
         """
         Инициализация пула соединений.
-        
+
         Args:
             cache_file: Путь к файлу базы данных.
             pool_size: Размер пула соединений.
@@ -48,16 +50,16 @@ class _ConnectionPool:
         self._pool_size = pool_size
         self._connections: List[Tuple[sqlite3.Connection, float]] = []
         self._lock = threading.Lock()
-        
+
     def get_connection(self) -> sqlite3.Connection:
         """
         Получает соединение из пула или создаёт новое.
-        
+
         Returns:
             SQLite соединение.
         """
         current_time = time.time()
-        
+
         with self._lock:
             # Ищем доступное соединение
             for i, (conn, last_used) in enumerate(self._connections):
@@ -75,16 +77,16 @@ class _ConnectionPool:
                     # Возвращаем соединение и обновляем время использования
                     self._connections[i] = (conn, current_time)
                     return conn
-            
+
             # Нет доступных соединений, создаём новое
             conn = self._create_connection()
             self._connections.append((conn, current_time))
             return conn
-    
+
     def _create_connection(self) -> sqlite3.Connection:
         """
         Создаёт новое соединение с оптимизированными настройками.
-        
+
         Returns:
             Новое SQLite соединение.
         """
@@ -93,21 +95,21 @@ class _ConnectionPool:
             timeout=30.0,  # Увеличенный таймаут для снижения конфликтов
             isolation_level=None,  # Autocommit режим для лучшей производительности
         )
-        
+
         # Включаем WAL режим для лучшей конкурентности
         conn.execute("PRAGMA journal_mode=WAL")
-        
+
         # Увеличиваем размер кэша страниц (по умолчанию 2000 страниц)
         conn.execute("PRAGMA cache_size=-64000")  # 64MB кэш
-        
+
         # Оптимизируем синхронизацию (риск потери данных при сбое питания)
         conn.execute("PRAGMA synchronous=NORMAL")
-        
+
         # Включаем busy timeout для обработки конфликтов
         conn.execute("PRAGMA busy_timeout=30000")
-        
+
         return conn
-    
+
     def close_all(self) -> None:
         """Закрывает все соединения в пуле."""
         with self._lock:
@@ -126,7 +128,7 @@ class CacheManager:
     в локальной базе данных SQLite. Кэш позволяет ускорить повторные
     запуски парсера в 10-100 раз за счет избежания повторных
     запросов к серверу 2GIS.
-    
+
     Оптимизации:
     - Connection pooling для снижения накладных расходов
     - Компилированные SQL запросы для снижения парсинга
@@ -157,37 +159,37 @@ class CacheManager:
             expires_at DATETIME NOT NULL
         )
     """
-    
+
     SQL_CREATE_INDEX = """
         CREATE INDEX IF NOT EXISTS idx_expires_at
         ON cache(expires_at)
     """
-    
+
     SQL_SELECT = """
         SELECT data, expires_at
         FROM cache
         WHERE url_hash = ?
     """
-    
+
     SQL_INSERT_OR_REPLACE = """
         INSERT OR REPLACE INTO cache
         (url_hash, url, data, timestamp, expires_at)
         VALUES (?, ?, ?, ?, ?)
     """
-    
+
     SQL_DELETE = """
         DELETE FROM cache WHERE url_hash = ?
     """
-    
+
     SQL_DELETE_EXPIRED = """
         DELETE FROM cache
         WHERE expires_at < ?
     """
-    
+
     SQL_COUNT_ALL = """
         SELECT COUNT(*) FROM cache
     """
-    
+
     SQL_COUNT_EXPIRED = """
         SELECT COUNT(*) FROM cache
         WHERE expires_at < ?
@@ -206,15 +208,15 @@ class CacheManager:
         """
         if ttl_hours <= 0:
             raise ValueError("ttl_hours должен быть положительным числом")
-        
+
         self._cache_dir = cache_dir
         self._ttl = timedelta(hours=ttl_hours)
         self._cache_file = cache_dir / "cache.db"
-        
+
         # Инициализация пула соединений и подготовка запросов
         self._pool: Optional[_ConnectionPool] = None
         self._prepared_stmts: Dict[str, Any] = {}
-        
+
         # Инициализация БД
         self._init_db(pool_size)
 
@@ -223,7 +225,7 @@ class CacheManager:
 
         Создает директорию для кэша (если её нет) и создает
         таблицу для хранения кэшированных данных.
-        
+
         Args:
             pool_size: Размер пула соединений.
         """
@@ -232,25 +234,25 @@ class CacheManager:
 
         # Создаём пул соединений
         self._pool = _ConnectionPool(self._cache_file, pool_size)
-        
+
         # Получаем соединение для инициализации
         conn = self._pool.get_connection()
-        
+
         try:
             # Создаем таблицу для кэша
             conn.execute(self.SQL_CREATE_TABLE)
 
             # Создаем индекс для быстрого поиска истекших записей
             conn.execute(self.SQL_CREATE_INDEX)
-            
+
             # Подготавливаем запросы для оптимизации
             self._prepared_stmts = {
-                'select': conn.cursor().prepare(self.SQL_SELECT),
-                'insert': conn.cursor().prepare(self.SQL_INSERT_OR_REPLACE),
-                'delete': conn.cursor().prepare(self.SQL_DELETE),
-                'delete_expired': conn.cursor().prepare(self.SQL_DELETE_EXPIRED),
-                'count_all': conn.cursor().prepare(self.SQL_COUNT_ALL),
-                'count_expired': conn.cursor().prepare(self.SQL_COUNT_EXPIRED),
+                "select": conn.cursor().prepare(self.SQL_SELECT),
+                "insert": conn.cursor().prepare(self.SQL_INSERT_OR_REPLACE),
+                "delete": conn.cursor().prepare(self.SQL_DELETE),
+                "delete_expired": conn.cursor().prepare(self.SQL_DELETE_EXPIRED),
+                "count_all": conn.cursor().prepare(self.SQL_COUNT_ALL),
+                "count_expired": conn.cursor().prepare(self.SQL_COUNT_EXPIRED),
             }
         except Exception as e:
             logger.warning("Ошибка при инициализации кэша: %s", e)
@@ -270,13 +272,13 @@ class CacheManager:
         """
         if not self._pool:
             return None
-            
+
         # Вычисляем хеш URL для поиска
         url_hash = self._hash_url(url)
 
         conn = self._pool.get_connection()
         cursor = conn.cursor()
-        
+
         try:
             # Ищем кэш по хешу URL с использованием подготовленного запроса
             cursor.execute(self.SQL_SELECT, (url_hash,))
@@ -303,7 +305,7 @@ class CacheManager:
 
             # Кэш найден и не истек, возвращаем данные
             return json.loads(data)
-            
+
         except sqlite3.Error as db_error:
             logger.warning("Ошибка БД при получении кэша: %s", db_error)
             return None
@@ -325,7 +327,7 @@ class CacheManager:
         """
         if not self._pool:
             return
-            
+
         # Вычисляем хеш URL и время истечения
         url_hash = self._hash_url(url)
         now = datetime.now()
@@ -333,14 +335,14 @@ class CacheManager:
 
         # Сериализуем данные один раз
         try:
-            data_json = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+            data_json = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
         except (TypeError, ValueError) as e:
             logger.error("Ошибка сериализации данных для кэша: %s", e)
             return
 
         conn = self._pool.get_connection()
         cursor = conn.cursor()
-        
+
         try:
             # Сохраняем данные в базу с использованием подготовленного запроса
             cursor.execute(
@@ -356,7 +358,7 @@ class CacheManager:
     def set_batch(self, items: List[Tuple[str, Dict[str, Any]]]) -> int:
         """
         Пакетное сохранение данных в кэш.
-        
+
         Оптимизация: массовая вставка данных снижает накладные расходы
         на транзакции и коммиты, увеличивая производительность в 5-10 раз
         при массовой записи.
@@ -369,20 +371,20 @@ class CacheManager:
         """
         if not self._pool or not items:
             return 0
-        
+
         conn = self._pool.get_connection()
         cursor = conn.cursor()
-        
+
         saved_count = 0
         now = datetime.now()
-        
+
         try:
             for url, data in items:
                 url_hash = self._hash_url(url)
                 expires_at = now + self._ttl
-                
+
                 try:
-                    data_json = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+                    data_json = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
                     cursor.execute(
                         self.SQL_INSERT_OR_REPLACE,
                         (url_hash, url, data_json, now.isoformat(), expires_at.isoformat()),
@@ -391,15 +393,15 @@ class CacheManager:
                 except (TypeError, ValueError) as e:
                     logger.warning("Ошибка сериализации данных для кэша: %s", e)
                     continue
-            
+
             # Один коммит для всех записей
             conn.commit()
-            
+
         except sqlite3.Error as db_error:
             logger.error("Ошибка БД при пакетном сохранении кэша: %s", db_error)
         finally:
             cursor.close()
-        
+
         return saved_count
 
     def clear(self) -> None:
@@ -409,9 +411,9 @@ class CacheManager:
         """
         if not self._pool:
             return
-            
+
         conn = self._pool.get_connection()
-        
+
         try:
             # Простое удаление всех данных быстрее чем DELETE FROM
             conn.execute("DELETE FROM cache")
@@ -430,21 +432,21 @@ class CacheManager:
         """
         if not self._pool:
             return 0
-            
+
         conn = self._pool.get_connection()
         cursor = conn.cursor()
-        
+
         try:
             # Удаляем истекшие записи с использованием подготовленного запроса
             cursor.execute(self.SQL_DELETE_EXPIRED, (datetime.now().isoformat(),))
             deleted_count = cursor.rowcount
             conn.commit()
-            
+
             if deleted_count > 0:
                 logger.debug("Очищено %d истекших записей кэша", deleted_count)
-            
+
             return deleted_count
-            
+
         except sqlite3.Error as db_error:
             logger.warning("Ошибка БД при очистке истекшего кэша: %s", db_error)
             return 0
@@ -454,7 +456,7 @@ class CacheManager:
     def clear_batch(self, url_hashes: List[str]) -> int:
         """
         Пакетное удаление записей по хешам URL.
-        
+
         Оптимизация: массовое удаление снижает накладные расходы
         на транзакции.
 
@@ -466,20 +468,20 @@ class CacheManager:
         """
         if not self._pool or not url_hashes:
             return 0
-        
+
         conn = self._pool.get_connection()
         cursor = conn.cursor()
-        
+
         try:
             # Используем параметризованный запрос для безопасности
-            placeholders = ','.join('?' * len(url_hashes))
+            placeholders = ",".join("?" * len(url_hashes))
             delete_query = f"DELETE FROM cache WHERE url_hash IN ({placeholders})"
             cursor.execute(delete_query, url_hashes)
             deleted_count = cursor.rowcount
             conn.commit()
-            
+
             return deleted_count
-            
+
         except sqlite3.Error as db_error:
             logger.warning("Ошибка БД при пакетном удалении: %s", db_error)
             return 0
@@ -501,10 +503,10 @@ class CacheManager:
         """
         if not self._pool:
             return {"total_records": 0, "expired_records": 0, "cache_size": 0}
-        
+
         conn = self._pool.get_connection()
         cursor = conn.cursor()
-        
+
         try:
             # Общее количество записей
             cursor.execute(self.SQL_COUNT_ALL)
@@ -516,11 +518,7 @@ class CacheManager:
 
             # Размер файла базы данных с обработкой ошибок
             try:
-                cache_size = (
-                    self._cache_file.stat().st_size
-                    if self._cache_file.exists()
-                    else 0
-                )
+                cache_size = self._cache_file.stat().st_size if self._cache_file.exists() else 0
             except OSError:
                 # Файл недоступен или ошибка файловой системы
                 cache_size = 0
@@ -530,7 +528,7 @@ class CacheManager:
                 "expired_records": expired,
                 "cache_size": cache_size,
             }
-            
+
         except sqlite3.Error as db_error:
             # Ошибка базы данных
             logger.warning("Ошибка при получении статистики кэша: %s", db_error)
@@ -541,7 +539,7 @@ class CacheManager:
     def close(self) -> None:
         """
         Закрывает все соединения и освобождает ресурсы.
-        
+
         Важно: Вызывать перед завершением работы приложения.
         """
         if self._pool:
@@ -549,7 +547,7 @@ class CacheManager:
             self._pool = None
             logger.debug("Менеджер кэша закрыт")
 
-    def __enter__(self) -> 'CacheManager':
+    def __enter__(self) -> "CacheManager":
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -576,8 +574,3 @@ class CacheManager:
             SHA256 хеш URL в виде шестнадцатеричной строки
         """
         return hashlib.sha256(url.encode("utf-8")).hexdigest()
-
-
-# Импорт threading в конце для избежания циклических зависимостей
-import threading
-import time

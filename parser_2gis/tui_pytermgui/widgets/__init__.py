@@ -20,19 +20,15 @@ __all__ = [
     # Прогресс-бары
     "ProgressBar",
     "MultiProgressBar",
-    
     # Логгеры
     "LogViewer",
     "CompactLogViewer",
     "DetailedLogViewer",
-    
     # Списки
     "CityList",
     "CategoryList",
-    
     # Контейнеры
     "ScrollArea",
-    
     # Элементы управления
     "Checkbox",
     "NavigableWidget",

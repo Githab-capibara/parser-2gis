@@ -43,10 +43,10 @@ __all__ = [
 class UnicodeIcons:
     """
     Коллекция Unicode иконок для TUI.
-    
+
     Использует символы Unicode для создания красивых визуальных элементов.
     """
-    
+
     # Стрелки
     ARROW_RIGHT = "→"
     ARROW_LEFT = "←"
@@ -57,7 +57,7 @@ class UnicodeIcons:
     ARROW_CIRCLE_RIGHT = "➤"
     ARROW_CIRCLE_DOWN = "⬇"
     ARROW_CIRCLE_UP = "⬆"
-    
+
     # Галочки и крестики
     CHECK = "✓"
     CHECK_BOLD = "✔"
@@ -65,7 +65,7 @@ class UnicodeIcons:
     CROSS = "✗"
     CROSS_BOLD = "✘"
     CROSS_CIRCLE = "☒"
-    
+
     # Звёзды и точки
     STAR = "★"
     STAR_OUTLINE = "☆"
@@ -73,7 +73,7 @@ class UnicodeIcons:
     BULLET_SMALL = "·"
     DIAMOND = "♦"
     DIAMOND_OUTLINE = "◇"
-    
+
     # Прогресс и заполнение
     BLOCK_FULL = "█"
     BLOCK_75 = "▓"
@@ -83,7 +83,7 @@ class UnicodeIcons:
     BLOCK_UPPER = "▀"
     BLOCK_LEFT = "▌"
     BLOCK_RIGHT = "▐"
-    
+
     # Линии и границы
     LINE_HORIZONTAL = "─"
     LINE_VERTICAL = "│"
@@ -98,7 +98,7 @@ class UnicodeIcons:
     LINE_CROSS = "┼"
     LINE_DOUBLE_HORIZONTAL = "═"
     LINE_DOUBLE_VERTICAL = "║"
-    
+
     # Спиннеры и анимация
     SPINNER_LINE = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
     SPINNER_DOTS = ["⠋", "⠙", "⠚", "⠒", "⠂", "⠂", "⠒", "⠲", "⠴", "⠦", "⠧", "⠇", "⠏"]
@@ -106,7 +106,7 @@ class UnicodeIcons:
     SPINNER_ARC = ["◜", "◠", "◝", "◞", "◡", "◟"]
     SPINNER_FLOW = ["⢄", "⢂", "⢁", "⡁", "⡈", "⡐", "⡠"]
     SPINNER_BRAILLE = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"]
-    
+
     # Эмодзи для статусов
     EMOJI_SUCCESS = "✅"
     EMOJI_ERROR = "❌"
@@ -143,7 +143,7 @@ class UnicodeIcons:
     EMOJI_STAR = "⭐"
     EMOJI_TROPHY = "🏆"
     EMOJI_MEDAL = "🏅"
-    
+
     # Геометрические фигуры
     CIRCLE = "●"
     CIRCLE_OUTLINE = "○"
@@ -154,7 +154,7 @@ class UnicodeIcons:
     TRIANGLE_DOWN = "▼"
     TRIANGLE_LEFT = "◀"
     TRIANGLE_RIGHT = "▶"
-    
+
     # Специальные символы
     PERCENT = "%"
     DEGREE = "°"
@@ -167,31 +167,31 @@ class UnicodeIcons:
     GREATER_EQUAL = "≥"
     INFINITY = "∞"
     PI = "π"
-    
+
     # Музыкальные ноты (для декора)
     MUSIC_NOTE = "♪"
     MUSIC_NOTE_BEAMED = "♫"
-    
+
     # Валюты
     DOLLAR = "$"
     EURO = "€"
     POUND = "£"
     RUBLE = "₽"
     YEN = "¥"
-    
+
     # Карточные масти
     SPADE = "♠"
     HEART_SUIT = "♥"
     DIAMOND_SUIT = "♦"
     CLUB = "♣"
-    
+
     # Погода (для декора)
     SUN = "☀"
     CLOUD = "☁"
     RAIN = "☂"
     SNOW = "❄"
     LIGHTNING = "⚡"
-    
+
     # Животные (для декора)
     CAT = "🐱"
     DOG = "🐶"
@@ -199,7 +199,7 @@ class UnicodeIcons:
     BEAR = "🐻"
     PANDA = "🐼"
     CAPYBARA = "🥔"  # Используем картошку как символ капибары :)
-    
+
     # Еда (для декора)
     APPLE = "🍎"
     BANANA = "🍌"
@@ -208,7 +208,7 @@ class UnicodeIcons:
     BURGER = "🍔"
     COFFEE = "☕"
     BEER = "🍺"
-    
+
     # Транспорт
     CAR = "🚗"
     BUS = "🚌"
@@ -216,13 +216,13 @@ class UnicodeIcons:
     PLANE = "✈"
     ROCKET = "🚀"
     BICYCLE = "🚲"
-    
+
     # Здания
     HOUSE = "🏠"
     BUILDING = "🏢"
     FACTORY = "🏭"
     SHOP = "🏪"
-    
+
     # Офис
     PHONE = "☎"
     EMAIL = "✉"
@@ -234,10 +234,10 @@ class UnicodeIcons:
 class SpinnerAnimation:
     """
     Класс для управления спиннер-анимациями.
-    
+
     Поддерживает различные типы спиннеров и управление частотой кадров.
     """
-    
+
     def __init__(
         self,
         spinner_type: Literal["line", "dots", "circle", "arc", "flow", "braille"] = "line",
@@ -246,7 +246,7 @@ class SpinnerAnimation:
     ) -> None:
         """
         Инициализация спиннера.
-        
+
         Args:
             spinner_type: Тип спиннера
             fps: Количество кадров в секунду
@@ -258,10 +258,10 @@ class SpinnerAnimation:
         self.frame_index = 0
         self.running = False
         self._frames: list[str] = []
-        
+
         # Выбор типа спиннера
         self._set_frames()
-    
+
     def _set_frames(self) -> None:
         """Установить кадры для текущего типа спиннера."""
         frames_map = {
@@ -273,65 +273,65 @@ class SpinnerAnimation:
             "braille": UnicodeIcons.SPINNER_BRAILLE,
         }
         self._frames = frames_map.get(self.spinner_type, UnicodeIcons.SPINNER_LINE)
-    
+
     def next_frame(self) -> str:
         """
         Получить следующий кадр.
-        
+
         Returns:
             Строка с текущим кадром спиннера
         """
         frame = self._frames[self.frame_index]
         self.frame_index = (self.frame_index + 1) % len(self._frames)
         return frame
-    
+
     def render(self) -> str:
         """
         Отрендерить текущий кадр с сообщением.
-        
+
         Returns:
             Строка для отображения
         """
         frame = self.next_frame()
         return f"{frame} {self.message}"
-    
+
     def reset(self) -> None:
         """Сбросить спиннер в начальное состояние."""
         self.frame_index = 0
         self.running = False
-    
+
     def tick(self) -> float:
         """
         Получить задержку для следующего кадра.
-        
+
         Returns:
             Задержка в секундах
         """
         return 1.0 / self.fps
-    
+
     def animate_generator(self, duration: float | None = None) -> Generator[str, None, None]:
         """
         Генератор для анимации спиннера.
-        
+
         Args:
             duration: Продолжительность анимации в секундах (None для бесконечной)
-            
+
         Yields:
             Строка с текущим кадром
         """
         import time
-        
+
         self.running = True
         start_time = time.time() if duration else None
-        
+
         while self.running:
             yield self.render()
-            
+
             if start_time and (time.time() - start_time) >= duration:
                 break
-            
+
             time.sleep(self.tick())
-    
+
     def stop(self) -> None:
         """Остановить анимацию."""
         self.running = False
@@ -340,10 +340,10 @@ class SpinnerAnimation:
 class GradientText:
     """
     Утилита для создания градиентного текста.
-    
+
     Симулирует градиент через последовательность цветов.
     """
-    
+
     # Цветовые палитры для градиентов
     GRADIENTS = {
         "sunset": ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#9400D3"],
@@ -355,7 +355,7 @@ class GradientText:
         "monochrome": ["#FFFFFF", "#CCCCCC", "#999999", "#666666", "#333333"],
         "blue_green": ["#0000FF", "#00FFFF", "#00FF00", "#7FFF00", "#ADFF2F"],
     }
-    
+
     @classmethod
     def apply_gradient(
         cls,
@@ -365,40 +365,40 @@ class GradientText:
     ) -> str:
         """
         Применить градиент к тексту.
-        
+
         Args:
             text: Текст для применения градиента
             gradient_name: Название градиента
             style_format: Формат стиля (должен содержать {color} и {char})
-            
+
         Returns:
             Текст с применённым градиентом
         """
         colors = cls.GRADIENTS.get(gradient_name, cls.GRADIENTS["neon"])
         result = []
-        
+
         for i, char in enumerate(text):
             color_index = i % len(colors)
             color = colors[color_index]
             result.append(style_format.format(color=color, char=char))
-        
+
         return "".join(result)
-    
+
     @classmethod
     def rainbow(cls, text: str) -> str:
         """Создать радужный текст."""
         return cls.apply_gradient(text, "sunset")
-    
+
     @classmethod
     def neon(cls, text: str) -> str:
         """Создать неоновый текст."""
         return cls.apply_gradient(text, "neon")
-    
+
     @classmethod
     def cyberpunk(cls, text: str) -> str:
         """Создать текст в стиле киберпанк."""
         return cls.apply_gradient(text, "cyberpunk")
-    
+
     @classmethod
     def fire(cls, text: str) -> str:
         """Создать огненный текст."""
@@ -428,49 +428,79 @@ class GradientText:
 class BoxDrawing:
     """
     Утилиты для рисования рамок и границ.
-    
+
     Поддерживает различные стили рамок: одинарные, двойные, круглые.
     """
-    
+
     # Стили рамок
     BOX_STYLES = {
         "single": {
-            "tl": "┌", "tr": "┐", "bl": "└", "br": "┘",
-            "h": "─", "v": "│",
-            "tr_down": "┬", "tr_up": "┴",
-            "tl_right": "├", "tr_left": "┤",
+            "tl": "┌",
+            "tr": "┐",
+            "bl": "└",
+            "br": "┘",
+            "h": "─",
+            "v": "│",
+            "tr_down": "┬",
+            "tr_up": "┴",
+            "tl_right": "├",
+            "tr_left": "┤",
             "cross": "┼",
         },
         "double": {
-            "tl": "╔", "tr": "╗", "bl": "╚", "br": "╝",
-            "h": "═", "v": "║",
-            "tr_down": "╦", "tr_up": "╩",
-            "tl_right": "╠", "tr_left": "╣",
+            "tl": "╔",
+            "tr": "╗",
+            "bl": "╚",
+            "br": "╝",
+            "h": "═",
+            "v": "║",
+            "tr_down": "╦",
+            "tr_up": "╩",
+            "tl_right": "╠",
+            "tr_left": "╣",
             "cross": "╬",
         },
         "round": {
-            "tl": "╭", "tr": "╮", "bl": "╰", "br": "╯",
-            "h": "─", "v": "│",
-            "tr_down": "┬", "tr_up": "┴",
-            "tl_right": "├", "tr_left": "┤",
+            "tl": "╭",
+            "tr": "╮",
+            "bl": "╰",
+            "br": "╯",
+            "h": "─",
+            "v": "│",
+            "tr_down": "┬",
+            "tr_up": "┴",
+            "tl_right": "├",
+            "tr_left": "┤",
             "cross": "┼",
         },
         "heavy": {
-            "tl": "┏", "tr": "┓", "bl": "┗", "br": "┛",
-            "h": "━", "v": "┃",
-            "tr_down": "┳", "tr_up": "┻",
-            "tl_right": "┣", "tr_left": "┫",
+            "tl": "┏",
+            "tr": "┓",
+            "bl": "┗",
+            "br": "┛",
+            "h": "━",
+            "v": "┃",
+            "tr_down": "┳",
+            "tr_up": "┻",
+            "tl_right": "┣",
+            "tr_left": "┫",
             "cross": "╋",
         },
         "ascii": {
-            "tl": "+", "tr": "+", "bl": "+", "br": "+",
-            "h": "-", "v": "|",
-            "tr_down": "+", "tr_up": "+",
-            "tl_right": "+", "tr_left": "+",
+            "tl": "+",
+            "tr": "+",
+            "bl": "+",
+            "br": "+",
+            "h": "-",
+            "v": "|",
+            "tr_down": "+",
+            "tr_up": "+",
+            "tl_right": "+",
+            "tr_left": "+",
             "cross": "+",
         },
     }
-    
+
     @classmethod
     def draw_box(
         cls,
@@ -481,44 +511,44 @@ class BoxDrawing:
     ) -> list[str]:
         """
         Нарисовать рамку.
-        
+
         Args:
             width: Ширина рамки
             height: Высота рамки
             style: Стиль рамки
             title: Заголовок рамки
-            
+
         Returns:
             Список строк с рамкой
         """
         box = cls.BOX_STYLES.get(style, cls.BOX_STYLES["single"])
         lines = []
-        
+
         # Верхняя граница
         if title:
             title_space = max(0, width - 4 - len(title))
             left_space = title_space // 2
             right_space = title_space - left_space
             top_line = (
-                box["tl"] +
-                box["h"] * left_space +
-                f" {title} " +
-                box["h"] * right_space +
-                box["tr"]
+                box["tl"]
+                + box["h"] * left_space
+                + f" {title} "
+                + box["h"] * right_space
+                + box["tr"]
             )
         else:
             top_line = box["tl"] + box["h"] * (width - 2) + box["tr"]
         lines.append(top_line)
-        
+
         # Боковые границы
         for _ in range(height - 2):
             lines.append(box["v"] + " " * (width - 2) + box["v"])
-        
+
         # Нижняя граница
         lines.append(box["bl"] + box["h"] * (width - 2) + box["br"])
-        
+
         return lines
-    
+
     @classmethod
     def draw_horizontal_line(
         cls,
@@ -528,27 +558,27 @@ class BoxDrawing:
     ) -> str:
         """
         Нарисовать горизонтальную линию.
-        
+
         Args:
             width: Ширина линии
             style: Стиль линии
             title: Заголовок линии
-            
+
         Returns:
             Строка с линией
         """
         box = cls.BOX_STYLES.get(style, cls.BOX_STYLES["single"])
-        
+
         if title:
             title_space = width - 4 - len(title)
             left_space = title_space // 2
             right_space = title_space - left_space
             return (
-                box["tl_right"] +
-                box["h"] * left_space +
-                f" {title} " +
-                box["h"] * right_space +
-                box["tr_left"]
+                box["tl_right"]
+                + box["h"] * left_space
+                + f" {title} "
+                + box["h"] * right_space
+                + box["tr_left"]
             )
         else:
             return box["h"] * width
@@ -557,10 +587,10 @@ class BoxDrawing:
 def format_number(num: int) -> str:
     """
     Форматировать число с разделителями тысяч.
-    
+
     Args:
         num: Число для форматирования
-        
+
     Returns:
         Форматированная строка
     """
@@ -570,10 +600,10 @@ def format_number(num: int) -> str:
 def format_time(seconds: float) -> str:
     """
     Форматировать время в читаемый формат.
-    
+
     Args:
         seconds: Время в секундах
-        
+
     Returns:
         Форматированная строка времени
     """
@@ -590,51 +620,51 @@ def format_time(seconds: float) -> str:
 def truncate_text(text: str, max_length: int, suffix: str = "...") -> str:
     """
     Обрезать текст до максимальной длины.
-    
+
     Args:
         text: Текст для обрезки
         max_length: Максимальная длина
         suffix: Суффикс для обрезанного текста
-        
+
     Returns:
         Обрезанный текст
     """
     if len(text) <= max_length:
         return text
-    
-    return text[:max_length - len(suffix)] + suffix
+
+    return text[: max_length - len(suffix)] + suffix
 
 
 def center_text(text: str, width: int) -> str:
     """
     Центрировать текст по ширине.
-    
+
     Args:
         text: Текст для центрирования
         width: Ширина для центрирования
-        
+
     Returns:
         Центрированный текст
     """
     text_width = len(text)
     if text_width >= width:
         return text
-    
+
     padding = width - text_width
     left_padding = padding // 2
     right_padding = padding - left_padding
-    
+
     return " " * left_padding + text + " " * right_padding
 
 
 def create_ascii_art(text: str, style: str = "block") -> list[str]:
     """
     Создать ASCII-арт из текста.
-    
+
     Args:
         text: Текст для преобразования
         style: Стиль ASCII-арта
-        
+
     Returns:
         Список строк с ASCII-артом
     """
@@ -677,15 +707,15 @@ def create_ascii_art(text: str, style: str = "block") -> list[str]:
                 "██████",
             ],
         }
-        
+
         result = [""] * 5
         for char in text.upper():
             if char in letters:
                 char_art = letters[char]
                 for i, line in enumerate(char_art):
                     result[i] += line + " "
-        
+
         return result
-    
+
     # По умолчанию вернуть простой текст
     return [text]

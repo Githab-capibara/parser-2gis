@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import pytermgui as ptg
 
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 class ParsingScreen:
     """
     Современный экран парсинга.
-    
+
     Особенности:
     - Множественные прогресс-бары с разными стилями
     - Статистика в виде карточек
@@ -38,11 +38,11 @@ class ParsingScreen:
     - Анимация спиннера для активных операций
     - ETA (расчётное время завершения)
     """
-    
+
     def __init__(self, app: TUIApp) -> None:
         """
         Инициализация экрана парсинга.
-        
+
         Args:
             app: Главное приложение TUI
         """
@@ -55,7 +55,7 @@ class ParsingScreen:
             show_icons=True,
             truncate_length=100,
         )
-        
+
         # Прогресс-бары с разными стилями
         self._url_progress = ProgressBar(
             label=f"{UnicodeIcons.EMOJI_FOLDER} URL",
@@ -66,7 +66,7 @@ class ParsingScreen:
             show_spinner=True,
             spinner_type="dots",
         )
-        
+
         self._page_progress = ProgressBar(
             label=f"{UnicodeIcons.EMOJI_FILE} Страницы",
             total=100,
@@ -75,7 +75,7 @@ class ParsingScreen:
             color_scheme="ocean",
             show_spinner=False,
         )
-        
+
         self._record_progress = ProgressBar(
             label=f"{UnicodeIcons.EMOJI_DATABASE} Записи",
             total=1000,
@@ -84,7 +84,7 @@ class ParsingScreen:
             color_scheme="fire",
             show_spinner=False,
         )
-        
+
         # Статистика
         self._stats: dict[str, Any] = {
             "current_city": "",
@@ -95,29 +95,32 @@ class ParsingScreen:
             "elapsed": "00:00:00",
             "eta": "N/A",
         }
-        
+
         # Таймер обновления
         self._start_time: datetime | None = None
         self._last_update = datetime.now()
-        
+
         # Кнопки управления
         self._button_pause: list | None = None
         self._button_stop: list | None = None
         self._button_minimize: list | None = None
-        
+
         self._paused = False
-        
+
         # Флаги для обновления UI
         self._window: ptg.Window | None = None
         self._stats_container: ptg.Container | None = None
-        
+
         # Спиннер для активных операций
         self._spinner_active = False
-    
+
+        # Monitor для автоматического обновления
+        self._monitor: Optional[ptg.Monitor] = None
+
     def _create_stats_cards(self) -> ptg.Container:
         """
         Создать карточки статистики.
-        
+
         Returns:
             Container с карточками статистики
         """
@@ -129,7 +132,7 @@ class ParsingScreen:
         speed = self._stats["speed"]
         elapsed = self._stats["elapsed"]
         eta = self._stats["eta"]
-        
+
         # Создать строки статистики с иконками
         stats_lines = [
             f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Город:[/] [white]{city}[/]",
@@ -142,7 +145,7 @@ class ParsingScreen:
             f"[bold #00BFFF]{UnicodeIcons.EMOJI_TIME} Время:[/] [cyan]{elapsed}[/]",
             f"[bold #9400D3]{UnicodeIcons.EMOJI_TARGET} ETA:[/] [magenta]{eta}[/]",
         ]
-        
+
         labels = [ptg.Label(ptg.tim.parse(line)) for line in stats_lines]
 
         return ptg.Window(
@@ -150,22 +153,22 @@ class ParsingScreen:
             box="ROUNDED",
             title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Статистика[/]"),
         )
-    
+
     def _create_control_buttons(self) -> ptg.Container:
         """
         Создать кнопки управления.
-        
+
         Returns:
             Container с кнопками
         """
         # Кнопки с иконками
         pause_icon = UnicodeIcons.EMOJI_PAUSE if not self._paused else UnicodeIcons.EMOJI_PLAY
         pause_text = "Пауза" if not self._paused else "Продолжить"
-        
+
         self._button_pause = [f"{pause_icon} {pause_text}", self._toggle_pause]
         self._button_stop = [f"{UnicodeIcons.EMOJI_STOP} Стоп", self._stop_parsing]
         self._button_minimize = [f"{UnicodeIcons.EMOJI_FOLDER} Свернуть", self._minimize]
-        
+
         return ptg.Container(
             ptg.Label(ptg.tim.parse("[dim]Управление:[/]")),
             ptg.Container(
@@ -176,11 +179,11 @@ class ParsingScreen:
             ),
             box="EMPTY",
         )
-    
+
     def create_window(self) -> ptg.Window:
         """
         Создать окно экрана парсинга.
-        
+
         Returns:
             Окно pytermgui
         """
@@ -190,7 +193,7 @@ class ParsingScreen:
             ptg.tim.parse(header_text),
             justify="center",
         )
-        
+
         # Прогресс-бары
         progress_container = ptg.Window(
             ptg.Label(ptg.tim.parse("[bold]Прогресс выполнения:[/]")),
@@ -200,23 +203,23 @@ class ParsingScreen:
             box="ROUNDED",
             title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_START} Прогресс[/]"),
         )
-        
+
         # Статистика
         stats_container = self._create_stats_cards()
-        
+
         # Логи
         log_container = ptg.Window(
             ptg.Label(ptg.tim.parse("[bold]Логи в реальном времени:[/]")),
             box="ROUNDED",
             title=ptg.tim.parse(f"[bold #FFD700]{UnicodeIcons.EMOJI_FILE} Логи[/]"),
         )
-        
+
         # Добавить начальный лог
         self._log_viewer.add_log("Запуск парсинга...", "INFO")
-        
+
         # Кнопки управления
         control_container = self._create_control_buttons()
-        
+
         # Создать основное окно
         self._window = ptg.Window(
             "",
@@ -241,22 +244,24 @@ class ParsingScreen:
             ),
             width=95,
             box="DOUBLE",
-            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_ROCKET} Parser2GIS - Парсинг[/]"),
+            title=ptg.tim.parse(
+                f"[bold #00FF88]{UnicodeIcons.EMOJI_ROCKET} Parser2GIS - Парсинг[/]"
+            ),
         )
-        
+
         # Запустить обновление
         self._start_time = datetime.now()
         self._start_auto_update()
-        
+
         return self._window.center()
-    
+
     def _start_auto_update(self) -> None:
         """Запустить автоматическое обновление отображения."""
         # Используем Monitor из pytermgui для периодического обновления
-        if hasattr(ptg, 'Monitor'):
-            monitor = ptg.Monitor().start()
-            monitor.attach(self._update_display, period=0.5)
-    
+        if hasattr(ptg, "Monitor"):
+            self._monitor = ptg.Monitor().start()
+            self._monitor.attach(self._update_display, period=0.5)
+
     def update_progress(
         self,
         url_completed: int = 0,
@@ -268,7 +273,7 @@ class ParsingScreen:
     ) -> None:
         """
         Обновить прогресс.
-        
+
         Args:
             url_completed: Количество завершённых URL
             url_total: Общее количество URL
@@ -281,24 +286,24 @@ class ParsingScreen:
             self._url_progress.set_total(url_total)
         if url_completed > 0:
             self._url_progress.advance(url_completed)
-        
+
         if page_total is not None:
             self._page_progress.set_total(page_total)
         if page_completed > 0:
             self._page_progress.advance(page_completed)
-        
+
         if record_total is not None:
             self._record_progress.set_total(record_total)
         if record_completed > 0:
             self._record_progress.advance(record_completed)
-        
+
         # Обновить UI
         self._update_progress_labels()
-    
+
     def add_log(self, message: str, level: str = "INFO") -> None:
         """
         Добавить лог.
-        
+
         Args:
             message: Сообщение лога
             level: Уровень лога
@@ -306,7 +311,7 @@ class ParsingScreen:
         self._log_viewer.add_log(message, level)  # type: ignore
         # Обновить UI
         self._update_log_display()
-    
+
     def update_stats(
         self,
         current_city: str | None = None,
@@ -316,7 +321,7 @@ class ParsingScreen:
     ) -> None:
         """
         Обновить статистику.
-        
+
         Args:
             current_city: Текущий город
             current_category: Текущая категория
@@ -331,75 +336,88 @@ class ParsingScreen:
             self._stats["success_count"] = success_count
         if error_count is not None:
             self._stats["error_count"] = error_count
-    
+
     def _update_stats_display(self) -> None:
         """Обновить отображение статистики."""
         # Вычислить прошедшее время
         if self._start_time:
             delta = datetime.now() - self._start_time
             self._stats["elapsed"] = str(delta).split(".")[0]
-            
+
             # Вычислить скорость
             if self._stats["success_count"] > 0:
                 elapsed_seconds = delta.total_seconds()
                 if elapsed_seconds > 0:
                     records_per_sec = self._stats["success_count"] / elapsed_seconds
                     self._stats["speed"] = f"{records_per_sec:.1f} записей/сек"
-        
+
         # Вычислить ETA
         total_records = self._record_progress.total
         current_record = self._record_progress.completed
-        
+
         if current_record > 0 and total_records > 0:
-            elapsed_seconds = (datetime.now() - self._start_time).total_seconds() if self._start_time else 1
+            elapsed_seconds = (
+                (datetime.now() - self._start_time).total_seconds() if self._start_time else 1
+            )
             records_per_sec = current_record / elapsed_seconds if elapsed_seconds > 0 else 1
             remaining = total_records - current_record
             eta_seconds = remaining / records_per_sec if records_per_sec > 0 else 0
-            
+
             self._stats["eta"] = format_time(eta_seconds)
-    
+
     def _update_progress_labels(self) -> None:
         """Обновить отображение прогресс-баров."""
         if self._window:
             # Прогресс-бары обновляются автоматически через render()
             pass
-    
+
     def _update_log_display(self) -> None:
         """Обновить отображение логов."""
         # Логи обновляются автоматически
         pass
-    
+
     def _update_display(self) -> None:
         """Обновить отображение."""
         self._update_stats_display()
         self._update_progress_labels()
         self._update_log_display()
-    
+
     def _toggle_pause(self, *args) -> None:
         """Переключить паузу."""
         self._paused = not self._paused
-        
+
         if self._paused:
             self._button_pause[0] = f"{UnicodeIcons.EMOJI_PLAY} Продолжить"  # type: ignore
             self.add_log("Парсинг приостановлен", "WARNING")
         else:
             self._button_pause[0] = f"{UnicodeIcons.EMOJI_PAUSE} Пауза"  # type: ignore
             self.add_log("Парсинг продолжен", "INFO")
-    
+
     def _stop_parsing(self, *args) -> None:
         """Остановить парсинг."""
         self.add_log("Остановка парсинга пользователем...", "WARNING")
+
+        # Остановить Monitor если запущен
+        if self._monitor is not None:
+            try:
+                self._monitor.detach(self._update_display)
+                self._monitor.stop()
+            except Exception:
+                pass
+            finally:
+                self._monitor = None
+
         self._app._stop_parsing(success=False)
         self._app.go_back()
-    
+
     def _minimize(self, *args) -> None:
         """Свернуть окно."""
         self.add_log("Функция сворачивания в разработке", "INFO")
-    
+
     def _start_parsing(self) -> None:
         """Запустить парсинг."""
         self._start_time = datetime.now()
         self._app._start_parsing()
-        
+
         # TODO: Интеграция с ParallelParser
         # Здесь будет запуск реального парсера
