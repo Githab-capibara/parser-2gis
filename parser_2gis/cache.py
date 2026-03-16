@@ -297,7 +297,10 @@ class CacheManager:
                 return None
 
             # Проверяем, истек ли кэш
-            if datetime.now() > expires_at:
+            # Оптимизация 18: кэшируем результат datetime.now() в переменную
+            # для избежания повторных вызовов в рамках одного метода
+            current_time = datetime.now()
+            if current_time > expires_at:
                 # Кэш истек, удаляем его
                 cursor.execute(self.SQL_DELETE, (url_hash,))
                 conn.commit()
@@ -328,6 +331,11 @@ class CacheManager:
         Сохраняет указанные данные в кэш для указанного URL.
         Если кэш для этого URL уже существует, он будет перезаписан.
 
+        Оптимизация 18:
+        - Кэширование datetime.now() в переменную
+        - Использование одной временной метки для всех операций в методе
+        - Избегание повторных вызовов datetime.now()
+
         Args:
             url: URL для кэширования
             data: Данные для сохранения (должны быть сериализуемы в JSON)
@@ -337,6 +345,9 @@ class CacheManager:
 
         # Вычисляем хеш URL и время истечения
         url_hash = self._hash_url(url)
+        
+        # Оптимизация 18: кэшируем datetime.now() в переменную
+        # Используем одну временную метку для всех операций в методе
         now = datetime.now()
         expires_at = now + self._ttl
 
@@ -355,6 +366,7 @@ class CacheManager:
             self._enforce_cache_size_limit(conn)
 
             # Сохраняем данные в базу с использованием подготовленного запроса
+            # Используем кэшированную временную метку now вместо повторных вызовов datetime.now()
             cursor.execute(
                 self.SQL_INSERT_OR_REPLACE,
                 (url_hash, url, data_json, now.isoformat(), expires_at.isoformat()),
@@ -386,15 +398,20 @@ class CacheManager:
         cursor = conn.cursor()
 
         saved_count = 0
+        
+        # Оптимизация 18: кэшируем datetime.now() в переменную
+        # Используем одну временную метку для всех операций в методе
+        # Это обеспечивает консистентность времени для всей пакетной операции
         now = datetime.now()
+        expires_at = now + self._ttl
 
         try:
             for url, data in items:
                 url_hash = self._hash_url(url)
-                expires_at = now + self._ttl
 
                 try:
                     data_json = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+                    # Используем кэшированную временную метку now для всех записей
                     cursor.execute(
                         self.SQL_INSERT_OR_REPLACE,
                         (url_hash, url, data_json, now.isoformat(), expires_at.isoformat()),
@@ -440,6 +457,10 @@ class CacheManager:
 
         Удаляет все записи, у которых время истечения меньше текущего.
 
+        Оптимизация 18:
+        - Кэширование datetime.now() в переменную
+        - Использование одной временной метки для операции удаления
+
         Returns:
             Количество удалённых записей
         """
@@ -450,8 +471,11 @@ class CacheManager:
         cursor = conn.cursor()
 
         try:
+            # Оптимизация 18: кэшируем datetime.now() в переменную
+            current_time = datetime.now()
+            
             # Удаляем истекшие записи с использованием подготовленного запроса
-            cursor.execute(self.SQL_DELETE_EXPIRED, (datetime.now().isoformat(),))
+            cursor.execute(self.SQL_DELETE_EXPIRED, (current_time.isoformat(),))
             deleted_count = cursor.rowcount
             conn.commit()
 

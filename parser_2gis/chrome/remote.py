@@ -44,9 +44,101 @@ _DANGEROUS_JS_PATTERNS = [
 ]
 
 # Кэш для проверки доступности портов
-# Оптимизация: снижение количества повторных проверок одного порта
-_port_cache: Dict[int, Tuple[bool, float]] = {}
-_PORT_CACHE_TTL = 2.0  # Время жизни кэша порта в секундах
+# Оптимизация 20: используем lru_cache для автоматического управления кэшем
+# вместо ручного словаря для более эффективного кэширования
+_PORT_CACHE_TTL = 2.0  # Время жизни кэша порта в секундах (для обратной совместимости)
+
+
+@lru_cache(maxsize=16)
+def _check_port_cached(port: int) -> bool:
+    """Проверяет доступность порта с кэшированием через lru_cache.
+
+    Оптимизация 20:
+    - Использует lru_cache(maxsize=16) для автоматического кэширования
+    - Кэширует результат проверки порта
+    - Уменьшенный timeout для кэшированных проверок (0.5 сек)
+    - Автоматическое управление размером кэша через LRU
+
+    Args:
+        port: Номер порта для проверки.
+
+    Returns:
+        True если порт доступен для подключения, False иначе.
+
+    Пример:
+        >>> _check_port_cached(9222)
+        True
+    """
+    # Внутренняя функция без кэширования для фактической проверки
+    return _check_port_available_internal(port, timeout=0.5, retries=1)
+
+
+def _check_port_available_internal(port: int, timeout: float = 0.5, retries: int = 2) -> bool:
+    """Внутренняя функция проверки порта без кэширования.
+
+    Args:
+        port: Номер порта для проверки.
+        timeout: Таймаут проверки в секундах.
+        retries: Количество повторных проверок.
+
+    Returns:
+        True если порт доступен, False иначе.
+    """
+    # Проверка порта с переиспользованием socket
+    result = True  # По умолчанию порт свободен
+
+    for attempt in range(retries):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        try:
+            connect_result = sock.connect_ex(("127.0.0.1", port))
+            # Если порт занят (result == 0), возвращаем False немедленно
+            if connect_result == 0:
+                result = False
+                break
+            # Небольшая задержка между проверками
+            if attempt < retries - 1:
+                time.sleep(0.1)
+        except Exception as e:
+            logger.debug("Ошибка при проверке порта %d: %s", port, e)
+            result = False
+            break
+        finally:
+            sock.close()
+
+    return result
+
+
+def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> bool:
+    """Проверяет доступность порта для подключения.
+
+    Оптимизация 20:
+    - Использует lru_cache для кэширования результатов проверки
+    - Кэширует результат проверки порта через _check_port_cached
+    - Уменьшает timeout для кэшированных проверок до 0.5 сек
+    - Автоматическое управление размером кэша (maxsize=16)
+
+    Args:
+        port: Номер порта для проверки.
+        timeout: Таймаут проверки в секундах (не используется для кэшированных проверок).
+        retries: Количество повторных проверок (не используется для кэшированных проверок).
+
+    Returns:
+        True если порт доступен для подключения, False иначе.
+    """
+    # Оптимизация 20: используем lru_cache для кэширования
+    # Игнорируем timeout и retries для кэшированных проверок
+    return _check_port_cached(port)
+
+
+def _clear_port_cache() -> None:
+    """Очищает кэш проверки портов.
+
+    Оптимизация 20:
+    - Использует lru_cache.cache_clear() для очистки
+    - Полезно при изменении состояния портов
+    """
+    _check_port_cached.cache_clear()
 
 
 def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[bool, str]:
@@ -168,71 +260,6 @@ def _validate_remote_port(port: Any) -> int:
         raise ValueError(f"remote_port должен быть <= 65535, получен {port}")
 
     return port
-
-
-def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> bool:
-    """Проверяет доступность порта для подключения.
-    
-    Оптимизация:
-    - Кэширование результатов проверки для снижения повторных проверок
-    - Переиспользование socket объекта
-
-    Args:
-        port: Номер порта для проверки.
-        timeout: Таймаут проверки в секундах.
-        retries: Количество повторных проверок для снижения race condition.
-
-    Returns:
-        True если порт доступен для подключения, False иначе.
-    """
-    current_time = time.time()
-    
-    # Проверяем кэш порта
-    if port in _port_cache:
-        cached_result, cached_time = _port_cache[port]
-        if current_time - cached_time < _PORT_CACHE_TTL:
-            return cached_result
-    
-    # Проверка порта с переиспользованием socket
-    result = True  # По умолчанию порт свободен
-    
-    for attempt in range(retries):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        try:
-            connect_result = sock.connect_ex(("127.0.0.1", port))
-            # Если порт занят (result == 0), возвращаем False немедленно
-            if connect_result == 0:
-                result = False
-                break
-            # Небольшая задержка между проверками
-            if attempt < retries - 1:
-                time.sleep(0.1)
-        except Exception as e:
-            logger.debug("Ошибка при проверке порта %d: %s", port, e)
-            result = False
-            break
-        finally:
-            sock.close()
-    
-    # Кэшируем результат
-    _port_cache[port] = (result, current_time)
-    
-    # Очищаем старые записи кэша
-    _cleanup_port_cache()
-    
-    return result
-
-
-def _cleanup_port_cache() -> None:
-    """Очищает старые записи из кэша портов."""
-    current_time = time.time()
-    expired_ports = [
-        port for port, (_, cached_time) in _port_cache.items()
-        if current_time - cached_time > _PORT_CACHE_TTL * 2
-    ]
-    for port in expired_ports:
-        del _port_cache[port]
 
 
 # Применяем все пользовательские патчи

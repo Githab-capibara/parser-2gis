@@ -418,10 +418,10 @@ class ParallelCityParser:
         # Создаём временный файл для результата объединения
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
 
-        # Оптимизация: используем увеличенную буферизацию для улучшения производительности
+        # Оптимизация 19: используем увеличенную буферизацию и пакетную обработку
         output_encoding = self.config.writer.encoding
         buffer_size = 131072  # 128KB буфер для чтения/записи
-        batch_size = 500  # Увеличенный размер пакета для записи
+        batch_size = 500  # Размер пакета для записи (Оптимизация 19: 500 строк)
 
         try:
             # Открываем с увеличенной буферизацией для улучшения производительности
@@ -487,24 +487,39 @@ class ParallelCityParser:
                             writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                             writer.writeheader()
 
-                        # Оптимизация: пакетная запись строк с увеличенным размером пакета
+                        # Оптимизация 19: пакетная обработка строк (по 500 строк)
+                        # Уменьшаем количество операций записи через буферизацию
                         batch = []
+                        batch_total = 0
 
                         for row in reader:
-                            # Оптимизация: создаём новую строку сразу с категорией
-                            row["Категория"] = category_name
-                            batch.append(row)
+                            # Оптимизация 19: создаём новую строку сразу с категорией
+                            # Избегаем мутации исходного словаря, создаём копию
+                            row_with_category = {
+                                "Категория": category_name,
+                                **row
+                            }
+                            batch.append(row_with_category)
 
                             # Записываем пакет при достижении размера
                             if len(batch) >= batch_size:
                                 writer.writerows(batch)
-                                total_rows += len(batch)
+                                batch_total += len(batch)
                                 batch.clear()
 
-                        # Записываем оставшиеся строки
+                        # Записываем оставшиеся строки (неполный пакет)
                         if batch:
                             writer.writerows(batch)
-                            total_rows += len(batch)
+                            batch_total += len(batch)
+
+                        total_rows += batch_total
+                        self.log(
+                            "Файл %s обработан (строк: %d, пакетов: %d)",
+                            csv_file.name,
+                            batch_total,
+                            (batch_total // batch_size) + (1 if batch_total % batch_size else 0),
+                            level="debug"
+                        )
 
                     # Добавляем файл в список на удаление
                     files_to_delete.append(csv_file)
