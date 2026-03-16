@@ -319,8 +319,6 @@ class SpinnerAnimation:
         Yields:
             Строка с текущим кадром
         """
-        import time
-
         self.running = True
         start_time = time.time() if duration else None
 

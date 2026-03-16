@@ -265,14 +265,19 @@ class TUIApp:
         if not self._manager:
             return
 
-        # Создаём копию списка окон для безопасного удаления
-        windows_to_remove = list(self._manager._windows)
-        for window in windows_to_remove:
-            try:
-                self._manager.remove(window)
-            except Exception:
-                # Игнорируем ошибки удаления
-                pass
+        # Получаем список окон через публичный API и сортируем по ID для стабильности
+        try:
+            # Используем публичный атрибут windows вместо приватного _windows
+            windows_to_remove = list(getattr(self._manager, 'windows', []))
+            for window in sorted(windows_to_remove, key=lambda w: id(w), reverse=True):
+                try:
+                    self._manager.remove(window)
+                except Exception:
+                    # Игнорируем ошибки удаления
+                    pass
+        except AttributeError:
+            # Если атрибут windows недоступен, используем альтернативный метод
+            pass
 
     def go_back(self) -> None:
         """
@@ -283,18 +288,24 @@ class TUIApp:
         if not self._manager or not self._screen_manager:
             return
 
-        previous_screen = self._screen_manager.pop()
+        # Сохраняем текущий экран перед pop() для корректной работы
+        current_screen_before_pop = self._screen_manager.current_instance
+        
+        previous_screen_name = self._screen_manager.pop()
 
-        if previous_screen:
+        if previous_screen_name and self._screen_manager.current_instance:
             # Очистить все окна корректно
             self._clear_all_windows()
 
             # Восстановить предыдущий экран
-            if self._screen_manager.current_instance:
-                window = self._screen_manager.current_instance.create_window()
-                self._manager.add(window)
+            window = self._screen_manager.current_instance.create_window()
+            self._manager.add(window)
+        elif current_screen_before_pop:
+            # Если стек пуст, но есть текущий экран, показать главное меню
+            self._clear_all_windows()
+            self._show_main_menu()
         else:
-            # Если стек пуст, показать главное меню
+            # Полностью пустой стек - показать главное меню
             self._show_main_menu()
 
     def _start_parsing(self) -> None:
@@ -365,13 +376,16 @@ class TUIApp:
             config: Конфигурация
         """
         try:
+            # Использовать max_workers из конфигурации, а не захардкоженное значение
+            max_workers = getattr(config.parser, 'max_workers', 10)
+            
             # Создать парсер
             parser = ParallelCityParser(
                 cities=cities,
                 categories=categories,
                 output_dir="output",
                 config=config,
-                max_workers=10,  # 10 параллельных браузеров
+                max_workers=max_workers,  # Используем значение из конфига
                 timeout_per_url=300,
             )
 
@@ -424,10 +438,12 @@ class TUIApp:
             message: Сообщение лога
             level: Уровень лога
         """
-        if self._screen_manager:
-            screen = self._screen_manager.current_instance
-            if screen and hasattr(screen, "add_log"):
-                screen.add_log(message, level)
+        if not self._screen_manager:
+            return
+            
+        screen = self._screen_manager.current_instance
+        if screen and hasattr(screen, "add_log"):
+            screen.add_log(message, level)
 
     def _stop_parsing(self, success: bool = True) -> None:
         """

@@ -258,9 +258,18 @@ class ParsingScreen:
     def _start_auto_update(self) -> None:
         """Запустить автоматическое обновление отображения."""
         # Используем Monitor из pytermgui для периодического обновления
-        if hasattr(ptg, "Monitor"):
-            self._monitor = ptg.Monitor().start()
-            self._monitor.attach(self._update_display, period=0.5)
+        # Проверяем наличие класса Monitor и обрабатываем ImportError
+        try:
+            if hasattr(ptg, "Monitor"):
+                self._monitor = ptg.Monitor()
+                # Attach с периодом 0.5 секунды (2 раза в секунду)
+                if hasattr(self._monitor, 'attach'):
+                    self._monitor.attach(self._update_display, period=0.5)
+                if hasattr(self._monitor, 'start'):
+                    self._monitor.start()
+        except (ImportError, AttributeError) as e:
+            # Если Monitor недоступен, логируем ошибку и продолжаем работу
+            self.add_log(f"Monitor недоступен: {e}", "WARNING")
 
     def update_progress(
         self,
@@ -367,9 +376,18 @@ class ParsingScreen:
 
     def _update_progress_labels(self) -> None:
         """Обновить отображение прогресс-баров."""
+        # Прогресс-бары обновляются через их метод render()
+        # Принудительно обновляем каждый прогресс-бар
         if self._window:
-            # Прогресс-бары обновляются автоматически через render()
-            pass
+            # Обновляем отображение каждого прогресс-бара
+            for progress_bar in [self._url_progress, self._page_progress, self._record_progress]:
+                if hasattr(progress_bar, 'refresh'):
+                    progress_bar.refresh()
+                # Альтернативно можно вызвать перерисовку через manager
+                if self._app and hasattr(self._app, '_manager'):
+                    manager = getattr(self._app, '_manager', None)
+                    if manager:
+                        manager.force_full_redraw = True
 
     def _update_log_display(self) -> None:
         """Обновить отображение логов."""
@@ -400,14 +418,19 @@ class ParsingScreen:
         # Остановить Monitor если запущен
         if self._monitor is not None:
             try:
-                self._monitor.detach(self._update_display)
-                self._monitor.stop()
+                if hasattr(self._monitor, 'detach'):
+                    self._monitor.detach(self._update_display)
+                if hasattr(self._monitor, 'stop'):
+                    self._monitor.stop()
             except Exception:
                 pass
             finally:
                 self._monitor = None
 
+        # Остановить парсер через приложение
         self._app._stop_parsing(success=False)
+        
+        # Вернуться назад только если парсинг действительно остановлен
         self._app.go_back()
 
     def _minimize(self, *args) -> None:

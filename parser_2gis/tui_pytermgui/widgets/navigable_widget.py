@@ -162,7 +162,7 @@ class NavigableContainer(ptg.Container):
         Args:
             value: Новый индекс фокуса
         """
-        # Снять фокус с текущего виджета
+        # Снять фокус с текущего виджета (только если он существует)
         if 0 <= self._focus_index < len(self._widgets):
             widget = self._widgets[self._focus_index]
             if hasattr(widget, "blur"):
@@ -177,7 +177,7 @@ class NavigableContainer(ptg.Container):
         self._focus_index = value
 
         # Установить фокус на новый виджет
-        # Снимаем фокус со всех виджетов сначала
+        # Снимаем фокус со всех виджетов для гарантии
         for widget in self._widgets:
             if hasattr(widget, "blur"):
                 widget.blur()
@@ -301,7 +301,7 @@ class ButtonWidget(NavigableWidget):
     """
 
     def __init__(
-        self, label: str, onclick: Optional[Callable[[], None]] = None, **kwargs: Any
+        self, label: str, onclick: Callable[[], None] | None = None, **kwargs: Any
     ) -> None:
         """
         Инициализация кнопки.

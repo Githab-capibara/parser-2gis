@@ -66,13 +66,15 @@ class ScreenManager:
         # Удалить текущее окно из WindowManager
         if self._current_instance and hasattr(self._app, "_manager"):
             manager = getattr(self._app, "_manager", None)
-            if manager:
-                try:
-                    window = self._current_instance.create_window()
-                    manager.remove(window)
-                except Exception:
-                    # Игнорируем ошибки удаления
-                    pass
+            if manager and hasattr(self._current_instance, '_window'):
+                # Используем существующее окно вместо создания нового
+                existing_window = getattr(self._current_instance, '_window', None)
+                if existing_window:
+                    try:
+                        manager.remove(existing_window)
+                    except Exception:
+                        # Игнорируем ошибки удаления
+                        pass
 
         self._screen_stack.clear()
         self._current_screen = None

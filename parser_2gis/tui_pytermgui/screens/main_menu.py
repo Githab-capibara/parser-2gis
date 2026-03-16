@@ -232,67 +232,69 @@ class MainMenuScreen:
         )
 
     # Callback методы
-    def _start_parsing(self, *args) -> None:
+    def _start_parsing(self) -> None:
         """Запустить парсинг."""
         self._app._show_parsing_screen()
 
-    def _select_cities(self, *args) -> None:
+    def _select_cities(self) -> None:
         """Открыть экран выбора городов."""
         self._app._show_city_selector()
 
-    def _select_categories(self, *args) -> None:
+    def _select_categories(self) -> None:
         """Открыть экран выбора категорий."""
         self._app._show_category_selector()
 
-    def _browser_settings(self, *args) -> None:
+    def _browser_settings(self) -> None:
         """Открыть настройки браузера."""
         self._app._show_browser_settings()
 
-    def _parser_settings(self, *args) -> None:
+    def _parser_settings(self) -> None:
         """Открыть настройки парсера."""
         self._app._show_parser_settings()
 
-    def _output_settings(self, *args) -> None:
+    def _output_settings(self) -> None:
         """Открыть настройки вывода."""
         self._app._show_output_settings()
 
-    def _view_cache(self, *args) -> None:
+    def _view_cache(self) -> None:
         """Просмотр кэша."""
         self._app._show_cache_viewer()
 
-    def _show_about(self, *args) -> None:
+    def _show_about(self) -> None:
         """Показать информацию о программе."""
         self._app._show_about()
 
-    def _exit(self, *args) -> None:
+    def _exit(self) -> None:
         """Выйти из приложения."""
-        if self._app._manager:
-            # Подтверждение выхода с кнопками
-            confirm_window = ptg.Window(
-                "",
-                ptg.Label(
-                    ptg.tim.parse("[bold yellow]Вы действительно хотите выйти?[/]"),
-                    justify="center",
+        if not self._app._manager:
+            return
+            
+        # Подтверждение выхода с кнопками
+        confirm_window = ptg.Window(
+            "",
+            ptg.Label(
+                ptg.tim.parse("[bold yellow]Вы действительно хотите выйти?[/]"),
+                justify="center",
+            ),
+            "",
+            ptg.Container(
+                ButtonWidget(
+                    "[bold green]✓ Выйти[/]",
+                    onclick=lambda: self._do_exit(),
                 ),
-                "",
-                ptg.Container(
-                    ButtonWidget(
-                        "[bold green]✓ Выйти[/]",
-                        onclick=lambda *_: self._do_exit(),
-                    ),
-                    ButtonWidget(
-                        "[bold red]✗ Отмена[/]",
-                        onclick=lambda *_: self._cancel_exit(confirm_window),
-                    ),
-                    box="EMPTY",
+                ButtonWidget(
+                    "[bold red]✗ Отмена[/]",
+                    onclick=lambda: self._cancel_exit(confirm_window),
                 ),
-                "",
-                width=50,
-                box="ROUNDED",
-                title="[bold red]Подтверждение выхода[/]",
-            )
+                box="EMPTY",
+            ),
+            "",
+            width=50,
+            box="ROUNDED",
+            title="[bold red]Подтверждение выхода[/]",
+        )
 
-            self._app._manager.add(confirm_window)
+        self._app._manager.add(confirm_window)
 
     def _do_exit(self) -> None:
         """Выйти из приложения."""
