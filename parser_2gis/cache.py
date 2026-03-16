@@ -32,10 +32,10 @@ MAX_CONNECTION_AGE = 300  # Максимальный возраст соедин
 
 class _ConnectionPool:
     """
-    Простой пул соединений для SQLite.
+    Пул соединений для SQLite, безопасный для многопоточности.
 
-    Оптимизация: переиспользование соединений вместо создания новых
-    для каждой операции, что снижает накладные расходы на 30-50%.
+    Примечание: SQLite требует, чтобы соединение создавалось в том же потоке,
+    в котором оно используется. Поэтому пул создает новое соединение для каждого потока.
     """
 
     def __init__(self, cache_file: Path, pool_size: int = 5):
@@ -44,44 +44,32 @@ class _ConnectionPool:
 
         Args:
             cache_file: Путь к файлу базы данных.
-            pool_size: Размер пула соединений.
+            pool_size: Размер пула соединений (не используется для thread-local).
         """
         self._cache_file = cache_file
         self._pool_size = pool_size
-        self._connections: List[Tuple[sqlite3.Connection, float]] = []
+        self._local = threading.local()
+        self._all_conns: List[sqlite3.Connection] = []
         self._lock = threading.Lock()
 
     def get_connection(self) -> sqlite3.Connection:
         """
-        Получает соединение из пула или создаёт новое.
+        Получает соединение для текущего потока.
+
+        SQLite требует создания соединения в том же потоке, где оно будет использоваться.
+        Метод использует thread-local хранилище для каждого потока.
 
         Returns:
-            SQLite соединение.
+            SQLite соединение для текущего потока.
         """
-        current_time = time.time()
-
-        with self._lock:
-            # Ищем доступное соединение
-            for i, (conn, last_used) in enumerate(self._connections):
-                # Проверяем возраст соединения
-                if current_time - last_used > MAX_CONNECTION_AGE:
-                    # Соединение устарело, закрываем и создаём новое
-                    try:
-                        conn.close()
-                    except Exception:
-                        pass
-                    conn = self._create_connection()
-                    self._connections[i] = (conn, current_time)
-                    return conn
-                else:
-                    # Возвращаем соединение и обновляем время использования
-                    self._connections[i] = (conn, current_time)
-                    return conn
-
-            # Нет доступных соединений, создаём новое
-            conn = self._create_connection()
-            self._connections.append((conn, current_time))
-            return conn
+        # Проверяем, есть ли соединение для текущего потока
+        if not hasattr(self._local, 'connection') or self._local.connection is None:
+            # Создаём новое соединение для этого потока
+            self._local.connection = self._create_connection()
+            with self._lock:
+                self._all_conns.append(self._local.connection)
+        
+        return self._local.connection
 
     def _create_connection(self) -> sqlite3.Connection:
         """
@@ -113,12 +101,12 @@ class _ConnectionPool:
     def close_all(self) -> None:
         """Закрывает все соединения в пуле."""
         with self._lock:
-            for conn, _ in self._connections:
+            for conn in self._all_conns:
                 try:
                     conn.close()
                 except Exception:
                     pass
-            self._connections.clear()
+            self._all_conns.clear()
 
 
 class CacheManager:
@@ -245,15 +233,8 @@ class CacheManager:
             # Создаем индекс для быстрого поиска истекших записей
             conn.execute(self.SQL_CREATE_INDEX)
 
-            # Подготавливаем запросы для оптимизации
-            self._prepared_stmts = {
-                "select": conn.cursor().prepare(self.SQL_SELECT),
-                "insert": conn.cursor().prepare(self.SQL_INSERT_OR_REPLACE),
-                "delete": conn.cursor().prepare(self.SQL_DELETE),
-                "delete_expired": conn.cursor().prepare(self.SQL_DELETE_EXPIRED),
-                "count_all": conn.cursor().prepare(self.SQL_COUNT_ALL),
-                "count_expired": conn.cursor().prepare(self.SQL_COUNT_EXPIRED),
-            }
+            # Примечание: SQLite3 в Python не поддерживает prepare() для курсоров,
+            # поэтому используем прямое выполнение с параметрами для защиты от SQL injection
         except Exception as e:
             logger.warning("Ошибка при инициализации кэша: %s", e)
             raise

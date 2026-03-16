@@ -44,7 +44,7 @@ class TestVersion:
 
     def test_version_current(self):
         """Проверка текущей версии."""
-        assert version == '2.1.4'
+        assert version == '2.1.5'
 
 
 class TestConfigVersion:
