@@ -156,7 +156,7 @@ else
 
     # Запуск с переданными аргументами
     python "$SCRIPT_DIR/parser-2gis.py" "$@" \
-        2>&1 | grep -v -E "(PySimpleGUI|pip uninstall|pip cache|pip install.*--extra-index-url|PySimpleGUI\.net|The version you just installed|Then install the latest|You can also force|Use python3 command|if you're running on the Mac)"
+        2>&1 | grep -v -E "(PySimpleGUI|pip uninstall|pip cache|pip install.*--extra-index-url|PySimpleGUI\.net|The version you just installed|Then install the latest|You can also force|Use python3 command)"
 
     EXIT_CODE=$?
 

@@ -2,14 +2,11 @@
 Тесты для модуля common.py.
 
 Проверяют следующие функции:
-- running_linux()
 - wait_until_finished()
 - report_from_validation_error()
 - unwrap_dot_dict()
 - floor_to_hundreds()
 """
-
-import sys
 
 import pytest
 from pydantic import BaseModel, ValidationError
@@ -17,24 +14,6 @@ from pydantic import BaseModel, ValidationError
 from parser_2gis.common import (floor_to_hundreds, report_from_validation_error,
                                 unwrap_dot_dict, wait_until_finished)
 
-
-class TestRunningPlatform:
-    """Тесты для функций определения платформы."""
-
-    def test_running_linux_returns_bool(self):
-        """Проверка, что running_linux возвращает bool."""
-        from parser_2gis.common import running_linux
-        result = running_linux()
-        assert isinstance(result, bool)
-
-    def test_running_linux_on_ubuntu(self):
-        """Проверка, что running_linux возвращает True на Linux Ubuntu."""
-        from parser_2gis.common import running_linux
-        # Приложение поддерживает только Linux Ubuntu
-        result = running_linux()
-        # На Linux Ubuntu должно быть True
-        if sys.platform.startswith('linux'):
-            assert result is True
 
 
 class TestFloorToHundreds:

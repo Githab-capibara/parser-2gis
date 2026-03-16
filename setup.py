@@ -40,23 +40,14 @@ class BuildStandaloneCommand(Command):
             # Имя файла дистрибутива
             dist_filename = 'Parser2GIS'
 
-            # Команда сборки
+            # Команда сборки (только для Linux)
             build_cmd = [
                 'pyinstaller',
                 '--clean',
                 '--onefile',
                 '--windowed',
                 '-n', dist_filename,
-            ]
-
-            # Иконка
-            if sys.platform.startswith('linux'):
-                build_cmd += [
-                    '--icon', 'parser_2gis/data/images/icon.png',
-                ]
-
-            # Добавление данных
-            build_cmd += [
+                '--icon', 'parser_2gis/data/images/icon.png',
                 '--add-data', f'parser_2gis/data{os.pathsep}parser_2gis/data',
                 'parser-2gis.py',
             ]

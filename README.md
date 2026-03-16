@@ -66,8 +66,7 @@ Parser2GIS — Python-приложение для автоматизирован
 
 ### Поддерживаемые ОС
 
-- ✅ **Linux Ubuntu** — основная поддерживаемая ОС
-- ⚠️ **Windows/macOS** — ограниченная поддержка (требуется дополнительная настройка)
+- ✅ **Linux Ubuntu** — единственная поддерживаемая ОС
 
 ### Производительность и оптимизации
 
@@ -149,9 +148,7 @@ cd parser-2gis
 
 # Создание виртуального окружения
 python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
-# или
-venv\Scripts\activate  # Windows
+source venv/bin/activate
 
 # Установка зависимостей
 pip install -e .[dev]
@@ -499,9 +496,6 @@ parser-2gis --tui-new-omsk
 
 # Запуск старого TUI (Rich) — устарел, будет удалён
 parser-2gis
-
-# Windows
-python.exe -m parser_2gis
 ```
 
 ---
@@ -1723,7 +1717,7 @@ cd parser-2gis
 
 # Создание виртуального окружения
 python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
+source venv/bin/activate
 
 # Установка зависимостей
 pip install -e .[dev]
@@ -1742,26 +1736,13 @@ pre-commit install
 
 2. **Установите переменную окружения:**
 
-   **Linux/macOS:**
    ```bash
    export GITHUB_TOKEN="ghp_..."
    ```
 
-   **Windows (cmd):**
-   ```cmd
-   set GITHUB_TOKEN=ghp_...
-   ```
-
-   **Windows (PowerShell):**
-   ```powershell
-   $env:GITHUB_TOKEN="ghp_..."
-   ```
-
 3. **Проверка установки:**
    ```bash
-   echo $GITHUB_TOKEN  # Linux/macOS
-   echo %GITHUB_TOKEN%  # Windows cmd
-   echo $env:GITHUB_TOKEN  # Windows PowerShell
+   echo $GITHUB_TOKEN
    ```
 
 > ⚠️ **Важно:** Никогда не коммитьте токен в репозиторий! Используйте файл `.env` (добавлен в `.gitignore`) или копируйте команду `export` в `.bashrc`/`.zshrc`.

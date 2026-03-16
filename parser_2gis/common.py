@@ -28,7 +28,6 @@ if TYPE_CHECKING:
 
 # Экспортируемые символы модуля
 __all__ = [
-    'running_linux',
     'wait_until_finished',
     'report_from_validation_error',
     'unwrap_dot_dict',
@@ -172,16 +171,6 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[we
     return value
 
 
-def running_linux() -> bool:
-    """Определяет, работает ли приложение на Linux.
-
-    Returns:
-        True если приложение работает на Linux (любой дистрибутив), False иначе.
-
-    Примечание:
-        Приложение разработано в первую очередь для Linux окружений.
-    """
-    return sys.platform.startswith("linux")
 
 
 def _default_predicate(value: Any) -> bool:

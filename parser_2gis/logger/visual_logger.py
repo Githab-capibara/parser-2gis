@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import sys
 import traceback
 from datetime import datetime
@@ -122,7 +121,7 @@ class VisualLogger:
         # Автоматически определяем поддержку цветов
         if use_colors is None:
             # Проверяем, является ли stdout терминалом
-            self.use_colors = sys.stdout.isatty() and os.name != "nt"
+            self.use_colors = sys.stdout.isatty()
         else:
             self.use_colors = use_colors
 
