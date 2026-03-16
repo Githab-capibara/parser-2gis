@@ -15,7 +15,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, TypedDict
 from urllib.parse import urlparse
 
 import pydantic
@@ -27,6 +27,50 @@ from .logger import logger, log_parser_start, log_parser_finish, setup_cli_logge
 from .paths import data_path
 from .pydantic_compat import get_model_dump
 from .version import version
+
+# =============================================================================
+# TYPE ALIASES И TYPEDDICT ДЛЯ УЛУЧШЕНИЯ ЧИТАЕМОСТИ
+# =============================================================================
+
+# Словарь города с обязательными ключами
+class CityDict(TypedDict):
+    """Словарь города для парсинга.
+    
+    Attributes:
+        name: Название города (например, "Москва").
+        url: URL для парсинга (например, "https://2gis.ru/moscow").
+    """
+    name: str
+    url: str
+
+
+# Словарь категории с обязательными ключами
+class CategoryDict(TypedDict):
+    """Словарь категории для парсинга.
+    
+    Attributes:
+        id: Идентификатор категории (например, 93).
+        name: Название категории (например, "Рестораны").
+    """
+    id: int
+    name: str
+
+
+# Type alias для списка городов
+CitiesList = list[CityDict]
+
+
+# Type alias для списка категорий
+CategoriesList = list[CategoryDict]
+
+
+# Type alias для результата валидации URL
+UrlValidationResult = tuple[bool, str | None]
+
+
+# Type alias для функции обработчика сигнала
+SignalHandler = Callable[[int, Any], None]
+
 
 # Импорты с обработкой отсутствия зависимостей
 try:
@@ -44,7 +88,7 @@ except ImportError as e:
     logger.warning("Функция --tui-new-omsk будет недоступна")
 
 
-def _validate_url(url: str) -> tuple[bool, str | None]:
+def _validate_url(url: str) -> UrlValidationResult:
     """Валидирует URL на корректность формата и безопасность.
 
     Args:

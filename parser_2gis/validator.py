@@ -3,6 +3,18 @@
 
 Предоставляет функциональность для проверки и очистки данных
 перед записью в файлы для повышения качества выходных данных.
+
+Пример использования модуля:
+    >>> from .validator import DataValidator, ValidationResult
+    >>> validator = DataValidator()
+    >>> # Валидация телефона
+    >>> result = validator.validate_phone('+7 (999) 123-45-67')
+    >>> print(result.value)
+    '8 (999) 123-45-67'
+    >>> # Валидация email
+    >>> email_result = validator.validate_email('test@example.com')
+    >>> print(email_result.is_valid)
+    True
 """
 
 from __future__ import annotations
@@ -21,9 +33,26 @@ class ValidationResult:
     валидированное значение и список ошибок (если есть).
 
     Attributes:
-        is_valid: Флаг, указывающий на успешность валидации
-        value: Валидированное значение (или None при ошибке)
-        errors: Список ошибок валидации (пустой при успехе)
+        is_valid: Флаг, указывающий на успешность валидации.
+                  True если валидация прошла успешно, False если есть ошибки.
+        value: Валидированное значение (или None при ошибке).
+               Содержит очищенное/нормализованное значение.
+        errors: Список ошибок валидации (пустой при успехе).
+                Каждый элемент - строка с описанием ошибки.
+
+    Пример использования:
+        >>> result = ValidationResult(
+        ...     is_valid=True,
+        ...     value='+7 (999) 123-45-67',
+        ...     errors=[]
+        ... )
+        >>> if result.is_valid:
+        ...     print(f"Валидация успешна: {result.value}")
+        'Валидация успешна: +7 (999) 123-45-67'
+        >>> # Проверка ошибок
+        >>> invalid_result = ValidationResult(is_valid=False, value=None, errors=["Неверный формат"])
+        >>> print(invalid_result.errors[0])
+        'Неверный формат'
     """
 
     is_valid: bool
@@ -38,11 +67,26 @@ class DataValidator:
     различных типов данных (телефоны, email, URL, текст).
     Используется для повышения качества данных перед записью в файлы.
 
+    Поддерживаемые типы валидации:
+        - validate_phone: Валидация и нормализация телефонных номеров
+        - validate_email: Валидация email-адресов
+        - validate_url: Валидация URL
+        - validate_text: Валидация и очистка текста
+
     Пример использования:
         >>> validator = DataValidator()
+        >>> # Валидация телефона
         >>> result = validator.validate_phone('+7 (999) 123-45-67')
         >>> if result.is_valid:
         ...     print(result.value)  # '8 (999) 123-45-67'
+        >>> # Валидация email
+        >>> email_result = validator.validate_email('test@example.com')
+        >>> print(email_result.is_valid)
+        True
+        >>> # Валидация URL
+        >>> url_result = validator.validate_url('https://example.com')
+        >>> print(url_result.is_valid)
+        True
     """
 
     # Константы для валидации телефонных номеров

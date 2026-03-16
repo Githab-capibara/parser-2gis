@@ -9,6 +9,15 @@
 - WAL режим для лучшей производительности при конкурентном доступе
 - Пакетные операции для массовой вставки/удаления
 - Компилированные SQL запросы для снижения парсинга
+
+Пример использования:
+    >>> from pathlib import Path
+    >>> from .cache import CacheManager
+    >>> cache = CacheManager(Path("cache.db"))
+    >>> cache.initialize()  # Инициализация БД
+    >>> cache.get("some_key")  # Получение из кэша
+    >>> cache.set("key", {"data": "value"})  # Сохранение в кэш
+    >>> cache.close()  # Закрытие соединения
 """
 
 import hashlib
@@ -25,15 +34,27 @@ from .logger import logger
 # Экспортируемые символы модуля
 __all__ = ["CacheManager"]
 
-# Константы для оптимизации
-DEFAULT_BATCH_SIZE = 100  # Размер пакета для пакетных операций
-MAX_CONNECTION_AGE = 300  # Максимальный возраст соединения в секундах (5 минут)
+# =============================================================================
+# КОНСТАНТЫ ДЛЯ ОПТИМИЗАЦИИ И БЕЗОПАСНОСТИ
+# =============================================================================
 
-# Константы безопасности и ограничения
-MAX_BATCH_SIZE = 1000  # Максимальный размер пакета для предотвращения DoS
-MAX_CACHE_SIZE_MB = 500  # Максимальный размер кэша в мегабайтах
-LRU_EVICT_BATCH = 100  # Количество записей для удаления при LRU eviction
-SHA256_HASH_LENGTH = 64  # Длина SHA256 хеша в hex формате
+# Размер пакета для пакетных операций вставки/удаления
+DEFAULT_BATCH_SIZE: int = 100
+
+# Максимальный возраст соединения в секундах (5 минут)
+MAX_CONNECTION_AGE: int = 300
+
+# Максимальный размер пакета для предотвращения DoS атак
+MAX_BATCH_SIZE: int = 1000
+
+# Максимальный размер кэша в мегабайтах
+MAX_CACHE_SIZE_MB: int = 500
+
+# Количество записей для удаления при LRU eviction
+LRU_EVICT_BATCH: int = 100
+
+# Длина SHA256 хеша в hex формате
+SHA256_HASH_LENGTH: int = 64
 
 
 class _ConnectionPool:
@@ -42,15 +63,40 @@ class _ConnectionPool:
 
     Примечание: SQLite требует, чтобы соединение создавалось в том же потоке,
     в котором оно используется. Поэтому пул создает новое соединение для каждого потока.
+
+    Пример использования:
+        >>> from pathlib import Path
+        >>> pool = _ConnectionPool(Path("cache.db"), pool_size=5)
+        >>> conn = pool.get_connection()  # Получить соединение для текущего потока
+        >>> pool.return_connection(conn)  # Вернуть соединение в пул
+        >>> pool.close_all()  # Закрыть все соединения
+
+    Attributes:
+        _cache_file: Путь к файлу базы данных.
+        _pool_size: Размер пула соединений.
+        _local: Thread-local хранилище для соединений.
+        _all_conns: Список всех созданных соединений.
+        _lock: Блокировка для потокобезопасности.
+
+    Raises:
+        sqlite3.Error: При ошибке создания соединения с базой данных.
     """
 
-    def __init__(self, cache_file: Path, pool_size: int = 5):
+    def __init__(self, cache_file: Path, pool_size: int = 5) -> None:
         """
         Инициализация пула соединений.
 
         Args:
-            cache_file: Путь к файлу базы данных.
-            pool_size: Размер пула соединений (не используется для thread-local).
+            cache_file: Путь к файлу базы данных SQLite.
+            pool_size: Размер пула соединений (по умолчанию 5).
+                      Для thread-local реализации не используется напрямую.
+
+        Raises:
+            OSError: Если файл базы данных недоступен для записи.
+            sqlite3.Error: При ошибке инициализации базы данных.
+
+        Example:
+            >>> pool = _ConnectionPool(Path("/tmp/cache.db"), pool_size=10)
         """
         self._cache_file = cache_file
         self._pool_size = pool_size
