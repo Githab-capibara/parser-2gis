@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import functools
+import logging
 import re
 import sys
 import time
@@ -39,27 +40,32 @@ __all__ = [
     '_validate_category',
 ]
 
-# Кэшированный logger для избежания циклических зависимостей и накладных расходов
-_logger: Optional["Logger"] = None
+# =============================================================================
+# ОПТИМИЗАЦИЯ 5.2: MODULE-LEVEL LOGGER
+# =============================================================================
+
+# Оптимизация 5.2: используем module-level logger вместо глобальной переменной
+# Это устраняет глобальное состояние и следует лучшим практикам Python
+logger = logging.getLogger(__name__)
 
 
 def _get_logger() -> "Logger":
     """Получает logger для модуля common.
-    
-    Оптимизация: используется lru_cache для избежания повторных импортов.
 
+    Оптимизация 5.2:
+    - Используем module-level logger вместо глобальной переменной
+    - Функция сохраняется для обратной совместимости
+    
     Returns:
         Экземпляр logger из модуля logger.
     """
-    global _logger
-    if _logger is None:
-        from .logger import logger
-        _logger = logger
-    return _logger
+    from .logger import logger as app_logger
+    return app_logger
 
 
 # Набор чувствительных ключей для фильтрации данных
 # Оптимизация: скомпилированный regex для быстрой проверки
+# БЕЗОПАСНОСТЬ: Расширенный список для предотвращения утечки чувствительных данных
 _SENSITIVE_KEYS: Set[str] = {
     "password",
     "passwd",
@@ -77,12 +83,35 @@ _SENSITIVE_KEYS: Set[str] = {
     "refresh_token",
     "session_id",
     "session_token",
+    # Дополнительные чувствительные ключи
+    "secret_key",
+    "secretkey",
+    "private-key",
+    "privatekey",
+    "client_secret",
+    "client_id",
+    "bearer",
+    "jwt",
+    "oauth",
+    "oauth_token",
+    "access-key",
+    "accesskey",
+    "signing_key",
+    "encryption_key",
+    "master_key",
+    "root_password",
+    "admin_password",
+    "db_password",
+    "database_password",
+    "connection_string",
+    "conn_string",
 }
 
 # Компилированный regex паттерн для проверки чувствительных ключей
 # Оптимизация: предкомпилированный паттерн вместо создания каждый раз
+# БЕЗОПАСНОСТЬ: Расширенный паттерн для обнаружения большего количества вариантов
 _SENSITIVE_KEY_PATTERN = re.compile(
-    r'(^|[_\-])(pass|secret|token|key|auth|cred)([_\-]|$)',
+    r'(^|[_\-])(pass|secret|token|key|auth|cred|bearer|jwt|oauth|sign|encrypt|master|admin|db|database|conn)([_\-]|$)',
     re.IGNORECASE
 )
 

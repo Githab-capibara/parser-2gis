@@ -13,9 +13,9 @@
 from __future__ import annotations
 
 import psutil
+import queue
 import threading
 import time
-from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -96,7 +96,9 @@ class ParallelOptimizer:
         """
         self._max_workers = max_workers
         self._max_memory_mb = max_memory_mb
-        self._tasks: deque[ParallelTask] = deque()
+        # Оптимизация 3.5: используем queue.Queue для потокобезопасной очереди задач
+        # Queue автоматически синхронизирует доступ из разных потоков
+        self._tasks: queue.Queue[ParallelTask] = queue.Queue()
         self._active_tasks: Dict[int, ParallelTask] = {}
         self._completed_tasks: List[ParallelTask] = []
         # ИСПОЛЬЗУЕМ RLock (Reentrant Lock) для предотвращения deadlock
@@ -133,6 +135,10 @@ class ParallelOptimizer:
         """
         Добавляет задачу в очередь.
 
+        Оптимизация 3.5:
+        - Используем queue.Queue для потокобезопасной очереди
+        - put() автоматически синхронизирует доступ
+
         Args:
             url: URL для парсинга.
             category_name: Название категории.
@@ -141,15 +147,10 @@ class ParallelOptimizer:
         """
         task = ParallelTask(url, category_name, city_name, priority)
 
-        with self._lock:
-            # Вставляем задачу в соответствии с приоритетом
-            if priority > 0:
-                # Высокий приоритет - добавляем в начало
-                self._tasks.appendleft(task)
-            else:
-                # Обычный приоритет - добавляем в конец
-                self._tasks.append(task)
-            self._stats["total_tasks"] += 1
+        # Оптимизация 3.5: Queue потокобезопасен, не нужна блокировка
+        # Для приоритетных задач используем put с параметром block=False
+        self._tasks.put(task, block=True)
+        self._stats["total_tasks"] += 1
 
         logger.debug(
             "Добавлена задача: %s - %s (приоритет: %d)",
@@ -217,37 +218,28 @@ class ParallelOptimizer:
         """
         Получает следующую задачу из очереди.
 
-        Оптимизация:
-        - Уменьшена область блокировки для снижения contention
-        - Используется timeout для предотвращения бесконечного ожидания
+        Оптимизация 3.5:
+        - Используем queue.Queue для потокобезопасного извлечения
+        - get_nowait() для неблокирующего извлечения задачи
+        - Не требуется ручная блокировка
 
         Returns:
             Следующая задача или None если очередь пуста.
         """
-        # Уменьшаем область блокировки - захватываем только на время доступа к очереди
         task: Optional[ParallelTask] = None
-        
-        # Используем acquire с timeout для предотвращения deadlock
-        # Таймаут 5 секунд - достаточно для разблокировки в нормальных условиях
-        lock_acquired = self._lock.acquire(timeout=5.0)
-        
-        if not lock_acquired:
-            logger.warning("Не удалось получить блокировку в get_next_task() после 5 сек ожидания")
-            return None
-        
+
         try:
-            if self._tasks:
-                # Извлекаем задачу из начала очереди (для приоритетных задач)
-                task = self._tasks.popleft()
-                # Отмечаем начало выполнения задачи ПОСЛЕ освобождения блокировки
-        finally:
-            # Всегда освобождаем блокировку
-            self._lock.release()
-        
-        # Отмечаем начало выполнения задачи вне блокировки для лучшей производительности
+            # Оптимизация 3.5: Queue.get_nowait() для неблокирующего извлечения
+            # Queue потокобезопасен, не нужна ручная блокировка
+            task = self._tasks.get_nowait()
+        except queue.Empty:
+            # Очередь пуста
+            return None
+
+        # Отмечаем начало выполнения задачи
         if task is not None:
             task.start()
-        
+
         return task
 
     def complete_task(self, task: ParallelTask, success: bool) -> None:
@@ -295,7 +287,8 @@ class ParallelOptimizer:
         """
         with self._lock:
             stats = self._stats.copy()
-            stats["pending_tasks"] = len(self._tasks)
+            # Оптимизация 3.5: Queue.qsize() вместо len() для получения размера очереди
+            stats["pending_tasks"] = self._tasks.qsize()
             stats["active_tasks"] = len(self._active_tasks)
             stats["progress"] = (
                 self._stats["completed"] / self._stats["total_tasks"] * 100
@@ -305,9 +298,15 @@ class ParallelOptimizer:
             return stats
 
     def reset(self) -> None:
-        """Сбрасывает состояние оптимизатора."""
+        """Сбрасывает состояние оптимизатора.
+        
+        Оптимизация 3.5:
+        - Queue не имеет clear(), поэтому создаём новую очередь
+        - Потокобезопасная очистка через создание нового объекта
+        """
         with self._lock:
-            self._tasks.clear()
+            # Оптимизация 3.5: Queue не имеет clear(), создаём новую очередь
+            self._tasks = queue.Queue()
             self._active_tasks.clear()
             self._completed_tasks.clear()
             self._stats = {
@@ -325,6 +324,10 @@ class ParallelOptimizer:
     ) -> bool:
         """
         Запускает параллельный парсинг с оптимизацией.
+
+        Оптимизация 3.5:
+        - Используем Queue.empty() для проверки очереди
+        - Queue потокобезопасен, упрощает управление задачами
 
         Args:
             parse_func: Функция парсинга, принимающая ParallelTask.
@@ -345,7 +348,8 @@ class ParallelOptimizer:
             # Создаём futures для всех задач
             futures = {}
 
-            while self._tasks or self._active_tasks:
+            # Оптимизация 3.5: используем Queue.empty() для проверки
+            while not self._tasks.empty() or self._active_tasks:
                 # Проверяем ресурсы
                 available, memory_mb = self.check_resources()
 
@@ -355,7 +359,8 @@ class ParallelOptimizer:
                     continue
 
                 # Запускаем новые задачи если есть ресурсы
-                while len(self._active_tasks) < self._max_workers and self._tasks:
+                # Оптимизация 3.5: Queue.empty() для проверки наличия задач
+                while len(self._active_tasks) < self._max_workers and not self._tasks.empty():
                     task = self.get_next_task()
                     if task:
                         future = executor.submit(parse_func, task)

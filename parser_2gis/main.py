@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import ipaddress
 import json
 import signal
@@ -20,6 +21,8 @@ from urllib.parse import urlparse
 
 import pydantic
 
+from .cache import Cache
+from .chrome.remote import ChromeRemote
 from .common import generate_city_urls, report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
 from .data.categories_93 import CATEGORIES_93
@@ -200,10 +203,6 @@ def cleanup_resources() -> None:
         Все ошибки логируются для последующего анализа.
     """
     try:
-        # Импорт здесь для избежания циклических зависимостей
-        from .chrome.remote import ChromeRemote
-        from .cache import Cache
-
         # Очистка кэша Chrome
         logger.debug("Очистка кэша ресурсов...")
 
@@ -223,7 +222,6 @@ def cleanup_resources() -> None:
                 logger.debug("Ошибка при закрытии кэша: %s", e)
 
         # Принудительный сборщик мусора
-        import gc
         gc.collect()
 
         logger.debug("Ресурсы успешно очищены")

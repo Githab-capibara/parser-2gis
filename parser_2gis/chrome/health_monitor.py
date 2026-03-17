@@ -57,11 +57,14 @@ class BrowserHealthMonitor:
         self._enable_auto_restart = enable_auto_restart
         self._last_activity_time = time.time()
         self._critical_errors_count = 0
-        self._lock = threading.Lock()
+        # ИСПОЛЬЗУЕМ RLock (Reentrant Lock) для предотвращения deadlock
+        # RLock позволяет одному и тому же потоку захватывать блокировку несколько раз
+        # Это важно для методов, которые могут вызываться рекурсивно или из других методов с блокировкой
+        self._lock = threading.RLock()
         self._monitoring_active = False
 
         logger.info(
-            "Инициализирован BrowserHealthMonitor (auto_restart=%s)",
+            "Инициализирован BrowserHealthMonitor с RLock (auto_restart=%s)",
             enable_auto_restart,
         )
 
