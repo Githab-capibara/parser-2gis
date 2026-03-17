@@ -48,14 +48,14 @@ except ImportError:
 def _serialize_json(data: Dict[str, Any]) -> str:
     """
     Сериализует данные в JSON формат.
-    
+
     Оптимизация 3.6:
     - Используем orjson если установлен (в 2-3 раза быстрее)
     - Fallback на стандартный json если orjson недоступен
-    
+
     Args:
         data: Данные для сериализации.
-        
+
     Returns:
         JSON строка.
     """
@@ -70,21 +70,35 @@ def _serialize_json(data: Dict[str, Any]) -> str:
 def _deserialize_json(data: str) -> Dict[str, Any]:
     """
     Десериализует JSON строку в данные.
-    
+
     Оптимизация 3.6:
     - Используем orjson если установлен
     - Fallback на стандартный json если orjson недоступен
-    
+
     Args:
         data: JSON строка для десериализации.
-        
+
     Returns:
         Данные в виде словаря.
+
+    Raises:
+        json.JSONDecodeError: При ошибке парсинга JSON.
+        UnicodeDecodeError: При ошибке декодирования Unicode.
     """
-    if _use_orjson and orjson is not None:
-        return orjson.loads(data)  # type: ignore
-    else:
-        return json.loads(data)
+    try:
+        if _use_orjson and orjson is not None:
+            return orjson.loads(data)  # type: ignore
+        else:
+            return json.loads(data)
+    except (json.JSONDecodeError, UnicodeDecodeError) as json_error:
+        # Логирование ошибки для отладки
+        logger.warning(
+            "Ошибка десериализации JSON данных: %s. Тип ошибки: %s",
+            json_error,
+            type(json_error).__name__
+        )
+        # Пробрасываем исключение дальше для обработки в вызывающем коде
+        raise
 
 # Экспортируемые символы модуля
 __all__ = ["CacheManager"]
@@ -175,7 +189,7 @@ class _ConnectionPool:
             self._local.connection = self._create_connection()
             with self._lock:
                 self._all_conns.append(self._local.connection)
-        
+
         return self._local.connection
 
     def _create_connection(self) -> sqlite3.Connection:
@@ -424,14 +438,29 @@ class CacheManager:
         except sqlite3.Error as db_error:
             logger.warning("Ошибка БД при получении кэша: %s", db_error)
             return None
-        except Exception as decode_error:
-            # Обрабатываем все ошибки десериализации
-            # Оптимизация 3.6: orjson может выбрасывать свои исключения
+        except (UnicodeDecodeError, json.JSONDecodeError) as decode_error:
+            # Обрабатываем ошибки десериализации - удаляем повреждённую запись
             error_type = "Unicode" if isinstance(decode_error, UnicodeDecodeError) else "JSON"
             logger.warning(
-                "Ошибка %s при чтении кэша: %s. Кэш будет считаться невалидным.",
+                "Ошибка %s при чтении кэша для URL %s: %s. Повреждённая запись будет удалена.",
                 error_type,
+                url,
                 decode_error
+            )
+            # Удаляем повреждённую запись из кэша
+            try:
+                cursor.execute(self.SQL_DELETE, (url_hash,))
+                conn.commit()
+            except sqlite3.Error as cleanup_error:
+                logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
+            return None
+        except Exception as general_error:
+            # Обрабатываем любые другие ошибки десериализации (например orjson.JSONDecodeError)
+            logger.warning(
+                "Неизвестная ошибка при чтении кэша для URL %s: %s. Тип: %s",
+                url,
+                general_error,
+                type(general_error).__name__
             )
             return None
         finally:
@@ -457,7 +486,7 @@ class CacheManager:
 
         # Вычисляем хеш URL и время истечения
         url_hash = self._hash_url(url)
-        
+
         # Оптимизация 18: кэшируем datetime.now() в переменную
         # Используем одну временную метку для всех операций в методе
         now = datetime.now()
@@ -511,7 +540,7 @@ class CacheManager:
         cursor = conn.cursor()
 
         saved_count = 0
-        
+
         # Оптимизация 18: кэшируем datetime.now() в переменную
         # Используем одну временную метку для всех операций в методе
         # Это обеспечивает консистентность времени для всей пакетной операции
@@ -587,7 +616,7 @@ class CacheManager:
         try:
             # Оптимизация 18: кэшируем datetime.now() в переменную
             current_time = datetime.now()
-            
+
             # Удаляем истекшие записи с использованием подготовленного запроса
             cursor.execute(self.SQL_DELETE_EXPIRED, (current_time.isoformat(),))
             deleted_count = cursor.rowcount

@@ -24,6 +24,8 @@ from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
 from urllib.parse import urlparse
 
+from .logger import logger
+
 
 @dataclass
 class ValidationResult:
@@ -255,33 +257,35 @@ class DataValidator:
 
         Примечание:
             Метод требует установленную библиотеку dnspython.
-            При отсутствии библиотеки возвращает True (проверка пропускается).
+            При отсутствии библиотеки возвращает False (проверка не проходит).
+            Это предотвращает ложную валидацию email без реальной проверки DNS.
         """
         try:
             import dns.resolver
         except ImportError:
-            # dnspython не установлен - пропускаем проверку
-            logger.debug("dnspython не установлен, проверка MX записей пропущена")
-            return True
+            # dnspython не установлен - возвращаем False для безопасности
+            # Это предотвращает валидацию email без реальной проверки MX записей
+            logger.debug("dnspython не установлен, проверка MX записей невозможна")
+            return False
 
         try:
             # Извлекаем домен из email
             domain = email.split("@")[1]
-            
+
             # Пытаемся получить MX записи
             answers = dns.resolver.resolve(domain, "MX")
-            
+
             # Проверяем, что есть хотя бы одна запись
             return len(answers) > 0
-            
+
         except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
             # Домен не существует или нет MX записей
             logger.debug("Домен %s не имеет MX записей", domain)
             return False
         except Exception as e:
-            # Любая другая ошибка - пропускаем проверку
+            # Любая другая ошибка - возвращаем False для безопасности
             logger.debug("Ошибка при проверке MX записей для %s: %s", domain, e)
-            return True
+            return False
 
     def validate_url(self, url: str) -> ValidationResult:
         """Валидация URL.

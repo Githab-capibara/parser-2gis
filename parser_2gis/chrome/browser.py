@@ -167,8 +167,12 @@ class ChromeBrowser:
             raise ValueError(f"Путь к браузеру должен указывать на файл: {binary_path}")
 
         # Проверка на исполняемость (только для Linux/Unix)
+        # ВАЖНО: Выбрасываем PermissionError вместо простого логирования
+        # Это предотвращает запуск браузера с некорректными правами
         if not os.access(binary_path, os.X_OK):
-            logger.warning("Файл браузера не имеет прав на выполнение: %s", binary_path)
+            error_msg = f"Файл браузера не имеет прав на выполнение: {binary_path}"
+            logger.error(error_msg)
+            raise PermissionError(error_msg)
 
     @property
     def remote_port(self) -> int:
@@ -375,7 +379,7 @@ def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours
 def _safe_remove_profile(profile_path: Path) -> None:
     """
     Безопасно удаляет профиль Chrome с обработкой ошибок.
-    
+
     Args:
         profile_path: Путь к директории профиля для удаления.
     """
@@ -386,15 +390,15 @@ def _safe_remove_profile(profile_path: Path) -> None:
             marker_file.touch(exist_ok=True)
         except OSError:
             pass  # Не критично
-        
+
         # Удаляем профиль
         shutil.rmtree(profile_path, ignore_errors=True)
-        
+
         # Проверяем успешность удаления
         if profile_path.exists():
             logger.warning("Не удалось полностью удалить профиль: %s", profile_path)
         else:
             logger.debug("Профиль успешно удалён: %s", profile_path)
-            
+
     except Exception as e:
         logger.warning("Ошибка при удалении профиля %s: %s", profile_path, e)
