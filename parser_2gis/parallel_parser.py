@@ -273,6 +273,11 @@ class ParallelCityParser:
         if self._cancel_event.is_set():
             return False, "Отменено пользователем"
 
+        # Исправление проблемы 11: добавляем обработку timeout_per_url
+        # Используем signal.alarm для установки таймаута на парсинг (только Unix)
+        timeout_occurred = False
+        use_signal_timeout = hasattr(signal, 'alarm')  # Проверяем поддержку signal.alarm
+
         # Формируем целевое имя файла
         safe_city = city_name.replace(" ", "_").replace("/", "_")
         safe_category = category_name.replace(" ", "_").replace("/", "_")
@@ -346,6 +351,19 @@ class ParallelCityParser:
                         temp_filename,
                     )
                     raise
+
+        # Исправление проблемы 11: устанавливаем таймаут на парсинг через signal.alarm
+        # Сохраняем старый обработчик SIGALRM для восстановления
+        old_handler = None
+        if use_signal_timeout:
+            def timeout_handler(signum, frame):
+                """Обработчик сигнала таймаута."""
+                nonlocal timeout_occurred
+                timeout_occurred = True
+                raise TimeoutError(f"Превышен таймаут парсинга ({self.timeout_per_url} сек)")
+
+            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(self.timeout_per_url)  # Устанавливаем таймаут
 
         try:
             self.log(
@@ -422,6 +440,35 @@ class ParallelCityParser:
 
             return True, str(filepath)
 
+        except TimeoutError as timeout_error:
+            # Исправление проблемы 11: обработка таймаута парсинга
+            self.log(
+                f"Таймаут парсинга {city_name} - {category_name} ({self.timeout_per_url} сек): {timeout_error}",
+                "error",
+            )
+
+            # Удаляем временный файл при таймауте
+            try:
+                if temp_filepath.exists():
+                    temp_filepath.unlink()
+                    self.log(f"Временный файл удалён после таймаута: {temp_filename}", "debug")
+            except Exception as cleanup_error:
+                self.log(
+                    f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
+                    "warning",
+                )
+
+            # Потокобезопасное обновление статистики
+            with self._lock:
+                self._stats["failed"] += 1
+                success_count = self._stats["success"]
+                failed_count = self._stats["failed"]
+
+            if progress_callback:
+                progress_callback(success_count, failed_count, "N/A")
+
+            return False, f"Таймаут: {timeout_error}"
+
         except Exception as e:
             self.log(f"Ошибка парсинга {city_name} - {category_name}: {e}", "error")
 
@@ -446,6 +493,12 @@ class ParallelCityParser:
                 progress_callback(success_count, failed_count, "N/A")
 
             return False, str(e)
+
+        finally:
+            # Исправление проблемы 11: отменяем таймаут и восстанавливаем обработчик
+            if use_signal_timeout and old_handler is not None:
+                signal.alarm(0)  # Отменяем таймаут
+                signal.signal(signal.SIGALRM, old_handler)  # Восстанавливаем обработчик
 
     def merge_csv_files(
         self,

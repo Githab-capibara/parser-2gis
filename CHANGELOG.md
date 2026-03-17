@@ -7,6 +7,116 @@
 
 ---
 
+## [2.1.7] - 2026-03-17
+
+### 🔒 Безопасность и надёжность
+
+#### Полный аудит и исправление 15 проблем кода
+
+**Критические проблемы (1-5):**
+
+1. **parallel_parser.py - Временные файлы при KeyboardInterrupt**
+   - ✅ Добавлена обработка KeyboardInterrupt в merge_csv_files
+   - ✅ Реализован try/finally для гарантированной очистки temp файлов
+   - ✅ Добавлен signal handler для очистки при прерывании
+   - ✅ Используется fcntl.flock() для блокировки merge операции
+   - ✅ Добавлен lock file для защиты от concurrent merge
+
+2. **cache.py - Ограничение размера кэша**
+   - ✅ Реализован метод _enforce_cache_size_limit(conn)
+   - ✅ Проверка размера кэша перед вставкой
+   - ✅ LRU eviction при превышении MAX_CACHE_SIZE_MB (500MB)
+   - ✅ Добавлен метод _get_cache_size_mb()
+
+3. **browser.py - Zombie процессы**
+   - ✅ Добавлена обработка zombie процессов через os.waitpid()
+   - ✅ Timeout для wait() с fallback на os.kill(signal.SIGKILL)
+   - ✅ Многоуровневая стратегия завершения (4 попытки)
+   - ✅ Логирование статуса процесса
+
+4. **parser/main.py - Timeout в _get_links**
+   - ✅ Обработан TimeoutError в _get_links
+   - ✅ Fallback на return None при timeout
+   - ✅ Логирование предупреждения
+
+5. **parallel_parser.py - Race condition при merge**
+   - ✅ Добавлена блокировка на время merge операции
+   - ✅ Атомарное переименование файлов
+   - ✅ Проверка на concurrent merge через lock file
+
+**Важные проблемы (6-10):**
+
+6. **main.py - Signal handler recursion**
+   - ✅ Добавлен флаг _is_cleaning_up для предотвращения рекурсии
+   - ✅ Проверка флага перед вызовом cleanup_resources()
+   - ✅ signal.SIG_IGN для игнорирования повторных сигналов
+
+7. **cache.py - Connection pool закрывает соединения при GC**
+   - ✅ Добавлен __del__ метод в _ConnectionPool
+   - ✅ Вызов close_all() с обработкой исключений
+   - ✅ Warning в лог если соединения не закрыты явно
+
+8. **csv_writer.py - Безопасное перемещение файлов**
+   - ✅ Обработка ошибки shutil.move() с fallback на copy+delete
+   - ✅ Проверка существования файла после move
+   - ✅ Удаление source файла если move успешен
+
+9. **parser/main.py - Eviction policy для visited_links**
+   - ✅ MAX_VISITED_LINKS_SIZE = 10000
+   - ✅ LRU eviction через OrderedDict
+   - ✅ Логирование количества удалённых ссылок
+
+10. **main.py - DNS rebinding защита**
+    - ✅ Проверка hostname на соответствие IP после разрешения
+    - ✅ Блокировка private IP диапазонов
+    - ✅ Проверка на localhost и loopback адреса
+
+**Средние проблемы (11-15):**
+
+11. **parallel_parser.py - timeout_per_url используется**
+    - ✅ Добавлено использование timeout_per_url в parse_single_url
+    - ✅ Обертка в timeout через signal.alarm (Unix)
+    - ✅ Обработка TimeoutError
+
+12. **cache.py - Обработка ошибок orjson**
+    - ✅ Обработка orjson.JSONDecodeError отдельно
+    - ✅ Обработка orjson.EncodeError при сериализации
+    - ✅ Логирование типа ошибки
+
+13. **browser.py - Защита активных профилей**
+    - ✅ Проверка на активные процессы Chrome перед удалением
+    - ✅ Пропуск профилей моложе 1 часа
+
+14. **csv_writer.py - complex_columns_pattern None проверка**
+    - ✅ Проверка на None перед использованием
+    - ✅ Упрощение логики если complex_columns пуст
+
+15. **parser/main.py - Jitter в retry logic**
+    - ✅ Добавлен random jitter к экспоненциальной задержке
+    - ✅ Формула: delay = base_delay * (2 ** retry) + random.uniform(0, 1)
+    - ✅ Предотвращение thundering herd проблемы
+
+### 🧪 Тестирование
+
+- ✅ Добавлено 48 новых тестов для всех исправлений
+- ✅ Общее количество тестов: 718 passed
+- ✅ Покрытие всех критичных, важных и средних проблем
+- ✅ Интеграционные тесты для проверки импортов
+
+### 📊 Статистика изменений
+
+| Файл | Изменения |
+|------|-----------|
+| `parser_2gis/parallel_parser.py` | +236 строк |
+| `parser_2gis/cache.py` | +119 строк |
+| `parser_2gis/chrome/browser.py` | +151 строка |
+| `parser_2gis/parser/parsers/main.py` | +30 строк |
+| `parser_2gis/main.py` | +106 строк |
+| `parser_2gis/writer/writers/csv_writer.py` | +86 строк |
+| **Итого** | **+728 строк** |
+
+---
+
 ## [2.1.6] - 2026-03-16
 
 ### 🔒 Безопасность

@@ -57,10 +57,24 @@ def _serialize_json(data: Dict[str, Any]) -> str:
 
     Returns:
         JSON строка.
+
+    Raises:
+        TypeError: При ошибке сериализации данных.
+        ValueError: При ошибке преобразования данных.
     """
     if _use_orjson and orjson is not None:
         # orjson возвращает bytes, декодируем в строку
-        return orjson.dumps(data).decode('utf-8')
+        try:
+            return orjson.dumps(data).decode('utf-8')
+        except orjson.EncodeError as encode_error:
+            # Исправление проблемы 12: обработка orjson.EncodeError
+            logger.warning(
+                "Ошибка сериализации orjson (EncodeError): %s. Тип данных: %s",
+                encode_error,
+                type(data).__name__
+            )
+            # Пробрасываем исключение для обработки в вызывающем коде
+            raise TypeError(f"Ошибка сериализации orjson: {encode_error}") from encode_error
     else:
         # Стандартный json с оптимизированными параметрами
         return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
@@ -83,12 +97,22 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
     Raises:
         json.JSONDecodeError: При ошибке парсинга JSON.
         UnicodeDecodeError: При ошибке декодирования Unicode.
+        orjson.JSONDecodeError: При ошибке парсинга orjson.
     """
     try:
         if _use_orjson and orjson is not None:
             return orjson.loads(data)  # type: ignore
         else:
             return json.loads(data)
+    except orjson.JSONDecodeError as orjson_error:
+        # Исправление проблемы 12: отдельная обработка orjson.JSONDecodeError
+        logger.warning(
+            "Ошибка десериализации orjson (JSONDecodeError): %s. Тип ошибки: %s",
+            orjson_error,
+            type(orjson_error).__name__
+        )
+        # Пробрасываем исключение для обработки в вызывающем коде
+        raise
     except (json.JSONDecodeError, UnicodeDecodeError) as json_error:
         # Логирование ошибки для отладки
         logger.warning(

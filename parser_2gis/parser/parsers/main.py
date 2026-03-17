@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import json
+import random
 import re
 import threading
 import time
@@ -282,8 +283,11 @@ class MainParser:
                     retry_attempt < self._options.max_retries
                     and self._options.retry_on_network_errors
                 ):
-                    # Экспоненциальная задержка: 1с, 2с, 4с, ...
-                    delay = self._options.retry_delay_base * (2**retry_attempt)
+                    # Исправление проблемы 15: добавляем jitter для предотвращения thundering herd
+                    # Формула: base_delay * (2 ** retry) + random.uniform(0, 1)
+                    base_delay = self._options.retry_delay_base * (2**retry_attempt)
+                    jitter = random.uniform(0, 1)
+                    delay = base_delay + jitter
                     logger.warning(
                         "Таймаут при навигации (попытка %d/%d): %s. "
                         "Повторная попытка через %.1f сек...",
@@ -312,8 +316,11 @@ class MainParser:
                     and self._options.retry_on_network_errors
                     and is_network_error
                 ):
-                    # Экспоненциальная задержка: 1с, 2с, 4с, ...
-                    delay = self._options.retry_delay_base * (2**retry_attempt)
+                    # Исправление проблемы 15: добавляем jitter для предотвращения thundering herd
+                    # Формула: base_delay * (2 ** retry) + random.uniform(0, 1)
+                    base_delay = self._options.retry_delay_base * (2**retry_attempt)
+                    jitter = random.uniform(0, 1)
+                    delay = base_delay + jitter
                     logger.warning(
                         "Ошибка сети при навигации (попытка %d/%d): %s. "
                         "Повторная попытка через %.1f сек...",
