@@ -210,8 +210,9 @@ class CacheViewerScreen:
             for cache_file in cache_dir.glob("*.json"):
                 try:
                     cache_file.unlink()
-                except OSError:
-                    pass
+                except OSError as e:
+                    # Не прерываем очистку всего кэша из-за одного файла
+                    self._app.notify(f"Не удалось удалить {cache_file.name}: {e}", "warning")
 
         # Перезагрузить информацию
         self._load_cache_info()
@@ -220,21 +221,51 @@ class CacheViewerScreen:
         self._show_message("Кэш очищен!", "success")
 
     def _clear_expired(self, *args) -> None:
-        """Очистить истёкшие записи кэша."""
-        # TODO: Реализовать логику проверки TTL
-        self._show_message("Функция в разработке", "info")
+        """Очистить истёкшие записи кэша.
+
+        Примечание:
+            Экран работает с файловым JSON-кэшем в директории
+            ~/.cache/parser-2gis/*.json. Поскольку формат файлов не хранит TTL
+            явно, используем время изменения файла (mtime) как критерий.
+        """
+        from datetime import datetime, timedelta
+
+        cache_dir = Path.home() / ".cache" / "parser-2gis"
+        ttl = timedelta(hours=24)
+        threshold = datetime.now().timestamp() - ttl.total_seconds()
+
+        deleted = 0
+        errors = 0
+
+        if cache_dir.exists():
+            for cache_file in cache_dir.glob("*.json"):
+                try:
+                    if cache_file.stat().st_mtime < threshold:
+                        cache_file.unlink()
+                        deleted += 1
+                except OSError:
+                    errors += 1
+
+        self._load_cache_info()
+
+        if errors:
+            self._show_message(
+                f"Очищено {deleted} записей, но {errors} файлов удалить не удалось",
+                "warning",
+            )
+        else:
+            self._show_message(f"Очищено истёкших записей: {deleted}", "success")
 
     def _go_back(self, *args) -> None:
         """Вернуться назад."""
         self._app.go_back()
 
     def _show_message(self, message: str, level: str = "info") -> None:
-        """
-        Показать сообщение пользователю.
+        """Показать сообщение пользователю.
 
         Args:
             message: Текст сообщения
             level: Уровень (info, success, warning, error)
         """
-        # TODO: Реализовать всплывающее сообщение
-        pass
+        # Единый механизм уведомлений приложения (безопасен для тестов)
+        self._app.notify(message, level)

@@ -53,6 +53,9 @@ class TUIApp:
         self._log_file: Optional[Path] = None
         self._parser: Optional[ParallelParser] = None
 
+        # Последнее уведомление (для тестов и fallback-механизма сообщений)
+        self._last_notification: Optional[dict[str, str]] = None
+
         # Флаги
         self._running = False
         self._started_at: Optional[datetime] = None
@@ -79,6 +82,44 @@ class TUIApp:
             "total_records": 0,
             "current_record": 0,
         }
+
+    @property
+    def last_notification(self) -> Optional[dict[str, str]]:
+        """Последнее уведомление, показанное пользователю (или записанное как fallback)."""
+        return self._last_notification
+
+    def notify(self, message: str, level: str = "info") -> None:
+        """Показать уведомление пользователю.
+
+        Важно:
+            В тестах и в окружениях без активного WindowManager этот метод
+            должен быть безопасным (не выбрасывать исключений).
+
+        Args:
+            message: Текст сообщения
+            level: Уровень (info, success, warning, error)
+        """
+        self._last_notification = {"message": message, "level": level}
+
+        # Fallback: логирование
+        if self._logger:
+            log_method = getattr(self._logger, level, self._logger.info)
+            log_method(message)
+        else:
+            logging.getLogger(__name__).info("[%s] %s", level, message)
+
+        # Если есть активный WindowManager — пытаемся показать alert
+        if not self._manager:
+            return
+
+        try:
+            # В pytermgui может быть alert через WindowManager
+            alert = getattr(self._manager, "alert", None)
+            if callable(alert):
+                alert(message)
+        except Exception:
+            # UI-уведомления не должны ломать приложение
+            return
 
     def run(self) -> None:
         """Запустить приложение."""

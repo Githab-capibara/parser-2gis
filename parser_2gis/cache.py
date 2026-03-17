@@ -248,8 +248,8 @@ class _ConnectionPool:
             for conn in self._all_conns:
                 try:
                     conn.close()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Не удалось закрыть соединение SQLite: %s", e, exc_info=True)
             self._all_conns.clear()
 
     def __del__(self) -> None:

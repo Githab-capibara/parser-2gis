@@ -314,12 +314,10 @@ class ParserSettingsScreen:
         field.insert_text(value)
 
     def _show_message(self, message: str, level: str = "info") -> None:
-        """
-        Показать сообщение пользователю.
+        """Показать сообщение пользователю.
 
         Args:
             message: Текст сообщения
             level: Уровень (info, success, warning, error)
         """
-        # TODO: Реализовать всплывающее сообщение
-        pass
+        self._app.notify(message, level)
