@@ -48,7 +48,8 @@ def _serialize_json(data: Dict[str, Any]) -> str:
     """
     Сериализует данные в JSON формат.
 
-    Оптимизация 3.6:
+    Исправление проблемы 1.4:
+    - Выбрасываем явные исключения с контекстом вместо logger.warning
     - Используем orjson если установлен (в 2-3 раза быстрее)
     - Fallback на стандартный json если orjson недоступен
 
@@ -59,7 +60,7 @@ def _serialize_json(data: Dict[str, Any]) -> str:
         JSON строка.
 
     Raises:
-        TypeError: При ошибке сериализации данных.
+        TypeError: При ошибке сериализации данных с полным контекстом.
         ValueError: При ошибке преобразования данных.
     """
     if _use_orjson and orjson is not None:
@@ -67,24 +68,29 @@ def _serialize_json(data: Dict[str, Any]) -> str:
         try:
             return orjson.dumps(data).decode('utf-8')
         except orjson.EncodeError as encode_error:
-            # Исправление проблемы 12: обработка orjson.EncodeError
-            logger.warning(
-                "Ошибка сериализации orjson (EncodeError): %s. Тип данных: %s",
-                encode_error,
-                type(data).__name__
-            )
-            # Пробрасываем исключение для обработки в вызывающем коде
-            raise TypeError(f"Ошибка сериализации orjson: {encode_error}") from encode_error
+            # Исправление проблемы 1.4: выбрасываем явное исключение с контекстом
+            raise TypeError(
+                f"Критическая ошибка сериализации orjson: {encode_error}. "
+                f"Тип данных: {type(data).__name__}, "
+                f"Содержимое: {repr(data)[:200]}..."
+            ) from encode_error
     else:
         # Стандартный json с оптимизированными параметрами
-        return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        try:
+            return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        except (TypeError, ValueError) as json_error:
+            raise TypeError(
+                f"Критическая ошибка сериализации json: {json_error}. "
+                f"Тип данных: {type(data).__name__}"
+            ) from json_error
 
 
 def _deserialize_json(data: str) -> Dict[str, Any]:
     """
     Десериализует JSON строку в данные.
 
-    Оптимизация 3.6:
+    Исправление проблемы 1.4:
+    - Выбрасываем явные исключения с контекстом вместо logger.warning
     - Используем orjson если установлен
     - Fallback на стандартный json если orjson недоступен
 
@@ -95,9 +101,10 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
         Данные в виде словаря.
 
     Raises:
-        json.JSONDecodeError: При ошибке парсинга JSON.
+        json.JSONDecodeError: При ошибке парсинга JSON с контекстом.
         UnicodeDecodeError: При ошибке декодирования Unicode.
-        orjson.JSONDecodeError: При ошибке парсинга orjson.
+        orjson.JSONDecodeError: При ошибке парсинга orjson с контекстом.
+        ValueError: При критической ошибке десериализации.
     """
     try:
         if _use_orjson and orjson is not None:
@@ -105,23 +112,19 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
         else:
             return json.loads(data)
     except orjson.JSONDecodeError as orjson_error:
-        # Исправление проблемы 12: отдельная обработка orjson.JSONDecodeError
-        logger.warning(
-            "Ошибка десериализации orjson (JSONDecodeError): %s. Тип ошибки: %s",
-            orjson_error,
-            type(orjson_error).__name__
-        )
-        # Пробрасываем исключение для обработки в вызывающем коде
-        raise
+        # Исправление проблемы 1.4: выбрасываем явное исключение с контекстом
+        raise ValueError(
+            f"Критическая ошибка десериализации orjson: {orjson_error}. "
+            f"Длина данных: {len(data)}, "
+            f"Содержимое: {data[:200]}..."
+        ) from orjson_error
     except (json.JSONDecodeError, UnicodeDecodeError) as json_error:
-        # Логирование ошибки для отладки
-        logger.warning(
-            "Ошибка десериализации JSON данных: %s. Тип ошибки: %s",
-            json_error,
-            type(json_error).__name__
-        )
-        # Пробрасываем исключение дальше для обработки в вызывающем коде
-        raise
+        # Исправление проблемы 1.4: выбрасываем явное исключение с контекстом
+        error_type = "Unicode" if isinstance(json_error, UnicodeDecodeError) else "JSON"
+        raise ValueError(
+            f"Критическая ошибка десериализации ({error_type}): {json_error}. "
+            f"Длина данных: {len(data)}"
+        ) from json_error
 
 # Экспортируемые символы модуля
 __all__ = ["CacheManager"]

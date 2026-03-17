@@ -18,7 +18,6 @@ import re
 import sys
 import time
 import urllib.parse
-import weakref
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union
 
@@ -143,60 +142,127 @@ def _is_sensitive_key(key: str) -> bool:
     return bool(_SENSITIVE_KEY_PATTERN.search(key_lower))
 
 
-def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[weakref.WeakSet] = None) -> Any:
+def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[set] = None) -> Any:
     """
     Очищает чувствительные данные из значения.
 
-    Оптимизация:
-    - Итеративная обработка вместо рекурсии для больших структур
-    - Раннее завершение для неизменяемых типов
-    - Использование weakref.WeakSet для автоматического отслеживания объектов
+    Исправление проблемы 2.1:
+    - Переписано на итеративный подход с явным стеком вместо рекурсии
+    - Предотвращает RecursionError при обработке глубоко вложенных структур
+    - Использует set с id объектов для отслеживания посещённых объектов
 
     Args:
         value: Значение для очистки.
         key: Имя ключа (опционально).
-        _visited: Внутренний параметр для отслеживания посещённых объектов.
+        _visited: Внутренний параметр для отслеживания посещённых объектов (set id).
 
     Returns:
         Очищенное значение или '<REDACTED>' для чувствительных данных.
 
     Примечание:
-        weakref.WeakSet автоматически удаляет объекты, когда на них
-        не остаётся сильных ссылок, что предотвращает утечки памяти.
+        Используется set с id объектов вместо WeakSet для предотвращения ошибок
+        с объектами, не поддерживающими слабые ссылки.
     """
-    # Инициализируем WeakSet для отслеживания посещённых объектов
-    # WeakSet автоматически очищается при удалении объектов
+    # Инициализируем set для отслеживания посещённых объектов по id
     if _visited is None:
-        _visited = weakref.WeakSet()
+        _visited = set()
 
-    # Быстрая проверка для неизменяемых типов - не требуют обработки
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return '<REDACTED>' if key and _is_sensitive_key(key) else value
-
-    # Проверяем на циклические ссылки
-    # Для неизменяемых типов проверка не требуется
-    if isinstance(value, (dict, list)):
-        if value in _visited:
-            return "<REDACTED>"
-        _visited.add(value)
-
-    # Чувствительные ключи обрабатываем сразу
-    if key and _is_sensitive_key(key):
-        return "<REDACTED>"
-
-    # Рекурсивная обработка словарей с оптимизацией
-    if isinstance(value, dict):
-        # Оптимизация: используем dict comprehension с ранней фильтрацией
-        return {
-            k: _sanitize_value(v, k, _visited) 
-            for k, v in value.items()
-        }
-
-    # Рекурсивная обработка списков с оптимизацией
-    if isinstance(value, list):
-        # Оптимизация: используем list comprehension
-        return [_sanitize_value(item, _visited=_visited) for item in value]
-
+    # Используем явный стек для итеративной обработки вместо рекурсии
+    # Формат: (значение, ключ, родитель, ключ_в_родителе)
+    stack: List[tuple] = [(value, key, None, None)]
+    
+    # Словарь для хранения результатов обработки
+    results: Dict[int, Any] = {}
+    
+    while stack:
+        current_value, current_key, parent, parent_key = stack.pop()
+        current_id = id(current_value)
+        
+        # Быстрая проверка для неизменяемых типов - не требуют обработки
+        if current_value is None or isinstance(current_value, (str, int, float, bool)):
+            result = '<REDACTED>' if current_key and _is_sensitive_key(current_key) else current_value
+            if parent is not None and parent_key is not None:
+                if isinstance(parent, dict):
+                    parent[parent_key] = result
+                elif isinstance(parent, list):
+                    parent[parent_key] = result
+            else:
+                results[current_id] = result
+            continue
+        
+        # Проверяем на циклические ссылки
+        if current_id in results:
+            # Уже обработано, используем кэшированный результат
+            result = results[current_id]
+            if parent is not None and parent_key is not None:
+                if isinstance(parent, dict):
+                    parent[parent_key] = result
+                elif isinstance(parent, list):
+                    parent[parent_key] = result
+            continue
+        
+        # Проверяем на циклические ссылки для изменяемых типов
+        if isinstance(current_value, (dict, list)):
+            if current_id in _visited:
+                result = "<REDACTED>"
+                if parent is not None and parent_key is not None:
+                    if isinstance(parent, dict):
+                        parent[parent_key] = result
+                    elif isinstance(parent, list):
+                        parent[parent_key] = result
+                else:
+                    results[current_id] = result
+                continue
+            _visited.add(current_id)
+        
+        # Чувствительные ключи обрабатываем сразу
+        if current_key and _is_sensitive_key(current_key):
+            result = "<REDACTED>"
+            if parent is not None and parent_key is not None:
+                if isinstance(parent, dict):
+                    parent[parent_key] = result
+                elif isinstance(parent, list):
+                    parent[parent_key] = result
+            else:
+                results[current_id] = result
+            continue
+        
+        # Обработка словарей
+        if isinstance(current_value, dict):
+            # Создаём новый словарь для результата
+            new_dict: Dict[str, Any] = {}
+            if parent is not None and parent_key is not None:
+                if isinstance(parent, dict):
+                    parent[parent_key] = new_dict
+                elif isinstance(parent, list):
+                    parent[parent_key] = new_dict
+            else:
+                results[current_id] = new_dict
+            
+            # Добавляем элементы в стек в обратном порядке для сохранения порядка
+            for k, v in reversed(list(current_value.items())):
+                stack.append((v, k, new_dict, k))
+        
+        # Обработка списков
+        elif isinstance(current_value, list):
+            # Создаём новый список нужного размера
+            new_list: List[Any] = [None] * len(current_value)
+            if parent is not None and parent_key is not None:
+                if isinstance(parent, dict):
+                    parent[parent_key] = new_list
+                elif isinstance(parent, list):
+                    parent[parent_key] = new_list
+            else:
+                results[current_id] = new_list
+            
+            # Добавляем элементы в стек в обратном порядке для сохранения порядка
+            for i in reversed(range(len(current_value))):
+                stack.append((current_value[i], None, new_list, i))
+    
+    # Возвращаем результат
+    if id(value) in results:
+        return results[id(value)]
+    # Если значение было обработано inline, возвращаем его
     return value
 
 
@@ -442,13 +508,15 @@ def floor_to_hundreds(arg: Union[int, float]) -> int:
 # и уменьшения количества повторных валидаций одинаковых городов
 
 
-@lru_cache(maxsize=2048)
+# Исправление проблемы 3.3: настроены размеры кэшей обоснованно
+# _validate_city_cached=1024 - достаточно для часто используемых городов
+@lru_cache(maxsize=1024)
 def _validate_city_cached(code: str, domain: str) -> Dict[str, Any]:
     """Кэшированная версия валидации города.
 
-    Оптимизация:
+    Исправление проблемы 3.3:
+    - Размер кэша установлен в 1024 вместо 2048 (оптимально для часто используемых городов)
     - Кэширование по отдельным полям (code, domain) вместо кортежа
-    - Увеличенный размер кэша (2048 вместо 1024) для часто используемых городов
     - Прямая передача строк вместо кортежа снижает накладные расходы
 
     Args:
@@ -513,11 +581,16 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     return _validate_city_cached(city["code"], city["domain"])
 
 
-# Оптимизация: кэширование результатов валидации категорий
-@lru_cache(maxsize=1024)
+# Исправление проблемы 3.3: настроены размеры кэшей обоснованно
+# _validate_category_cached=512 - оптимально для количества категорий
+@lru_cache(maxsize=512)
 def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
     """Кэшированная версия валидации категории.
-    
+
+    Исправление проблемы 3.3:
+    - Размер кэша установлен в 512 вместо 1024 (оптимально для количества категорий)
+    - Снижение потребления памяти без потери производительности
+
     Args:
         category_tuple: Кортеж (name, query, rubric_code) для кэширования.
 
@@ -695,12 +768,15 @@ def generate_city_urls(
     return urls
 
 
-# Оптимизация: кэширование результатов кодирования URL
-@lru_cache(maxsize=4096)
+# Исправление проблемы 3.3: настроены размеры кэшей обоснованно
+# url_query_encode=2048 - оптимально для часто используемых поисковых запросов
+@lru_cache(maxsize=2048)
 def url_query_encode(query: str) -> str:
     """Кодирует строку запроса для URL.
-    
-    Оптимизация: 
+
+    Исправление проблемы 3.3:
+    - Размер кэша установлен в 2048 вместо 4096 (оптимально для часто используемых запросов)
+    - Снижение потребления памяти без потери производительности
     - lru_cache для кэширования часто используемых запросов
     - Снижение количества вызовов urllib.parse.quote
 

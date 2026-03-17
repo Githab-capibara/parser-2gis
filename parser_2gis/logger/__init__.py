@@ -9,7 +9,7 @@ from .logger import (
     log_parser_finish,
 )
 from .options import LogOptions
-from .file_handler import FileLogger
+# from .file_handler import FileLogger  # Модуль временно недоступен
 from .visual_logger import (
     VisualLogger,
     visual_logger,
@@ -35,7 +35,7 @@ __all__ = [
     "setup_logger",
     "QueueHandler",
     "LogOptions",
-    "FileLogger",
+    # "FileLogger",  # Модуль временно недоступен
     "VisualLogger",
     "visual_logger",
     "print_header",

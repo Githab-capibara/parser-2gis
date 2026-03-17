@@ -1,0 +1,474 @@
+"""
+Модуль для вспомогательных классов параллельного парсинга.
+
+Содержит классы:
+- FileMerger: Объединение CSV файлов
+- ProgressTracker: Отслеживание прогресса
+- StatsCollector: Сбор статистики
+
+Исправление проблемы 1.2:
+- Выделены из ParallelCityParser для снижения сложности
+- Устранена глобальная переменная _merge_temp_files через контекстный менеджер
+"""
+
+from __future__ import annotations
+
+import csv
+import fcntl
+import os
+import signal
+import threading
+import time
+import uuid
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+from .logger import logger
+
+
+# =============================================================================
+# КОНСТАНТЫ ДЛЯ СЛИЯНИЯ ФАЙЛОВ И БУФЕРИЗАЦИИ
+# =============================================================================
+
+# Размер буфера для чтения/записи файлов в байтах (128 KB)
+MERGE_BUFFER_SIZE: int = 131072
+
+# Размер пакета строк для пакетной записи в CSV
+MERGE_BATCH_SIZE: int = 500
+
+# Таймаут ожидания блокировки merge операции в секундах
+MERGE_LOCK_TIMEOUT: int = 300
+
+# Максимальный возраст lock файла в секундах (5 минут)
+MAX_LOCK_FILE_AGE: int = 300
+
+
+class FileMerger:
+    """
+    Класс для объединения CSV файлов с гарантированной очисткой ресурсов.
+
+    Исправление проблемы 2.2:
+    - Использует контекстный менеджер для гарантии очистки временных файлов
+    - Устранена глобальная переменная _merge_temp_files
+    - Thread-safe реализация с использованием Lock
+
+    Пример использования:
+        >>> merger = FileMerger(output_dir=Path("output"))
+        >>> with merger:
+        ...     success = merger.merge_csv_files(
+        ...         output_file="result.csv",
+        ...         csv_files=[Path("file1.csv"), Path("file2.csv")]
+        ...     )
+    """
+
+    def __init__(self, output_dir: Path, config: Any = None, cancel_event: Optional[threading.Event] = None) -> None:
+        """
+        Инициализация FileMerger.
+
+        Args:
+            output_dir: Директория с CSV файлами для объединения.
+            config: Конфигурация (для encoding и других параметров).
+            cancel_event: Событие для отмены операции.
+        """
+        self.output_dir = output_dir
+        self.config = config
+        self._cancel_event = cancel_event or threading.Event()
+        self._temp_files: List[Path] = []
+        self._lock = threading.Lock()
+        self._lock_file_handle: Optional[Any] = None
+        self._lock_acquired = False
+
+    def __enter__(self) -> "FileMerger":
+        """Вход в контекстный менеджер."""
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Выход из контекстного менеджера с очисткой."""
+        self._cleanup_temp_files()
+        self._release_lock()
+
+    def _cleanup_temp_files(self) -> None:
+        """Очищает временные файлы."""
+        with self._lock:
+            for temp_file in self._temp_files:
+                try:
+                    if temp_file.exists():
+                        temp_file.unlink()
+                        logger.debug("Временный файл удалён: %s", temp_file)
+                except Exception as e:
+                    logger.warning("Не удалось удалить временный файл %s: %s", temp_file, e)
+            self._temp_files.clear()
+
+    def _release_lock(self) -> None:
+        """Освобождает блокировку merge операции."""
+        if self._lock_file_handle:
+            try:
+                fcntl.flock(self._lock_file_handle.fileno(), fcntl.LOCK_UN)
+                self._lock_file_handle.close()
+            except Exception:
+                pass
+            self._lock_file_handle = None
+            self._lock_acquired = False
+
+    def _acquire_lock(self, lock_file_path: Path) -> bool:
+        """
+        Получает блокировку для merge операции.
+
+        Args:
+            lock_file_path: Путь к lock файлу.
+
+        Returns:
+            True если блокировка получена успешно.
+        """
+        try:
+            # Проверяем возраст существующего lock файла
+            if lock_file_path.exists():
+                try:
+                    lock_age = time.time() - lock_file_path.stat().st_mtime
+                    if lock_age > MAX_LOCK_FILE_AGE:
+                        logger.debug("Удаление осиротевшего lock файла (возраст: %d сек)", lock_age)
+                        lock_file_path.unlink()
+                    else:
+                        logger.warning("Lock файл существует (возраст: %d сек), ожидаем...", lock_age)
+                except OSError:
+                    pass
+
+            # Пытаемся получить блокировку с таймаутом
+            start_time = time.time()
+            while not self._lock_acquired:
+                try:
+                    lock_file_handle = open(lock_file_path, 'w')
+                    fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    lock_file_handle.write(f"{os.getpid()}\n")
+                    lock_file_handle.flush()
+                    self._lock_file_handle = lock_file_handle
+                    self._lock_acquired = True
+                    logger.debug("Lock file получен успешно")
+                    return True
+                except (IOError, OSError):
+                    if self._lock_file_handle:
+                        try:
+                            self._lock_file_handle.close()
+                        except Exception:
+                            pass
+                        self._lock_file_handle = None
+
+                    if time.time() - start_time > MERGE_LOCK_TIMEOUT:
+                        logger.error("Таймаут ожидания lock файла (%d сек)", MERGE_LOCK_TIMEOUT)
+                        return False
+
+                    time.sleep(1)
+
+        except Exception as lock_error:
+            logger.error("Ошибка при получении lock файла: %s", lock_error)
+            if self._lock_file_handle:
+                try:
+                    self._lock_file_handle.close()
+                except Exception:
+                    pass
+            return False
+
+        return True
+
+    def merge_csv_files(
+        self,
+        output_file: str,
+        csv_files: Optional[List[Path]] = None,
+        progress_callback: Optional[Callable[[str], None]] = None,
+    ) -> bool:
+        """
+        Объединяет CSV файлы в один с добавлением колонки "Категория".
+
+        Args:
+            output_file: Путь к итоговому файлу.
+            csv_files: Список CSV файлов для объединения (если None, будут найдены автоматически).
+            progress_callback: Функция обратного вызова для обновления прогресса.
+
+        Returns:
+            True если успешно.
+        """
+        output_file_path = Path(output_file)
+
+        # Находим все CSV файлы если не предоставлены
+        if csv_files is None:
+            csv_files = list(self.output_dir.glob("*.csv"))
+            # Исключаем объединенный файл если он существует
+            if output_file_path.exists():
+                csv_files = [f for f in csv_files if f != output_file_path]
+
+        if not csv_files:
+            logger.warning("Не найдено CSV файлов для объединения")
+            return False
+
+        logger.info("Найдено %d CSV файлов для объединения", len(csv_files))
+        csv_files.sort(key=lambda x: x.name)
+
+        # Создаём временный файл
+        temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
+        files_to_delete: List[Path] = []
+
+        # Lock file
+        lock_file_path = self.output_dir / ".merge.lock"
+
+        if not self._acquire_lock(lock_file_path):
+            return False
+
+        # Устанавливаем обработчики сигналов для очистки
+        old_sigint = signal.getsignal(signal.SIGINT)
+        old_sigterm = signal.getsignal(signal.SIGTERM)
+
+        def cleanup_handler():
+            self._cleanup_temp_files()
+
+        def signal_handler(signum: int, frame: Any) -> None:
+            logger.warning("Получен сигнал %d, очистка временных файлов...", signum)
+            cleanup_handler()
+            if callable(old_sigint):
+                old_sigint(signum, frame)
+
+        try:
+            signal.signal(signal.SIGINT, signal_handler)
+            signal.signal(signal.SIGTERM, signal_handler)
+
+            # Регистрируем временный файл
+            with self._lock:
+                self._temp_files.append(temp_output)
+
+            buffer_size = MERGE_BUFFER_SIZE
+            output_encoding = getattr(self.config, 'writer', None)
+            if output_encoding:
+                output_encoding = getattr(output_encoding, 'encoding', 'utf-8')
+            else:
+                output_encoding = 'utf-8'
+
+            with open(temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size) as outfile:
+                writer = None
+                total_rows = 0
+
+                for csv_file in csv_files:
+                    if self._cancel_event.is_set():
+                        logger.warning("Объединение отменено пользователем")
+                        return False
+
+                    if progress_callback:
+                        progress_callback(f"Обработка: {csv_file.name}")
+
+                    # Извлекаем категорию из имени файла
+                    stem = csv_file.stem
+                    last_underscore_idx = stem.rfind("_")
+                    category_name = stem[last_underscore_idx + 1:].replace("_", " ") if last_underscore_idx > 0 else "Unknown"
+
+                    with open(csv_file, "r", encoding=output_encoding, newline="", buffering=buffer_size) as infile:
+                        reader = csv.DictReader(infile)
+                        if not reader.fieldnames:
+                            continue
+
+                        # Добавляем колонку Category если нужно
+                        fieldnames = list(reader.fieldnames)
+                        if "Category" not in fieldnames:
+                            fieldnames.insert(0, "Category")
+
+                        if writer is None:
+                            writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+                            writer.writeheader()
+
+                        for row in reader:
+                            row["Category"] = category_name
+                            if writer:
+                                writer.writerow(row)
+                            total_rows += 1
+
+                logger.info("Объединено %d строк в файл %s", total_rows, temp_output.name)
+
+            # Переименовываем временный файл в итоговый
+            if output_file_path.exists():
+                output_file_path.unlink()
+            temp_output.rename(output_file_path)
+            logger.info("CSV файлы успешно объединены в %s", output_file)
+
+            # Добавляем файлы для удаления
+            files_to_delete.extend(csv_files)
+
+            # Удаляем исходные файлы
+            for file_to_delete in files_to_delete:
+                try:
+                    file_to_delete.unlink()
+                    logger.debug("Исходный файл удалён: %s", file_to_delete)
+                except Exception as e:
+                    logger.warning("Не удалось удалить файл %s: %s", file_to_delete, e)
+
+            return True
+
+        except Exception as merge_error:
+            logger.error("Ошибка при объединении CSV файлов: %s", merge_error)
+            return False
+        finally:
+            # Восстанавливаем обработчики сигналов
+            signal.signal(signal.SIGINT, old_sigint)
+            signal.signal(signal.SIGTERM, old_sigterm)
+            # Освобождаем lock
+            self._release_lock()
+
+
+class ProgressTracker:
+    """
+    Трекер прогресса для параллельного парсинга.
+
+    Отслеживает:
+    - Количество обработанных городов
+    - Количество обработанных категорий
+    - Общее количество задач
+    - Прогресс в процентах
+
+    Пример использования:
+        >>> tracker = ProgressTracker(total_cities=10, total_categories=5)
+        >>> tracker.update(city_name="Москва", category_name="Рестораны")
+        >>> print(tracker.get_progress_percent())
+        10.0
+    """
+
+    def __init__(self, total_cities: int, total_categories: int) -> None:
+        """
+        Инициализация трекера прогресса.
+
+        Args:
+            total_cities: Общее количество городов.
+            total_categories: Общее количество категорий.
+        """
+        self.total_cities = total_cities
+        self.total_categories = total_categories
+        self.total_tasks = total_cities * total_categories
+        self.completed_tasks = 0
+        self.current_city = ""
+        self.current_category = ""
+        self._lock = threading.Lock()
+
+    def update(self, city_name: str, category_name: str) -> None:
+        """
+        Обновляет прогресс после завершения задачи.
+
+        Args:
+            city_name: Название текущего города.
+            category_name: Название текущей категории.
+        """
+        with self._lock:
+            self.completed_tasks += 1
+            self.current_city = city_name
+            self.current_category = category_name
+
+    def get_progress_percent(self) -> float:
+        """
+        Получает процент выполнения.
+
+        Returns:
+            Процент выполнения (0.0 - 100.0).
+        """
+        with self._lock:
+            if self.total_tasks == 0:
+                return 0.0
+            return (self.completed_tasks / self.total_tasks) * 100.0
+
+    def get_status(self) -> Dict[str, Any]:
+        """
+        Получает текущий статус прогресса.
+
+        Returns:
+            Словарь со статусом прогресса.
+        """
+        with self._lock:
+            return {
+                "completed": self.completed_tasks,
+                "total": self.total_tasks,
+                "percent": self.get_progress_percent(),
+                "current_city": self.current_city,
+                "current_category": self.current_category,
+            }
+
+
+class StatsCollector:
+    """
+    Сборщик статистики для параллельного парсинга.
+
+    Собирает:
+    - Количество успешных операций
+    - Количество ошибок
+    - Время выполнения
+    - Детали ошибок
+
+    Пример использования:
+        >>> stats = StatsCollector()
+        >>> stats.record_success()
+        >>> stats.record_error("Ошибка подключения", city="Москва")
+        >>> print(stats.get_summary())
+    """
+
+    def __init__(self) -> None:
+        """Инициализация сборщика статистики."""
+        self.success_count = 0
+        self.error_count = 0
+        self.errors: List[Dict[str, Any]] = []
+        self.start_time: Optional[float] = None
+        self.end_time: Optional[float] = None
+        self._lock = threading.Lock()
+
+    def start(self) -> None:
+        """Начинает сбор статистики."""
+        with self._lock:
+            self.start_time = time.time()
+
+    def stop(self) -> None:
+        """Завершает сбор статистики."""
+        with self._lock:
+            self.end_time = time.time()
+
+    def record_success(self) -> None:
+        """Записывает успешную операцию."""
+        with self._lock:
+            self.success_count += 1
+
+    def record_error(self, error_message: str, city: str = "", category: str = "") -> None:
+        """
+        Записывает ошибку.
+
+        Args:
+            error_message: Сообщение об ошибке.
+            city: Название города (опционально).
+            category: Название категории (опционально).
+        """
+        with self._lock:
+            self.error_count += 1
+            self.errors.append({
+                "message": error_message,
+                "city": city,
+                "category": category,
+                "timestamp": time.time(),
+            })
+
+    def get_elapsed_time(self) -> float:
+        """
+        Получает прошедшее время.
+
+        Returns:
+            Время в секундах.
+        """
+        with self._lock:
+            if self.start_time is None:
+                return 0.0
+            end = self.end_time if self.end_time else time.time()
+            return end - self.start_time
+
+    def get_summary(self) -> Dict[str, Any]:
+        """
+        Получает сводку статистики.
+
+        Returns:
+            Словарь со сводкой статистики.
+        """
+        with self._lock:
+            return {
+                "success_count": self.success_count,
+                "error_count": self.error_count,
+                "total": self.success_count + self.error_count,
+                "elapsed_time": self.get_elapsed_time(),
+                "errors": list(self.errors),  # Копия для безопасности
+            }

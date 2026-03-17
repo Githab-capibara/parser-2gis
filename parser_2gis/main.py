@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, TypedDict
+from typing import Any, Callable, Optional, TypedDict
 from urllib.parse import urlparse
 
 import pydantic
@@ -30,6 +30,7 @@ from .data.categories_93 import CATEGORIES_93
 from .logger import logger, log_parser_start, log_parser_finish, setup_cli_logger
 from .paths import data_path
 from .pydantic_compat import get_model_dump
+from .signal_handler import SignalHandler
 from .version import version
 
 # =============================================================================
@@ -197,90 +198,40 @@ def _validate_url(url: str) -> UrlValidationResult:
         return False, f"Ошибка парсинга URL: {e}"
 
 
-# Глобальный флаг для отслеживания прерывания
-_interrupted = False
-
-# Флаг для предотвращения рекурсивного вызова signal handler
-# Исправление проблемы 6: Signal handler recursion
-_is_cleaning_up = False
+# Глобальный экземпляр обработчика сигналов
+# Исправление проблемы 1.3: используем класс SignalHandler вместо глобальных переменных
+_signal_handler_instance: Optional[SignalHandler] = None
 
 
-def _signal_handler(signum: int, frame: Any) -> None:
+def _get_signal_handler() -> SignalHandler:
     """
-    Обработчик сигналов SIGINT (KeyboardInterrupt) и SIGTERM.
+    Получает глобальный экземпляр SignalHandler.
 
-    Args:
-        signum: Номер сигнала.
-        frame: Текущий фрейм.
+    Returns:
+        Экземпляр SignalHandler для обработки сигналов.
 
-    Примечание:
-        Обработчик гарантирует безопасную очистку ресурсов:
-        - Закрывает все активные браузеры
-        - Очищает кэш
-        - Удаляет временные файлы
-        - Логирует факт прерывания
-
-    Исправление проблемы 6 (Signal handler recursion):
-        - Добавлен флаг _is_cleaning_up для предотвращения рекурсии
-        - При повторном сигнале во время cleanup используется signal.SIG_IGN
-        - Проверка флага перед вызовом cleanup_resources()
+    Raises:
+        RuntimeError: Если обработчик сигналов не инициализирован.
     """
-    global _interrupted, _is_cleaning_up
-
-    # Исправление 6: Проверяем флаг перед обработкой сигнала
-    # Если уже идёт очистка, игнорируем повторный сигнал
-    if _is_cleaning_up:
-        logger.warning(
-            "Получен повторный сигнал %d во время очистки ресурсов. Игнорируется.",
-            signum
-        )
-        return
-
-    _interrupted = True
-    _is_cleaning_up = True  # Устанавливаем флаг перед очисткой
-
-    logger.warning("Получен сигнал %d. Начинается безопасная очистка ресурсов...", signum)
-
-    # Исправление 6: Игнорируем повторные сигналы во время cleanup
-    # Устанавливаем временные обработчики SIG_IGN для предотвращения рекурсии
-    original_sigint = signal.getsignal(signal.SIGINT)
-    original_sigterm = signal.getsignal(signal.SIGTERM)
-
-    try:
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
-        signal.signal(signal.SIGTERM, signal.SIG_IGN)
-
-        # Немедленная очистка ресурсов
-        try:
-            cleanup_resources()
-        except Exception as cleanup_error:
-            logger.error("Ошибка при очистке ресурсов в signal handler: %s", cleanup_error)
-
-        logger.info("Очистка ресурсов завершена. Выход из приложения...")
-        sys.exit(128 + signum)
-
-    finally:
-        # Восстанавливаем оригинальные обработчики (на случай если sys.exit не сработал)
-        try:
-            signal.signal(signal.SIGINT, original_sigint)
-            signal.signal(signal.SIGTERM, original_sigterm)
-        except Exception:
-            pass
-        # Сбрасываем флаг только если очистка завершена
-        _is_cleaning_up = False
+    global _signal_handler_instance
+    if _signal_handler_instance is None:
+        raise RuntimeError("SignalHandler не инициализирован. Вызовите _setup_signal_handlers().")
+    return _signal_handler_instance
 
 
 def _setup_signal_handlers() -> None:
     """
-    Устанавливает обработчики сигналов для безопасной очистки ресурсов.
+    Устанавливает обработчики сигналов SIGINT и SIGTERM.
 
     Примечание:
         - SIGINT (Ctrl+C) - прерывание пользователем
         - SIGTERM - сигнал завершения от системы
+        - Используется класс SignalHandler для инкапсуляции состояния
     """
-    signal.signal(signal.SIGINT, _signal_handler)
-    signal.signal(signal.SIGTERM, _signal_handler)
-    logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены")
+    global _signal_handler_instance
+    _signal_handler_instance = SignalHandler(cleanup_callback=cleanup_resources)
+    _signal_handler_instance.setup()
+    logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через SignalHandler")
 
 
 def cleanup_resources() -> None:

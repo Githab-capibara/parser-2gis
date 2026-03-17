@@ -88,12 +88,6 @@ MERGE_LOCK_TIMEOUT: int = 300
 MAX_LOCK_FILE_AGE: int = 300
 
 
-# Глобальная переменная для отслеживания временных файлов в процессе merge
-# Используется signal handler для очистки при KeyboardInterrupt
-_merge_temp_files: List[Path] = []
-_merge_lock: threading.Lock = threading.Lock()
-
-
 if TYPE_CHECKING:
     from .config import Configuration
 
@@ -203,6 +197,11 @@ class ParallelCityParser:
 
         # Флаг отмены
         self._cancel_event = threading.Event()
+
+        # Список для отслеживания временных файлов merge операции (используется вместо глобальной переменной)
+        self._merge_temp_files: List[Path] = []
+        # Блокировка для потокобезопасного доступа к временным файлам
+        self._merge_lock = threading.Lock()
 
         # Логирование успешной инициализации
         self.log(
@@ -643,8 +642,8 @@ class ParallelCityParser:
 
         def cleanup_temp_files():
             """Функция очистки временных файлов при прерывании."""
-            with _merge_lock:
-                for temp_file in _merge_temp_files:
+            with self._merge_lock:
+                for temp_file in self._merge_temp_files:
                     try:
                         if temp_file.exists():
                             temp_file.unlink()
@@ -666,8 +665,8 @@ class ParallelCityParser:
 
         try:
             # Регистрируем временный файл для очистки при прерывании
-            with _merge_lock:
-                _merge_temp_files.append(temp_output)
+            with self._merge_lock:
+                self._merge_temp_files.append(temp_output)
 
             # Открываем с увеличенной буферизацией для улучшения производительности
             with open(
@@ -904,10 +903,10 @@ class ParallelCityParser:
             except Exception:
                 pass
 
-            # Удаляем временный файл из глобального списка
-            with _merge_lock:
-                if temp_output in _merge_temp_files:
-                    _merge_temp_files.remove(temp_output)
+            # Удаляем временный файл из списка экземпляра
+            with self._merge_lock:
+                if temp_output in self._merge_temp_files:
+                    self._merge_temp_files.remove(temp_output)
 
     def run(
         self,

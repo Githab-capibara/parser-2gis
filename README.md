@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-LGPLv3%2B-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-602%20passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-631%20passed-brightgreen.svg)](tests/)
 [![Code Quality](https://img.shields.io/badge/quality-95/100-brightgreen.svg)](https://github.com/Githab-capibara/parser-2gis)
 [![GitHub](https://img.shields.io/badge/GitHub-Githab--capibara-orange.svg)](https://github.com/Githab-capibara/parser-2gis)
 [![Version](https://img.shields.io/badge/version-2.1.6-blue.svg)](https://github.com/Githab-capibara/parser-2gis/releases)
@@ -91,11 +91,18 @@ Parser2GIS — Python-приложение для автоматизирован
 
 ### Качество кода и надёжность
 
-- ✅ **602 теста** — полное покрытие функциональности
+- ✅ **631 тест** — полное покрытие функциональности (включая тесты исправлений)
 - ✅ **0 критических ошибок** — все уязвимости исправлены
 - ✅ **Code Quality 95/100** — высокий рейтинг качества
 - ✅ **Исправлены утечки ресурсов** — гарантия очистки при прерывании
 - ✅ **Обработка ошибок** — интеллектуальная система retry
+- ✅ **Проверенные исправления** (v2.1.6):
+  - 🧹 Удалено глобальное состояние из `parallel_parser.py` (замена на атрибуты экземпляра)
+  - 🔄 Итеративный `_sanitize_value` в `common.py` (защита от RecursionError)
+  - 📦 Улучшена обработка ошибок orjson в `cache.py` (явные исключения с контекстом)
+  - ⚡ Увеличен lru_cache для портов в `remote.py` (16 → 128)
+  - 🎯 Оптимизированы размеры lru_cache в `common.py` (1024, 512, 4096, 2048)
+  - 📝 Вынесены магические числа в константы в `parser/parsers/main.py`
 - ✅ **Безопасность** — исправлены XSS, SQL Injection, SSRF уязвимости
 
 ### Форматы вывода
