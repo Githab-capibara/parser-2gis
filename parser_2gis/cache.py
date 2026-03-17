@@ -24,10 +24,9 @@ import hashlib
 import json
 import sqlite3
 import threading
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple, Callable
+from typing import Optional, Dict, Any, List, Tuple
 
 from .logger import logger
 
@@ -228,6 +227,39 @@ class _ConnectionPool:
                 except Exception:
                     pass
             self._all_conns.clear()
+
+    def __del__(self) -> None:
+        """
+        Гарантирует закрытие соединений при уничтожении объекта.
+
+        Исправление проблемы 7 (Connection pool не закрывает соединения при GC):
+        - Вызывает close_all() с обработкой исключений
+        - Добавляет warning в лог если соединения не закрыты явно
+        - В __del__ нельзя выбрасывать исключения - все ошибки логируются
+
+        Важно:
+            Не следует полагаться на этот метод для гарантированной очистки.
+            Всегда вызывайте close_all() явно или используйте контекстный менеджер.
+        """
+        # Проверяем есть ли незакрытые соединения
+        if hasattr(self, '_all_conns') and self._all_conns:
+            logger.warning(
+                "_ConnectionPool уничтожается сборщиком мусора с %d незакрытыми соединениями. "
+                "Всегда вызывайте close_all() явно или используйте контекстный менеджер.",
+                len(self._all_conns)
+            )
+
+        # Пытаемся закрыть соединения
+        try:
+            if hasattr(self, '_all_conns'):
+                self.close_all()
+        except Exception as del_error:
+            # В __del__ нельзя выбрасывать исключения - только логируем
+            logger.error(
+                "Ошибка при закрытии соединений в __del__ (_ConnectionPool): %s",
+                del_error,
+                exc_info=True
+            )
 
 
 class CacheManager:

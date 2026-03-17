@@ -6,8 +6,8 @@ import re
 import threading
 import time
 import urllib.parse
-from collections import OrderedDict, deque
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from collections import OrderedDict
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 try:
     import psutil
@@ -526,17 +526,21 @@ class MainParser:
                     for url in link_addresses:
                         visited_links[url] = None
 
-                    # Оптимизация памяти: OrderedDict автоматически управляет размером
-                    # При превышении MAX_VISITED_LINKS_SIZE старые записи удаляются
+                    # Исправление проблемы 9 (LRU eviction policy):
+                    # Немедленное удаление старых ссылок при превышении лимита
+                    # Это гарантирует что visited_links не превысит MAX_VISITED_LINKS_SIZE
                     if len(visited_links) > MAX_VISITED_LINKS_SIZE:
-                        # Удаляем 75% старых записей
-                        target_remove = int(len(visited_links) * MEMORY_REMOVE_RATIO)
-                        for _ in range(target_remove):
+                        # Вычисляем количество элементов для удаления (LRU - старые записи)
+                        overflow = len(visited_links) - MAX_VISITED_LINKS_SIZE
+                        # Удаляем старые элементы из начала OrderedDict (LRU eviction)
+                        for _ in range(overflow):
                             visited_links.popitem(last=False)
 
                         logger.debug(
-                            "Оптимизация памяти: очищено %d старых ссылок",
-                            target_remove,
+                            "LRU eviction: удалено %d старых ссылок, осталось %d (max: %d)",
+                            overflow,
+                            len(visited_links),
+                            MAX_VISITED_LINKS_SIZE
                         )
 
                 return links

@@ -12,6 +12,7 @@ import gc
 import ipaddress
 import json
 import signal
+import socket
 import sys
 import time
 from datetime import datetime
@@ -38,7 +39,7 @@ from .version import version
 # Словарь города с обязательными ключами
 class CityDict(TypedDict):
     """Словарь города для парсинга.
-    
+
     Attributes:
         name: Название города (например, "Москва").
         url: URL для парсинга (например, "https://2gis.ru/moscow").
@@ -50,7 +51,7 @@ class CityDict(TypedDict):
 # Словарь категории с обязательными ключами
 class CategoryDict(TypedDict):
     """Словарь категории для парсинга.
-    
+
     Attributes:
         id: Идентификатор категории (например, 93).
         name: Название категории (например, "Рестораны").
@@ -108,23 +109,29 @@ def _validate_url(url: str) -> UrlValidationResult:
         - Наличие сетевого расположения (netloc)
         - Общий формат URL
         - Блокировка localhost и внутренних IP адресов (127.x.x.x, 10.x.x.x, 192.168.x.x, 172.16-31.x.x)
+
+    Исправление проблемы 10 (DNS rebinding защита):
+        - Добавлена проверка hostname на соответствие IP после разрешения
+        - Блокировка private IP диапазонов через socket.getaddrinfo
+        - Проверка на localhost, loopback, private, link-local и multicast адреса
+        - Предотвращение атак через домены указывающие на внутренние IP
     """
     try:
         result = urlparse(url)
-        
+
         # Проверка схемы и netloc
         if not all([result.scheme in ('http', 'https'), result.netloc]):
             return False, "URL должен начинаться с http:// или https:// и содержать домен"
-        
+
         # Извлекаем хост для проверки на внутренние IP
         hostname = result.hostname
         if hostname is None:
             return False, "URL должен содержать домен"
-        
+
         # Проверяем, не является ли хост localhost
         if hostname.lower() in ('localhost', '127.0.0.1'):
             return False, "Использование localhost запрещено"
-        
+
         # Проверяем, не является ли хост IP адресом
         try:
             ip_addr = ipaddress.ip_address(hostname)
@@ -133,10 +140,58 @@ def _validate_url(url: str) -> UrlValidationResult:
                 return False, f"Использование внутренних IP адресов запрещено ({hostname})"
         except ValueError:
             # Это доменное имя, а не IP адрес - это нормально
+            # НО требуется проверка на DNS rebinding атаку
             pass
-        
+
+        # Исправление 10: DNS rebinding защита
+        # Разрешаем доменное имя и проверяем что оно не указывает на внутренний IP
+        try:
+            # Получаем все IP адреса для домена через socket.getaddrinfo
+            # Это предотвращает DNS rebinding атаку когда злоумышленник использует
+            # домен который резолвится во внутренний IP адрес
+            addr_info_list = socket.getaddrinfo(
+                hostname,
+                None,
+                socket.AF_INET,  # Только IPv4
+                socket.SOCK_STREAM
+            )
+
+            # Проверяем каждый полученный IP адрес
+            for addr_info in addr_info_list:
+                ip = addr_info[4][0]  # Извлекаем IP адрес из кортежа
+                try:
+                    ip_addr = ipaddress.ip_address(ip)
+
+                    # Блокируем все категории опасных адресов:
+                    # - is_private: 10.x.x.x, 172.16-31.x.x, 192.168.x.x
+                    # - is_loopback: 127.x.x.x
+                    # - is_link_local: 169.254.x.x (APIPA)
+                    # - is_multicast: 224.0.0.0 - 239.255.255.255
+                    if (ip_addr.is_private or
+                        ip_addr.is_loopback or
+                        ip_addr.is_link_local or
+                        ip_addr.is_multicast):
+                        return False, (
+                            f"Домен {hostname} резолвится во внутренний IP ({ip}), "
+                            f"что запрещено (DNS rebinding защита)"
+                        )
+
+                except ValueError:
+                    # Неверный формат IP - пропускаем
+                    continue
+
+        except socket.gaierror as dns_error:
+            # Ошибка разрешения DNS
+            return False, f"Не удалось разрешить DNS для {hostname}: {dns_error}"
+        except socket.herror as host_error:
+            # Ошибка хоста
+            return False, f"Ошибка хоста для {hostname}: {host_error}"
+        except OSError as os_error:
+            # Другие ошибки сокета
+            return False, f"Сетевая ошибка при проверке {hostname}: {os_error}"
+
         return True, None
-        
+
     except (ValueError, TypeError) as e:
         # Ловим только ожидаемые исключения типизации/значений
         return False, f"Ошибка парсинга URL: {e}"
@@ -144,6 +199,10 @@ def _validate_url(url: str) -> UrlValidationResult:
 
 # Глобальный флаг для отслеживания прерывания
 _interrupted = False
+
+# Флаг для предотвращения рекурсивного вызова signal handler
+# Исправление проблемы 6: Signal handler recursion
+_is_cleaning_up = False
 
 
 def _signal_handler(signum: int, frame: Any) -> None:
@@ -160,20 +219,55 @@ def _signal_handler(signum: int, frame: Any) -> None:
         - Очищает кэш
         - Удаляет временные файлы
         - Логирует факт прерывания
+
+    Исправление проблемы 6 (Signal handler recursion):
+        - Добавлен флаг _is_cleaning_up для предотвращения рекурсии
+        - При повторном сигнале во время cleanup используется signal.SIG_IGN
+        - Проверка флага перед вызовом cleanup_resources()
     """
-    global _interrupted
+    global _interrupted, _is_cleaning_up
+
+    # Исправление 6: Проверяем флаг перед обработкой сигнала
+    # Если уже идёт очистка, игнорируем повторный сигнал
+    if _is_cleaning_up:
+        logger.warning(
+            "Получен повторный сигнал %d во время очистки ресурсов. Игнорируется.",
+            signum
+        )
+        return
+
     _interrupted = True
+    _is_cleaning_up = True  # Устанавливаем флаг перед очисткой
 
     logger.warning("Получен сигнал %d. Начинается безопасная очистка ресурсов...", signum)
 
-    # Немедленная очистка ресурсов
-    try:
-        cleanup_resources()
-    except Exception as cleanup_error:
-        logger.error("Ошибка при очистке ресурсов в signal handler: %s", cleanup_error)
+    # Исправление 6: Игнорируем повторные сигналы во время cleanup
+    # Устанавливаем временные обработчики SIG_IGN для предотвращения рекурсии
+    original_sigint = signal.getsignal(signal.SIGINT)
+    original_sigterm = signal.getsignal(signal.SIGTERM)
 
-    logger.info("Очистка ресурсов завершена. Выход из приложения...")
-    sys.exit(128 + signum)
+    try:
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+
+        # Немедленная очистка ресурсов
+        try:
+            cleanup_resources()
+        except Exception as cleanup_error:
+            logger.error("Ошибка при очистке ресурсов в signal handler: %s", cleanup_error)
+
+        logger.info("Очистка ресурсов завершена. Выход из приложения...")
+        sys.exit(128 + signum)
+
+    finally:
+        # Восстанавливаем оригинальные обработчики (на случай если sys.exit не сработал)
+        try:
+            signal.signal(signal.SIGINT, original_sigint)
+            signal.signal(signal.SIGTERM, original_sigterm)
+        except Exception:
+            pass
+        # Сбрасываем флаг только если очистка завершена
+        _is_cleaning_up = False
 
 
 def _setup_signal_handlers() -> None:
@@ -607,7 +701,7 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
             if not is_valid:
                 invalid_urls.append(url)
                 url_errors.append(f"{url} ({error_msg})")
-        
+
         if invalid_urls:
             arg_parser.error(
                 f"Некорректный формат URL: {'; '.join(url_errors)}."
@@ -747,7 +841,7 @@ def main() -> None:
             logger.info("🎨 Запуск TUI интерфейса...")
 
             output_file = str(output_dir / "merged_result.csv")
-            
+
             # Запускаем новый TUI с параллельным парсингом
             from .tui_pytermgui.run_parallel import run_parallel_with_tui as run_parallel_new_tui
             result = run_parallel_new_tui(
