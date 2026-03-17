@@ -106,6 +106,10 @@ class MainParser:
         Примечание:
             Функция валидирует каждую ссылку и декодирует base64 данные
             для проверки корректности.
+
+        Обработка ошибок:
+            - TimeoutError: Логируется предупреждение, возвращается None
+            - Любые другие исключения: Логируются, возвращается None
         """
 
         def valid_link(node: "DOMNode") -> bool:
@@ -135,6 +139,16 @@ class MainParser:
             links = dom_tree.search(valid_link)
             # Возвращаем None если ссылки не найдены, иначе список ссылок
             return links if links else None
+
+        except TimeoutError as timeout_error:
+            # Явная обработка TimeoutError - возвращаем None вместо падения
+            logger.warning(
+                "Таймаут при получении ссылок (%d сек): %s. Возврат None.",
+                GET_LINKS_TIMEOUT,
+                timeout_error,
+            )
+            return None
+
         except Exception as e:
             logger.error("Ошибка при получении ссылок: %s", e)
             return None

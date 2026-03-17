@@ -803,42 +803,128 @@ class CacheManager:
         except ValueError:
             return False
 
+    def _get_cache_size_mb(self, conn: Optional[sqlite3.Connection] = None) -> float:
+        """
+        Получает размер кэша в мегабайтах.
+
+        Вычисляет размер файла базы данных кэша в мегабайтах.
+        Если файл не существует, возвращает 0.0.
+
+        Args:
+            conn: SQLite соединение (опционально, используется для проверки целостности БД).
+
+        Returns:
+            Размер кэша в мегабайтах.
+
+        Примечание:
+            Метод включает обработку ошибок для всех операций с файловой системой
+            для предотвращения сбоев при недоступности файла.
+        """
+        try:
+            if not self._cache_file.exists():
+                return 0.0
+
+            cache_size_bytes = self._cache_file.stat().st_size
+            cache_size_mb = cache_size_bytes / (1024 * 1024)
+
+            # Дополнительная проверка целостности БД если предоставлено соединение
+            if conn is not None:
+                try:
+                    # Быстрая проверка целостности
+                    cursor = conn.cursor()
+                    cursor.execute("PRAGMA quick_check(1)")
+                    cursor.close()
+                except sqlite3.Error:
+                    # Если БД повреждена, логируем предупреждение
+                    logger.warning("База данных кэша может быть повреждена")
+
+            return cache_size_mb
+
+        except OSError as os_error:
+            logger.warning("Ошибка при получении размера кэша: %s", os_error)
+            return 0.0
+
     def _enforce_cache_size_limit(self, conn: sqlite3.Connection) -> None:
-        """Принудительное ограничение размера кэша.
+        """
+        Принудительное ограничение размера кэша.
 
         Реализует LRU (Least Recently Used) политику eviction:
-        - Проверяет размер файла кэша
-        - Если размер превышает MAX_CACHE_SIZE_MB, удаляет LRU_EVICT_BATCH
-          старых записей (по timestamp)
+        - Проверяет размер файла кэша через _get_cache_size_mb()
+        - Если размер превышает MAX_CACHE_SIZE_MB, удаляет старые записи
+          до тех пор, пока размер не станет меньше лимита
+        - Использует пакетное удаление по LRU_EVICT_BATCH записей за раз
 
         Args:
             conn: SQLite соединение для выполнения запросов
+
+        Примечание:
+            Метод использует цикл для гарантированного снижения размера кэша
+            ниже лимита. За один проход может удалить несколько пакетов записей.
         """
         try:
-            # Проверяем размер файла кэша
-            if self._cache_file.exists():
-                cache_size_bytes = self._cache_file.stat().st_size
-                cache_size_mb = cache_size_bytes / (1024 * 1024)
+            # Получаем текущий размер кэша
+            cache_size_mb = self._get_cache_size_mb(conn)
 
-                if cache_size_mb > MAX_CACHE_SIZE_MB:
-                    logger.warning(
-                        "Размер кэша %.2f MB превышает лимит %d MB. "
-                        "Удаление %d старых записей (LRU eviction)",
-                        cache_size_mb,
-                        MAX_CACHE_SIZE_MB,
-                        LRU_EVICT_BATCH,
-                    )
+            # Проверяем превышение лимита
+            if cache_size_mb > MAX_CACHE_SIZE_MB:
+                logger.warning(
+                    "Размер кэша %.2f MB превышает лимит %d MB. "
+                    "Запуск LRU eviction...",
+                    cache_size_mb,
+                    MAX_CACHE_SIZE_MB,
+                )
 
-                    cursor = conn.cursor()
-                    try:
+                cursor = conn.cursor()
+                try:
+                    total_deleted = 0
+                    eviction_iterations = 0
+                    max_iterations = 50  # Защита от бесконечного цикла
+
+                    # Циклически удаляем записи пока размер не станет меньше лимита
+                    while cache_size_mb > MAX_CACHE_SIZE_MB and eviction_iterations < max_iterations:
+                        eviction_iterations += 1
+
+                        # Удаляем пакет старых записей (LRU - по timestamp)
                         cursor.execute(self.SQL_DELETE_LRU, (LRU_EVICT_BATCH,))
                         deleted_count = cursor.rowcount
                         conn.commit()
 
-                        if deleted_count > 0:
-                            logger.debug("LRU eviction: удалено %d записей", deleted_count)
-                    finally:
-                        cursor.close()
+                        if deleted_count == 0:
+                            # Нечего удалять - выходим из цикла
+                            logger.debug("LRU eviction: записей для удаления не осталось")
+                            break
+
+                        total_deleted += deleted_count
+                        logger.debug(
+                            "LRU eviction (итерация %d): удалено %d записей (всего: %d)",
+                            eviction_iterations,
+                            deleted_count,
+                            total_deleted,
+                        )
+
+                        # Проверяем новый размер кэша
+                        cache_size_mb = self._get_cache_size_mb(conn)
+
+                    if eviction_iterations >= max_iterations:
+                        logger.warning(
+                            "LRU eviction: достигнут лимит итераций (%d), "
+                            "текущий размер %.2f MB",
+                            max_iterations,
+                            cache_size_mb,
+                        )
+
+                    if total_deleted > 0:
+                        logger.info(
+                            "LRU eviction завершена: удалено %d записей за %d итераций, "
+                            "новый размер %.2f MB",
+                            total_deleted,
+                            eviction_iterations,
+                            cache_size_mb,
+                        )
+
+                finally:
+                    cursor.close()
+
         except OSError as os_error:
             logger.warning("Ошибка при проверке размера кэша: %s", os_error)
         except sqlite3.Error as db_error:

@@ -12,8 +12,10 @@
 
 from __future__ import annotations
 
+import fcntl
 import os
 import shutil
+import signal
 import tempfile
 import threading
 import time
@@ -73,6 +75,23 @@ MERGE_BATCH_SIZE: int = 500
 # Максимальное количество попыток создания уникального имени файла
 # Защищает от бесконечного цикла при коллизиях имён
 MAX_UNIQUE_NAME_ATTEMPTS: int = 10
+
+# =============================================================================
+# КОНСТАНТЫ ДЛЯ БЛОКИРОВОК И ЗАЩИТЫ ОТ CONCURRENT OPERATIONS
+# =============================================================================
+
+# Таймаут ожидания блокировки merge операции в секундах
+MERGE_LOCK_TIMEOUT: int = 300
+
+# Максимальный возраст lock файла в секундах (5 минут)
+# Lock файлы старше этого возраста считаются осиротевшими
+MAX_LOCK_FILE_AGE: int = 300
+
+
+# Глобальная переменная для отслеживания временных файлов в процессе merge
+# Используется signal handler для очистки при KeyboardInterrupt
+_merge_temp_files: List[Path] = []
+_merge_lock: threading.Lock = threading.Lock()
 
 
 if TYPE_CHECKING:
@@ -487,13 +506,116 @@ class ParallelCityParser:
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
         temp_file_created = False  # Флаг для отслеживания создания временного файла
 
+        # Lock file для защиты от concurrent merge операций
+        lock_file_path = self.output_dir / ".merge.lock"
+        lock_file_handle = None
+        lock_acquired = False
+
         # Оптимизация 19: используем увеличенную буферизацию и пакетную обработку
         output_encoding = self.config.writer.encoding
         # Используем предопределённые константы для буферизации и размера пакета
         buffer_size = MERGE_BUFFER_SIZE  # 128KB буфер для чтения/записи
         batch_size = MERGE_BATCH_SIZE  # Размер пакета для записи (500 строк)
 
+        # =====================================================================
+        # БЛОКИРОВКА 1: Получаем lock file для предотвращения concurrent merge
+        # =====================================================================
         try:
+            # Проверяем возраст существующего lock файла
+            if lock_file_path.exists():
+                try:
+                    lock_age = time.time() - lock_file_path.stat().st_mtime
+                    if lock_age > MAX_LOCK_FILE_AGE:
+                        # Lock файл осиротевший - удаляем
+                        self.log(
+                            f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек)",
+                            "debug",
+                        )
+                        lock_file_path.unlink()
+                    else:
+                        self.log(
+                            f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...",
+                            "warning",
+                        )
+                except OSError:
+                    pass
+
+            # Пытаемся получить блокировку с таймаутом
+            start_time = time.time()
+            while not lock_acquired:
+                try:
+                    # Атомарное создание lock файла с эксклюзивной блокировкой
+                    lock_file_handle = open(lock_file_path, 'w')
+                    fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    # Записываем PID процесса для отладки
+                    lock_file_handle.write(f"{os.getpid()}\n")
+                    lock_file_handle.flush()
+                    lock_acquired = True
+                    self.log("Lock file получен успешно", "debug")
+                except (IOError, OSError):
+                    # Блокировка занята другим процессом
+                    if lock_file_handle:
+                        try:
+                            lock_file_handle.close()
+                        except Exception:
+                            pass
+                        lock_file_handle = None
+
+                    # Проверяем таймаут ожидания
+                    if time.time() - start_time > MERGE_LOCK_TIMEOUT:
+                        self.log(
+                            f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)",
+                            "error",
+                        )
+                        return False
+
+                    # Ждём перед следующей попыткой
+                    time.sleep(1)
+
+        except Exception as lock_error:
+            self.log(f"Ошибка при получении lock файла: {lock_error}", "error")
+            if lock_file_handle:
+                try:
+                    lock_file_handle.close()
+                except Exception:
+                    pass
+            return False
+
+        # =====================================================================
+        # БЛОКИРОВКА 2: Signal handler для очистки при KeyboardInterrupt
+        # =====================================================================
+        # Сохраняем старые обработчики сигналов
+        old_sigint_handler = signal.getsignal(signal.SIGINT)
+        old_sigterm_handler = signal.getsignal(signal.SIGTERM)
+
+        def cleanup_temp_files():
+            """Функция очистки временных файлов при прерывании."""
+            with _merge_lock:
+                for temp_file in _merge_temp_files:
+                    try:
+                        if temp_file.exists():
+                            temp_file.unlink()
+                            self.log(f"Временный файл удалён при прерывании: {temp_file}", "debug")
+                    except Exception:
+                        pass
+
+        def signal_handler(signum, frame):
+            """Обработчик сигналов прерывания."""
+            self.log(f"Получен сигнал {signum}, очистка временных файлов...", "warning")
+            cleanup_temp_files()
+            # Вызываем старый обработчик
+            if callable(old_sigint_handler):
+                old_sigint_handler(signum, frame)
+
+        # Устанавливаем наши обработчики
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+        try:
+            # Регистрируем временный файл для очистки при прерывании
+            with _merge_lock:
+                _merge_temp_files.append(temp_output)
+
             # Открываем с увеличенной буферизацией для улучшения производительности
             with open(
                 temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
@@ -601,12 +723,23 @@ class ParallelCityParser:
                         "Все CSV файлы пустые или не имеют заголовков. Объединение невозможно.",
                         "warning",
                     )
+
                     # Очищаем временный файл
                     try:
                         temp_output.unlink()
                         self.log("Временный файл удалён (все файлы пустые)", "debug")
                     except Exception as e:
                         self.log(f"Не удалось удалить временный файл: {e}", "debug")
+
+                    # Удаляем lock файл
+                    try:
+                        if lock_file_handle:
+                            fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_UN)
+                            lock_file_handle.close()
+                            lock_file_path.unlink()
+                    except Exception:
+                        pass
+
                     return False
 
                 self.log(f"Объединение завершено. Всего записей: {total_rows}", "info")
@@ -659,13 +792,37 @@ class ParallelCityParser:
                 "info",
             )
             temp_file_created = False  # Файл успешно перемещён, не нужно удалять
+
+            # Удаляем lock файл
+            try:
+                if lock_file_handle:
+                    fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_UN)
+                    lock_file_handle.close()
+                    lock_file_path.unlink()
+                    self.log("Lock файл удалён", "debug")
+            except Exception as lock_error:
+                self.log(f"Ошибка при удалении lock файла: {lock_error}", "debug")
+
             return True
+
+        except KeyboardInterrupt:
+            # Обработка прерывания пользователем (Ctrl+C)
+            self.log("Объединение прервано пользователем (KeyboardInterrupt)", "warning")
+            cleanup_temp_files()
+            return False
 
         except Exception as e:
             self.log(f"Ошибка при объединении CSV: {e}", "error")
             return False
 
         finally:
+            # Восстанавливаем старые обработчики сигналов
+            try:
+                signal.signal(signal.SIGINT, old_sigint_handler)
+                signal.signal(signal.SIGTERM, old_sigterm_handler)
+            except Exception:
+                pass
+
             # Гарантированная очистка временного файла если он ещё существует
             # Это защищает от утечек файлов при KeyboardInterrupt или других исключениях
             if temp_file_created and temp_output.exists():
@@ -680,6 +837,24 @@ class ParallelCityParser:
                         f"Не удалось удалить временный файл в finally: {cleanup_error}",
                         "warning",
                     )
+
+            # Освобождаем блокировку и удаляем lock файл если ещё существует
+            try:
+                if lock_file_handle:
+                    try:
+                        fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_UN)
+                        lock_file_handle.close()
+                    except Exception:
+                        pass
+                if lock_file_path.exists():
+                    lock_file_path.unlink()
+            except Exception:
+                pass
+
+            # Удаляем временный файл из глобального списка
+            with _merge_lock:
+                if temp_output in _merge_temp_files:
+                    _merge_temp_files.remove(temp_output)
 
     def run(
         self,
