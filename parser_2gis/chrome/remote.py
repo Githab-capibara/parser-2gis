@@ -6,6 +6,7 @@ import re
 import socket
 import threading
 import time
+from contextlib import closing
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
@@ -88,23 +89,23 @@ def _check_port_available_internal(port: int, timeout: float = 0.5, retries: int
     result = True  # По умолчанию порт свободен
 
     for attempt in range(retries):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        try:
-            connect_result = sock.connect_ex(("127.0.0.1", port))
-            # Если порт занят (result == 0), возвращаем False немедленно
-            if connect_result == 0:
+        # Используем contextlib.closing() для гарантии закрытия сокета
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+            sock.settimeout(timeout)
+            try:
+                connect_result = sock.connect_ex(("127.0.0.1", port))
+                # Если порт занят (result == 0), возвращаем False немедленно
+                if connect_result == 0:
+                    result = False
+                    break
+                # Небольшая задержка между проверками
+                if attempt < retries - 1:
+                    time.sleep(0.1)
+            except Exception as e:
+                logger.debug("Ошибка при проверке порта %d: %s", port, e)
                 result = False
                 break
-            # Небольшая задержка между проверками
-            if attempt < retries - 1:
-                time.sleep(0.1)
-        except Exception as e:
-            logger.debug("Ошибка при проверке порта %d: %s", port, e)
-            result = False
-            break
-        finally:
-            sock.close()
+            # closing() автоматически закроет сокет при выходе из блока with
 
     return result
 

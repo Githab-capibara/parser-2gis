@@ -6,7 +6,7 @@ import re
 import threading
 import time
 import urllib.parse
-from collections import deque
+from collections import OrderedDict, deque
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 try:
@@ -29,13 +29,27 @@ if TYPE_CHECKING:
     from ..options import ParserOptions
 
 
-# Константы модуля для магических чисел
+# =============================================================================
+# КОНСТАНТЫ МОДУЛЯ ДЛЯ МАГИЧЕСКИХ ЧИСЕЛ
+# =============================================================================
+
+# Попытки и таймауты
 MAX_RESPONSE_ATTEMPTS: int = 3  # Максимальное количество попыток получить ответ
 NAVIGATION_TIMEOUT: int = 120  # Таймаут навигации в секундах
 WAIT_REQUESTS_TIMEOUT: int = 120  # Таймаут ожидания завершения запросов
 GET_LINKS_TIMEOUT: int = 5  # Таймаут получения ссылок
 GET_UNIQUE_LINKS_TIMEOUT: int = 10  # Таймаут получения уникальных ссылок
+MAX_RETRY_ATTEMPTS: int = 5  # Максимальное количество попыток получения ссылок
+MAX_LINK_ATTEMPTS: int = 5  # Максимальное количество попыток получения ссылок
+
+# Память и оптимизация
 MAX_VISITED_LINKS_SIZE: int = 10000  # Максимальный размер множества посещённых ссылок
+MEMORY_KEEP_RATIO: float = 0.25  # Доля памяти для сохранения при оптимизации (25%)
+MEMORY_REMOVE_RATIO: float = 0.75  # Доля памяти для удаления при оптимизации (75%)
+
+# Задержки
+RESPONSE_RETRY_DELAY: float = 0.5  # Задержка между попытками получения ответа (сек)
+
 # MAX_CONSECUTIVE_EMPTY_PAGES теперь задается через ParserOptions.max_consecutive_empty_pages (по умолчанию 3)
 
 
@@ -248,6 +262,28 @@ class MainParser:
                 # Если навигация успешна - выходим из цикла
                 break
 
+            except TimeoutError as timeout_error:
+                # Явная обработка TimeoutError с retry logic
+                if (
+                    retry_attempt < self._options.max_retries
+                    and self._options.retry_on_network_errors
+                ):
+                    # Экспоненциальная задержка: 1с, 2с, 4с, ...
+                    delay = self._options.retry_delay_base * (2**retry_attempt)
+                    logger.warning(
+                        "Таймаут при навигации (попытка %d/%d): %s. "
+                        "Повторная попытка через %.1f сек...",
+                        retry_attempt + 1,
+                        self._options.max_retries,
+                        timeout_error,
+                        delay,
+                    )
+                    time.sleep(delay)
+                else:
+                    # Исчерпаны все попытки
+                    logger.error("Таймаут навигации по URL %s: %s", url, timeout_error)
+                    return
+
             except Exception as navigate_error:
                 error_msg = str(navigate_error).lower()
                 is_network_error = (
@@ -340,9 +376,9 @@ class MainParser:
         collected_records = 0
 
         # Уже посещённые ссылки (с оптимизацией памяти)
-        # Оптимизация: используем deque для эффективного удаления старых ссылок
-        visited_links: Set[str] = set()
-        visited_links_order: deque[str] = deque()  # Для отслеживания порядка добавления
+        # Оптимизация 3.1: используем OrderedDict с ограничением размера для эффективного управления памятью
+        # OrderedDict автоматически удаляет старые записи при превышении maxlen
+        visited_links: OrderedDict[str, None] = OrderedDict()
         visited_links_lock = threading.Lock()  # Блокировка для потокобезопасности
 
         # Оптимизация: кэшируем psutil.Process объект для снижения накладных расходов
@@ -363,11 +399,14 @@ class MainParser:
         def check_and_optimize_memory():
             """Проверяет использование памяти и выполняет автоматическую оптимизацию.
 
-            Оптимизация:
+            Оптимизация 3.1:
             - Кэширование psutil.Process объекта
             - Снижение частоты вызовов gc.collect()
-            - Пакетное удаление ссылок с использованием set.difference_update
-            - Избегание повторных вызовов memory_info()
+            - OrderedDict автоматически управляет размером через maxlen
+
+            Примечание:
+                Функция использует OrderedDict для visited_links, что позволяет
+                автоматически удалять старые записи при превышении лимита.
             """
             nonlocal memory_check_counter
             memory_check_counter += 1
@@ -392,31 +431,21 @@ class MainParser:
                         self._options.memory_threshold,
                     )
 
-                    # Оптимизация: пакетное удаление ссылок с использованием set operations
+                    # Оптимизация 3.1: OrderedDict автоматически управляет размером
+                    # Удаляем старые записи при превышении MAX_VISITED_LINKS_SIZE
                     with visited_links_lock:
-                        if len(visited_links) > 1000:
-                            # Вычисляем количество элементов для сохранения (25%)
-                            target_keep = len(visited_links_order) // 4
-                            
-                            if target_keep > 0:
-                                from itertools import islice
-                                
-                                # Получаем элементы для сохранения (последние 25%)
-                                links_to_keep = set(islice(visited_links_order, len(visited_links_order) - target_keep, None))
-                                
-                                # Вычисляем элементы для удаления
-                                links_to_remove = visited_links - links_to_keep
-                                
-                                # Пакетное удаление
-                                visited_links.difference_update(links_to_remove)
-                                
-                                # Обновляем deque
-                                for _ in range(len(visited_links_order) - target_keep):
-                                    visited_links_order.popleft()
-                                
+                        if len(visited_links) > MAX_VISITED_LINKS_SIZE:
+                            # Вычисляем количество элементов для удаления (75%)
+                            target_remove = int(len(visited_links) * MEMORY_REMOVE_RATIO)
+
+                            if target_remove > 0:
+                                # Удаляем старые элементы из начала OrderedDict
+                                for _ in range(target_remove):
+                                    visited_links.popitem(last=False)
+
                                 logger.debug(
                                     "Очищено %d ссылок для освобождения памяти",
-                                    len(links_to_remove),
+                                    target_remove,
                                 )
 
                     # Оптимизация: одиночный вызов gc.collect() вместо двойного
@@ -454,10 +483,10 @@ class MainParser:
         def get_unique_links() -> Optional[DOMNodeList]:
             """Получает уникальные ссылки, которые ещё не были посещены.
 
-            Оптимизация:
-            - Использование set intersection для быстрой проверки пересечений
+            Оптимизация 3.1:
+            - Использование OrderedDict для эффективного управления памятью
             - Пакетное добавление ссылок вместо поэлементного
-            - Эффективное удаление старых ссылок без полного пересоздания множества
+            - Автоматическое удаление старых ссылок при превышении лимита
 
             Returns:
                 Список уникальных DOM-узлов ссылок или None при ошибке/повторе.
@@ -475,41 +504,25 @@ class MainParser:
 
                 with visited_links_lock:
                     # Оптимизация: используем set.intersection для быстрой проверки
-                    if link_addresses.intersection(visited_links):
+                    if link_addresses.intersection(visited_links.keys()):
                         # Возвращаем None вместо пустого списка для явного указания на повтор
                         return None
 
-                    # Оптимизация: пакетное добавление ссылок (быстрее чем цикл for)
-                    new_links = link_addresses - visited_links
-                    visited_links.update(new_links)
-                    visited_links_order.extend(new_links)
+                    # Оптимизация 3.1: пакетное добавление ссылок в OrderedDict
+                    for url in link_addresses:
+                        visited_links[url] = None
 
-                    # Оптимизация памяти: очищаем старые ссылки при превышении лимита
+                    # Оптимизация памяти: OrderedDict автоматически управляет размером
+                    # При превышении MAX_VISITED_LINKS_SIZE старые записи удаляются
                     if len(visited_links) > MAX_VISITED_LINKS_SIZE:
-                        # Оптимизация: используем islice для эффективного получения первых элементов
-                        from itertools import islice
-                        
-                        # Вычисляем количество элементов для удаления (75%)
-                        target_keep = len(visited_links_order) // 4
-                        
-                        # Оставляем только последние 25% элементов
-                        if target_keep > 0:
-                            # Создаём новое множество из оставшихся элементов
-                            links_to_keep = set(islice(visited_links_order, len(visited_links_order) - target_keep, None))
-                            visited_links.clear()
-                            visited_links.update(links_to_keep)
-                            
-                            # Обновляем deque, оставляя только последние элементы
-                            for _ in range(len(visited_links_order) - target_keep):
-                                visited_links_order.popleft()
-                        else:
-                            # Если элементов мало, очищаем всё
-                            visited_links.clear()
-                            visited_links_order.clear()
-                        
+                        # Удаляем 75% старых записей
+                        target_remove = int(len(visited_links) * MEMORY_REMOVE_RATIO)
+                        for _ in range(target_remove):
+                            visited_links.popitem(last=False)
+
                         logger.debug(
                             "Оптимизация памяти: очищено %d старых ссылок",
-                            len(visited_links_order),
+                            target_remove,
                         )
 
                 return links
@@ -519,7 +532,7 @@ class MainParser:
 
         try:
             # Счётчик попыток получения ссылок для предотвращения бесконечного цикла
-            max_link_attempts = 5
+            # Используем константу MAX_LINK_ATTEMPTS вместо магического числа
             link_attempt_count = 0
 
             while True:
@@ -543,7 +556,7 @@ class MainParser:
                         consecutive_empty_pages,
                         self._options.max_consecutive_empty_pages,
                         link_attempt_count,
-                        max_link_attempts,
+                        MAX_LINK_ATTEMPTS,
                     )
 
                     # Если подряд слишком много пустых страниц - прерываем парсинг
@@ -559,10 +572,10 @@ class MainParser:
                         return
 
                     # Если слишком много попыток получения ссылок неудачны - прерываем цикл
-                    if link_attempt_count >= max_link_attempts:
+                    if link_attempt_count >= MAX_LINK_ATTEMPTS:
                         logger.error(
                             "Достигнут лимит попыток получения ссылок (%d). Прекращаем парсинг URL.",
-                            max_link_attempts,
+                            MAX_LINK_ATTEMPTS,
                         )
                         return
 
@@ -603,8 +616,9 @@ class MainParser:
                                     break
 
                                 # Добавляем небольшую задержку между попытками для снижения нагрузки
+                                # Используем константу RESPONSE_RETRY_DELAY вместо магического числа
                                 if attempt < MAX_RESPONSE_ATTEMPTS - 1:
-                                    self._chrome_remote.wait(0.5)
+                                    self._chrome_remote.wait(RESPONSE_RETRY_DELAY)
 
                             except Exception as click_error:
                                 logger.warning(
@@ -613,7 +627,7 @@ class MainParser:
                                     click_error,
                                 )
                                 if attempt < MAX_RESPONSE_ATTEMPTS - 1:
-                                    self._chrome_remote.wait(0.5)
+                                    self._chrome_remote.wait(RESPONSE_RETRY_DELAY)
 
                         # Пропускаем позицию, если все попытки получить ответ неудачны
                         if not resp or resp.get("status", -1) < 0:

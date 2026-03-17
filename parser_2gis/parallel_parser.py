@@ -12,7 +12,9 @@
 
 from __future__ import annotations
 
+import os
 import shutil
+import tempfile
 import threading
 import time
 import uuid
@@ -265,13 +267,25 @@ class ParallelCityParser:
         temp_filepath = self.output_dir / temp_filename
 
         # ВАЖНО: Атомарное создание временного файла для предотвращения race condition
-        # pathlib.Path.touch(exist_ok=False) выбрасывает FileExistsError если файл уже существует
-        # Это позволяет обнаружить и обработать коллизии имён
+        # Используем os.open() с флагами O_CREAT | O_EXCL для атомарного создания
+        # Это гарантирует, что между проверкой и созданием файла не будет гонки условий
+        temp_fd = None
         for attempt in range(MAX_UNIQUE_NAME_ATTEMPTS):
             try:
-                # Атомарное создание файла
-                temp_filepath.touch(exist_ok=False)
-                logger.debug("Временный файл атомарно создан: %s", temp_filename)
+                # Атомарное создание файла через os.open с O_CREAT | O_EXCL
+                # O_CREAT - создать файл если не существует
+                # O_EXCL - выбросить ошибку если файл уже существует (вместе с O_CREAT)
+                # O_WRONLY - открыть для записи
+                # O_CREAT | O_EXCL гарантирует атомарное создание
+                temp_fd = os.open(
+                    str(temp_filepath),
+                    os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                    mode=0o644  # Права доступа: владелец чтение/запись, остальные чтение
+                )
+                # Закрываем файловый дескриптор - файл создан
+                os.close(temp_fd)
+                temp_fd = None
+                logger.debug("Временный файл атомарно создан через os.open: %s", temp_filename)
                 break  # Успех - выходим из цикла
             except FileExistsError:
                 # Файл уже существует (race condition) - генерируем новое имя
@@ -290,18 +304,35 @@ class ParallelCityParser:
                         temp_filename,
                     )
                     raise
+            except OSError as os_error:
+                # Ошибка при создании файла
+                if temp_fd is not None:
+                    try:
+                        os.close(temp_fd)
+                    except OSError:
+                        pass
+                    temp_fd = None
+                if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
+                    logger.debug(
+                        "Ошибка при создании временного файла (попытка %d): %s. Повторная попытка...",
+                        attempt + 1,
+                        os_error,
+                    )
+                    temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+                    temp_filepath = self.output_dir / temp_filename
+                else:
+                    logger.error(
+                        "Не удалось создать временный файл после %d попыток: %s",
+                        MAX_UNIQUE_NAME_ATTEMPTS,
+                        temp_filename,
+                    )
+                    raise
 
         try:
             self.log(
                 f"Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filename})",
                 "info",
             )
-
-            # Удаляем созданный пустой файл - writer создаст свой файл
-            try:
-                temp_filepath.unlink()
-            except OSError:
-                pass  # Файл может быть уже удалён
 
             # Создаем парсер
             with get_parser(
@@ -310,6 +341,7 @@ class ParallelCityParser:
                 parser_options=self.config.parser,
             ) as parser:
                 # Создаем writer для этого URL (запись во временный файл)
+                # Writer создаст свой файл, заменив пустой временный файл
                 with get_writer(str(temp_filepath), "csv", self.config.writer) as writer:
                     # Парсим с гарантированной очисткой ресурсов
                     try:
@@ -453,6 +485,7 @@ class ParallelCityParser:
 
         # Создаём временный файл для результата объединения
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
+        temp_file_created = False  # Флаг для отслеживания создания временного файла
 
         # Оптимизация 19: используем увеличенную буферизацию и пакетную обработку
         output_encoding = self.config.writer.encoding
@@ -465,6 +498,7 @@ class ParallelCityParser:
             with open(
                 temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
             ) as outfile:
+                temp_file_created = True  # Файл создан успешно
                 writer = None
                 total_rows = 0
                 fieldnames_cache: Dict[str, List[str]] = {}  # Кэш полей для файлов
@@ -624,21 +658,28 @@ class ParallelCityParser:
                 f"Объединение завершено. Файлы удалены ({len(files_to_delete)} шт.)",
                 "info",
             )
+            temp_file_created = False  # Файл успешно перемещён, не нужно удалять
             return True
 
         except Exception as e:
             self.log(f"Ошибка при объединении CSV: {e}", "error")
-            try:
-                if temp_output.exists():
-                    temp_output.unlink()
-                    self.log("Временный файл удалён после ошибки", "debug")
-            except Exception as e:
-                self.log(f"Не удалось удалить временный файл после ошибки: {e}", "debug")
-            self.log(
-                "Исходные файлы НЕ были удалены (ошибка до завершения объединения)",
-                "warning",
-            )
             return False
+
+        finally:
+            # Гарантированная очистка временного файла если он ещё существует
+            # Это защищает от утечек файлов при KeyboardInterrupt или других исключениях
+            if temp_file_created and temp_output.exists():
+                try:
+                    temp_output.unlink()
+                    self.log(
+                        "Временный файл удалён в блоке finally (защита от утечек)",
+                        "debug",
+                    )
+                except Exception as cleanup_error:
+                    self.log(
+                        f"Не удалось удалить временный файл в finally: {cleanup_error}",
+                        "warning",
+                    )
 
     def run(
         self,

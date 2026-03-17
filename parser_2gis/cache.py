@@ -27,9 +27,64 @@ import threading
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Callable
 
 from .logger import logger
+
+# =============================================================================
+# ОПТИМИЗАЦИЯ 3.6: orjson wrapper для сериализации
+# =============================================================================
+
+# Попытка импортировать orjson для более быстрой сериализации
+# orjson в 2-3 раза быстрее стандартного json модуля
+try:
+    import orjson
+    _use_orjson = True
+except ImportError:
+    _use_orjson = False
+    orjson = None  # type: ignore
+
+
+def _serialize_json(data: Dict[str, Any]) -> str:
+    """
+    Сериализует данные в JSON формат.
+    
+    Оптимизация 3.6:
+    - Используем orjson если установлен (в 2-3 раза быстрее)
+    - Fallback на стандартный json если orjson недоступен
+    
+    Args:
+        data: Данные для сериализации.
+        
+    Returns:
+        JSON строка.
+    """
+    if _use_orjson and orjson is not None:
+        # orjson возвращает bytes, декодируем в строку
+        return orjson.dumps(data).decode('utf-8')
+    else:
+        # Стандартный json с оптимизированными параметрами
+        return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+
+
+def _deserialize_json(data: str) -> Dict[str, Any]:
+    """
+    Десериализует JSON строку в данные.
+    
+    Оптимизация 3.6:
+    - Используем orjson если установлен
+    - Fallback на стандартный json если orjson недоступен
+    
+    Args:
+        data: JSON строка для десериализации.
+        
+    Returns:
+        Данные в виде словаря.
+    """
+    if _use_orjson and orjson is not None:
+        return orjson.loads(data)  # type: ignore
+    else:
+        return json.loads(data)
 
 # Экспортируемые символы модуля
 __all__ = ["CacheManager"]
@@ -205,6 +260,13 @@ class CacheManager:
         ON cache(expires_at)
     """
 
+    # Индекс для url_hash уже существует как PRIMARY KEY, но добавим
+    # дополнительный индекс для ускорения поиска по url_hash в составных запросах
+    SQL_CREATE_URL_HASH_INDEX = """
+        CREATE INDEX IF NOT EXISTS idx_url_hash
+        ON cache(url_hash)
+    """
+
     SQL_SELECT = """
         SELECT data, expires_at
         FROM cache
@@ -298,6 +360,9 @@ class CacheManager:
             # Создаем индекс для быстрого поиска истекших записей
             conn.execute(self.SQL_CREATE_INDEX)
 
+            # Создаем дополнительный индекс для url_hash для ускорения поиска
+            conn.execute(self.SQL_CREATE_URL_HASH_INDEX)
+
             # Примечание: SQLite3 в Python не поддерживает prepare() для курсоров,
             # поэтому используем прямое выполнение с параметрами для защиты от SQL injection
         except Exception as e:
@@ -353,14 +418,15 @@ class CacheManager:
                 return None
 
             # Кэш найден и не истек, возвращаем данные
-            return json.loads(data)
+            # Оптимизация 3.6: используем orjson wrapper для быстрой десериализации
+            return _deserialize_json(data)
 
         except sqlite3.Error as db_error:
             logger.warning("Ошибка БД при получении кэша: %s", db_error)
             return None
-        except (json.JSONDecodeError, UnicodeDecodeError) as decode_error:
-            # Обрабатываем как ошибки JSON, так и ошибки декодирования Unicode
-            # UnicodeDecodeError может возникнуть при чтении повреждённых данных в кэше
+        except Exception as decode_error:
+            # Обрабатываем все ошибки десериализации
+            # Оптимизация 3.6: orjson может выбрасывать свои исключения
             error_type = "Unicode" if isinstance(decode_error, UnicodeDecodeError) else "JSON"
             logger.warning(
                 "Ошибка %s при чтении кэша: %s. Кэш будет считаться невалидным.",
@@ -398,8 +464,9 @@ class CacheManager:
         expires_at = now + self._ttl
 
         # Сериализуем данные один раз
+        # Оптимизация 3.6: используем orjson wrapper для быстрой сериализации
         try:
-            data_json = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+            data_json = _serialize_json(data)
         except (TypeError, ValueError) as e:
             logger.error("Ошибка сериализации данных для кэша: %s", e)
             return
@@ -456,7 +523,8 @@ class CacheManager:
                 url_hash = self._hash_url(url)
 
                 try:
-                    data_json = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+                    # Оптимизация 3.6: используем orjson wrapper для быстрой сериализации
+                    data_json = _serialize_json(data)
                     # Используем кэшированную временную метку now для всех записей
                     cursor.execute(
                         self.SQL_INSERT_OR_REPLACE,
@@ -571,7 +639,13 @@ class CacheManager:
         cursor = conn.cursor()
 
         try:
-            # Используем параметризованный запрос для безопасности
+            # БЕЗОПАСНОСТЬ: SQL injection предотвращён через:
+            # 1. Строгую валидацию каждого хеша (64 символа, hex) через _validate_hash()
+            # 2. Использование параметризованного запроса с плейсхолдерами (?)
+            # 3. Ограничение максимального размера пакета (MAX_BATCH_SIZE)
+            # Даже при формировании SQL через f-string, параметры передаются
+            # отдельно через cursor.execute(), что полностью защищает от SQL injection.
+            # Формирование запроса: DELETE FROM cache WHERE url_hash IN (?,?,?,...)
             placeholders = ",".join("?" * len(url_hashes))
             delete_query = f"DELETE FROM cache WHERE url_hash IN ({placeholders})"
             cursor.execute(delete_query, url_hashes)
@@ -610,8 +684,12 @@ class CacheManager:
             cursor.execute(self.SQL_COUNT_ALL)
             total = cursor.fetchone()[0]
 
+            # Оптимизация 3.2: кэшируем datetime.now() в переменную
+            # Используем одну временную метку для всех операций в методе
+            current_time = datetime.now()
+
             # Количество истекших записей
-            cursor.execute(self.SQL_COUNT_EXPIRED, (datetime.now().isoformat(),))
+            cursor.execute(self.SQL_COUNT_EXPIRED, (current_time.isoformat(),))
             expired = cursor.fetchone()[0]
 
             # Размер файла базы данных с обработкой ошибок
@@ -655,8 +733,9 @@ class CacheManager:
         """Гарантирует закрытие соединений при уничтожении объекта."""
         try:
             self.close()
-        except Exception:
-            pass
+        except Exception as e:
+            # Логирование ошибки вместо игнорирования
+            logger.error("Ошибка при закрытии CacheManager в __del__: %s", e)
 
     @staticmethod
     def _hash_url(url: str) -> str:
@@ -735,3 +814,7 @@ class CacheManager:
             logger.warning("Ошибка при проверке размера кэша: %s", os_error)
         except sqlite3.Error as db_error:
             logger.warning("Ошибка БД при LRU eviction: %s", db_error)
+
+
+# Алиас для обратной совместимости
+Cache = CacheManager
