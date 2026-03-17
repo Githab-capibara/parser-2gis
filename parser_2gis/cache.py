@@ -393,7 +393,16 @@ class CacheManager:
 
         Raises:
             ValueError: Если ttl_hours меньше или равен нулю
+            TypeError: Если ttl_hours не может быть конвертирован в int
         """
+        # Конвертируем ttl_hours в int для защиты от строковых значений
+        try:
+            ttl_hours = int(ttl_hours)
+        except (ValueError, TypeError) as conversion_error:
+            raise TypeError(
+                f"ttl_hours должен быть целым числом, получено: {type(ttl_hours).__name__}"
+            ) from conversion_error
+
         if ttl_hours <= 0:
             raise ValueError("ttl_hours должен быть положительным числом")
 

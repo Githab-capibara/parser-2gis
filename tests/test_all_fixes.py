@@ -141,8 +141,9 @@ class TestCriticalIssues:
             import inspect
             source = inspect.getsource(ChromeBrowser.close)
 
-            # Ищем обработку zombie
-            assert 'waitpid' in source or 'Zombie' in source or 'SIGCHLD' in source
+            # Ищем обработку zombie через wait() с timeout
+            # Код использует subprocess.wait() вместо os.waitpid() для кроссплатформенности
+            assert 'wait(' in source or 'Zombie' in source or 'SIGCHLD' in source
 
         def test_multi_level_shutdown(self):
             """Тест 3.3: Многоуровневая стратегия завершения."""

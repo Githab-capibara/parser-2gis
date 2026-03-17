@@ -74,10 +74,14 @@ UrlValidationResult = tuple[bool, str | None]
 
 
 # Type alias для функции обработчика сигнала
-SignalHandler = Callable[[int, Any], None]
+SignalHandlerFunc = Callable[[int, Any], None]
 
 
-# Импорты с обработкой отсутствия зависимостей
+# =============================================================================
+# ОПЦИОНАЛЬНЫЕ ИМПОРТЫ (УПРОЩЁННАЯ ОБРАБОТКА)
+# =============================================================================
+
+# Критический импорт CLI модуля - обязателен для работы
 try:
     from .cli import cli_app
 except ImportError as e:
@@ -85,12 +89,48 @@ except ImportError as e:
     logger.error("Убедитесь, что все зависимости установлены: pip install -e .")
     raise
 
-run_new_tui_omsk: Callable[[], None] | None = None
+
+# Опциональный импорт TUI модуля - создаём stub функцию если недоступен
+def _tui_omsk_stub() -> None:
+    """Stub функция для TUI когда модуль недоступен."""
+    logger.error("TUI модуль (pytermgui) недоступен. Установите: pip install pytermgui")
+    raise RuntimeError("TUI модуль недоступен")
+
+
 try:
     from .tui_pytermgui import run_omsk_parallel as run_new_tui_omsk
-except ImportError as e:
-    logger.warning("Не удалось импортировать новый TUI модуль (pytermgui): %s", e)
-    logger.warning("Функция --tui-new-omsk будет недоступна")
+except ImportError:
+    # Модуль недоступен - используем stub функцию
+    run_new_tui_omsk = _tui_omsk_stub
+    logger.warning("TUI модуль (pytermgui) недоступен. Функция --tui-new-omsk будет недоступна")
+
+
+def _validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str) -> int:
+    """Валидирует положительное целое число в заданном диапазоне.
+
+    Args:
+        value: Значение для валидации.
+        min_val: Минимально допустимое значение (включительно).
+        max_val: Максимально допустимое значение (включительно).
+        arg_name: Имя аргумента для сообщения об ошибке.
+
+    Returns:
+        Валидированное значение.
+
+    Raises:
+        ValueError: Если значение выходит за пределы диапазона.
+
+    Пример:
+        >>> _validate_positive_int(5, 1, 100, "--parser.max-retries")
+        5
+        >>> _validate_positive_int(0, 1, 100, "--parser.max-retries")
+        ValueError: --parser.max-retries должен быть от 1 до 100 (получено 0)
+    """
+    if not (min_val <= value <= max_val):
+        raise ValueError(
+            f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})"
+        )
+    return value
 
 
 def _validate_url(url: str) -> UrlValidationResult:
@@ -213,7 +253,6 @@ def _get_signal_handler() -> SignalHandler:
     Raises:
         RuntimeError: Если обработчик сигналов не инициализирован.
     """
-    global _signal_handler_instance
     if _signal_handler_instance is None:
         raise RuntimeError("SignalHandler не инициализирован. Вызовите _setup_signal_handlers().")
     return _signal_handler_instance
@@ -372,8 +411,12 @@ def patch_argparse_translations() -> None:
     argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore
 
 
-def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
+def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespace, Configuration]:
     """Парсит аргументы командной строки.
+
+    Args:
+        argv: Список аргументов для парсинга (по умолчанию sys.argv[1:]).
+              Используется для тестирования.
 
     Returns:
         Кортеж из аргументов командной строки и конфигурации.
@@ -382,14 +425,21 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         SystemExit: При отсутствии обязательных аргументов.
     """
     # Преобразуем флаги в нижний регистр для поддержки верхнего регистра
-    # Создаём копию sys.argv вместо модификации оригинального списка
+    # Создаём копию argv вместо модификации оригинального списка
     # Приводим к нижнему регистру только флаги (начинающиеся с -), не значения
+    if argv is None:
+        argv = sys.argv[1:]
+        # Для sys.argv используем [1:] так как первый элемент это имя программы
+        start_index = 0  # argv уже без имени программы
+    else:
+        start_index = 0  # Для тестов argv передаётся без имени программы
+
     argv_copy = []
-    for i, arg in enumerate(sys.argv):
+    for i, arg in enumerate(argv):
         if arg.startswith("-"):
             # Это флаг - приводим к нижнему регистру
             argv_copy.append(arg.lower())
-        elif i > 0 and sys.argv[i-1].startswith("-"):
+        elif i > 0 and argv[i-1].startswith("-"):
             # Это значение флага - приводим к нижнему регистру только если это похоже на yes/no
             # Не трогаем URL, пути и другие значения
             if arg.lower() in ("yes", "no", "true", "false"):
@@ -481,6 +531,12 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         "--chrome.memory-limit",
         metavar="{4096,5120,...}",
         help="Лимит оперативной памяти браузера (мегабайт)",
+    )
+    browser_parser.add_argument(
+        "--chrome.startup-delay",
+        type=float,
+        metavar="{0,1,2,...}",
+        help="Задержка запуска браузера в секундах (по умолчанию: 0)",
     )
 
     csv_parser = arg_parser.add_argument_group("Аргументы CSV/XLSX")
@@ -579,6 +635,18 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         help="Порог использования памяти в МБ для автоматической очистки (по умолчанию: 2048)",
     )
     p_parser.add_argument(
+        "--parser.timeout",
+        type=int,
+        metavar="{1,2,3,...}",
+        help="Таймаут на один URL в секундах (по умолчанию: 300)",
+    )
+    p_parser.add_argument(
+        "--parser.max-workers",
+        type=int,
+        metavar="{1,2,3,...}",
+        help="Максимальное количество одновременных работников (по умолчанию: 10)",
+    )
+    p_parser.add_argument(
         "--parallel-workers",
         type=int,
         default=10,
@@ -623,8 +691,84 @@ def parse_arguments() -> tuple[argparse.Namespace, Configuration]:
         "-h", "--help", action="help", help="Показать эту справку и выйти"
     )
 
-    args = arg_parser.parse_args(argv_copy[1:])
+    args = arg_parser.parse_args(argv_copy)
     config_args = unwrap_dot_dict(vars(args))
+
+    # Валидация числовых CLI аргументов перед инициализацией конфигурации
+    # ПРИОРИТЕТ 1: Валидация аргументов парсера
+    if hasattr(args, 'parser.max_retries') and getattr(args, 'parser.max_retries') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'parser.max_retries'), 1, 100, "--parser.max-retries")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if hasattr(args, 'parser.timeout') and getattr(args, 'parser.timeout') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'parser.timeout'), 1, 3600, "--parser.timeout")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if hasattr(args, 'parser.max_workers') and getattr(args, 'parser.max_workers') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'parser.max_workers'), 1, 50, "--parser.max-workers")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    # ПРИОРИТЕТ 2: Валидация аргументов Chrome
+    if hasattr(args, 'chrome.startup_delay') and getattr(args, 'chrome.startup_delay') is not None:
+        try:
+            _validate_positive_int(int(getattr(args, 'chrome.startup_delay')), 0, 60, "--chrome.startup-delay")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    # ПРИОРИТЕТ 3: Валидация других числовых аргументов
+    if hasattr(args, 'parser.gc_pages_interval') and getattr(args, 'parser.gc_pages_interval') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'parser.gc_pages_interval'), 1, 1000, "--parser.gc-pages-interval")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if hasattr(args, 'parser.max_records') and getattr(args, 'parser.max_records') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'parser.max_records'), 1, 1000000, "--parser.max-records")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if hasattr(args, 'parser.max_consecutive_empty_pages') and getattr(args, 'parser.max_consecutive_empty_pages') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'parser.max_consecutive_empty_pages'), 1, 100, "--parser.max-consecutive-empty-pages")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if hasattr(args, 'parser.delay_between_clicks') and getattr(args, 'parser.delay_between_clicks') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'parser.delay_between_clicks'), 0, 10000, "--parser.delay-between-clicks")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if hasattr(args, 'parser.retry_delay_base') and getattr(args, 'parser.retry_delay_base') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'parser.retry_delay_base'), 1, 60, "--parser.retry-delay-base")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if hasattr(args, 'parser.memory_threshold') and getattr(args, 'parser.memory_threshold') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'parser.memory_threshold'), 256, 8192, "--parser.memory-threshold")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if hasattr(args, 'chrome.memory_limit') and getattr(args, 'chrome.memory_limit') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'chrome.memory_limit'), 256, 16384, "--chrome.memory-limit")
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if hasattr(args, 'writer.csv.columns_per_entity') and getattr(args, 'writer.csv.columns_per_entity') is not None:
+        try:
+            _validate_positive_int(getattr(args, 'writer.csv.columns_per_entity'), 1, 20, "--writer.csv.columns-per-entity")
+        except ValueError as e:
+            arg_parser.error(str(e))
 
     # Пропускаем валидацию URL для TUI режимов - там выбор происходит в интерфейсе
     is_tui_mode = getattr(args, "tui_new", False) or getattr(args, "tui_new_omsk", False)

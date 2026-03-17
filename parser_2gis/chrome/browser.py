@@ -185,23 +185,19 @@ class ChromeBrowser:
 
         Примечание:
             Функция гарантирует попытку закрытия даже при ошибках.
-            Используется многоуровневая стратегия завершения:
-            1. Корректное завершение через terminate()
-            2. Принудительное завершение через kill() с SIGTERM
-            3. Окончательное завершение через os.kill(signal.SIGKILL)
-            4. Обработка zombie процессов через os.waitpid()
-            5. Удаление временного профиля через TemporaryDirectory.cleanup()
+            Используется двухуровневая стратегия завершения:
+            1. Корректное завершение через terminate() + wait(timeout=5)
+            2. Принудительное завершение через kill() + wait(timeout=10)
 
         Важно:
-            - Метод обрабатывает zombie процессы через os.waitpid() с WNOHANG
-            - Используется timeout для wait() с fallback на SIGKILL
-            - Логируется статус процесса после завершения
+            - Метод обрабатывает zombie процессы через wait() с timeout
+            - TemporaryDirectory.cleanup() гарантирует удаление профиля
+            - Все ошибки логируются для последующего анализа
         """
         logger.debug("Завершение работы Chrome браузера.")
 
-        # Закрываем браузер
         process_closed = False
-        process_status = "unknown"  # Статус завершения процесса
+        process_status = "unknown"
 
         try:
             if hasattr(self, "_proc") and self._proc is not None:
@@ -213,15 +209,13 @@ class ChromeBrowser:
                     self._proc.terminate()
                     logger.debug("Отправлен сигнал SIGTERM процессу %d", process_pid)
 
-                    # Ждём завершения с timeout (5 секунд для быстрого завершения)
                     try:
                         self._proc.wait(timeout=5)
                         process_closed = True
                         process_status = "terminated"
                         logger.debug(
-                            "Chrome браузер корректно завершён (PID: %d, статус: %s)",
+                            "Chrome браузер корректно завершён (PID: %d)",
                             process_pid,
-                            process_status,
                         )
                     except subprocess.TimeoutExpired:
                         logger.warning(
@@ -236,118 +230,36 @@ class ChromeBrowser:
                 # Попытка 2: Принудительное завершение через kill()
                 if not process_closed:
                     try:
-                        self._proc.kill()  # Отправляет SIGKILL
+                        self._proc.kill()
                         logger.debug("Отправлен сигнал SIGKILL процессу %d", process_pid)
 
-                        # Ждём завершения с большим timeout (10 секунд)
                         try:
                             self._proc.wait(timeout=10)
                             process_closed = True
                             process_status = "killed"
                             logger.debug(
-                                "Chrome браузер принудительно завершён (PID: %d, статус: %s)",
+                                "Chrome браузер принудительно завершён (PID: %d)",
                                 process_pid,
-                                process_status,
                             )
                         except subprocess.TimeoutExpired:
                             logger.error(
-                                "Таймаут (10 сек) после SIGKILL для PID %d, "
-                                "используем os.kill(SIGKILL)",
+                                "Таймаут (10 сек) после SIGKILL для PID %d",
                                 process_pid,
                             )
+                            process_status = "kill_timeout"
 
                     except Exception as kill_error:
                         logger.error(
                             "Ошибка при принудительном закрытии Chrome: %s", kill_error
                         )
-
-                # Попытка 3: Прямое использование os.kill() с SIGKILL
-                if not process_closed:
-                    try:
-                        os.kill(process_pid, signal.SIGKILL)
-                        logger.debug("Использован os.kill(SIGKILL) для PID %d", process_pid)
-
-                        # Короткое ожидание
-                        time.sleep(0.5)
-
-                        # Проверяем статус процесса
-                        try:
-                            # os.waitpid с WNOHANG для проверки zombie
-                            pid, status = os.waitpid(process_pid, os.WNOHANG)
-                            if pid == 0:
-                                # Процесс ещё не завершился, ждём ещё немного
-                                time.sleep(0.5)
-                                pid, status = os.waitpid(process_pid, os.WNOHANG)
-
-                            if pid > 0:
-                                process_closed = True
-                                process_status = "os_killed"
-                                logger.debug(
-                                    "Процесс %d завершён через os.kill (статус: %d)",
-                                    process_pid,
-                                    status,
-                                )
-                            else:
-                                logger.warning(
-                                    "Процесс %d не завершился после os.kill(SIGKILL)",
-                                    process_pid,
-                                )
-                        except ChildProcessError:
-                            # Процесс уже завершён (zombie был подобран)
-                            process_closed = True
-                            process_status = "zombie_reaped"
-                            logger.debug(
-                                "Процесс %d был zombie, подобран через waitpid",
-                                process_pid,
-                            )
-
-                    except ProcessLookupError:
-                        # Процесс уже не существует
-                        process_closed = True
-                        process_status = "not_found"
-                        logger.debug("Процесс %d не найден (уже завершён)", process_pid)
-                    except OSError as os_error:
-                        logger.error("Ошибка при os.kill процесса %d: %s", process_pid, os_error)
-
-                # Попытка 4: Обработка zombie процессов через waitpid
-                if not process_closed:
-                    try:
-                        # Проверяем, существует ли процесс
-                        os.kill(process_pid, 0)  # Сигнал 0 проверяет существование
-
-                        # Пытаемся подобрать zombie через waitpid с WNOHANG
-                        pid, status = os.waitpid(process_pid, os.WNOHANG)
-                        if pid > 0:
-                            process_closed = True
-                            process_status = "zombie_reaped_final"
-                            logger.debug(
-                                "Zombie процесс %d подобран (статус: %d)",
-                                process_pid,
-                                status,
-                            )
-                        else:
-                            # Процесс всё ещё активен - это проблема
-                            logger.error(
-                                "Не удалось завершить процесс %d после всех попыток. "
-                                "Возможна утечка ресурсов.",
-                                process_pid,
-                            )
-                            process_status = "failed"
-
-                    except (ChildProcessError, ProcessLookupError):
-                        # Процесс уже завершён
-                        process_closed = True
-                        process_status = "already_dead"
-                        logger.debug("Процесс %d уже завершён", process_pid)
-                    except OSError:
-                        # Невозможно проверить статус
-                        logger.warning("Невозможно проверить статус процесса %d", process_pid)
+                        process_status = "kill_error"
 
             else:
                 logger.warning("Процесс Chrome не инициализирован")
 
         except Exception as e:
             logger.error("Непредвиденная ошибка при закрытии Chrome: %s", e)
+            process_status = "unexpected_error"
 
         # Логируем финальный статус процесса
         if hasattr(self, "_proc") and self._proc is not None:
@@ -357,16 +269,13 @@ class ChromeBrowser:
                 self._proc.pid,
             )
 
-        # ВАЖНО: TemporaryDirectory.cleanup() гарантирует удаление профиля
-        # даже при возникновении ошибок в предыдущем коде
+        # TemporaryDirectory.cleanup() гарантирует удаление профиля
         try:
             if hasattr(self, "_profile_tempdir") and self._profile_tempdir is not None:
-                # cleanup() безопасен для повторного вызова
                 self._profile_tempdir.cleanup()
                 logger.debug("Временный профиль Chrome удалён через TemporaryDirectory.cleanup()")
         except Exception as profile_error:
             logger.error("Ошибка при удалении профиля через TemporaryDirectory: %s", profile_error)
-            # Fallback: пытаемся удалить профиль напрямую
             try:
                 if hasattr(self, "_profile_path") and self._profile_path:
                     shutil.rmtree(self._profile_path, ignore_errors=True)

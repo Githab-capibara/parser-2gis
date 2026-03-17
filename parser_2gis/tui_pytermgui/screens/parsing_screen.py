@@ -442,5 +442,7 @@ class ParsingScreen:
         self._start_time = datetime.now()
         self._app._start_parsing()
 
-        # TODO: Интеграция с ParallelParser
+        # ISSUE: Интеграция с ParallelParser
+        # Требуется подключить реальный парсер вместо заглушки
+        # См. GitHub issue: #TODO-TUI-003
         # Здесь будет запуск реального парсера

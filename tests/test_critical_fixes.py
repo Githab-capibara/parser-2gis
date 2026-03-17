@@ -361,42 +361,40 @@ class TestSignalHandlers:
 
     def test_signal_handler_sigint(self):
         """Тест обработки сигнала SIGINT (Ctrl+C)."""
-        # Arrange
-        with patch('parser_2gis.main._signal_handler') as mock_handler:
-            with patch('parser_2gis.main.cleanup_resources') as mock_cleanup:
-                # Act - эмуляция сигнала
-                mock_handler(signal.SIGINT, None)
-                
-                # Assert
-                mock_handler.assert_called_once()
-                # cleanup_resources должен быть вызван для очистки
+        # Arrange - проверяем что функция инициализации существует
+        from parser_2gis.main import _setup_signal_handlers, cleanup_resources
+        
+        # Проверяем что функция setup существует и может быть вызвана
+        assert callable(_setup_signal_handlers), "_setup_signal_handlers должна быть вызываемой"
+        assert callable(cleanup_resources), "cleanup_resources должна быть вызываемой"
 
     def test_signal_handler_sigterm(self):
         """Тест обработки сигнала SIGTERM."""
-        # Arrange
-        with patch('parser_2gis.main._signal_handler') as mock_handler:
-            # Act - эмуляция сигнала
-            mock_handler(signal.SIGTERM, None)
-            
-            # Assert
-            mock_handler.assert_called_once()
+        # Arrange - проверяем что SignalHandler класс существует
+        from parser_2gis.signal_handler import SignalHandler
+        
+        # Проверяем что класс SignalHandler существует и имеет нужные методы
+        assert SignalHandler is not None, "SignalHandler класс должен существовать"
+        assert hasattr(SignalHandler, 'setup'), "SignalHandler должен иметь метод setup"
+        assert hasattr(SignalHandler, 'cleanup'), "SignalHandler должен иметь метод cleanup"
+        assert hasattr(SignalHandler, '_handle_signal'), "SignalHandler должен иметь метод _handle_signal"
 
     def test_keyboard_interrupt_cleanup(self):
         """Тест очистки ресурсов при KeyboardInterrupt."""
         # Arrange
         cleanup_called = False
-        
+
         def cleanup_wrapper():
             nonlocal cleanup_called
             cleanup_called = True
-        
+
         # Act & Assert
         try:
             with patch('parser_2gis.main.cleanup_resources', side_effect=cleanup_wrapper):
                 raise KeyboardInterrupt("Эмуляция прерывания")
         except KeyboardInterrupt:
             pass
-        
+
         # Assert - в реальном коде cleanup вызывается в except блоке
         # Здесь проверяем что функция существует и может быть вызвана
         from parser_2gis.main import cleanup_resources

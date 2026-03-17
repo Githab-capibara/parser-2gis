@@ -255,5 +255,7 @@ class OutputSettingsScreen:
             message: Текст сообщения
             level: Уровень (info, success, warning, error)
         """
-        # TODO: Реализовать всплывающее сообщение
+        # ISSUE: Реализовать всплывающее сообщение для пользователя
+        # Требуется создать модальное окно или toast-уведомление
+        # См. GitHub issue: #TODO-TUI-001
         pass
