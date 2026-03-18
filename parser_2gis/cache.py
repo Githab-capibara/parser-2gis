@@ -89,12 +89,13 @@ def _serialize_json(data: Dict[str, Any]) -> str:
 
 def _deserialize_json(data: str) -> Dict[str, Any]:
     """
-    Десериализует JSON строку в данные.
+    Десериализует JSON строку в данные с валидацией структуры.
 
-    Исправление проблемы 1.4:
+    Исправление проблемы 1.4 и #4 (SQL Injection/валидация):
     - Выбрасываем явные исключения с контекстом вместо logger.warning
     - Используем orjson если установлен
     - Fallback на стандартный json если orjson недоступен
+    - ВАЛИДАЦИЯ СТРУКТУРЫ ДАННЫХ после десериализации
 
     Args:
         data: JSON строка для десериализации.
@@ -106,27 +107,142 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
         json.JSONDecodeError: При ошибке парсинга JSON с контекстом.
         UnicodeDecodeError: При ошибке декодирования Unicode.
         orjson.JSONDecodeError: При ошибке парсинга orjson с контекстом.
-        ValueError: При критической ошибке десериализации.
+        ValueError: При критической ошибке десериализации или некорректной структуре.
+        TypeError: Если данные не являются словарём.
     """
     try:
         if _use_orjson and orjson is not None:
-            return orjson.loads(data)  # type: ignore
+            deserialized = orjson.loads(data)  # type: ignore
         else:
-            return json.loads(data)
-    except orjson.JSONDecodeError as orjson_error:
+            deserialized = json.loads(data)
 
+        # ИСПРАВЛЕНИЕ #4: ВАЛИДАЦИЯ СТРУКТУРЫ ДАННЫХ
+        # Проверяем что данные являются словарём
+        if not isinstance(deserialized, dict):
+            logger.error(
+                "Некорректный тип данных кэша после десериализации. Ожидался dict, получен %s. Размер данных: %d байт",
+                type(deserialized).__name__,
+                len(str(deserialized))
+            )
+            raise TypeError(
+                f"Ожидался словарь после десериализации, получен {type(deserialized).__name__}. "
+                f"Размер данных: {len(str(deserialized))} байт"
+            )
+
+        # Проверяем данные на наличие потенциально опасных конструкций
+        if not _validate_cached_data(deserialized):
+            logger.error(
+                "Данные кэша содержат небезопасные конструкции. Тип: %s, Размер: %d байт",
+                type(deserialized).__name__,
+                len(str(deserialized))
+            )
+            raise ValueError(
+                f"Данные кэша содержат небезопасные конструкции. "
+                f"Тип: {type(deserialized).__name__}, "
+                f"Размер: {len(str(deserialized))} байт"
+            )
+
+        return deserialized
+
+    except orjson.JSONDecodeError as orjson_error:
         raise ValueError(
             f"Критическая ошибка десериализации orjson: {orjson_error}. "
             f"Длина данных: {len(data)}, "
             f"Содержимое: {data[:200]}..."
         ) from orjson_error
     except (json.JSONDecodeError, UnicodeDecodeError) as json_error:
-
         error_type = "Unicode" if isinstance(json_error, UnicodeDecodeError) else "JSON"
         raise ValueError(
             f"Критическая ошибка десериализации ({error_type}): {json_error}. "
             f"Длина данных: {len(data)}"
         ) from json_error
+    except TypeError as type_error:
+        raise TypeError(
+            f"Некорректный тип данных кэша: {type_error}. "
+            f"Длина данных: {len(data)}"
+        ) from type_error
+
+
+def _validate_cached_data(data: Any, depth: int = 0) -> bool:
+    """Валидирует данные кэша на безопасность.
+
+    Исправление проблемы #4:
+    - Проверяет тип данных (только dict, list, str, int, float, bool, None)
+    - Ограничивает глубину вложенности для предотвращения DoS
+    - Проверяет строки на наличие потенциально опасных SQL/JS конструкций
+
+    Args:
+        data: Данные для валидации.
+        depth: Текущая глубина вложенности.
+
+    Returns:
+        True если данные безопасны, False иначе.
+    """
+    # Константы валидации
+    MAX_DATA_DEPTH = 20  # Максимальная глубина вложенности
+
+    # Проверяем глубину вложенности
+    if depth > MAX_DATA_DEPTH:
+        logger.warning("Превышена максимальная глубина вложенности данных кэша")
+        return False
+
+    # Базовые типы
+    if data is None:
+        return True
+
+    if isinstance(data, bool):
+        return True
+
+    if isinstance(data, (int, float)):
+        # Проверяем на NaN и Infinity
+        import math
+        if isinstance(data, float) and (math.isnan(data) or math.isinf(data)):
+            logger.warning("Обнаружено NaN/Infinity в данных кэша")
+            return False
+        return True
+
+    if isinstance(data, str):
+        # Проверяем строку на опасные конструкции
+        # Это предотвращает потенциальные SQL injection и XSS атаки
+        dangerous_patterns = [
+            '--',  # SQL комментарий
+            '; DROP', 'DELETE FROM', 'INSERT INTO', 'UPDATE ',  # SQL команды
+            '<script', 'javascript:', 'onerror=', 'onload=',  # XSS
+            'eval(', 'Function(',  # JS eval
+        ]
+        data_upper = data.upper()
+        for pattern in dangerous_patterns:
+            if pattern.upper() in data_upper:
+                logger.warning(
+                    "Обнаружена опасная конструкция в данных кэша: %s",
+                    pattern
+                )
+                return False
+        return True
+
+    if isinstance(data, dict):
+        # Рекурсивно проверяем все значения словаря
+        for key, value in data.items():
+            if not isinstance(key, str):
+                logger.warning("Некорректный тип ключа в данных кэша")
+                return False
+            if not _validate_cached_data(value, depth + 1):
+                return False
+        return True
+
+    if isinstance(data, list):
+        # Рекурсивно проверяем все элементы списка
+        for item in data:
+            if not _validate_cached_data(item, depth + 1):
+                return False
+        return True
+
+    # Недопустимый тип
+    logger.warning(
+        "Недопустимый тип данных в кэше: %s",
+        type(data).__name__
+    )
+    return False
 
 
 # Экспортируемые символы модуля
@@ -462,11 +578,19 @@ class CacheManager:
         Проверяет наличие кэша для указанного URL. Если кэш существует
         и не истек, возвращает кэшированные данные. Иначе возвращает None.
 
+        Исправление проблемы #12 (Недостаточная обработка ошибок):
+        - Различение временных и критических ошибок БД
+        - Автоматическая повторная попытка при временных ошибках
+        - Детальное логирование для отладки
+
         Args:
             url: URL для поиска в кэше
 
         Returns:
             Кэшированные данные или None, если кэш истек или отсутствует
+
+        Raises:
+            sqlite3.Error: При критической ошибке БД (disk I/O, no such table)
         """
         if not self._pool:
             return None
@@ -509,28 +633,67 @@ class CacheManager:
             return _deserialize_json(data)
 
         except sqlite3.Error as db_error:
-
+            # ИСПРАВЛЕНИЕ #12: РАЗЛИЧЕНИЕ ВРЕМЕННЫХ И КРИТИЧЕСКИХ ОШИБОК
             error_str = str(db_error).lower()
 
             # Временные ошибки - можно повторить попытку
             if "database is locked" in error_str or "busy" in error_str:
                 logger.warning(
-                    "База данных заблокирована (временная ошибка): %s", db_error
+                    "База данных заблокирована (временная ошибка): %s. Повторная попытка...",
+                    db_error,
                 )
+                # Повторная попытка через небольшую задержку
+                import time
+                time.sleep(0.5)
+                try:
+                    # Повторяем запрос
+                    cursor.execute(self.SQL_SELECT, (url_hash,))
+                    row = cursor.fetchone()
+                    if row:
+                        data, expires_at_str = row
+                        expires_at = datetime.fromisoformat(expires_at_str)
+                        if datetime.now() <= expires_at:
+                            return _deserialize_json(data)
+                except sqlite3.Error as retry_error:
+                    logger.warning(
+                        "Повторная попытка не удалась: %s",
+                        retry_error,
+                    )
                 return None  # Можно повторить попытку позже
-            elif "disk I/O error" in error_str or "no such table" in error_str:
-                # Критические ошибки - пробрасываем исключение
-                logger.error("Критическая ошибка БД при получении кэша: %s", db_error)
+            elif "disk i/o error" in error_str:
+                # Критическая ошибка диска - пробрасываем исключение
+                logger.critical(
+                    "Критическая ошибка диска при получении кэша: %s",
+                    db_error,
+                )
+                raise  # Пробрасываем исключение для обработки на верхнем уровне
+            elif "no such table" in error_str:
+                # Критическая ошибка - таблица не существует
+                logger.critical(
+                    "Таблица кэша не существует: %s",
+                    db_error,
+                )
+                raise  # Пробрасываем исключение для обработки на верхнем уровне
+            elif "corrupt" in error_str or "malformed" in error_str:
+                # Повреждение базы данных
+                logger.critical(
+                    "База данных повреждена: %s",
+                    db_error,
+                )
                 raise  # Пробрасываем исключение для обработки на верхнем уровне
             else:
-                # Остальные ошибки БД
-                logger.error("Ошибка БД при получении кэша: %s", db_error)
+                # Остальные ошибки БД - логируем и возвращаем None
+                logger.error(
+                    "Неизвестная ошибка БД при получении кэша: %s (тип: %s)",
+                    db_error,
+                    type(db_error).__name__,
+                )
                 return None
-        except (UnicodeDecodeError, json.JSONDecodeError) as decode_error:
+
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as decode_error:
+            # ИСПРАВЛЕНИЕ #12: ОБРАБОТКА ОШИБОК ДЕСЕРИАЛИЗАЦИИ
             # Обрабатываем ошибки десериализации - удаляем повреждённую запись
-            error_type = (
-                "Unicode" if isinstance(decode_error, UnicodeDecodeError) else "JSON"
-            )
+            error_type = type(decode_error).__name__
             logger.warning(
                 "Ошибка %s при чтении кэша для URL %s: %s. Повреждённая запись будет удалена.",
                 error_type,
@@ -547,16 +710,20 @@ class CacheManager:
                 )
             return None
         except Exception as general_error:
-            # Обрабатываем любые другие ошибки десериализации (например orjson.JSONDecodeError)
-            logger.warning(
-                "Неизвестная ошибка при чтении кэша для URL %s: %s. Тип: %s",
+            # ИСПРАВЛЕНИЕ #12: ОБРАБОТКА ЛЮБЫХ ДРУГИХ ОШИБОК
+            logger.error(
+                "Непредвиденная ошибка при чтении кэша для URL %s: %s (тип: %s)",
                 url,
                 general_error,
                 type(general_error).__name__,
             )
             return None
         finally:
-            cursor.close()
+            # Гарантированное закрытие курсора
+            try:
+                cursor.close()
+            except Exception as cursor_error:
+                logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
     def set(self, url: str, data: Dict[str, Any]) -> None:
         """Сохранение данных в кэш.

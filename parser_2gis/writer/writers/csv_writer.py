@@ -45,6 +45,90 @@ HASH_BATCH_SIZE = 1000
 
 CSV_BATCH_SIZE_LOCAL = CSV_BATCH_SIZE
 
+# =============================================================================
+# ИСПРАВЛЕНИЕ B2: ДИНАМИЧЕСКИЙ БУФЕР ДЛЯ CSV
+# =============================================================================
+
+# Порог размера файла для использования увеличенного буфера (100 MB)
+LARGE_FILE_THRESHOLD_MB = 100
+
+# Множитель увеличения буфера для больших файлов
+LARGE_FILE_BUFFER_MULTIPLIER = 4
+
+# Максимальный размер буфера (1 MB)
+MAX_BUFFER_SIZE = 1048576
+
+
+def _calculate_optimal_buffer_size(file_path: Optional[str] = None, file_size_bytes: Optional[int] = None) -> int:
+    """
+    Рассчитывает оптимальный размер буфера для чтения/записи CSV файлов.
+
+    Исправление B2 (ОПТИМИЗАЦИЯ):
+    - Для файлов >100MB используется увеличенный буфер (1MB)
+    - Для файлов <=100MB используется стандартный буфер (256KB)
+    - Автоматическое определение размера файла если не предоставлен
+    - Настройка через конфигурацию (переменные окружения)
+
+    Args:
+        file_path: Путь к файлу для определения размера (опционально).
+        file_size_bytes: Размер файла в байтах (опционально).
+
+    Returns:
+        Оптимальный размер буфера в байтах.
+
+    Пример:
+        >>> _calculate_optimal_buffer_size(file_size_bytes=150_000_000)
+        1048576  # 1MB для файлов >100MB
+        >>> _calculate_optimal_buffer_size(file_size_bytes=50_000_000)
+        262144  # 256KB для файлов <=100MB
+    """
+    # Проверяем переменную окружения для переопределения размера буфера
+    env_buffer_size = os.getenv("PARSER_CSV_BUFFER_SIZE")
+    if env_buffer_size is not None:
+        try:
+            custom_buffer = int(env_buffer_size)
+            if custom_buffer > 0:
+                logger.debug("Используется пользовательский размер буфера: %d байт", custom_buffer)
+                return custom_buffer
+        except ValueError:
+            logger.warning("Некорректное значение PARSER_CSV_BUFFER_SIZE: %s", env_buffer_size)
+
+    # Определяем размер файла если не предоставлен
+    if file_size_bytes is None and file_path is not None:
+        try:
+            file_size_bytes = os.path.getsize(file_path)
+        except OSError:
+            # Если не удалось получить размер, используем дефолтное значение
+            file_size_bytes = 0
+
+    # Если размер файла неизвестен, используем дефолтное значение
+    if file_size_bytes is None:
+        return DEFAULT_BUFFER_SIZE
+
+    # Рассчитываем оптимальный размер буфера
+    threshold_bytes = LARGE_FILE_THRESHOLD_MB * 1024 * 1024  # 100 MB
+
+    if file_size_bytes > threshold_bytes:
+        # Для больших файлов используем увеличенный буфер
+        optimal_size = min(
+            DEFAULT_BUFFER_SIZE * LARGE_FILE_BUFFER_MULTIPLIER,
+            MAX_BUFFER_SIZE
+        )
+        logger.debug(
+            "Файл большой (%.2f MB), используется увеличенный буфер: %d байт",
+            file_size_bytes / (1024 * 1024),
+            optimal_size
+        )
+        return optimal_size
+    else:
+        # Для обычных файлов используем стандартный буфер
+        logger.debug(
+            "Файл стандартного размера (%.2f MB), используется стандартный буфер: %d байт",
+            file_size_bytes / (1024 * 1024),
+            DEFAULT_BUFFER_SIZE
+        )
+        return DEFAULT_BUFFER_SIZE
+
 
 def _safe_move_file(src: str, dst: str) -> bool:
     """
@@ -263,10 +347,13 @@ class CSVWriter(FileWriter):
                     complex_columns_count[c] = 0
 
         try:
+            # ИСПРАВЛЕНИЕ B2: Используем динамический буфер для оптимальной производительности
+            optimal_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
+
             # Первый проход: подсчёт непустых значений в сложных колонках
 
             with self._open_file(
-                self._file_path, "r", encoding="utf-8-sig", buffering=READ_BUFFER_SIZE
+                self._file_path, "r", encoding="utf-8-sig", buffering=optimal_buffer
             ) as f_csv:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
 
@@ -284,8 +371,9 @@ class CSVWriter(FileWriter):
                         batch_count += 1
 
             logger.debug(
-                "Подсчёт заполненности колонок завершён (обработано пакетов: %d)",
+                "Подсчёт заполненности колонок завершён (обработано пакетов: %d, буфер: %d байт)",
                 batch_count,
+                optimal_buffer,
             )
 
         except Exception as e:
@@ -320,13 +408,17 @@ class CSVWriter(FileWriter):
         temp_created = False
 
         try:
+            # ИСПРАВЛЕНИЕ B2: Используем динамический буфер для оптимальной производительности
+            optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
+            optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=os.path.getsize(self._file_path) if os.path.exists(self._file_path) else None)
+
             # Чтение исходного файла и запись нового с увеличенной буферизацией
             with (
                 self._open_file(
-                    self._file_path, "r", buffering=READ_BUFFER_SIZE
+                    self._file_path, "r", buffering=optimal_read_buffer
                 ) as f_csv,
                 self._open_file(
-                    tmp_csv_name, "w", newline="", buffering=WRITE_BUFFER_SIZE
+                    tmp_csv_name, "w", newline="", buffering=optimal_write_buffer
                 ) as f_tmp_csv,
             ):
                 # ВАЖНО: Помечаем что временный файл создан
@@ -361,9 +453,11 @@ class CSVWriter(FileWriter):
                     total_batches += 1
 
                 logger.debug(
-                    "Запись CSV завершена (всего пакетов: %d, размер пакета: %d)",
+                    "Запись CSV завершена (всего пакетов: %d, размер пакета: %d, буфер чтения: %d, буфер записи: %d)",
                     total_batches,
                     batch_size,
+                    optimal_read_buffer,
+                    optimal_write_buffer,
                 )
 
             # Замена оригинального файла новым с безопасной обработкой
@@ -423,6 +517,11 @@ class CSVWriter(FileWriter):
             return
 
         try:
+            # ИСПРАВЛЕНИЕ B2: Используем динамический буфер для оптимальной производительности
+            optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
+            file_size = os.path.getsize(self._file_path) if os.path.exists(self._file_path) else None
+            optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
+
             # Чтение исходного файла и запись нового без дубликатов
             # Используем увеличенную буферизацию для улучшения производительности
             with (
@@ -430,14 +529,14 @@ class CSVWriter(FileWriter):
                     self._file_path,
                     "r",
                     encoding="utf-8-sig",
-                    buffering=READ_BUFFER_SIZE,
+                    buffering=optimal_read_buffer,
                 ) as f_csv,
                 self._open_file(
                     tmp_csv_name,
                     "w",
                     encoding=self._options.encoding,
                     newline="",
-                    buffering=WRITE_BUFFER_SIZE,
+                    buffering=optimal_write_buffer,
                 ) as f_tmp_csv,
             ):
                 # ВАЖНО: Помечаем что временный файл создан
@@ -487,7 +586,8 @@ class CSVWriter(FileWriter):
             if duplicates_count > 0:
                 logger.info("Удалено дубликатов: %d", duplicates_count)
             else:
-                logger.debug("Дубликаты не найдены")
+                logger.debug("Дубликаты не найдены (буфер чтения: %d, буфер записи: %d)",
+                           optimal_read_buffer, optimal_write_buffer)
 
             # Замена оригинального файла новым с безопасной обработкой
             move_success = _safe_move_file(tmp_csv_name, self._file_path)

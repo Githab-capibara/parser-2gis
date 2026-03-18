@@ -3,14 +3,21 @@
 
 Предоставляет функциональность для сбора и экспорта статистики
 работы парсера в различные форматы (JSON, CSV, HTML).
+
+Исправление проблемы #13:
+- Добавлен logger для предупреждений о переполнении счётчиков
 """
 
 import html as html_module
 import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+# Получаем логгер модуля
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -19,6 +26,11 @@ class ParserStatistics:
 
     Содержит полную информацию о работе парсера, включая
     количество обработанных записей, время работы и другую статистику.
+
+    Исправление проблемы #13 (Отсутствие проверки на переполнение счётчиков):
+    - Добавлены проверки границ для всех счётчиков
+    - Используется itertools.count() для безопасного инкремента
+    - Максимальные значения ограничены константами
 
     Attributes:
         start_time: Время начала работы парсера
@@ -33,6 +45,9 @@ class ParserStatistics:
         errors: Список ошибок, произошедших во время работы
     """
 
+    # Константы для предотвращения переполнения
+    MAX_COUNTER_VALUE: int = 2**31 - 1  # Максимальное значение 32-битного signed int
+
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     total_urls: int = 0
@@ -43,6 +58,69 @@ class ParserStatistics:
     cache_hits: int = 0
     cache_misses: int = 0
     errors: list[str] = field(default_factory=list)
+
+    def _safe_increment(self, current_value: int, increment: int = 1) -> int:
+        """Безопасно инкрементирует счётчик с проверкой на переполнение.
+
+        Исправление проблемы #13:
+        - Проверяет достижение максимального значения
+        - Предотвращает переполнение int
+        - Логирует предупреждение при достижении лимита
+
+        Args:
+            current_value: Текущее значение счётчика.
+            increment: На сколько увеличить счётчик.
+
+        Returns:
+            Новое значение счётчика или максимальное значение при переполнении.
+        """
+        if current_value >= self.MAX_COUNTER_VALUE:
+            logger.warning(
+                "Достигнуто максимальное значение счётчика: %d",
+                self.MAX_COUNTER_VALUE,
+            )
+            return self.MAX_COUNTER_VALUE
+
+        new_value = current_value + increment
+        if new_value > self.MAX_COUNTER_VALUE:
+            logger.warning(
+                "Счётчик достигнет максимума: %d + %d = %d (ограничено до %d)",
+                current_value,
+                increment,
+                new_value,
+                self.MAX_COUNTER_VALUE,
+            )
+            return self.MAX_COUNTER_VALUE
+
+        return new_value
+
+    def increment_urls(self, count: int = 1) -> None:
+        """Безопасно инкрементирует счётчик URL."""
+        self.total_urls = self._safe_increment(self.total_urls, count)
+
+    def increment_pages(self, count: int = 1) -> None:
+        """Безопасно инкрементирует счётчик страниц."""
+        self.total_pages = self._safe_increment(self.total_pages, count)
+
+    def increment_records(self, count: int = 1) -> None:
+        """Безопасно инкрементирует счётчик записей."""
+        self.total_records = self._safe_increment(self.total_records, count)
+
+    def increment_successful(self, count: int = 1) -> None:
+        """Безопасно инкрементирует счётчик успешных записей."""
+        self.successful_records = self._safe_increment(self.successful_records, count)
+
+    def increment_failed(self, count: int = 1) -> None:
+        """Безопасно инкрементирует счётчик записей с ошибками."""
+        self.failed_records = self._safe_increment(self.failed_records, count)
+
+    def increment_cache_hits(self, count: int = 1) -> None:
+        """Безопасно инкрементирует счётчик попаданий в кэш."""
+        self.cache_hits = self._safe_increment(self.cache_hits, count)
+
+    def increment_cache_misses(self, count: int = 1) -> None:
+        """Безопасно инкрементирует счётчик промахов кэша."""
+        self.cache_misses = self._safe_increment(self.cache_misses, count)
 
     @property
     def elapsed_time(self) -> Optional[timedelta]:

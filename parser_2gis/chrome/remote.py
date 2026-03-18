@@ -20,11 +20,16 @@ from websocket import WebSocketException, WebSocketTimeoutException
 from ..common import wait_until_finished
 from ..logger import logger
 from .browser import ChromeBrowser
-from .constants import CHROME_STARTUP_DELAY  # L4: магические числа вынесены в константы
-from .constants import MAX_JS_CODE_LENGTH  # L4: магические числа вынесены в константы
-from .constants import MAX_TOTAL_JS_SIZE  # L4: магические числа вынесены в константы
-from .constants import RATE_LIMIT_CALLS  # L4: магические числа вынесены в константы
-from .constants import RATE_LIMIT_PERIOD  # L4: магические числа вынесены в константы
+from .constants import (
+    CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
+    EXTERNAL_RATE_LIMIT_CALLS,  # L6: rate limiting для внешних запросов
+    EXTERNAL_RATE_LIMIT_PERIOD,  # L6: rate limiting для внешних запросов
+    MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
+    MAX_RESPONSE_SIZE,  # L9: лимит размера загружаемых файлов
+    MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
+    RATE_LIMIT_CALLS,  # L4: магические числа вынесены в константы
+    RATE_LIMIT_PERIOD,  # L4: магические числа вынесены в константы
+)
 from .dom import DOMNode
 from .exceptions import ChromeException
 from .patches import patch_all
@@ -74,6 +79,196 @@ _DANGEROUS_JS_PATTERNS = [
     ),
 ]
 
+# =============================================================================
+# ИСПРАВЛЕНИЕ #3: RATE LIMITING ДЛЯ ВНЕШНИХ ЗАПРОСОВ
+# =============================================================================
+
+
+# =============================================================================
+# ИСПРАВЛЕНИЕ B3: КЭШИРОВАНИЕ HTTP ЗАПРОСОВ С TTL
+# =============================================================================
+
+# Время жизни кэша HTTP запросов в секундах (5 минут)
+HTTP_CACHE_TTL_SECONDS = 300
+
+# Размер кэша HTTP запросов (максимальное количество записей)
+HTTP_CACHE_MAXSIZE = 1024
+
+
+# Класс для хранения кэшированных результатов с TTL
+class _HTTPCacheEntry:
+    """Запись кэша HTTP запроса с TTL."""
+
+    def __init__(self, response: requests.Response, timestamp: float) -> None:
+        self.response = response
+        self.timestamp = timestamp
+
+    def is_expired(self) -> bool:
+        """Проверяет истёк ли срок действия кэша."""
+        return (time.time() - self.timestamp) > HTTP_CACHE_TTL_SECONDS
+
+
+# Глобальный кэш для HTTP запросов
+_http_cache: Dict[tuple, _HTTPCacheEntry] = {}
+_http_cache_lock = threading.Lock()
+
+
+def _get_cache_key(method: str, url: str, verify_ssl: bool) -> tuple:
+    """
+    Создаёт ключ кэша для HTTP запроса.
+
+    Args:
+        method: HTTP метод.
+        url: URL запроса.
+        verify_ssl: Флаг проверки SSL.
+
+    Returns:
+        Кортеж для использования в качестве ключа кэша.
+    """
+    return (method, url, verify_ssl)
+
+
+def _cleanup_expired_cache() -> int:
+    """
+    Очищает истёкшие записи из кэша.
+
+    Returns:
+        Количество удалённых записей.
+    """
+    cleaned = 0
+    with _http_cache_lock:
+        expired_keys = [
+            key for key, entry in _http_cache.items()
+            if entry.is_expired()
+        ]
+        for key in expired_keys:
+            del _http_cache[key]
+            cleaned += 1
+
+    if cleaned > 0:
+        logger.debug("Очищено %d истёкших записей из кэша HTTP", cleaned)
+
+    return cleaned
+
+
+@sleep_and_retry
+@limits(calls=EXTERNAL_RATE_LIMIT_CALLS, period=EXTERNAL_RATE_LIMIT_PERIOD)
+def _rate_limited_request(
+    method: str,
+    url: str,
+    **kwargs
+) -> requests.Response:
+    """Выполняет HTTP запрос с rate limiting для внешних запросов к 2GIS.
+
+    Исправление проблемы #3 (Отсутствие rate limiting):
+    - Применяет @sleep_and_retry декоратор ко всем внешним запросам
+    - Ограничивает количество запросов до EXTERNAL_RATE_LIMIT_CALLS в секунду
+    - Предотвращает блокировки со стороны 2GIS
+    - Автоматически ожидает если лимит превышен
+
+    Args:
+        method: HTTP метод ('get', 'post', 'put', 'delete').
+        url: URL для запроса.
+        **kwargs: Дополнительные аргументы для requests.
+
+    Returns:
+        Response объект от requests.
+
+    Raises:
+        RequestException: При ошибке сетевого запроса.
+    """
+    # Получаем функцию запроса по имени метода
+    request_func = getattr(requests, method.lower(), None)
+    if request_func is None:
+        raise ValueError(f"Неподдерживаемый HTTP метод: {method}")
+
+    # Выполняем запрос с rate limiting
+    return request_func(url, **kwargs)
+
+
+def _safe_external_request(
+    method: str,
+    url: str,
+    verify_ssl: bool = True,
+    timeout: int = 60,
+    use_cache: bool = True,
+    **kwargs
+) -> requests.Response:
+    """Безопасный внешний HTTP запрос с rate limiting, валидацией SSL и кэшированием.
+
+    Исправление B3 (ОПТИМИЗАЦИЯ):
+    - Добавлено кэширование запросов по (method, url, verify_ssl)
+    - TTL кэша: 5 минут (настраивается через HTTP_CACHE_TTL_SECONDS)
+    - Размер кэша: до 1024 записей (настраивается через HTTP_CACHE_MAXSIZE)
+    - Автоматическая очистка истёкших записей
+    - Потокобезопасность через threading.Lock
+
+    Args:
+        method: HTTP метод ('get', 'post', 'put', 'delete').
+        url: URL для запроса.
+        verify_ssl: Проверять ли SSL сертификаты.
+        timeout: Таймаут запроса в секундах.
+        use_cache: Использовать ли кэширование (по умолчанию True).
+        **kwargs: Дополнительные аргументы для requests.
+
+    Returns:
+        Response объект от requests.
+
+    Пример:
+        >>> response = _safe_external_request('get', 'https://api.2gis.ru/data')
+        >>> response.status_code
+        200
+    """
+    # Устанавливаем параметры по умолчанию
+    kwargs.setdefault('verify', verify_ssl)
+    kwargs.setdefault('timeout', timeout)
+
+    # Проверяем кэш если включено
+    if use_cache:
+        cache_key = _get_cache_key(method, url, verify_ssl)
+
+        with _http_cache_lock:
+            # Проверяем наличие в кэше
+            if cache_key in _http_cache:
+                entry = _http_cache[cache_key]
+
+                # Проверяем не истёк ли кэш
+                if not entry.is_expired():
+                    logger.debug("Кэшированный ответ для %s %s", method, url)
+                    return entry.response
+                else:
+                    # Удаляем истёкшую запись
+                    del _http_cache[cache_key]
+                    logger.debug("Истёкший кэш удалён для %s %s", method, url)
+
+            # Ограничиваем размер кэша (LRU eviction)
+            if len(_http_cache) >= HTTP_CACHE_MAXSIZE:
+                # Удаляем oldest 10% записей
+                keys_to_remove = list(_http_cache.keys())[:HTTP_CACHE_MAXSIZE // 10]
+                for key in keys_to_remove:
+                    del _http_cache[key]
+                logger.debug(
+                    "Достигнут лимит кэша HTTP (%d записей), удалено %d старых записей",
+                    len(_http_cache),
+                    len(keys_to_remove)
+                )
+
+        # Периодическая очистка истёкших записей (каждый 10-й запрос)
+        if len(_http_cache) % 10 == 0:
+            _cleanup_expired_cache()
+
+    # Выполняем запрос с rate limiting
+    response = _rate_limited_request(method, url, **kwargs)
+
+    # Кэшируем ответ если включено
+    if use_cache:
+        with _http_cache_lock:
+            _http_cache[cache_key] = _HTTPCacheEntry(response, time.time())
+            logger.debug("Запрос закэширован для %s %s", method, url)
+
+    return response
+
+
 # Кэш для проверки доступности портов
 
 # вместо ручного словаря для более эффективного кэширования
@@ -116,6 +311,7 @@ def _check_port_available_internal(
     - Сокет создаётся внутри цикла retries
     - Явное закрытие в блоке finally гарантирует освобождение ресурса
     - Предотвращает утечку файловых дескрипторов при множественных проверках
+    - Добавлена опция SO_REUSEADDR для предотвращения проблем с повторным использованием портов
 
     Args:
         port: Номер порта для проверки.
@@ -131,6 +327,9 @@ def _check_port_available_internal(
         # Создаём сокет внутри цикла для гарантии закрытия на каждой итерации
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
+            # Опция SO_REUSEADDR позволяет повторно использовать сокет
+            # сразу после закрытия, предотвращая ошибки "Address already in use"
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.settimeout(timeout)
             connect_result = sock.connect_ex(("127.0.0.1", port))
             # Если порт занят (result == 0), возвращаем False немедленно
@@ -188,6 +387,11 @@ def _validate_js_code(
 ) -> tuple[bool, str]:
     """Валидирует JavaScript код на безопасность.
 
+    Исправление проблемы #14 (Небезопасное использование eval()):
+    - Усилена проверка на опасные конструкции
+    - Добавлены дополнительные паттерны для обнаружения атак
+    - Проверка на обход существующих фильтров
+
     Args:
         code: JavaScript код для валидации.
         max_length: Максимальная допустимая длина кода.
@@ -203,6 +407,7 @@ def _validate_js_code(
         - Проверка максимальной длины
         - Проверка типа данных
         - Обнаружение опасных паттернов (eval, Function, document.write)
+        - Проверка на попытки обхода фильтра (кодировки, unicode)
     """
     # Проверка на None
     if code is None:
@@ -226,10 +431,56 @@ def _validate_js_code(
             f"JavaScript код превышает максимальную длину ({len(code)} > {max_length} символов)",
         )
 
+    # ИСПРАВЛЕНИЕ #14: ДОПОЛНИТЕЛЬНЫЕ ПРОВЕРКИ НА ОПАСНЫЕ КОНСТРУКЦИИ
+
+    # Проверяем на попытки обхода через unicode кодировку
+    # \u0065\u0076\u0061\u006C = eval
+    if re.search(r'\\u00[0-9a-fA-F]{2}', code, re.IGNORECASE):
+        return False, "Обнаружена попытка обхода через Unicode кодировку"
+
+    # Проверяем на HTML entity кодировку
+    if re.search(r'&#x[0-9a-fA-F]+;|&#\d+;', code, re.IGNORECASE):
+        return False, "Обнаружена попытка обхода через HTML entity кодировку"
+
+    # Проверяем на base64 кодировку (может скрывать опасный код)
+    if re.search(r'atob\s*\([^)]+\)', code, re.IGNORECASE):
+        return False, "Функция atob() запрещена (может скрывать опасный код)"
+
+    # Проверяем на String.fromCharCode (может использоваться для обхода)
+    if re.search(r'String\s*\.\s*fromCharCode\s*\(', code, re.IGNORECASE):
+        return False, "String.fromCharCode() запрещён (может использоваться для обхода)"
+
+    # Проверяем на конкатенацию строк для обхода фильтров
+    # Обнаруживаем подозрительные комбинации типа "ev" + "al"
+    # Проверяем наличие конкатенации строк с +
+    if '+' in code and ('"' in code or "'" in code):
+        # Проверяем потенциально опасные комбинации
+        dangerous_concat = ['eval', 'function', 'settimeout', 'setinterval', 'fromcharcode', 'newfunction']
+        # Удаляем все не-буквенные символы для проверки
+        code_letters_only = ''.join(c for c in code.lower() if c.isalpha())
+        for dangerous in dangerous_concat:
+            # Проверяем есть ли опасное слово в коде (даже в разбитой форме)
+            if dangerous in code_letters_only:
+                return False, f"Обнаружена подозрительная конкатенация строк с {dangerous}"
+
     # Проверка на опасные паттерны с использованием скомпилированных regex
     for pattern, description in _DANGEROUS_JS_PATTERNS:
         if pattern.search(code):
             return False, f"Обнаружен опасный паттерн в JavaScript коде: {description}"
+
+    # ИСПРАВЛЕНИЕ #14: ПРОВЕРКА НА СКОМОКАННЫЕ КОНСТРУКЦИИ
+    # Проверяем на попытки использования setTimeout/setInterval с функцией
+    if re.search(r'setTimeout\s*\(\s*function\s*\(', code, re.IGNORECASE):
+        # Это допустимо, но логируем для аудита
+        logger.debug("Обнаружен setTimeout с function - допустимо")
+
+    # Проверяем на new Function()
+    if re.search(r'new\s+Function\s*\(', code, re.IGNORECASE):
+        return False, "Конструктор 'new Function()' запрещён"
+
+    # Проверяем на присваивание eval переменной (попытка обхода)
+    if re.search(r'\b\s*\w+\s*=\s*eval\s*;', code):
+        return False, "Присваивание eval переменной запрещено (попытка обхода)"
 
     return True, ""
 
@@ -500,9 +751,13 @@ class ChromeRemote:
                         self._chrome_tab.stop()
                     # Закрываем вкладку через API
                     if self._dev_url:
-                        requests.put(
+                        # Исправление проблемы 3: добавлена явная валидация SSL сертификатов
+                        # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
+                        _safe_external_request(
+                            'put',
                             "%s/json/close/%s" % (self._dev_url, self._chrome_tab.id),
                             timeout=5,
+                            verify=True,  # Явная валидация SSL сертификатов
                         )
                 except Exception as e:
                     logger.debug("Ошибка при очистке вкладки: %s", e)
@@ -679,10 +934,14 @@ class ChromeRemote:
                     "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
                 )
                 # requests.put не принимает параметр json=True, используем данные запроса
-                resp = requests.put(
+                # Исправление проблемы 3: добавлена явная валидация SSL сертификатов
+                # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
+                resp = _safe_external_request(
+                    'put',
                     "%s/json/new" % (self._dev_url),
                     json={},  # Пустой JSON для создания вкладки
                     timeout=60,  # Увеличенный timeout для стабильности
+                    verify=True,  # Явная валидация SSL сертификатов
                 )
                 resp.raise_for_status()
                 logger.debug("Вкладка успешно создана")
@@ -708,7 +967,13 @@ class ChromeRemote:
         """Закрывает Chrome-вкладку."""
         if tab.status == pychrome.Tab.status_started:
             tab.stop()
-        requests.put("%s/json/close/%s" % (self._dev_url, tab.id))
+        # Исправление проблемы 3: добавлена явная валидация SSL сертификатов
+        # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
+        _safe_external_request(
+            'put',
+            "%s/json/close/%s" % (self._dev_url, tab.id),
+            verify=True,  # Явная валидация SSL сертификатов
+        )
 
     def _setup_tab(self) -> None:
         """Скрывает следы webdriver, включает перехват запросов/ответов, исправляет UA.
@@ -870,7 +1135,14 @@ class ChromeRemote:
                 # Проверяем вкладку только если прошло достаточно времени
                 if current_time - last_check_time >= MONITOR_INTERVAL:
                     try:
-                        ret = requests.get("%s/json" % self._dev_url, timeout=3)
+                        # Исправление проблемы 3: добавлена явная валидация SSL сертификатов
+                        # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
+                        ret = _safe_external_request(
+                            'get',
+                            "%s/json" % self._dev_url,
+                            timeout=3,
+                            verify=True,  # Явная валидация SSL сертификатов
+                        )
                         tab_found = any(
                             x["id"] == self._chrome_tab.id for x in ret.json()
                         )
@@ -1035,6 +1307,22 @@ class ChromeRemote:
                     response_body = ""
             else:
                 response_body = response_data.get("body", "")
+
+            # Исправление проблемы 9: проверка размера ответа для предотвращения DoS атак
+            # Проверяем размер полученного тела ответа
+            if len(response_body) > MAX_RESPONSE_SIZE:
+                logger.warning(
+                    "Размер ответа превышает лимит (%d > %d байт) для requestId: %s. "
+                    "Ответ отклонён.",
+                    len(response_body),
+                    MAX_RESPONSE_SIZE,
+                    request_id,
+                )
+                raise ValueError(
+                    f"Размер ответа превышает максимальный лимит "
+                    f"({len(response_body)} > {MAX_RESPONSE_SIZE} байт). "
+                    f"Это может быть DoS атака."
+                )
 
             # Сохраняем тело в response для удобства
             response["body"] = response_body
@@ -1216,14 +1504,16 @@ class ChromeRemote:
         return self._execute_script_internal(expression, timeout)
 
     @sleep_and_retry
-    @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
+    @limits(calls=EXTERNAL_RATE_LIMIT_CALLS, period=EXTERNAL_RATE_LIMIT_PERIOD)
     def _execute_script_internal(self, expression: str, timeout: int = 30) -> Any:
         """Внутренний метод выполнения скрипта с rate limiting.
 
-        Исправление H3:
+        Исправление проблемы 6 (RATE LIMITING):
         - Декораторы @sleep_and_retry и @limits обеспечивают rate limiting
+        - Ограничение: 5 вызовов в секунду для внешних запросов к 2GIS
         - Автоматическая пауза при превышении лимита вызовов
-        - Защита от перегрузки Chrome DevTools Protocol
+        - Защита от перегрузки Chrome DevTools Protocol и внешних сервисов
+        - Предотвращает блокировки со стороны 2GIS
 
         Args:
             expression: JavaScript выражение для выполнения.

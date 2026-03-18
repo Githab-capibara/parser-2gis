@@ -20,6 +20,7 @@ import signal
 import threading
 import time
 import uuid
+import weakref
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from concurrent.futures import as_completed
@@ -49,6 +50,211 @@ MAX_TIMEOUT: int = 3600
 
 # Таймаут по умолчанию на один URL в секундах (5 минут)
 DEFAULT_TIMEOUT: int = 300
+
+# =============================================================================
+# ИСПРАВЛЕНИЕ C3: ПЕРИОДИЧЕСКАЯ ОЧИСТКА ВРЕМЕННЫХ ФАЙЛОВ
+# =============================================================================
+
+# Интервал периодической очистки временных файлов в секундах (60 секунд)
+TEMP_FILE_CLEANUP_INTERVAL = int(os.getenv("PARSER_TEMP_FILE_CLEANUP_INTERVAL", "60"))
+
+# Максимальное количество временных файлов для мониторинга
+MAX_TEMP_FILES_MONITORING = int(os.getenv("PARSER_MAX_TEMP_FILES_MONITORING", "1000"))
+
+# Возраст временного файла в секундах, после которого он считается осиротевшим (300 секунд = 5 минут)
+ORPHANED_TEMP_FILE_AGE = int(os.getenv("PARSER_ORPHANED_TEMP_FILE_AGE", "300"))
+
+
+class _TempFileCleanupTimer:
+    """
+    Таймер для периодической очистки временных файлов.
+
+    Исправление C3 (ОПТИМИЗАЦИЯ):
+    - Периодическая очистка через threading.Timer
+    - Использование weak references для предотвращения утечек памяти
+    - Мониторинг количества временных файлов
+    - Автоматическая очистка осиротевших файлов
+
+    Пример использования:
+        >>> cleanup_timer = _TempFileCleanupTimer(temp_dir=Path('/tmp'))
+        >>> cleanup_timer.start()
+        >>> # ... работа парсера ...
+        >>> cleanup_timer.stop()
+    """
+
+    def __init__(
+        self,
+        temp_dir: Path,
+        interval: int = TEMP_FILE_CLEANUP_INTERVAL,
+        max_files: int = MAX_TEMP_FILES_MONITORING,
+        orphan_age: int = ORPHANED_TEMP_FILE_AGE,
+    ) -> None:
+        """
+        Инициализация таймера очистки.
+
+        Args:
+            temp_dir: Директория для мониторинга временных файлов.
+            interval: Интервал очистки в секундах.
+            max_files: Максимальное количество файлов для мониторинга.
+            orphan_age: Возраст файла в секундах, после которого он считается осиротевшим.
+        """
+        self._temp_dir = temp_dir
+        self._interval = interval
+        self._max_files = max_files
+        self._orphan_age = orphan_age
+        self._timer: Optional[threading.Timer] = None
+        self._is_running = False
+        self._cleanup_count = 0
+        self._weak_ref = weakref.ref(self)
+
+        logger.debug(
+            "Инициализирован таймер очистки временных файлов: интервал=%d сек, макс. файлов=%d, возраст=%d сек",
+            interval,
+            max_files,
+            orphan_age
+        )
+
+    def _cleanup_callback(self) -> None:
+        """Callback для периодической очистки."""
+        if not self._is_running:
+            return
+
+        try:
+            self._cleanup_temp_files()
+        except Exception as cleanup_error:
+            logger.error(
+                "Ошибка при периодической очистке временных файлов: %s",
+                cleanup_error,
+                exc_info=True
+            )
+        finally:
+            # Планируем следующую очистку
+            if self._is_running:
+                self._schedule_next_cleanup()
+
+    def _schedule_next_cleanup(self) -> None:
+        """Планирует следующую очистку."""
+        try:
+            self._timer = threading.Timer(self._interval, self._cleanup_callback)
+            self._timer.daemon = True
+            self._timer.start()
+        except Exception as schedule_error:
+            logger.error(
+                "Ошибка при планировании следующей очистки: %s",
+                schedule_error,
+                exc_info=True
+            )
+
+    def _cleanup_temp_files(self) -> int:
+        """
+        Выполняет очистку временных файлов.
+
+        Returns:
+            Количество удалённых файлов.
+        """
+        deleted_count = 0
+        current_time = time.time()
+
+        if not self._temp_dir.exists():
+            return 0
+
+        try:
+            # Получаем список файлов в директории
+            temp_files = list(self._temp_dir.iterdir())
+
+            # Мониторинг количества файлов
+            if len(temp_files) > self._max_files:
+                logger.warning(
+                    "Превышено максимальное количество временных файлов: %d (макс: %d)",
+                    len(temp_files),
+                    self._max_files
+                )
+
+            # Удаляем осиротевшие файлы
+            for temp_file in temp_files:
+                try:
+                    # Пропускаем директории
+                    if temp_file.is_dir():
+                        continue
+
+                    # Проверяем возраст файла
+                    file_age = current_time - temp_file.stat().st_mtime
+
+                    if file_age > self._orphan_age:
+                        temp_file.unlink()
+                        deleted_count += 1
+                        logger.debug(
+                            "Удалён осиротевший временный файл: %s (возраст: %.0f сек)",
+                            temp_file,
+                            file_age
+                        )
+
+                except OSError as os_error:
+                    logger.debug(
+                        "Ошибка при удалении файла %s: %s",
+                        temp_file,
+                        os_error
+                    )
+                except Exception as file_error:
+                    logger.debug(
+                        "Непредвиденная ошибка при обработке файла %s: %s",
+                        temp_file,
+                        file_error
+                    )
+
+            if deleted_count > 0:
+                self._cleanup_count += deleted_count
+                logger.info(
+                    "Периодическая очистка: удалено %d временных файлов (всего: %d)",
+                    deleted_count,
+                    self._cleanup_count
+                )
+
+        except Exception as cleanup_error:
+            logger.error(
+                "Ошибка при сканировании директории %s: %s",
+                self._temp_dir,
+                cleanup_error,
+                exc_info=True
+            )
+
+        return deleted_count
+
+    def start(self) -> None:
+        """Запускает таймер периодической очистки."""
+        if self._is_running:
+            logger.warning("Таймер очистки уже запущен")
+            return
+
+        self._is_running = True
+        self._schedule_next_cleanup()
+        logger.info("Запущен таймер периодической очистки временных файлов")
+
+    def stop(self) -> None:
+        """Останавливает таймер периодической очистки."""
+        self._is_running = False
+
+        if self._timer is not None:
+            try:
+                self._timer.cancel()
+            except Exception as cancel_error:
+                logger.debug("Ошибка при отмене таймера: %s", cancel_error)
+            finally:
+                self._timer = None
+
+        logger.info(
+            "Таймер периодической очистки остановлен (всего удалено файлов: %d)",
+            self._cleanup_count
+        )
+
+    def __del__(self) -> None:
+        """Гарантирует остановку таймера при уничтожении."""
+        try:
+            if hasattr(self, '_is_running') and self._is_running:
+                self.stop()
+        except Exception:
+            pass
+
 
 # =============================================================================
 # КОНСТАНТЫ ПРОГРЕССА И ОТОБРАЖЕНИЯ
@@ -312,15 +518,32 @@ def _merge_csv_files(
     total_rows = 0
     fieldnames_cache: Dict[str, List[str]] = {}
     writer = None
+    outfile = None
 
     try:
+        # ИСПРАВЛЕНИЕ A3: Обработка OSError при открытии выходного файла
         try:
             outfile = open(
                 output_path, "w", encoding=encoding, newline="", buffering=buffer_size
             )
         except OSError as output_error:
-            log(f"Ошибка записи в выходной файл {output_path}: {output_error}", "error")
-            return False, 0, []
+            # Детальное логирование ошибки с указанием типа ошибки
+            error_type = type(output_error).__name__
+            log(f"Ошибка записи в выходной файл {output_path} ({error_type}): {output_error}", "error")
+
+            # Fallback механизм - пробуем уменьшить размер буфера
+            if buffer_size > 8192:
+                log("Попытка fallback: уменьшаем размер буфера до 8KB", "warning")
+                try:
+                    outfile = open(
+                        output_path, "w", encoding=encoding, newline="", buffering=8192
+                    )
+                    log("Fallback успешен: файл открыт с уменьшенным буфером", "info")
+                except OSError as fallback_error:
+                    log(f"Fallback не удался: {fallback_error}", "error")
+                    return False, 0, []
+            else:
+                return False, 0, []
 
         with outfile:
             for csv_file in file_paths:
@@ -346,6 +569,7 @@ def _merge_csv_files(
                         "warning",
                     )
 
+                # ИСПРАВЛЕНИЕ A3: Обработка OSError при открытии входного файла
                 try:
                     infile = open(
                         csv_file,
@@ -355,50 +579,82 @@ def _merge_csv_files(
                         buffering=buffer_size,
                     )
                 except OSError as file_error:
-                    log(f"Ошибка доступа к файлу {csv_file}: {file_error}", "error")
-                    return False, 0, []
+                    # Детальное логирование с указанием типа ошибки
+                    error_type = type(file_error).__name__
+                    log(f"Ошибка доступа к файлу {csv_file} ({error_type}): {file_error}", "error")
 
-                with infile:
-                    reader = csv.DictReader(infile)
-
-                    if not reader.fieldnames:
-                        log(f"Файл {csv_file} пуст или не имеет заголовков", "warning")
+                    # Fallback механизм - пробуем прочитать без буферизации
+                    if buffer_size > 0:
+                        log(f"Попытка fallback: читаем файл {csv_file} без буферизации", "warning")
+                        try:
+                            infile = open(
+                                csv_file,
+                                "r",
+                                encoding="utf-8-sig",
+                                newline="",
+                                buffering=0,
+                            )
+                            log(f"Fallback успешен: файл {csv_file} открыт без буферизации", "info")
+                        except OSError as fallback_error:
+                            log(f"Fallback не удался для {csv_file}: {fallback_error}", "error")
+                            # Продолжаем с следующим файлом вместо полного провала
+                            continue
+                    else:
                         continue
 
-                    fieldnames_key = tuple(reader.fieldnames)
-                    if fieldnames_key not in fieldnames_cache:
-                        fieldnames = list(reader.fieldnames)
-                        if "Категория" not in fieldnames:
-                            fieldnames.insert(0, "Категория")
-                        fieldnames_cache[fieldnames_key] = fieldnames
-                    else:
-                        fieldnames = fieldnames_cache[fieldnames_key]
+                with infile:
+                    try:
+                        reader = csv.DictReader(infile)
 
-                    if writer is None:
-                        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-                        writer.writeheader()
+                        if not reader.fieldnames:
+                            log(f"Файл {csv_file} пуст или не имеет заголовков", "warning")
+                            continue
 
-                    batch = []
-                    batch_total = 0
+                        fieldnames_key = tuple(reader.fieldnames)
+                        if fieldnames_key not in fieldnames_cache:
+                            fieldnames = list(reader.fieldnames)
+                            if "Категория" not in fieldnames:
+                                fieldnames.insert(0, "Категория")
+                            fieldnames_cache[fieldnames_key] = fieldnames
+                        else:
+                            fieldnames = fieldnames_cache[fieldnames_key]
 
-                    for row in reader:
-                        row_with_category = {"Категория": category_name, **row}
-                        batch.append(row_with_category)
+                        if writer is None:
+                            writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+                            writer.writeheader()
 
-                        if len(batch) >= batch_size:
+                        batch = []
+                        batch_total = 0
+
+                        for row in reader:
+                            row_with_category = {"Категория": category_name, **row}
+                            batch.append(row_with_category)
+
+                            if len(batch) >= batch_size:
+                                writer.writerows(batch)
+                                batch_total += len(batch)
+                                batch.clear()
+
+                        if batch:
                             writer.writerows(batch)
                             batch_total += len(batch)
-                            batch.clear()
 
-                    if batch:
-                        writer.writerows(batch)
-                        batch_total += len(batch)
+                        total_rows += batch_total
+                        log(
+                            f"Файл {csv_file.name} обработан (строк: {batch_total})",
+                            "debug",
+                        )
 
-                    total_rows += batch_total
-                    log(
-                        f"Файл {csv_file.name} обработан (строк: {batch_total})",
-                        "debug",
-                    )
+                    except OSError as csv_error:
+                        # ИСПРАВЛЕНИЕ A3: Обработка OSError при чтении/записи CSV
+                        error_type = type(csv_error).__name__
+                        log(f"Ошибка при обработке CSV {csv_file} ({error_type}): {csv_error}", "error")
+                        # Продолжаем со следующим файлом
+                        continue
+                    except csv.Error as csv_parse_error:
+                        # Обработка ошибок парсинга CSV
+                        log(f"Ошибка парсинга CSV {csv_file}: {csv_parse_error}", "error")
+                        continue
 
                 files_to_delete.append(csv_file)
 
@@ -410,10 +666,23 @@ def _merge_csv_files(
             return True, total_rows, files_to_delete
 
     except OSError as e:
-        log(f"Ошибка операционной системы при объединении CSV: {e}", "error")
+        # ИСПРАВЛЕНИЕ A3: Детальная обработка OSError с указанием контекста
+        error_type = type(e).__name__
+        error_details = str(e)
+        log(f"Критическая ошибка ОС при объединении CSV ({error_type}): {error_details}", "error")
+
+        # Попытка очистки ресурсов при ошибке
+        if outfile is not None:
+            try:
+                outfile.close()
+            except Exception as close_error:
+                log(f"Ошибка при закрытии выходного файла: {close_error}", "debug")
+
         return False, 0, []
     except Exception as e:
-        log(f"Ошибка при объединении CSV: {e}", "error")
+        # Обработка всех остальных исключений
+        error_type = type(e).__name__
+        log(f"Непредвиденная ошибка при объединении CSV ({error_type}): {e}", "error")
         return False, 0, []
 
 
@@ -601,6 +870,26 @@ class ParallelCityParser:
         self._merge_temp_files: List[Path] = []
         # Блокировка для потокобезопасного доступа к временным файлам
         self._merge_lock = threading.Lock()
+
+        # ИСПРАВЛЕНИЕ C3: Инициализация таймера периодической очистки временных файлов
+        self._temp_file_cleanup_timer: Optional[_TempFileCleanupTimer] = None
+        if self.config.parallel.use_temp_file_cleanup:  # type: ignore[attr-defined]
+            try:
+                self._temp_file_cleanup_timer = _TempFileCleanupTimer(
+                    temp_dir=self.output_dir,
+                    interval=TEMP_FILE_CLEANUP_INTERVAL,
+                    max_files=MAX_TEMP_FILES_MONITORING,
+                    orphan_age=ORPHANED_TEMP_FILE_AGE,
+                )
+                logger.info(
+                    "Инициализирован таймер периодической очистки временных файлов для %s",
+                    self.output_dir
+                )
+            except Exception as timer_error:
+                logger.warning(
+                    "Не удалось инициализировать таймер очистки временных файлов: %s",
+                    timer_error
+                )
 
         # Логирование успешной инициализации
         self.log(
@@ -1411,6 +1700,17 @@ class ParallelCityParser:
         start_time = time.time()
         total_tasks = len(self.cities) * len(self.categories)
 
+        # ИСПРАВЛЕНИЕ C3: Запуск таймера периодической очистки временных файлов
+        if self._temp_file_cleanup_timer is not None:
+            try:
+                self._temp_file_cleanup_timer.start()
+                self.log("Запущен таймер периодической очистки временных файлов", "info")
+            except Exception as timer_error:
+                self.log(
+                    f"Не удалось запустить таймер очистки: {timer_error}",
+                    "warning"
+                )
+
         self.log(
             f"🚀 Запуск параллельного парсинга ({self.max_workers} потока)", "info"
         )
@@ -1486,12 +1786,40 @@ class ParallelCityParser:
                         "error",
                     )
 
+                except KeyboardInterrupt:
+                    # ИСПРАВЛЕНИЕ #11: ОБРАБОТКА KeyboardInterrrupt
+                    self.log(
+                        "⚠️ Парсинг прерван пользователем (KeyboardInterrupt)",
+                        "warning",
+                    )
+                    # Устанавливаем флаг отмены для остановки остальных задач
+                    self._cancel_event.set()
+                    # Отменяем все ожидающие задачи
+                    for f in futures:
+                        f.cancel()
+                    # Возвращаем False для индикации прерывания
+                    return False
+
                 except Exception as e:
                     failed_count += 1
                     self.log(
                         f"❌ Исключение при парсинге {city_name} - {category_name}: {e}",
                         "error",
                     )
+
+        except KeyboardInterrupt:
+            # ИСПРАВЛЕНИЕ #11: ОБРАБОТКА KeyboardInterrrupt на уровне цикла
+            self.log(
+                "⚠️ Парсинг прерван пользователем (KeyboardInterrupt в цикле)",
+                "warning",
+            )
+            # Устанавливаем флаг отмены
+            self._cancel_event.set()
+            # Отменяем все задачи
+            if executor is not None:
+                for f in futures:
+                    f.cancel()
+            return False
 
         finally:
             if executor is not None:
@@ -1556,6 +1884,17 @@ class ParallelCityParser:
             "Ошибки": failed_count,
         }
         log_parser_finish(success=True, stats=stats, duration=duration_str)
+
+        # ИСПРАВЛЕНИЕ C3: Остановка таймера периодической очистки временных файлов
+        if self._temp_file_cleanup_timer is not None:
+            try:
+                self._temp_file_cleanup_timer.stop()
+                self.log("Таймер периодической очистки остановлен", "info")
+            except Exception as timer_error:
+                self.log(
+                    f"Ошибка при остановке таймера: {timer_error}",
+                    "debug"
+                )
 
         return True
 

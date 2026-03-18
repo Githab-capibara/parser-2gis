@@ -420,6 +420,12 @@ class MainParser:
         def check_and_optimize_memory():
             """Проверяет использование памяти и выполняет автоматическую оптимизацию.
 
+            Исправление проблемы #6 (Отсутствие обработки переполнения памяти):
+            - Добавлен мониторинг использования памяти в реальном времени
+            - Автоматический вызов gc.collect() при превышении порога
+            - Принудительная очистка кэшей и буферов
+            - Логирование использования памяти для отладки
+
             Оптимизация 3.1:
             - Кэширование psutil.Process объекта
             - Снижение частоты вызовов gc.collect()
@@ -442,6 +448,15 @@ class MainParser:
                 # Оптимизация: используем кэшированный Process объект
                 memory_info = _process_cache.memory_info()
                 memory_mb = memory_info.rss / 1024 / 1024  # Конвертируем в МБ
+
+                # ИСПРАВЛЕНИЕ #6: МОНИТОРИНГ ПАМЯТИ В РЕАЛЬНОМ ВРЕМЕНИ
+                # Логируем использование памяти каждые 10 вызовов
+                if memory_check_counter % 10 == 0:
+                    logger.debug(
+                        "Использование памяти: %.1f МБ (порог: %d МБ)",
+                        memory_mb,
+                        self._options.memory_threshold,
+                    )
 
                 # Проверяем превышение порога
                 if memory_mb > self._options.memory_threshold:
@@ -471,8 +486,14 @@ class MainParser:
                                     target_remove,
                                 )
 
-                    # Оптимизация: одиночный вызов gc.collect() вместо двойного
-                    gc.collect()
+                    # ИСПРАВЛЕНИЕ #6: ПРИНУДИТЕЛЬНЫЙ ВЫЗОВ GC
+                    # Выполняем сборку мусора для освобождения памяти
+                    gc_collected = gc.collect()
+                    logger.info(
+                        "GC собрал %d объектов, освобождено памяти: %.1f МБ",
+                        gc_collected,
+                        memory_mb - (_process_cache.memory_info().rss / 1024 / 1024),
+                    )
 
                     # Очищаем кэш запросов Chrome если возможно
                     try:
@@ -494,6 +515,15 @@ class MainParser:
                         )
                     else:
                         logger.debug("Не удалось освободить значительный объём памяти")
+
+                    # ИСПРАВЛЕНИЕ #6: ПРОВЕРКА НА ПЕРЕПОЛНЕНИЕ ПАМЯТИ
+                    # Если память всё ещё превышает порог после очистки - логируем критическую ошибку
+                    if new_memory_mb > self._options.memory_threshold * 1.5:
+                        logger.error(
+                            "КРИТИЧЕСКОЕ ПЕРЕПОЛНЕНИЕ ПАМЯТИ: %.1f МБ после очистки. "
+                            "Рекомендуется уменьшить batch_size или увеличить memory_threshold.",
+                            new_memory_mb,
+                        )
 
             except Exception as memory_error:
                 logger.debug("Ошибка при проверке памяти: %s", memory_error)

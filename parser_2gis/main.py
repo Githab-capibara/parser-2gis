@@ -153,7 +153,13 @@ _signal_handler_lock = threading.Lock()
 
 def _get_signal_handler() -> SignalHandler:
     """
-    Получает глобальный экземпляр SignalHandler.
+    Получает глобальный экземпляр SignalHandler с использованием double-checked locking.
+
+    Исправление C1 (RACE CONDITION):
+    - Реализован double-checked locking для оптимизации производительности
+    - Первая проверка без блокировки для быстрого пути
+    - Вторая проверка с блокировкой для гарантии потокобезопасности
+    - Используется threading.Lock для защиты глобальной переменной
 
     Returns:
         Экземпляр SignalHandler для обработки сигналов.
@@ -162,15 +168,23 @@ def _get_signal_handler() -> SignalHandler:
         RuntimeError: Если обработчик сигналов не инициализирован.
 
     Примечание:
-        Используется threading.Lock для защиты от race condition
-        при доступе к глобальной переменной _signal_handler_instance.
+        Double-checked locking снижает накладные расходы на синхронизацию
+        для часто вызываемой функции, обеспечивая при этом потокобезопасность.
+
+        Пример использования:
+            >>> handler = _get_signal_handler()
+            >>> handler.setup()
     """
-    with _signal_handler_lock:
-        if _signal_handler_instance is None:
-            raise RuntimeError(
-                "SignalHandler не инициализирован. Вызовите _setup_signal_handlers()."
-            )
-        return _signal_handler_instance
+    # Первая проверка без блокировки (быстрый путь)
+    if _signal_handler_instance is None:
+        with _signal_handler_lock:
+            # Вторая проверка с блокировкой (double-checked locking)
+            if _signal_handler_instance is None:
+                raise RuntimeError(
+                    "SignalHandler не инициализирован. Вызовите _setup_signal_handlers()."
+                )
+
+    return _signal_handler_instance
 
 
 def _setup_signal_handlers() -> None:
@@ -195,6 +209,13 @@ def _setup_signal_handlers() -> None:
 def cleanup_resources() -> None:
     """Выполняет централизованную очистку ресурсов приложения.
 
+    Исправление C2 (УЛУЧШЕНИЕ ОБРАБОТКИ ИСКЛЮЧЕНИЙ):
+    - Добавлены специфичные except блоки для разных типов ошибок
+    - Гарантированная очистка всех ресурсов даже при частичных ошибках
+    - Детальное логирование для отладки с уровнем ERROR для всех исключений
+    - Разделение обработки по типам ресурсов (ChromeRemote, Cache, GC)
+    - Счётчик успешных/неуспешных очисток для мониторинга
+
     Примечание:
         - Закрывает активные соединения с браузером
         - Освобождает файловые дескрипторы
@@ -205,39 +226,173 @@ def cleanup_resources() -> None:
         Функция безопасна - не вызывает исключений даже при частичных ошибках.
         Все ошибки логируются для последующего анализа.
     """
+    # Счётчики для мониторинга очистки ресурсов
+    success_count = 0
+    error_count = 0
+
     try:
         # Очистка кэша Chrome
         logger.debug("Очистка кэша ресурсов...")
 
-        # Закрытие активных соединений
+        # Закрытие активных соединений ChromeRemote
         if hasattr(ChromeRemote, "_active_instances"):
-            for instance in ChromeRemote._active_instances:
-                try:
-                    instance.close()
-                except Exception as e:
-                    logger.debug("Ошибка при закрытии соединения: %s", e)
+            try:
+                chrome_instances_closed = 0
+                chrome_errors = 0
 
-        # Очистка кэша базы данных
+                for instance in ChromeRemote._active_instances:
+                    try:
+                        if instance is not None:
+                            instance.close()
+                            chrome_instances_closed += 1
+                    except AttributeError as attr_error:
+                        # Экземпляр уже был удалён
+                        logger.error(
+                            "Атрибут экземпляра ChromeRemote недоступен при закрытии: %s",
+                            attr_error,
+                            exc_info=True
+                        )
+                        chrome_errors += 1
+                    except RuntimeError as runtime_error:
+                        # Экземпляр уже закрыт или некорректен
+                        logger.error(
+                            "RuntimeError при закрытии ChromeRemote: %s",
+                            runtime_error,
+                            exc_info=True
+                        )
+                        chrome_errors += 1
+                    except Exception as instance_error:
+                        # Любая другая ошибка при закрытии экземпляра
+                        logger.error(
+                            "Ошибка при закрытии экземпляра ChromeRemote: %s (тип: %s)",
+                            instance_error,
+                            type(instance_error).__name__,
+                            exc_info=True
+                        )
+                        chrome_errors += 1
+
+                logger.info(
+                    "Закрыто экземпляров ChromeRemote: %d, ошибок: %d",
+                    chrome_instances_closed,
+                    chrome_errors
+                )
+
+                if chrome_errors > 0:
+                    error_count += chrome_errors
+                else:
+                    success_count += 1
+
+            except TypeError as type_error:
+                # _active_instances не является итерируемым
+                logger.error(
+                    "_active_instances не является итерируемым: %s",
+                    type_error,
+                    exc_info=True
+                )
+                error_count += 1
+            except AttributeError as attr_error:
+                # _active_instances не существует
+                logger.error(
+                    "_active_instances не существует: %s",
+                    attr_error,
+                    exc_info=True
+                )
+                error_count += 1
+
+        # Очистка кэша базы данных Cache
         if hasattr(Cache, "close_all"):
             try:
                 Cache.close_all()
-            except Exception as e:
-                logger.debug("Ошибка при закрытии кэша: %s", e)
+                logger.info("Кэш базы данных успешно закрыт")
+                success_count += 1
+            except AttributeError as attr_error:
+                # Метод close_all не существует
+                logger.error(
+                    "Метод Cache.close_all не существует: %s",
+                    attr_error,
+                    exc_info=True
+                )
+                error_count += 1
+            except RuntimeError as runtime_error:
+                # Ошибка при закрытии кэша
+                logger.error(
+                    "RuntimeError при закрытии кэша базы данных: %s",
+                    runtime_error,
+                    exc_info=True
+                )
+                error_count += 1
+            except Exception as cache_error:
+                # Любая другая ошибка при закрытии кэша
+                logger.error(
+                    "Ошибка при закрытии кэша базы данных: %s (тип: %s)",
+                    cache_error,
+                    type(cache_error).__name__,
+                    exc_info=True
+                )
+                error_count += 1
 
         # Принудительный сборщик мусора
-        gc.collect()
+        try:
+            gc.collect()
+            logger.debug("Сборщик мусора завершён")
+            success_count += 1
+        except Exception as gc_error:
+            logger.error(
+                "Ошибка при вызове gc.collect(): %s (тип: %s)",
+                gc_error,
+                type(gc_error).__name__,
+                exc_info=True
+            )
+            error_count += 1
 
-        logger.debug("Ресурсы успешно очищены")
+        # Итоговая статистика очистки
+        logger.info(
+            "Очистка ресурсов завершена. Успешно: %d, Ошибок: %d",
+            success_count,
+            error_count
+        )
+
     except ImportError as e:
         # Модули могут быть недоступны при раннем завершении
-        logger.debug("Не удалось импортировать модули для очистки: %s", e)
+        logger.error(
+            "Не удалось импортировать модули для очистки: %s (тип: %s)",
+            e,
+            type(e).__name__,
+            exc_info=True
+        )
+        error_count += 1
+    except MemoryError as e:
+        # Критическая ошибка - нехватка памяти
+        logger.critical(
+            "Критическая ошибка: нехватка памяти при очистке ресурсов: %s",
+            e,
+            exc_info=True
+        )
+        error_count += 1
+    except KeyboardInterrupt:
+        # Прерывание пользователем - логируем и продолжаем
+        logger.warning("Очистка ресурсов прервана пользователем")
+    except SystemExit as e:
+        # Выход из системы - логируем код выхода
+        logger.error("Выход из системы при очистке ресурсов (код: %s)", e.code)
     except Exception as e:
         # Ловим все исключения чтобы не прерывать очистку
-        logger.debug("Ошибка при очистке ресурсов: %s", e)
+        logger.error(
+            "Непредвиденная ошибка при очистке ресурсов: %s (тип: %s)",
+            e,
+            type(e).__name__,
+            exc_info=True
+        )
+        error_count += 1
 
 
 def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
     """Загружает JSON файл с городами с корректной обработкой ошибок.
+
+    Исправление проблемы #9 (Отсутствие валидации):
+    - Добавлена проверка размера файла перед загрузкой
+    - Валидация структуры данных после загрузки
+    - Защита от ReDoS и DoS атак через большие файлы
 
     Args:
         cities_path: Путь к файлу cities.json.
@@ -250,15 +405,80 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         ValueError: Если файл повреждён или содержит некорректные данные.
         OSError: Если произошла ошибка операционной системы.
     """
+    # Константы валидации
+    MAX_CITIES_FILE_SIZE = 10 * 1024 * 1024  # 10 MB - максимальный размер файла
+    MAX_CITIES_COUNT = 10000  # Максимальное количество городов
+
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)
         raise FileNotFoundError(f"Файл {cities_path} не найден")
+
+    # ИСПРАВЛЕНИЕ #9: ПРОВЕРКА РАЗМЕРА ФАЙЛА
+    try:
+        file_size = cities_path.stat().st_size
+        if file_size == 0:
+            logger.error("Файл городов пуст: %s", cities_path)
+            raise ValueError(f"Файл {cities_path} пуст")
+
+        if file_size > MAX_CITIES_FILE_SIZE:
+            logger.error(
+                "Файл городов слишком большой: %d байт (макс: %d байт)",
+                file_size,
+                MAX_CITIES_FILE_SIZE,
+            )
+            raise ValueError(
+                f"Файл {cities_path} слишком большой "
+                f"({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
+            )
+
+        logger.debug("Размер файла городов: %d байт", file_size)
+    except OSError as stat_error:
+        logger.error("Ошибка получения информации о файле: %s", stat_error)
+        raise OSError(f"Не удалось получить информацию о файле: {stat_error}")
 
     try:
         # Используем контекстный менеджер для гарантии закрытия файла
         with open(cities_path, "r", encoding="utf-8") as f:
             all_cities = json.load(f)
+
+        # ИСПРАВЛЕНИЕ #9: ВАЛИДАЦИЯ СТРУКТУРЫ ДАННЫХ
+        if not isinstance(all_cities, list):
+            logger.error("Файл городов должен содержать список, а не %s", type(all_cities).__name__)
+            raise ValueError(f"Файл городов должен содержать список, получен {type(all_cities).__name__}")
+
+        if len(all_cities) > MAX_CITIES_COUNT:
+            logger.error(
+                "Слишком много городов: %d (макс: %d)",
+                len(all_cities),
+                MAX_CITIES_COUNT,
+            )
+            raise ValueError(
+                f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}"
+            )
+
+        # Валидируем каждый город
+        for i, city in enumerate(all_cities):
+            if not isinstance(city, dict):
+                logger.error("Город %d должен быть словарём, а не %s", i, type(city).__name__)
+                raise ValueError(f"Город {i} должен быть словарём")
+
+            # Проверяем обязательные поля
+            if "name" not in city or "url" not in city:
+                logger.error("Город %d должен содержать поля 'name' и 'url'", i)
+                raise ValueError(f"Город {i} должен содержать поля 'name' и 'url'")
+
+            if not isinstance(city["name"], str) or not isinstance(city["url"], str):
+                logger.error("Поля 'name' и 'url' города %d должны быть строками", i)
+                raise ValueError(f"Поля 'name' и 'url' города {i} должны быть строками")
+
+            # Проверяем URL на корректность
+            if not city["url"].startswith("http://") and not city["url"].startswith("https://"):
+                logger.error("URL города %d должен начинаться с http:// или https://", i)
+                raise ValueError(f"URL города {i} некорректен")
+
+        logger.debug("Файл городов валидирован: %d городов", len(all_cities))
         return all_cities
+
     except json.JSONDecodeError as e:
         logger.error("Ошибка парсинга JSON в файле городов: %s", e)
         raise ValueError(f"Некорректный формат JSON в файле городов: {e}")

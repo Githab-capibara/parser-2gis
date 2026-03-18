@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from .chrome import ChromeOptions
 from .common import report_from_validation_error
 from .logger import LogOptions, logger
+from .parallel import ParallelOptions
 from .parser import ParserOptions
 from .paths import user_path
 from .pydantic_compat import (
@@ -31,6 +32,7 @@ class Configuration(BaseModel):
     writer: WriterOptions = WriterOptions()
     chrome: ChromeOptions = ChromeOptions()
     parser: ParserOptions = ParserOptions()
+    parallel: ParallelOptions = ParallelOptions()
     path: Optional[pathlib.Path] = None
     version: str = config_version
 
