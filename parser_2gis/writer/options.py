@@ -13,7 +13,6 @@ except ImportError:
 
     PYDANTIC_V2 = False
 
-
 class CSVOptions(BaseModel):
     """Опции для CSV Writer.
 
@@ -32,7 +31,6 @@ class CSVOptions(BaseModel):
     remove_empty_columns: bool = True
     remove_duplicates: bool = True
     join_char: str = "; "
-
 
 class WriterOptions(BaseModel):
     """Опции для File Writer.

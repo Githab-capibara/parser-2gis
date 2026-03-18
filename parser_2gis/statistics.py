@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-
 @dataclass
 class ParserStatistics:
     """Статистика работы парсера.
@@ -89,7 +88,6 @@ class ParserStatistics:
         if self.cache_hits < 0 or self.cache_hits > total_cache_requests:
             return 0.0
         return (self.cache_hits / total_cache_requests) * 100
-
 
 class StatisticsExporter:
     """Экспортер статистики работы парсера.

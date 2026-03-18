@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 # Экспортируемые символы модуля
 __all__ = [
     "wait_until_finished",
-    "async_wait_until_finished",  # ИСПРАВЛЕНИЕ L10: async версия
+    "async_wait_until_finished",
     "report_from_validation_error",
     "unwrap_dot_dict",
     "floor_to_hundreds",
@@ -38,11 +38,9 @@ __all__ = [
     "url_query_encode",
     "_validate_city",
     "_validate_category",
-    # ИСПРАВЛЕНИЕ M8: Экспорт глобальных констант буферизации
     "DEFAULT_BUFFER_SIZE",
     "CSV_BATCH_SIZE",
     "MERGE_BATCH_SIZE",
-    # ИСПРАВЛЕНИЕ L3: Экспорт констант polling
     "DEFAULT_POLL_INTERVAL",
     "MAX_POLL_INTERVAL",
     "EXPONENTIAL_BACKOFF_MULTIPLIER",
@@ -52,7 +50,6 @@ __all__ = [
 # КОНСТАНТЫ ДЛЯ POLLING (ИСПРАВЛЕНИЕ L3)
 # =============================================================================
 
-# ИСПРАВЛЕНИЕ L3: Вынос магических чисел в константы
 # Начальный интервал опроса в секундах
 DEFAULT_POLL_INTERVAL: float = 0.1
 
@@ -66,7 +63,6 @@ EXPONENTIAL_BACKOFF_MULTIPLIER: float = 2
 # ГЛОБАЛЬНЫЕ КОНСТАНТЫ БУФЕРИЗАЦИИ (ИСПРАВЛЕНИЕ M8)
 # =============================================================================
 
-# ИСПРАВЛЕНИЕ M8: Унифицированные размеры буферов для всего проекта
 # Эти константы используются во всех модулях для чтения/записи файлов
 
 # Размер буфера по умолчанию для чтения/записи файлов в байтах (256 KB)
@@ -100,7 +96,6 @@ MERGE_BATCH_SIZE: int = 500
 # Это устраняет глобальное состояние и следует лучшим практикам Python
 logger = logging.getLogger(__name__)
 
-
 def _get_logger() -> "Logger":
     """Получает logger для модуля common.
 
@@ -114,7 +109,6 @@ def _get_logger() -> "Logger":
     from .logger import logger as app_logger
 
     return app_logger
-
 
 # Набор чувствительных ключей для фильтрации данных
 # Оптимизация: скомпилированный regex для быстрой проверки
@@ -168,7 +162,6 @@ _SENSITIVE_KEY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-
 def _is_sensitive_key(key: str) -> bool:
     """
     Проверяет, является ли ключ чувствительным.
@@ -194,7 +187,6 @@ def _is_sensitive_key(key: str) -> bool:
 
     # Проверка по скомпилированному regex паттерну
     return bool(_SENSITIVE_KEY_PATTERN.search(key_lower))
-
 
 def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     """
@@ -235,8 +227,14 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
             current_id = id(current_value)
 
             # Быстрая проверка для неизменяемых типов - не требуют обработки
-            if current_value is None or isinstance(current_value, (str, int, float, bool)):
-                result = "<REDACTED>" if current_key and _is_sensitive_key(current_key) else current_value
+            if current_value is None or isinstance(
+                current_value, (str, int, float, bool)
+            ):
+                result = (
+                    "<REDACTED>"
+                    if current_key and _is_sensitive_key(current_key)
+                    else current_value
+                )
                 if parent is not None and parent_key is not None:
                     if isinstance(parent, dict):
                         parent[parent_key] = result
@@ -326,7 +324,6 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
         # Это предотвращает утечку памяти при обработке множества структур данных
         _visited.clear()
 
-
 def _default_predicate(value: Any) -> bool:
     """Предикат по умолчанию для проверки результата.
 
@@ -338,14 +335,13 @@ def _default_predicate(value: Any) -> bool:
     """
     return bool(value)
 
-
 def wait_until_finished(
     timeout: Optional[int] = None,
     finished: Optional[Callable[[Any], bool]] = None,
     throw_exception: bool = True,
-    poll_interval: float = DEFAULT_POLL_INTERVAL,  # ИСПРАВЛЕНИЕ L3: используем константу
+    poll_interval: float = DEFAULT_POLL_INTERVAL,
     use_exponential_backoff: bool = True,  # Оптимизация: экспоненциальная задержка
-    max_poll_interval: float = MAX_POLL_INTERVAL,  # ИСПРАВЛЕНИЕ L3: используем константу
+    max_poll_interval: float = MAX_POLL_INTERVAL,
 ) -> Callable[..., Callable[..., Any]]:
     """Декоратор опрашивает обёрнутую функцию до истечения времени или пока
     предикат `finished` не вернёт `True`.
@@ -391,22 +387,36 @@ def wait_until_finished(
         ) -> Any:
             # Приоритет: override_* > оригинальные имена > значения из декоратора
             effective_timeout = (
-                override_timeout if override_timeout is not None else (timeout if timeout is not None else decorator_timeout)
+                override_timeout
+                if override_timeout is not None
+                else (timeout if timeout is not None else decorator_timeout)
             )
             effective_finished = (
                 override_finished
                 if override_finished is not None
-                else (finished if finished is not None else decorator_finished or _default_predicate)
+                else (
+                    finished
+                    if finished is not None
+                    else decorator_finished or _default_predicate
+                )
             )
             effective_throw = (
                 override_throw_exception
                 if override_throw_exception is not None
-                else (throw_exception if throw_exception is not None else decorator_throw_exception)
+                else (
+                    throw_exception
+                    if throw_exception is not None
+                    else decorator_throw_exception
+                )
             )
             effective_poll = (
                 override_poll_interval
                 if override_poll_interval is not None
-                else (poll_interval if poll_interval is not None else decorator_poll_interval)
+                else (
+                    poll_interval
+                    if poll_interval is not None
+                    else decorator_poll_interval
+                )
             )
 
             ret: Any = None
@@ -416,7 +426,10 @@ def wait_until_finished(
 
             while True:
                 # Проверка таймаута в начале цикла
-                if effective_timeout is not None and time.time() - start_time > effective_timeout:
+                if (
+                    effective_timeout is not None
+                    and time.time() - start_time > effective_timeout
+                ):
                     timeout_msg = f"Превышено время ожидания для {func.__name__}"
                     if effective_throw:
                         raise TimeoutError(timeout_msg)
@@ -435,13 +448,20 @@ def wait_until_finished(
                 except Exception as e:
                     # Логирование ошибок выполнения функции
                     logger = _get_logger()
-                    logger.debug("Ошибка при выполнении функции %s (попытка): %s", func.__name__, e)
+                    logger.debug(
+                        "Ошибка при выполнении функции %s (попытка): %s",
+                        func.__name__,
+                        e,
+                    )
                     consecutive_failures += 1
 
                 # Экспоненциальная задержка для снижения нагрузки на CPU
                 if use_exponential_backoff and consecutive_failures > 0:
                     # Увеличиваем интервал после каждой неудачи
-                    current_poll_interval = min(effective_poll * (2 ** (consecutive_failures - 1)), max_poll_interval)
+                    current_poll_interval = min(
+                        effective_poll * (2 ** (consecutive_failures - 1)),
+                        max_poll_interval,
+                    )
                 else:
                     current_poll_interval = effective_poll
 
@@ -451,8 +471,9 @@ def wait_until_finished(
 
     return outer
 
-
-def report_from_validation_error(ex: ValidationError, d: Optional[Dict[str, Any]] = None) -> Dict[str, Dict[str, Any]]:
+def report_from_validation_error(
+    ex: ValidationError, d: Optional[Dict[str, Any]] = None
+) -> Dict[str, Dict[str, Any]]:
     """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
 
     Note:
@@ -480,10 +501,12 @@ def report_from_validation_error(ex: ValidationError, d: Optional[Dict[str, Any]
         if d is not None and isinstance(d, dict):
             invalid_value = d.get(field_name, "<No value>")
 
-        error_report[field_name] = {"invalid_value": invalid_value, "error_message": msg}
+        error_report[field_name] = {
+            "invalid_value": invalid_value,
+            "error_message": msg,
+        }
 
     return error_report
-
 
 def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
     """Разворачивает плоский словарь с ключами в виде точечного пути к значениям.
@@ -541,7 +564,6 @@ def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
 
     return output
 
-
 def floor_to_hundreds(arg: Union[int, float]) -> int:
     """Округляет число вниз до ближайшей сотни.
 
@@ -553,13 +575,9 @@ def floor_to_hundreds(arg: Union[int, float]) -> int:
     """
     return int((arg // 100) * 100)
 
-
-# Оптимизация 16: Улучшенное кэширование результатов валидации городов
 # Кэшируем по отдельным полям (code, domain) для более эффективного использования памяти
 # и уменьшения количества повторных валидаций одинаковых городов
 
-
-# ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 11 (ОПТИМИЗАЦИЯ):
 # Уменьшены размеры lru_cache для экономии памяти
 # _validate_city_cached=256 (было 1024) - достаточно для часто используемых городов
 # _validate_category_cached=128 (было 512) - оптимально для количества категорий
@@ -589,7 +607,6 @@ def _validate_city_cached(code: str, domain: str) -> Dict[str, Any]:
         "code": code,
         "domain": domain,
     }
-
 
 def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     """Валидирует структуру города.
@@ -633,8 +650,6 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     # Оптимизация: передаём code и domain как отдельные аргументы для эффективного кэширования
     return _validate_city_cached(city["code"], city["domain"])
 
-
-# ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 11 (ОПТИМИЗАЦИЯ):
 # Уменьшены размеры lru_cache для экономии памяти
 # _validate_category_cached=128 (было 512) - оптимально для количества категорий
 @lru_cache(maxsize=128)
@@ -656,7 +671,6 @@ def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
         "query": category_tuple[1],
         "rubric_code": category_tuple[2] if category_tuple[2] else None,
     }
-
 
 def _validate_category(category: Any) -> Dict[str, Any]:
     """Валидирует структуру категории.
@@ -691,7 +705,6 @@ def _validate_category(category: Any) -> Dict[str, Any]:
     )
     return _validate_category_cached(category_key)
 
-
 # Оптимизация: кэширование сгенерированных URL
 @lru_cache(maxsize=4096)
 def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
@@ -716,7 +729,6 @@ def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
     rest_url += "/filters/sort=name"
 
     return base_url + rest_url
-
 
 def generate_category_url(
     city: Dict[str, Any],
@@ -763,8 +775,9 @@ def generate_category_url(
 
     return _generate_category_url_cached(city_key, category_key)
 
-
-def generate_city_urls(cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None) -> List[str]:
+def generate_city_urls(
+    cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None
+) -> List[str]:
     """Генерирует URL для парсинга по списку городов.
 
     Оптимизация:
@@ -804,7 +817,7 @@ def generate_city_urls(cities: List[Dict[str, Any]], query: str, rubric: Optiona
                 continue
 
             # Формирование URL
-            base_url = f'https://{city["domain"]}/{city["code"]}'
+            base_url = f"https://{city['domain']}/{city['code']}"
             rest_url = f"/search/{encoded_query}"
 
             if rubric_code:
@@ -819,8 +832,6 @@ def generate_city_urls(cities: List[Dict[str, Any]], query: str, rubric: Optiona
 
     return urls
 
-
-# Исправление проблемы 3.3: настроены размеры кэшей обоснованно
 # url_query_encode=2048 - оптимально для часто используемых поисковых запросов
 @lru_cache(maxsize=2048)
 def url_query_encode(query: str) -> str:
@@ -840,11 +851,9 @@ def url_query_encode(query: str) -> str:
     """
     return urllib.parse.quote(query, safe="")
 
-
 # =============================================================================
 # ASYNC ВЕРСИЯ WAIT_UNTIL_FINISHED (ИСПРАВЛЕНИЕ L10)
 # =============================================================================
-
 
 def async_wait_until_finished(
     timeout: Optional[int] = None,
@@ -951,3 +960,52 @@ def async_wait_until_finished(
         return inner
 
     return outer
+
+# =============================================================================
+# МОНИТОРИНГ КЭШЕЙ (ИСПРАВЛЕНИЕ M3)
+# =============================================================================
+
+def get_cache_stats() -> Dict[str, Any]:
+    """Возвращает статистику по всем кэшам lru_cache.
+
+    Исправление M3:
+    - Мониторинг hit/miss ratio для оптимизации размеров кэшей
+    - Помогает выявить узкие места производительности
+    - Возвращает информацию о размере, попаданиях и промахах
+
+    Returns:
+        Словарь со статистикой по каждому кэшу:
+        {
+            '_validate_city_cached': CacheInfo(hits=..., misses=..., maxsize=..., currsize=...),
+            '_validate_category_cached': CacheInfo(...),
+            '_generate_category_url_cached': CacheInfo(...),
+            'url_query_encode': CacheInfo(...),
+        }
+
+    Example:
+        >>> stats = get_cache_stats()
+        >>> print(stats['_validate_city_cached'])
+        CacheInfo(hits=100, misses=5, maxsize=256, currsize=5)
+    """
+    return {
+        "_validate_city_cached": _validate_city_cached.cache_info(),
+        "_validate_category_cached": _validate_category_cached.cache_info(),
+        "_generate_category_url_cached": _generate_category_url_cached.cache_info(),
+        "url_query_encode": url_query_encode.cache_info(),
+    }
+
+def log_cache_stats() -> None:
+    """Выводит статистику кэшей в лог.
+
+    Исправление M3:
+    - Автоматический вывод статистики кэшей при завершении парсинга
+    - Помогает оптимизировать размеры кэшей на основе реальных данных
+
+    Example:
+        >>> log_cache_stats()
+        # В лог будет записано:
+        # Статистика кэша %s: %s
+    """
+    stats = get_cache_stats()
+    for cache_name, info in stats.items():
+        logger.info("Статистика кэша %s: %s", cache_name, info)

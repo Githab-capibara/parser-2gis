@@ -35,7 +35,6 @@ from .utils import ScreenManager
 if TYPE_CHECKING:
     from ..parallel_parser import ParallelCityParser as ParallelParser
 
-
 class TUIApp:
     """
     Главное приложение TUI Parser2GIS.
@@ -594,7 +593,6 @@ class TUIApp:
     def running(self, value: bool) -> None:
         self._running = value
 
-
 class Parser2GISTUI:
     """
     Основной класс для запуска TUI Parser2GIS.
@@ -609,7 +607,6 @@ class Parser2GISTUI:
     def run(self) -> None:
         """Запустить TUI приложение."""
         self._app.run()
-
 
 def run_tui() -> None:
     """Точка входа для запуска TUI."""

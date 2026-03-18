@@ -13,7 +13,6 @@ except ImportError:
 
     PYDANTIC_V2 = False
 
-
 class LogOptions(BaseModel):
     """Опции логирования.
 

@@ -1,6 +1,5 @@
 import inspect
 
-
 class WriterUnknownFileFormat(Exception):
     """Выбрасывается, когда пользователь указал неизвестный формат выходного файла.
 
@@ -25,7 +24,6 @@ class WriterUnknownFileFormat(Exception):
         # Формируем полное сообщение с контекстом
         full_message = f"{message}. " f"Функция: {self.function_name}, " f"Строка: {self.line_number}, " f"Файл: {self.filename}"
         super().__init__(full_message, **kwargs)
-
 
 __all__ = [
     "WriterUnknownFileFormat",

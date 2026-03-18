@@ -4,7 +4,6 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-
 class WorkingHour(BaseModel):
     """Модель рабочего часа.
 
@@ -19,7 +18,6 @@ class WorkingHour(BaseModel):
     # Значение в формате hh:mm
     to: str
 
-
 class ScheduleDay(BaseModel):
     """Модель расписания на один день.
 
@@ -29,7 +27,6 @@ class ScheduleDay(BaseModel):
 
     # Часы работы
     working_hours: List[WorkingHour]
-
 
 class Schedule(BaseModel):
     """Модель расписания работы организации.

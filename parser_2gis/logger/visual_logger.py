@@ -18,7 +18,6 @@ from typing import Optional
 # Получаем логгер для внутреннего использования
 _logger = logging.getLogger("parser-2gis.visual_logger")
 
-
 class ColorCodes:
     """ANSI коды цветов для терминала."""
 
@@ -49,7 +48,6 @@ class ColorCodes:
         "CRITICAL": MAGENTA,
         "SUCCESS": GREEN,
     }
-
 
 class Emoji:
     """Emoji для различных типов событий."""
@@ -91,7 +89,6 @@ class Emoji:
     PARSE = "🔎"
     EXTRACT = "📋"
     SEARCH = "🔍"
-
 
 class VisualLogger:
     """
@@ -444,10 +441,8 @@ class VisualLogger:
             _logger.exception(f"Неожиданная ошибка при выводе отладки: {e}. Сообщение: {message}")
             raise
 
-
 # Глобальный экземпляр для удобства
 visual_logger = VisualLogger()
-
 
 # Удобные функции для быстрого использования
 def print_header(title: str, subtitle: Optional[str] = None) -> None:
@@ -458,7 +453,6 @@ def print_header(title: str, subtitle: Optional[str] = None) -> None:
         _logger.exception(f"Ошибка в глобальной функции print_header: {e}")
         raise
 
-
 def print_config(title: str, items: dict[str, str]) -> None:
     """Выводит секцию конфигурации."""
     try:
@@ -467,11 +461,9 @@ def print_config(title: str, items: dict[str, str]) -> None:
         _logger.exception(f"Ошибка в глобальной функции print_config: {e}. Заголовок: {title}")
         raise
 
-
 def print_progress(current: int, total: int, prefix: str = "Прогресс") -> str:
     """Возвращает строку прогресс-бара."""
     return visual_logger.print_progress_bar(current, total, prefix)
-
 
 def print_success(message: str) -> None:
     """Выводит сообщение об успехе."""
@@ -481,7 +473,6 @@ def print_success(message: str) -> None:
         _logger.exception(f"Ошибка в глобальной функции print_success: {e}. Сообщение: {message}")
         raise
 
-
 def print_error(message: str) -> None:
     """Выводит сообщение об ошибке."""
     try:
@@ -489,7 +480,6 @@ def print_error(message: str) -> None:
     except Exception as e:
         _logger.exception(f"Ошибка в глобальной функции print_error: {e}. Сообщение: {message}")
         raise
-
 
 def print_warning(message: str) -> None:
     """Выводит предупреждение."""
@@ -499,7 +489,6 @@ def print_warning(message: str) -> None:
         _logger.exception(f"Ошибка в глобальной функции print_warning: {e}. Сообщение: {message}")
         raise
 
-
 def print_info(message: str, bold: bool = False) -> None:
     """Выводит информационное сообщение."""
     try:
@@ -508,7 +497,6 @@ def print_info(message: str, bold: bool = False) -> None:
         _logger.exception(f"Ошибка в глобальной функции print_info: {e}. Сообщение: {message}")
         raise
 
-
 def print_debug(message: str) -> None:
     """Выводит отладочное сообщение."""
     try:
@@ -516,7 +504,6 @@ def print_debug(message: str) -> None:
     except Exception as e:
         _logger.exception(f"Ошибка в глобальной функции print_debug: {e}. Сообщение: {message}")
         raise
-
 
 def print_stats(stats: dict[str, int | str], title: str = "Статистика") -> None:
     """Выводит статистику."""

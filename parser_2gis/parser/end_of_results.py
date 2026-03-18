@@ -16,7 +16,6 @@ from ..logger import logger
 if TYPE_CHECKING:
     from ..chrome import ChromeRemote
 
-
 class EndOfResultsDetector:
     """
     Детектор окончания поисковой выдачи.

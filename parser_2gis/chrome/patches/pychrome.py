@@ -9,7 +9,6 @@ import websocket
 
 pychrome_logger = logging.getLogger("pychrome")
 
-
 def patch_pychrome():
     def _recv_loop_patched(self):
         while not self._stopped.is_set():

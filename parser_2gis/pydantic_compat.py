@@ -11,7 +11,6 @@ import pydantic
 # Определяем мажорную версию Pydantic
 PYDANTIC_V2 = pydantic.VERSION.startswith("2.")
 
-
 def get_model_dump(model: pydantic.BaseModel, **kwargs) -> dict:
     """
     Сериализует модель Pydantic в словарь.
@@ -30,7 +29,6 @@ def get_model_dump(model: pydantic.BaseModel, **kwargs) -> dict:
         # Pydantic v1 использует dict()
         return model.dict(**kwargs)
 
-
 def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
     """
     Получает набор установленных полей модели.
@@ -48,7 +46,6 @@ def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
         # Pydantic v1 использует __fields_set__
         return model.__fields_set__
 
-
 def model_validate_json(json_str: str) -> pydantic.BaseModel:
     """
     Создаёт модель из JSON строки.
@@ -65,7 +62,6 @@ def model_validate_json(json_str: str) -> pydantic.BaseModel:
     else:
         # Pydantic v1 использует parse_raw
         return pydantic.BaseModel.parse_raw(json_str)
-
 
 def model_validate_json_class(cls: type[pydantic.BaseModel], json_str: str) -> pydantic.BaseModel:
     """

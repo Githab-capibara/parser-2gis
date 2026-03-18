@@ -17,7 +17,6 @@ from ..utils import (
     format_number,
 )
 
-
 class ProgressBar:
     """
     Современный виджет прогресс-бара.
@@ -379,7 +378,6 @@ class ProgressBar:
     def is_complete(self) -> bool:
         """Завершён ли прогресс."""
         return self._completed >= self._total and self._total > 0
-
 
 class MultiProgressBar:
     """

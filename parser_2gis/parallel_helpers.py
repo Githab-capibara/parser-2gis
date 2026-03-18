@@ -41,7 +41,6 @@ MERGE_LOCK_TIMEOUT: int = 300
 # Максимальный возраст lock файла в секундах (5 минут)
 MAX_LOCK_FILE_AGE: int = 300
 
-
 class FileMerger:
     """
     Класс для объединения CSV файлов с гарантированной очисткой ресурсов.
@@ -308,7 +307,6 @@ class FileMerger:
             # Освобождаем lock
             self._release_lock()
 
-
 class ProgressTracker:
     """
     Трекер прогресса для параллельного парсинга.
@@ -382,7 +380,6 @@ class ProgressTracker:
                 "current_city": self.current_city,
                 "current_category": self.current_category,
             }
-
 
 class StatsCollector:
     """

@@ -4,7 +4,6 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-
 class Rubric(BaseModel):
     """Модель рубрики организации.
 

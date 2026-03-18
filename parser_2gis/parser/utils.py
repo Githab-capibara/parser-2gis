@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 def blocked_requests(extended: bool = False) -> list[str]:
     """Получить список заблокированных запросов: метрика, логирование,
     аналитика, счётчики, реклама и т.д.

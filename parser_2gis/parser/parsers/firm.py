@@ -8,7 +8,6 @@ from .main import MainParser
 if TYPE_CHECKING:
     from ...writer import FileWriter
 
-
 class FirmParser(MainParser):
     """Парсер для фирм, предоставленных 2GIS.
 

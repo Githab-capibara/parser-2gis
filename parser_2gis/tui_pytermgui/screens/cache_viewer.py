@@ -15,7 +15,6 @@ from ..widgets import ScrollArea
 if TYPE_CHECKING:
     from .app import TUIApp
 
-
 class CacheViewerScreen:
     """
     Экран просмотра кэша.

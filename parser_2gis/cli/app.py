@@ -8,7 +8,6 @@ from ..runner import CLIRunner
 if TYPE_CHECKING:
     from ..config import Configuration
 
-
 def cli_app(urls: list[str], output_path: str, format: str, config: Configuration) -> None:
     setup_cli_logger(config.log)
 

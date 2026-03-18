@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     from ..chrome.options import ChromeOptions
     from ..parser.options import ParserOptions
 
-
 def get_parser(
     url: str, chrome_options: ChromeOptions, parser_options: ParserOptions
 ) -> MainParser | FirmParser | InBuildingParser:

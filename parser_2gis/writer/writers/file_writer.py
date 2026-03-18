@@ -8,7 +8,6 @@ from ...logger import logger
 if TYPE_CHECKING:
     from ..options import WriterOptions
 
-
 class FileWriter(ABC):
     """Базовый писатель."""
 

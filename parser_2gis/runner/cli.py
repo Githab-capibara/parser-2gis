@@ -8,7 +8,6 @@ from ..parser import get_parser
 from ..writer import get_writer
 from .runner import AbstractRunner
 
-
 class CLIRunner(AbstractRunner):
     """Запуск CLI парсера.
 

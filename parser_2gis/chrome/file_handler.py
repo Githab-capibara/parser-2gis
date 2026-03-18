@@ -11,7 +11,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
 
-
 class FileLogger:
     """Логгер с поддержкой записи в файл.
 

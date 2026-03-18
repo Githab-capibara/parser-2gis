@@ -19,7 +19,6 @@ from parser_2gis.logger import logger
 if TYPE_CHECKING:
     from .browser import ChromeBrowser
 
-
 class HealthStatusDict(TypedDict, total=False):
     """Словарь состояния здоровья браузера."""
 
@@ -29,7 +28,6 @@ class HealthStatusDict(TypedDict, total=False):
     time_since_activity: float
     critical_errors: int
     recommendation: Optional[str]
-
 
 class BrowserHealthMonitor:
     """

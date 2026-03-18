@@ -6,76 +6,82 @@ import re
 import socket
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-from contextlib import closing
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pychrome
 import requests  # type: ignore[import-untyped]
+from ratelimit import limits, sleep_and_retry  # type: ignore[import-untyped]
 from requests.exceptions import RequestException  # type: ignore[import-untyped]
 from websocket import WebSocketException, WebSocketTimeoutException
 
 from ..common import wait_until_finished
 from ..logger import logger
 from .browser import ChromeBrowser
+from .constants import (
+    CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
+    MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
+    MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
+    RATE_LIMIT_CALLS,  # L4: магические числа вынесены в константы
+    RATE_LIMIT_PERIOD,  # L4: магические числа вынесены в константы
+)
 from .dom import DOMNode
 from .exceptions import ChromeException
 from .patches import patch_all
 
 # =============================================================================
-# КОНСТАНТЫ CHROME (ОБОСНОВАНИЕ ЗНАЧЕНИЙ)
+# ЛОКАЛЬНЫЕ КОНСТАНТЫ И ПАТТЕРНЫ
 # =============================================================================
-
-# Константа задержки запуска Chrome для стабильного подключения
-# ОБОСНОВАНИЕ: 1 секунда выбрана как баланс между:
-# - Минимальным временем инициализации Chrome DevTools Protocol
-# - Необходимостью избежать race condition при подключении
-# - Эмпирическое значение: 1.5 сек было избыточно, 0.5 сек недостаточно
-# Источник: тесты на 1000+ запусков показали 99.9% успешных подключений
-CHROME_STARTUP_DELAY = 1.0
-
-# Максимальная длина JavaScript кода для предотвращения DoS атак
-# ОБОСНОВАНИЕ: 5MB выбрано исходя из:
-# - Типичный размер JS кода для парсинга: 10KB-500KB
-# - Максимальный размер для сложных скриптов: ~1MB
-# - 5MB обеспечивает 10x запас для самых сложных случаев
-# - Защита от случайной или злонамеренной отправки огромных скриптов
-# - Ограничение памяти V8: 256MB по умолчанию, 5MB код - безопасно
-MAX_JS_CODE_LENGTH = 5_000_000
-
-# ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 20 (БЕЗОПАСНОСТЬ):
-# Максимальный общий размер всех JS скриптов для предотвращения DoS атак
-# через множество маленьких скриптов
-# ОБОСНОВАНИЕ: 50MB выбрано исходя из:
-# - Типичное количество скриптов: 10-50
-# - Средний размер скрипта: 10KB-100KB
-# - 50MB обеспечивает запас для сложных сценариев
-# - Защита от атак через отправку множества скриптов
-MAX_TOTAL_JS_SIZE = 50_000_000  # 50 MB
 
 # Оптимизация: скомпилированные regex паттерны для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
 
 # Паттерн для обнаружения потенциально опасных конструкций в JS
+
 # Оптимизация: скомпилированные паттерны вместо компиляции при каждом вызове
 _DANGEROUS_JS_PATTERNS = [
     (re.compile(r"\beval\s*\("), "eval() запрещён"),
     (re.compile(r"(?<![\w])Function\s*\("), "конструктор Function запрещён"),
-    (re.compile(r'\bsetTimeout\s*\([^,]*,\s*["\']'), "setTimeout с строковым кодом запрещён"),
-    (re.compile(r'\bsetInterval\s*\([^,]*,\s*["\']'), "setInterval с строковым кодом запрещён"),
+    (
+        re.compile(r'\bsetTimeout\s*\([^,]*,\s*["\']'),
+        "setTimeout с строковым кодом запрещён",
+    ),
+    (
+        re.compile(r'\bsetInterval\s*\([^,]*,\s*["\']'),
+        "setInterval с строковым кодом запрещён",
+    ),
     (re.compile(r"\bdocument\.write\s*\("), "document.write() запрещён"),
     (re.compile(r"\.innerHTML\s*="), "прямая установка innerHTML запрещена"),
     (re.compile(r"\.outerHTML\s*="), "прямая установка outerHTML запрещена"),
+    (
+        re.compile(r"document\s*\.\s*createElement\s*\(\s*['\"]script['\"]"),
+        "создание script элемента запрещено",
+    ),
+    (re.compile(r"\bimport\s*\("), "динамический import запрещён"),
+    (re.compile(r"\bWebSocket\s*\("), "WebSocket соединение запрещено"),
+    (
+        re.compile(r"\bfetch\s*\([^)]*\)\s*\.then"),
+        "fetch с обработкой .then() запрещён",
+    ),
+    (
+        re.compile(r"\bfetch\s*\([^)]*\)\s*\.catch"),
+        "fetch с обработкой .catch() запрещён",
+    ),
+    (re.compile(r"\bXMLHttpRequest\s*\("), "XMLHttpRequest запрещён"),
+    (
+        re.compile(r"\.src\s*=\s*['\"]http"),
+        "установка src с http запрещена",
+    ),
 ]
 
 # Кэш для проверки доступности портов
-# Оптимизация 20: используем lru_cache для автоматического управления кэшем
+
 # вместо ручного словаря для более эффективного кэширования
 _PORT_CACHE_TTL = 2.0  # Время жизни кэша порта в секундах (для обратной совместимости)
 
 
-# ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 13 (ОПТИМИЗАЦИЯ):
 # Уменьшен размер кэша с 128 до 64 для экономии памяти
 # Это обоснованно так как одновременно используется не более 10-20 портов
 @lru_cache(maxsize=64)
@@ -103,8 +109,15 @@ def _check_port_cached(port: int) -> bool:
     return _check_port_available_internal(port, timeout=0.5, retries=1)
 
 
-def _check_port_available_internal(port: int, timeout: float = 0.5, retries: int = 2) -> bool:
+def _check_port_available_internal(
+    port: int, timeout: float = 0.5, retries: int = 2
+) -> bool:
     """Внутренняя функция проверки порта без кэширования.
+
+    Исправление H1 (утечка сокетов):
+    - Сокет создаётся внутри цикла retries
+    - Явное закрытие в блоке finally гарантирует освобождение ресурса
+    - Предотвращает утечку файловых дескрипторов при множественных проверках
 
     Args:
         port: Номер порта для проверки.
@@ -114,27 +127,28 @@ def _check_port_available_internal(port: int, timeout: float = 0.5, retries: int
     Returns:
         True если порт доступен, False иначе.
     """
-    # Проверка порта с переиспользованием socket
     result = True  # По умолчанию порт свободен
 
     for attempt in range(retries):
-        # Используем contextlib.closing() для гарантии закрытия сокета
-        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        # Создаём сокет внутри цикла для гарантии закрытия на каждой итерации
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
             sock.settimeout(timeout)
-            try:
-                connect_result = sock.connect_ex(("127.0.0.1", port))
-                # Если порт занят (result == 0), возвращаем False немедленно
-                if connect_result == 0:
-                    result = False
-                    break
-                # Небольшая задержка между проверками
-                if attempt < retries - 1:
-                    time.sleep(0.1)
-            except Exception as e:
-                logger.debug("Ошибка при проверке порта %d: %s", port, e)
+            connect_result = sock.connect_ex(("127.0.0.1", port))
+            # Если порт занят (result == 0), возвращаем False немедленно
+            if connect_result == 0:
                 result = False
                 break
-            # closing() автоматически закроет сокет при выходе из блока with
+            # Небольшая задержка между проверками
+            if attempt < retries - 1:
+                time.sleep(0.1)
+        except Exception as e:
+            logger.debug("Ошибка при проверке порта %d: %s", port, e)
+            result = False
+            break
+        finally:
+            # Гарантированное закрытие сокета на каждой итерации
+            sock.close()
 
     return result
 
@@ -156,7 +170,7 @@ def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> 
     Returns:
         True если порт доступен для подключения, False иначе.
     """
-    # Оптимизация 20: используем lru_cache для кэширования
+
     # Игнорируем timeout и retries для кэшированных проверок
     return _check_port_cached(port)
 
@@ -171,7 +185,9 @@ def _clear_port_cache() -> None:
     _check_port_cached.cache_clear()
 
 
-def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[bool, str]:
+def _validate_js_code(
+    code: str, max_length: int = MAX_JS_CODE_LENGTH
+) -> tuple[bool, str]:
     """Валидирует JavaScript код на безопасность.
 
     Args:
@@ -196,7 +212,10 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
 
     # Проверка типа
     if not isinstance(code, str):
-        return False, f"JavaScript код должен быть строкой, получен {type(code).__name__}"
+        return (
+            False,
+            f"JavaScript код должен быть строкой, получен {type(code).__name__}",
+        )
 
     # Проверка на пустую строку
     if not code.strip():
@@ -204,7 +223,10 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
 
     # Проверка максимальной длины
     if len(code) > max_length:
-        return False, f"JavaScript код превышает максимальную длину ({len(code)} > {max_length} символов)"
+        return (
+            False,
+            f"JavaScript код превышает максимальную длину ({len(code)} > {max_length} символов)",
+        )
 
     # Проверка на опасные паттерны с использованием скомпилированных regex
     for pattern, description in _DANGEROUS_JS_PATTERNS:
@@ -271,14 +293,20 @@ def _validate_remote_port(port: Any) -> int:
     """
     # Явная проверка на bool, так как bool является подклассом int
     if isinstance(port, bool):
-        raise ValueError(f"remote_port не должен быть bool, получен {type(port).__name__}")
+        raise ValueError(
+            f"remote_port не должен быть bool, получен {type(port).__name__}"
+        )
 
     if not isinstance(port, int):
-        raise ValueError(f"remote_port должен быть integer, получен {type(port).__name__}")
+        raise ValueError(
+            f"remote_port должен быть integer, получен {type(port).__name__}"
+        )
 
     # Проверка диапазона портов
     if port < 1024:
-        raise ValueError(f"remote_port должен быть >= 1024 (зарезервированные порты), получен {port}")
+        raise ValueError(
+            f"remote_port должен быть >= 1024 (зарезервированные порты), получен {port}"
+        )
 
     if port > 65535:
         raise ValueError(f"remote_port должен быть <= 65535, получен {port}")
@@ -296,20 +324,30 @@ class ChromeRemote:
     Args:
         chrome_options: Параметры ChromeOptions.
         response_patterns: Паттерны URL ответов для перехвата.
+
+    Исправление H3 (rate limiting):
+        - RATE_LIMIT_CALLS: максимальное количество вызовов за период
+        - RATE_LIMIT_PERIOD: период времени в секундах
     """
 
-    def __init__(self, chrome_options: ChromeOptions, response_patterns: list[str]) -> None:
+    RATE_LIMIT_CALLS: int = 10  # 10 вызовов в секунду
+    RATE_LIMIT_PERIOD: int = 1  # период 1 секунда
+
+    def __init__(
+        self, chrome_options: ChromeOptions, response_patterns: list[str]
+    ) -> None:
         self._chrome_options: ChromeOptions = chrome_options
         self._chrome_browser: Optional[ChromeBrowser] = None
         self._chrome_interface: Optional[pychrome.Browser] = None
         self._chrome_tab: Optional[pychrome.Tab] = None
         self._dev_url: Optional[str] = None
         self._response_patterns: list[str] = response_patterns
-        self._response_queues: dict[str, queue.Queue[Response]] = {x: queue.Queue() for x in response_patterns}
+        self._response_queues: dict[str, queue.Queue[Response]] = {
+            x: queue.Queue() for x in response_patterns
+        }
         self._requests: dict[str, Request] = {}  # _requests[request_id] = <Request>
         self._requests_lock = threading.Lock()
 
-        # ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 20 (БЕЗОПАСНОСТЬ):
         # Счётчик общего размера всех JS скриптов для предотвращения DoS атак
         self._total_js_size: int = 0
         self._js_size_lock = threading.Lock()
@@ -372,7 +410,9 @@ class ChromeRemote:
                     if attempt < max_attempts - 1:
                         time.sleep(attempt_delay)
                         continue
-                    logger.error("Все попытки подключения исчерпаны (проверка соединения не пройдена)")
+                    logger.error(
+                        "Все попытки подключения исчерпаны (проверка соединения не пройдена)"
+                    )
                     return False
 
                 logger.info("Успешное подключение к Chrome DevTools Protocol")
@@ -510,7 +550,9 @@ class ChromeRemote:
                 logger.debug("Проверка соединения пройдена")
                 return True
             else:
-                logger.warning("Проверка соединения вернула неожиданный результат: %s", result)
+                logger.warning(
+                    "Проверка соединения вернула неожиданный результат: %s", result
+                )
                 return False
 
         except Exception as e:
@@ -541,7 +583,11 @@ class ChromeRemote:
             max_startup_attempts = 3
 
             for attempt in range(max_startup_attempts):
-                logger.debug("Ожидание запуска Chrome (%.1f сек, попытка %d)...", startup_delay, attempt + 1)
+                logger.debug(
+                    "Ожидание запуска Chrome (%.1f сек, попытка %d)...",
+                    startup_delay,
+                    attempt + 1,
+                )
                 time.sleep(startup_delay)
 
                 # Проверяем доступность порта
@@ -553,12 +599,15 @@ class ChromeRemote:
                 startup_delay = min(startup_delay * 1.5, 3.0)
             else:
                 raise ChromeException(
-                    f"Порт {remote_port} недоступен после {max_startup_attempts} попыток. " "Возможно, Chrome не запустился."
+                    f"Порт {remote_port} недоступен после {max_startup_attempts} попыток. "
+                    "Возможно, Chrome не запустился."
                 )
 
             # Подключаем браузер к CDP с проверкой результата
             if not self._connect_interface():
-                raise ChromeException("Не удалось подключиться к Chrome DevTools Protocol")
+                raise ChromeException(
+                    "Не удалось подключиться к Chrome DevTools Protocol"
+                )
 
             self._setup_tab()
             self._init_tab_monitor()
@@ -628,7 +677,9 @@ class ChromeRemote:
 
         for attempt in range(max_attempts):
             try:
-                logger.debug("Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts)
+                logger.debug(
+                    "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
+                )
                 # requests.put не принимает параметр json=True, используем данные запроса
                 resp = requests.put(
                     "%s/json/new" % (self._dev_url),
@@ -649,7 +700,9 @@ class ChromeRemote:
                     )
                     time.sleep(delay_seconds)
                 else:
-                    raise ChromeException(f"Не удалось создать вкладку после {max_attempts} попыток: {e}")
+                    raise ChromeException(
+                        f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
+                    )
 
         raise ChromeException("Не удалось создать вкладку")
 
@@ -671,7 +724,9 @@ class ChromeRemote:
         """
         # Строгая проверка, что вкладка существует
         if self._chrome_tab is None:
-            error_msg = "Chrome tab не инициализирован в _setup_tab. Вкладка не была создана."
+            error_msg = (
+                "Chrome tab не инициализирован в _setup_tab. Вкладка не была создана."
+            )
             logger.error(error_msg)
             raise RuntimeError(error_msg)
 
@@ -684,9 +739,12 @@ class ChromeRemote:
         else:
             # Запасной вариант: стандартный user agent Chrome
             fixed_useragent = (
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
-            logger.warning("Не удалось получить user agent, используется запасной вариант")
+            logger.warning(
+                "Не удалось получить user agent, используется запасной вариант"
+            )
 
         self._chrome_tab.Network.setUserAgentOverride(userAgent=fixed_useragent)
 
@@ -815,7 +873,9 @@ class ChromeRemote:
                 if current_time - last_check_time >= MONITOR_INTERVAL:
                     try:
                         ret = requests.get("%s/json" % self._dev_url, timeout=3)
-                        tab_found = any(x["id"] == self._chrome_tab.id for x in ret.json())
+                        tab_found = any(
+                            x["id"] == self._chrome_tab.id for x in ret.json()
+                        )
                         if not tab_found:
                             tab_detached.set()
                             self._chrome_tab._stopped.set()
@@ -824,7 +884,9 @@ class ChromeRemote:
                         break
                     except Exception as monitor_error:
                         # Ловим любые неожиданные исключения и логируем их
-                        logger.debug("Ошибка в мониторином цикле вкладки: %s", monitor_error)
+                        logger.debug(
+                            "Ошибка в мониторином цикле вкладки: %s", monitor_error
+                        )
                         break
 
                 # Ждём следующего интервала
@@ -864,7 +926,9 @@ class ChromeRemote:
             logger.error("Chrome tab не инициализирован в navigate")
             return
         try:
-            ret = self._chrome_tab.Page.navigate(url=url, _timeout=timeout, referrer=referer)
+            ret = self._chrome_tab.Page.navigate(
+                url=url, _timeout=timeout, referrer=referer
+            )
             error_message = ret.get("errorText", None)
             if error_message:
                 raise ChromeException(error_message)
@@ -947,7 +1011,9 @@ class ChromeRemote:
             request_id = response["meta"]["requestId"]
 
             # Получаем тело ответа
-            response_data = self._chrome_tab.call_method("Network.getResponseBody", requestId=request_id)
+            response_data = self._chrome_tab.call_method(
+                "Network.getResponseBody", requestId=request_id
+            )
 
             if not response_data:
                 logger.debug("Тело ответа пустое для requestId: %s", request_id)
@@ -983,7 +1049,9 @@ class ChromeRemote:
 
         except KeyError as e:
             # Отсутствует необходимое поле
-            logger.warning("Отсутствует поле в response при получении тела ответа: %s", e)
+            logger.warning(
+                "Отсутствует поле в response при получении тела ответа: %s", e
+            )
             return ""
 
         except Exception as e:
@@ -1073,7 +1141,6 @@ class ChromeRemote:
             logger.error("Валидация скрипта не пройдена: %s", error_msg)
             raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
 
-        # ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 20 (БЕЗОПАСНОСТЬ):
         # Проверка общего размера всех JS скриптов
         js_code_size = len(source.encode("utf-8"))
         with self._js_size_lock:
@@ -1125,8 +1192,10 @@ class ChromeRemote:
             - Тип данных (должен быть строкой)
             - Максимальную длину
             - Наличие опасных паттернов (eval, Function, document.write)
-        
+
         Исправление H3:
+            - Добавлен rate limiting через декоратор @sleep_and_retry и @limits
+            - Ограничение: 10 вызовов в секунду для предотвращения перегрузки CDP
             - Добавлен параметр timeout для предотвращения зависаний
             - Используется ThreadPoolExecutor для выполнения с таймаутом
         """
@@ -1135,7 +1204,10 @@ class ChromeRemote:
             return None
 
         # ВАЖНО: Логирование всех вызовов execute_script для аудита безопасности
-        logger.debug("Выполнение JavaScript: %s", expression[:100] + "..." if len(expression) > 100 else expression)
+        logger.debug(
+            "Выполнение JavaScript: %s",
+            expression[:100] + "..." if len(expression) > 100 else expression,
+        )
 
         # Валидация выражения на безопасность
         is_valid, error_msg = _validate_js_code(expression)
@@ -1143,13 +1215,33 @@ class ChromeRemote:
             logger.error("Валидация выражения не пройдена: %s", error_msg)
             raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
 
-        # ИСПРАВЛЕНИЕ H3: Выполнение с таймаутом через ThreadPoolExecutor
+        return self._execute_script_internal(expression, timeout)
+
+    @sleep_and_retry
+    @limits(calls=RATE_LIMIT_CALLS, period=RATE_LIMIT_PERIOD)
+    def _execute_script_internal(self, expression: str, timeout: int = 30) -> Any:
+        """Внутренний метод выполнения скрипта с rate limiting.
+
+        Исправление H3:
+        - Декораторы @sleep_and_retry и @limits обеспечивают rate limiting
+        - Автоматическая пауза при превышении лимита вызовов
+        - Защита от перегрузки Chrome DevTools Protocol
+
+        Args:
+            expression: JavaScript выражение для выполнения.
+            timeout: Таймаут выполнения в секундах.
+
+        Returns:
+            Результат выполнения или None при ошибке.
+        """
         result = {"value": None, "error": None}
-        
+
         def execute_target() -> None:
             """Внутренняя функция для выполнения скрипта."""
             try:
-                eval_result = self._chrome_tab.Runtime.evaluate(expression=expression, returnByValue=True)
+                eval_result = self._chrome_tab.Runtime.evaluate(
+                    expression=expression, returnByValue=True
+                )
                 result["value"] = eval_result["result"].get("value", None)
             except Exception as e:
                 result["error"] = e
@@ -1162,15 +1254,19 @@ class ChromeRemote:
                 try:
                     future.result(timeout=timeout)
                 except TimeoutError:
-                    logger.error("Превышено время выполнения JavaScript (%d секунд)", timeout)
-                    raise TimeoutError(f"Выполнение скрипта превысило таймаут {timeout} секунд")
-            
+                    logger.error(
+                        "Превышено время выполнения JavaScript (%d секунд)", timeout
+                    )
+                    raise TimeoutError(
+                        f"Выполнение скрипта превысило таймаут {timeout} секунд"
+                    )
+
             # Проверяем, не произошла ли ошибка при выполнении
             if result["error"]:
                 return None
-            
+
             return result["value"]
-            
+
         except TimeoutError:
             # Пробрасываем TimeoutError дальше
             raise
@@ -1189,7 +1285,9 @@ class ChromeRemote:
             logger.error("Chrome tab не инициализирован в perform_click")
             return
         try:
-            resolved_node = self._chrome_tab.DOM.resolveNode(backendNodeId=dom_node.backend_id, _timeout=timeout)
+            resolved_node = self._chrome_tab.DOM.resolveNode(
+                backendNodeId=dom_node.backend_id, _timeout=timeout
+            )
             object_id = resolved_node["object"]["objectId"]
             self._chrome_tab.Runtime.callFunctionOn(
                 objectId=object_id,

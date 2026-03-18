@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from ...chrome.dom import DOMNode
     from ...writer import FileWriter
 
-
 class InBuildingParser(MainParser):
     """Парсер для списка организаций, предоставленных 2GIS с вкладкой "В здании".
 

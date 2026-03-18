@@ -26,7 +26,6 @@ from typing import Any, Callable, Optional
 
 from .logger import logger
 
-
 class SignalHandler:
     """
     Обработчик сигналов для безопасной очистки ресурсов приложения.

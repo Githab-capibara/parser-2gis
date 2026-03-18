@@ -15,7 +15,6 @@ from .utils import free_port, locate_chrome_path
 if TYPE_CHECKING:
     from .options import ChromeOptions
 
-
 class ChromeBrowser:
     """Браузер Chrome с временным профилем.
 
@@ -51,7 +50,6 @@ class ChromeBrowser:
             logger.error("Путь к Chrome браузеру не найден")
             raise ChromePathNotFound
 
-        # ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 19 (БЕЗОПАСНОСТЬ):
         # Добавлена явная проверка на символические ссылки перед нормализацией пути
         # Это предотвращает symlink атаки когда злоумышленник подменяет путь к браузеру
         if os.path.islink(binary_path):
@@ -305,11 +303,9 @@ class ChromeBrowser:
         """Закрывает браузер при выходе из контекста."""
         self.close()
 
-
 # Константы для очистки профилей
 ORPHANED_PROFILE_MARKER = ".chrome_profile_marker"
 ORPHANED_PROFILE_MAX_AGE_HOURS = 24  # Максимальный возраст профиля перед удалением
-
 
 def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours: int = ORPHANED_PROFILE_MAX_AGE_HOURS) -> int:
     """
@@ -422,7 +418,6 @@ def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours
         logger.debug("Осиротевшие профили не найдены")
 
     return deleted_count
-
 
 def _safe_remove_profile(profile_path: Path) -> None:
     """

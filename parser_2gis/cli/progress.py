@@ -21,7 +21,6 @@ except ImportError:
 # Получаем логгер для вывода сообщений
 _logger = logging.getLogger("parser-2gis.progress")
 
-
 @dataclass
 class ProgressStats:
     """Статистика прогресса парсинга.
@@ -44,7 +43,6 @@ class ProgressStats:
     current_record: int = 0
     started_at: Optional[float] = None
     finished_at: Optional[float] = None
-
 
 class ProgressManager:
     """Менеджер прогресс-бара для CLI режима.

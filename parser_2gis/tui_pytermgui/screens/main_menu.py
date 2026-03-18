@@ -17,7 +17,6 @@ from ..widgets import ButtonWidget, NavigableContainer
 if TYPE_CHECKING:
     from .app import TUIApp
 
-
 class MainMenuScreen:
     """
     Главное меню приложения.

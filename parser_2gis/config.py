@@ -21,7 +21,6 @@ from .pydantic_compat import (
 from .version import config_version
 from .writer import WriterOptions
 
-
 class Configuration(BaseModel):
     """Модель конфигурации."""
 

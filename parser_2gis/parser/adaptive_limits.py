@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional
 
 from ..logger import logger
 
-
 class AdaptiveLimits:
     """
     Менеджер адаптивных лимитов для парсинга.

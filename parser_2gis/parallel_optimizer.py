@@ -22,7 +22,6 @@ import psutil
 
 from .logger import logger
 
-
 class ParallelTask:
     """Задача для параллельного парсинга."""
 
@@ -71,7 +70,6 @@ class ParallelTask:
         elif self.start_time:
             return time.time() - self.start_time
         return 0
-
 
 class ParallelOptimizer:
     """

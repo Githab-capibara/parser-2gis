@@ -6,7 +6,6 @@ from pydantic import BaseModel
 
 from .schedule import Schedule
 
-
 class Contact(BaseModel):
     """Модель контактной информации.
 
@@ -59,7 +58,6 @@ class Contact(BaseModel):
 
     # Уточняющая информация о контакте (например "для деловой переписки")
     comment: Optional[str] = None
-
 
 class ContactGroup(BaseModel):
     """Модель группы контактов организации.

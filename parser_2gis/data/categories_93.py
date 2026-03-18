@@ -11,14 +11,12 @@
 
 from typing import List, Optional, TypedDict
 
-
 class CategoryDict(TypedDict):
     """Типизация словаря категории."""
 
     name: str
     query: str
     rubric_code: Optional[str]
-
 
 # Полный список из 93 категорий
 CATEGORIES_93: List[CategoryDict] = [
@@ -171,11 +169,9 @@ CATEGORIES_93: List[CategoryDict] = [
     },
 ]
 
-
 def get_categories_list() -> List[CategoryDict]:
     """Возвращает список категорий для парсинга."""
     return CATEGORIES_93
-
 
 def get_category_by_name(name: str) -> Optional[CategoryDict]:
     """Возвращает категорию по названию."""
@@ -183,7 +179,6 @@ def get_category_by_name(name: str) -> Optional[CategoryDict]:
         if cat["name"].lower() == name.lower():
             return cat
     return None
-
 
 def generate_urls_for_city(city: dict, categories: Optional[List[CategoryDict]] = None) -> List[str]:
     """
@@ -219,7 +214,6 @@ def generate_urls_for_city(city: dict, categories: Optional[List[CategoryDict]] 
         urls.append(url)
 
     return urls
-
 
 if __name__ == "__main__":
     # Тестовый запуск

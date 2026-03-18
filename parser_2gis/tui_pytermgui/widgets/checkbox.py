@@ -12,7 +12,6 @@ from typing import Any, Callable, Optional
 
 import pytermgui as ptg
 
-
 class Checkbox(ptg.Widget):
     """
     Кастомный Checkbox с поддержкой label и on_change.

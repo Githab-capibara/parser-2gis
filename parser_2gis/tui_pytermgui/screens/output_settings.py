@@ -13,7 +13,6 @@ from ..widgets import Checkbox
 if TYPE_CHECKING:
     from .app import TUIApp
 
-
 class OutputSettingsScreen:
     """
     Экран настроек вывода.

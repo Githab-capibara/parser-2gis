@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-
 class Point(BaseModel):
     """Модель точки на карте (координаты).
 

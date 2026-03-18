@@ -16,7 +16,6 @@ from ..utils import BoxDrawing, GradientText, UnicodeIcons
 if TYPE_CHECKING:
     from .app import TUIApp
 
-
 class AboutScreen:
     """
     Экран "О программе".

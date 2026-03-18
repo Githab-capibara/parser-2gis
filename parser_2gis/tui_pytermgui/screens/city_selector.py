@@ -21,7 +21,6 @@ from ..widgets import ButtonWidget, Checkbox, NavigableContainer, ScrollArea
 if TYPE_CHECKING:
     from .app import TUIApp
 
-
 class CitySelectorScreen:
     """
     Современный экран выбора городов.

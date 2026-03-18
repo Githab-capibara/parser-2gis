@@ -8,7 +8,6 @@ from typing import Any
 
 import pytermgui as ptg
 
-
 class ScrollArea(ptg.ScrollableWidget):
     """
     Виджет области с прокруткой.
@@ -87,6 +86,5 @@ class ScrollArea(ptg.ScrollableWidget):
     def __len__(self) -> int:
         """Вернуть высоту области."""
         return self._height
-
 
 __all__ = ["ScrollArea"]

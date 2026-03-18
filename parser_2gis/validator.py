@@ -20,12 +20,12 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from .logger import logger
-
 
 @dataclass
 class ValidationResult:
@@ -60,7 +60,6 @@ class ValidationResult:
     is_valid: bool
     value: Optional[str]
     errors: List[str]
-
 
 class DataValidator:
     """Валидатор и очиститель данных.
@@ -113,6 +112,11 @@ class DataValidator:
         в единый формат: '8 (XXX) XXX-XX-XX' для российских номеров
         или международный формат для других стран.
 
+        Исправление M4:
+        - Добавлена нормализация Unicode через unicodedata.normalize("NFKC")
+        - Добавлен маппинг арабских/персидских цифр на латинские
+        - Поддержка fullwidth символов и смешанных систем счисления
+
         Args:
             phone: Телефонный номер для валидации
 
@@ -124,6 +128,15 @@ class DataValidator:
             Российские номера должны содержать 11 цифр.
             Международные номера должны содержать 10-15 цифр.
         """
+        
+        # Нормализация Unicode (NFKC для совместимости цифр)
+        phone = unicodedata.normalize("NFKC", phone)
+
+        # Замена арабских/персидских цифр на латинские
+        # ٠١٢٣٤٥٦٧٨٩ -> 0123456789
+        arabic_to_latin = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+        phone = phone.translate(arabic_to_latin)
+
         # Проверяем на None и пустую строку
         if not phone or not phone.strip():
             return ValidationResult(False, None, ["Номер должен содержать цифры"])
@@ -137,7 +150,11 @@ class DataValidator:
 
         # Обработка российских номеров (+7 или 8)
         if cleaned.startswith("+8"):
-            return ValidationResult(False, None, ["Некорректный международный префикс: +8 (должен быть +7 для России)"])
+            return ValidationResult(
+                False,
+                None,
+                ["Некорректный международный префикс: +8 (должен быть +7 для России)"],
+            )
 
         if cleaned.startswith("+7") or cleaned.startswith("8"):
             # Конвертируем +7 в 8 для внутреннего представления
@@ -145,7 +162,13 @@ class DataValidator:
                 cleaned = "8" + cleaned[2:]
 
             if len(cleaned) != 11:
-                return ValidationResult(False, None, [f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"])
+                return ValidationResult(
+                    False,
+                    None,
+                    [
+                        f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"
+                    ],
+                )
 
             return ValidationResult(True, self._format_phone(cleaned), [])
 
@@ -174,7 +197,11 @@ class DataValidator:
             # Предполагаем российский номер без префикса
             return ValidationResult(True, self._format_phone("8" + digits_only), [])
 
-        if self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(digits_only) <= self.INTERNATIONAL_PHONE_MAX_LENGTH:
+        if (
+            self.INTERNATIONAL_PHONE_MIN_LENGTH
+            <= len(digits_only)
+            <= self.INTERNATIONAL_PHONE_MAX_LENGTH
+        ):
             return ValidationResult(True, f"+{digits_only}", [])
 
         return ValidationResult(
@@ -227,7 +254,9 @@ class DataValidator:
 
         # Проверка максимальной длины (RFC 5321)
         if len(email) > 254:
-            return ValidationResult(False, None, ["Email превышает максимальную длину (254 символа)"])
+            return ValidationResult(
+                False, None, ["Email превышает максимальную длину (254 символа)"]
+            )
 
         # Проверка наличия @ - быстрая предварительная проверка
         if "@" not in email:
@@ -241,7 +270,9 @@ class DataValidator:
         if check_mx:
             mx_valid = self._check_mx_records(email)
             if not mx_valid:
-                return ValidationResult(False, None, ["Домен email не имеет MX записей"])
+                return ValidationResult(
+                    False, None, ["Домен email не имеет MX записей"]
+                )
 
         return ValidationResult(True, email, [])
 
@@ -278,7 +309,11 @@ class DataValidator:
             # Проверяем, что есть хотя бы одна запись
             return len(answers) > 0
 
-        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
+        except (
+            dns.resolver.NXDOMAIN,
+            dns.resolver.NoAnswer,
+            dns.resolver.NoNameservers,
+        ):
             # Домен не существует или нет MX записей
             logger.debug("Домен %s не имеет MX записей", domain)
             return False
@@ -313,7 +348,10 @@ class DataValidator:
 
             # Проверяем что схема именно http или https
             if parsed.scheme not in ("http", "https"):
-                error_msg = f"Неподдерживаемая схема URL: {parsed.scheme} " "(требуется http или https)"
+                error_msg = (
+                    f"Неподдерживаемая схема URL: {parsed.scheme} "
+                    "(требуется http или https)"
+                )
                 return ValidationResult(False, None, [error_msg])
 
             return ValidationResult(True, url, [])

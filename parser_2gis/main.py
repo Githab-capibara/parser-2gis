@@ -38,7 +38,6 @@ from .version import version
 # TYPE ALIASES И TYPEDDICT ДЛЯ УЛУЧШЕНИЯ ЧИТАЕМОСТИ
 # =============================================================================
 
-
 # Словарь города с обязательными ключами
 class CityDict(TypedDict):
     """Словарь города для парсинга.
@@ -50,7 +49,6 @@ class CityDict(TypedDict):
 
     name: str
     url: str
-
 
 # Словарь категории с обязательными ключами
 class CategoryDict(TypedDict):
@@ -64,22 +62,17 @@ class CategoryDict(TypedDict):
     id: int
     name: str
 
-
 # Type alias для списка городов
 CitiesList = list[CityDict]
-
 
 # Type alias для списка категорий
 CategoriesList = list[CategoryDict]
 
-
 # Type alias для результата валидации URL
 UrlValidationResult = tuple[bool, str | None]
 
-
 # Type alias для функции обработчика сигнала
 SignalHandlerFunc = Callable[[int, Any], None]
-
 
 # =============================================================================
 # ОПЦИОНАЛЬНЫЕ ИМПОРТЫ (УПРОЩЁННАЯ ОБРАБОТКА)
@@ -93,13 +86,11 @@ except ImportError as e:
     logger.error("Убедитесь, что все зависимости установлены: pip install -e .")
     raise
 
-
 # Опциональный импорт TUI модуля - создаём stub функцию если недоступен
 def _tui_omsk_stub() -> None:
     """Stub функция для TUI когда модуль недоступен."""
     logger.error("TUI модуль (pytermgui) недоступен. Установите: pip install pytermgui")
     raise RuntimeError("TUI модуль недоступен")
-
 
 try:
     from .tui_pytermgui import run_omsk_parallel as run_new_tui_omsk
@@ -107,7 +98,6 @@ except ImportError:
     # Модуль недоступен - используем stub функцию
     run_new_tui_omsk = _tui_omsk_stub
     logger.warning("TUI модуль (pytermgui) недоступен. Функция --tui-new-omsk будет недоступна")
-
 
 def _validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str) -> int:
     """Валидирует положительное целое число в заданном диапазоне.
@@ -133,7 +123,6 @@ def _validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str
     if not (min_val <= value <= max_val):
         raise ValueError(f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})")
     return value
-
 
 def _validate_url(url: str) -> UrlValidationResult:
     """Валидирует URL на корректность формата и безопасность.
@@ -253,16 +242,14 @@ def _validate_url(url: str) -> UrlValidationResult:
         if use_signal_timeout:
             signal.alarm(0)
 
-
 # Глобальный экземпляр обработчика сигналов
-# Исправление проблемы 1.3: используем класс SignalHandler вместо глобальных переменных
+
 _signal_handler_instance: Optional[SignalHandler] = None
 
 # ИСПРАВЛЕНИЕ КРИТИЧЕСКОЙ ПРОБЛЕМЫ 2 (RACE CONDITION):
 # Добавлен threading.Lock для защиты глобальной переменной от состояния гонки
 # в многопоточной среде
 _signal_handler_lock = threading.Lock()
-
 
 def _get_signal_handler() -> SignalHandler:
     """
@@ -283,7 +270,6 @@ def _get_signal_handler() -> SignalHandler:
             raise RuntimeError("SignalHandler не инициализирован. Вызовите _setup_signal_handlers().")
         return _signal_handler_instance
 
-
 def _setup_signal_handlers() -> None:
     """
     Устанавливает обработчики сигналов SIGINT и SIGTERM.
@@ -299,7 +285,6 @@ def _setup_signal_handlers() -> None:
         _signal_handler_instance = SignalHandler(cleanup_callback=cleanup_resources)
         _signal_handler_instance.setup()
     logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через SignalHandler")
-
 
 def cleanup_resources() -> None:
     """Выполняет централизованную очистку ресурсов приложения.
@@ -344,7 +329,6 @@ def cleanup_resources() -> None:
         # Ловим все исключения чтобы не прерывать очистку
         logger.debug("Ошибка при очистке ресурсов: %s", e)
 
-
 def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
     """Загружает JSON файл с городами с корректной обработкой ошибок.
 
@@ -374,7 +358,6 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
     except OSError as e:
         logger.error("Ошибка ОС при чтении файла городов: %s", e)
         raise OSError(f"Не удалось прочитать файл городов: {e}")
-
 
 class ArgumentHelpFormatter(argparse.HelpFormatter):
     """Форматировщик справки, добавляющий значения по умолчанию к описанию аргументов."""
@@ -406,7 +389,6 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
                 help_string += f" (по умолчанию: {default_value})"
         return help_string
 
-
 def patch_argparse_translations() -> None:
     """Патчит gettext в argparse для перевода строк на русский язык."""
     custom_translations = {
@@ -437,7 +419,6 @@ def patch_argparse_translations() -> None:
         return format_str % dict(message=self.message, argument_name=self.argument_name)
 
     argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore
-
 
 def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespace, Configuration]:
     """Парсит аргументы командной строки.
@@ -830,7 +811,6 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
 
     return args, config
 
-
 def _get_output_dir(output_path: str | None) -> Path:
     """Определяет директорию для результатов на основе output_path.
 
@@ -850,7 +830,6 @@ def _get_output_dir(output_path: str | None) -> Path:
         return output_path_obj.parent
     # Если путь не существует, возвращаем родителя или сам путь если нет родителя
     return output_path_obj.parent if output_path_obj.parent != Path(".") else output_path_obj
-
 
 def main() -> None:
     """Точка входа для CLI приложения.
@@ -1050,7 +1029,6 @@ def main() -> None:
             except Exception as cleanup_error:
                 logger.error("Ошибка при очистке ресурсов в finally: %s", cleanup_error)
             logger.debug("Очистка ресурсов в блоке finally завершена")
-
 
 def _log_startup_info(args: argparse.Namespace, config: Configuration, start_time: datetime) -> None:
     """

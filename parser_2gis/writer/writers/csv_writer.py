@@ -19,7 +19,6 @@ from .file_writer import FileWriter
 # КОНСТАНТЫ ДЛЯ ОПТИМИЗАЦИИ (ОБОСНОВАНИЕ ЗНАЧЕНИЙ)
 # =============================================================================
 
-# ИСПРАВЛЕНИЕ M8: Используем глобальные константы из common.py
 # Буфер для чтения файлов в байтах (256 KB)
 READ_BUFFER_SIZE = DEFAULT_BUFFER_SIZE
 
@@ -34,9 +33,8 @@ WRITE_BUFFER_SIZE = DEFAULT_BUFFER_SIZE
 HASH_BATCH_SIZE = 1000
 
 # Размер пакета для чтения/записи CSV (Оптимизация 17)
-# ИСПРАВЛЕНИЕ M8: Используем глобальную константу CSV_BATCH_SIZE
-CSV_BATCH_SIZE_LOCAL = CSV_BATCH_SIZE
 
+CSV_BATCH_SIZE_LOCAL = CSV_BATCH_SIZE
 
 def _safe_move_file(src: str, dst: str) -> bool:
     """
@@ -94,7 +92,6 @@ def _safe_move_file(src: str, dst: str) -> bool:
         except Exception as fallback_error:
             logger.error("Fallback copy+delete не удался: %s (%s)", fallback_error, type(fallback_error).__name__)
             return False
-
 
 class CSVWriter(FileWriter):
     """Писатель в CSV-таблицу."""
@@ -238,11 +235,10 @@ class CSVWriter(FileWriter):
 
         try:
             # Первый проход: подсчёт непустых значений в сложных колонках
-            # Оптимизация 17: используем увеличенную буферизацию и пакетное чтение
+            
             with self._open_file(self._file_path, "r", encoding="utf-8-sig", buffering=READ_BUFFER_SIZE) as f_csv:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
 
-                # Оптимизация 17: пакетная обработка строк для снижения накладных расходов
                 # Используем enumerate с шагом для уменьшения количества итераций
                 batch_count = 0
                 for idx, row in enumerate(csv_reader):
@@ -302,7 +298,6 @@ class CSVWriter(FileWriter):
                 # Запись нового заголовка
                 csv_writer.writerow(new_data_mapping)
 
-                # Оптимизация 17: пакетная запись строк с увеличенным размером пакета
                 batch = []
                 batch_size = CSV_BATCH_SIZE  # Используем увеличенный размер пакета (1000 строк)
                 total_batches = 0

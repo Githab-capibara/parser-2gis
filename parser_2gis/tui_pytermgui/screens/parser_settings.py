@@ -18,7 +18,6 @@ from ..widgets import ButtonWidget, Checkbox, NavigableContainer
 if TYPE_CHECKING:
     from .app import TUIApp
 
-
 class ParserSettingsScreen:
     """
     Экран настроек парсера.

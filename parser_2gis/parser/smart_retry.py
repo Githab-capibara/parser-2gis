@@ -11,7 +11,6 @@ from typing import Any, Dict, Optional
 
 from ..logger import logger
 
-
 class SmartRetryManager:
     """
     Менеджер интеллектуальных повторных попыток.

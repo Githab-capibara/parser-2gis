@@ -15,7 +15,6 @@ from ..data.categories_93 import CATEGORIES_93
 from ..logger import logger
 from .app import TUIApp
 
-
 def run_omsk_parallel() -> None:
     """
     Запустить парсинг Омска в 10 параллельных потоков с новым TUI.
@@ -73,7 +72,6 @@ def run_omsk_parallel() -> None:
 
     # Запустить TUI - парсинг начнётся автоматически
     app.run()
-
 
 if __name__ == "__main__":
     run_omsk_parallel()

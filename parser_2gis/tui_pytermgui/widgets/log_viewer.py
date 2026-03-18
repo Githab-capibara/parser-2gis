@@ -17,7 +17,6 @@ from ..utils import UnicodeIcons, truncate_text
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "SUCCESS"]
 
-
 class LogViewer:
     """
     Современный виджет для просмотра логов.
@@ -336,7 +335,6 @@ class LogViewer:
         """Количество успешных сообщений."""
         return self._counts.get("SUCCESS", 0)
 
-
 class CompactLogViewer(LogViewer):
     """
     Компактная версия просмотрщика логов.
@@ -377,7 +375,6 @@ class CompactLogViewer(LogViewer):
 
         # Компактный формат: [ВРЕМЯ] Иконка Сообщение
         return f"[dim][{log_entry['timestamp']}][/] " f"{style['icon']} " f"[{style['color']}]{log_entry['message']}[/]"
-
 
 class DetailedLogViewer(LogViewer):
     """

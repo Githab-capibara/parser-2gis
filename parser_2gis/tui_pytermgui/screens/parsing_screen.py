@@ -25,7 +25,6 @@ if TYPE_CHECKING:
     from ..parallel_parser import ParallelParser
     from .app import TUIApp
 
-
 class ParsingScreen:
     """
     Современный экран парсинга.

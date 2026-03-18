@@ -8,7 +8,6 @@ import pytermgui as ptg
 
 from .checkbox import Checkbox
 
-
 class CategoryList:
     """
     Виджет списка категорий.

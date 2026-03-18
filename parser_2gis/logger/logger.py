@@ -10,14 +10,12 @@ if TYPE_CHECKING:
 
     from .options import LogOptions
 
-
 # Устанавливаем уровень логирования для сторонних библиотек
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 logging.getLogger("pychrome").setLevel(logging.ERROR)
 warnings.filterwarnings(action="ignore", module="pychrome")
 
 _LOGGER_NAME = "parser-2gis"
-
 
 class QueueHandler(logging.Handler):
     def __init__(self, log_queue: queue.Queue[tuple[str, str]]) -> None:
@@ -27,7 +25,6 @@ class QueueHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         log_message = (record.levelname, self.format(record) + os.linesep)
         self._log_queue.put(log_message)
-
 
 def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]], options: LogOptions) -> None:
     """Добавляет обработчик очереди к существующему логгеру, чтобы он
@@ -41,7 +38,6 @@ def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]], options: LogOption
     queue_handler.setFormatter(formatter)
     logger.addHandler(queue_handler)
 
-
 def setup_cli_logger(options: LogOptions) -> None:
     """Настраивает CLI логгер из конфигурации.
 
@@ -53,7 +49,6 @@ def setup_cli_logger(options: LogOptions) -> None:
         options.cli_format,
         options.cli_datefmt,
     )
-
 
 def setup_logger(level: str, fmt: str, datefmt: str) -> None:
     """Настраивает логгер.
@@ -71,10 +66,8 @@ def setup_logger(level: str, fmt: str, datefmt: str) -> None:
         logger.addHandler(handler)
         logger.setLevel(level)
 
-
 logger = logging.getLogger(_LOGGER_NAME)
 Logger = logging.Logger
-
 
 def log_parser_start(
     version: str,
@@ -119,7 +112,6 @@ def log_parser_start(
 
         if "writer" in config_summary:
             print_config("📄 Writer", config_summary["writer"])
-
 
 def log_parser_finish(
     success: bool = True,

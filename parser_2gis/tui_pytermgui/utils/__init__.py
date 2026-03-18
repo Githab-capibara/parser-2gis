@@ -39,7 +39,6 @@ __all__ = [
     "create_ascii_art",
 ]
 
-
 class UnicodeIcons:
     """
     Коллекция Unicode иконок для TUI.
@@ -230,7 +229,6 @@ class UnicodeIcons:
     PIN = "📌"
     BOOKMARK = "🔖"
 
-
 class SpinnerAnimation:
     """
     Класс для управления спиннер-анимациями.
@@ -334,7 +332,6 @@ class SpinnerAnimation:
         """Остановить анимацию."""
         self.running = False
 
-
 class GradientText:
     """
     Утилита для создания градиентного текста.
@@ -421,7 +418,6 @@ class GradientText:
     def monochrome(cls, text: str) -> str:
         """Создать монохромный текст."""
         return cls.apply_gradient(text, "monochrome")
-
 
 class BoxDrawing:
     """
@@ -569,7 +565,6 @@ class BoxDrawing:
         else:
             return box["h"] * width
 
-
 def format_number(num: int) -> str:
     """
     Форматировать число с разделителями тысяч.
@@ -581,7 +576,6 @@ def format_number(num: int) -> str:
         Форматированная строка
     """
     return f"{num:,}".replace(",", " ")
-
 
 def format_time(seconds: float) -> str:
     """
@@ -602,7 +596,6 @@ def format_time(seconds: float) -> str:
         hours = seconds / 3600
         return f"{hours:.1f} ч"
 
-
 def truncate_text(text: str, max_length: int, suffix: str = "...") -> str:
     """
     Обрезать текст до максимальной длины.
@@ -619,7 +612,6 @@ def truncate_text(text: str, max_length: int, suffix: str = "...") -> str:
         return text
 
     return text[: max_length - len(suffix)] + suffix
-
 
 def center_text(text: str, width: int) -> str:
     """
@@ -641,7 +633,6 @@ def center_text(text: str, width: int) -> str:
     right_padding = padding - left_padding
 
     return " " * left_padding + text + " " * right_padding
-
 
 def create_ascii_art(text: str, style: str = "block") -> list[str]:
     """

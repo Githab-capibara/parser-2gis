@@ -19,7 +19,6 @@ from ..widgets import ButtonWidget, Checkbox, NavigableContainer, ScrollArea
 if TYPE_CHECKING:
     from .app import TUIApp
 
-
 class CategorySelectorScreen:
     """
     Экран выбора категорий.
