@@ -23,15 +23,20 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 # Импорты тестируемых модулей
-from parser_2gis.cache import CacheManager, _ConnectionPool, _deserialize_json, _serialize_json
-from parser_2gis.main import _validate_url
-from parser_2gis.writer.writers.csv_writer import CSVWriter
+from parser_2gis.cache import (
+    CacheManager,
+    _ConnectionPool,
+    _deserialize_json,
+    _serialize_json,
+)
+from parser_2gis.validation import validate_url
 from parser_2gis.writer.options import WriterOptions
-
+from parser_2gis.writer.writers.csv_writer import CSVWriter
 
 # =============================================================================
 # КРИТИЧНЫЕ ПРОБЛЕМЫ (1-5)
 # =============================================================================
+
 
 class TestCriticalIssues:
     """Тесты для критичных проблем (1-5)."""
@@ -42,8 +47,8 @@ class TestCriticalIssues:
 
         def test_temp_file_tracking_exists(self, tmp_path):
             """Тест 1.1: Отслеживание временных файлов существует."""
-            from parser_2gis.parallel_parser import ParallelCityParser
             from parser_2gis.config import Configuration
+            from parser_2gis.parallel_parser import ParallelCityParser
 
             config = Configuration()
             cities = [{"code": "msk", "name": "Москва"}]
@@ -60,30 +65,33 @@ class TestCriticalIssues:
             # Проверяем что временные файлы отслеживаются
             # Ищем в исходном коде обработку temp файлов
             import inspect
+
             source = inspect.getsource(ParallelCityParser)
-            assert 'temp' in source.lower() or 'tmp' in source.lower()
+            assert "temp" in source.lower() or "tmp" in source.lower()
 
         def test_keyboard_interrupt_handling(self, tmp_path):
             """Тест 1.2: Обработка KeyboardInterrupt."""
-            from parser_2gis.parallel_parser import ParallelCityParser
-            from parser_2gis.config import Configuration
-
             import inspect
+
+            from parser_2gis.config import Configuration
+            from parser_2gis.parallel_parser import ParallelCityParser
+
             source = inspect.getsource(ParallelCityParser.merge_csv_files)
 
             # Проверяем обработку KeyboardInterrupt
-            assert 'KeyboardInterrupt' in source or 'finally' in source
+            assert "KeyboardInterrupt" in source or "finally" in source
 
         def test_lock_file_mechanism(self, tmp_path):
             """Тест 1.3: Механизм lock файла."""
-            from parser_2gis.parallel_parser import ParallelCityParser
-            from parser_2gis.config import Configuration
-
             import inspect
+
+            from parser_2gis.config import Configuration
+            from parser_2gis.parallel_parser import ParallelCityParser
+
             source = inspect.getsource(ParallelCityParser.merge_csv_files)
 
             # Проверяем lock механизм
-            assert 'lock' in source.lower() or 'flock' in source.lower()
+            assert "lock" in source.lower() or "flock" in source.lower()
 
     # Проблема 2: cache.py - _enforce_cache_size_limit не реализован
     class TestCacheSizeLimit:
@@ -94,15 +102,15 @@ class TestCriticalIssues:
             cache = CacheManager(tmp_path / "cache", ttl_hours=24)
 
             # Проверяем наличие метода
-            assert hasattr(cache, '_enforce_cache_size_limit')
-            assert callable(getattr(cache, '_enforce_cache_size_limit'))
+            assert hasattr(cache, "_enforce_cache_size_limit")
+            assert callable(getattr(cache, "_enforce_cache_size_limit"))
 
         def test_get_cache_size_mb(self, tmp_path):
             """Тест 2.2: Метод _get_cache_size_mb работает корректно."""
             cache = CacheManager(tmp_path / "cache", ttl_hours=24)
 
             # Проверяем наличие метода
-            assert hasattr(cache, '_get_cache_size_mb')
+            assert hasattr(cache, "_get_cache_size_mb")
 
             # Получаем размер (должен быть 0 для нового кэша)
             size_mb = cache._get_cache_size_mb()
@@ -131,30 +139,32 @@ class TestCriticalIssues:
             from parser_2gis.chrome.browser import ChromeBrowser
 
             # Проверяем наличие метода
-            assert hasattr(ChromeBrowser, 'close')
+            assert hasattr(ChromeBrowser, "close")
 
         def test_zombie_handling_in_close(self):
             """Тест 3.2: Обработка zombie процессов."""
-            from parser_2gis.chrome.browser import ChromeBrowser
-
             # Проверяем что в close есть обработка zombie
             import inspect
+
+            from parser_2gis.chrome.browser import ChromeBrowser
+
             source = inspect.getsource(ChromeBrowser.close)
 
             # Ищем обработку zombie через wait() с timeout
             # Код использует subprocess.wait() вместо os.waitpid() для кроссплатформенности
-            assert 'wait(' in source or 'Zombie' in source or 'SIGCHLD' in source
+            assert "wait(" in source or "Zombie" in source or "SIGCHLD" in source
 
         def test_multi_level_shutdown(self):
             """Тест 3.3: Многоуровневая стратегия завершения."""
+            import inspect
+
             from parser_2gis.chrome.browser import ChromeBrowser
 
-            import inspect
             source = inspect.getsource(ChromeBrowser.close)
 
             # Проверяем многоуровневую стратегию
-            assert 'terminate' in source
-            assert 'kill' in source
+            assert "terminate" in source
+            assert "kill" in source
 
     # Проблема 4: parser/main.py - Timeout в _get_links
     class TestParserTimeout:
@@ -162,33 +172,36 @@ class TestCriticalIssues:
 
         def test_get_links_timeout_handling(self):
             """Тест 4.1: Обработка TimeoutError в _get_links."""
+            import inspect
+
             from parser_2gis.parser.parsers.main import MainParser
 
-            import inspect
             source = inspect.getsource(MainParser._get_links)
 
             # Проверяем обработку timeout
-            assert 'TimeoutError' in source or 'timeout' in source.lower()
+            assert "TimeoutError" in source or "timeout" in source.lower()
 
         def test_get_links_returns_none_on_timeout(self):
             """Тест 4.2: _get_links возвращает None при timeout."""
+            import inspect
+
             from parser_2gis.parser.parsers.main import MainParser
 
-            import inspect
             source = inspect.getsource(MainParser._get_links)
 
             # Проверяем что возвращается None
-            assert 'return None' in source
+            assert "return None" in source
 
         def test_get_links_logs_warning(self):
             """Тест 4.3: Логирование предупреждения при timeout."""
+            import inspect
+
             from parser_2gis.parser.parsers.main import MainParser
 
-            import inspect
             source = inspect.getsource(MainParser._get_links)
 
             # Проверяем логирование
-            assert 'logger' in source and ('warning' in source or 'error' in source)
+            assert "logger" in source and ("warning" in source or "error" in source)
 
     # Проблема 5: parallel_parser.py - Race condition при merge
     class TestMergeRaceCondition:
@@ -196,19 +209,20 @@ class TestCriticalIssues:
 
         def test_merge_has_lock_mechanism(self, tmp_path):
             """Тест 5.1: Существует механизм блокировки merge."""
-            from parser_2gis.parallel_parser import ParallelCityParser
-            from parser_2gis.config import Configuration
-
             import inspect
+
+            from parser_2gis.config import Configuration
+            from parser_2gis.parallel_parser import ParallelCityParser
+
             source = inspect.getsource(ParallelCityParser.merge_csv_files)
 
             # Проверяем наличие lock механизма
-            assert 'lock' in source.lower() or 'flock' in source.lower()
+            assert "lock" in source.lower() or "flock" in source.lower()
 
         def test_lock_file_creation(self, tmp_path):
             """Тест 5.2: Создание lock файла."""
-            from parser_2gis.parallel_parser import ParallelCityParser
             from parser_2gis.config import Configuration
+            from parser_2gis.parallel_parser import ParallelCityParser
 
             config = Configuration()
             cities = [{"code": "msk", "name": "Москва"}]
@@ -228,8 +242,8 @@ class TestCriticalIssues:
 
         def test_atomic_file_rename(self, tmp_path):
             """Тест 5.3: Атомарное переименование файлов."""
-            from parser_2gis.parallel_parser import ParallelCityParser
             from parser_2gis.config import Configuration
+            from parser_2gis.parallel_parser import ParallelCityParser
 
             config = Configuration()
             cities = [{"code": "msk", "name": "Москва"}]
@@ -245,14 +259,16 @@ class TestCriticalIssues:
 
             # Проверяем что используется атомарное переименование
             import inspect
+
             source = inspect.getsource(parser.merge_csv_files)
 
-            assert '.replace(' in source or 'shutil.move' in source
+            assert ".replace(" in source or "shutil.move" in source
 
 
 # =============================================================================
 # ВАЖНЫЕ ПРОБЛЕМЫ (6-10)
 # =============================================================================
+
 
 class TestImportantIssues:
     """Тесты для важных проблем (6-10)."""
@@ -263,36 +279,39 @@ class TestImportantIssues:
 
         def test_signal_handler_installed(self):
             """Тест 6.1: Signal handler установлен."""
-            import signal
-            import parser_2gis.main as main_module
-
             # Проверяем что handler установлен (через inspect исходного кода)
             import inspect
+            import signal
+
+            import parser_2gis.main as main_module
+
             source = inspect.getsource(main_module)
 
             # Проверяем наличие signal handler
-            assert '_signal_handler' in source or 'signal.signal' in source
+            assert "_signal_handler" in source or "signal.signal" in source
 
         def test_signal_handler_has_cleanup(self):
             """Тест 6.2: Signal handler вызывает cleanup."""
+            import inspect
+
             import parser_2gis.main as main_module
 
-            import inspect
             source = inspect.getsource(main_module)
 
             # Проверяем вызов cleanup
-            assert 'cleanup_resources' in source
+            assert "cleanup_resources" in source
 
         def test_signal_handler_has_exception_handling(self):
             """Тест 6.3: Signal handler обрабатывает исключения."""
+            import inspect
+
             import parser_2gis.main as main_module
 
-            import inspect
             source = inspect.getsource(main_module)
 
             # Проверяем обработку исключений
             # Просто ищем try/except в исходном коде модуля
-            assert 'try:' in source and 'except' in source
+            assert "try:" in source and "except" in source
 
     # Проблема 7: cache.py - Connection pool не закрывает соединения при GC
     class TestConnectionPoolGC:
@@ -303,27 +322,29 @@ class TestImportantIssues:
             from parser_2gis.cache import _ConnectionPool
 
             # Проверяем наличие __del__
-            assert hasattr(_ConnectionPool, '__del__')
+            assert hasattr(_ConnectionPool, "__del__")
 
         def test_connection_pool_del_closes_connections(self):
             """Тест 7.2: __del__ закрывает соединения."""
+            import inspect
+
             from parser_2gis.cache import _ConnectionPool
 
-            import inspect
             source = inspect.getsource(_ConnectionPool.__del__)
 
             # Проверяем закрытие соединений
-            assert 'close_all' in source or 'close' in source
+            assert "close_all" in source or "close" in source
 
         def test_connection_pool_del_handles_exceptions(self):
             """Тест 7.3: __del__ обрабатывает исключения."""
+            import inspect
+
             from parser_2gis.cache import _ConnectionPool
 
-            import inspect
             source = inspect.getsource(_ConnectionPool.__del__)
 
             # Проверяем обработку исключений
-            assert 'try' in source and 'except' in source
+            assert "try" in source and "except" in source
 
     # Проблема 8: csv_writer.py - shutil.move оставляет оба файла
     class TestSafeMoveFile:
@@ -334,28 +355,30 @@ class TestImportantIssues:
             from parser_2gis.writer.writers import csv_writer
 
             # Проверяем наличие функции
-            assert hasattr(csv_writer, '_safe_move_file')
+            assert hasattr(csv_writer, "_safe_move_file")
 
         def test_safe_move_fallback_logic(self):
             """Тест 8.2: Fallback логика в _safe_move_file."""
+            import inspect
+
             from parser_2gis.writer.writers import csv_writer
 
-            import inspect
             source = inspect.getsource(csv_writer._safe_move_file)
 
             # Проверяем fallback логику
-            assert 'shutil.move' in source
-            assert 'copy2' in source or 'shutil.copy2' in source
+            assert "shutil.move" in source
+            assert "copy2" in source or "shutil.copy2" in source
 
         def test_safe_move_verifies_destination(self):
             """Тест 8.3: Проверка целевого файла после move."""
+            import inspect
+
             from parser_2gis.writer.writers import csv_writer
 
-            import inspect
             source = inspect.getsource(csv_writer._safe_move_file)
 
             # Проверяем проверку существования
-            assert 'exists' in source
+            assert "exists" in source
 
     # Проблема 9: parser/main.py - visited_links нет eviction policy
     class TestVisitedLinksEviction:
@@ -371,55 +394,63 @@ class TestImportantIssues:
 
         def test_visited_links_is_ordered_dict(self):
             """Тест 9.2: visited_links использует OrderedDict."""
+            import inspect
+
             from parser_2gis.parser.parsers.main import MainParser
 
-            import inspect
             source = inspect.getsource(MainParser.parse)
 
             # Проверяем использование OrderedDict
-            assert 'OrderedDict' in source
+            assert "OrderedDict" in source
 
         def test_eviction_on_limit(self):
             """Тест 9.3: Eviction при превышении лимита."""
+            import inspect
+
             from parser_2gis.parser.parsers.main import MainParser
 
-            import inspect
             source = inspect.getsource(MainParser.parse)
 
             # Проверяем eviction логику
-            assert 'popitem' in source or 'del' in source
+            assert "popitem" in source or "del" in source
 
     # Проблема 10: main.py - DNS rebinding защита
     class TestDNSRebindingProtection:
         """Тесты для защиты от DNS rebinding."""
 
         def test_validate_url_checks_localhost(self):
-            """Тест 10.1: _validate_url проверяет localhost."""
-            is_valid, error = _validate_url("http://localhost/test")
-            assert not is_valid
-            assert "localhost" in error.lower()
+            """Тест 10.1: validate_url проверяет localhost."""
+            result = validate_url("http://localhost/test")
+            assert not result.is_valid
+            assert result.error and "localhost" in result.error.lower()
 
         def test_validate_url_checks_127_ip(self):
-            """Тест 10.2: _validate_url проверяет 127.0.0.1."""
+            """Тест 10.2: validate_url проверяет 127.0.0.1."""
             # Проверяем что IP адрес блокируется
-            is_valid, error = _validate_url("http://127.0.0.1/test")
+            result = validate_url("http://127.0.0.1/test")
             # 127.0.0.1 должен блокироваться как localhost или internal IP
-            assert not is_valid
+            assert not result.is_valid
             # Проверяем что ошибка содержит упоминание localhost или internal
-            error_lower = error.lower()
-            assert any(x in error_lower for x in ['localhost', 'внутренних', 'internal', '127'])
+            error_lower = (result.error or "").lower()
+            assert any(
+                x in error_lower for x in ["localhost", "внутренних", "internal", "127"]
+            )
 
         def test_validate_url_checks_private_ranges(self):
-            """Тест 10.3: _validate_url проверяет private диапазоны."""
+            """Тест 10.3: validate_url проверяет private диапазоны."""
             # Проверяем что private IP блокируются
-            is_valid, error = _validate_url("http://192.168.1.1/test")
-            assert not is_valid
-            assert "внутренних" in error.lower() or "private" in error.lower()
+            result = validate_url("http://192.168.1.1/test")
+            assert not result.is_valid
+            assert (
+                "внутренних" in (result.error or "").lower()
+                or "private" in (result.error or "").lower()
+            )
 
 
 # =============================================================================
 # СРЕДНИЕ ПРОБЛЕМЫ (11-15)
 # =============================================================================
+
 
 class TestMediumIssues:
     """Тесты для средних проблем (11-15)."""
@@ -430,8 +461,8 @@ class TestMediumIssues:
 
         def test_timeout_per_url_parameter_exists(self, tmp_path):
             """Тест 11.1: Параметр timeout_per_url существует."""
-            from parser_2gis.parallel_parser import ParallelCityParser
             from parser_2gis.config import Configuration
+            from parser_2gis.parallel_parser import ParallelCityParser
 
             config = Configuration()
             cities = [{"code": "msk", "name": "Москва"}]
@@ -447,13 +478,13 @@ class TestMediumIssues:
             )
 
             # Проверяем что параметр сохранён
-            assert hasattr(parser, 'timeout_per_url')
+            assert hasattr(parser, "timeout_per_url")
             assert parser.timeout_per_url == 300
 
         def test_timeout_per_url_validation(self, tmp_path):
             """Тест 11.2: Валидация timeout_per_url."""
-            from parser_2gis.parallel_parser import ParallelCityParser
             from parser_2gis.config import Configuration
+            from parser_2gis.parallel_parser import ParallelCityParser
 
             config = Configuration()
             cities = [{"code": "msk", "name": "Москва"}]
@@ -472,14 +503,15 @@ class TestMediumIssues:
 
         def test_timeout_per_url_used_in_parse(self, tmp_path):
             """Тест 11.3: timeout_per_url используется в parse."""
-            from parser_2gis.parallel_parser import ParallelCityParser
-            from parser_2gis.config import Configuration
-
             import inspect
+
+            from parser_2gis.config import Configuration
+            from parser_2gis.parallel_parser import ParallelCityParser
+
             source = inspect.getsource(ParallelCityParser.parse_single_url)
 
             # Проверяем использование timeout
-            assert 'timeout_per_url' in source or 'SIGALRM' in source
+            assert "timeout_per_url" in source or "SIGALRM" in source
 
     # Проблема 12: cache.py - orjson нет обработки специфичных ошибок
     class TestOrjsonErrorHandling:
@@ -508,14 +540,15 @@ class TestMediumIssues:
 
         def test_orjson_error_logging(self):
             """Тест 12.3: Логирование ошибок orjson."""
+            import inspect
+
             from parser_2gis.cache import logger as cache_logger
 
-            import inspect
             source = inspect.getsource(_serialize_json)
 
             # Проверяем логирование
-            assert 'logger' in source
-            assert 'warning' in source or 'error' in source
+            assert "logger" in source
+            assert "warning" in source or "error" in source
 
     # Проблема 13: browser.py - cleanup_orphaned_profiles может удалить активный профиль
     class TestOrphanedProfilesCleanup:
@@ -523,23 +556,25 @@ class TestMediumIssues:
 
         def test_cleanup_has_age_check(self):
             """Тест 13.1: Проверка возраста перед удалением."""
+            import inspect
+
             from parser_2gis.chrome.browser import cleanup_orphaned_profiles
 
-            import inspect
             source = inspect.getsource(cleanup_orphaned_profiles)
 
             # Проверяем проверку возраста
-            assert 'max_age' in source.lower() or 'hours' in source
+            assert "max_age" in source.lower() or "hours" in source
 
         def test_cleanup_skips_young_profiles(self):
             """Тест 13.2: Пропуск молодых профилей."""
+            import inspect
+
             from parser_2gis.chrome.browser import cleanup_orphaned_profiles
 
-            import inspect
             source = inspect.getsource(cleanup_orphaned_profiles)
 
             # Проверяем проверку возраста
-            assert 'max_age' in source.lower() or 'hours' in source
+            assert "max_age" in source.lower() or "hours" in source
 
         def test_cleanup_uses_marker_file(self):
             """Тест 13.3: Использование маркер-файла."""
@@ -554,35 +589,38 @@ class TestMediumIssues:
 
         def test_pattern_none_check(self):
             """Тест 14.1: Проверка pattern на None."""
+            import inspect
+
             from parser_2gis.writer.writers.csv_writer import CSVWriter
 
-            import inspect
             source = inspect.getsource(CSVWriter._remove_empty_columns)
 
             # Проверяем проверку на None
-            assert 'if complex_columns:' in source or 'pattern is not None' in source
+            assert "if complex_columns:" in source or "pattern is not None" in source
 
         def test_pattern_compiled_when_needed(self):
             """Тест 14.2: Паттерн компилируется когда нужен."""
+            import inspect
+
             from parser_2gis.writer.writers.csv_writer import CSVWriter
 
-            import inspect
             source = inspect.getsource(CSVWriter._remove_empty_columns)
 
             # Проверяем компиляцию паттерна
-            assert 're.compile' in source
+            assert "re.compile" in source
 
         def test_pattern_match_safe(self):
             """Тест 14.3: pattern.match() безопасен."""
+            import inspect
+
             from parser_2gis.writer.writers.csv_writer import CSVWriter
 
-            import inspect
             source = inspect.getsource(CSVWriter._remove_empty_columns)
 
             # Проверяем безопасное использование
-            assert 'pattern.match' in source
+            assert "pattern.match" in source
             # Проверка что есть защита
-            assert 'if complex_columns:' in source
+            assert "if complex_columns:" in source
 
     # Проблема 15: parser/main.py - retry logic нет jitter
     class TestRetryJitter:
@@ -593,33 +631,36 @@ class TestMediumIssues:
             from parser_2gis.parser.parsers import main
 
             # Проверяем импорт
-            assert hasattr(main, 'random')
+            assert hasattr(main, "random")
 
         def test_jitter_in_retry_logic(self):
             """Тест 15.2: Jitter используется в retry logic."""
+            import inspect
+
             from parser_2gis.parser.parsers.main import MainParser
 
-            import inspect
             source = inspect.getsource(MainParser.parse)
 
             # Проверяем использование jitter
-            assert 'random' in source
-            assert 'uniform' in source or 'jitter' in source.lower()
+            assert "random" in source
+            assert "uniform" in source or "jitter" in source.lower()
 
         def test_jitter_formula(self):
             """Тест 15.3: Формула jitter корректна."""
+            import inspect
+
             from parser_2gis.parser.parsers.main import MainParser
 
-            import inspect
             source = inspect.getsource(MainParser.parse)
 
             # Проверяем формулу
-            assert 'uniform(0, 1)' in source or 'uniform(0.0, 1.0' in source
+            assert "uniform(0, 1)" in source or "uniform(0.0, 1.0" in source
 
 
 # =============================================================================
 # ИНТЕГРАЦИОННЫЕ ТЕСТЫ
 # =============================================================================
+
 
 class TestIntegration:
     """Интеграционные тесты для всех исправлений."""
@@ -647,18 +688,18 @@ class TestIntegration:
         import tempfile
 
         modules = [
-            'parser_2gis.main',
-            'parser_2gis.cache',
-            'parser_2gis.chrome.browser',
-            'parser_2gis.parallel_parser',
-            'parser_2gis.parser.parsers.main',
-            'parser_2gis.writer.writers.csv_writer',
+            "parser_2gis.main",
+            "parser_2gis.cache",
+            "parser_2gis.chrome.browser",
+            "parser_2gis.parallel_parser",
+            "parser_2gis.parser.parsers.main",
+            "parser_2gis.writer.writers.csv_writer",
         ]
 
         for module_name in modules:
             try:
-                module = __import__(module_name, fromlist=[''])
-                if hasattr(module, '__file__'):
+                module = __import__(module_name, fromlist=[""])
+                if hasattr(module, "__file__"):
                     py_compile.compile(module.__file__, doraise=True)
             except py_compile.PyCompileError as e:
                 pytest.fail(f"Синтаксическая ошибка в {module_name}: {e}")
@@ -669,5 +710,5 @@ class TestIntegration:
         assert True
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])
