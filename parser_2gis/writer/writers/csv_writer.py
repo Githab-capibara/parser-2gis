@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, List, Optional, Set
 
 from pydantic import ValidationError
 
-from ...common import report_from_validation_error
+from ...common import report_from_validation_error, DEFAULT_BUFFER_SIZE, CSV_BATCH_SIZE
 from ...logger import logger
 from ..models import CatalogItem
 from .file_writer import FileWriter
@@ -19,20 +19,12 @@ from .file_writer import FileWriter
 # КОНСТАНТЫ ДЛЯ ОПТИМИЗАЦИИ (ОБОСНОВАНИЕ ЗНАЧЕНИЙ)
 # =============================================================================
 
-# Буфер для чтения файлов в байтах (128 KB)
-# ОБОСНОВАНИЕ: 128KB выбрано исходя из:
-# - Стандартный размер страницы памяти в Linux: 4KB
-# - 128KB = 32 страницы - оптимально для системных вызовов read/write
-# - Тесты показывают плато производительности на 64-256KB
-# - Совместимо с MERGE_BUFFER_SIZE в parallel_parser.py
-READ_BUFFER_SIZE = 131072
+# ИСПРАВЛЕНИЕ M8: Используем глобальные константы из common.py
+# Буфер для чтения файлов в байтах (256 KB)
+READ_BUFFER_SIZE = DEFAULT_BUFFER_SIZE
 
-# Буфер для записи файлов в байтах (128 KB)
-# ОБОСНОВАНИЕ: 128KB выбрано исходя из:
-# - Совместимо с READ_BUFFER_SIZE для симметричной буферизации
-# - Оптимальный размер для системных вызовов write
-# - Баланс между использованием памяти и производительностью
-WRITE_BUFFER_SIZE = 131072
+# Буфер для записи файлов в байтах (256 KB)
+WRITE_BUFFER_SIZE = DEFAULT_BUFFER_SIZE
 
 # Размер пакета для хеширования строк
 # ОБОСНОВАНИЕ: 1000 строк выбрано исходя из:
@@ -42,11 +34,8 @@ WRITE_BUFFER_SIZE = 131072
 HASH_BATCH_SIZE = 1000
 
 # Размер пакета для чтения/записи CSV (Оптимизация 17)
-# ОБОСНОВАНИЕ: 1000 строк выбрано исходя из:
-# - Баланс между памятью и производительностью
-# - Достаточно для эффективной пакетной обработки
-# - Совместимо с типичным размером страницы CSV
-CSV_BATCH_SIZE = 1000
+# ИСПРАВЛЕНИЕ M8: Используем глобальную константу CSV_BATCH_SIZE
+CSV_BATCH_SIZE_LOCAL = CSV_BATCH_SIZE
 
 
 def _safe_move_file(src: str, dst: str) -> bool:

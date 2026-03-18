@@ -498,8 +498,21 @@ class CacheManager:
             return _deserialize_json(data)
 
         except sqlite3.Error as db_error:
-            logger.warning("Ошибка БД при получении кэша: %s", db_error)
-            return None
+            # ИСПРАВЛЕНИЕ M1: Разделение ошибок на критические и некритические
+            error_str = str(db_error).lower()
+            
+            # Временные ошибки - можно повторить попытку
+            if "database is locked" in error_str or "busy" in error_str:
+                logger.warning("База данных заблокирована (временная ошибка): %s", db_error)
+                return None  # Можно повторить попытку позже
+            elif "disk I/O error" in error_str or "no such table" in error_str:
+                # Критические ошибки - пробрасываем исключение
+                logger.error("Критическая ошибка БД при получении кэша: %s", db_error)
+                raise  # Пробрасываем исключение для обработки на верхнем уровне
+            else:
+                # Остальные ошибки БД
+                logger.error("Ошибка БД при получении кэша: %s", db_error)
+                return None
         except (UnicodeDecodeError, json.JSONDecodeError) as decode_error:
             # Обрабатываем ошибки десериализации - удаляем повреждённую запись
             error_type = "Unicode" if isinstance(decode_error, UnicodeDecodeError) else "JSON"
@@ -596,6 +609,7 @@ class CacheManager:
         cursor = conn.cursor()
 
         saved_count = 0
+        skipped_count = 0  # ИСПРАВЛЕНИЕ M2: Счётчик пропущенных записей
 
         # Оптимизация 18: кэшируем datetime.now() в переменную
         # Используем одну временную метку для всех операций в методе
@@ -616,8 +630,10 @@ class CacheManager:
                         (url_hash, url, data_json, now.isoformat(), expires_at.isoformat()),
                     )
                     saved_count += 1
-                except (TypeError, ValueError) as e:
-                    logger.warning("Ошибка сериализации данных для кэша: %s", e)
+                except (TypeError, ValueError) as serialize_error:
+                    # ИСПРАВЛЕНИЕ M2: Подсчёт пропущенных записей
+                    logger.warning("Ошибка сериализации данных для кэша (%s): %s", url, serialize_error)
+                    skipped_count += 1
                     continue
 
             # ПРОВЕРКА: Ограничение размера кэша перед пакетной вставкой
@@ -625,6 +641,14 @@ class CacheManager:
 
             # Один коммит для всех записей
             conn.commit()
+            
+            # ИСПРАВЛЕНИЕ M2: Логирование итогового количества пропущенных записей
+            if skipped_count > 0:
+                logger.warning(
+                    "Пакетное сохранение кэша завершено: сохранено %d записей, пропущено %d записей",
+                    saved_count,
+                    skipped_count,
+                )
 
         except sqlite3.Error as db_error:
             logger.error("Ошибка БД при пакетном сохранении кэша: %s", db_error)

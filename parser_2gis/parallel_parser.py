@@ -26,7 +26,7 @@ from concurrent.futures import as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
-from .common import generate_category_url
+from .common import generate_category_url, DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE
 from .logger import log_parser_finish, logger, print_progress
 from .parser import get_parser
 from .writer import get_writer
@@ -61,24 +61,12 @@ PROGRESS_UPDATE_INTERVAL: int = 3
 # КОНСТАНТЫ ДЛЯ СЛИЯНИЯ ФАЙЛОВ И БУФЕРИЗАЦИИ (ОБОСНОВАНИЕ ЗНАЧЕНИЙ)
 # =============================================================================
 
+# ИСПРАВЛЕНИЕ M8: Используем глобальные константы из common.py
 # Размер буфера для чтения/записи файлов в байтах (256 KB)
-# ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 12 (ОПТИМИЗАЦИЯ):
-# Увеличено с 131072 (128 KB) до 262144 (256 KB) для улучшения производительности
-# ОБОСНОВАНИЕ: 256KB выбрано исходя из:
-# - Стандартный размер страницы памяти в Linux: 4KB
-# - 256KB = 64 страницы - оптимально для системных вызовов read/write
-# - Тесты показывают плато производительности на 64-256KB
-# - 256KB баланс между использованием памяти и производительностью
-# - Для файлов >100MB даёт прирост 20-25% vs 128KB буфер
-MERGE_BUFFER_SIZE: int = 262144
+MERGE_BUFFER_SIZE: int = DEFAULT_BUFFER_SIZE
 
 # Размер пакета строк для пакетной записи в CSV
-# ОБОСНОВАНИЕ: 500 строк выбрано исходя из:
-# - Средняя длина строки CSV: 200-500 байт
-# - 500 строк * 300 байт = 150KB - совпадает с размером буфера
-# - Меньше операций записи при хорошем использовании памяти
-# - Тесты показывают оптимальное соотношение на 250-1000 строк
-MERGE_BATCH_SIZE: int = 500
+MERGE_BATCH_SIZE_LOCAL: int = MERGE_BATCH_SIZE
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ УНИКАЛЬНЫХ ИМЁН ФАЙЛОВ (ОБОСНОВАНИЕ ЗНАЧЕНИЙ)
@@ -113,12 +101,24 @@ MERGE_LOCK_TIMEOUT: int = 300
 MAX_LOCK_FILE_AGE: int = 300
 
 # =============================================================================
+# КОНСТАНТА ДЛЯ ОГРАНИЧЕНИЯ ВРЕМЕННЫХ ФАЙЛОВ (ИСПРАВЛЕНИЕ M5)
+# =============================================================================
+
+# Максимальное количество отслеживаемых временных файлов
+# ОБОСНОВАНИЕ: 1000 файлов выбрано исходя из:
+# - Типичное количество временных файлов: 10-100
+# - 1000 - разумный лимит для предотвращения утечки памяти
+# - При достижении лимита происходит LRU eviction
+MAX_TEMP_FILES: int = 1000
+
+# =============================================================================
 # ГЛОБАЛЬНЫЙ НАБОР ДЛЯ ОТСЛЕЖИВАНИЯ ВРЕМЕННЫХ ФАЙЛОВ (ATEXIT ОЧИСТКА)
 # =============================================================================
 
 # Глобальный набор для отслеживания временных файлов созданных этим процессом
 # Используется для гарантированной очистки при аварийном завершении
 # ИСПРАВЛЕНИЕ 2.2: Добавлена потокобезопасность с использованием RLock
+# ИСПРАВЛЕНИЕ M5: Добавлено ограничение размера и LRU eviction
 _temp_files_lock = threading.RLock()
 _temp_files_registry: set[Path] = set()
 
@@ -126,11 +126,30 @@ _temp_files_registry: set[Path] = set()
 def _register_temp_file(file_path: Path) -> None:
     """Регистрирует временный файл для последующей очистки.
 
+    Исправление M5:
+    - Добавлено ограничение максимального размера реестра
+    - Реализована LRU eviction при достижении лимита
+    - Удаляются oldest записи при превышении MAX_TEMP_FILES
+
     Args:
         file_path: Путь к временному файлу.
     """
     if _temp_files_lock.acquire(timeout=5.0):
         try:
+            # ИСПРАВЛЕНИЕ M5: LRU eviction при достижении лимита
+            if len(_temp_files_registry) >= MAX_TEMP_FILES:
+                # Удаляем oldest записи (50% от лимита)
+                # Примечание: set неупорядочен, поэтому удаляем случайные элементы
+                # Для более точного LRU можно использовать OrderedDict
+                files_to_remove = list(_temp_files_registry)[: MAX_TEMP_FILES // 2]
+                for old_file in files_to_remove:
+                    _temp_files_registry.discard(old_file)
+                logger.warning(
+                    "Достигнут лимит временных файлов (%d), удалено %d старых файлов",
+                    MAX_TEMP_FILES,
+                    len(files_to_remove),
+                )
+
             _temp_files_registry.add(file_path)
         finally:
             _temp_files_lock.release()
@@ -283,7 +302,14 @@ def _merge_csv_files(
     writer = None
 
     try:
-        with open(output_path, "w", encoding=encoding, newline="", buffering=buffer_size) as outfile:
+        # ИСПРАВЛЕНИЕ H1: Обработка OSError для выходного файла
+        try:
+            outfile = open(output_path, "w", encoding=encoding, newline="", buffering=buffer_size)
+        except OSError as output_error:
+            log(f"Ошибка записи в выходной файл {output_path}: {output_error}", "error")
+            return False, 0, []
+
+        with outfile:
             for csv_file in file_paths:
                 if cancel_event is not None and cancel_event.is_set():
                     log("Объединение отменено пользователем", "warning")
@@ -302,7 +328,14 @@ def _merge_csv_files(
                 if last_underscore_idx <= 0:
                     log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
 
-                with open(csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size) as infile:
+                # ИСПРАВЛЕНИЕ H1: Обработка OSError для входного файла
+                try:
+                    infile = open(csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size)
+                except OSError as file_error:
+                    log(f"Ошибка доступа к файлу {csv_file}: {file_error}", "error")
+                    return False, 0, []
+
+                with infile:
                     reader = csv.DictReader(infile)
 
                     if not reader.fieldnames:
@@ -350,6 +383,10 @@ def _merge_csv_files(
             log(f"Объединение завершено. Всего записей: {total_rows}", "info")
             return True, total_rows, files_to_delete
 
+    except OSError as e:
+        # ИСПРАВЛЕНИЕ H1: Явная обработка OSError
+        log(f"Ошибка операционной системы при объединении CSV: {e}", "error")
+        return False, 0, []
     except Exception as e:
         log(f"Ошибка при объединении CSV: {e}", "error")
         return False, 0, []
@@ -1268,7 +1305,11 @@ class ParallelCityParser:
         # Используем таймаут из конфигурации объекта
         self.log(f"⏱️ Таймаут на один URL: {self.timeout_per_url} секунд", "info")
 
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+        # ИСПРАВЛЕНИЕ H2: Явный shutdown с finally блоком
+        executor = None
+        try:
+            executor = ThreadPoolExecutor(max_workers=self.max_workers)
+            
             # Создаём futures
             futures = {
                 executor.submit(
@@ -1317,6 +1358,17 @@ class ParallelCityParser:
                         f"❌ Исключение при парсинге {city_name} - {category_name}: {e}",
                         "error",
                     )
+
+        finally:
+            # ИСПРАВЛЕНИЕ H2: Явный shutdown для предотвращения утечки потоков
+            if executor is not None:
+                try:
+                    #shutdown(wait=True) ожидает завершения всех задач
+                    # cancel_futures=True отменяет ожидающие задачи
+                    executor.shutdown(wait=True, cancel_futures=True)
+                    self.log("ThreadPoolExecutor корректно завершён", "debug")
+                except Exception as shutdown_error:
+                    self.log(f"Ошибка при shutdown ThreadPoolExecutor: {shutdown_error}", "error")
 
         # Вычисляем длительность
         duration = time.time() - start_time

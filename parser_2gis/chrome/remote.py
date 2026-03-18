@@ -6,6 +6,7 @@ import re
 import socket
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from contextlib import closing
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -1105,23 +1106,29 @@ class ChromeRemote:
             # Похоже, старая версия браузера, пропускаем
             return False
 
-    def execute_script(self, expression: str) -> Any:
+    def execute_script(self, expression: str, timeout: int = 30) -> Any:
         """Выполняет скрипт.
 
         Args:
             expression: Текст выражения.
+            timeout: Таймаут выполнения в секундах (по умолчанию 30).
 
         Returns:
             Значение результата или None при ошибке.
 
         Raises:
             ValueError: Если выражение не прошло валидацию безопасности.
+            TimeoutError: Если выполнение превысило таймаут.
 
         Примечание безопасности:
             Перед выполнением выражение проходит проверку на:
             - Тип данных (должен быть строкой)
             - Максимальную длину
             - Наличие опасных паттернов (eval, Function, document.write)
+        
+        Исправление H3:
+            - Добавлен параметр timeout для предотвращения зависаний
+            - Используется ThreadPoolExecutor для выполнения с таймаутом
         """
         if self._chrome_tab is None:
             logger.error("Chrome tab не инициализирован в execute_script")
@@ -1136,11 +1143,39 @@ class ChromeRemote:
             logger.error("Валидация выражения не пройдена: %s", error_msg)
             raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
 
+        # ИСПРАВЛЕНИЕ H3: Выполнение с таймаутом через ThreadPoolExecutor
+        result = {"value": None, "error": None}
+        
+        def execute_target() -> None:
+            """Внутренняя функция для выполнения скрипта."""
+            try:
+                eval_result = self._chrome_tab.Runtime.evaluate(expression=expression, returnByValue=True)
+                result["value"] = eval_result["result"].get("value", None)
+            except Exception as e:
+                result["error"] = e
+                logger.warning("Ошибка при выполнении скрипта: %s", e)
+
         try:
-            eval_result = self._chrome_tab.Runtime.evaluate(expression=expression, returnByValue=True)
-            return eval_result["result"].get("value", None)
+            # Используем ThreadPoolExecutor для выполнения с таймаутом
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(execute_target)
+                try:
+                    future.result(timeout=timeout)
+                except TimeoutError:
+                    logger.error("Превышено время выполнения JavaScript (%d секунд)", timeout)
+                    raise TimeoutError(f"Выполнение скрипта превысило таймаут {timeout} секунд")
+            
+            # Проверяем, не произошла ли ошибка при выполнении
+            if result["error"]:
+                return None
+            
+            return result["value"]
+            
+        except TimeoutError:
+            # Пробрасываем TimeoutError дальше
+            raise
         except Exception as e:
-            logger.warning("Ошибка при выполнении скрипта: %s", e)
+            logger.warning("Непредвиденная ошибка при выполнении скрипта: %s", e)
             return None
 
     def perform_click(self, dom_node: DOMNode, timeout: Optional[int] = None) -> None:
