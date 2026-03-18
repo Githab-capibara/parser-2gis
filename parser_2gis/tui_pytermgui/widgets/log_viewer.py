@@ -376,11 +376,7 @@ class CompactLogViewer(LogViewer):
         style = log_entry["style"]
 
         # Компактный формат: [ВРЕМЯ] Иконка Сообщение
-        return (
-            f"[dim][{log_entry['timestamp']}][/] "
-            f"{style['icon']} "
-            f"[{style['color']}]{log_entry['message']}[/]"
-        )
+        return f"[dim][{log_entry['timestamp']}][/] " f"{style['icon']} " f"[{style['color']}]{log_entry['message']}[/]"
 
 
 class DetailedLogViewer(LogViewer):

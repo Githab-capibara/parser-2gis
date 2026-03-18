@@ -300,9 +300,7 @@ class ButtonWidget(NavigableWidget):
     обработки клавиш Enter и визуального отображения фокуса.
     """
 
-    def __init__(
-        self, label: str, onclick: Callable[[], None] | None = None, **kwargs: Any
-    ) -> None:
+    def __init__(self, label: str, onclick: Callable[[], None] | None = None, **kwargs: Any) -> None:
         """
         Инициализация кнопки.
 

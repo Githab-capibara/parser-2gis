@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, IO, Optional
+from typing import IO, TYPE_CHECKING, Any, Dict, Optional
 
 from ...logger import logger
 
@@ -86,9 +86,7 @@ class FileWriter(ABC):
             # Проверка кода ответа
             if meta.get("code") != 200:
                 if verbose:
-                    logger.error(
-                        "Сервер вернул код ответа: %s", meta.get("code")
-                    )
+                    logger.error("Сервер вернул код ответа: %s", meta.get("code"))
                 return False
 
             # Проверка наличия result

@@ -6,8 +6,9 @@ import warnings
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .options import LogOptions
     import queue
+
+    from .options import LogOptions
 
 
 # Устанавливаем уровень логирования для сторонних библиотек
@@ -28,9 +29,7 @@ class QueueHandler(logging.Handler):
         self._log_queue.put(log_message)
 
 
-def setup_gui_logger(
-    log_queue: queue.Queue[tuple[str, str]], options: LogOptions
-) -> None:
+def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]], options: LogOptions) -> None:
     """Добавляет обработчик очереди к существующему логгеру, чтобы он
     отправлял логи в указанную очередь.
 
@@ -94,7 +93,7 @@ def log_parser_start(
         format: Формат выходного файла.
         config_summary: Краткая сводка конфигурации.
     """
-    from .visual_logger import print_header, print_config, Emoji
+    from .visual_logger import Emoji, print_config, print_header
 
     # Заголовок
     print_header(
@@ -135,7 +134,13 @@ def log_parser_finish(
         stats: Статистика работы.
         duration: Продолжительность работы.
     """
-    from .visual_logger import print_header, print_stats, print_success, print_error, Emoji
+    from .visual_logger import (
+        Emoji,
+        print_error,
+        print_header,
+        print_stats,
+        print_success,
+    )
 
     emoji = Emoji.SUCCESS if success else Emoji.ERROR
     title = f"{emoji} Парсинг завершён"

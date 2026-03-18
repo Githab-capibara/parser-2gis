@@ -1,11 +1,12 @@
 import inspect
-from pychrome.exceptions import UserAbortException as _UserAbortException
+
 from pychrome.exceptions import RuntimeException as _RuntimeException
+from pychrome.exceptions import UserAbortException as _UserAbortException
 
 
 class ChromeException(Exception):
     """Базовое исключение Chrome.
-    
+
     Добавляет контекстную информацию об ошибке:
     - Имя функции, где произошла ошибка
     - Номер строки
@@ -23,14 +24,9 @@ class ChromeException(Exception):
             self.function_name = "unknown"
             self.line_number = 0
             self.filename = "unknown"
-        
+
         # Формируем полное сообщение с контекстом
-        full_message = (
-            f"{message}. "
-            f"Функция: {self.function_name}, "
-            f"Строка: {self.line_number}, "
-            f"Файл: {self.filename}"
-        )
+        full_message = f"{message}. " f"Функция: {self.function_name}, " f"Строка: {self.line_number}, " f"Файл: {self.filename}"
         super().__init__(full_message, **kwargs)
 
 

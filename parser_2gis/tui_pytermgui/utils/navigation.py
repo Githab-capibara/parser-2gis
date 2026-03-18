@@ -5,7 +5,7 @@
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
-    import pytermgui as ptg
+    from typing import TYPE_CHECKING
 
 
 class ScreenManager:
@@ -66,15 +66,17 @@ class ScreenManager:
         # Удалить текущее окно из WindowManager
         if self._current_instance and hasattr(self._app, "_manager"):
             manager = getattr(self._app, "_manager", None)
-            if manager and hasattr(self._current_instance, '_window'):
+            if manager and hasattr(self._current_instance, "_window"):
                 # Используем существующее окно вместо создания нового
-                existing_window = getattr(self._current_instance, '_window', None)
+                existing_window = getattr(self._current_instance, "_window", None)
                 if existing_window:
                     try:
                         manager.remove(existing_window)
-                    except Exception:
-                        # Игнорируем ошибки удаления
-                        pass
+                    except Exception as remove_error:
+                        # Игнорируем ошибки удаления, но логируем их
+                        from ..logger import logger
+
+                        logger.debug("Ошибка при удалении окна: %s", remove_error)
 
         self._screen_stack.clear()
         self._current_screen = None

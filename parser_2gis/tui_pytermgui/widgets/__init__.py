@@ -8,13 +8,13 @@
 - Цветовых схем
 """
 
-from .progress_bar import ProgressBar, MultiProgressBar
-from .log_viewer import LogViewer, CompactLogViewer, DetailedLogViewer
-from .city_list import CityList
 from .category_list import CategoryList
-from .scroll_area import ScrollArea
 from .checkbox import Checkbox
-from .navigable_widget import NavigableWidget, NavigableContainer, ButtonWidget
+from .city_list import CityList
+from .log_viewer import CompactLogViewer, DetailedLogViewer, LogViewer
+from .navigable_widget import ButtonWidget, NavigableContainer, NavigableWidget
+from .progress_bar import MultiProgressBar, ProgressBar
+from .scroll_area import ScrollArea
 
 __all__ = [
     # Прогресс-бары

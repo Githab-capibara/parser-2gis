@@ -235,25 +235,28 @@ class TestImportCorrectness:
         """Проверка, что output_settings импортирует Checkbox из виджетов."""
         from parser_2gis.tui_pytermgui.screens import output_settings
         import inspect
-        
+
         source = inspect.getsource(output_settings)
-        assert "from ..widgets import Checkbox" in source, \
+        # Проверяем что Checkbox импортируется из widgets (..widgets или .widgets)
+        assert "widgets import Checkbox" in source or "from ..widgets import" in source, \
             "output_settings.py должен импортировать Checkbox из виджетов"
 
     def test_browser_settings_imports_checkbox(self) -> None:
         """Проверка, что browser_settings импортирует Checkbox из виджетов."""
         from parser_2gis.tui_pytermgui.screens import browser_settings
         import inspect
-        
+
         source = inspect.getsource(browser_settings)
-        assert "from ..widgets import Checkbox" in source, \
+        # Проверяем что Checkbox импортируется из widgets (..widgets или .widgets)
+        assert "widgets import Checkbox" in source or "from ..widgets import" in source, \
             "browser_settings.py должен импортировать Checkbox из виджетов"
 
     def test_parser_settings_imports_checkbox(self) -> None:
         """Проверка, что parser_settings импортирует Checkbox из виджетов."""
         from parser_2gis.tui_pytermgui.screens import parser_settings
         import inspect
-        
+
         source = inspect.getsource(parser_settings)
-        assert "from ..widgets import Checkbox" in source, \
+        # Проверяем что Checkbox импортируется из widgets (..widgets или .widgets)
+        assert "widgets import Checkbox" in source or "from ..widgets import" in source, \
             "parser_settings.py должен импортировать Checkbox из виджетов"

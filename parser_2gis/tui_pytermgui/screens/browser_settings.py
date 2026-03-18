@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
-from ..widgets import Checkbox, NavigableContainer, ButtonWidget
+from ..widgets import ButtonWidget, Checkbox, NavigableContainer
 
 if TYPE_CHECKING:
     from .app import TUIApp

@@ -81,21 +81,13 @@ def _safe_move_file(src: str, dst: str) -> bool:
                 os.remove(src)
                 logger.debug("Source файл удалён после move: %s", src)
             except OSError as remove_error:
-                logger.warning(
-                    "Не удалось удалить source файл %s после move: %s",
-                    src,
-                    remove_error
-                )
+                logger.warning("Не удалось удалить source файл %s после move: %s", src, remove_error)
 
         return True
 
     except Exception as move_error:
         # Fallback на copy+delete
-        logger.warning(
-            "shutil.move не удался (%s: %s), используем fallback copy+delete",
-            type(move_error).__name__,
-            move_error
-        )
+        logger.warning("shutil.move не удался (%s: %s), используем fallback copy+delete", type(move_error).__name__, move_error)
         try:
             # Копируем файл с сохранением метаданных
             shutil.copy2(src, dst)
@@ -111,11 +103,7 @@ def _safe_move_file(src: str, dst: str) -> bool:
                 return False
 
         except Exception as fallback_error:
-            logger.error(
-                "Fallback copy+delete не удался: %s (%s)",
-                fallback_error,
-                type(fallback_error).__name__
-            )
+            logger.error("Fallback copy+delete не удался: %s (%s)", fallback_error, type(fallback_error).__name__)
             return False
 
 
@@ -198,9 +186,7 @@ class CSVWriter(FileWriter):
             row: Словарь с данными для записи.
         """
         if self._options.verbose:
-            logger.info(
-                "Парсинг [%d] > %s", self._wrote_count + 1, row.get("name", "N/A")
-            )
+            logger.info("Парсинг [%d] > %s", self._wrote_count + 1, row.get("name", "N/A"))
 
         try:
             self._writer.writerow(row)
@@ -264,9 +250,7 @@ class CSVWriter(FileWriter):
         try:
             # Первый проход: подсчёт непустых значений в сложных колонках
             # Оптимизация 17: используем увеличенную буферизацию и пакетное чтение
-            with self._open_file(
-                self._file_path, "r", encoding="utf-8-sig", buffering=READ_BUFFER_SIZE
-            ) as f_csv:
+            with self._open_file(self._file_path, "r", encoding="utf-8-sig", buffering=READ_BUFFER_SIZE) as f_csv:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
 
                 # Оптимизация 17: пакетная обработка строк для снижения накладных расходов
@@ -283,10 +267,7 @@ class CSVWriter(FileWriter):
                     if (idx + 1) % CSV_BATCH_SIZE == 0:
                         batch_count += 1
 
-            logger.debug(
-                "Подсчёт заполненности колонок завершён (обработано пакетов: %d)",
-                batch_count
-            )
+            logger.debug("Подсчёт заполненности колонок завершён (обработано пакетов: %d)", batch_count)
 
         except Exception as e:
             logger.error("Ошибка при чтении CSV для анализа колонок: %s", e)
@@ -308,9 +289,7 @@ class CSVWriter(FileWriter):
             col_2 = f"{column}_2"
             if col_1 in new_data_mapping and col_2 not in new_data_mapping:
                 # Удаляем суффикс " 1" из названия колонки
-                new_data_mapping[col_1] = re.sub(
-                    r"\s+\d+$", "", new_data_mapping[col_1]
-                )
+                new_data_mapping[col_1] = re.sub(r"\s+\d+$", "", new_data_mapping[col_1])
 
         # Создание временного файла
         file_root, file_ext = os.path.splitext(self._file_path)
@@ -321,9 +300,7 @@ class CSVWriter(FileWriter):
 
         try:
             # Чтение исходного файла и запись нового с увеличенной буферизацией
-            with self._open_file(
-                self._file_path, "r", buffering=READ_BUFFER_SIZE
-            ) as f_csv, self._open_file(
+            with self._open_file(self._file_path, "r", buffering=READ_BUFFER_SIZE) as f_csv, self._open_file(
                 tmp_csv_name, "w", newline="", buffering=WRITE_BUFFER_SIZE
             ) as f_tmp_csv:
 
@@ -357,11 +334,7 @@ class CSVWriter(FileWriter):
                     csv_writer.writerows(batch)
                     total_batches += 1
 
-                logger.debug(
-                    "Запись CSV завершена (всего пакетов: %d, размер пакета: %d)",
-                    total_batches,
-                    batch_size
-                )
+                logger.debug("Запись CSV завершена (всего пакетов: %d, размер пакета: %d)", total_batches, batch_size)
 
             # Замена оригинального файла новым с безопасной обработкой
             move_success = _safe_move_file(tmp_csv_name, self._file_path)
@@ -384,11 +357,7 @@ class CSVWriter(FileWriter):
                     os.remove(tmp_csv_name)
                     logger.debug("Временный файл удалён в блоке finally: %s", tmp_csv_name)
                 except OSError as cleanup_error:
-                    logger.warning(
-                        "Не удалось удалить временный файл %s: %s",
-                        tmp_csv_name,
-                        cleanup_error
-                    )
+                    logger.warning("Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error)
 
     def _remove_duplicates(self) -> None:
         """Постобработка: Удаление дубликатов.
@@ -423,8 +392,7 @@ class CSVWriter(FileWriter):
             with self._open_file(
                 self._file_path, "r", encoding="utf-8-sig", buffering=READ_BUFFER_SIZE
             ) as f_csv, self._open_file(
-                tmp_csv_name, "w", encoding=self._options.encoding,
-                newline="", buffering=WRITE_BUFFER_SIZE
+                tmp_csv_name, "w", encoding=self._options.encoding, newline="", buffering=WRITE_BUFFER_SIZE
             ) as f_tmp_csv:
 
                 # ВАЖНО: Помечаем что временный файл создан
@@ -441,7 +409,7 @@ class CSVWriter(FileWriter):
 
                         # Unicode-нормализация для корректного сравнения
                         # NFKD разлагает символы на базовые символы + диакритические знаки
-                        normalized = unicodedata.normalize('NFKD', normalized_line)
+                        normalized = unicodedata.normalize("NFKD", normalized_line)
 
                         # Вычисляем хеш с использованием SHA256 для большей безопасности
                         # Оптимизация: используем bytes напрямую для снижения конверсий
@@ -460,9 +428,7 @@ class CSVWriter(FileWriter):
                             batch.clear()
 
                     except Exception as line_error:
-                        logger.warning(
-                            "Ошибка обработки строки %d: %s", line_num, line_error
-                        )
+                        logger.warning("Ошибка обработки строки %d: %s", line_num, line_error)
                         # Пропускаем проблемную строку и продолжаем
 
                 # Записываем оставшиеся строки
@@ -502,11 +468,7 @@ class CSVWriter(FileWriter):
                     os.remove(tmp_csv_name)
                     logger.debug("Временный файл удалён в блоке finally: %s", tmp_csv_name)
                 except OSError as cleanup_error:
-                    logger.warning(
-                        "Не удалось удалить временный файл %s: %s",
-                        tmp_csv_name,
-                        cleanup_error
-                    )
+                    logger.warning("Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error)
 
     def write(self, catalog_doc: Any) -> None:
         """Записывает JSON-документ Catalog Item API в CSV-таблицу.
@@ -537,9 +499,7 @@ class CSVWriter(FileWriter):
         try:
             result = catalog_doc.get("result")
             if not result or "items" not in result:
-                logger.error(
-                    "Некорректная структура документа: отсутствует result.items"
-                )
+                logger.error("Некорректная структура документа: отсутствует result.items")
                 return {}
 
             items = result.get("items", [])
@@ -654,9 +614,7 @@ class CSVWriter(FileWriter):
 
                     data_name = f"{contact_type}_{i}"
                     if data_name in data:
-                        data[data_name] = (
-                            formatter(contact_value) if formatter else contact_value
-                        )
+                        data[data_name] = formatter(contact_value) if formatter else contact_value
 
                         # Добавляем комментарий к контакту при наличии
                         if self._options.csv.add_comments and contact.comment:
@@ -697,14 +655,10 @@ class CSVWriter(FileWriter):
 
         # Режим работы объекта
         if catalog_item.schedule:
-            data["schedule"] = catalog_item.schedule.to_str(
-                self._options.csv.join_char, self._options.csv.add_comments
-            )
+            data["schedule"] = catalog_item.schedule.to_str(self._options.csv.join_char, self._options.csv.add_comments)
 
         # Рубрики (категории) объекта
         if self._options.csv.add_rubrics:
-            data["rubrics"] = self._options.csv.join_char.join(
-                x.name for x in catalog_item.rubrics
-            )
+            data["rubrics"] = self._options.csv.join_char.join(x.name for x in catalog_item.rubrics)
 
         return data

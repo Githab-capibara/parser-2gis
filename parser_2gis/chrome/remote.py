@@ -8,7 +8,7 @@ import threading
 import time
 from contextlib import closing
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pychrome
 import requests  # type: ignore[import-untyped]
@@ -44,18 +44,18 @@ CHROME_STARTUP_DELAY = 1.0
 MAX_JS_CODE_LENGTH = 5_000_000
 
 # Оптимизация: скомпилированные regex паттерны для проверки портов
-_PORT_CHECK_PATTERN = re.compile(r'^http://127\.0\.0\.1:(\d+)$')
+_PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
 
 # Паттерн для обнаружения потенциально опасных конструкций в JS
 # Оптимизация: скомпилированные паттерны вместо компиляции при каждом вызове
 _DANGEROUS_JS_PATTERNS = [
-    (re.compile(r'\beval\s*\('), 'eval() запрещён'),
-    (re.compile(r'(?<![\w])Function\s*\('), 'конструктор Function запрещён'),
-    (re.compile(r'\bsetTimeout\s*\([^,]*,\s*["\']'), 'setTimeout с строковым кодом запрещён'),
-    (re.compile(r'\bsetInterval\s*\([^,]*,\s*["\']'), 'setInterval с строковым кодом запрещён'),
-    (re.compile(r'\bdocument\.write\s*\('), 'document.write() запрещён'),
-    (re.compile(r'\.innerHTML\s*='), 'прямая установка innerHTML запрещена'),
-    (re.compile(r'\.outerHTML\s*='), 'прямая установка outerHTML запрещена'),
+    (re.compile(r"\beval\s*\("), "eval() запрещён"),
+    (re.compile(r"(?<![\w])Function\s*\("), "конструктор Function запрещён"),
+    (re.compile(r'\bsetTimeout\s*\([^,]*,\s*["\']'), "setTimeout с строковым кодом запрещён"),
+    (re.compile(r'\bsetInterval\s*\([^,]*,\s*["\']'), "setInterval с строковым кодом запрещён"),
+    (re.compile(r"\bdocument\.write\s*\("), "document.write() запрещён"),
+    (re.compile(r"\.innerHTML\s*="), "прямая установка innerHTML запрещена"),
+    (re.compile(r"\.outerHTML\s*="), "прямая установка outerHTML запрещена"),
 ]
 
 # Кэш для проверки доступности портов
@@ -221,11 +221,11 @@ def _sanitize_js_string(value: str) -> str:
         value = str(value)
 
     # Экранируем обратные слеши в первую очередь
-    value = value.replace('\\', '\\\\')
+    value = value.replace("\\", "\\\\")
     # Экранируем обратные кавычки
-    value = value.replace('`', '\\`')
+    value = value.replace("`", "\\`")
     # Экранируем доллар для предотвращения инъекций
-    value = value.replace('$', '\\$')
+    value = value.replace("$", "\\$")
     # Экранируем кавычки
     value = value.replace("'", "\\'")
     value = value.replace('"', '\\"')
@@ -259,20 +259,14 @@ def _validate_remote_port(port: Any) -> int:
     """
     # Явная проверка на bool, так как bool является подклассом int
     if isinstance(port, bool):
-        raise ValueError(
-            f"remote_port не должен быть bool, получен {type(port).__name__}"
-        )
+        raise ValueError(f"remote_port не должен быть bool, получен {type(port).__name__}")
 
     if not isinstance(port, int):
-        raise ValueError(
-            f"remote_port должен быть integer, получен {type(port).__name__}"
-        )
+        raise ValueError(f"remote_port должен быть integer, получен {type(port).__name__}")
 
     # Проверка диапазона портов
     if port < 1024:
-        raise ValueError(
-            f"remote_port должен быть >= 1024 (зарезервированные порты), получен {port}"
-        )
+        raise ValueError(f"remote_port должен быть >= 1024 (зарезервированные порты), получен {port}")
 
     if port > 65535:
         raise ValueError(f"remote_port должен быть <= 65535, получен {port}")
@@ -292,18 +286,14 @@ class ChromeRemote:
         response_patterns: Паттерны URL ответов для перехвата.
     """
 
-    def __init__(
-        self, chrome_options: ChromeOptions, response_patterns: list[str]
-    ) -> None:
+    def __init__(self, chrome_options: ChromeOptions, response_patterns: list[str]) -> None:
         self._chrome_options: ChromeOptions = chrome_options
         self._chrome_browser: Optional[ChromeBrowser] = None
         self._chrome_interface: Optional[pychrome.Browser] = None
         self._chrome_tab: Optional[pychrome.Tab] = None
         self._dev_url: Optional[str] = None
         self._response_patterns: list[str] = response_patterns
-        self._response_queues: dict[str, queue.Queue[Response]] = {
-            x: queue.Queue() for x in response_patterns
-        }
+        self._response_queues: dict[str, queue.Queue[Response]] = {x: queue.Queue() for x in response_patterns}
         self._requests: dict[str, Request] = {}  # _requests[request_id] = <Request>
         self._requests_lock = threading.Lock()
 
@@ -512,7 +502,7 @@ class ChromeRemote:
 
     def start(self) -> None:
         """Открывает браузер, создаёт новую вкладку, настраивает удалённый интерфейс.
-        
+
         Оптимизация:
         - Адаптивная задержка вместо фиксированной
         - Уменьшенное количество проверок порта
@@ -532,22 +522,21 @@ class ChromeRemote:
             # Начинаем с меньшей задержки и увеличиваем при необходимости
             startup_delay = CHROME_STARTUP_DELAY
             max_startup_attempts = 3
-            
+
             for attempt in range(max_startup_attempts):
                 logger.debug("Ожидание запуска Chrome (%.1f сек, попытка %d)...", startup_delay, attempt + 1)
                 time.sleep(startup_delay)
-                
+
                 # Проверяем доступность порта
                 if _check_port_available(remote_port, timeout=1.0, retries=1):
                     logger.debug("Порт %d доступен для подключения", remote_port)
                     break
-                
+
                 # Увеличиваем задержку для следующей попытки
                 startup_delay = min(startup_delay * 1.5, 3.0)
             else:
                 raise ChromeException(
-                    f"Порт {remote_port} недоступен после {max_startup_attempts} попыток. "
-                    "Возможно, Chrome не запустился."
+                    f"Порт {remote_port} недоступен после {max_startup_attempts} попыток. " "Возможно, Chrome не запустился."
                 )
 
             # Подключаем браузер к CDP с проверкой результата
@@ -562,7 +551,7 @@ class ChromeRemote:
             if self._chrome_browser:
                 logger.warning("Закрытие браузера из-за ошибки при запуске")
                 self._chrome_browser.close()
-            raise
+            raise  # Пробрасываем исключение дальше
 
     def _start_tab_with_timeout(self, tab: pychrome.Tab, timeout: int = 30) -> None:
         """Запускает вкладку с таймаутом.
@@ -622,9 +611,7 @@ class ChromeRemote:
 
         for attempt in range(max_attempts):
             try:
-                logger.debug(
-                    "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
-                )
+                logger.debug("Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts)
                 # requests.put не принимает параметр json=True, используем данные запроса
                 resp = requests.put(
                     "%s/json/new" % (self._dev_url),
@@ -645,9 +632,7 @@ class ChromeRemote:
                     )
                     time.sleep(delay_seconds)
                 else:
-                    raise ChromeException(
-                        f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
-                    )
+                    raise ChromeException(f"Не удалось создать вкладку после {max_attempts} попыток: {e}")
 
         raise ChromeException("Не удалось создать вкладку")
 
@@ -663,7 +648,7 @@ class ChromeRemote:
         Примечание:
             Метод устанавливает пользовательский агент, скрывает признаки webdriver
             и настраивает перехват сетевых запросов для последующей обработки.
-        
+
         Raises:
             RuntimeError: Если вкладка не инициализирована (_chrome_tab is None).
         """
@@ -682,12 +667,9 @@ class ChromeRemote:
         else:
             # Запасной вариант: стандартный user agent Chrome
             fixed_useragent = (
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
-            logger.warning(
-                "Не удалось получить user agent, используется запасной вариант"
-            )
+            logger.warning("Не удалось получить user agent, используется запасной вариант")
 
         self._chrome_tab.Network.setUserAgentOverride(userAgent=fixed_useragent)
 
@@ -783,7 +765,7 @@ class ChromeRemote:
 
     def _init_tab_monitor(self) -> None:
         """Мониторит здоровье вкладки Chrome.
-        
+
         Оптимизация:
         - Увеличенный интервал опроса для снижения нагрузки
         - Пропуск проверок при активном использовании вкладки
@@ -798,7 +780,7 @@ class ChromeRemote:
 
         # Используем threading.Event для потокобезопасного флага
         tab_detached = threading.Event()
-        
+
         # Оптимизация: увеличенный интервал мониторинга
         MONITOR_INTERVAL = 2.0  # Увеличено с 0.5 до 2.0 секунд
 
@@ -806,29 +788,28 @@ class ChromeRemote:
             """Мониторинг вкладки с оптимизированным интервалом."""
             if self._chrome_tab is None:
                 return
-                
+
             last_check_time = 0
-            
+
             while not self._chrome_tab._stopped.is_set():
                 current_time = time.time()
-                
+
                 # Проверяем вкладку только если прошло достаточно времени
                 if current_time - last_check_time >= MONITOR_INTERVAL:
                     try:
                         ret = requests.get("%s/json" % self._dev_url, timeout=3)
-                        tab_found = any(
-                            x["id"] == self._chrome_tab.id for x in ret.json()
-                        )
+                        tab_found = any(x["id"] == self._chrome_tab.id for x in ret.json())
                         if not tab_found:
                             tab_detached.set()
                             self._chrome_tab._stopped.set()
                         last_check_time = current_time
                     except (ConnectionError, RequestException, TimeoutError):
                         break
-                    except Exception:
-                        # Ловим любые неожиданные исключения
-                        pass
-                
+                    except Exception as monitor_error:
+                        # Ловим любые неожиданные исключения и логируем их
+                        logger.debug("Ошибка в мониторином цикле вкладки: %s", monitor_error)
+                        break
+
                 # Ждём следующего интервала
                 self._chrome_tab._stopped.wait(MONITOR_INTERVAL)
 
@@ -866,9 +847,7 @@ class ChromeRemote:
             logger.error("Chrome tab не инициализирован в navigate")
             return
         try:
-            ret = self._chrome_tab.Page.navigate(
-                url=url, _timeout=timeout, referrer=referer
-            )
+            ret = self._chrome_tab.Page.navigate(url=url, _timeout=timeout, referrer=referer)
             error_message = ret.get("errorText", None)
             if error_message:
                 raise ChromeException(error_message)
@@ -951,9 +930,7 @@ class ChromeRemote:
             request_id = response["meta"]["requestId"]
 
             # Получаем тело ответа
-            response_data = self._chrome_tab.call_method(
-                "Network.getResponseBody", requestId=request_id
-            )
+            response_data = self._chrome_tab.call_method("Network.getResponseBody", requestId=request_id)
 
             if not response_data:
                 logger.debug("Тело ответа пустое для requestId: %s", request_id)
@@ -989,9 +966,7 @@ class ChromeRemote:
 
         except KeyError as e:
             # Отсутствует необходимое поле
-            logger.warning(
-                "Отсутствует поле в response при получении тела ответа: %s", e
-            )
+            logger.warning("Отсутствует поле в response при получении тела ответа: %s", e)
             return ""
 
         except Exception as e:
@@ -1127,9 +1102,7 @@ class ChromeRemote:
             raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
 
         try:
-            eval_result = self._chrome_tab.Runtime.evaluate(
-                expression=expression, returnByValue=True
-            )
+            eval_result = self._chrome_tab.Runtime.evaluate(expression=expression, returnByValue=True)
             return eval_result["result"].get("value", None)
         except Exception as e:
             logger.warning("Ошибка при выполнении скрипта: %s", e)
@@ -1146,9 +1119,7 @@ class ChromeRemote:
             logger.error("Chrome tab не инициализирован в perform_click")
             return
         try:
-            resolved_node = self._chrome_tab.DOM.resolveNode(
-                backendNodeId=dom_node.backend_id, _timeout=timeout
-            )
+            resolved_node = self._chrome_tab.DOM.resolveNode(backendNodeId=dom_node.backend_id, _timeout=timeout)
             object_id = resolved_node["object"]["objectId"]
             self._chrome_tab.Runtime.callFunctionOn(
                 objectId=object_id,

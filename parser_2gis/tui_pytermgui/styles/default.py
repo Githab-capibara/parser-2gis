@@ -21,58 +21,58 @@ aliases:
     primary: "#00FFFF"
     primary_dark: "#008B8B"
     primary_light: "#E0FFFF"
-    
+
     secondary: "#00FF88"
     secondary_dark: "#008B48"
     secondary_light: "#CCFFDD"
-    
+
     accent: "#FFD700"
     accent_dark: "#B8860B"
     accent_light: "#FFF8DC"
-    
+
     # Функциональные цвета
     success: "#00FF88"
     success_dark: "#006400"
-    
+
     error: "#FF4444"
     error_dark: "#8B0000"
-    
+
     warning: "#FFAA00"
     warning_dark: "#B8860B"
-    
+
     info: "#00BFFF"
     info_dark: "#00688B"
-    
+
     # Неоновые акценты
     neon_pink: "#FF1493"
     neon_purple: "#9400D3"
     neon_blue: "#1E90FF"
     neon_green: "#32CD32"
     neon_orange: "#FF6347"
-    
+
     # Цвета интерфейса
     background: "#0D0D0D"
     background_alt: "#1A1A2E"
-    
+
     surface: "#16213E"
     surface_light: "#1F3460"
     surface_dark: "#0F1623"
-    
+
     panel: "#1B263B"
     panel_light: "#253347"
-    
+
     # Цвета текста
     text: "#EAEAEA"
     text_primary: "#FFFFFF"
     text_secondary: "#B0B0B0"
     text_dim: "#666666"
     text_muted: "#4A4A4A"
-    
+
     # Границы и разделители
     border: "#2D4A7C"
     border_light: "#3D5A8C"
     border_dim: "#1E3A5F"
-    
+
     # Градиенты (симуляция через цвета)
     gradient_start: "#00FFFF"
     gradient_mid: "#00FF88"
@@ -137,7 +137,7 @@ parser2gis:
             title: "neon_blue bold"
             subtitle: "text_secondary italic"
             border: "neon_blue"
-    
+
     menu_button:
         styles:
             label: "secondary bold"
@@ -146,20 +146,20 @@ parser2gis:
             background: "surface"
             hover_label: "accent bold"
             hover_border: "accent"
-    
+
     # Стили для экрана парсинга
     parsing_header:
         styles:
             title: "neon_green bold"
             border: "neon_green"
-    
+
     parsing_progress:
         styles:
             label: "text_primary"
             bar_complete: "neon_green"
             bar_incomplete: "text_muted"
             percentage: "accent bold"
-    
+
     parsing_stats:
         styles:
             label: "text_secondary"
@@ -167,7 +167,7 @@ parser2gis:
             success: "success bold"
             error: "error bold"
             warning: "warning bold"
-    
+
     parsing_log:
         styles:
             info: "info"
@@ -176,39 +176,39 @@ parser2gis:
             error: "error bold"
             critical: "error bold reverse"
             success: "success"
-    
+
     # Стили для экранов выбора
     selector_header:
         styles:
             title: "neon_purple bold"
             border: "neon_purple"
-    
+
     selector_item:
         styles:
             normal: "text"
             selected: "accent bold"
             highlighted: "primary"
             disabled: "text_dim"
-    
+
     # Стили для настроек
     settings_header:
         styles:
             title: "neon_orange bold"
             border: "neon_orange"
-    
+
     settings_field:
         styles:
             label: "text_secondary"
             value: "text_primary"
             valid: "success"
             invalid: "error"
-    
+
     # Стили для экрана "О программе"
     about_header:
         styles:
             title: "neon_pink bold"
             border: "neon_pink"
-    
+
     about_text:
         styles:
             title: "primary bold"

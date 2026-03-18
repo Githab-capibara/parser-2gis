@@ -11,9 +11,9 @@ from typing import Literal
 import pytermgui as ptg
 
 from ..utils import (
-    UnicodeIcons,
-    SpinnerAnimation,
     GradientText,
+    SpinnerAnimation,
+    UnicodeIcons,
     format_number,
 )
 
@@ -133,12 +133,8 @@ class ProgressBar:
         total: int = 100,
         completed: int = 0,
         bar_width: int = 40,
-        fill_style: Literal[
-            "classic", "smooth", "line", "double_line", "braille", "circle", "diamond"
-        ] = "classic",
-        color_scheme: Literal[
-            "default", "neon", "fire", "ocean", "cyberpunk", "monochrome"
-        ] = "neon",
+        fill_style: Literal["classic", "smooth", "line", "double_line", "braille", "circle", "diamond"] = "classic",
+        color_scheme: Literal["default", "neon", "fire", "ocean", "cyberpunk", "monochrome"] = "neon",
         show_percentage: bool = True,
         show_count: bool = True,
         show_spinner: bool = False,

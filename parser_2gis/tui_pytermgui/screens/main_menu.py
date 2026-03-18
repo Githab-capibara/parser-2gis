@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
-from ..utils import UnicodeIcons, GradientText, BoxDrawing, center_text
-from ..widgets import NavigableContainer, ButtonWidget
+from ..utils import BoxDrawing, GradientText, UnicodeIcons, center_text
+from ..widgets import ButtonWidget, NavigableContainer
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -188,9 +188,7 @@ class MainMenuScreen:
             version_label,
             "",
             ptg.Label(
-                ptg.tim.parse(
-                    f"[bold #00FF88]{UnicodeIcons.LINE_T_DOWN} Основное меню {UnicodeIcons.LINE_T_DOWN}[/]"
-                ),
+                ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.LINE_T_DOWN} Основное меню {UnicodeIcons.LINE_T_DOWN}[/]"),
                 justify="center",
             ),
             "",
@@ -200,9 +198,7 @@ class MainMenuScreen:
             self._create_footer(),
             width=75,
             box="ROUNDED",
-            title=ptg.tim.parse(
-                f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Главное меню[/]"
-            ),
+            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Главное меню[/]"),
         )
 
         # Установить фокус на первую кнопку
@@ -268,7 +264,7 @@ class MainMenuScreen:
         """Выйти из приложения."""
         if not self._app._manager:
             return
-            
+
         # Подтверждение выхода с кнопками
         confirm_window = ptg.Window(
             "",

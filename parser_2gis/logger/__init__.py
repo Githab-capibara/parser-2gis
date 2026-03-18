@@ -1,31 +1,30 @@
+from ..chrome.file_handler import FileLogger
 from .logger import (
+    Logger,
     QueueHandler,
+    log_parser_finish,
+    log_parser_start,
     logger,
     setup_cli_logger,
     setup_gui_logger,
     setup_logger,
-    Logger,
-    log_parser_start,
-    log_parser_finish,
 )
 from .options import LogOptions
-# from .file_handler import FileLogger  # Модуль временно недоступен
 from .visual_logger import (
-    VisualLogger,
-    visual_logger,
-    print_header,
-    print_config,
-    print_progress,
-    print_success,
-    print_error,
-    print_warning,
-    print_info,
-    print_debug,
-    print_stats,
-    Emoji,
     ColorCodes,
+    Emoji,
+    VisualLogger,
+    print_config,
+    print_debug,
+    print_error,
+    print_header,
+    print_info,
+    print_progress,
+    print_stats,
+    print_success,
+    print_warning,
+    visual_logger,
 )
-
 
 __all__ = [
     "logger",
@@ -35,7 +34,7 @@ __all__ = [
     "setup_logger",
     "QueueHandler",
     "LogOptions",
-    # "FileLogger",  # Модуль временно недоступен
+    "FileLogger",
     "VisualLogger",
     "visual_logger",
     "print_header",

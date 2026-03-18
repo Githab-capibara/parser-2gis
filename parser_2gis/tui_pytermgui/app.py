@@ -117,8 +117,11 @@ class TUIApp:
             alert = getattr(self._manager, "alert", None)
             if callable(alert):
                 alert(message)
-        except Exception:
-            # UI-уведомления не должны ломать приложение
+        except Exception as notify_error:
+            # UI-уведомления не должны ломать приложение, но логируем ошибку
+            from .logger import logger
+
+            logger.debug("Ошибка при отправке уведомления: %s", notify_error)
             return
 
     def run(self) -> None:
@@ -309,13 +312,15 @@ class TUIApp:
         # Получаем список окон через публичный API и сортируем по ID для стабильности
         try:
             # Используем публичный атрибут windows вместо приватного _windows
-            windows_to_remove = list(getattr(self._manager, 'windows', []))
+            windows_to_remove = list(getattr(self._manager, "windows", []))
             for window in sorted(windows_to_remove, key=lambda w: id(w), reverse=True):
                 try:
                     self._manager.remove(window)
-                except Exception:
-                    # Игнорируем ошибки удаления
-                    pass
+                except Exception as remove_error:
+                    # Игнорируем ошибки удаления, но логируем их
+                    from .logger import logger
+
+                    logger.debug("Ошибка при удалении окна: %s", remove_error)
         except AttributeError:
             # Если атрибут windows недоступен, используем альтернативный метод
             pass
@@ -331,7 +336,7 @@ class TUIApp:
 
         # Сохраняем текущий экран перед pop() для корректной работы
         current_screen_before_pop = self._screen_manager.current_instance
-        
+
         previous_screen_name = self._screen_manager.pop()
 
         if previous_screen_name and self._screen_manager.current_instance:
@@ -369,9 +374,7 @@ class TUIApp:
 
         # Загрузить города
         cities_data = self.get_cities()
-        selected_cities_data = [
-            city for city in cities_data if city.get("name") in self.selected_cities
-        ]
+        selected_cities_data = [city for city in cities_data if city.get("name") in self.selected_cities]
 
         if not selected_cities_data:
             self._add_log_to_parsing_screen("Ошибка: не выбраны города", "ERROR")
@@ -379,9 +382,7 @@ class TUIApp:
 
         # Загрузить категории
         all_categories = self.get_categories()
-        selected_categories_data = [
-            cat for cat in all_categories if cat.get("name") in self.selected_categories
-        ]
+        selected_categories_data = [cat for cat in all_categories if cat.get("name") in self.selected_categories]
 
         if not selected_categories_data:
             self._add_log_to_parsing_screen("Ошибка: не выбраны категории", "ERROR")
@@ -418,8 +419,8 @@ class TUIApp:
         """
         try:
             # Использовать max_workers из конфигурации, а не захардкоженное значение
-            max_workers = getattr(config.parser, 'max_workers', 10)
-            
+            max_workers = getattr(config.parser, "max_workers", 10)
+
             # Создать парсер
             parser = ParallelCityParser(
                 cities=cities,
@@ -481,7 +482,7 @@ class TUIApp:
         """
         if not self._screen_manager:
             return
-            
+
         screen = self._screen_manager.current_instance
         if screen and hasattr(screen, "add_log"):
             screen.add_log(message, level)

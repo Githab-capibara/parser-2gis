@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from .logger import logger
@@ -137,9 +137,7 @@ class DataValidator:
 
         # Обработка российских номеров (+7 или 8)
         if cleaned.startswith("+8"):
-            return ValidationResult(
-                False, None, ["Некорректный международный префикс: +8 (должен быть +7 для России)"]
-            )
+            return ValidationResult(False, None, ["Некорректный международный префикс: +8 (должен быть +7 для России)"])
 
         if cleaned.startswith("+7") or cleaned.startswith("8"):
             # Конвертируем +7 в 8 для внутреннего представления
@@ -147,9 +145,7 @@ class DataValidator:
                 cleaned = "8" + cleaned[2:]
 
             if len(cleaned) != 11:
-                return ValidationResult(
-                    False, None, [f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"]
-                )
+                return ValidationResult(False, None, [f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"])
 
             return ValidationResult(True, self._format_phone(cleaned), [])
 
@@ -161,10 +157,12 @@ class DataValidator:
             max_len = self.INTERNATIONAL_PHONE_MAX_LENGTH
             if not (min_len <= len(international_digits) <= max_len):
                 return ValidationResult(
-                    False, None, [
+                    False,
+                    None,
+                    [
                         f"Некорректная длина международного номера: {len(international_digits)} "
                         f"(ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH})"
-                    ]
+                    ],
                 )
 
             return ValidationResult(True, f"+{international_digits}", [])
@@ -180,10 +178,12 @@ class DataValidator:
             return ValidationResult(True, f"+{digits_only}", [])
 
         return ValidationResult(
-            False, None, [
+            False,
+            None,
+            [
                 f"Некорректная длина номера: {len(digits_only)} "
                 f"(ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH} цифр)"
-            ]
+            ],
         )
 
     def _format_phone(self, phone: str) -> str:
@@ -312,9 +312,8 @@ class DataValidator:
                 return ValidationResult(False, None, ["Некорректный формат URL"])
 
             # Проверяем что схема именно http или https
-            if parsed.scheme not in ('http', 'https'):
-                error_msg = (f"Неподдерживаемая схема URL: {parsed.scheme} "
-                            "(требуется http или https)")
+            if parsed.scheme not in ("http", "https"):
+                error_msg = f"Неподдерживаемая схема URL: {parsed.scheme} " "(требуется http или https)"
                 return ValidationResult(False, None, [error_msg])
 
             return ValidationResult(True, url, [])

@@ -120,8 +120,8 @@ class SignalHandler:
                 for sig_num, handler in self._original_handlers.items():
                     try:
                         signal.signal(sig_num, handler)
-                    except Exception:
-                        pass
+                    except Exception as restore_error:
+                        logger.error("Ошибка при восстановлении обработчика сигнала %d: %s", sig_num, restore_error)
 
                 logger.info("Очистка ресурсов завершена")
 
@@ -143,10 +143,7 @@ class SignalHandler:
         with self._lock:
             # Проверяем флаг перед обработкой сигнала
             if self._is_cleaning_up:
-                logger.warning(
-                    "Получен повторный сигнал %d во время очистки ресурсов. Игнорируется.",
-                    signum
-                )
+                logger.warning("Получен повторный сигнал %d во время очистки ресурсов. Игнорируется.", signum)
                 return
 
             self._interrupted = True
@@ -177,8 +174,8 @@ class SignalHandler:
                 try:
                     signal.signal(signal.SIGINT, original_sigint)
                     signal.signal(signal.SIGTERM, original_sigterm)
-                except Exception:
-                    pass
+                except Exception as restore_error:
+                    logger.error("Ошибка при восстановлении обработчиков сигналов: %s", restore_error)
                 # Сбрасываем флаг только если очистка завершена
                 self._is_cleaning_up = False
 

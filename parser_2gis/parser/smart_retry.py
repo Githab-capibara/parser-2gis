@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
 from ..logger import logger
 
@@ -123,9 +123,7 @@ class SmartRetryManager:
             count: Количество новых записей.
         """
         self._total_records_collected += count
-        logger.debug(
-            "Добавлено %d записей (всего: %d)", count, self._total_records_collected
-        )
+        logger.debug("Добавлено %d записей (всего: %d)", count, self._total_records_collected)
 
     def get_retry_count(self) -> int:
         """

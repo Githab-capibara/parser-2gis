@@ -1,10 +1,11 @@
 # Патч для pychrome - исправляет обработку пустых сообщений Chrome DevTools Protocol
 
-import pychrome.tab
 import json
-import websocket
-import warnings
 import logging
+import warnings
+
+import pychrome.tab
+import websocket
 
 pychrome_logger = logging.getLogger("pychrome")
 

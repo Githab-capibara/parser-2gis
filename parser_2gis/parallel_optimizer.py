@@ -12,12 +12,13 @@
 
 from __future__ import annotations
 
-import psutil
 import queue
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import psutil
 
 from .logger import logger
 
@@ -25,9 +26,7 @@ from .logger import logger
 class ParallelTask:
     """Задача для параллельного парсинга."""
 
-    def __init__(
-        self, url: str, category_name: str, city_name: str, priority: int = 0
-    ) -> None:
+    def __init__(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
         """
         Инициализирует задачу.
 
@@ -77,7 +76,7 @@ class ParallelTask:
 class ParallelOptimizer:
     """
     Оптимизатор для параллельного парсинга.
-    
+
     Оптимизация:
     - Кэширование psutil.Process объекта
     - Улучшенное управление очередями задач
@@ -110,14 +109,15 @@ class ParallelOptimizer:
             "failed": 0,
             "avg_duration": 0.0,
         }
-        
+
         # Оптимизация: кэшируем psutil.Process объект
         self._process_cache: Optional[psutil.Process] = None
         try:
             self._process_cache = psutil.Process()
-        except Exception:
-            pass
-        
+        except Exception as process_error:
+            # Логгируем ошибку создания процесса
+            logger.debug("Не удалось создать кэш процесса psutil: %s", process_error)
+
         # Кэш для проверки ресурсов
         self._resource_cache: Tuple[bool, float, float] = (True, 0.0, 0.0)
         self._resource_cache_time: float = 0
@@ -129,9 +129,7 @@ class ParallelOptimizer:
             max_memory_mb,
         )
 
-    def add_task(
-        self, url: str, category_name: str, city_name: str, priority: int = 0
-    ) -> None:
+    def add_task(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
         """
         Добавляет задачу в очередь.
 
@@ -162,7 +160,7 @@ class ParallelOptimizer:
     def check_resources(self) -> Tuple[bool, float]:
         """
         Проверяет доступность ресурсов системы.
-        
+
         Оптимизация:
         - Кэширование psutil.Process объекта
         - Кэширование результатов проверки для снижения частоты проверок
@@ -171,18 +169,18 @@ class ParallelOptimizer:
             Кортеж (доступно ли, использование_памяти_МБ).
         """
         current_time = time.time()
-        
+
         # Проверяем кэш ресурсов
         if current_time - self._resource_cache_time < self._resource_cache_ttl:
             # Возвращаем кэшированный результат
             available, memory_mb, _ = self._resource_cache
             return available, memory_mb
-        
+
         try:
             # Оптимизация: используем кэшированный Process объект
             if self._process_cache is None:
                 return True, 0.0
-                
+
             memory_info = self._process_cache.memory_info()
             memory_mb = memory_info.rss / 1024 / 1024
 
@@ -291,15 +289,13 @@ class ParallelOptimizer:
             stats["pending_tasks"] = self._tasks.qsize()
             stats["active_tasks"] = len(self._active_tasks)
             stats["progress"] = (
-                self._stats["completed"] / self._stats["total_tasks"] * 100
-                if self._stats["total_tasks"] > 0
-                else 0
+                self._stats["completed"] / self._stats["total_tasks"] * 100 if self._stats["total_tasks"] > 0 else 0
             )
             return stats
 
     def reset(self) -> None:
         """Сбрасывает состояние оптимизатора.
-        
+
         Оптимизация 3.5:
         - Queue не имеет clear(), поэтому создаём новую очередь
         - Потокобезопасная очистка через создание нового объекта

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 import pytermgui as ptg
 
-from ..utils import UnicodeIcons, GradientText, BoxDrawing
+from ..utils import BoxDrawing, GradientText, UnicodeIcons
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -171,9 +171,7 @@ class AboutScreen:
         """
         features_lines = []
         for feature in self._features:
-            features_lines.append(
-                ptg.tim.parse(f"[green]{UnicodeIcons.CHECK}[/] [white]{feature}[/]")
-            )
+            features_lines.append(ptg.tim.parse(f"[green]{UnicodeIcons.CHECK}[/] [white]{feature}[/]"))
 
         return ptg.Window(
             *features_lines,
@@ -207,9 +205,7 @@ class AboutScreen:
         """
         footer_lines = [
             ptg.tim.parse(f"[dim]{UnicodeIcons.LINE_HORIZONTAL * 60}[/]"),
-            ptg.tim.parse(
-                f"[dim]Распространяется под лицензией {UnicodeIcons.EMOJI_FILE} LGPLv3+[/]"
-            ),
+            ptg.tim.parse(f"[dim]Распространяется под лицензией {UnicodeIcons.EMOJI_FILE} LGPLv3+[/]"),
             ptg.tim.parse("[dim]© 2024 Andy Trofimov. Все права защищены.[/]"),
             "",
             ptg.tim.parse(f"[dim]Нажмите {UnicodeIcons.CROSS_CIRCLE} Esc для возврата в меню[/]"),

@@ -25,7 +25,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .logger import logger
 
-
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ СЛИЯНИЯ ФАЙЛОВ И БУФЕРИЗАЦИИ
 # =============================================================================
@@ -105,8 +104,8 @@ class FileMerger:
             try:
                 fcntl.flock(self._lock_file_handle.fileno(), fcntl.LOCK_UN)
                 self._lock_file_handle.close()
-            except Exception:
-                pass
+            except Exception as close_error:
+                logger.error("Ошибка при закрытии lock файла: %s", close_error)
             self._lock_file_handle = None
             self._lock_acquired = False
 
@@ -137,7 +136,7 @@ class FileMerger:
             start_time = time.time()
             while not self._lock_acquired:
                 try:
-                    lock_file_handle = open(lock_file_path, 'w')
+                    lock_file_handle = open(lock_file_path, "w")
                     fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     lock_file_handle.write(f"{os.getpid()}\n")
                     lock_file_handle.flush()
@@ -149,8 +148,8 @@ class FileMerger:
                     if self._lock_file_handle:
                         try:
                             self._lock_file_handle.close()
-                        except Exception:
-                            pass
+                        except Exception as close_error:
+                            logger.error("Ошибка при закрытии lock файла: %s", close_error)
                         self._lock_file_handle = None
 
                     if time.time() - start_time > MERGE_LOCK_TIMEOUT:
@@ -164,8 +163,8 @@ class FileMerger:
             if self._lock_file_handle:
                 try:
                     self._lock_file_handle.close()
-                except Exception:
-                    pass
+                except Exception as close_error:
+                    logger.error("Ошибка при закрытии lock файла: %s", close_error)
             return False
 
         return True
@@ -235,11 +234,11 @@ class FileMerger:
                 self._temp_files.append(temp_output)
 
             buffer_size = MERGE_BUFFER_SIZE
-            output_encoding = getattr(self.config, 'writer', None)
+            output_encoding = getattr(self.config, "writer", None)
             if output_encoding:
-                output_encoding = getattr(output_encoding, 'encoding', 'utf-8')
+                output_encoding = getattr(output_encoding, "encoding", "utf-8")
             else:
-                output_encoding = 'utf-8'
+                output_encoding = "utf-8"
 
             with open(temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size) as outfile:
                 writer = None
@@ -256,7 +255,7 @@ class FileMerger:
                     # Извлекаем категорию из имени файла
                     stem = csv_file.stem
                     last_underscore_idx = stem.rfind("_")
-                    category_name = stem[last_underscore_idx + 1:].replace("_", " ") if last_underscore_idx > 0 else "Unknown"
+                    category_name = stem[last_underscore_idx + 1 :].replace("_", " ") if last_underscore_idx > 0 else "Unknown"
 
                     with open(csv_file, "r", encoding=output_encoding, newline="", buffering=buffer_size) as infile:
                         reader = csv.DictReader(infile)
@@ -437,12 +436,14 @@ class StatsCollector:
         """
         with self._lock:
             self.error_count += 1
-            self.errors.append({
-                "message": error_message,
-                "city": city,
-                "category": category,
-                "timestamp": time.time(),
-            })
+            self.errors.append(
+                {
+                    "message": error_message,
+                    "city": city,
+                    "category": category,
+                    "timestamp": time.time(),
+                }
+            )
 
     def get_elapsed_time(self) -> float:
         """

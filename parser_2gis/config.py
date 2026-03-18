@@ -13,7 +13,11 @@ from .common import report_from_validation_error
 from .logger import LogOptions, logger
 from .parser import ParserOptions
 from .paths import user_path
-from .pydantic_compat import get_model_dump, get_model_fields_set, model_validate_json_class
+from .pydantic_compat import (
+    get_model_dump,
+    get_model_fields_set,
+    model_validate_json_class,
+)
 from .version import config_version
 from .writer import WriterOptions
 
@@ -171,17 +175,14 @@ class Configuration(BaseModel):
         """
         # Проверка на превышение максимальной глубины
         if current_depth >= max_depth:
-            raise RecursionError(
-                f"Превышена максимальная глубина обработки ({max_depth}) при объединении конфигурации"
-            )
+            raise RecursionError(f"Превышена максимальная глубина обработки ({max_depth}) при объединении конфигурации")
 
         # Вывод предупреждения при приближении к лимиту
         if current_depth >= warning_threshold and not warning_shown:
             logger.warning(
-                "Внимание: глубина обработки достигла %d/%d (80%% от лимита). "
-                "Возможна сложная вложенность конфигурации.",
+                "Внимание: глубина обработки достигла %d/%d (80%% от лимита). " "Возможна сложная вложенность конфигурации.",
                 current_depth,
-                max_depth
+                max_depth,
             )
             warning_shown = True
 
@@ -316,9 +317,7 @@ class Configuration(BaseModel):
             raise
 
     @classmethod
-    def load_config(
-        cls, config_path: Optional[pathlib.Path] = None, auto_create: bool = True
-    ) -> Configuration:
+    def load_config(cls, config_path: Optional[pathlib.Path] = None, auto_create: bool = True) -> Configuration:
         """Загружает конфигурацию из пути. Если путь не указан,
         конфигурация загружается из пользовательского пути конфигурации.
         При возникновении ошибок во время загрузки метод возвращается к
@@ -343,9 +342,7 @@ class Configuration(BaseModel):
         if not config_path:
             user_config_path = user_path()
             if user_config_path is None:
-                logger.warning(
-                    "Не удалось определить пользовательский путь конфигурации, используется путь по умолчанию"
-                )
+                logger.warning("Не удалось определить пользовательский путь конфигурации, используется путь по умолчанию")
                 config_path = pathlib.Path.home() / ".config" / "parser-2gis"
             else:
                 config_path = user_config_path / "parser-2gis.config"

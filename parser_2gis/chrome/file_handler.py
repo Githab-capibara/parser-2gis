@@ -102,7 +102,7 @@ class FileLogger:
         и настраивает RotatingFileHandler для автоматического
         вращения логов при достижении максимального размера.
         Добавляет запись о начале новой сессии.
-        
+
         Raises:
             OSError: При ошибке создания директории для логов.
             IOError: При ошибке создания файлового обработчика.
@@ -118,7 +118,7 @@ class FileLogger:
                         f"Ошибка: {e}. "
                         f"Функция: {self._setup_file_handler.__name__}"
                     ) from e
-    
+
             # Создаём rotating file handler
             try:
                 self._file_handler = RotatingFileHandler(
@@ -133,7 +133,7 @@ class FileLogger:
                     f"Файл: {self._log_file}. "
                     f"Функция: {self._setup_file_handler.__name__}"
                 ) from e
-    
+
             # Форматирование логов с детальной информацией
             formatter = logging.Formatter(
                 fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s",
@@ -141,7 +141,7 @@ class FileLogger:
             )
             self._file_handler.setFormatter(formatter)
             self._file_handler.setLevel(self._log_level)
-    
+
             # Логируем начало сессии
             session_logger = logging.getLogger("parser-2gis")
             session_logger.info("=" * 80)
@@ -156,6 +156,7 @@ class FileLogger:
         except Exception as e:
             # Логируем ошибку в stderr
             import sys
+
             sys.stderr.write(
                 f"Критическая ошибка при настройке файлового обработчика: {e}. "
                 f"Функция: {self._setup_file_handler.__name__}, "
@@ -170,7 +171,7 @@ class FileLogger:
 
         Args:
             logger: Логгер для настройки (экземпляр logging.Logger).
-            
+
         Raises:
             RuntimeError: При ошибке добавления обработчика.
         """
@@ -193,7 +194,7 @@ class FileLogger:
         Корректно закрывает файловый обработчик и освобождает ресурсы.
         Добавляет запись о завершении сессии.
         Должен вызываться при завершении работы программы.
-        
+
         Raises:
             Exception: При ошибке закрытия обработчика.
         """
@@ -205,24 +206,19 @@ class FileLogger:
                 session_logger.info("ЗАВЕРШЕНИЕ СЕССИИ")
                 session_logger.info(f"Время завершения: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 session_logger.info("=" * 80)
-    
+
                 try:
                     self._file_handler.close()
                 except Exception as e:
-                    session_logger.error(
-                        f"Ошибка закрытия файлового обработчика: {e}. "
-                        f"Функция: {self.close.__name__}"
-                    )
+                    session_logger.error(f"Ошибка закрытия файлового обработчика: {e}. " f"Функция: {self.close.__name__}")
                 finally:
                     self._file_handler = None
         except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
             import sys
-            sys.stderr.write(
-                f"Ошибка при закрытии файлового логгера: {e}. "
-                f"Функция: {self.close.__name__}\n"
-            )
+
+            sys.stderr.write(f"Ошибка при закрытии файлового логгера: {e}. " f"Функция: {self.close.__name__}\n")
             # Не пробрасываем ошибку, чтобы не нарушить завершение работы
 
     def __enter__(self) -> "FileLogger":

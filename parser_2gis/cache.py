@@ -26,7 +26,7 @@ import sqlite3
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .logger import logger
 
@@ -38,6 +38,7 @@ from .logger import logger
 # orjson в 2-3 раза быстрее стандартного json модуля
 try:
     import orjson
+
     _use_orjson = True
 except ImportError:
     _use_orjson = False
@@ -66,7 +67,7 @@ def _serialize_json(data: Dict[str, Any]) -> str:
     if _use_orjson and orjson is not None:
         # orjson возвращает bytes, декодируем в строку
         try:
-            return orjson.dumps(data).decode('utf-8')
+            return orjson.dumps(data).decode("utf-8")
         except orjson.EncodeError as encode_error:
             # Исправление проблемы 1.4: выбрасываем явное исключение с контекстом
             raise TypeError(
@@ -80,8 +81,7 @@ def _serialize_json(data: Dict[str, Any]) -> str:
             return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
         except (TypeError, ValueError) as json_error:
             raise TypeError(
-                f"Критическая ошибка сериализации json: {json_error}. "
-                f"Тип данных: {type(data).__name__}"
+                f"Критическая ошибка сериализации json: {json_error}. " f"Тип данных: {type(data).__name__}"
             ) from json_error
 
 
@@ -122,9 +122,9 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
         # Исправление проблемы 1.4: выбрасываем явное исключение с контекстом
         error_type = "Unicode" if isinstance(json_error, UnicodeDecodeError) else "JSON"
         raise ValueError(
-            f"Критическая ошибка десериализации ({error_type}): {json_error}. "
-            f"Длина данных: {len(data)}"
+            f"Критическая ошибка десериализации ({error_type}): {json_error}. " f"Длина данных: {len(data)}"
         ) from json_error
+
 
 # Экспортируемые символы модуля
 __all__ = ["CacheManager"]
@@ -210,7 +210,7 @@ class _ConnectionPool:
             SQLite соединение для текущего потока.
         """
         # Проверяем, есть ли соединение для текущего потока
-        if not hasattr(self._local, 'connection') or self._local.connection is None:
+        if not hasattr(self._local, "connection") or self._local.connection is None:
             # Создаём новое соединение для этого потока
             self._local.connection = self._create_connection()
             with self._lock:
@@ -269,24 +269,20 @@ class _ConnectionPool:
             Всегда вызывайте close_all() явно или используйте контекстный менеджер.
         """
         # Проверяем есть ли незакрытые соединения
-        if hasattr(self, '_all_conns') and self._all_conns:
+        if hasattr(self, "_all_conns") and self._all_conns:
             logger.warning(
                 "_ConnectionPool уничтожается сборщиком мусора с %d незакрытыми соединениями. "
                 "Всегда вызывайте close_all() явно или используйте контекстный менеджер.",
-                len(self._all_conns)
+                len(self._all_conns),
             )
 
         # Пытаемся закрыть соединения
         try:
-            if hasattr(self, '_all_conns'):
+            if hasattr(self, "_all_conns"):
                 self.close_all()
         except Exception as del_error:
             # В __del__ нельзя выбрасывать исключения - только логируем
-            logger.error(
-                "Ошибка при закрытии соединений в __del__ (_ConnectionPool): %s",
-                del_error,
-                exc_info=True
-            )
+            logger.error("Ошибка при закрытии соединений в __del__ (_ConnectionPool): %s", del_error, exc_info=True)
 
 
 class CacheManager:
@@ -399,9 +395,7 @@ class CacheManager:
         try:
             ttl_hours = int(ttl_hours)
         except (ValueError, TypeError) as conversion_error:
-            raise TypeError(
-                f"ttl_hours должен быть целым числом, получено: {type(ttl_hours).__name__}"
-            ) from conversion_error
+            raise TypeError(f"ttl_hours должен быть целым числом, получено: {type(ttl_hours).__name__}") from conversion_error
 
         if ttl_hours <= 0:
             raise ValueError("ttl_hours должен быть положительным числом")
@@ -510,10 +504,7 @@ class CacheManager:
             # Обрабатываем ошибки десериализации - удаляем повреждённую запись
             error_type = "Unicode" if isinstance(decode_error, UnicodeDecodeError) else "JSON"
             logger.warning(
-                "Ошибка %s при чтении кэша для URL %s: %s. Повреждённая запись будет удалена.",
-                error_type,
-                url,
-                decode_error
+                "Ошибка %s при чтении кэша для URL %s: %s. Повреждённая запись будет удалена.", error_type, url, decode_error
             )
             # Удаляем повреждённую запись из кэша
             try:
@@ -525,10 +516,7 @@ class CacheManager:
         except Exception as general_error:
             # Обрабатываем любые другие ошибки десериализации (например orjson.JSONDecodeError)
             logger.warning(
-                "Неизвестная ошибка при чтении кэша для URL %s: %s. Тип: %s",
-                url,
-                general_error,
-                type(general_error).__name__
+                "Неизвестная ошибка при чтении кэша для URL %s: %s. Тип: %s", url, general_error, type(general_error).__name__
             )
             return None
         finally:
@@ -722,9 +710,7 @@ class CacheManager:
 
         # ВАЖНО: Ограничиваем максимальный размер пакета для предотвращения DoS
         if len(url_hashes) > MAX_BATCH_SIZE:
-            raise ValueError(
-                f"Размер пакета {len(url_hashes)} превышает максимальный лимит {MAX_BATCH_SIZE}"
-            )
+            raise ValueError(f"Размер пакета {len(url_hashes)} превышает максимальный лимит {MAX_BATCH_SIZE}")
 
         # ВАЖНО: Строгая валидация каждого хеша (64 символа, hex)
         # Это предотвращает SQL injection через некорректные хеши
@@ -815,7 +801,7 @@ class CacheManager:
 
         Важно: Вызывать перед завершением работы приложения.
         """
-        if self._pool:
+        if hasattr(self, "_pool") and self._pool is not None:
             self._pool.close_all()
             self._pool = None
             logger.debug("Менеджер кэша закрыт")
@@ -936,8 +922,7 @@ class CacheManager:
             # Проверяем превышение лимита
             if cache_size_mb > MAX_CACHE_SIZE_MB:
                 logger.warning(
-                    "Размер кэша %.2f MB превышает лимит %d MB. "
-                    "Запуск LRU eviction...",
+                    "Размер кэша %.2f MB превышает лимит %d MB. " "Запуск LRU eviction...",
                     cache_size_mb,
                     MAX_CACHE_SIZE_MB,
                 )
@@ -975,16 +960,14 @@ class CacheManager:
 
                     if eviction_iterations >= max_iterations:
                         logger.warning(
-                            "LRU eviction: достигнут лимит итераций (%d), "
-                            "текущий размер %.2f MB",
+                            "LRU eviction: достигнут лимит итераций (%d), " "текущий размер %.2f MB",
                             max_iterations,
                             cache_size_mb,
                         )
 
                     if total_deleted > 0:
                         logger.info(
-                            "LRU eviction завершена: удалено %d записей за %d итераций, "
-                            "новый размер %.2f MB",
+                            "LRU eviction завершена: удалено %d записей за %d итераций, " "новый размер %.2f MB",
                             total_deleted,
                             eviction_iterations,
                             cache_size_mb,

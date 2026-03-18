@@ -9,8 +9,19 @@
 Этот файл используется для автоматической генерации URL при парсинге городов.
 """
 
+from typing import List, Optional, TypedDict
+
+
+class CategoryDict(TypedDict):
+    """Типизация словаря категории."""
+
+    name: str
+    query: str
+    rubric_code: Optional[str]
+
+
 # Полный список из 93 категорий
-CATEGORIES_93 = [
+CATEGORIES_93: List[CategoryDict] = [
     # 1-15: Общественное питание
     {"name": "Кафе", "query": "Кафе", "rubric_code": "161"},
     {"name": "Рестораны", "query": "Рестораны", "rubric_code": "164"},
@@ -161,22 +172,20 @@ CATEGORIES_93 = [
 ]
 
 
-def get_categories_list() -> list[dict[str, str | None]]:
+def get_categories_list() -> List[CategoryDict]:
     """Возвращает список категорий для парсинга."""
-    return CATEGORIES_93  # type: ignore[return-value]
+    return CATEGORIES_93
 
 
-def get_category_by_name(name: str) -> dict[str, str | None] | None:
+def get_category_by_name(name: str) -> Optional[CategoryDict]:
     """Возвращает категорию по названию."""
-    for cat in CATEGORIES_93:  # type: ignore[union-attr]
-        if cat["name"].lower() == name.lower():  # type: ignore[index]
-            return cat  # type: ignore[return-value]
+    for cat in CATEGORIES_93:
+        if cat["name"].lower() == name.lower():
+            return cat
     return None
 
 
-def generate_urls_for_city(
-    city: dict, categories: list[dict[str, str | None]] | None = None
-) -> list[str]:
+def generate_urls_for_city(city: dict, categories: Optional[List[CategoryDict]] = None) -> List[str]:
     """
     Генерирует URL для парсинга всех категорий для одного города.
 
@@ -190,10 +199,10 @@ def generate_urls_for_city(
     from ..common import url_query_encode
 
     if categories is None:
-        categories = CATEGORIES_93  # type: ignore[assignment]
+        categories = CATEGORIES_93
 
     urls = []
-    for cat in categories:  # type: ignore[union-attr]
+    for cat in categories:
         base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
         query_value = cat["query"]
         # Гарантируем что query_value это str
@@ -215,11 +224,12 @@ def generate_urls_for_city(
 if __name__ == "__main__":
     # Тестовый запуск
     import logging
+
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-    
+
     logger.info("Всего категорий: %d", len(CATEGORIES_93))
     logger.info("Список категорий:")
-    for i, cat in enumerate(CATEGORIES_93, 1):  # type: ignore[union-attr]
-        rubric = cat.get("rubric_code", "Нет")  # type: ignore[union-attr,attr-defined]
-        logger.info("%2d. %s: %s (rubric: %s)", i, cat['name'], cat['query'], rubric)  # type: ignore[index]
+    for i, cat in enumerate(CATEGORIES_93, 1):
+        rubric = cat.get("rubric_code", "Нет")
+        logger.info("%2d. %s: %s (rubric: %s)", i, cat["name"], cat["query"], rubric)

@@ -15,14 +15,14 @@ Parser2GIS — парсер сайта 2GIS для сбора данных об 
 - logger: Логгер приложения
 """
 
-from .main import main
-from .parallel_parser import ParallelCityParser, ParallelCityParserThread
-from .version import version as __version__
 from .cache import CacheManager
-from .validator import DataValidator, ValidationResult
-from .statistics import ParserStatistics, StatisticsExporter
 from .cli.progress import ProgressManager
 from .logger import logger
+from .main import main
+from .parallel_parser import ParallelCityParser, ParallelCityParserThread
+from .statistics import ParserStatistics, StatisticsExporter
+from .validator import DataValidator, ValidationResult
+from .version import version as __version__
 
 __all__ = [
     "main",

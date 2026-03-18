@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING, Any
 
 import pytermgui as ptg
 
-from ..utils import UnicodeIcons, GradientText, BoxDrawing
-from ..widgets import Checkbox, NavigableContainer, ButtonWidget, ScrollArea
+from ..utils import BoxDrawing, GradientText, UnicodeIcons
+from ..widgets import ButtonWidget, Checkbox, NavigableContainer, ScrollArea
 
 if TYPE_CHECKING:
     from .app import TUIApp
@@ -96,9 +96,7 @@ class CitySelectorScreen:
         )
 
         search_hint = ptg.Label(
-            ptg.tim.parse(
-                f"[dim]{UnicodeIcons.EMOJI_INFO} Начните вводить для фильтрации списка[/]"
-            ),
+            ptg.tim.parse(f"[dim]{UnicodeIcons.EMOJI_INFO} Начните вводить для фильтрации списка[/]"),
             justify="center",
         )
 
@@ -199,18 +197,10 @@ class CitySelectorScreen:
         self._button_container.set_app(self._app)
 
         # Кнопки с иконками
-        self._button_container.add_widget(
-            ButtonWidget(f"{UnicodeIcons.CHECK_CIRCLE} Выбрать все", self._select_all)
-        )
-        self._button_container.add_widget(
-            ButtonWidget(f"{UnicodeIcons.CROSS_CIRCLE} Снять все", self._deselect_all)
-        )
-        self._button_container.add_widget(
-            ButtonWidget(f"{UnicodeIcons.ARROW_CIRCLE_RIGHT} Далее", self._next)
-        )
-        self._button_container.add_widget(
-            ButtonWidget(f"{UnicodeIcons.ARROW_LEFT} Назад", self._go_back)
-        )
+        self._button_container.add_widget(ButtonWidget(f"{UnicodeIcons.CHECK_CIRCLE} Выбрать все", self._select_all))
+        self._button_container.add_widget(ButtonWidget(f"{UnicodeIcons.CROSS_CIRCLE} Снять все", self._deselect_all))
+        self._button_container.add_widget(ButtonWidget(f"{UnicodeIcons.ARROW_CIRCLE_RIGHT} Далее", self._next))
+        self._button_container.add_widget(ButtonWidget(f"{UnicodeIcons.ARROW_LEFT} Назад", self._go_back))
 
         return ptg.Window(
             self._button_container,
@@ -267,9 +257,7 @@ class CitySelectorScreen:
             footer,
             width=85,
             box="DOUBLE",
-            title=ptg.tim.parse(
-                f"[bold #00FF88]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Выбор городов[/]"
-            ),
+            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Выбор городов[/]"),
         )
 
         return window.center()
@@ -286,9 +274,7 @@ class CitySelectorScreen:
         if not query:
             self._filtered_cities = self._cities.copy()
         else:
-            self._filtered_cities = [
-                city for city in self._cities if query in city.get("name", "").lower()
-            ]
+            self._filtered_cities = [city for city in self._cities if query in city.get("name", "").lower()]
 
         self._populate_cities()
         self._update_counter()
@@ -342,9 +328,7 @@ class CitySelectorScreen:
         total_count = len(self._filtered_cities)
 
         if self._counter_label:
-            counter_text = ptg.tim.parse(
-                f"[bold #00FF88]Выбрано:[/] [green]{selected_count}[/] из [dim]{total_count}[/]"
-            )
+            counter_text = ptg.tim.parse(f"[bold #00FF88]Выбрано:[/] [green]{selected_count}[/] из [dim]{total_count}[/]")
             self._counter_label._lines = [counter_text]
 
         # Также обновляем заголовок кнопки "Далее"

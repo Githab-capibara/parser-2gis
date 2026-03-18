@@ -27,9 +27,7 @@ class FirmParser(MainParser):
             writer: Целевой файловый писатель.
         """
         # Переходим по URL с таймаутом 5 минут
-        self._chrome_remote.navigate(
-            self._url, referer="https://google.com", timeout=300
-        )
+        self._chrome_remote.navigate(self._url, referer="https://google.com", timeout=300)
 
         # Документ загружен, получаем ответ
         responses = self._chrome_remote.get_responses()
@@ -65,9 +63,7 @@ class FirmParser(MainParser):
         try:
             initial_state = self._chrome_remote.execute_script("window.initialState")
             if not initial_state:
-                logger.warning(
-                    "Данные организации не найдены (initialState отсутствует)."
-                )
+                logger.warning("Данные организации не найдены (initialState отсутствует).")
                 return
 
             # Безопасное извлечение данных с проверкой всех ключей

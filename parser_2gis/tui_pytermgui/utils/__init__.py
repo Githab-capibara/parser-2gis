@@ -527,13 +527,7 @@ class BoxDrawing:
             title_space = max(0, width - 4 - len(title))
             left_space = title_space // 2
             right_space = title_space - left_space
-            top_line = (
-                box["tl"]
-                + box["h"] * left_space
-                + f" {title} "
-                + box["h"] * right_space
-                + box["tr"]
-            )
+            top_line = box["tl"] + box["h"] * left_space + f" {title} " + box["h"] * right_space + box["tr"]
         else:
             top_line = box["tl"] + box["h"] * (width - 2) + box["tr"]
         lines.append(top_line)
@@ -571,13 +565,7 @@ class BoxDrawing:
             title_space = width - 4 - len(title)
             left_space = title_space // 2
             right_space = title_space - left_space
-            return (
-                box["tl_right"]
-                + box["h"] * left_space
-                + f" {title} "
-                + box["h"] * right_space
-                + box["tr_left"]
-            )
+            return box["tl_right"] + box["h"] * left_space + f" {title} " + box["h"] * right_space + box["tr_left"]
         else:
             return box["h"] * width
 

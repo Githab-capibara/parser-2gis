@@ -3,7 +3,7 @@ import inspect
 
 class ParserException(Exception):
     """Базовое исключение парсера.
-    
+
     Добавляет контекстную информацию об ошибке:
     - Имя функции, где произошла ошибка
     - Номер строки
@@ -21,14 +21,9 @@ class ParserException(Exception):
             self.function_name = "unknown"
             self.line_number = 0
             self.filename = "unknown"
-        
+
         # Формируем полное сообщение с контекстом
-        full_message = (
-            f"{message}. "
-            f"Функция: {self.function_name}, "
-            f"Строка: {self.line_number}, "
-            f"Файл: {self.filename}"
-        )
+        full_message = f"{message}. " f"Функция: {self.function_name}, " f"Строка: {self.line_number}, " f"Файл: {self.filename}"
         super().__init__(full_message, **kwargs)
 
 

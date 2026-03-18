@@ -13,17 +13,17 @@ from typing import TYPE_CHECKING, Any, Optional
 import pytermgui as ptg
 
 from ..utils import (
-    UnicodeIcons,
+    BoxDrawing,
     GradientText,
+    UnicodeIcons,
     format_number,
     format_time,
-    BoxDrawing,
 )
-from ..widgets import LogViewer, ProgressBar, MultiProgressBar
+from ..widgets import LogViewer, MultiProgressBar, ProgressBar
 
 if TYPE_CHECKING:
-    from .app import TUIApp
     from ..parallel_parser import ParallelParser
+    from .app import TUIApp
 
 
 class ParsingScreen:
@@ -244,9 +244,7 @@ class ParsingScreen:
             ),
             width=95,
             box="DOUBLE",
-            title=ptg.tim.parse(
-                f"[bold #00FF88]{UnicodeIcons.EMOJI_ROCKET} Parser2GIS - Парсинг[/]"
-            ),
+            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_ROCKET} Parser2GIS - Парсинг[/]"),
         )
 
         # Запустить обновление
@@ -263,9 +261,9 @@ class ParsingScreen:
             if hasattr(ptg, "Monitor"):
                 self._monitor = ptg.Monitor()
                 # Attach с периодом 0.5 секунды (2 раза в секунду)
-                if hasattr(self._monitor, 'attach'):
+                if hasattr(self._monitor, "attach"):
                     self._monitor.attach(self._update_display, period=0.5)
-                if hasattr(self._monitor, 'start'):
+                if hasattr(self._monitor, "start"):
                     self._monitor.start()
         except (ImportError, AttributeError) as e:
             # Если Monitor недоступен, логируем ошибку и продолжаем работу
@@ -365,9 +363,7 @@ class ParsingScreen:
         current_record = self._record_progress.completed
 
         if current_record > 0 and total_records > 0:
-            elapsed_seconds = (
-                (datetime.now() - self._start_time).total_seconds() if self._start_time else 1
-            )
+            elapsed_seconds = (datetime.now() - self._start_time).total_seconds() if self._start_time else 1
             records_per_sec = current_record / elapsed_seconds if elapsed_seconds > 0 else 1
             remaining = total_records - current_record
             eta_seconds = remaining / records_per_sec if records_per_sec > 0 else 0
@@ -381,11 +377,11 @@ class ParsingScreen:
         if self._window:
             # Обновляем отображение каждого прогресс-бара
             for progress_bar in [self._url_progress, self._page_progress, self._record_progress]:
-                if hasattr(progress_bar, 'refresh'):
+                if hasattr(progress_bar, "refresh"):
                     progress_bar.refresh()
                 # Альтернативно можно вызвать перерисовку через manager
-                if self._app and hasattr(self._app, '_manager'):
-                    manager = getattr(self._app, '_manager', None)
+                if self._app and hasattr(self._app, "_manager"):
+                    manager = getattr(self._app, "_manager", None)
                     if manager:
                         manager.force_full_redraw = True
 
@@ -418,18 +414,21 @@ class ParsingScreen:
         # Остановить Monitor если запущен
         if self._monitor is not None:
             try:
-                if hasattr(self._monitor, 'detach'):
+                if hasattr(self._monitor, "detach"):
                     self._monitor.detach(self._update_display)
-                if hasattr(self._monitor, 'stop'):
+                if hasattr(self._monitor, "stop"):
                     self._monitor.stop()
-            except Exception:
-                pass
+            except Exception as stop_error:
+                # Логгируем ошибку остановки монитора
+                from ..logger import logger
+
+                logger.debug("Ошибка при остановке монитора: %s", stop_error)
             finally:
                 self._monitor = None
 
         # Остановить парсер через приложение
         self._app._stop_parsing(success=False)
-        
+
         # Вернуться назад только если парсинг действительно остановлен
         self._app.go_back()
 

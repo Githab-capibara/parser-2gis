@@ -2,15 +2,12 @@ from __future__ import annotations
 
 import os
 import shutil
-import signal
 import subprocess
 import tempfile
 import time
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-from ..common import wait_until_finished
 from ..logger import logger
 from .exceptions import ChromePathNotFound
 from .utils import free_port, locate_chrome_path
@@ -74,21 +71,16 @@ class ChromeBrowser:
             os.chmod(self._profile_path, 0o700)
         except OSError as chmod_error:
             logger.warning(
-                "Не удалось установить права 0o700 на профиль %s: %s. "
-                "Профиль будет автоматически удалён при закрытии.",
+                "Не удалось установить права 0o700 на профиль %s: %s. " "Профиль будет автоматически удалён при закрытии.",
                 self._profile_path,
-                chmod_error
+                chmod_error,
             )
             # НЕ выбрасываем исключение - TemporaryDirectory гарантирует очистку
 
         self._remote_port = free_port()
 
         # Валидация memory_limit перед формированием команды
-        memory_limit = (
-            chrome_options.memory_limit
-            if chrome_options.memory_limit is not None
-            else 2048
-        )
+        memory_limit = chrome_options.memory_limit if chrome_options.memory_limit is not None else 2048
 
         # Формирование команды запуска
         self._chrome_cmd = [
@@ -219,8 +211,7 @@ class ChromeBrowser:
                         )
                     except subprocess.TimeoutExpired:
                         logger.warning(
-                            "Таймаут (5 сек) при завершении Chrome PID %d, "
-                            "принудительное закрытие через kill()",
+                            "Таймаут (5 сек) при завершении Chrome PID %d, " "принудительное закрытие через kill()",
                             process_pid,
                         )
 
@@ -249,9 +240,7 @@ class ChromeBrowser:
                             process_status = "kill_timeout"
 
                     except Exception as kill_error:
-                        logger.error(
-                            "Ошибка при принудительном закрытии Chrome: %s", kill_error
-                        )
+                        logger.error("Ошибка при принудительном закрытии Chrome: %s", kill_error)
                         process_status = "kill_error"
 
             else:
@@ -334,8 +323,7 @@ def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours
     current_time = time.time()
     max_age_seconds = max_age_hours * 3600
 
-    logger.debug("Поиск осиротевших профилей Chrome в %s (макс. возраст: %d ч)...",
-                 profiles_dir, max_age_hours)
+    logger.debug("Поиск осиротевших профилей Chrome в %s (макс. возраст: %d ч)...", profiles_dir, max_age_hours)
 
     try:
         # Ищем директории с префиксом chrome_profile_
@@ -370,8 +358,7 @@ def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours
 
                         _safe_remove_profile(item)
                         deleted_count += 1
-                        logger.debug("Удалён осиротевший профиль: %s (возраст: %.1f ч)",
-                                     item.name, age_seconds / 3600)
+                        logger.debug("Удалён осиротевший профиль: %s (возраст: %.1f ч)", item.name, age_seconds / 3600)
                 except OSError as stat_error:
                     logger.debug("Ошибка получения информации о файле %s: %s", marker_file, stat_error)
                     # Если не можем получить информацию - удаляем профиль
@@ -397,8 +384,9 @@ def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours
 
                         _safe_remove_profile(item)
                         deleted_count += 1
-                        logger.debug("Удалён осиротевший профиль (без маркера): %s (возраст: %.1f ч)",
-                                     item.name, age_seconds / 3600)
+                        logger.debug(
+                            "Удалён осиротевший профиль (без маркера): %s (возраст: %.1f ч)", item.name, age_seconds / 3600
+                        )
                 except OSError as stat_error:
                     logger.debug("Ошибка получения информации о директории %s: %s", item, stat_error)
 

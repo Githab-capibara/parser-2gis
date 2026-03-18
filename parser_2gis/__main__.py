@@ -6,9 +6,9 @@
     python -m parser_2gis --url https://2gis.ru/moscow/search/Аптеки -o output.csv -f csv
 """
 
+from . import main
 from .chrome.browser import cleanup_orphaned_profiles
 from .logger import logger
-from . import main
 
 if __name__ == "__main__":
     # Очистка осиротевших профилей Chrome от предыдущих запусков
@@ -19,6 +19,6 @@ if __name__ == "__main__":
             logger.info("Очищено %d осиротевших профилей Chrome", deleted_count)
     except Exception as e:
         logger.warning("Ошибка при очистке осиротевших профилей: %s", e)
-    
+
     # Запуск основного приложения
     main()

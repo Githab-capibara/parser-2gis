@@ -88,16 +88,8 @@ class CacheViewerScreen:
         self._cache_stats = {
             "size": total_size,
             "count": file_count,
-            "oldest": (
-                datetime.fromtimestamp(oldest_time).strftime("%Y-%m-%d %H:%M:%S")
-                if oldest_time
-                else "N/A"
-            ),
-            "newest": (
-                datetime.fromtimestamp(newest_time).strftime("%Y-%m-%d %H:%M:%S")
-                if newest_time
-                else "N/A"
-            ),
+            "oldest": (datetime.fromtimestamp(oldest_time).strftime("%Y-%m-%d %H:%M:%S") if oldest_time else "N/A"),
+            "newest": (datetime.fromtimestamp(newest_time).strftime("%Y-%m-%d %H:%M:%S") if newest_time else "N/A"),
         }
 
     def create_window(self) -> ptg.Window:

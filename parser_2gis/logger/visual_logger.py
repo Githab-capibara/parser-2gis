@@ -12,12 +12,8 @@ from __future__ import annotations
 
 import logging
 import sys
-import traceback
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from types import TracebackType
+from typing import Optional
 
 # Получаем логгер для внутреннего использования
 _logger = logging.getLogger("parser-2gis.visual_logger")
@@ -215,13 +211,13 @@ class VisualLogger:
             title: Заголовок.
             subtitle: Подзаголовок (опционально).
             width: Ширина заголовка.
-            
+
         Raises:
             Exception: При ошибке вывода в консоль.
         """
         try:
             border = "═" * width
-    
+
             if self.use_colors:
                 print(f"\n{ColorCodes.CYAN}{ColorCodes.BOLD}╔{border}╗{ColorCodes.RESET}")
                 print(
@@ -245,9 +241,7 @@ class VisualLogger:
         except (IOError, OSError) as e:
             # Логгируем ошибку вывода, но не прерываем работу
             _logger.error(
-                f"Ошибка вывода заголовка в консоль: {e}. "
-                f"Функция: {self.print_header.__name__}, "
-                f"Заголовок: {title}"
+                f"Ошибка вывода заголовка в консоль: {e}. " f"Функция: {self.print_header.__name__}, " f"Заголовок: {title}"
             )
             # Фолбэк: простой вывод без форматирования
             print(f"\n{title}")
@@ -256,9 +250,7 @@ class VisualLogger:
         except Exception as e:
             # Логгируем неожиданную ошибку с полным traceback
             _logger.exception(
-                f"Неожиданная ошибка при выводе заголовка: {e}. "
-                f"Функция: {self.print_header.__name__}, "
-                f"Заголовок: {title}"
+                f"Неожиданная ошибка при выводе заголовка: {e}. " f"Функция: {self.print_header.__name__}, " f"Заголовок: {title}"
             )
             raise
 
@@ -275,7 +267,7 @@ class VisualLogger:
             title: Заголовок секции.
             items: Словарь с параметрами (ключ: значение).
             width: Ширина секции.
-            
+
         Raises:
             Exception: При ошибке вывода в консоль.
         """
@@ -357,7 +349,7 @@ class VisualLogger:
         Args:
             stats: Словарь со статистикой.
             title: Заголовок.
-            
+
         Raises:
             Exception: При ошибке вывода в консоль.
         """
@@ -393,9 +385,7 @@ class VisualLogger:
             print()
         except Exception as e:
             _logger.exception(
-                f"Неожиданная ошибка при выводе статистики: {e}. "
-                f"Функция: {self.print_stats.__name__}, "
-                f"Заголовок: {title}"
+                f"Неожиданная ошибка при выводе статистики: {e}. " f"Функция: {self.print_stats.__name__}, " f"Заголовок: {title}"
             )
             raise
 
@@ -404,9 +394,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "SUCCESS", Emoji.SUCCESS))
         except (IOError, OSError) as e:
-            _logger.error(
-                f"Ошибка вывода сообщения об успехе: {e}. Сообщение: {message}"
-            )
+            _logger.error(f"Ошибка вывода сообщения об успехе: {e}. Сообщение: {message}")
             print(f"✅ {message}")
         except Exception as e:
             _logger.exception(f"Неожиданная ошибка при выводе успеха: {e}. Сообщение: {message}")
@@ -417,9 +405,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "ERROR", Emoji.ERROR))
         except (IOError, OSError) as e:
-            _logger.error(
-                f"Ошибка вывода сообщения об ошибке: {e}. Сообщение: {message}"
-            )
+            _logger.error(f"Ошибка вывода сообщения об ошибке: {e}. Сообщение: {message}")
             print(f"❌ {message}")
         except Exception as e:
             _logger.exception(f"Неожиданная ошибка при выводе ошибки: {e}. Сообщение: {message}")
@@ -430,9 +416,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "WARNING", Emoji.WARNING))
         except (IOError, OSError) as e:
-            _logger.error(
-                f"Ошибка вывода предупреждения: {e}. Сообщение: {message}"
-            )
+            _logger.error(f"Ошибка вывода предупреждения: {e}. Сообщение: {message}")
             print(f"⚠️ {message}")
         except Exception as e:
             _logger.exception(f"Неожиданная ошибка при выводе предупреждения: {e}. Сообщение: {message}")
@@ -443,9 +427,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "INFO", Emoji.INFO, bold))
         except (IOError, OSError) as e:
-            _logger.error(
-                f"Ошибка вывода информационного сообщения: {e}. Сообщение: {message}"
-            )
+            _logger.error(f"Ошибка вывода информационного сообщения: {e}. Сообщение: {message}")
             print(f"ℹ️ {message}")
         except Exception as e:
             _logger.exception(f"Неожиданная ошибка при выводе информации: {e}. Сообщение: {message}")
@@ -456,9 +438,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "DEBUG", Emoji.DEBUG))
         except (IOError, OSError) as e:
-            _logger.error(
-                f"Ошибка вывода отладочного сообщения: {e}. Сообщение: {message}"
-            )
+            _logger.error(f"Ошибка вывода отладочного сообщения: {e}. Сообщение: {message}")
             print(f"🔍 {message}")
         except Exception as e:
             _logger.exception(f"Неожиданная ошибка при выводе отладки: {e}. Сообщение: {message}")

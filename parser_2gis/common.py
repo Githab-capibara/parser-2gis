@@ -15,7 +15,6 @@ from __future__ import annotations
 import functools
 import logging
 import re
-import sys
 import time
 import urllib.parse
 from functools import lru_cache
@@ -28,15 +27,15 @@ if TYPE_CHECKING:
 
 # Экспортируемые символы модуля
 __all__ = [
-    'wait_until_finished',
-    'report_from_validation_error',
-    'unwrap_dot_dict',
-    'floor_to_hundreds',
-    'generate_city_urls',
-    'generate_category_url',
-    'url_query_encode',
-    '_validate_city',
-    '_validate_category',
+    "wait_until_finished",
+    "report_from_validation_error",
+    "unwrap_dot_dict",
+    "floor_to_hundreds",
+    "generate_city_urls",
+    "generate_category_url",
+    "url_query_encode",
+    "_validate_city",
+    "_validate_category",
 ]
 
 # =============================================================================
@@ -54,11 +53,12 @@ def _get_logger() -> "Logger":
     Оптимизация 5.2:
     - Используем module-level logger вместо глобальной переменной
     - Функция сохраняется для обратной совместимости
-    
+
     Returns:
         Экземпляр logger из модуля logger.
     """
     from .logger import logger as app_logger
+
     return app_logger
 
 
@@ -110,15 +110,15 @@ _SENSITIVE_KEYS: Set[str] = {
 # Оптимизация: предкомпилированный паттерн вместо создания каждый раз
 # БЕЗОПАСНОСТЬ: Расширенный паттерн для обнаружения большего количества вариантов
 _SENSITIVE_KEY_PATTERN = re.compile(
-    r'(^|[_\-])(pass|secret|token|key|auth|cred|bearer|jwt|oauth|sign|encrypt|master|admin|db|database|conn)([_\-]|$)',
-    re.IGNORECASE
+    r"(^|[_\-])(pass|secret|token|key|auth|cred|bearer|jwt|oauth|sign|encrypt|master|admin|db|database|conn)([_\-]|$)",
+    re.IGNORECASE,
 )
 
 
 def _is_sensitive_key(key: str) -> bool:
     """
     Проверяет, является ли ключ чувствительным.
-    
+
     Оптимизация: используется скомпилированный regex вместо ручного поиска.
 
     Args:
@@ -170,17 +170,17 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
     # Используем явный стек для итеративной обработки вместо рекурсии
     # Формат: (значение, ключ, родитель, ключ_в_родителе)
     stack: List[tuple] = [(value, key, None, None)]
-    
+
     # Словарь для хранения результатов обработки
     results: Dict[int, Any] = {}
-    
+
     while stack:
         current_value, current_key, parent, parent_key = stack.pop()
         current_id = id(current_value)
-        
+
         # Быстрая проверка для неизменяемых типов - не требуют обработки
         if current_value is None or isinstance(current_value, (str, int, float, bool)):
-            result = '<REDACTED>' if current_key and _is_sensitive_key(current_key) else current_value
+            result = "<REDACTED>" if current_key and _is_sensitive_key(current_key) else current_value
             if parent is not None and parent_key is not None:
                 if isinstance(parent, dict):
                     parent[parent_key] = result
@@ -189,7 +189,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
             else:
                 results[current_id] = result
             continue
-        
+
         # Проверяем на циклические ссылки
         if current_id in results:
             # Уже обработано, используем кэшированный результат
@@ -200,7 +200,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
                 elif isinstance(parent, list):
                     parent[parent_key] = result
             continue
-        
+
         # Проверяем на циклические ссылки для изменяемых типов
         if isinstance(current_value, (dict, list)):
             if current_id in _visited:
@@ -214,7 +214,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
                     results[current_id] = result
                 continue
             _visited.add(current_id)
-        
+
         # Чувствительные ключи обрабатываем сразу
         if current_key and _is_sensitive_key(current_key):
             result = "<REDACTED>"
@@ -226,7 +226,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
             else:
                 results[current_id] = result
             continue
-        
+
         # Обработка словарей
         if isinstance(current_value, dict):
             # Создаём новый словарь для результата
@@ -238,11 +238,11 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
                     parent[parent_key] = new_dict
             else:
                 results[current_id] = new_dict
-            
+
             # Добавляем элементы в стек в обратном порядке для сохранения порядка
             for k, v in reversed(list(current_value.items())):
                 stack.append((v, k, new_dict, k))
-        
+
         # Обработка списков
         elif isinstance(current_value, list):
             # Создаём новый список нужного размера
@@ -254,11 +254,11 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
                     parent[parent_key] = new_list
             else:
                 results[current_id] = new_list
-            
+
             # Добавляем элементы в стек в обратном порядке для сохранения порядка
             for i in reversed(range(len(current_value))):
                 stack.append((current_value[i], None, new_list, i))
-    
+
     # Возвращаем результат
     if id(value) in results:
         return results[id(value)]
@@ -266,16 +266,14 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
     return value
 
 
-
-
 def _default_predicate(value: Any) -> bool:
     """Предикат по умолчанию для проверки результата.
 
-    Args:
-        value: Значение для проверки.
+     Args:
+    value: Значение для проверки.
 
-    Returns:
-        True если значение истинно, False иначе.
+     Returns:
+    True если значение истинно, False иначе.
     """
     return bool(value)
 
@@ -290,8 +288,8 @@ def wait_until_finished(
 ) -> Callable[..., Callable[..., Any]]:
     """Декоратор опрашивает обёрнутую функцию до истечения времени или пока
     предикат `finished` не вернёт `True`.
-    
-    Оптимизация: 
+
+    Оптимизация:
     - Экспоненциальная задержка снижает нагрузку на CPU
     - Увеличенный начальный poll_interval для быстрых операций
 
@@ -332,19 +330,21 @@ def wait_until_finished(
         ) -> Any:
             # Приоритет: override_* > оригинальные имена > значения из декоратора
             effective_timeout = (
-                override_timeout if override_timeout is not None
-                else (timeout if timeout is not None else decorator_timeout)
+                override_timeout if override_timeout is not None else (timeout if timeout is not None else decorator_timeout)
             )
             effective_finished = (
-                override_finished if override_finished is not None
+                override_finished
+                if override_finished is not None
                 else (finished if finished is not None else decorator_finished or _default_predicate)
             )
             effective_throw = (
-                override_throw_exception if override_throw_exception is not None
+                override_throw_exception
+                if override_throw_exception is not None
                 else (throw_exception if throw_exception is not None else decorator_throw_exception)
             )
             effective_poll = (
-                override_poll_interval if override_poll_interval is not None
+                override_poll_interval
+                if override_poll_interval is not None
                 else (poll_interval if poll_interval is not None else decorator_poll_interval)
             )
 
@@ -374,18 +374,13 @@ def wait_until_finished(
                 except Exception as e:
                     # Логирование ошибок выполнения функции
                     logger = _get_logger()
-                    logger.debug(
-                        "Ошибка при выполнении функции %s (попытка): %s", func.__name__, e
-                    )
+                    logger.debug("Ошибка при выполнении функции %s (попытка): %s", func.__name__, e)
                     consecutive_failures += 1
 
                 # Экспоненциальная задержка для снижения нагрузки на CPU
                 if use_exponential_backoff and consecutive_failures > 0:
                     # Увеличиваем интервал после каждой неудачи
-                    current_poll_interval = min(
-                        effective_poll * (2 ** (consecutive_failures - 1)),
-                        max_poll_interval
-                    )
+                    current_poll_interval = min(effective_poll * (2 ** (consecutive_failures - 1)), max_poll_interval)
                 else:
                     current_poll_interval = effective_poll
 
@@ -396,9 +391,7 @@ def wait_until_finished(
     return outer
 
 
-def report_from_validation_error(
-    ex: ValidationError, d: Optional[Dict[str, Any]] = None
-) -> Dict[str, Dict[str, Any]]:
+def report_from_validation_error(ex: ValidationError, d: Optional[Dict[str, Any]] = None) -> Dict[str, Dict[str, Any]]:
     """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
 
     Note:
@@ -420,23 +413,20 @@ def report_from_validation_error(
         loc = error["loc"]
         # Берём только имя поля (последний элемент loc)
         field_name = str(loc[-1]) if loc else "unknown"
-        
+
         # Получаем значение из словаря d если он предоставлен
         invalid_value = "<No value>"
         if d is not None and isinstance(d, dict):
             invalid_value = d.get(field_name, "<No value>")
-        
-        error_report[field_name] = {
-            "invalid_value": invalid_value,
-            "error_message": msg
-        }
+
+        error_report[field_name] = {"invalid_value": invalid_value, "error_message": msg}
 
     return error_report
 
 
 def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
     """Разворачивает плоский словарь с ключами в виде точечного пути к значениям.
-    
+
     Оптимизация: используется setdefault вместо functools.reduce.
 
     Example:
@@ -487,7 +477,7 @@ def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
         for segment in path[:-1]:
             target = target.setdefault(segment, {})
         target[path[-1]] = value
-        
+
     return output
 
 
@@ -606,7 +596,7 @@ def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
 
 def _validate_category(category: Any) -> Dict[str, Any]:
     """Валидирует структуру категории.
-    
+
     Оптимизация: используется lru_cache для кэширования результатов.
 
     Args:
@@ -642,7 +632,7 @@ def _validate_category(category: Any) -> Dict[str, Any]:
 @lru_cache(maxsize=4096)
 def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
     """Кэшированная версия генерации URL.
-    
+
     Args:
         city_key: Кортеж (code, domain).
         category_key: Кортеж (query, rubric_code).
@@ -652,15 +642,15 @@ def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
     """
     city_code, city_domain = city_key
     category_query, rubric_code = category_key
-    
-    base_url = f'https://{city_domain}/{city_code}'
-    rest_url = f'/search/{url_query_encode(category_query)}'
-    
+
+    base_url = f"https://{city_domain}/{city_code}"
+    rest_url = f"/search/{url_query_encode(category_query)}"
+
     if rubric_code:
-        rest_url += f'/rubricId/{rubric_code}'
-    
+        rest_url += f"/rubricId/{rubric_code}"
+
     rest_url += "/filters/sort=name"
-    
+
     return base_url + rest_url
 
 
@@ -669,8 +659,8 @@ def generate_category_url(
     category: Dict[str, Any],
 ) -> str:
     """Генерирует URL для парсинга категории в городе.
-    
-    Оптимизация: 
+
+    Оптимизация:
     - lru_cache для кэширования результатов
     - Минимальная валидация для уже валидированных данных
 
@@ -706,15 +696,13 @@ def generate_category_url(
     # Используем кэшированную версию
     city_key = (city["code"], city["domain"])
     category_key = (category_query, category.get("rubric_code", ""))
-    
+
     return _generate_category_url_cached(city_key, category_key)
 
 
-def generate_city_urls(
-    cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None
-) -> List[str]:
+def generate_city_urls(cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None) -> List[str]:
     """Генерирует URL для парсинга по списку городов.
-    
+
     Оптимизация:
     - Предварительное вычисление rubric_code
     - Минимальная валидация
@@ -732,7 +720,7 @@ def generate_city_urls(
 
     # Предварительно вычисляем rubric_code
     rubric_code = rubric.get("code", "") if rubric else ""
-    
+
     # Кодируем query один раз для всех городов
     encoded_query = url_query_encode(query)
 
@@ -742,7 +730,7 @@ def generate_city_urls(
             if not isinstance(city, dict):
                 logger.warning("Город не является словарём: %s", city)
                 continue
-                
+
             if "code" not in city or "domain" not in city:
                 logger.warning("Город без code/domain: %s", city)
                 continue
@@ -756,7 +744,7 @@ def generate_city_urls(
             rest_url = f"/search/{encoded_query}"
 
             if rubric_code:
-                rest_url += f'/rubricId/{rubric_code}'
+                rest_url += f"/rubricId/{rubric_code}"
 
             rest_url += "/filters/sort=name"
             urls.append(base_url + rest_url)

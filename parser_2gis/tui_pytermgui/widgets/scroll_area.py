@@ -58,8 +58,12 @@ class ScrollArea(ptg.ScrollableWidget):
                                 content_lines.extend(lines)
                             else:
                                 content_lines.append(str(lines))
-                        except Exception:
+                        except Exception as widget_error:
+                            # При ошибке добавляем строковое представление виджета
                             content_lines.append(str(widget))
+                            from ..logger import logger
+
+                            logger.debug("Ошибка при получении строк виджета: %s", widget_error)
                     else:
                         content_lines.append(str(widget))
         elif hasattr(self._content, "get_lines"):
