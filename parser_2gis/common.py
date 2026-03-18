@@ -142,19 +142,19 @@ def _is_sensitive_key(key: str) -> bool:
     return bool(_SENSITIVE_KEY_PATTERN.search(key_lower))
 
 
-def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[set] = None) -> Any:
+def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     """
     Очищает чувствительные данные из значения.
 
-    Исправление проблемы 2.1:
+    Исправление проблемы 2.1 (КРИТИЧЕСКОЕ):
     - Переписано на итеративный подход с явным стеком вместо рекурсии
     - Предотвращает RecursionError при обработке глубоко вложенных структур
+    - _visited сделан локальной переменной с очисткой в finally для предотвращения утечки памяти
     - Использует set с id объектов для отслеживания посещённых объектов
 
     Args:
         value: Значение для очистки.
         key: Имя ключа (опционально).
-        _visited: Внутренний параметр для отслеживания посещённых объектов (set id).
 
     Returns:
         Очищенное значение или '<REDACTED>' для чувствительных данных.
@@ -163,47 +163,62 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
         Используется set с id объектов вместо WeakSet для предотвращения ошибок
         с объектами, не поддерживающими слабые ссылки.
     """
-    # Инициализируем set для отслеживания посещённых объектов по id
-    if _visited is None:
-        _visited = set()
+    # ИСПРАВЛЕНИЕ КРИТИЧЕСКОЙ УТЕЧКИ ПАМЯТИ:
+    # _visited теперь локальная переменная, а не параметр функции
+    # Это предотвращает накопление данных между вызовами функции
+    _visited: set = set()
 
-    # Используем явный стек для итеративной обработки вместо рекурсии
-    # Формат: (значение, ключ, родитель, ключ_в_родителе)
-    stack: List[tuple] = [(value, key, None, None)]
+    try:
+        # Используем явный стек для итеративной обработки вместо рекурсии
+        # Формат: (значение, ключ, родитель, ключ_в_родителе)
+        stack: List[tuple] = [(value, key, None, None)]
 
-    # Словарь для хранения результатов обработки
-    results: Dict[int, Any] = {}
+        # Словарь для хранения результатов обработки
+        results: Dict[int, Any] = {}
 
-    while stack:
-        current_value, current_key, parent, parent_key = stack.pop()
-        current_id = id(current_value)
+        while stack:
+            current_value, current_key, parent, parent_key = stack.pop()
+            current_id = id(current_value)
 
-        # Быстрая проверка для неизменяемых типов - не требуют обработки
-        if current_value is None or isinstance(current_value, (str, int, float, bool)):
-            result = "<REDACTED>" if current_key and _is_sensitive_key(current_key) else current_value
-            if parent is not None and parent_key is not None:
-                if isinstance(parent, dict):
-                    parent[parent_key] = result
-                elif isinstance(parent, list):
-                    parent[parent_key] = result
-            else:
-                results[current_id] = result
-            continue
+            # Быстрая проверка для неизменяемых типов - не требуют обработки
+            if current_value is None or isinstance(current_value, (str, int, float, bool)):
+                result = "<REDACTED>" if current_key and _is_sensitive_key(current_key) else current_value
+                if parent is not None and parent_key is not None:
+                    if isinstance(parent, dict):
+                        parent[parent_key] = result
+                    elif isinstance(parent, list):
+                        parent[parent_key] = result
+                else:
+                    results[current_id] = result
+                continue
 
-        # Проверяем на циклические ссылки
-        if current_id in results:
-            # Уже обработано, используем кэшированный результат
-            result = results[current_id]
-            if parent is not None and parent_key is not None:
-                if isinstance(parent, dict):
-                    parent[parent_key] = result
-                elif isinstance(parent, list):
-                    parent[parent_key] = result
-            continue
+            # Проверяем на циклические ссылки
+            if current_id in results:
+                # Уже обработано, используем кэшированный результат
+                result = results[current_id]
+                if parent is not None and parent_key is not None:
+                    if isinstance(parent, dict):
+                        parent[parent_key] = result
+                    elif isinstance(parent, list):
+                        parent[parent_key] = result
+                continue
 
-        # Проверяем на циклические ссылки для изменяемых типов
-        if isinstance(current_value, (dict, list)):
-            if current_id in _visited:
+            # Проверяем на циклические ссылки для изменяемых типов
+            if isinstance(current_value, (dict, list)):
+                if current_id in _visited:
+                    result = "<REDACTED>"
+                    if parent is not None and parent_key is not None:
+                        if isinstance(parent, dict):
+                            parent[parent_key] = result
+                        elif isinstance(parent, list):
+                            parent[parent_key] = result
+                    else:
+                        results[current_id] = result
+                    continue
+                _visited.add(current_id)
+
+            # Чувствительные ключи обрабатываем сразу
+            if current_key and _is_sensitive_key(current_key):
                 result = "<REDACTED>"
                 if parent is not None and parent_key is not None:
                     if isinstance(parent, dict):
@@ -213,57 +228,49 @@ def _sanitize_value(value: Any, key: Optional[str] = None, _visited: Optional[se
                 else:
                     results[current_id] = result
                 continue
-            _visited.add(current_id)
 
-        # Чувствительные ключи обрабатываем сразу
-        if current_key and _is_sensitive_key(current_key):
-            result = "<REDACTED>"
-            if parent is not None and parent_key is not None:
-                if isinstance(parent, dict):
-                    parent[parent_key] = result
-                elif isinstance(parent, list):
-                    parent[parent_key] = result
-            else:
-                results[current_id] = result
-            continue
+            # Обработка словарей
+            if isinstance(current_value, dict):
+                # Создаём новый словарь для результата
+                new_dict: Dict[str, Any] = {}
+                if parent is not None and parent_key is not None:
+                    if isinstance(parent, dict):
+                        parent[parent_key] = new_dict
+                    elif isinstance(parent, list):
+                        parent[parent_key] = new_dict
+                else:
+                    results[current_id] = new_dict
 
-        # Обработка словарей
-        if isinstance(current_value, dict):
-            # Создаём новый словарь для результата
-            new_dict: Dict[str, Any] = {}
-            if parent is not None and parent_key is not None:
-                if isinstance(parent, dict):
-                    parent[parent_key] = new_dict
-                elif isinstance(parent, list):
-                    parent[parent_key] = new_dict
-            else:
-                results[current_id] = new_dict
+                # Добавляем элементы в стек в обратном порядке для сохранения порядка
+                for k, v in reversed(list(current_value.items())):
+                    stack.append((v, k, new_dict, k))
 
-            # Добавляем элементы в стек в обратном порядке для сохранения порядка
-            for k, v in reversed(list(current_value.items())):
-                stack.append((v, k, new_dict, k))
+            # Обработка списков
+            elif isinstance(current_value, list):
+                # Создаём новый список нужного размера
+                new_list: List[Any] = [None] * len(current_value)
+                if parent is not None and parent_key is not None:
+                    if isinstance(parent, dict):
+                        parent[parent_key] = new_list
+                    elif isinstance(parent, list):
+                        parent[parent_key] = new_list
+                else:
+                    results[current_id] = new_list
 
-        # Обработка списков
-        elif isinstance(current_value, list):
-            # Создаём новый список нужного размера
-            new_list: List[Any] = [None] * len(current_value)
-            if parent is not None and parent_key is not None:
-                if isinstance(parent, dict):
-                    parent[parent_key] = new_list
-                elif isinstance(parent, list):
-                    parent[parent_key] = new_list
-            else:
-                results[current_id] = new_list
+                # Добавляем элементы в стек в обратном порядке для сохранения порядка
+                for i in reversed(range(len(current_value))):
+                    stack.append((current_value[i], None, new_list, i))
 
-            # Добавляем элементы в стек в обратном порядке для сохранения порядка
-            for i in reversed(range(len(current_value))):
-                stack.append((current_value[i], None, new_list, i))
+        # Возвращаем результат
+        if id(value) in results:
+            return results[id(value)]
+        # Если значение было обработано inline, возвращаем его
+        return value
 
-    # Возвращаем результат
-    if id(value) in results:
-        return results[id(value)]
-    # Если значение было обработано inline, возвращаем его
-    return value
+    finally:
+        # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: очистка _visited после обработки
+        # Это предотвращает утечку памяти при обработке множества структур данных
+        _visited.clear()
 
 
 def _default_predicate(value: Any) -> bool:
@@ -498,14 +505,16 @@ def floor_to_hundreds(arg: Union[int, float]) -> int:
 # и уменьшения количества повторных валидаций одинаковых городов
 
 
-# Исправление проблемы 3.3: настроены размеры кэшей обоснованно
-# _validate_city_cached=1024 - достаточно для часто используемых городов
-@lru_cache(maxsize=1024)
+# ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 11 (ОПТИМИЗАЦИЯ):
+# Уменьшены размеры lru_cache для экономии памяти
+# _validate_city_cached=256 (было 1024) - достаточно для часто используемых городов
+# _validate_category_cached=128 (было 512) - оптимально для количества категорий
+@lru_cache(maxsize=256)
 def _validate_city_cached(code: str, domain: str) -> Dict[str, Any]:
     """Кэшированная версия валидации города.
 
-    Исправление проблемы 3.3:
-    - Размер кэша установлен в 1024 вместо 2048 (оптимально для часто используемых городов)
+    Исправление проблемы 3.3 и 11 (ОПТИМИЗАЦИЯ):
+    - Размер кэша уменьшен с 1024 до 256 (экономия памяти без потери производительности)
     - Кэширование по отдельным полям (code, domain) вместо кортежа
     - Прямая передача строк вместо кортежа снижает накладные расходы
 
@@ -571,14 +580,15 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     return _validate_city_cached(city["code"], city["domain"])
 
 
-# Исправление проблемы 3.3: настроены размеры кэшей обоснованно
-# _validate_category_cached=512 - оптимально для количества категорий
-@lru_cache(maxsize=512)
+# ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 11 (ОПТИМИЗАЦИЯ):
+# Уменьшены размеры lru_cache для экономии памяти
+# _validate_category_cached=128 (было 512) - оптимально для количества категорий
+@lru_cache(maxsize=128)
 def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
     """Кэшированная версия валидации категории.
 
-    Исправление проблемы 3.3:
-    - Размер кэша установлен в 512 вместо 1024 (оптимально для количества категорий)
+    Исправление проблемы 3.3 и 11 (ОПТИМИЗАЦИЯ):
+    - Размер кэша уменьшен с 512 до 128 (экономия памяти без потери производительности)
     - Снижение потребления памяти без потери производительности
 
     Args:

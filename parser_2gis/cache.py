@@ -807,32 +807,97 @@ class CacheManager:
             logger.debug("Менеджер кэша закрыт")
 
     def __enter__(self) -> "CacheManager":
+        """
+        Возвращает экземпляр CacheManager для использования в контекстном менеджере.
+
+        Returns:
+            Экземпляр CacheManager.
+
+        Пример использования:
+            >>> with CacheManager(Path('/tmp/cache')) as cache:
+            ...     data = cache.get('https://2gis.ru/moscow')
+        """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """
+        Закрывает все соединения при выходе из контекста.
+
+        Args:
+            exc_type: Тип исключения (если было выброшено).
+            exc_val: Значение исключения (если было выброшено).
+            exc_tb: Трассировка исключения (если было выброшено).
+
+        Примечание:
+            Гарантирует закрытие всех соединений даже при возникновении исключений.
+        """
         self.close()
 
     def __del__(self) -> None:
-        """Гарантирует закрытие соединений при уничтожении объекта."""
+        """
+        Гарантирует закрытие соединений при уничтожении объекта.
+
+        Исправление проблемы 3 (КРИТИЧЕСКОЕ):
+        - В __del__ нельзя выбрасывать исключения - все ошибки логируются
+        - Не следует полагаться на этот метод для гарантированной очистки
+        - Всегда вызывайте close() явно или используйте контекстный менеджер
+
+        Пример правильного использования:
+            with CacheManager(...) as cache:
+                cache.get(...)
+            # или
+            cache = CacheManager(...)
+            try:
+                cache.get(...)
+            finally:
+                cache.close()
+        """
         try:
             self.close()
         except Exception as e:
             # Логирование ошибки вместо игнорирования
-            logger.error("Ошибка при закрытии CacheManager в __del__: %s", e)
+            # В __del__ нельзя выбрасывать исключения
+            logger.error("Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True)
 
     @staticmethod
     def _hash_url(url: str) -> str:
-        """Хеширование URL.
+        """
+        Хеширование URL.
 
         Вычисляет SHA256 хеш от указанного URL для использования
         в качестве ключа в базе данных кэша.
 
+        Исправление проблемы 5 (КРИТИЧЕСКОЕ):
+        - Добавлена проверка на None и тип данных
+        - Выбрасывается явное исключение при некорректных входных данных
+
         Args:
-            url: URL для хеширования
+            url: URL для хеширования. Должен быть непустой строкой.
 
         Returns:
-            SHA256 хеш URL в виде шестнадцатеричной строки
+            SHA256 хеш URL в виде шестнадцатеричной строки.
+
+        Raises:
+            ValueError: Если URL является None или пустой строкой.
+            TypeError: Если URL не является строкой.
+
+        Пример:
+            >>> hash_val = CacheManager._hash_url('https://2gis.ru/moscow')
+            >>> len(hash_val)
+            64
         """
+        # КРИТИЧЕСКАЯ ВАЛИДАЦИЯ: проверка на None
+        if url is None:
+            raise ValueError("URL не может быть None")
+
+        # КРИТИЧЕСКАЯ ВАЛИДАЦИЯ: проверка типа
+        if not isinstance(url, str):
+            raise TypeError(f"URL должен быть строкой, получен {type(url).__name__}")
+
+        # КРИТИЧЕСКАЯ ВАЛИДАЦИЯ: проверка на пустую строку
+        if not url.strip():
+            raise ValueError("URL не может быть пустой строкой")
+
         return hashlib.sha256(url.encode("utf-8")).hexdigest()
 
     @staticmethod

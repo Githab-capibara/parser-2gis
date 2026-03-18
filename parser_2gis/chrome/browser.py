@@ -51,8 +51,29 @@ class ChromeBrowser:
             logger.error("Путь к Chrome браузеру не найден")
             raise ChromePathNotFound
 
+        # ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 19 (БЕЗОПАСНОСТЬ):
+        # Добавлена явная проверка на символические ссылки перед нормализацией пути
+        # Это предотвращает symlink атаки когда злоумышленник подменяет путь к браузеру
+        if os.path.islink(binary_path):
+            logger.warning(
+                "Путь к браузеру содержит символическую ссылку: %s. "
+                "Это может быть потенциально опасно (symlink атака). "
+                "Путь будет нормализован через realpath.",
+                binary_path,
+            )
+
         # Нормализация пути через realpath для предотвращения атак с символическими ссылками
+        # realpath() разрешает все символические ссылки и возвращает канонический путь
+        original_binary_path = binary_path
         binary_path = os.path.realpath(binary_path)
+
+        # Дополнительная проверка: если путь изменился после realpath, логируем предупреждение
+        if original_binary_path != binary_path:
+            logger.debug(
+                "Путь к браузеру нормализован: %s → %s",
+                original_binary_path,
+                binary_path,
+            )
 
         # Строгая валидация binary_path
         self._validate_binary_path(binary_path)

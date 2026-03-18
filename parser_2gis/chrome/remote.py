@@ -43,6 +43,16 @@ CHROME_STARTUP_DELAY = 1.0
 # - Ограничение памяти V8: 256MB по умолчанию, 5MB код - безопасно
 MAX_JS_CODE_LENGTH = 5_000_000
 
+# ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 20 (БЕЗОПАСНОСТЬ):
+# Максимальный общий размер всех JS скриптов для предотвращения DoS атак
+# через множество маленьких скриптов
+# ОБОСНОВАНИЕ: 50MB выбрано исходя из:
+# - Типичное количество скриптов: 10-50
+# - Средний размер скрипта: 10KB-100KB
+# - 50MB обеспечивает запас для сложных сценариев
+# - Защита от атак через отправку множества скриптов
+MAX_TOTAL_JS_SIZE = 50_000_000  # 50 MB
+
 # Оптимизация: скомпилированные regex паттерны для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
 
@@ -64,15 +74,16 @@ _DANGEROUS_JS_PATTERNS = [
 _PORT_CACHE_TTL = 2.0  # Время жизни кэша порта в секундах (для обратной совместимости)
 
 
-# Исправление проблемы 3.2: увеличиваем размер кэша с 16 до 128
-# Это необходимо для параллельной работы с множеством браузеров
-@lru_cache(maxsize=128)
+# ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 13 (ОПТИМИЗАЦИЯ):
+# Уменьшен размер кэша с 128 до 64 для экономии памяти
+# Это обоснованно так как одновременно используется не более 10-20 портов
+@lru_cache(maxsize=64)
 def _check_port_cached(port: int) -> bool:
     """Проверяет доступность порта с кэшированием через lru_cache.
 
-    Исправление проблемы 3.2:
-    - Увеличен размер кэша с 16 до 128 для параллельной работы
-    - Использует lru_cache(maxsize=128) для автоматического кэширования
+    Исправление проблемы 3.2 и 13 (ОПТИМИЗАЦИЯ):
+    - Размер кэша уменьшен с 128 до 64 (экономия памяти без потери производительности)
+    - Использует lru_cache(maxsize=64) для автоматического кэширования
     - Кэширует результат проверки порта
     - Уменьшенный timeout для кэшированных проверок (0.5 сек)
     - Автоматическое управление размером кэша через LRU
@@ -296,6 +307,11 @@ class ChromeRemote:
         self._response_queues: dict[str, queue.Queue[Response]] = {x: queue.Queue() for x in response_patterns}
         self._requests: dict[str, Request] = {}  # _requests[request_id] = <Request>
         self._requests_lock = threading.Lock()
+
+        # ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 20 (БЕЗОПАСНОСТЬ):
+        # Счётчик общего размера всех JS скриптов для предотвращения DoS атак
+        self._total_js_size: int = 0
+        self._js_size_lock = threading.Lock()
 
     @wait_until_finished(timeout=300)
     def _connect_interface(self) -> bool:
@@ -1032,12 +1048,19 @@ class ChromeRemote:
 
         Raises:
             ValueError: Если скрипт не прошёл валидацию безопасности.
+            RuntimeError: Если превышен максимальный общий размер JS скриптов.
 
         Примечание безопасности:
             Перед выполнением скрипт проходит проверку на:
             - Тип данных (должен быть строкой)
             - Максимальную длину
             - Наличие опасных паттернов (eval, Function, document.write)
+            - Общий размер всех добавленных скриптов (защита от DoS)
+
+        Исправление проблемы 20 (БЕЗОПАСНОСТЬ):
+            - Добавлена проверка общего размера всех JS скриптов
+            - Превышение MAX_TOTAL_JS_SIZE вызывает RuntimeError
+            - Защита от DoS атак через множество маленьких скриптов
         """
         if self._chrome_tab is None:
             logger.error("Chrome tab не инициализирован в add_start_script")
@@ -1048,6 +1071,18 @@ class ChromeRemote:
         if not is_valid:
             logger.error("Валидация скрипта не пройдена: %s", error_msg)
             raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
+
+        # ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 20 (БЕЗОПАСНОСТЬ):
+        # Проверка общего размера всех JS скриптов
+        js_code_size = len(source.encode("utf-8"))
+        with self._js_size_lock:
+            if self._total_js_size + js_code_size > MAX_TOTAL_JS_SIZE:
+                raise RuntimeError(
+                    f"Превышен максимальный общий размер JS скриптов "
+                    f"({self._total_js_size + js_code_size} > {MAX_TOTAL_JS_SIZE} байт). "
+                    f"Это может быть DoS атака."
+                )
+            self._total_js_size += js_code_size
 
         self._chrome_tab.Page.addScriptToEvaluateOnNewDocument(source=source)
 

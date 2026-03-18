@@ -269,15 +269,15 @@ class TestCommonLruCacheSizes:
         """Проверка размера кэша для валидации городов."""
         from parser_2gis.common import _validate_city_cached
         cache_info = _validate_city_cached.cache_info()
-        # Проверяем что кэш работает (максимальный размер 1024 - оптимально для часто используемых городов)
-        assert cache_info.maxsize == 1024
+        # Проверяем что кэш работает (максимальный размер 256 - оптимизировано для экономии памяти)
+        assert cache_info.maxsize == 256
 
     def test_validate_category_cache_size(self):
         """Проверка размера кэша для валидации категорий."""
         from parser_2gis.common import _validate_category_cached
         cache_info = _validate_category_cached.cache_info()
-        # Проверяем что кэш работает (максимальный размер 512)
-        assert cache_info.maxsize == 512
+        # Проверяем что кэш работает (максимальный размер 128 - оптимизировано для экономии памяти)
+        assert cache_info.maxsize == 128
 
     def test_generate_category_url_cache_size(self):
         """Проверка размера кэша для генерации URL."""
