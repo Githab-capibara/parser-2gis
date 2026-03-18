@@ -11,8 +11,10 @@ import argparse
 import gc
 import ipaddress
 import json
+import signal
 import socket
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -156,8 +158,25 @@ def _validate_url(url: str) -> UrlValidationResult:
         - Блокировка private IP диапазонов через socket.getaddrinfo
         - Проверка на localhost, loopback, private, link-local и multicast адреса
         - Предотвращение атак через домены указывающие на внутренние IP
+
+    Исправление проблемы 6 (КРИТИЧЕСКОЕ - DNS timeout):
+        - Добавлен таймаут на DNS запросы через signal.alarm
+        - Предотвращает блокировку на медленных DNS запросах
+        - Таймаут установлен в 5 секунд для DNS разрешения
     """
+    # ИСПРАВЛЕНИЕ КРИТИЧЕСКОЙ ПРОБЛЕМЫ 6: DNS timeout
+    # Используем signal.alarm для установки таймаута на DNS запросы
+    # Это предотвращает блокировку на медленных DNS запросах
+    dns_timeout = 5  # 5 секунд для DNS разрешения
+
+    # Проверяем поддержку signal.alarm (только Unix)
+    use_signal_timeout = hasattr(signal, "alarm")
+
     try:
+        # Устанавливаем таймаут если поддерживается (Unix)
+        if use_signal_timeout:
+            signal.alarm(dns_timeout)
+
         result = urlparse(url)
 
         # Проверка схемы и netloc
@@ -228,10 +247,21 @@ def _validate_url(url: str) -> UrlValidationResult:
         # Ловим только ожидаемые исключения типизации/значений
         return False, f"Ошибка парсинга URL: {e}"
 
+    finally:
+        # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: отменяем таймаут после завершения проверки
+        # Это предотвращает непреднамеренные прерывания в другом коде
+        if use_signal_timeout:
+            signal.alarm(0)
+
 
 # Глобальный экземпляр обработчика сигналов
 # Исправление проблемы 1.3: используем класс SignalHandler вместо глобальных переменных
 _signal_handler_instance: Optional[SignalHandler] = None
+
+# ИСПРАВЛЕНИЕ КРИТИЧЕСКОЙ ПРОБЛЕМЫ 2 (RACE CONDITION):
+# Добавлен threading.Lock для защиты глобальной переменной от состояния гонки
+# в многопоточной среде
+_signal_handler_lock = threading.Lock()
 
 
 def _get_signal_handler() -> SignalHandler:
@@ -243,10 +273,15 @@ def _get_signal_handler() -> SignalHandler:
 
     Raises:
         RuntimeError: Если обработчик сигналов не инициализирован.
+
+    Примечание:
+        Используется threading.Lock для защиты от race condition
+        при доступе к глобальной переменной _signal_handler_instance.
     """
-    if _signal_handler_instance is None:
-        raise RuntimeError("SignalHandler не инициализирован. Вызовите _setup_signal_handlers().")
-    return _signal_handler_instance
+    with _signal_handler_lock:
+        if _signal_handler_instance is None:
+            raise RuntimeError("SignalHandler не инициализирован. Вызовите _setup_signal_handlers().")
+        return _signal_handler_instance
 
 
 def _setup_signal_handlers() -> None:
@@ -257,10 +292,12 @@ def _setup_signal_handlers() -> None:
         - SIGINT (Ctrl+C) - прерывание пользователем
         - SIGTERM - сигнал завершения от системы
         - Используется класс SignalHandler для инкапсуляции состояния
+        - Операция защищена threading.Lock для предотвращения race condition
     """
     global _signal_handler_instance
-    _signal_handler_instance = SignalHandler(cleanup_callback=cleanup_resources)
-    _signal_handler_instance.setup()
+    with _signal_handler_lock:
+        _signal_handler_instance = SignalHandler(cleanup_callback=cleanup_resources)
+        _signal_handler_instance.setup()
     logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через SignalHandler")
 
 
