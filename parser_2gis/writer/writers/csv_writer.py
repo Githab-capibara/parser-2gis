@@ -19,9 +19,18 @@ from .file_writer import FileWriter
 # КОНСТАНТЫ ДЛЯ ОПТИМИЗАЦИИ (ОБОСНОВАНИЕ ЗНАЧЕНИЙ)
 # =============================================================================
 
+# ОБОСНОВАНИЕ: 256 KB выбрано как баланс между:
+# - Частые системные вызовы (маленький буфер)
+# - Избыточное использование памяти (большой буфер)
+# - Стандартный размер страницы памяти: 4KB
+# - 256KB = 64 страницы - оптимально для последовательного чтения/записи
 # Буфер для чтения файлов в байтах (256 KB)
 READ_BUFFER_SIZE = DEFAULT_BUFFER_SIZE
 
+# ОБОСНОВАНИЕ: 256 KB для записи обеспечивает:
+# - Уменьшение количества системных вызовов write()
+# - Эффективное использование кэша диска
+# - Баланс между памятью и производительностью
 # Буфер для записи файлов в байтах (256 KB)
 WRITE_BUFFER_SIZE = DEFAULT_BUFFER_SIZE
 
@@ -312,12 +321,14 @@ class CSVWriter(FileWriter):
 
         try:
             # Чтение исходного файла и запись нового с увеличенной буферизацией
-            with self._open_file(
-                self._file_path, "r", buffering=READ_BUFFER_SIZE
-            ) as f_csv, self._open_file(
-                tmp_csv_name, "w", newline="", buffering=WRITE_BUFFER_SIZE
-            ) as f_tmp_csv:
-
+            with (
+                self._open_file(
+                    self._file_path, "r", buffering=READ_BUFFER_SIZE
+                ) as f_csv,
+                self._open_file(
+                    tmp_csv_name, "w", newline="", buffering=WRITE_BUFFER_SIZE
+                ) as f_tmp_csv,
+            ):
                 # ВАЖНО: Помечаем что временный файл создан
                 temp_created = True
 
@@ -414,16 +425,21 @@ class CSVWriter(FileWriter):
         try:
             # Чтение исходного файла и запись нового без дубликатов
             # Используем увеличенную буферизацию для улучшения производительности
-            with self._open_file(
-                self._file_path, "r", encoding="utf-8-sig", buffering=READ_BUFFER_SIZE
-            ) as f_csv, self._open_file(
-                tmp_csv_name,
-                "w",
-                encoding=self._options.encoding,
-                newline="",
-                buffering=WRITE_BUFFER_SIZE,
-            ) as f_tmp_csv:
-
+            with (
+                self._open_file(
+                    self._file_path,
+                    "r",
+                    encoding="utf-8-sig",
+                    buffering=READ_BUFFER_SIZE,
+                ) as f_csv,
+                self._open_file(
+                    tmp_csv_name,
+                    "w",
+                    encoding=self._options.encoding,
+                    newline="",
+                    buffering=WRITE_BUFFER_SIZE,
+                ) as f_tmp_csv,
+            ):
                 # ВАЖНО: Помечаем что временный файл создан
                 temp_created = True
 

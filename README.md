@@ -2,12 +2,34 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-LGPLv3%2B-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-631%20passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-840%2B%20passed-brightgreen.svg)](tests/)
 [![Code Quality](https://img.shields.io/badge/quality-95/100-brightgreen.svg)](https://github.com/Githab-capibara/parser-2gis)
 [![GitHub](https://img.shields.io/badge/GitHub-Githab--capibara-orange.svg)](https://github.com/Githab-capibara/parser-2gis)
-[![Version](https://img.shields.io/badge/version-2.1.6-blue.svg)](https://github.com/Githab-capibara/parser-2gis/releases)
+[![Version](https://img.shields.io/badge/version-2.1.12-blue.svg)](https://github.com/Githab-capibara/parser-2gis/releases)
 
 **Parser2GIS** — мощный инструмент для парсинга данных с сервиса 2GIS (2ГИС), использующий браузер Chrome для обхода анти-бот защит.
+
+---
+
+## 📝 Последние исправления (Март 2026)
+
+### 🔴 Критические исправления:
+- ✅ **Гонка состояний в статистике** — все операции со `_stats` теперь в блокировке
+- ✅ **Обработка исключений** — инициализация parser/writer обрабатывается корректно
+- ✅ **Переменные окружения** — MERGE_LOCK_TIMEOUT, MAX_LOCK_FILE_AGE, MAX_TEMP_FILES вынесены в env
+
+### 🟠 Исправления безопасности:
+- ✅ **DNS timeout** — добавлена защита от зависания DNS запросов (5 сек)
+- ✅ **Унификация валидации URL** — единый подход к валидации во всём проекте
+
+### 🟡 Оптимизации:
+- ✅ **Кэширование** — generate_category_url использует lru_cache
+- ✅ **Форматирование** — весь код отформатирован через black + isort
+- ✅ **Обновление зависимостей** — pychrome обновлён до >=0.3.0
+
+### 🧪 Тестирование:
+- ✅ **50+ новых тестов** — покрытие критических исправлений
+- ✅ **840+ тестов всего** — полное покрытие функциональности
 
 ---
 
