@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+
 class WorkingHour(BaseModel):
     """Модель рабочего часа.
 
@@ -18,6 +19,7 @@ class WorkingHour(BaseModel):
     # Значение в формате hh:mm
     to: str
 
+
 class ScheduleDay(BaseModel):
     """Модель расписания на один день.
 
@@ -27,6 +29,7 @@ class ScheduleDay(BaseModel):
 
     # Часы работы
     working_hours: List[WorkingHour]
+
 
 class Schedule(BaseModel):
     """Модель расписания работы организации.
@@ -96,7 +99,9 @@ class Schedule(BaseModel):
         """
         # Явно указываем имена дней для совместимости с Pydantic v1 и v2
         days_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        days_mapping = dict(Mon="Пн", Tue="Вт", Wed="Ср", Thu="Чт", Fri="Пт", Sat="Сб", Sun="Вс")
+        days_mapping = dict(
+            Mon="Пн", Tue="Вт", Wed="Ср", Thu="Чт", Fri="Пт", Sat="Сб", Sun="Вс"
+        )
 
         slots_list = []
         for day_name in days_names:

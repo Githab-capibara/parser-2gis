@@ -5,6 +5,7 @@
 import pathlib
 from typing import Optional, Tuple
 
+
 def validate_number(
     value: str,
     min_val: Optional[int] = None,
@@ -40,6 +41,7 @@ def validate_number(
         return False, f"Максимальное значение: {max_val}"
 
     return True, ""
+
 
 def validate_path(
     value: str,

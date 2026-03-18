@@ -6,8 +6,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..config import Configuration
 
+
 class AbstractRunner(ABC):
-    def __init__(self, urls: list[str], output_path: str, format: str, config: Configuration):
+    def __init__(
+        self, urls: list[str], output_path: str, format: str, config: Configuration
+    ):
         self._urls = urls
         self._output_path = output_path
         self._format = format
@@ -20,6 +23,7 @@ class AbstractRunner(ABC):
     @abstractmethod
     def stop(self):
         pass
+
 
 class GUIRunner(AbstractRunner):
     """Простейшая заглушка GUIRunner для тестов.

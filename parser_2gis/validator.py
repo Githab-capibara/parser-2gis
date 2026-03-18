@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 
 from .logger import logger
 
+
 @dataclass
 class ValidationResult:
     """Результат валидации данных.
@@ -60,6 +61,7 @@ class ValidationResult:
     is_valid: bool
     value: Optional[str]
     errors: List[str]
+
 
 class DataValidator:
     """Валидатор и очиститель данных.
@@ -128,7 +130,7 @@ class DataValidator:
             Российские номера должны содержать 11 цифр.
             Международные номера должны содержать 10-15 цифр.
         """
-        
+
         # Нормализация Unicode (NFKC для совместимости цифр)
         phone = unicodedata.normalize("NFKC", phone)
 

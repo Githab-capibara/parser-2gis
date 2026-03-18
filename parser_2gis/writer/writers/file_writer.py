@@ -8,6 +8,7 @@ from ...logger import logger
 if TYPE_CHECKING:
     from ..options import WriterOptions
 
+
 class FileWriter(ABC):
     """Базовый писатель."""
 
@@ -75,7 +76,11 @@ class FileWriter(ABC):
             if meta.get("error"):
                 if verbose:
                     error_data = meta.get("error", {})
-                    error_msg = error_data.get("message") if isinstance(error_data, dict) else None
+                    error_msg = (
+                        error_data.get("message")
+                        if isinstance(error_data, dict)
+                        else None
+                    )
                     if error_msg:
                         logger.error("Сервер ответил ошибкой: %s", error_msg)
                     else:
@@ -119,7 +124,9 @@ class FileWriter(ABC):
 
             if not isinstance(items[0], dict):
                 if verbose:
-                    logger.error('Сервер вернул некорректный тип элемента "items" (не dict).')
+                    logger.error(
+                        'Сервер вернул некорректный тип элемента "items" (не dict).'
+                    )
                 return False
 
             if len(items) > 1 and verbose:

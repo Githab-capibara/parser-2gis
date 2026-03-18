@@ -15,6 +15,7 @@ from ..widgets import ScrollArea
 if TYPE_CHECKING:
     from .app import TUIApp
 
+
 class CacheViewerScreen:
     """
     Экран просмотра кэша.
@@ -87,8 +88,16 @@ class CacheViewerScreen:
         self._cache_stats = {
             "size": total_size,
             "count": file_count,
-            "oldest": (datetime.fromtimestamp(oldest_time).strftime("%Y-%m-%d %H:%M:%S") if oldest_time else "N/A"),
-            "newest": (datetime.fromtimestamp(newest_time).strftime("%Y-%m-%d %H:%M:%S") if newest_time else "N/A"),
+            "oldest": (
+                datetime.fromtimestamp(oldest_time).strftime("%Y-%m-%d %H:%M:%S")
+                if oldest_time
+                else "N/A"
+            ),
+            "newest": (
+                datetime.fromtimestamp(newest_time).strftime("%Y-%m-%d %H:%M:%S")
+                if newest_time
+                else "N/A"
+            ),
         }
 
     def create_window(self) -> ptg.Window:
@@ -124,7 +133,11 @@ class CacheViewerScreen:
                 table_data.append(
                     [
                         entry["file"],
-                        entry["url"][:40] + "..." if len(entry["url"]) > 40 else entry["url"],
+                        (
+                            entry["url"][:40] + "..."
+                            if len(entry["url"]) > 40
+                            else entry["url"]
+                        ),
                         self._format_size(entry["size"]),
                     ]
                 )
@@ -203,7 +216,9 @@ class CacheViewerScreen:
                     cache_file.unlink()
                 except OSError as e:
                     # Не прерываем очистку всего кэша из-за одного файла
-                    self._app.notify(f"Не удалось удалить {cache_file.name}: {e}", "warning")
+                    self._app.notify(
+                        f"Не удалось удалить {cache_file.name}: {e}", "warning"
+                    )
 
         # Перезагрузить информацию
         self._load_cache_info()

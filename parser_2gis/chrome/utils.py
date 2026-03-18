@@ -5,6 +5,7 @@ import os
 import socket
 import subprocess
 
+
 @functools.lru_cache()
 def locate_chrome_path() -> str | None:
     """Определяет путь к исполняемому файлу Chrome для Linux Ubuntu.
@@ -55,6 +56,7 @@ def locate_chrome_path() -> str | None:
             pass
 
     return None
+
 
 def free_port() -> int:
     """Получает свободный порт с помощью сокетов.

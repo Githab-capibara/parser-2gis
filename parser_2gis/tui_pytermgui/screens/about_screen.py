@@ -16,6 +16,7 @@ from ..utils import BoxDrawing, GradientText, UnicodeIcons
 if TYPE_CHECKING:
     from .app import TUIApp
 
+
 class AboutScreen:
     """
     Экран "О программе".
@@ -103,7 +104,9 @@ class AboutScreen:
         return ptg.Window(
             *[ptg.Label(line, justify="center") for line in header_lines],
             box="ROUNDED",
-            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_INFO} О программе[/]"),
+            title=ptg.tim.parse(
+                f"[bold #00FFFF]{UnicodeIcons.EMOJI_INFO} О программе[/]"
+            ),
         )
 
     def _create_info_panel(self) -> ptg.Container:
@@ -124,7 +127,9 @@ class AboutScreen:
         return ptg.Window(
             *[ptg.Label(ptg.tim.parse(line)) for line in info_lines],
             box="ROUNDED",
-            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Информация[/]"),
+            title=ptg.tim.parse(
+                f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Информация[/]"
+            ),
         )
 
     def _create_links_panel(self) -> ptg.Container:
@@ -170,12 +175,16 @@ class AboutScreen:
         """
         features_lines = []
         for feature in self._features:
-            features_lines.append(ptg.tim.parse(f"[green]{UnicodeIcons.CHECK}[/] [white]{feature}[/]"))
+            features_lines.append(
+                ptg.tim.parse(f"[green]{UnicodeIcons.CHECK}[/] [white]{feature}[/]")
+            )
 
         return ptg.Window(
             *features_lines,
             box="ROUNDED",
-            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_STAR} Возможности[/]"),
+            title=ptg.tim.parse(
+                f"[bold #00FF88]{UnicodeIcons.EMOJI_STAR} Возможности[/]"
+            ),
         )
 
     def _create_technologies_panel(self) -> ptg.Container:
@@ -187,12 +196,16 @@ class AboutScreen:
         """
         tech_lines = []
         for tech in self._technologies:
-            tech_lines.append(ptg.tim.parse(f"[cyan]{UnicodeIcons.BULLET}[/] [white]{tech}[/]"))
+            tech_lines.append(
+                ptg.tim.parse(f"[cyan]{UnicodeIcons.BULLET}[/] [white]{tech}[/]")
+            )
 
         return ptg.Window(
             *tech_lines,
             box="ROUNDED",
-            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_TOOLS} Технологии[/]"),
+            title=ptg.tim.parse(
+                f"[bold #00FFFF]{UnicodeIcons.EMOJI_TOOLS} Технологии[/]"
+            ),
         )
 
     def _create_footer(self) -> ptg.Container:
@@ -204,10 +217,14 @@ class AboutScreen:
         """
         footer_lines = [
             ptg.tim.parse(f"[dim]{UnicodeIcons.LINE_HORIZONTAL * 60}[/]"),
-            ptg.tim.parse(f"[dim]Распространяется под лицензией {UnicodeIcons.EMOJI_FILE} LGPLv3+[/]"),
+            ptg.tim.parse(
+                f"[dim]Распространяется под лицензией {UnicodeIcons.EMOJI_FILE} LGPLv3+[/]"
+            ),
             ptg.tim.parse("[dim]© 2024 Andy Trofimov. Все права защищены.[/]"),
             "",
-            ptg.tim.parse(f"[dim]Нажмите {UnicodeIcons.CROSS_CIRCLE} Esc для возврата в меню[/]"),
+            ptg.tim.parse(
+                f"[dim]Нажмите {UnicodeIcons.CROSS_CIRCLE} Esc для возврата в меню[/]"
+            ),
         ]
 
         return ptg.Container(
@@ -250,7 +267,9 @@ class AboutScreen:
             footer,
             width=90,
             box="DOUBLE",
-            title=ptg.tim.parse(f"[bold #FFD700]{UnicodeIcons.EMOJI_USER} О программе[/]"),
+            title=ptg.tim.parse(
+                f"[bold #FFD700]{UnicodeIcons.EMOJI_USER} О программе[/]"
+            ),
         )
 
         return window.center()

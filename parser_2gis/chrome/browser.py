@@ -15,6 +15,7 @@ from .utils import free_port, locate_chrome_path
 if TYPE_CHECKING:
     from .options import ChromeOptions
 
+
 class ChromeBrowser:
     """Браузер Chrome с временным профилем.
 
@@ -90,7 +91,8 @@ class ChromeBrowser:
             os.chmod(self._profile_path, 0o700)
         except OSError as chmod_error:
             logger.warning(
-                "Не удалось установить права 0o700 на профиль %s: %s. " "Профиль будет автоматически удалён при закрытии.",
+                "Не удалось установить права 0o700 на профиль %s: %s. "
+                "Профиль будет автоматически удалён при закрытии.",
                 self._profile_path,
                 chmod_error,
             )
@@ -99,7 +101,11 @@ class ChromeBrowser:
         self._remote_port = free_port()
 
         # Валидация memory_limit перед формированием команды
-        memory_limit = chrome_options.memory_limit if chrome_options.memory_limit is not None else 2048
+        memory_limit = (
+            chrome_options.memory_limit
+            if chrome_options.memory_limit is not None
+            else 2048
+        )
 
         # Формирование команды запуска
         self._chrome_cmd = [
@@ -230,7 +236,8 @@ class ChromeBrowser:
                         )
                     except subprocess.TimeoutExpired:
                         logger.warning(
-                            "Таймаут (5 сек) при завершении Chrome PID %d, " "принудительное закрытие через kill()",
+                            "Таймаут (5 сек) при завершении Chrome PID %d, "
+                            "принудительное закрытие через kill()",
                             process_pid,
                         )
 
@@ -241,7 +248,9 @@ class ChromeBrowser:
                 if not process_closed:
                     try:
                         self._proc.kill()
-                        logger.debug("Отправлен сигнал SIGKILL процессу %d", process_pid)
+                        logger.debug(
+                            "Отправлен сигнал SIGKILL процессу %d", process_pid
+                        )
 
                         try:
                             self._proc.wait(timeout=10)
@@ -259,7 +268,9 @@ class ChromeBrowser:
                             process_status = "kill_timeout"
 
                     except Exception as kill_error:
-                        logger.error("Ошибка при принудительном закрытии Chrome: %s", kill_error)
+                        logger.error(
+                            "Ошибка при принудительном закрытии Chrome: %s", kill_error
+                        )
                         process_status = "kill_error"
 
             else:
@@ -281,9 +292,14 @@ class ChromeBrowser:
         try:
             if hasattr(self, "_profile_tempdir") and self._profile_tempdir is not None:
                 self._profile_tempdir.cleanup()
-                logger.debug("Временный профиль Chrome удалён через TemporaryDirectory.cleanup()")
+                logger.debug(
+                    "Временный профиль Chrome удалён через TemporaryDirectory.cleanup()"
+                )
         except Exception as profile_error:
-            logger.error("Ошибка при удалении профиля через TemporaryDirectory: %s", profile_error)
+            logger.error(
+                "Ошибка при удалении профиля через TemporaryDirectory: %s",
+                profile_error,
+            )
             try:
                 if hasattr(self, "_profile_path") and self._profile_path:
                     shutil.rmtree(self._profile_path, ignore_errors=True)
@@ -303,11 +319,16 @@ class ChromeBrowser:
         """Закрывает браузер при выходе из контекста."""
         self.close()
 
+
 # Константы для очистки профилей
 ORPHANED_PROFILE_MARKER = ".chrome_profile_marker"
 ORPHANED_PROFILE_MAX_AGE_HOURS = 24  # Максимальный возраст профиля перед удалением
 
-def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours: int = ORPHANED_PROFILE_MAX_AGE_HOURS) -> int:
+
+def cleanup_orphaned_profiles(
+    profiles_dir: Optional[Path] = None,
+    max_age_hours: int = ORPHANED_PROFILE_MAX_AGE_HOURS,
+) -> int:
     """
     Очищает осиротевшие профили Chrome от предыдущих запусков.
 
@@ -340,7 +361,11 @@ def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours
     current_time = time.time()
     max_age_seconds = max_age_hours * 3600
 
-    logger.debug("Поиск осиротевших профилей Chrome в %s (макс. возраст: %d ч)...", profiles_dir, max_age_hours)
+    logger.debug(
+        "Поиск осиротевших профилей Chrome в %s (макс. возраст: %d ч)...",
+        profiles_dir,
+        max_age_hours,
+    )
 
     try:
         # Ищем директории с префиксом chrome_profile_
@@ -370,14 +395,24 @@ def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours
                             delete_marker.touch(exist_ok=False)
                         except FileExistsError:
                             # Другой процесс уже удаляет этот профиль - пропускаем
-                            logger.debug("Профиль %s уже удаляется другим процессом", item.name)
+                            logger.debug(
+                                "Профиль %s уже удаляется другим процессом", item.name
+                            )
                             continue
 
                         _safe_remove_profile(item)
                         deleted_count += 1
-                        logger.debug("Удалён осиротевший профиль: %s (возраст: %.1f ч)", item.name, age_seconds / 3600)
+                        logger.debug(
+                            "Удалён осиротевший профиль: %s (возраст: %.1f ч)",
+                            item.name,
+                            age_seconds / 3600,
+                        )
                 except OSError as stat_error:
-                    logger.debug("Ошибка получения информации о файле %s: %s", marker_file, stat_error)
+                    logger.debug(
+                        "Ошибка получения информации о файле %s: %s",
+                        marker_file,
+                        stat_error,
+                    )
                     # Если не можем получить информацию - удаляем профиль
                     _safe_remove_profile(item)
                     deleted_count += 1
@@ -396,16 +431,24 @@ def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours
                             delete_marker.touch(exist_ok=False)
                         except FileExistsError:
                             # Другой процесс уже удаляет этот профиль - пропускаем
-                            logger.debug("Профиль %s уже удаляется другим процессом", item.name)
+                            logger.debug(
+                                "Профиль %s уже удаляется другим процессом", item.name
+                            )
                             continue
 
                         _safe_remove_profile(item)
                         deleted_count += 1
                         logger.debug(
-                            "Удалён осиротевший профиль (без маркера): %s (возраст: %.1f ч)", item.name, age_seconds / 3600
+                            "Удалён осиротевший профиль (без маркера): %s (возраст: %.1f ч)",
+                            item.name,
+                            age_seconds / 3600,
                         )
                 except OSError as stat_error:
-                    logger.debug("Ошибка получения информации о директории %s: %s", item, stat_error)
+                    logger.debug(
+                        "Ошибка получения информации о директории %s: %s",
+                        item,
+                        stat_error,
+                    )
 
     except PermissionError as perm_error:
         logger.warning("Нет прав для доступа к директории профилей: %s", perm_error)
@@ -418,6 +461,7 @@ def cleanup_orphaned_profiles(profiles_dir: Optional[Path] = None, max_age_hours
         logger.debug("Осиротевшие профили не найдены")
 
     return deleted_count
+
 
 def _safe_remove_profile(profile_path: Path) -> None:
     """

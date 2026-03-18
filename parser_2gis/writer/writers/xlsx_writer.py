@@ -9,6 +9,7 @@ from xlsxwriter.workbook import Workbook
 from ...logger import logger
 from .csv_writer import CSVWriter
 
+
 class XLSXWriter(CSVWriter):
     """Писатель (пост-процесс конвертер) в XLSX таблицу."""
 

@@ -5,6 +5,7 @@ from pydantic import BaseModel, NonNegativeInt, PositiveInt
 from ..chrome.options import default_memory_limit
 from ..common import floor_to_hundreds
 
+
 def default_max_records() -> int:
     """Пытается найти линейную аппроксимацию для оптимального количества записей."""
     memory_limit = default_memory_limit()
@@ -17,6 +18,7 @@ def default_max_records() -> int:
 
     # Гарантируем положительное значение
     return max(100, max_records)
+
 
 class ParserOptions(BaseModel):
     """Представляет все возможные опции для парсера.

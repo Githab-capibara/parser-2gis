@@ -8,6 +8,7 @@ import pytermgui as ptg
 
 from .checkbox import Checkbox
 
+
 class CategoryList:
     """
     Виджет списка категорий.
@@ -105,7 +106,9 @@ class CategoryList:
         Returns:
             Список названий выбранных категорий
         """
-        return [self._categories[i].get("name", "") for i in sorted(self._selected_indices)]
+        return [
+            self._categories[i].get("name", "") for i in sorted(self._selected_indices)
+        ]
 
     @property
     def selected_count(self) -> int:

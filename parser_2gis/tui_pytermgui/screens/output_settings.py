@@ -13,6 +13,7 @@ from ..widgets import Checkbox
 if TYPE_CHECKING:
     from .app import TUIApp
 
+
 class OutputSettingsScreen:
     """
     Экран настроек вывода.
@@ -227,7 +228,9 @@ class OutputSettingsScreen:
 
         # Обновить поля InputField (нужно использовать delete_back() + insert_text())
         self._set_input_field_value(self._fields["encoding"], default_writer.encoding)
-        self._set_input_field_value(self._fields["columns_per_entity"], str(default_csv.columns_per_entity))
+        self._set_input_field_value(
+            self._fields["columns_per_entity"], str(default_csv.columns_per_entity)
+        )
         self._set_input_field_value(self._fields["join_char"], default_csv.join_char)
 
         # Обновить конфигурацию

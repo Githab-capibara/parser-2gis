@@ -96,6 +96,7 @@ MERGE_BATCH_SIZE: int = 500
 # Это устраняет глобальное состояние и следует лучшим практикам Python
 logger = logging.getLogger(__name__)
 
+
 def _get_logger() -> "Logger":
     """Получает logger для модуля common.
 
@@ -109,6 +110,7 @@ def _get_logger() -> "Logger":
     from .logger import logger as app_logger
 
     return app_logger
+
 
 # Набор чувствительных ключей для фильтрации данных
 # Оптимизация: скомпилированный regex для быстрой проверки
@@ -162,6 +164,7 @@ _SENSITIVE_KEY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+
 def _is_sensitive_key(key: str) -> bool:
     """
     Проверяет, является ли ключ чувствительным.
@@ -187,6 +190,7 @@ def _is_sensitive_key(key: str) -> bool:
 
     # Проверка по скомпилированному regex паттерну
     return bool(_SENSITIVE_KEY_PATTERN.search(key_lower))
+
 
 def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     """
@@ -324,6 +328,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
         # Это предотвращает утечку памяти при обработке множества структур данных
         _visited.clear()
 
+
 def _default_predicate(value: Any) -> bool:
     """Предикат по умолчанию для проверки результата.
 
@@ -334,6 +339,7 @@ def _default_predicate(value: Any) -> bool:
     True если значение истинно, False иначе.
     """
     return bool(value)
+
 
 def wait_until_finished(
     timeout: Optional[int] = None,
@@ -471,6 +477,7 @@ def wait_until_finished(
 
     return outer
 
+
 def report_from_validation_error(
     ex: ValidationError, d: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Dict[str, Any]]:
@@ -507,6 +514,7 @@ def report_from_validation_error(
         }
 
     return error_report
+
 
 def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
     """Разворачивает плоский словарь с ключами в виде точечного пути к значениям.
@@ -564,6 +572,7 @@ def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
 
     return output
 
+
 def floor_to_hundreds(arg: Union[int, float]) -> int:
     """Округляет число вниз до ближайшей сотни.
 
@@ -575,8 +584,10 @@ def floor_to_hundreds(arg: Union[int, float]) -> int:
     """
     return int((arg // 100) * 100)
 
+
 # Кэшируем по отдельным полям (code, domain) для более эффективного использования памяти
 # и уменьшения количества повторных валидаций одинаковых городов
+
 
 # Уменьшены размеры lru_cache для экономии памяти
 # _validate_city_cached=256 (было 1024) - достаточно для часто используемых городов
@@ -607,6 +618,7 @@ def _validate_city_cached(code: str, domain: str) -> Dict[str, Any]:
         "code": code,
         "domain": domain,
     }
+
 
 def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     """Валидирует структуру города.
@@ -650,6 +662,7 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     # Оптимизация: передаём code и domain как отдельные аргументы для эффективного кэширования
     return _validate_city_cached(city["code"], city["domain"])
 
+
 # Уменьшены размеры lru_cache для экономии памяти
 # _validate_category_cached=128 (было 512) - оптимально для количества категорий
 @lru_cache(maxsize=128)
@@ -671,6 +684,7 @@ def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
         "query": category_tuple[1],
         "rubric_code": category_tuple[2] if category_tuple[2] else None,
     }
+
 
 def _validate_category(category: Any) -> Dict[str, Any]:
     """Валидирует структуру категории.
@@ -705,6 +719,7 @@ def _validate_category(category: Any) -> Dict[str, Any]:
     )
     return _validate_category_cached(category_key)
 
+
 # Оптимизация: кэширование сгенерированных URL
 @lru_cache(maxsize=4096)
 def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
@@ -729,6 +744,7 @@ def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
     rest_url += "/filters/sort=name"
 
     return base_url + rest_url
+
 
 def generate_category_url(
     city: Dict[str, Any],
@@ -774,6 +790,7 @@ def generate_category_url(
     category_key = (category_query, category.get("rubric_code", ""))
 
     return _generate_category_url_cached(city_key, category_key)
+
 
 def generate_city_urls(
     cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None
@@ -832,6 +849,7 @@ def generate_city_urls(
 
     return urls
 
+
 # url_query_encode=2048 - оптимально для часто используемых поисковых запросов
 @lru_cache(maxsize=2048)
 def url_query_encode(query: str) -> str:
@@ -851,9 +869,11 @@ def url_query_encode(query: str) -> str:
     """
     return urllib.parse.quote(query, safe="")
 
+
 # =============================================================================
 # ASYNC ВЕРСИЯ WAIT_UNTIL_FINISHED (ИСПРАВЛЕНИЕ L10)
 # =============================================================================
+
 
 def async_wait_until_finished(
     timeout: Optional[int] = None,
@@ -961,9 +981,11 @@ def async_wait_until_finished(
 
     return outer
 
+
 # =============================================================================
 # МОНИТОРИНГ КЭШЕЙ (ИСПРАВЛЕНИЕ M3)
 # =============================================================================
+
 
 def get_cache_stats() -> Dict[str, Any]:
     """Возвращает статистику по всем кэшам lru_cache.
@@ -993,6 +1015,7 @@ def get_cache_stats() -> Dict[str, Any]:
         "_generate_category_url_cached": _generate_category_url_cached.cache_info(),
         "url_query_encode": url_query_encode.cache_info(),
     }
+
 
 def log_cache_stats() -> None:
     """Выводит статистику кэшей в лог.

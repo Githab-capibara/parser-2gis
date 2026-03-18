@@ -17,6 +17,7 @@ from ..utils import (
     format_number,
 )
 
+
 class ProgressBar:
     """
     Современный виджет прогресс-бара.
@@ -33,12 +34,20 @@ class ProgressBar:
     FILL_STYLES = {
         "classic": {
             "full": UnicodeIcons.BLOCK_FULL,
-            "partial": [UnicodeIcons.BLOCK_75, UnicodeIcons.BLOCK_50, UnicodeIcons.BLOCK_25],
+            "partial": [
+                UnicodeIcons.BLOCK_75,
+                UnicodeIcons.BLOCK_50,
+                UnicodeIcons.BLOCK_25,
+            ],
             "empty": UnicodeIcons.BLOCK_25,
         },
         "smooth": {
             "full": UnicodeIcons.BLOCK_FULL,
-            "partial": [UnicodeIcons.BLOCK_75, UnicodeIcons.BLOCK_50, UnicodeIcons.BLOCK_25],
+            "partial": [
+                UnicodeIcons.BLOCK_75,
+                UnicodeIcons.BLOCK_50,
+                UnicodeIcons.BLOCK_25,
+            ],
             "empty": " ",
         },
         "line": {
@@ -132,12 +141,18 @@ class ProgressBar:
         total: int = 100,
         completed: int = 0,
         bar_width: int = 40,
-        fill_style: Literal["classic", "smooth", "line", "double_line", "braille", "circle", "diamond"] = "classic",
-        color_scheme: Literal["default", "neon", "fire", "ocean", "cyberpunk", "monochrome"] = "neon",
+        fill_style: Literal[
+            "classic", "smooth", "line", "double_line", "braille", "circle", "diamond"
+        ] = "classic",
+        color_scheme: Literal[
+            "default", "neon", "fire", "ocean", "cyberpunk", "monochrome"
+        ] = "neon",
         show_percentage: bool = True,
         show_count: bool = True,
         show_spinner: bool = False,
-        spinner_type: Literal["line", "dots", "circle", "arc", "flow", "braille"] = "dots",
+        spinner_type: Literal[
+            "line", "dots", "circle", "arc", "flow", "braille"
+        ] = "dots",
         gradient: bool = False,
         gradient_name: str = "neon",
     ) -> None:
@@ -230,7 +245,9 @@ class ProgressBar:
                     self._gradient_name,
                     GradientText.GRADIENTS["neon"],
                 )
-                color_index = int(i / max(1, filled_count - 1) * (len(gradient_colors) - 1))
+                color_index = int(
+                    i / max(1, filled_count - 1) * (len(gradient_colors) - 1)
+                )
                 color = gradient_colors[color_index]
                 bar_parts.append(f"[{color}]{fill['full']}[/]")
             else:
@@ -378,6 +395,7 @@ class ProgressBar:
     def is_complete(self) -> bool:
         """Завершён ли прогресс."""
         return self._completed >= self._total and self._total > 0
+
 
 class MultiProgressBar:
     """

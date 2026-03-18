@@ -19,6 +19,7 @@ from ..widgets import ButtonWidget, Checkbox, NavigableContainer
 if TYPE_CHECKING:
     from .app import TUIApp
 
+
 class BrowserSettingsScreen:
     """
     Экран настроек браузера Chrome.
@@ -222,7 +223,9 @@ class BrowserSettingsScreen:
         self._fields["silent_browser"].value = default_options.silent_browser  # type: ignore
 
         # Обновить поля InputField (нужно использовать delete_back() + insert_text())
-        self._set_input_field_value(self._fields["memory_limit"], str(default_options.memory_limit))
+        self._set_input_field_value(
+            self._fields["memory_limit"], str(default_options.memory_limit)
+        )
         self._set_input_field_value(self._fields["binary_path"], "")
 
         # Обновить конфигурацию

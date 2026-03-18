@@ -19,6 +19,7 @@ from ..widgets import ButtonWidget, Checkbox, NavigableContainer, ScrollArea
 if TYPE_CHECKING:
     from .app import TUIApp
 
+
 class CategorySelectorScreen:
     """
     Экран выбора категорий.
@@ -170,7 +171,9 @@ class CategorySelectorScreen:
         if not query:
             self._filtered_categories = self._categories.copy()
         else:
-            self._filtered_categories = [cat for cat in self._categories if query in cat.get("name", "").lower()]
+            self._filtered_categories = [
+                cat for cat in self._categories if query in cat.get("name", "").lower()
+            ]
 
         self._populate_categories()
         self._update_counter()
@@ -222,7 +225,9 @@ class CategorySelectorScreen:
         if self._counter_label:
             selected_count = len(self._selected_indices)
             total_count = len(self._categories)
-            self._counter_label.value = f"[green]Выбрано: {selected_count}[/] из {total_count}"
+            self._counter_label.value = (
+                f"[green]Выбрано: {selected_count}[/] из {total_count}"
+            )
 
     def _go_back(self, *args) -> None:
         """Вернуться назад."""
@@ -231,7 +236,9 @@ class CategorySelectorScreen:
     def _next(self, *args) -> None:
         """Перейти к следующему экрану."""
         # Сохранить выбранные категории
-        selected_names = [self._categories[i].get("name", "") for i in sorted(self._selected_indices)]
+        selected_names = [
+            self._categories[i].get("name", "") for i in sorted(self._selected_indices)
+        ]
         self._app.selected_categories = selected_names
 
         # Перейти к главному меню

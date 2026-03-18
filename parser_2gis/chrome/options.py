@@ -8,6 +8,7 @@ from pydantic import BaseModel, PositiveInt
 
 from ..common import floor_to_hundreds
 
+
 def default_memory_limit() -> int:
     """Лимит памяти по умолчанию для V8 — 0.75 от общей физической памяти в МБ.
 
@@ -16,6 +17,7 @@ def default_memory_limit() -> int:
     """
     memory_total = psutil.virtual_memory().total / 1024**2  # Конвертируем в МБ
     return floor_to_hundreds(round(0.75 * memory_total))
+
 
 class ChromeOptions(BaseModel):
     """Представляет все возможные опции для Chrome.

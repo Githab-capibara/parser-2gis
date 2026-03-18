@@ -39,6 +39,7 @@ __all__ = [
     "create_ascii_art",
 ]
 
+
 class UnicodeIcons:
     """
     Коллекция Unicode иконок для TUI.
@@ -229,6 +230,7 @@ class UnicodeIcons:
     PIN = "📌"
     BOOKMARK = "🔖"
 
+
 class SpinnerAnimation:
     """
     Класс для управления спиннер-анимациями.
@@ -238,7 +240,9 @@ class SpinnerAnimation:
 
     def __init__(
         self,
-        spinner_type: Literal["line", "dots", "circle", "arc", "flow", "braille"] = "line",
+        spinner_type: Literal[
+            "line", "dots", "circle", "arc", "flow", "braille"
+        ] = "line",
         fps: int = 10,
         message: str = "Загрузка...",
     ) -> None:
@@ -307,7 +311,9 @@ class SpinnerAnimation:
         """
         return 1.0 / self.fps
 
-    def animate_generator(self, duration: float | None = None) -> Generator[str, None, None]:
+    def animate_generator(
+        self, duration: float | None = None
+    ) -> Generator[str, None, None]:
         """
         Генератор для анимации спиннера.
 
@@ -332,6 +338,7 @@ class SpinnerAnimation:
         """Остановить анимацию."""
         self.running = False
 
+
 class GradientText:
     """
     Утилита для создания градиентного текста.
@@ -341,12 +348,60 @@ class GradientText:
 
     # Цветовые палитры для градиентов
     GRADIENTS = {
-        "sunset": ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#9400D3"],
-        "ocean": ["#006994", "#40E0D0", "#7FFFD4", "#00CED1", "#5F9EA0", "#4682B4", "#6495ED"],
-        "forest": ["#228B22", "#32CD32", "#00FF00", "#7CFC00", "#ADFF2F", "#9ACD32", "#6B8E23"],
-        "fire": ["#FF0000", "#FF4500", "#FF6347", "#FF7F50", "#FFA07A", "#FFD700", "#FFFF00"],
-        "neon": ["#00FFFF", "#00FF88", "#FFD700", "#FF1493", "#9400D3", "#1E90FF", "#32CD32"],
-        "cyberpunk": ["#FF00FF", "#00FFFF", "#FF00AA", "#00FFAA", "#AA00FF", "#FFFF00", "#FF0055"],
+        "sunset": [
+            "#FF0000",
+            "#FF7F00",
+            "#FFFF00",
+            "#00FF00",
+            "#0000FF",
+            "#4B0082",
+            "#9400D3",
+        ],
+        "ocean": [
+            "#006994",
+            "#40E0D0",
+            "#7FFFD4",
+            "#00CED1",
+            "#5F9EA0",
+            "#4682B4",
+            "#6495ED",
+        ],
+        "forest": [
+            "#228B22",
+            "#32CD32",
+            "#00FF00",
+            "#7CFC00",
+            "#ADFF2F",
+            "#9ACD32",
+            "#6B8E23",
+        ],
+        "fire": [
+            "#FF0000",
+            "#FF4500",
+            "#FF6347",
+            "#FF7F50",
+            "#FFA07A",
+            "#FFD700",
+            "#FFFF00",
+        ],
+        "neon": [
+            "#00FFFF",
+            "#00FF88",
+            "#FFD700",
+            "#FF1493",
+            "#9400D3",
+            "#1E90FF",
+            "#32CD32",
+        ],
+        "cyberpunk": [
+            "#FF00FF",
+            "#00FFFF",
+            "#FF00AA",
+            "#00FFAA",
+            "#AA00FF",
+            "#FFFF00",
+            "#FF0055",
+        ],
         "monochrome": ["#FFFFFF", "#CCCCCC", "#999999", "#666666", "#333333"],
         "blue_green": ["#0000FF", "#00FFFF", "#00FF00", "#7FFF00", "#ADFF2F"],
     }
@@ -418,6 +473,7 @@ class GradientText:
     def monochrome(cls, text: str) -> str:
         """Создать монохромный текст."""
         return cls.apply_gradient(text, "monochrome")
+
 
 class BoxDrawing:
     """
@@ -523,7 +579,13 @@ class BoxDrawing:
             title_space = max(0, width - 4 - len(title))
             left_space = title_space // 2
             right_space = title_space - left_space
-            top_line = box["tl"] + box["h"] * left_space + f" {title} " + box["h"] * right_space + box["tr"]
+            top_line = (
+                box["tl"]
+                + box["h"] * left_space
+                + f" {title} "
+                + box["h"] * right_space
+                + box["tr"]
+            )
         else:
             top_line = box["tl"] + box["h"] * (width - 2) + box["tr"]
         lines.append(top_line)
@@ -561,9 +623,16 @@ class BoxDrawing:
             title_space = width - 4 - len(title)
             left_space = title_space // 2
             right_space = title_space - left_space
-            return box["tl_right"] + box["h"] * left_space + f" {title} " + box["h"] * right_space + box["tr_left"]
+            return (
+                box["tl_right"]
+                + box["h"] * left_space
+                + f" {title} "
+                + box["h"] * right_space
+                + box["tr_left"]
+            )
         else:
             return box["h"] * width
+
 
 def format_number(num: int) -> str:
     """
@@ -576,6 +645,7 @@ def format_number(num: int) -> str:
         Форматированная строка
     """
     return f"{num:,}".replace(",", " ")
+
 
 def format_time(seconds: float) -> str:
     """
@@ -596,6 +666,7 @@ def format_time(seconds: float) -> str:
         hours = seconds / 3600
         return f"{hours:.1f} ч"
 
+
 def truncate_text(text: str, max_length: int, suffix: str = "...") -> str:
     """
     Обрезать текст до максимальной длины.
@@ -612,6 +683,7 @@ def truncate_text(text: str, max_length: int, suffix: str = "...") -> str:
         return text
 
     return text[: max_length - len(suffix)] + suffix
+
 
 def center_text(text: str, width: int) -> str:
     """
@@ -633,6 +705,7 @@ def center_text(text: str, width: int) -> str:
     right_padding = padding - left_padding
 
     return " " * left_padding + text + " " * right_padding
+
 
 def create_ascii_art(text: str, style: str = "block") -> list[str]:
     """

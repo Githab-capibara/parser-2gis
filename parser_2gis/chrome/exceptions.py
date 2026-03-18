@@ -3,6 +3,7 @@ import inspect
 from pychrome.exceptions import RuntimeException as _RuntimeException
 from pychrome.exceptions import UserAbortException as _UserAbortException
 
+
 class ChromeException(Exception):
     """Базовое исключение Chrome.
 
@@ -25,24 +26,33 @@ class ChromeException(Exception):
             self.filename = "unknown"
 
         # Формируем полное сообщение с контекстом
-        full_message = f"{message}. " f"Функция: {self.function_name}, " f"Строка: {self.line_number}, " f"Файл: {self.filename}"
+        full_message = (
+            f"{message}. "
+            f"Функция: {self.function_name}, "
+            f"Строка: {self.line_number}, "
+            f"Файл: {self.filename}"
+        )
         super().__init__(full_message, **kwargs)
+
 
 class ChromeRuntimeException(_RuntimeException, ChromeException):
     """Исключение времени выполнения Chrome."""
 
     pass
 
+
 class ChromeUserAbortException(_UserAbortException, ChromeException):
     """Исключение прерывания пользователем Chrome."""
 
     pass
+
 
 class ChromePathNotFound(ChromeException):
     """Исключение: браузер Chrome не найден."""
 
     def __init__(self, msg: str = "Chrome браузер не найден", *args, **kwargs) -> None:
         super().__init__(msg, *args, **kwargs)
+
 
 __all__ = [
     "ChromeUserAbortException",

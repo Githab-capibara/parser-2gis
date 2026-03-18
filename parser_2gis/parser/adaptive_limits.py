@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from ..logger import logger
 
+
 class AdaptiveLimits:
     """
     Менеджер адаптивных лимитов для парсинга.
@@ -86,7 +87,9 @@ class AdaptiveLimits:
             return
 
         # Вычисляем среднее количество записей на страницу
-        avg_records = sum(self._records_on_first_pages) / len(self._records_on_first_pages)
+        avg_records = sum(self._records_on_first_pages) / len(
+            self._records_on_first_pages
+        )
 
         # Определяем класс города
         if avg_records <= self.CITY_SIZE_CLASSIFICATION["small"]:
@@ -102,7 +105,8 @@ class AdaptiveLimits:
         self._adaptive_limit = self.ADAPTIVE_EMPTY_LIMITS[self._city_size]
 
         logger.info(
-            "Определен размер города: %s (среднее записей: %.1f). " "Адаптивный лимит пустых страниц: %d",
+            "Определен размер города: %s (среднее записей: %.1f). "
+            "Адаптивный лимит пустых страниц: %d",
             self._city_size,
             avg_records,
             self._adaptive_limit,
@@ -151,7 +155,9 @@ class AdaptiveLimits:
             "adaptive_limit": self._adaptive_limit,
             "records_on_first_pages": self._records_on_first_pages,
             "avg_records": (
-                sum(self._records_on_first_pages) / len(self._records_on_first_pages) if self._records_on_first_pages else 0
+                sum(self._records_on_first_pages) / len(self._records_on_first_pages)
+                if self._records_on_first_pages
+                else 0
             ),
         }
 

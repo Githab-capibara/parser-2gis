@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from typing import Optional
 from urllib.parse import urlparse
 
+
 @dataclass
 class ValidationResult:
     """Результат валидации.
@@ -37,9 +38,11 @@ class ValidationResult:
     value: Optional[str] = None
     error: Optional[str] = None
 
+
 # =============================================================================
 # ВАЛИДАЦИЯ URL
 # =============================================================================
+
 
 def validate_url(url: str) -> ValidationResult:
     """Валидирует URL на корректность формата и безопасность.
@@ -68,7 +71,10 @@ def validate_url(url: str) -> ValidationResult:
 
         # Проверка схемы и netloc
         if not all([result.scheme in ("http", "https"), result.netloc]):
-            return ValidationResult(is_valid=False, error="URL должен начинаться с http:// или https:// и содержать домен")
+            return ValidationResult(
+                is_valid=False,
+                error="URL должен начинаться с http:// или https:// и содержать домен",
+            )
 
         # Извлекаем хост для проверки на внутренние IP
         hostname = result.hostname
@@ -77,18 +83,27 @@ def validate_url(url: str) -> ValidationResult:
 
         # Проверяем, не является ли хост localhost
         if hostname.lower() in ("localhost", "127.0.0.1"):
-            return ValidationResult(is_valid=False, error="Использование localhost запрещено")
+            return ValidationResult(
+                is_valid=False, error="Использование localhost запрещено"
+            )
 
         # Проверяем, не является ли хост IP адресом
         try:
             ip_addr = ipaddress.ip_address(hostname)
             # Проверяем на private и loopback адреса
             if ip_addr.is_private or ip_addr.is_loopback or ip_addr.is_link_local:
-                return ValidationResult(is_valid=False, error=f"Использование private IP адресов запрещено ({hostname})")
+                return ValidationResult(
+                    is_valid=False,
+                    error=f"Использование private IP адресов запрещено ({hostname})",
+                )
         except ValueError:
             # Это доменное имя - проверяем через socket.getaddrinfo
             import socket
 
+            # Устанавливаем таймаут для DNS запросов (5 секунд)
+            # Это предотвращает зависание при недоступности DNS сервера
+            old_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(5)  # 5 секунд на DNS запрос
             try:
                 addr_info = socket.getaddrinfo(hostname, None)
                 for family, _, _, _, sockaddr in addr_info:
@@ -96,18 +111,23 @@ def validate_url(url: str) -> ValidationResult:
                         ip = ipaddress.ip_address(sockaddr[0])
                         if ip.is_private or ip.is_loopback or ip.is_link_local:
                             return ValidationResult(
-                                is_valid=False, error=f"Домен {hostname} разрешается в private IP ({sockaddr[0]})"
+                                is_valid=False,
+                                error=f"Домен {hostname} разрешается в private IP ({sockaddr[0]})",
                             )
                     except ValueError:
                         continue
             except socket.gaierror:
                 # Домен не разрешается - это нормально, может быть рабочим
                 pass
+            finally:
+                # Восстанавливаем исходный таймаут
+                socket.setdefaulttimeout(old_timeout)
 
         return ValidationResult(is_valid=True, value=url, error=None)
 
     except Exception as e:
         return ValidationResult(is_valid=False, error=f"Ошибка валидации URL: {e}")
+
 
 def is_valid_url(url: str) -> bool:
     """Проверяет валидность URL (упрощённая версия).
@@ -127,9 +147,11 @@ def is_valid_url(url: str) -> bool:
     result = validate_url(url)
     return result.is_valid
 
+
 # =============================================================================
 # ВАЛИДАЦИЯ ЧИСЛОВЫХ ЗНАЧЕНИЙ
 # =============================================================================
+
 
 def validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str) -> int:
     """Валидирует положительное целое число в заданном диапазоне.
@@ -153,10 +175,15 @@ def validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str)
         ValueError: --parser.max-retries должен быть от 1 до 100 (получено 0)
     """
     if not (min_val <= value <= max_val):
-        raise ValueError(f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})")
+        raise ValueError(
+            f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})"
+        )
     return value
 
-def validate_positive_float(value: float, min_val: float, max_val: float, arg_name: str) -> float:
+
+def validate_positive_float(
+    value: float, min_val: float, max_val: float, arg_name: str
+) -> float:
     """Валидирует положительное число с плавающей точкой в заданном диапазоне.
 
     Args:
@@ -176,12 +203,16 @@ def validate_positive_float(value: float, min_val: float, max_val: float, arg_na
         1.5
     """
     if not (min_val <= value <= max_val):
-        raise ValueError(f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})")
+        raise ValueError(
+            f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})"
+        )
     return value
+
 
 # =============================================================================
 # ВАЛИДАЦИЯ СТРОКОВЫХ ЗНАЧЕНИЙ
 # =============================================================================
+
 
 def validate_non_empty_string(value: str, field_name: str) -> str:
     """Валидирует строку на непустоту.
@@ -206,7 +237,10 @@ def validate_non_empty_string(value: str, field_name: str) -> str:
         raise ValueError(f"{field_name} не может быть пустым")
     return value.strip()
 
-def validate_string_length(value: str, min_length: int, max_length: int, field_name: str) -> str:
+
+def validate_string_length(
+    value: str, min_length: int, max_length: int, field_name: str
+) -> str:
     """Валидирует длину строки.
 
     Args:
@@ -231,9 +265,11 @@ def validate_string_length(value: str, min_length: int, max_length: int, field_n
         raise ValueError(f"{field_name} должен быть не более {max_length} символов")
     return value
 
+
 # =============================================================================
 # ВАЛИДАЦИЯ СПИСКОВ И КОЛЛЕКЦИЙ
 # =============================================================================
+
 
 def validate_non_empty_list(value: list, field_name: str) -> list:
     """Валидирует список на непустоту.
@@ -258,7 +294,10 @@ def validate_non_empty_list(value: list, field_name: str) -> list:
         raise ValueError(f"{field_name} не может быть пустым")
     return value
 
-def validate_list_length(value: list, min_length: int, max_length: int, field_name: str) -> list:
+
+def validate_list_length(
+    value: list, min_length: int, max_length: int, field_name: str
+) -> list:
     """Валидирует длину списка.
 
     Args:
@@ -278,10 +317,15 @@ def validate_list_length(value: list, min_length: int, max_length: int, field_na
         [1, 2, 3]
     """
     if len(value) < min_length:
-        raise ValueError(f"{field_name} должен содержать не менее {min_length} элементов")
+        raise ValueError(
+            f"{field_name} должен содержать не менее {min_length} элементов"
+        )
     if len(value) > max_length:
-        raise ValueError(f"{field_name} должен содержать не более {max_length} элементов")
+        raise ValueError(
+            f"{field_name} должен содержать не более {max_length} элементов"
+        )
     return value
+
 
 # =============================================================================
 # ВАЛИДАЦИЯ EMAIL
@@ -289,6 +333,7 @@ def validate_list_length(value: list, min_length: int, max_length: int, field_na
 
 # Скомпилированный regex паттерн для валидации email
 _EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
 
 def validate_email(email: str) -> ValidationResult:
     """Валидирует email адрес.
@@ -308,16 +353,22 @@ def validate_email(email: str) -> ValidationResult:
         return ValidationResult(is_valid=False, error="Email не может быть пустым")
 
     if not _EMAIL_PATTERN.match(email):
-        return ValidationResult(is_valid=False, error=f"Некорректный формат email: {email}")
+        return ValidationResult(
+            is_valid=False, error=f"Некорректный формат email: {email}"
+        )
 
     return ValidationResult(is_valid=True, value=email, error=None)
+
 
 # =============================================================================
 # ВАЛИДАЦИЯ TELEFONOV
 # =============================================================================
 
 # Скомпилированный regex паттерн для валидации российских телефонов
-_PHONE_PATTERN = re.compile(r"^\+?7[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$")
+_PHONE_PATTERN = re.compile(
+    r"^\+?7[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$"
+)
+
 
 def validate_phone(phone: str) -> ValidationResult:
     """Валидирует российский номер телефона.
@@ -342,13 +393,15 @@ def validate_phone(phone: str) -> ValidationResult:
     # Проверяем формат
     if not _PHONE_PATTERN.match(phone):
         return ValidationResult(
-            is_valid=False, error=f"Некорректный формат телефона: {phone}. Ожидался формат: +7 (XXX) XXX-XX-XX"
+            is_valid=False,
+            error=f"Некорректный формат телефона: {phone}. Ожидался формат: +7 (XXX) XXX-XX-XX",
         )
 
     # Нормализуем к формату 8 (XXX) XXX-XX-XX
     normalized = f"8 ({cleaned[1:4]}) {cleaned[4:7]}-{cleaned[7:9]}-{cleaned[9:11]}"
 
     return ValidationResult(is_valid=True, value=normalized, error=None)
+
 
 # =============================================================================
 # ЭКСПОРТИРУЕМЫЕ СИМВОЛЫ

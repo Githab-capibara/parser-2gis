@@ -35,6 +35,7 @@ from .utils import ScreenManager
 if TYPE_CHECKING:
     from ..parallel_parser import ParallelCityParser as ParallelParser
 
+
 class TUIApp:
     """
     Главное приложение TUI Parser2GIS.
@@ -373,7 +374,9 @@ class TUIApp:
 
         # Загрузить города
         cities_data = self.get_cities()
-        selected_cities_data = [city for city in cities_data if city.get("name") in self.selected_cities]
+        selected_cities_data = [
+            city for city in cities_data if city.get("name") in self.selected_cities
+        ]
 
         if not selected_cities_data:
             self._add_log_to_parsing_screen("Ошибка: не выбраны города", "ERROR")
@@ -381,7 +384,9 @@ class TUIApp:
 
         # Загрузить категории
         all_categories = self.get_categories()
-        selected_categories_data = [cat for cat in all_categories if cat.get("name") in self.selected_categories]
+        selected_categories_data = [
+            cat for cat in all_categories if cat.get("name") in self.selected_categories
+        ]
 
         if not selected_categories_data:
             self._add_log_to_parsing_screen("Ошибка: не выбраны категории", "ERROR")
@@ -392,7 +397,9 @@ class TUIApp:
             f"Запуск парсинга: {len(selected_cities_data)} городов × {len(selected_categories_data)} категорий",
             "INFO",
         )
-        self._add_log_to_parsing_screen(f"Потоков: {self._config.parser.max_workers}", "DEBUG")
+        self._add_log_to_parsing_screen(
+            f"Потоков: {self._config.parser.max_workers}", "DEBUG"
+        )
 
         # Запустить парсер в отдельном потоке
         thread = threading.Thread(
@@ -437,7 +444,11 @@ class TUIApp:
             # Создать callback для обновления прогресса
             def progress_callback(success: int, failed: int, filename: str) -> None:
                 # Извлечь категорию из имени файла
-                category = filename.replace(".csv", "").split("_")[-1] if "_" in filename else ""
+                category = (
+                    filename.replace(".csv", "").split("_")[-1]
+                    if "_" in filename
+                    else ""
+                )
 
                 # Обновить состояние
                 self.update_state(
@@ -593,6 +604,7 @@ class TUIApp:
     def running(self, value: bool) -> None:
         self._running = value
 
+
 class Parser2GISTUI:
     """
     Основной класс для запуска TUI Parser2GIS.
@@ -607,6 +619,7 @@ class Parser2GISTUI:
     def run(self) -> None:
         """Запустить TUI приложение."""
         self._app.run()
+
 
 def run_tui() -> None:
     """Точка входа для запуска TUI."""

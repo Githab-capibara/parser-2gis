@@ -8,6 +8,7 @@ import pathlib
 # Константа для максимальной длины пути
 MAX_PATH_LENGTH = 1024
 
+
 def data_path() -> pathlib.Path:
     """Получает путь к данным пакета."""
     if "_MEIPASS2" in os.environ:
@@ -17,6 +18,7 @@ def data_path() -> pathlib.Path:
 
     path = os.path.join(here, "data")
     return pathlib.Path(path)
+
 
 def user_path(is_config: bool = True) -> pathlib.Path:
     """Получает пользовательский путь для Linux Ubuntu.
@@ -39,6 +41,7 @@ def user_path(is_config: bool = True) -> pathlib.Path:
 
     path = os.path.join(path, "parser-2gis")
     return pathlib.Path(path)
+
 
 @functools.lru_cache()
 def image_path(basename: str, ext: str | None = None) -> str:
@@ -76,6 +79,7 @@ def image_path(basename: str, ext: str | None = None) -> str:
             if img_basename == basename:
                 return os.path.abspath(images_dir / img_name)
         raise FileNotFoundError(f"Изображение {basename} не найдено")
+
 
 @functools.lru_cache()
 def image_data(basename: str, ext: str | None = None) -> bytes:

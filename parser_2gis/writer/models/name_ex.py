@@ -4,6 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+
 class NameEx(BaseModel):
     """Модель расширенного названия организации.
 

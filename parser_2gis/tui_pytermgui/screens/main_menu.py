@@ -17,6 +17,7 @@ from ..widgets import ButtonWidget, NavigableContainer
 if TYPE_CHECKING:
     from .app import TUIApp
 
+
 class MainMenuScreen:
     """
     Главное меню приложения.
@@ -187,7 +188,9 @@ class MainMenuScreen:
             version_label,
             "",
             ptg.Label(
-                ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.LINE_T_DOWN} Основное меню {UnicodeIcons.LINE_T_DOWN}[/]"),
+                ptg.tim.parse(
+                    f"[bold #00FF88]{UnicodeIcons.LINE_T_DOWN} Основное меню {UnicodeIcons.LINE_T_DOWN}[/]"
+                ),
                 justify="center",
             ),
             "",
@@ -197,7 +200,9 @@ class MainMenuScreen:
             self._create_footer(),
             width=75,
             box="ROUNDED",
-            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Главное меню[/]"),
+            title=ptg.tim.parse(
+                f"[bold #00FFFF]{UnicodeIcons.EMOJI_HOME} Parser2GIS - Главное меню[/]"
+            ),
         )
 
         # Установить фокус на первую кнопку

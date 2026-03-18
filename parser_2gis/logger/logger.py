@@ -17,6 +17,7 @@ warnings.filterwarnings(action="ignore", module="pychrome")
 
 _LOGGER_NAME = "parser-2gis"
 
+
 class QueueHandler(logging.Handler):
     def __init__(self, log_queue: queue.Queue[tuple[str, str]]) -> None:
         super().__init__()
@@ -26,7 +27,10 @@ class QueueHandler(logging.Handler):
         log_message = (record.levelname, self.format(record) + os.linesep)
         self._log_queue.put(log_message)
 
-def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]], options: LogOptions) -> None:
+
+def setup_gui_logger(
+    log_queue: queue.Queue[tuple[str, str]], options: LogOptions
+) -> None:
     """Добавляет обработчик очереди к существующему логгеру, чтобы он
     отправлял логи в указанную очередь.
 
@@ -37,6 +41,7 @@ def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]], options: LogOption
     queue_handler = QueueHandler(log_queue)
     queue_handler.setFormatter(formatter)
     logger.addHandler(queue_handler)
+
 
 def setup_cli_logger(options: LogOptions) -> None:
     """Настраивает CLI логгер из конфигурации.
@@ -49,6 +54,7 @@ def setup_cli_logger(options: LogOptions) -> None:
         options.cli_format,
         options.cli_datefmt,
     )
+
 
 def setup_logger(level: str, fmt: str, datefmt: str) -> None:
     """Настраивает логгер.
@@ -66,8 +72,10 @@ def setup_logger(level: str, fmt: str, datefmt: str) -> None:
         logger.addHandler(handler)
         logger.setLevel(level)
 
+
 logger = logging.getLogger(_LOGGER_NAME)
 Logger = logging.Logger
+
 
 def log_parser_start(
     version: str,
@@ -112,6 +120,7 @@ def log_parser_start(
 
         if "writer" in config_summary:
             print_config("📄 Writer", config_summary["writer"])
+
 
 def log_parser_finish(
     success: bool = True,

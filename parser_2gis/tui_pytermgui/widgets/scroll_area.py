@@ -8,6 +8,7 @@ from typing import Any
 
 import pytermgui as ptg
 
+
 class ScrollArea(ptg.ScrollableWidget):
     """
     Виджет области с прокруткой.
@@ -62,7 +63,9 @@ class ScrollArea(ptg.ScrollableWidget):
                             content_lines.append(str(widget))
                             from ..logger import logger
 
-                            logger.debug("Ошибка при получении строк виджета: %s", widget_error)
+                            logger.debug(
+                                "Ошибка при получении строк виджета: %s", widget_error
+                            )
                     else:
                         content_lines.append(str(widget))
         elif hasattr(self._content, "get_lines"):
@@ -86,5 +89,6 @@ class ScrollArea(ptg.ScrollableWidget):
     def __len__(self) -> int:
         """Вернуть высоту области."""
         return self._height
+
 
 __all__ = ["ScrollArea"]

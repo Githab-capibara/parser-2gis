@@ -17,6 +17,7 @@ import pytermgui as ptg
 if TYPE_CHECKING:
     from ..app import TUIApp
 
+
 class NavigableWidget(ptg.Widget):
     """
     Базовый класс для виджетов с поддержкой навигации.
@@ -112,6 +113,7 @@ class NavigableWidget(ptg.Widget):
             Список строк для рендеринга
         """
         return []
+
 
 class NavigableContainer(ptg.Container):
     """
@@ -289,6 +291,7 @@ class NavigableContainer(ptg.Container):
             return self._widgets[self._focus_index]
         return None
 
+
 class ButtonWidget(NavigableWidget):
     """
     Виджет кнопки с поддержкой навигации.
@@ -297,7 +300,9 @@ class ButtonWidget(NavigableWidget):
     обработки клавиш Enter и визуального отображения фокуса.
     """
 
-    def __init__(self, label: str, onclick: Callable[[], None] | None = None, **kwargs: Any) -> None:
+    def __init__(
+        self, label: str, onclick: Callable[[], None] | None = None, **kwargs: Any
+    ) -> None:
         """
         Инициализация кнопки.
 

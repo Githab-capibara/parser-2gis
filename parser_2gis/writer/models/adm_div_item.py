@@ -4,6 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+
 class Flags(BaseModel):
     """Флаги административной единицы.
 
@@ -33,6 +34,7 @@ class Flags(BaseModel):
     # Cтрока, наличие которой говорит о том, что филиал временно не работает.
     # В строке выгружается код причины закрытия.
     temporary_closed: Optional[str] = None
+
 
 class AdmDivItem(BaseModel):
     """Модель административно-территориальной единицы.

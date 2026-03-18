@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Optional
 if TYPE_CHECKING:
     from typing import TYPE_CHECKING
 
+
 class ScreenManager:
     """
     Менеджер экранов для навигации между окнами.

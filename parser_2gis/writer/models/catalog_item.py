@@ -15,6 +15,7 @@ from .reviews import Reviews
 from .rubric import Rubric
 from .schedule import Schedule
 
+
 class CatalogItem(BaseModel):
     """Модель элемента каталога (филиала организации).
 

@@ -13,6 +13,7 @@ except ImportError:
 
     PYDANTIC_V2 = False
 
+
 class DOMNode(BaseModel):
     """DOM узел.
 
@@ -52,7 +53,9 @@ class DOMNode(BaseModel):
         attributes = {}
         attributes_list_count = len(attributes_list)
         if attributes_list_count % 2 != 0:
-            raise ValueError("Список атрибутов должен содержать чётное количество элементов")
+            raise ValueError(
+                "Список атрибутов должен содержать чётное количество элементов"
+            )
         for name_idx in range(0, attributes_list_count, 2):
             attributes[attributes_list[name_idx]] = attributes_list[name_idx + 1]
         return attributes

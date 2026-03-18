@@ -45,6 +45,7 @@ except ImportError:
     _use_orjson = False
     orjson = None  # type: ignore
 
+
 def _serialize_json(data: Dict[str, Any]) -> str:
     """
     Сериализует данные в JSON формат.
@@ -84,6 +85,7 @@ def _serialize_json(data: Dict[str, Any]) -> str:
                 f"Критическая ошибка сериализации json: {json_error}. "
                 f"Тип данных: {type(data).__name__}"
             ) from json_error
+
 
 def _deserialize_json(data: str) -> Dict[str, Any]:
     """
@@ -126,6 +128,7 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
             f"Длина данных: {len(data)}"
         ) from json_error
 
+
 # Экспортируемые символы модуля
 __all__ = ["CacheManager"]
 
@@ -150,6 +153,7 @@ LRU_EVICT_BATCH: int = 100
 
 # Длина SHA256 хеша в hex формате
 SHA256_HASH_LENGTH: int = 64
+
 
 class _ConnectionPool:
     """
@@ -288,6 +292,7 @@ class _ConnectionPool:
                 del_error,
                 exc_info=True,
             )
+
 
 class CacheManager:
     """Менеджер кэша результатов парсинга.
@@ -1107,6 +1112,7 @@ class CacheManager:
             logger.warning("Ошибка при проверке размера кэша: %s", os_error)
         except sqlite3.Error as db_error:
             logger.warning("Ошибка БД при LRU eviction: %s", db_error)
+
 
 # Алиас для обратной совместимости
 Cache = CacheManager

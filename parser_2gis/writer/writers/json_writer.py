@@ -6,6 +6,7 @@ from typing import Any
 from ...logger import logger
 from .file_writer import FileWriter
 
+
 class JSONWriter(FileWriter):
     """Писатель в JSON файл.
 

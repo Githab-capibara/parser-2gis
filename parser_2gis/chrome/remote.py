@@ -20,13 +20,11 @@ from websocket import WebSocketException, WebSocketTimeoutException
 from ..common import wait_until_finished
 from ..logger import logger
 from .browser import ChromeBrowser
-from .constants import (
-    CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
-    MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
-    MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
-    RATE_LIMIT_CALLS,  # L4: магические числа вынесены в константы
-    RATE_LIMIT_PERIOD,  # L4: магические числа вынесены в константы
-)
+from .constants import CHROME_STARTUP_DELAY  # L4: магические числа вынесены в константы
+from .constants import MAX_JS_CODE_LENGTH  # L4: магические числа вынесены в константы
+from .constants import MAX_TOTAL_JS_SIZE  # L4: магические числа вынесены в константы
+from .constants import RATE_LIMIT_CALLS  # L4: магические числа вынесены в константы
+from .constants import RATE_LIMIT_PERIOD  # L4: магические числа вынесены в константы
 from .dom import DOMNode
 from .exceptions import ChromeException
 from .patches import patch_all

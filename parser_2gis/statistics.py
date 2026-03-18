@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+
 @dataclass
 class ParserStatistics:
     """Статистика работы парсера.
@@ -88,6 +89,7 @@ class ParserStatistics:
         if self.cache_hits < 0 or self.cache_hits > total_cache_requests:
             return 0.0
         return (self.cache_hits / total_cache_requests) * 100
+
 
 class StatisticsExporter:
     """Экспортер статистики работы парсера.
@@ -233,9 +235,19 @@ class StatisticsExporter:
             Словарь с данными для CSV
         """
         return {
-            "Время начала": (stats.start_time.strftime("%Y-%m-%d %H:%M:%S") if stats.start_time else "Не запущено"),
-            "Время завершения": (stats.end_time.strftime("%Y-%m-%d %H:%M:%S") if stats.end_time else "Не завершено"),
-            "Время работы": (str(stats.elapsed_time) if stats.elapsed_time else "Не завершено"),
+            "Время начала": (
+                stats.start_time.strftime("%Y-%m-%d %H:%M:%S")
+                if stats.start_time
+                else "Не запущено"
+            ),
+            "Время завершения": (
+                stats.end_time.strftime("%Y-%m-%d %H:%M:%S")
+                if stats.end_time
+                else "Не завершено"
+            ),
+            "Время работы": (
+                str(stats.elapsed_time) if stats.elapsed_time else "Не завершено"
+            ),
             "Всего URL": str(stats.total_urls),
             "Всего страниц": str(stats.total_pages),
             "Всего записей": str(stats.total_records),

@@ -89,7 +89,7 @@ if __name__ == "__main__":
             "Changelog": "https://github.com/Githab-capibara/parser-2gis/blob/main/CHANGELOG.md",
         },
         install_requires=[
-            "pychrome==0.2.4",
+            "pychrome>=0.3.0",
             "pydantic>=2.0.0,<3",
             "psutil>=5.4.8",
             "requests>=2.32.4",

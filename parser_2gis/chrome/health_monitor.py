@@ -19,6 +19,7 @@ from parser_2gis.logger import logger
 if TYPE_CHECKING:
     from .browser import ChromeBrowser
 
+
 class HealthStatusDict(TypedDict, total=False):
     """Словарь состояния здоровья браузера."""
 
@@ -28,6 +29,7 @@ class HealthStatusDict(TypedDict, total=False):
     time_since_activity: float
     critical_errors: int
     recommendation: Optional[str]
+
 
 class BrowserHealthMonitor:
     """
@@ -42,7 +44,9 @@ class BrowserHealthMonitor:
     CPU_THRESHOLD_PERCENT = 95  # 95%
     STALL_THRESHOLD_SEC = 120  # 2 минуты без ответа
 
-    def __init__(self, browser: "ChromeBrowser", enable_auto_restart: bool = True) -> None:
+    def __init__(
+        self, browser: "ChromeBrowser", enable_auto_restart: bool = True
+    ) -> None:
         """
         Инициализирует монитор.
 
@@ -112,15 +116,21 @@ class BrowserHealthMonitor:
                     issues = []
 
                     if memory_mb > self.MEMORY_THRESHOLD_MB:
-                        issues.append(f"Память превышена: {memory_mb:.1f} МБ > {self.MEMORY_THRESHOLD_MB} МБ")
+                        issues.append(
+                            f"Память превышена: {memory_mb:.1f} МБ > {self.MEMORY_THRESHOLD_MB} МБ"
+                        )
                         health_status["healthy"] = False
 
                     if cpu_percent > self.CPU_THRESHOLD_PERCENT:
-                        issues.append(f"CPU перегружен: {cpu_percent:.1f}% > {self.CPU_THRESHOLD_PERCENT}%")
+                        issues.append(
+                            f"CPU перегружен: {cpu_percent:.1f}% > {self.CPU_THRESHOLD_PERCENT}%"
+                        )
                         health_status["healthy"] = False
 
                     if time_since_activity > self.STALL_THRESHOLD_SEC:
-                        issues.append(f"Браузер завис: {time_since_activity:.1f} сек > {self.STALL_THRESHOLD_SEC} сек")
+                        issues.append(
+                            f"Браузер завис: {time_since_activity:.1f} сек > {self.STALL_THRESHOLD_SEC} сек"
+                        )
                         health_status["healthy"] = False
 
                     # Формируем рекомендацию
@@ -136,8 +146,13 @@ class BrowserHealthMonitor:
                             self._critical_errors_count += 1
 
                         # Рекомендуем перезапуск
-                        if self._enable_auto_restart and health_status["recommendation"]:
-                            health_status["recommendation"] += ". Рекомендуется перезапуск."
+                        if (
+                            self._enable_auto_restart
+                            and health_status["recommendation"]
+                        ):
+                            health_status[
+                                "recommendation"
+                            ] += ". Рекомендуется перезапуск."
 
                 except psutil.NoSuchProcess:
                     logger.error("Процесс браузера не найден")
@@ -175,7 +190,8 @@ class BrowserHealthMonitor:
             # Перезапуск если много критических ошибок
             if self._critical_errors_count >= 3:
                 logger.warning(
-                    "Превышен порог критических ошибок (%d). " "Рекомендуется перезапуск браузера.",
+                    "Превышен порог критических ошибок (%d). "
+                    "Рекомендуется перезапуск браузера.",
                     self._critical_errors_count,
                 )
                 return True
@@ -244,4 +260,6 @@ class BrowserHealthMonitor:
             enabled: True для включения, False для отключения.
         """
         self._enable_auto_restart = enabled
-        logger.info("Автоматический перезапуск: %s", "включен" if enabled else "отключен")
+        logger.info(
+            "Автоматический перезапуск: %s", "включен" if enabled else "отключен"
+        )

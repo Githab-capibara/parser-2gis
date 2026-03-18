@@ -20,8 +20,9 @@ import signal
 import threading
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
+from concurrent.futures import as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 

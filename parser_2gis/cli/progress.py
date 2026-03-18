@@ -21,6 +21,7 @@ except ImportError:
 # Получаем логгер для вывода сообщений
 _logger = logging.getLogger("parser-2gis.progress")
 
+
 @dataclass
 class ProgressStats:
     """Статистика прогресса парсинга.
@@ -43,6 +44,7 @@ class ProgressStats:
     current_record: int = 0
     started_at: Optional[float] = None
     finished_at: Optional[float] = None
+
 
 class ProgressManager:
     """Менеджер прогресс-бара для CLI режима.
@@ -80,7 +82,10 @@ class ProgressManager:
             ImportError: Если tqdm не установлен и disable=False
         """
         if not TQDM_AVAILABLE and not disable:
-            raise ImportError("Для работы прогресс-бара требуется библиотека tqdm. " "Установите её: pip install tqdm")
+            raise ImportError(
+                "Для работы прогресс-бара требуется библиотека tqdm. "
+                "Установите её: pip install tqdm"
+            )
 
         self._disable = disable
         self._stats = ProgressStats()
@@ -166,22 +171,34 @@ class ProgressManager:
                 try:
                     self._page_bar.close()
                 except Exception as e:
-                    _logger.warning(f"Ошибка закрытия прогресс-бара страниц: {e}. " f"Функция: {self.finish.__name__}")
+                    _logger.warning(
+                        f"Ошибка закрытия прогресс-бара страниц: {e}. "
+                        f"Функция: {self.finish.__name__}"
+                    )
 
             if self._record_bar:
                 try:
                     self._record_bar.close()
                 except Exception as e:
-                    _logger.warning(f"Ошибка закрытия прогресс-бара записей: {e}. " f"Функция: {self.finish.__name__}")
+                    _logger.warning(
+                        f"Ошибка закрытия прогресс-бара записей: {e}. "
+                        f"Функция: {self.finish.__name__}"
+                    )
 
             # Выводим итоговую статистику
             if not self._disable:
                 # Рассчитываем прошедшее время с защитой от None
-                started = self._stats.started_at if self._stats.started_at is not None else 0
-                elapsed = self._stats.finished_at - started if self._stats.finished_at else 0
+                started = (
+                    self._stats.started_at if self._stats.started_at is not None else 0
+                )
+                elapsed = (
+                    self._stats.finished_at - started if self._stats.finished_at else 0
+                )
 
                 # Рассчитываем скорость обработки с защитой от деления на ноль
-                records_per_sec = self._stats.current_record / elapsed if elapsed > 0 else 0
+                records_per_sec = (
+                    self._stats.current_record / elapsed if elapsed > 0 else 0
+                )
 
                 # Выводим результаты через logger вместо print
                 _logger.info(
@@ -221,19 +238,28 @@ class ProgressManager:
                 try:
                     self._page_bar.close()
                 except Exception as e:
-                    _logger.warning(f"Ошибка закрытия прогресс-бара страниц при сбросе: {e}. " f"Функция: {self.reset.__name__}")
+                    _logger.warning(
+                        f"Ошибка закрытия прогресс-бара страниц при сбросе: {e}. "
+                        f"Функция: {self.reset.__name__}"
+                    )
 
             if self._record_bar:
                 try:
                     self._record_bar.close()
                 except Exception as e:
-                    _logger.warning(f"Ошибка закрытия прогресс-бара записей при сбросе: {e}. " f"Функция: {self.reset.__name__}")
+                    _logger.warning(
+                        f"Ошибка закрытия прогресс-бара записей при сбросе: {e}. "
+                        f"Функция: {self.reset.__name__}"
+                    )
 
             self._stats = ProgressStats()
             self._page_bar = None
             self._record_bar = None
         except Exception as e:
-            _logger.exception(f"Ошибка при сбросе прогресс-бара: {e}. " f"Функция: {self.reset.__name__}")
+            _logger.exception(
+                f"Ошибка при сбросе прогресс-бара: {e}. "
+                f"Функция: {self.reset.__name__}"
+            )
             raise
 
     @property

@@ -22,10 +22,13 @@ import psutil
 
 from .logger import logger
 
+
 class ParallelTask:
     """Задача для параллельного парсинга."""
 
-    def __init__(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
+    def __init__(
+        self, url: str, category_name: str, city_name: str, priority: int = 0
+    ) -> None:
         """
         Инициализирует задачу.
 
@@ -70,6 +73,7 @@ class ParallelTask:
         elif self.start_time:
             return time.time() - self.start_time
         return 0
+
 
 class ParallelOptimizer:
     """
@@ -127,7 +131,9 @@ class ParallelOptimizer:
             max_memory_mb,
         )
 
-    def add_task(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
+    def add_task(
+        self, url: str, category_name: str, city_name: str, priority: int = 0
+    ) -> None:
         """
         Добавляет задачу в очередь.
 
@@ -287,7 +293,9 @@ class ParallelOptimizer:
             stats["pending_tasks"] = self._tasks.qsize()
             stats["active_tasks"] = len(self._active_tasks)
             stats["progress"] = (
-                self._stats["completed"] / self._stats["total_tasks"] * 100 if self._stats["total_tasks"] > 0 else 0
+                self._stats["completed"] / self._stats["total_tasks"] * 100
+                if self._stats["total_tasks"] > 0
+                else 0
             )
             return stats
 
@@ -354,7 +362,10 @@ class ParallelOptimizer:
 
                 # Запускаем новые задачи если есть ресурсы
                 # Оптимизация 3.5: Queue.empty() для проверки наличия задач
-                while len(self._active_tasks) < self._max_workers and not self._tasks.empty():
+                while (
+                    len(self._active_tasks) < self._max_workers
+                    and not self._tasks.empty()
+                ):
                     task = self.get_next_task()
                     if task:
                         future = executor.submit(parse_func, task)

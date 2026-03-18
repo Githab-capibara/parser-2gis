@@ -11,6 +11,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
 
+
 class FileLogger:
     """Логгер с поддержкой записи в файл.
 
@@ -145,7 +146,9 @@ class FileLogger:
             session_logger = logging.getLogger("parser-2gis")
             session_logger.info("=" * 80)
             session_logger.info("НАЧАЛО НОВОЙ СЕССИИ")
-            session_logger.info(f"Время запуска: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            session_logger.info(
+                f"Время запуска: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
             # Проверяем, что файл лога существует перед вызовом absolute()
             if self._log_file:
                 session_logger.info(f"Файл лога: {self._log_file.absolute()}")
@@ -203,13 +206,18 @@ class FileLogger:
                 session_logger = logging.getLogger("parser-2gis")
                 session_logger.info("=" * 80)
                 session_logger.info("ЗАВЕРШЕНИЕ СЕССИИ")
-                session_logger.info(f"Время завершения: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                session_logger.info(
+                    f"Время завершения: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                )
                 session_logger.info("=" * 80)
 
                 try:
                     self._file_handler.close()
                 except Exception as e:
-                    session_logger.error(f"Ошибка закрытия файлового обработчика: {e}. " f"Функция: {self.close.__name__}")
+                    session_logger.error(
+                        f"Ошибка закрытия файлового обработчика: {e}. "
+                        f"Функция: {self.close.__name__}"
+                    )
                 finally:
                     self._file_handler = None
         except (KeyboardInterrupt, SystemExit):
@@ -217,7 +225,10 @@ class FileLogger:
         except Exception as e:
             import sys
 
-            sys.stderr.write(f"Ошибка при закрытии файлового логгера: {e}. " f"Функция: {self.close.__name__}\n")
+            sys.stderr.write(
+                f"Ошибка при закрытии файлового логгера: {e}. "
+                f"Функция: {self.close.__name__}\n"
+            )
             # Не пробрасываем ошибку, чтобы не нарушить завершение работы
 
     def __enter__(self) -> "FileLogger":
