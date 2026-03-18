@@ -20,13 +20,12 @@ import signal
 import threading
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from concurrent.futures import as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
-from .common import generate_category_url, DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE
+from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .logger import log_parser_finish, logger, print_progress
 from .parser import get_parser
 from .writer import get_writer
@@ -89,7 +88,8 @@ MAX_UNIQUE_NAME_ATTEMPTS: int = 10
 # - 5 минут - достаточно для обработки больших файлов (1GB+)
 # - Защита от зависших процессов (осиротевшие lock файлы)
 # - Достаточно времени для завершения медленных дисковых операций
-MERGE_LOCK_TIMEOUT: int = 300
+# ИСПРАВЛЕНИЕ 3: Вынесено в переменную окружения PARSER_MERGE_LOCK_TIMEOUT с дефолтным значением
+MERGE_LOCK_TIMEOUT: int = int(os.getenv("PARSER_MERGE_LOCK_TIMEOUT", "300"))
 
 # Максимальный возраст lock файла в секундах (5 минут)
 # ОБОСНОВАНИЕ: 300 секунд выбрано исходя из:
@@ -97,7 +97,8 @@ MERGE_LOCK_TIMEOUT: int = 300
 # - 5 минут - 5x запас на случай медленных дисков/больших файлов
 # - Lock файлы старше считаются осиротевшими (процесс упал)
 # - Баланс между защитой от race condition и очисткой мусора
-MAX_LOCK_FILE_AGE: int = 300
+# ИСПРАВЛЕНИЕ 3: Вынесено в переменную окружения PARSER_MAX_LOCK_FILE_AGE с дефолтным значением
+MAX_LOCK_FILE_AGE: int = int(os.getenv("PARSER_MAX_LOCK_FILE_AGE", "300"))
 
 # =============================================================================
 # КОНСТАНТА ДЛЯ ОГРАНИЧЕНИЯ ВРЕМЕННЫХ ФАЙЛОВ (ИСПРАВЛЕНИЕ M5)
@@ -108,7 +109,8 @@ MAX_LOCK_FILE_AGE: int = 300
 # - Типичное количество временных файлов: 10-100
 # - 1000 - разумный лимит для предотвращения утечки памяти
 # - При достижении лимита происходит LRU eviction
-MAX_TEMP_FILES: int = 1000
+# ИСПРАВЛЕНИЕ 3: Вынесено в переменную окружения PARSER_MAX_TEMP_FILES с дефолтным значением
+MAX_TEMP_FILES: int = int(os.getenv("PARSER_MAX_TEMP_FILES", "1000"))
 
 # =============================================================================
 # ГЛОБАЛЬНЫЙ НАБОР ДЛЯ ОТСЛЕЖИВАНИЯ ВРЕМЕННЫХ ФАЙЛОВ (ATEXIT ОЧИСТКА)
@@ -120,6 +122,7 @@ MAX_TEMP_FILES: int = 1000
 
 _temp_files_lock = threading.RLock()
 _temp_files_registry: set[Path] = set()
+
 
 def _register_temp_file(file_path: Path) -> None:
     """Регистрирует временный файл для последующей очистки.
@@ -134,7 +137,6 @@ def _register_temp_file(file_path: Path) -> None:
     """
     if _temp_files_lock.acquire(timeout=5.0):
         try:
-            
             if len(_temp_files_registry) >= MAX_TEMP_FILES:
                 # Удаляем oldest записи (50% от лимита)
                 # Примечание: set неупорядочен, поэтому удаляем случайные элементы
@@ -152,6 +154,7 @@ def _register_temp_file(file_path: Path) -> None:
         finally:
             _temp_files_lock.release()
 
+
 def _unregister_temp_file(file_path: Path) -> None:
     """Удаляет временный файл из реестра.
 
@@ -164,6 +167,7 @@ def _unregister_temp_file(file_path: Path) -> None:
         finally:
             _temp_files_lock.release()
 
+
 def _cleanup_all_temp_files() -> None:
     """Очищает все зарегистрированные временные файлы.
 
@@ -175,13 +179,18 @@ def _cleanup_all_temp_files() -> None:
                 try:
                     if temp_file.exists():
                         temp_file.unlink()
-                        logger.debug("Временный файл удалён через atexit: %s", temp_file)
+                        logger.debug(
+                            "Временный файл удалён через atexit: %s", temp_file
+                        )
                 except Exception as e:
-                    logger.debug("Не удалось удалить временный файл %s: %s", temp_file, e)
+                    logger.debug(
+                        "Не удалось удалить временный файл %s: %s", temp_file, e
+                    )
                 finally:
                     _temp_files_registry.discard(temp_file)
         finally:
             _temp_files_lock.release()
+
 
 # Регистрируем очистку через atexit для гарантированной очистки при аварийном завершении
 atexit.register(_cleanup_all_temp_files)
@@ -190,8 +199,11 @@ atexit.register(_cleanup_all_temp_files)
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ РЕФАКТОРИНГА MERGE_CSV_FILES
 # =============================================================================
 
+
 def _acquire_merge_lock(
-    lock_file_path: Path, timeout: int = MERGE_LOCK_TIMEOUT, log_callback: Optional[Callable[[str, str], None]] = None
+    lock_file_path: Path,
+    timeout: int = MERGE_LOCK_TIMEOUT,
+    log_callback: Optional[Callable[[str, str], None]] = None,
 ) -> tuple[Optional[object], bool]:
     """Получает блокировку для merge операции.
 
@@ -221,10 +233,16 @@ def _acquire_merge_lock(
         try:
             lock_age = time.time() - lock_file_path.stat().st_mtime
             if lock_age > MAX_LOCK_FILE_AGE:
-                log(f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек)", "debug")
+                log(
+                    f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек)",
+                    "debug",
+                )
                 lock_file_path.unlink()
             else:
-                log(f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...", "warning")
+                log(
+                    f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...",
+                    "warning",
+                )
         except OSError:
             pass
 
@@ -253,6 +271,7 @@ def _acquire_merge_lock(
             time.sleep(1)
 
     return lock_file_handle, lock_acquired
+
 
 def _merge_csv_files(
     file_paths: list[Path],
@@ -294,9 +313,10 @@ def _merge_csv_files(
     writer = None
 
     try:
-        
         try:
-            outfile = open(output_path, "w", encoding=encoding, newline="", buffering=buffer_size)
+            outfile = open(
+                output_path, "w", encoding=encoding, newline="", buffering=buffer_size
+            )
         except OSError as output_error:
             log(f"Ошибка записи в выходной файл {output_path}: {output_error}", "error")
             return False, 0, []
@@ -314,14 +334,25 @@ def _merge_csv_files(
                 stem = csv_file.stem
                 last_underscore_idx = stem.rfind("_")
                 category_name = (
-                    stem[last_underscore_idx + 1 :].replace("_", " ") if last_underscore_idx > 0 else stem.replace("_", " ")
+                    stem[last_underscore_idx + 1 :].replace("_", " ")
+                    if last_underscore_idx > 0
+                    else stem.replace("_", " ")
                 )
 
                 if last_underscore_idx <= 0:
-                    log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
+                    log(
+                        f"Предупреждение: файл {csv_file.name} не содержит категорию в имени",
+                        "warning",
+                    )
 
                 try:
-                    infile = open(csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size)
+                    infile = open(
+                        csv_file,
+                        "r",
+                        encoding="utf-8-sig",
+                        newline="",
+                        buffering=buffer_size,
+                    )
                 except OSError as file_error:
                     log(f"Ошибка доступа к файлу {csv_file}: {file_error}", "error")
                     return False, 0, []
@@ -363,7 +394,10 @@ def _merge_csv_files(
                         batch_total += len(batch)
 
                     total_rows += batch_total
-                    log(f"Файл {csv_file.name} обработан (строк: {batch_total})", "debug")
+                    log(
+                        f"Файл {csv_file.name} обработан (строк: {batch_total})",
+                        "debug",
+                    )
 
                 files_to_delete.append(csv_file)
 
@@ -375,14 +409,16 @@ def _merge_csv_files(
             return True, total_rows, files_to_delete
 
     except OSError as e:
-        
         log(f"Ошибка операционной системы при объединении CSV: {e}", "error")
         return False, 0, []
     except Exception as e:
         log(f"Ошибка при объединении CSV: {e}", "error")
         return False, 0, []
 
-def _cleanup_source_files(file_paths: list[Path], log_callback: Optional[Callable[[str, str], None]] = None) -> int:
+
+def _cleanup_source_files(
+    file_paths: list[Path], log_callback: Optional[Callable[[str, str], None]] = None
+) -> int:
     """Очищает исходные файлы после объединения.
 
     Args:
@@ -407,7 +443,10 @@ def _cleanup_source_files(file_paths: list[Path], log_callback: Optional[Callabl
             log(f"Не удалось удалить файл {csv_file}: {e}", "warning")
     return deleted_count
 
-def _validate_merged_file(output_path: Path, log_callback: Optional[Callable[[str, str], None]] = None) -> bool:
+
+def _validate_merged_file(
+    output_path: Path, log_callback: Optional[Callable[[str, str], None]] = None
+) -> bool:
     """Валидирует объединённый файл.
 
     Args:
@@ -430,11 +469,16 @@ def _validate_merged_file(output_path: Path, log_callback: Optional[Callable[[st
         log(f"Объединённый файл пуст: {output_path}", "error")
         return False
 
-    log(f"Объединённый файл валиден: {output_path.name} ({output_path.stat().st_size} байт)", "info")
+    log(
+        f"Объединённый файл валиден: {output_path.name} ({output_path.stat().st_size} байт)",
+        "info",
+    )
     return True
+
 
 if TYPE_CHECKING:
     from .config import Configuration
+
 
 class ParallelCityParser:
     """
@@ -471,11 +515,15 @@ class ParallelCityParser:
 
         # Валидация входных данных: ограничение max_workers (1-20)
         if not MIN_WORKERS <= max_workers <= MAX_WORKERS:
-            raise ValueError(f"max_workers должен быть от {MIN_WORKERS} до {MAX_WORKERS}")
+            raise ValueError(
+                f"max_workers должен быть от {MIN_WORKERS} до {MAX_WORKERS}"
+            )
 
         # Валидация timeout_per_url (60-3600 секунд)
         if not MIN_TIMEOUT <= timeout_per_url <= MAX_TIMEOUT:
-            raise ValueError(f"timeout_per_url должен быть от {MIN_TIMEOUT} до {MAX_TIMEOUT} секунд")
+            raise ValueError(
+                f"timeout_per_url должен быть от {MIN_TIMEOUT} до {MAX_TIMEOUT} секунд"
+            )
 
         self.cities = cities
         self.categories = categories
@@ -487,7 +535,9 @@ class ParallelCityParser:
         # Проверка существования output_dir и прав на запись
         if self.output_dir.exists():
             if not self.output_dir.is_dir():
-                raise ValueError(f"output_dir существует, но не является директорией: {output_dir}")
+                raise ValueError(
+                    f"output_dir существует, но не является директорией: {output_dir}"
+                )
             # EAFP подход: проверяем права попыткой записи тестового файла
             # Это защищает от race condition между проверкой и фактической записью
             test_file: Optional[Path] = None
@@ -495,14 +545,20 @@ class ParallelCityParser:
                 test_file = self.output_dir / ".write_test"
                 test_file.touch()
             except (OSError, PermissionError) as e:
-                raise ValueError(f"Нет прав на запись в директорию: {output_dir}. Ошибка: {e}")
+                raise ValueError(
+                    f"Нет прав на запись в директорию: {output_dir}. Ошибка: {e}"
+                )
             finally:
                 # Гарантируем удаление тестового файла
                 if test_file is not None and test_file.exists():
                     try:
                         test_file.unlink()
                     except Exception as cleanup_error:
-                        logger.warning("Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error)
+                        logger.warning(
+                            "Не удалось удалить тестовый файл %s: %s",
+                            test_file,
+                            cleanup_error,
+                        )
         else:
             # Попытка создать директорию
             test_file = None
@@ -512,14 +568,20 @@ class ParallelCityParser:
                 test_file = self.output_dir / ".write_test"
                 test_file.touch()
             except (OSError, PermissionError) as e:
-                raise ValueError(f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}")
+                raise ValueError(
+                    f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}"
+                )
             finally:
                 # Гарантируем удаление тестового файла
                 if test_file is not None and test_file.exists():
                     try:
                         test_file.unlink()
                     except Exception as cleanup_error:
-                        logger.warning("Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error)
+                        logger.warning(
+                            "Не удалось удалить тестовый файл %s: %s",
+                            test_file,
+                            cleanup_error,
+                        )
 
         # Статистика (все операции защищены _lock)
         self._stats = {
@@ -610,7 +672,9 @@ class ParallelCityParser:
 
         # Используем signal.alarm для установки таймаута на парсинг (только Unix)
         timeout_occurred = False
-        use_signal_timeout = hasattr(signal, "alarm")  # Проверяем поддержку signal.alarm
+        use_signal_timeout = hasattr(
+            signal, "alarm"
+        )  # Проверяем поддержку signal.alarm
 
         # Формируем целевое имя файла
         safe_city = city_name.replace(" ", "_").replace("/", "_")
@@ -621,7 +685,9 @@ class ParallelCityParser:
         # Создаём уникальное временное имя файла
         # ВАЖНО: Используем PID процесса для уникальности и предотвращения race condition
         # uuid.uuid4() + pid гарантирует уникальность даже при параллельном запуске
-        temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+        temp_filename = (
+            f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+        )
         temp_filepath = self.output_dir / temp_filename
 
         # ВАЖНО: Атомарное создание временного файла для предотвращения race condition
@@ -694,7 +760,9 @@ class ParallelCityParser:
                 """Обработчик сигнала таймаута."""
                 nonlocal timeout_occurred
                 timeout_occurred = True
-                raise TimeoutError(f"Превышен таймаут парсинга ({self.timeout_per_url} сек)")
+                raise TimeoutError(
+                    f"Превышен таймаут парсинга ({self.timeout_per_url} сек)"
+                )
 
             old_handler = signal.signal(signal.SIGALRM, timeout_handler)
             signal.alarm(self.timeout_per_url)  # Устанавливаем таймаут
@@ -705,15 +773,42 @@ class ParallelCityParser:
                 "info",
             )
 
-            # Создаем парсер
-            with get_parser(
-                url,
-                chrome_options=self.config.chrome,
-                parser_options=self.config.parser,
-            ) as parser:
-                # Создаем writer для этого URL (запись во временный файл)
-                # Writer создаст свой файл, заменив пустой временный файл
-                with get_writer(str(temp_filepath), "csv", self.config.writer) as writer:
+            # ИСПРАВЛЕНИЕ 2: Обработка исключений при инициализации parser/writer
+            try:
+                writer = get_writer(str(temp_filepath), "csv", self.config.writer)
+                parser = get_parser(
+                    url,
+                    chrome_options=self.config.chrome,
+                    parser_options=self.config.parser,
+                )
+            except Exception as init_error:
+                self.log(
+                    f"Ошибка инициализации для {url}: {init_error}",
+                    "error",
+                )
+                # Удаляем временный файл при ошибке инициализации
+                try:
+                    if temp_filepath.exists():
+                        temp_filepath.unlink()
+                        self.log(
+                            f"Временный файл удалён после ошибки инициализации: {temp_filename}",
+                            "debug",
+                        )
+                except Exception as cleanup_error:
+                    self.log(
+                        f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
+                        "warning",
+                    )
+
+                # Потокобезопасное обновление статистики
+                with self._lock:
+                    self._stats["failed"] += 1
+
+                return False, f"Ошибка инициализации: {init_error}"
+
+            # Создаем парсер и writer с использованием контекстных менеджеров
+            with parser:
+                with writer:
                     # Парсим с гарантированной очисткой ресурсов
                     try:
                         parser.parse(writer)
@@ -723,7 +818,7 @@ class ParallelCityParser:
                         pass
 
             # После успешного парсинга переименовываем временный файл в целевой
-            
+
             # Используем os.replace() вместо shutil.move для гарантии атомарности
             # os.replace() гарантирует атомарную замену на POSIX системах
             # Это предотвращает race condition при параллельном переименовании
@@ -764,9 +859,14 @@ class ParallelCityParser:
                     raise move_error
 
             if move_success:
-                self.log(f"Временный файл переименован: {temp_filename} → {filename}", "debug")
+                self.log(
+                    f"Временный файл переименован: {temp_filename} → {filename}",
+                    "debug",
+                )
 
-            self.log(f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info")
+            self.log(
+                f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info"
+            )
 
             # Потокобезопасное обновление статистики
             with self._lock:
@@ -780,7 +880,6 @@ class ParallelCityParser:
             return True, str(filepath)
 
         except TimeoutError as timeout_error:
-            
             self.log(
                 f"Таймаут парсинга {city_name} - {category_name} ({self.timeout_per_url} сек): {timeout_error}",
                 "error",
@@ -790,7 +889,10 @@ class ParallelCityParser:
             try:
                 if temp_filepath.exists():
                     temp_filepath.unlink()
-                    self.log(f"Временный файл удалён после таймаута: {temp_filename}", "debug")
+                    self.log(
+                        f"Временный файл удалён после таймаута: {temp_filename}",
+                        "debug",
+                    )
             except Exception as cleanup_error:
                 self.log(
                     f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
@@ -815,7 +917,9 @@ class ParallelCityParser:
             try:
                 if temp_filepath.exists():
                     temp_filepath.unlink()
-                    self.log(f"Временный файл удалён после ошибки: {temp_filename}", "debug")
+                    self.log(
+                        f"Временный файл удалён после ошибки: {temp_filename}", "debug"
+                    )
             except Exception as cleanup_error:
                 self.log(
                     f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
@@ -834,7 +938,6 @@ class ParallelCityParser:
             return False, str(e)
 
         finally:
-            
             if use_signal_timeout and old_handler is not None:
                 signal.alarm(0)  # Отменяем таймаут
                 signal.signal(signal.SIGALRM, old_handler)  # Восстанавливаем обработчик
@@ -939,7 +1042,9 @@ class ParallelCityParser:
                 try:
                     # Атомарное создание lock файла с эксклюзивной блокировкой
                     lock_file_handle = open(lock_file_path, "w")
-                    fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    fcntl.flock(
+                        lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB
+                    )
                     # Записываем PID процесса для отладки
                     lock_file_handle.write(f"{os.getpid()}\n")
                     lock_file_handle.flush()
@@ -951,7 +1056,10 @@ class ParallelCityParser:
                         try:
                             lock_file_handle.close()
                         except Exception as close_error:
-                            self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
+                            self.log(
+                                f"Ошибка при закрытии lock файла: {close_error}",
+                                "error",
+                            )
                         lock_file_handle = None
 
                     # Проверяем таймаут ожидания
@@ -988,9 +1096,15 @@ class ParallelCityParser:
                     try:
                         if temp_file.exists():
                             temp_file.unlink()
-                            self.log(f"Временный файл удалён при прерывании: {temp_file}", "debug")
+                            self.log(
+                                f"Временный файл удалён при прерывании: {temp_file}",
+                                "debug",
+                            )
                     except Exception as cleanup_error:
-                        self.log(f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}", "error")
+                        self.log(
+                            f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}",
+                            "error",
+                        )
 
         def signal_handler(signum, frame):
             """Обработчик сигналов прерывания."""
@@ -1010,7 +1124,13 @@ class ParallelCityParser:
                 self._merge_temp_files.append(temp_output)
 
             # Открываем с увеличенной буферизацией для улучшения производительности
-            with open(temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size) as outfile:
+            with open(
+                temp_output,
+                "w",
+                encoding=output_encoding,
+                newline="",
+                buffering=buffer_size,
+            ) as outfile:
                 temp_file_created = True  # Файл создан успешно
                 writer = None
                 total_rows = 0
@@ -1022,7 +1142,10 @@ class ParallelCityParser:
                         try:
                             temp_output.unlink()
                         except Exception as e:
-                            self.log(f"Не удалось удалить временный файл при отмене: {e}", "debug")
+                            self.log(
+                                f"Не удалось удалить временный файл при отмене: {e}",
+                                "debug",
+                            )
                         return False
 
                     if progress_callback:
@@ -1034,7 +1157,9 @@ class ParallelCityParser:
                     last_underscore_idx = stem.rfind("_")
 
                     if last_underscore_idx > 0:
-                        category_name = stem[last_underscore_idx + 1 :].replace("_", " ")
+                        category_name = stem[last_underscore_idx + 1 :].replace(
+                            "_", " "
+                        )
                     else:
                         category_name = stem.replace("_", " ")
                         self.log(
@@ -1043,7 +1168,13 @@ class ParallelCityParser:
                         )
 
                     # Читаем исходный файл с увеличенной буферизацией
-                    with open(csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size) as infile:
+                    with open(
+                        csv_file,
+                        "r",
+                        encoding="utf-8-sig",
+                        newline="",
+                        buffering=buffer_size,
+                    ) as infile:
                         reader = csv.DictReader(infile)
 
                         # Проверяем наличие заголовков
@@ -1074,7 +1205,6 @@ class ParallelCityParser:
                         batch_total = 0
 
                         for row in reader:
-                            
                             # Избегаем мутации исходного словаря, создаём копию
                             row_with_category = {"Категория": category_name, **row}
                             batch.append(row_with_category)
@@ -1095,7 +1225,8 @@ class ParallelCityParser:
                             "Файл %s обработан (строк: %d, пакетов: %d)",
                             csv_file.name,
                             batch_total,
-                            (batch_total // batch_size) + (1 if batch_total % batch_size else 0),
+                            (batch_total // batch_size)
+                            + (1 if batch_total % batch_size else 0),
                             level="debug",
                         )
 
@@ -1123,14 +1254,16 @@ class ParallelCityParser:
                             lock_file_handle.close()
                             lock_file_path.unlink()
                     except Exception as cleanup_error:
-                        self.log(f"Ошибка при удалении lock файла: {cleanup_error}", "error")
+                        self.log(
+                            f"Ошибка при удалении lock файла: {cleanup_error}", "error"
+                        )
 
                     return False
 
                 self.log(f"Объединение завершено. Всего записей: {total_rows}", "info")
 
             # Переименовываем временный файл в целевой
-            
+
             # Используем os.replace() вместо shutil.move для гарантии атомарности
             # os.replace() гарантирует атомарную замену на POSIX системах
             # Это предотвращает race condition при параллельном переименовании
@@ -1196,7 +1329,9 @@ class ParallelCityParser:
 
         except KeyboardInterrupt:
             # Обработка прерывания пользователем (Ctrl+C)
-            self.log("Объединение прервано пользователем (KeyboardInterrupt)", "warning")
+            self.log(
+                "Объединение прервано пользователем (KeyboardInterrupt)", "warning"
+            )
             cleanup_temp_files()
             return False
 
@@ -1210,7 +1345,10 @@ class ParallelCityParser:
                 signal.signal(signal.SIGINT, old_sigint_handler)
                 signal.signal(signal.SIGTERM, old_sigterm_handler)
             except Exception as restore_error:
-                self.log(f"Ошибка при восстановлении обработчиков сигналов: {restore_error}", "error")
+                self.log(
+                    f"Ошибка при восстановлении обработчиков сигналов: {restore_error}",
+                    "error",
+                )
 
             # Снимаем временный файл с регистрации в реестре atexit
             _unregister_temp_file(temp_output)
@@ -1237,11 +1375,15 @@ class ParallelCityParser:
                         fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_UN)
                         lock_file_handle.close()
                     except Exception as close_error:
-                        self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
+                        self.log(
+                            f"Ошибка при закрытии lock файла: {close_error}", "error"
+                        )
                 if lock_file_path.exists():
                     lock_file_path.unlink()
             except Exception as lock_cleanup_error:
-                self.log(f"Ошибка при очистке lock файла: {lock_cleanup_error}", "error")
+                self.log(
+                    f"Ошибка при очистке lock файла: {lock_cleanup_error}", "error"
+                )
 
             # Удаляем временный файл из списка экземпляра
             with self._merge_lock:
@@ -1268,8 +1410,10 @@ class ParallelCityParser:
         start_time = time.time()
         total_tasks = len(self.cities) * len(self.categories)
 
-        self.log(f"🚀 Запуск параллельного парсинга ({self.max_workers} потока)", "info")
-        self.log(f'📍 Города: {[c["name"] for c in self.cities]}', "info")
+        self.log(
+            f"🚀 Запуск параллельного парсинга ({self.max_workers} потока)", "info"
+        )
+        self.log(f"📍 Города: {[c['name'] for c in self.cities]}", "info")
         self.log(f"📑 Категории: {len(self.categories)}", "info")
         self.log(f"📊 Всего задач: {total_tasks}", "info")
 
@@ -1291,7 +1435,7 @@ class ParallelCityParser:
         executor = None
         try:
             executor = ThreadPoolExecutor(max_workers=self.max_workers)
-            
+
             # Создаём futures
             futures = {
                 executor.submit(
@@ -1322,8 +1466,15 @@ class ParallelCityParser:
 
                     # Выводим прогресс каждые 3 секунды
                     current_time = time.time()
-                    if current_time - last_progress_time >= PROGRESS_UPDATE_INTERVAL or idx == len(futures):
-                        progress_bar = print_progress(success_count + failed_count, len(futures), prefix="   Прогресс")
+                    if (
+                        current_time - last_progress_time >= PROGRESS_UPDATE_INTERVAL
+                        or idx == len(futures)
+                    ):
+                        progress_bar = print_progress(
+                            success_count + failed_count,
+                            len(futures),
+                            prefix="   Прогресс",
+                        )
                         self.log(progress_bar, "info")
                         last_progress_time = current_time
 
@@ -1342,15 +1493,17 @@ class ParallelCityParser:
                     )
 
         finally:
-            
             if executor is not None:
                 try:
-                    #shutdown(wait=True) ожидает завершения всех задач
+                    # shutdown(wait=True) ожидает завершения всех задач
                     # cancel_futures=True отменяет ожидающие задачи
                     executor.shutdown(wait=True, cancel_futures=True)
                     self.log("ThreadPoolExecutor корректно завершён", "debug")
                 except Exception as shutdown_error:
-                    self.log(f"Ошибка при shutdown ThreadPoolExecutor: {shutdown_error}", "error")
+                    self.log(
+                        f"Ошибка при shutdown ThreadPoolExecutor: {shutdown_error}",
+                        "error",
+                    )
 
         # Вычисляем длительность
         duration = time.time() - start_time
@@ -1410,6 +1563,7 @@ class ParallelCityParser:
         self._cancel_event.set()
         self.log("Получена команда остановки парсинга", "warning")
 
+
 class ParallelCityParserThread(ParallelCityParser, threading.Thread):
     """
     Поток для параллельного парсинга городов.
@@ -1445,7 +1599,9 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
         """Точка входа потока."""
         try:
             # Используем переданный output_file или путь по умолчанию
-            output_file = self._output_file or str(self.output_dir / "merged_result.csv")
+            output_file = self._output_file or str(
+                self.output_dir / "merged_result.csv"
+            )
             # Вызываем метод родительского класса ParallelCityParser.run
             self._result = ParallelCityParser.run(self, output_file=output_file)
         except Exception as e:

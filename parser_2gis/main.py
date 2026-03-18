@@ -32,11 +32,13 @@ from .logger import log_parser_finish, log_parser_start, logger, setup_cli_logge
 from .paths import data_path
 from .pydantic_compat import get_model_dump
 from .signal_handler import SignalHandler
+from .validation import validate_url
 from .version import version
 
 # =============================================================================
 # TYPE ALIASES И TYPEDDICT ДЛЯ УЛУЧШЕНИЯ ЧИТАЕМОСТИ
 # =============================================================================
+
 
 # Словарь города с обязательными ключами
 class CityDict(TypedDict):
@@ -50,6 +52,7 @@ class CityDict(TypedDict):
     name: str
     url: str
 
+
 # Словарь категории с обязательными ключами
 class CategoryDict(TypedDict):
     """Словарь категории для парсинга.
@@ -61,6 +64,7 @@ class CategoryDict(TypedDict):
 
     id: int
     name: str
+
 
 # Type alias для списка городов
 CitiesList = list[CityDict]
@@ -86,20 +90,27 @@ except ImportError as e:
     logger.error("Убедитесь, что все зависимости установлены: pip install -e .")
     raise
 
+
 # Опциональный импорт TUI модуля - создаём stub функцию если недоступен
 def _tui_omsk_stub() -> None:
     """Stub функция для TUI когда модуль недоступен."""
     logger.error("TUI модуль (pytermgui) недоступен. Установите: pip install pytermgui")
     raise RuntimeError("TUI модуль недоступен")
 
+
 try:
     from .tui_pytermgui import run_omsk_parallel as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функцию
     run_new_tui_omsk = _tui_omsk_stub
-    logger.warning("TUI модуль (pytermgui) недоступен. Функция --tui-new-omsk будет недоступна")
+    logger.warning(
+        "TUI модуль (pytermgui) недоступен. Функция --tui-new-omsk будет недоступна"
+    )
 
-def _validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str) -> int:
+
+def _validate_positive_int(
+    value: int, min_val: int, max_val: int, arg_name: str
+) -> int:
     """Валидирует положительное целое число в заданном диапазоне.
 
     Args:
@@ -121,126 +132,14 @@ def _validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str
         ValueError: --parser.max-retries должен быть от 1 до 100 (получено 0)
     """
     if not (min_val <= value <= max_val):
-        raise ValueError(f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})")
+        raise ValueError(
+            f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})"
+        )
     return value
 
-def _validate_url(url: str) -> UrlValidationResult:
-    """Валидирует URL на корректность формата и безопасность.
 
-    Args:
-        url: URL для валидации.
-
-    Returns:
-        Кортеж (is_valid, error_message):
-        - is_valid: True если URL корректен и безопасен, False иначе.
-        - error_message: Сообщение об ошибке или None если URL валиден.
-
-    Примечание:
-        Проверяет:
-        - Схема (http или https)
-        - Наличие сетевого расположения (netloc)
-        - Общий формат URL
-        - Блокировка localhost и внутренних IP адресов (127.x.x.x, 10.x.x.x, 192.168.x.x, 172.16-31.x.x)
-
-    Исправление проблемы 10 (DNS rebinding защита):
-        - Добавлена проверка hostname на соответствие IP после разрешения
-        - Блокировка private IP диапазонов через socket.getaddrinfo
-        - Проверка на localhost, loopback, private, link-local и multicast адреса
-        - Предотвращение атак через домены указывающие на внутренние IP
-
-    Исправление проблемы 6 (КРИТИЧЕСКОЕ - DNS timeout):
-        - Добавлен таймаут на DNS запросы через signal.alarm
-        - Предотвращает блокировку на медленных DNS запросах
-        - Таймаут установлен в 5 секунд для DNS разрешения
-    """
-    # ИСПРАВЛЕНИЕ КРИТИЧЕСКОЙ ПРОБЛЕМЫ 6: DNS timeout
-    # Используем signal.alarm для установки таймаута на DNS запросы
-    # Это предотвращает блокировку на медленных DNS запросах
-    dns_timeout = 5  # 5 секунд для DNS разрешения
-
-    # Проверяем поддержку signal.alarm (только Unix)
-    use_signal_timeout = hasattr(signal, "alarm")
-
-    try:
-        # Устанавливаем таймаут если поддерживается (Unix)
-        if use_signal_timeout:
-            signal.alarm(dns_timeout)
-
-        result = urlparse(url)
-
-        # Проверка схемы и netloc
-        if not all([result.scheme in ("http", "https"), result.netloc]):
-            return False, "URL должен начинаться с http:// или https:// и содержать домен"
-
-        # Извлекаем хост для проверки на внутренние IP
-        hostname = result.hostname
-        if hostname is None:
-            return False, "URL должен содержать домен"
-
-        # Проверяем, не является ли хост localhost
-        if hostname.lower() in ("localhost", "127.0.0.1"):
-            return False, "Использование localhost запрещено"
-
-        # Проверяем, не является ли хост IP адресом
-        try:
-            ip_addr = ipaddress.ip_address(hostname)
-            # Проверяем на private и loopback адреса
-            if ip_addr.is_private or ip_addr.is_loopback or ip_addr.is_link_local:
-                return False, f"Использование внутренних IP адресов запрещено ({hostname})"
-        except ValueError:
-            # Это доменное имя, а не IP адрес - это нормально
-            # НО требуется проверка на DNS rebinding атаку
-            pass
-
-        # Исправление 10: DNS rebinding защита
-        # Разрешаем доменное имя и проверяем что оно не указывает на внутренний IP
-        try:
-            # Получаем все IP адреса для домена через socket.getaddrinfo
-            # Это предотвращает DNS rebinding атаку когда злоумышленник использует
-            # домен который резолвится во внутренний IP адрес
-            addr_info_list = socket.getaddrinfo(hostname, None, socket.AF_INET, socket.SOCK_STREAM)  # Только IPv4
-
-            # Проверяем каждый полученный IP адрес
-            for addr_info in addr_info_list:
-                ip = addr_info[4][0]  # Извлекаем IP адрес из кортежа
-                try:
-                    ip_addr = ipaddress.ip_address(ip)
-
-                    # Блокируем все категории опасных адресов:
-                    # - is_private: 10.x.x.x, 172.16-31.x.x, 192.168.x.x
-                    # - is_loopback: 127.x.x.x
-                    # - is_link_local: 169.254.x.x (APIPA)
-                    # - is_multicast: 224.0.0.0 - 239.255.255.255
-                    if ip_addr.is_private or ip_addr.is_loopback or ip_addr.is_link_local or ip_addr.is_multicast:
-                        return False, (
-                            f"Домен {hostname} резолвится во внутренний IP ({ip}), " f"что запрещено (DNS rebinding защита)"
-                        )
-
-                except ValueError:
-                    # Неверный формат IP - пропускаем
-                    continue
-
-        except socket.gaierror as dns_error:
-            # Ошибка разрешения DNS
-            return False, f"Не удалось разрешить DNS для {hostname}: {dns_error}"
-        except socket.herror as host_error:
-            # Ошибка хоста
-            return False, f"Ошибка хоста для {hostname}: {host_error}"
-        except OSError as os_error:
-            # Другие ошибки сокета
-            return False, f"Сетевая ошибка при проверке {hostname}: {os_error}"
-
-        return True, None
-
-    except (ValueError, TypeError) as e:
-        # Ловим только ожидаемые исключения типизации/значений
-        return False, f"Ошибка парсинга URL: {e}"
-
-    finally:
-        # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: отменяем таймаут после завершения проверки
-        # Это предотвращает непреднамеренные прерывания в другом коде
-        if use_signal_timeout:
-            signal.alarm(0)
+# ИСПРАВЛЕНИЕ 4: Функция _validate_url удалена - используется validate_url из validation.py
+# Это устраняет дублирование кода валидации и обеспечивает единую точку валидации URL
 
 # Глобальный экземпляр обработчика сигналов
 
@@ -250,6 +149,7 @@ _signal_handler_instance: Optional[SignalHandler] = None
 # Добавлен threading.Lock для защиты глобальной переменной от состояния гонки
 # в многопоточной среде
 _signal_handler_lock = threading.Lock()
+
 
 def _get_signal_handler() -> SignalHandler:
     """
@@ -267,8 +167,11 @@ def _get_signal_handler() -> SignalHandler:
     """
     with _signal_handler_lock:
         if _signal_handler_instance is None:
-            raise RuntimeError("SignalHandler не инициализирован. Вызовите _setup_signal_handlers().")
+            raise RuntimeError(
+                "SignalHandler не инициализирован. Вызовите _setup_signal_handlers()."
+            )
         return _signal_handler_instance
+
 
 def _setup_signal_handlers() -> None:
     """
@@ -284,7 +187,10 @@ def _setup_signal_handlers() -> None:
     with _signal_handler_lock:
         _signal_handler_instance = SignalHandler(cleanup_callback=cleanup_resources)
         _signal_handler_instance.setup()
-    logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через SignalHandler")
+    logger.debug(
+        "Обработчики сигналов SIGINT и SIGTERM установлены через SignalHandler"
+    )
+
 
 def cleanup_resources() -> None:
     """Выполняет централизованную очистку ресурсов приложения.
@@ -329,6 +235,7 @@ def cleanup_resources() -> None:
         # Ловим все исключения чтобы не прерывать очистку
         logger.debug("Ошибка при очистке ресурсов: %s", e)
 
+
 def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
     """Загружает JSON файл с городами с корректной обработкой ошибок.
 
@@ -359,6 +266,7 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         logger.error("Ошибка ОС при чтении файла городов: %s", e)
         raise OSError(f"Не удалось прочитать файл городов: {e}")
 
+
 class ArgumentHelpFormatter(argparse.HelpFormatter):
     """Форматировщик справки, добавляющий значения по умолчанию к описанию аргументов."""
 
@@ -388,6 +296,7 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
                     default_value = "yes" if default_value else "no"
                 help_string += f" (по умолчанию: {default_value})"
         return help_string
+
 
 def patch_argparse_translations() -> None:
     """Патчит gettext в argparse для перевода строк на русский язык."""
@@ -420,7 +329,10 @@ def patch_argparse_translations() -> None:
 
     argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore
 
-def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespace, Configuration]:
+
+def parse_arguments(
+    argv: Optional[list[str]] = None,
+) -> tuple[argparse.Namespace, Configuration]:
     """Парсит аргументы командной строки.
 
     Args:
@@ -469,7 +381,9 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
 
     main_parser = arg_parser.add_argument_group(main_parser_name)
     # URL не обязателен, если указаны --cities с --categories-mode
-    main_parser.add_argument("-i", "--url", nargs="+", default=None, required=False, help="URL с выдачей")
+    main_parser.add_argument(
+        "-i", "--url", nargs="+", default=None, required=False, help="URL с выдачей"
+    )
     main_parser.add_argument(
         "--cities",
         nargs="+",
@@ -477,8 +391,12 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         metavar="CITY_CODE",
         help="Коды городов для парсинга (например: moscow spb kazan)",
     )
-    main_parser.add_argument("--query", default=None, help="Поисковый запрос для генерации URL по городам")
-    main_parser.add_argument("--rubric", default=None, help="Код рубрики для фильтрации результатов")
+    main_parser.add_argument(
+        "--query", default=None, help="Поисковый запрос для генерации URL по городам"
+    )
+    main_parser.add_argument(
+        "--rubric", default=None, help="Код рубрики для фильтрации результатов"
+    )
     main_parser.add_argument(
         "--categories-mode",
         action="store_true",
@@ -514,7 +432,9 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         metavar="{yes,no}",
         help="Отключить изображения в браузере",
     )
-    browser_parser.add_argument("--chrome.headless", metavar="{yes/no}", help="Скрыть браузер")
+    browser_parser.add_argument(
+        "--chrome.headless", metavar="{yes/no}", help="Скрыть браузер"
+    )
     browser_parser.add_argument(
         "--chrome.silent-browser",
         metavar="{yes/no}",
@@ -685,98 +605,183 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         version=f"%(prog)s {version}",
         help="Показать версию программы и выйти",
     )
-    rest_parser.add_argument("-h", "--help", action="help", help="Показать эту справку и выйти")
+    rest_parser.add_argument(
+        "-h", "--help", action="help", help="Показать эту справку и выйти"
+    )
 
     args = arg_parser.parse_args(argv_copy)
     config_args = unwrap_dot_dict(vars(args))
 
     # Валидация числовых CLI аргументов перед инициализацией конфигурации
     # ПРИОРИТЕТ 1: Валидация аргументов парсера
-    if hasattr(args, "parser.max_retries") and getattr(args, "parser.max_retries") is not None:
+    if (
+        hasattr(args, "parser.max_retries")
+        and getattr(args, "parser.max_retries") is not None
+    ):
         try:
-            _validate_positive_int(getattr(args, "parser.max_retries"), 1, 100, "--parser.max-retries")
+            _validate_positive_int(
+                getattr(args, "parser.max_retries"), 1, 100, "--parser.max-retries"
+            )
         except ValueError as e:
             arg_parser.error(str(e))
 
     if hasattr(args, "parser.timeout") and getattr(args, "parser.timeout") is not None:
         try:
-            _validate_positive_int(getattr(args, "parser.timeout"), 1, 3600, "--parser.timeout")
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if hasattr(args, "parser.max_workers") and getattr(args, "parser.max_workers") is not None:
-        try:
-            _validate_positive_int(getattr(args, "parser.max_workers"), 1, 50, "--parser.max-workers")
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    # ПРИОРИТЕТ 2: Валидация аргументов Chrome
-    if hasattr(args, "chrome.startup_delay") and getattr(args, "chrome.startup_delay") is not None:
-        try:
-            _validate_positive_int(int(getattr(args, "chrome.startup_delay")), 0, 60, "--chrome.startup-delay")
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    # ПРИОРИТЕТ 3: Валидация других числовых аргументов
-    if hasattr(args, "parser.gc_pages_interval") and getattr(args, "parser.gc_pages_interval") is not None:
-        try:
-            _validate_positive_int(getattr(args, "parser.gc_pages_interval"), 1, 1000, "--parser.gc-pages-interval")
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if hasattr(args, "parser.max_records") and getattr(args, "parser.max_records") is not None:
-        try:
-            _validate_positive_int(getattr(args, "parser.max_records"), 1, 1000000, "--parser.max-records")
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if hasattr(args, "parser.max_consecutive_empty_pages") and getattr(args, "parser.max_consecutive_empty_pages") is not None:
-        try:
             _validate_positive_int(
-                getattr(args, "parser.max_consecutive_empty_pages"), 1, 100, "--parser.max-consecutive-empty-pages"
+                getattr(args, "parser.timeout"), 1, 3600, "--parser.timeout"
             )
         except ValueError as e:
             arg_parser.error(str(e))
 
-    if hasattr(args, "parser.delay_between_clicks") and getattr(args, "parser.delay_between_clicks") is not None:
+    if (
+        hasattr(args, "parser.max_workers")
+        and getattr(args, "parser.max_workers") is not None
+    ):
         try:
-            _validate_positive_int(getattr(args, "parser.delay_between_clicks"), 0, 10000, "--parser.delay-between-clicks")
+            _validate_positive_int(
+                getattr(args, "parser.max_workers"), 1, 50, "--parser.max-workers"
+            )
         except ValueError as e:
             arg_parser.error(str(e))
 
-    if hasattr(args, "parser.retry_delay_base") and getattr(args, "parser.retry_delay_base") is not None:
+    # ПРИОРИТЕТ 2: Валидация аргументов Chrome
+    if (
+        hasattr(args, "chrome.startup_delay")
+        and getattr(args, "chrome.startup_delay") is not None
+    ):
         try:
-            _validate_positive_int(getattr(args, "parser.retry_delay_base"), 1, 60, "--parser.retry-delay-base")
+            _validate_positive_int(
+                int(getattr(args, "chrome.startup_delay")),
+                0,
+                60,
+                "--chrome.startup-delay",
+            )
         except ValueError as e:
             arg_parser.error(str(e))
 
-    if hasattr(args, "parser.memory_threshold") and getattr(args, "parser.memory_threshold") is not None:
+    # ПРИОРИТЕТ 3: Валидация других числовых аргументов
+    if (
+        hasattr(args, "parser.gc_pages_interval")
+        and getattr(args, "parser.gc_pages_interval") is not None
+    ):
         try:
-            _validate_positive_int(getattr(args, "parser.memory_threshold"), 256, 8192, "--parser.memory-threshold")
+            _validate_positive_int(
+                getattr(args, "parser.gc_pages_interval"),
+                1,
+                1000,
+                "--parser.gc-pages-interval",
+            )
         except ValueError as e:
             arg_parser.error(str(e))
 
-    if hasattr(args, "chrome.memory_limit") and getattr(args, "chrome.memory_limit") is not None:
+    if (
+        hasattr(args, "parser.max_records")
+        and getattr(args, "parser.max_records") is not None
+    ):
         try:
-            _validate_positive_int(getattr(args, "chrome.memory_limit"), 256, 16384, "--chrome.memory-limit")
+            _validate_positive_int(
+                getattr(args, "parser.max_records"), 1, 1000000, "--parser.max-records"
+            )
         except ValueError as e:
             arg_parser.error(str(e))
 
-    if hasattr(args, "writer.csv.columns_per_entity") and getattr(args, "writer.csv.columns_per_entity") is not None:
+    if (
+        hasattr(args, "parser.max_consecutive_empty_pages")
+        and getattr(args, "parser.max_consecutive_empty_pages") is not None
+    ):
         try:
-            _validate_positive_int(getattr(args, "writer.csv.columns_per_entity"), 1, 20, "--writer.csv.columns-per-entity")
+            _validate_positive_int(
+                getattr(args, "parser.max_consecutive_empty_pages"),
+                1,
+                100,
+                "--parser.max-consecutive-empty-pages",
+            )
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if (
+        hasattr(args, "parser.delay_between_clicks")
+        and getattr(args, "parser.delay_between_clicks") is not None
+    ):
+        try:
+            _validate_positive_int(
+                getattr(args, "parser.delay_between_clicks"),
+                0,
+                10000,
+                "--parser.delay-between-clicks",
+            )
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if (
+        hasattr(args, "parser.retry_delay_base")
+        and getattr(args, "parser.retry_delay_base") is not None
+    ):
+        try:
+            _validate_positive_int(
+                getattr(args, "parser.retry_delay_base"),
+                1,
+                60,
+                "--parser.retry-delay-base",
+            )
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if (
+        hasattr(args, "parser.memory_threshold")
+        and getattr(args, "parser.memory_threshold") is not None
+    ):
+        try:
+            _validate_positive_int(
+                getattr(args, "parser.memory_threshold"),
+                256,
+                8192,
+                "--parser.memory-threshold",
+            )
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if (
+        hasattr(args, "chrome.memory_limit")
+        and getattr(args, "chrome.memory_limit") is not None
+    ):
+        try:
+            _validate_positive_int(
+                getattr(args, "chrome.memory_limit"),
+                256,
+                16384,
+                "--chrome.memory-limit",
+            )
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+    if (
+        hasattr(args, "writer.csv.columns_per_entity")
+        and getattr(args, "writer.csv.columns_per_entity") is not None
+    ):
+        try:
+            _validate_positive_int(
+                getattr(args, "writer.csv.columns_per_entity"),
+                1,
+                20,
+                "--writer.csv.columns-per-entity",
+            )
         except ValueError as e:
             arg_parser.error(str(e))
 
     # Пропускаем валидацию URL для TUI режимов - там выбор происходит в интерфейсе
-    is_tui_mode = getattr(args, "tui_new", False) or getattr(args, "tui_new_omsk", False)
+    is_tui_mode = getattr(args, "tui_new", False) or getattr(
+        args, "tui_new_omsk", False
+    )
 
     # Ручная валидация: требуется хотя бы один источник URL (кроме TUI режимов)
     if not is_tui_mode:
         has_cities = hasattr(args, "cities") and args.cities is not None
         has_url_source = args.url is not None or has_cities
         if not has_url_source:
-            arg_parser.error("Требуется указать хотя бы один источник URL: -i/--url или --cities")
+            arg_parser.error(
+                "Требуется указать хотя бы один источник URL: -i/--url или --cities"
+            )
 
         # Валидация: --categories-mode требует --cities
         categories_mode = getattr(args, "categories_mode", False)
@@ -788,10 +793,11 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         invalid_urls = []
         url_errors = []
         for url in args.url:
-            is_valid, error_msg = _validate_url(url)
-            if not is_valid:
+            # ИСПРАВЛЕНИЕ 4: Используем validate_url из validation.py вместо локальной функции
+            result = validate_url(url)
+            if not result.is_valid:
                 invalid_urls.append(url)
-                url_errors.append(f"{url} ({error_msg})")
+                url_errors.append(f"{url} ({result.error})")
 
         if invalid_urls:
             arg_parser.error(f"Некорректный формат URL: {'; '.join(url_errors)}.")
@@ -811,6 +817,7 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
 
     return args, config
 
+
 def _get_output_dir(output_path: str | None) -> Path:
     """Определяет директорию для результатов на основе output_path.
 
@@ -829,7 +836,12 @@ def _get_output_dir(output_path: str | None) -> Path:
     if output_path_obj.suffix and output_path_obj.parent.exists():
         return output_path_obj.parent
     # Если путь не существует, возвращаем родителя или сам путь если нет родителя
-    return output_path_obj.parent if output_path_obj.parent != Path(".") else output_path_obj
+    return (
+        output_path_obj.parent
+        if output_path_obj.parent != Path(".")
+        else output_path_obj
+    )
+
 
 def main() -> None:
     """Точка входа для CLI приложения.
@@ -914,7 +926,9 @@ def main() -> None:
                 logger.error("Ошибка при создании директории output: %s", e)
                 raise
 
-            logger.info("Запуск параллельного парсинга по %d категориям", len(CATEGORIES_93))
+            logger.info(
+                "Запуск параллельного парсинга по %d категориям", len(CATEGORIES_93)
+            )
             logger.info("Города: %s", [c["name"] for c in selected_cities])
             logger.info("Количество потоков: %d", getattr(args, "parallel_workers", 3))
 
@@ -985,7 +999,9 @@ def main() -> None:
         output_format = getattr(args, "format", None)
 
         if not output_path:
-            logger.error("Не указан путь к выходному файлу. Используйте -o/--output-path")
+            logger.error(
+                "Не указан путь к выходному файлу. Используйте -o/--output-path"
+            )
             sys.exit(1)
 
         if not output_format:
@@ -1030,7 +1046,10 @@ def main() -> None:
                 logger.error("Ошибка при очистке ресурсов в finally: %s", cleanup_error)
             logger.debug("Очистка ресурсов в блоке finally завершена")
 
-def _log_startup_info(args: argparse.Namespace, config: Configuration, start_time: datetime) -> None:
+
+def _log_startup_info(
+    args: argparse.Namespace, config: Configuration, start_time: datetime
+) -> None:
     """
     Логирует подробную информацию о запуске парсера.
 
@@ -1044,7 +1063,9 @@ def _log_startup_info(args: argparse.Namespace, config: Configuration, start_tim
     format_str = format_value.upper() if format_value else "CSV (по умолчанию)"
 
     output_path_value = getattr(args, "output_path", None)
-    output_path_str = str(output_path_value) if output_path_value else "output/ (по умолчанию)"
+    output_path_str = (
+        str(output_path_value) if output_path_value else "output/ (по умолчанию)"
+    )
 
     # Формируем сводку конфигурации
     config_summary = {
