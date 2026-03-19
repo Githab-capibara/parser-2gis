@@ -74,7 +74,7 @@ def _validate_env_int(
 
     Args:
         env_name: Имя ENV переменной.
-        default: Значение по умолчанию.
+        default: Значение по умолчанию (используется если переменная не установлена).
         min_value: Минимальное допустимое значение (None если нет ограничения).
         max_value: Максимальное допустимое значение (None если нет ограничения).
 
@@ -82,52 +82,44 @@ def _validate_env_int(
         Валидированное целое число.
 
     Raises:
-        ValueError: Если значение выходит за пределы диапазона или не является целым числом.
+        ValueError: Если значение не является целым числом (нечисловая строка).
 
     Примечание:
-        - Логгирует предупреждения при невалидных значениях
-        - Возвращает значение по умолчанию при ошибках
+        - Выбрасывает ValueError при некорректных значениях (нечисловые строки)
+        - Возвращает min/max значение при выходе за пределы диапазона (с предупреждением)
+        - Возвращает значение по умолчанию только если переменная не установлена
     """
     value_str = os.getenv(env_name)
 
     if value_str is None:
         return default
 
-    try:
-        value = int(value_str)
+    # Преобразуем в целое число (выбросит ValueError при некорректном значении)
+    value = int(value_str)
 
-        # Проверяем минимальное значение
-        if min_value is not None and value < min_value:
-            logger.warning(
-                "ENV переменная %s=%d меньше минимального значения %d. Используется %d",
-                env_name,
-                value,
-                min_value,
-                min_value,
-            )
-            return min_value
-
-        # Проверяем максимальное значение
-        if max_value is not None and value > max_value:
-            logger.warning(
-                "ENV переменная %s=%d больше максимального значения %d. Используется %d",
-                env_name,
-                value,
-                max_value,
-                max_value,
-            )
-            return max_value
-
-        return value
-
-    except ValueError:
+    # Проверяем минимальное значение
+    if min_value is not None and value < min_value:
         logger.warning(
-            "ENV переменная %s=%s не является целым числом. Используется значение по умолчанию %d",
+            "ENV переменная %s=%d меньше минимального значения %d. Используется %d",
             env_name,
-            value_str,
-            default,
+            value,
+            min_value,
+            min_value,
         )
-        return default
+        return min_value
+
+    # Проверяем максимальное значение
+    if max_value is not None and value > max_value:
+        logger.warning(
+            "ENV переменная %s=%d больше максимального значения %d. Используется %d",
+            env_name,
+            value,
+            max_value,
+            max_value,
+        )
+        return max_value
+
+    return value
 
 
 # =============================================================================
