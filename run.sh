@@ -84,7 +84,7 @@ if [ ! -d "$VENV_DIR" ]; then
 
     # Устанавливаем зависимости
     echo -e "${CYAN}Установка зависимостей...${NC}"
-    pip install -e "$SCRIPT_DIR"
+    pip install -e "$SCRIPT_DIR[all]"
 
     echo ""
     echo -e "${GREEN}✓ Виртуальное окружение создано и настроено${NC}"

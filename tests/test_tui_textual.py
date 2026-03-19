@@ -5,22 +5,29 @@
 """
 
 import pytest
-from textual.app import App
-from textual.widgets import Button, Input, Checkbox, Static, Label
-from textual.containers import Container
 
-from parser_2gis.tui_textual.app import TUIApp, Parser2GISTUI
-from parser_2gis.tui_textual.screens import (
-    MainMenuScreen,
-    CitySelectorScreen,
-    CategorySelectorScreen,
-    ParsingScreen,
-    BrowserSettingsScreen,
-    ParserSettingsScreen,
-    OutputSettingsScreen,
-    CacheViewerScreen,
-    AboutScreen,
-)
+try:
+    from textual.app import App
+    from textual.widgets import Button, Input, Checkbox, Static, Label
+    from textual.containers import Container
+
+    from parser_2gis.tui_textual.app import TUIApp, Parser2GISTUI
+    from parser_2gis.tui_textual.screens import (
+        MainMenuScreen,
+        CitySelectorScreen,
+        CategorySelectorScreen,
+        ParsingScreen,
+        BrowserSettingsScreen,
+        ParserSettingsScreen,
+        OutputSettingsScreen,
+        CacheViewerScreen,
+        AboutScreen,
+    )
+
+    TEXTUAL_AVAILABLE = True
+except ImportError:
+    TEXTUAL_AVAILABLE = False
+    pytest.skip("textual not installed", allow_module_level=True)
 
 
 class TestTUIApp:
@@ -51,15 +58,15 @@ class TestTUIApp:
     async def test_app_state_management(self):
         """Тест 3: Проверка управления состоянием."""
         app = TUIApp()
-        
+
         # Проверка начального состояния
         assert app.get_state("selected_cities") == []
         assert app.get_state("selected_categories") == []
-        
+
         # Обновление состояния
         app.selected_cities = ["Москва", "СПб"]
         app.selected_categories = ["Аптеки", "Рестораны"]
-        
+
         assert app.get_state("selected_cities") == ["Москва", "СПб"]
         assert app.get_state("selected_categories") == ["Аптеки", "Рестораны"]
 
@@ -68,7 +75,7 @@ class TestTUIApp:
         """Тест 4: Проверка загрузки городов."""
         app = TUIApp()
         cities = app.get_cities()
-        
+
         assert isinstance(cities, list)
         if cities:
             assert "name" in cities[0]
@@ -79,10 +86,10 @@ class TestTUIApp:
         """Тест 5: Проверка загрузки категорий."""
         app = TUIApp()
         categories = app.get_categories()
-        
+
         assert isinstance(categories, list)
         assert len(categories) > 0
-        
+
         # Проверка структуры категории
         if categories:
             assert "name" in categories[0]
@@ -142,7 +149,7 @@ class TestTUINavigation:
     def test_screen_registration(self):
         """Тест навигации между экранами."""
         app = TUIApp()
-        
+
         # Проверка, что все экраны зарегистрированы
         assert "main_menu" in app.SCREENS
         assert "city_selector" in app.SCREENS
@@ -161,10 +168,10 @@ class TestTUIBindings:
     def test_bindings_defined(self):
         """Тест горячих клавиш."""
         app = TUIApp()
-        
+
         # Проверка, что горячие клавиши определены
         assert len(app.BINDINGS) > 0
-        
+
         # Проверка наличия конкретных привязок
         binding_keys = [b.key for b in app.BINDINGS]
         assert "q" in binding_keys
@@ -178,7 +185,7 @@ class TestTUIIntegration:
     def test_app_has_all_methods(self):
         """Тест полного рабочего процесса."""
         app = TUIApp()
-        
+
         # Проверка наличия всех необходимых методов
         assert hasattr(app, "push_screen")
         assert hasattr(app, "pop_screen")
@@ -203,4 +210,5 @@ class TestTUIUtils:
     def test_run_tui_function(self):
         """Тест функции run_tui."""
         from parser_2gis.tui_textual.app import run_tui
+
         assert callable(run_tui)
