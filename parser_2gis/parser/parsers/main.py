@@ -129,7 +129,6 @@ class MainParser:
                     except Exception as e:
                         # Ошибка декодирования - ссылка невалидна
                         logger.debug("Ошибка декодирования ссылки: %s", e)
-                        pass
 
             return False
 
@@ -510,16 +509,12 @@ class MainParser:
             try:
                 available_pages = self._get_available_pages()
                 available_pages_ahead = {
-                    k: v
-                    for k, v in available_pages.items()
-                    if k > current_page_number
+                    k: v for k, v in available_pages.items() if k > current_page_number
                 }
                 next_page_number = min(
                     available_pages_ahead,
                     key=lambda n: (
-                        abs(n - walk_page_number)
-                        if walk_page_number is not None
-                        else 0
+                        abs(n - walk_page_number) if walk_page_number is not None else 0
                     ),
                     default=current_page_number + 1,
                 )
@@ -538,7 +533,10 @@ class MainParser:
             return next_page_number, False
 
         # Сбрасываем страницу назначения, если мы закончили переход к желаемой странице
-        if walk_page_number is not None and walk_page_number <= current_page_number_result:
+        if (
+            walk_page_number is not None
+            and walk_page_number <= current_page_number_result
+        ):
             walk_page_number = None
 
         return current_page_number_result, True
@@ -965,7 +963,9 @@ class MainParser:
 
         # Парсинг результатов поиска
         # Передаём visited_links для управления памятью с eviction policy
-        self._parse_search_results(writer, walk_page_number, visited_links, max_visited_links)
+        self._parse_search_results(
+            writer, walk_page_number, visited_links, max_visited_links
+        )
 
     def close(self) -> None:
         self._chrome_remote.stop()

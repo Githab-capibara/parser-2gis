@@ -3,12 +3,12 @@
 """
 
 from datetime import datetime
+
 from textual.app import ComposeResult
-from textual.screen import Screen
-from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
-from textual.widgets import Static, Button, Label, ProgressBar, RichLog
 from textual.binding import Binding
-from textual import work
+from textual.containers import Container, Horizontal
+from textual.screen import Screen
+from textual.widgets import Button, ProgressBar, RichLog, Static
 
 
 class ParsingScreen(Screen):
@@ -23,7 +23,7 @@ class ParsingScreen(Screen):
     ParsingScreen {
         align: center middle;
     }
-    
+
     #parsing-container {
         width: 90;
         height: 85%;
@@ -31,7 +31,7 @@ class ParsingScreen(Screen):
         border: solid $primary;
         padding: 1 2;
     }
-    
+
     .header {
         width: 100%;
         height: 3;
@@ -39,33 +39,33 @@ class ParsingScreen(Screen):
         text-style: bold;
         color: $accent;
     }
-    
+
     .progress-section {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
-    
+
     .progress-label {
         width: 100%;
         margin-bottom: 1;
     }
-    
+
     .stats-container {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
-    
+
     .stat-row {
         width: 100%;
         height: auto;
     }
-    
+
     .stat-label {
         width: 50%;
     }
-    
+
     .log-container {
         width: 100%;
         height: 1fr;
@@ -73,14 +73,14 @@ class ParsingScreen(Screen):
         padding: 1;
         margin: 1 0;
     }
-    
+
     .button-row {
         width: 100%;
         height: auto;
         align: center middle;
         margin-top: 1;
     }
-    
+
     .button-row Button {
         margin: 0 1;
     }
@@ -102,26 +102,26 @@ class ParsingScreen(Screen):
         with Container(id="parsing-container"):
             # Заголовок
             yield Static("🚀 Парсинг данных", classes="header")
-            
+
             # Прогресс-бары
             with Container(classes="progress-section"):
                 yield Static("URL:", classes="progress-label")
                 yield ProgressBar(id="url-progress", show_eta=False)
-                
+
                 yield Static("Страницы:", classes="progress-label")
                 yield ProgressBar(id="page-progress", show_eta=False)
-                
+
                 yield Static("Записи:", classes="progress-label")
                 yield ProgressBar(id="record-progress", show_eta=False)
-            
+
             # Статистика
             with Container(classes="stats-container"):
                 yield Static("", id="stats-display")
-            
+
             # Логи
             with Container(classes="log-container"):
                 yield RichLog(id="log-viewer", highlight=True, markup=True)
-            
+
             # Кнопки
             with Horizontal(classes="button-row"):
                 yield Button("⏸️ Пауза", id="pause", variant="warning")
@@ -132,27 +132,25 @@ class ParsingScreen(Screen):
         """Запуск парсинга."""
         self._start_time = datetime.now()
         self._add_log("[bold green]Запуск парсинга...[/]")
-        
+
         # Получить выбранные города и категории
         cities = self.app.get_cities()  # type: ignore
         selected_city_names = self.app.selected_cities  # type: ignore
         selected_categories = self.app.selected_categories  # type: ignore
-        
+
         selected_cities = [
-            city for city in cities
-            if city.get("name") in selected_city_names
+            city for city in cities if city.get("name") in selected_city_names
         ]
-        
+
         all_categories = self.app.get_categories()  # type: ignore
         selected_cats = [
-            cat for cat in all_categories
-            if cat.get("name") in selected_categories
+            cat for cat in all_categories if cat.get("name") in selected_categories
         ]
-        
+
         if not selected_cities or not selected_cats:
             self._add_log("[bold red]Ошибка: не выбраны города или категории[/]")
             return
-        
+
         # Запустить парсинг
         self.app.start_parsing(selected_cities, selected_cats)  # type: ignore
 
@@ -174,11 +172,11 @@ class ParsingScreen(Screen):
         if url_total is not None:
             url_progress = self.query_one("#url-progress", ProgressBar)
             url_progress.update(progress=url_completed, total=url_total)
-        
+
         if page_total is not None:
             page_progress = self.query_one("#page-progress", ProgressBar)
             page_progress.update(progress=page_completed, total=page_total)
-        
+
         if record_total is not None:
             record_progress = self.query_one("#record-progress", ProgressBar)
             record_progress.update(progress=record_completed, total=record_total)
@@ -199,15 +197,15 @@ class ParsingScreen(Screen):
             self._success_count = success_count
         if error_count is not None:
             self._error_count = error_count
-        
+
         # Обновить отображение
         stats_display = self.query_one("#stats-display", Static)
-        
+
         elapsed = "00:00:00"
         if self._start_time:
             delta = datetime.now() - self._start_time
             elapsed = str(delta).split(".")[0]
-        
+
         stats_display.update(
             f"Город: {self._current_city or '-'}\n"
             f"Категория: {self._current_category or '-'}\n"
@@ -219,7 +217,7 @@ class ParsingScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Обработка кнопок."""
         button_id = event.button.id
-        
+
         if button_id == "pause":
             self.action_toggle_pause()
         elif button_id == "stop":
@@ -230,7 +228,7 @@ class ParsingScreen(Screen):
     def action_toggle_pause(self) -> None:
         """Переключить паузу."""
         self._paused = not self._paused
-        
+
         pause_button = self.query_one("#pause", Button)
         if self._paused:
             pause_button.label = "▶️ Продолжить"

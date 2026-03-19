@@ -73,7 +73,7 @@ class TestAdaptiveLimits:
         limits.add_records_count(20)
 
         stats = limits.get_stats()
-        assert stats['records_on_first_pages'] == [10, 15, 20]
+        assert stats["records_on_first_pages"] == [10, 15, 20]
 
     def test_determine_small_city(self):
         """Тест определения маленького города (<= 10 записей)."""
@@ -82,7 +82,7 @@ class TestAdaptiveLimits:
         limits.add_records_count(8)
         limits.add_records_count(7)
 
-        assert limits.get_city_size() == 'small'
+        assert limits.get_city_size() == "small"
         assert limits.get_adaptive_limit() == 2
 
     def test_determine_medium_city(self):
@@ -92,7 +92,7 @@ class TestAdaptiveLimits:
         limits.add_records_count(30)
         limits.add_records_count(25)
 
-        assert limits.get_city_size() == 'medium'
+        assert limits.get_city_size() == "medium"
         assert limits.get_adaptive_limit() == 3
 
     def test_determine_large_city(self):
@@ -102,7 +102,7 @@ class TestAdaptiveLimits:
         limits.add_records_count(150)
         limits.add_records_count(120)
 
-        assert limits.get_city_size() == 'large'
+        assert limits.get_city_size() == "large"
         assert limits.get_adaptive_limit() == 5
 
     def test_determine_huge_city(self):
@@ -112,7 +112,7 @@ class TestAdaptiveLimits:
         limits.add_records_count(400)
         limits.add_records_count(350)
 
-        assert limits.get_city_size() == 'huge'
+        assert limits.get_city_size() == "huge"
         assert limits.get_adaptive_limit() == 7
 
     def test_get_stats(self):
@@ -123,10 +123,10 @@ class TestAdaptiveLimits:
         limits.add_records_count(15)  # Третья запись для определения города
 
         stats = limits.get_stats()
-        assert stats['base_limit'] == 5
-        assert stats['city_size'] == 'medium'
-        assert stats['records_on_first_pages'] == [10, 20, 15]
-        assert stats['avg_records'] == 15.0
+        assert stats["base_limit"] == 5
+        assert stats["city_size"] == "medium"
+        assert stats["records_on_first_pages"] == [10, 20, 15]
+        assert stats["avg_records"] == 15.0
 
     def test_reset(self):
         """Тест сброса состояния."""
@@ -137,9 +137,9 @@ class TestAdaptiveLimits:
         limits.reset()
 
         stats = limits.get_stats()
-        assert stats['records_on_first_pages'] == []
-        assert stats['city_size'] is None
-        assert stats['adaptive_limit'] == 3  # Базовый лимит
+        assert stats["records_on_first_pages"] == []
+        assert stats["city_size"] is None
+        assert stats["adaptive_limit"] == 3  # Базовый лимит
 
 
 class TestSmartRetryManager:
@@ -161,50 +161,50 @@ class TestSmartRetryManager:
         retry = SmartRetryManager(max_retries=3)
 
         # 502 ошибка
-        assert retry.should_retry('502 Bad Gateway', records_on_page=0) is True
+        assert retry.should_retry("502 Bad Gateway", records_on_page=0) is True
 
         # 503 ошибка
-        assert retry.should_retry('503 Service Unavailable', records_on_page=0) is True
+        assert retry.should_retry("503 Service Unavailable", records_on_page=0) is True
 
         # 504 ошибка
-        assert retry.should_retry('504 Gateway Timeout', records_on_page=0) is True
+        assert retry.should_retry("504 Gateway Timeout", records_on_page=0) is True
 
     def test_should_retry_timeout(self):
         """Тест retry для Timeout ошибки."""
         retry = SmartRetryManager(max_retries=3)
-        assert retry.should_retry('TimeoutError', records_on_page=0) is True
+        assert retry.should_retry("TimeoutError", records_on_page=0) is True
 
     def test_should_retry_404_with_records(self):
         """Тест retry для 404 если были записи."""
         retry = SmartRetryManager(max_retries=3)
         retry.add_records(10)
 
-        assert retry.should_retry('404 Not Found', records_on_page=0) is True
+        assert retry.should_retry("404 Not Found", records_on_page=0) is True
 
     def test_should_not_retry_404_without_records(self):
         """Тест NO retry для 404 если не было записей."""
         retry = SmartRetryManager(max_retries=3)
 
-        assert retry.should_retry('404 Not Found', records_on_page=0) is False
+        assert retry.should_retry("404 Not Found", records_on_page=0) is False
 
     def test_should_not_retry_403(self):
         """Тест NO retry для 403 (блокировка)."""
         retry = SmartRetryManager(max_retries=3)
 
-        assert retry.should_retry('403 Forbidden', records_on_page=10) is False
+        assert retry.should_retry("403 Forbidden", records_on_page=10) is False
 
     def test_should_not_retry_after_max_retries(self):
         """Тест NO retry после превышения лимита попыток."""
         retry = SmartRetryManager(max_retries=2)
 
         # Первая попытка
-        assert retry.should_retry('Error', records_on_page=0) is True
+        assert retry.should_retry("Error", records_on_page=0) is True
 
         # Вторая попытка
-        assert retry.should_retry('Error', records_on_page=0) is True
+        assert retry.should_retry("Error", records_on_page=0) is True
 
         # Третья попытка - должно быть False
-        assert retry.should_retry('Error', records_on_page=0) is False
+        assert retry.should_retry("Error", records_on_page=0) is False
 
     def test_add_records(self):
         """Тест добавления записей."""
@@ -219,26 +219,26 @@ class TestSmartRetryManager:
         """Тест получения статистики."""
         retry = SmartRetryManager(max_retries=3)
         retry.add_records(50)
-        retry.should_retry('Test error', records_on_page=10)
+        retry.should_retry("Test error", records_on_page=10)
 
         stats = retry.get_stats()
-        assert stats['retry_count'] == 1
-        assert stats['max_retries'] == 3
-        assert stats['total_records'] == 50
-        assert stats['records_on_last_page'] == 10
-        assert stats['last_error'] == 'Test error'
+        assert stats["retry_count"] == 1
+        assert stats["max_retries"] == 3
+        assert stats["total_records"] == 50
+        assert stats["records_on_last_page"] == 10
+        assert stats["last_error"] == "Test error"
 
     def test_reset(self):
         """Тест сброса состояния."""
         retry = SmartRetryManager()
         retry.add_records(50)
-        retry.should_retry('Error', records_on_page=10)
+        retry.should_retry("Error", records_on_page=10)
 
         retry.reset()
 
         assert retry.get_retry_count() == 0
         assert retry.get_total_records() == 0
-        assert retry.get_stats()['last_error'] is None
+        assert retry.get_stats()["last_error"] is None
 
 
 class TestEndOfResultsDetector:
@@ -281,8 +281,8 @@ class TestEndOfResultsDetector:
         mock_remote = Mock()
         mock_dom = Mock()
         mock_link = Mock()
-        mock_link.local_name = 'a'
-        mock_link.attributes = {'href': '/search/test/page/2'}
+        mock_link.local_name = "a"
+        mock_link.attributes = {"href": "/search/test/page/2"}
         mock_dom.search.return_value = [mock_link]
         mock_remote.get_document.return_value = mock_dom
 
@@ -296,8 +296,8 @@ class TestEndOfResultsDetector:
         mock_remote = Mock()
         mock_dom = Mock()
         mock_link = Mock()
-        mock_link.local_name = 'a'
-        mock_link.attributes = {'href': '/search/test'}
+        mock_link.local_name = "a"
+        mock_link.attributes = {"href": "/search/test"}
         mock_dom.search.return_value = []
         mock_remote.get_document.return_value = mock_dom
 
@@ -313,14 +313,14 @@ class TestParallelTask:
     def test_initialization_default_priority(self):
         """Тест инициализации с приоритетом по умолчанию."""
         task = ParallelTask(
-            url='https://2gis.ru/moscow/search/Тест',
-            category_name='Тест',
-            city_name='Москва'
+            url="https://2gis.ru/moscow/search/Тест",
+            category_name="Тест",
+            city_name="Москва",
         )
 
-        assert task.url == 'https://2gis.ru/moscow/search/Тест'
-        assert task.category_name == 'Тест'
-        assert task.city_name == 'Москва'
+        assert task.url == "https://2gis.ru/moscow/search/Тест"
+        assert task.category_name == "Тест"
+        assert task.city_name == "Москва"
         assert task.priority == 0
         assert task.start_time is None
         assert task.end_time is None
@@ -328,10 +328,10 @@ class TestParallelTask:
     def test_initialization_custom_priority(self):
         """Тест инициализации с высоким приоритетом."""
         task = ParallelTask(
-            url='https://2gis.ru/moscow/search/Тест',
-            category_name='Тест',
-            city_name='Москва',
-            priority=1
+            url="https://2gis.ru/moscow/search/Тест",
+            category_name="Тест",
+            city_name="Москва",
+            priority=1,
         )
 
         assert task.priority == 1
@@ -339,9 +339,9 @@ class TestParallelTask:
     def test_start_and_finish(self):
         """Тест отметки начала и завершения."""
         task = ParallelTask(
-            url='https://2gis.ru/moscow/search/Тест',
-            category_name='Тест',
-            city_name='Москва'
+            url="https://2gis.ru/moscow/search/Тест",
+            category_name="Тест",
+            city_name="Москва",
         )
 
         assert task.duration() == 0
@@ -351,6 +351,7 @@ class TestParallelTask:
         assert task.duration() > 0  # Длительность > 0 после start
 
         import time
+
         time.sleep(0.01)  # Небольшая пауза
 
         task.finish()
@@ -379,40 +380,40 @@ class TestParallelOptimizer:
         """Тест добавления задачи с обычным приоритетом."""
         optimizer = ParallelOptimizer()
         optimizer.add_task(
-            url='https://2gis.ru/moscow/search/Тест',
-            category_name='Тест',
-            city_name='Москва',
-            priority=0
+            url="https://2gis.ru/moscow/search/Тест",
+            category_name="Тест",
+            city_name="Москва",
+            priority=0,
         )
 
         stats = optimizer.get_stats()
-        assert stats['total_tasks'] == 1
+        assert stats["total_tasks"] == 1
 
     def test_add_task_high_priority(self):
         """Тест добавления задачи с высоким приоритетом."""
         optimizer = ParallelOptimizer()
         optimizer.add_task(
-            url='https://2gis.ru/moscow/search/Тест',
-            category_name='Тест',
-            city_name='Москва',
-            priority=1
+            url="https://2gis.ru/moscow/search/Тест",
+            category_name="Тест",
+            city_name="Москва",
+            priority=1,
         )
 
         stats = optimizer.get_stats()
-        assert stats['total_tasks'] == 1
+        assert stats["total_tasks"] == 1
 
     def test_get_next_task(self):
         """Тест получения следующей задачи."""
         optimizer = ParallelOptimizer()
         optimizer.add_task(
-            url='https://2gis.ru/moscow/search/Тест',
-            category_name='Тест',
-            city_name='Москва'
+            url="https://2gis.ru/moscow/search/Тест",
+            category_name="Тест",
+            city_name="Москва",
         )
 
         task = optimizer.get_next_task()
         assert task is not None
-        assert task.url == 'https://2gis.ru/moscow/search/Тест'
+        assert task.url == "https://2gis.ru/moscow/search/Тест"
         assert task.start_time is not None
 
     def test_get_next_task_empty(self):
@@ -425,27 +426,27 @@ class TestParallelOptimizer:
     def test_get_stats(self):
         """Тест получения статистики."""
         optimizer = ParallelOptimizer()
-        optimizer.add_task('url1', 'cat1', 'city1')
-        optimizer.add_task('url2', 'cat2', 'city2')
+        optimizer.add_task("url1", "cat1", "city1")
+        optimizer.add_task("url2", "cat2", "city2")
 
         stats = optimizer.get_stats()
-        assert stats['total_tasks'] == 2
-        assert stats['pending_tasks'] == 2
-        assert stats['active_tasks'] == 0
-        assert stats['progress'] == 0.0
+        assert stats["total_tasks"] == 2
+        assert stats["pending_tasks"] == 2
+        assert stats["active_tasks"] == 0
+        assert stats["progress"] == 0.0
 
     def test_reset(self):
         """Тест сброса оптимизатора."""
         optimizer = ParallelOptimizer()
-        optimizer.add_task('url1', 'cat1', 'city1')
-        optimizer.add_task('url2', 'cat2', 'city2')
+        optimizer.add_task("url1", "cat1", "city1")
+        optimizer.add_task("url2", "cat2", "city2")
 
         optimizer.reset()
 
         stats = optimizer.get_stats()
-        assert stats['total_tasks'] == 0
-        assert stats['pending_tasks'] == 0
-        assert stats['active_tasks'] == 0
+        assert stats["total_tasks"] == 0
+        assert stats["pending_tasks"] == 0
+        assert stats["active_tasks"] == 0
 
 
 class TestBrowserHealthMonitor:

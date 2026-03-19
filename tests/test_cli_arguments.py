@@ -26,9 +26,11 @@ class TestParserArgumentsRegistration:
         """Проверка, что --parser.max-retries зарегистрирован и работает."""
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
-            "--parser.max-retries", "5",
+            "--parser.max-retries",
+            "5",
         ]
         with patch.object(sys, "argv", test_args):
             args, config = parse_arguments()
@@ -38,9 +40,11 @@ class TestParserArgumentsRegistration:
         """Проверка, что --parser.retry-on-network-errors зарегистрирован и работает."""
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
-            "--parser.retry-on-network-errors", "yes",
+            "--parser.retry-on-network-errors",
+            "yes",
         ]
         with patch.object(sys, "argv", test_args):
             args, config = parse_arguments()
@@ -50,9 +54,11 @@ class TestParserArgumentsRegistration:
         """Проверка, что --parser.retry-on-network-errors no работает."""
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
-            "--parser.retry-on-network-errors", "no",
+            "--parser.retry-on-network-errors",
+            "no",
         ]
         with patch.object(sys, "argv", test_args):
             args, config = parse_arguments()
@@ -62,9 +68,11 @@ class TestParserArgumentsRegistration:
         """Проверка, что --parser.retry-delay-base зарегистрирован и работает."""
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
-            "--parser.retry-delay-base", "2",
+            "--parser.retry-delay-base",
+            "2",
         ]
         with patch.object(sys, "argv", test_args):
             args, config = parse_arguments()
@@ -74,9 +82,11 @@ class TestParserArgumentsRegistration:
         """Проверка, что --parser.memory-threshold зарегистрирован и работает."""
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
-            "--parser.memory-threshold", "4096",
+            "--parser.memory-threshold",
+            "4096",
         ]
         with patch.object(sys, "argv", test_args):
             args, config = parse_arguments()
@@ -130,26 +140,35 @@ class TestAllParserOptionsArguments:
 
         # Проверяем только зарегистрированные поля
         fields_to_test = expected_fields & registered_fields
-        
+
         for field in fields_to_test:
             cli_arg = f"--parser.{field.replace('_', '-')}"
             # Создаём тестовый вызов с этим аргументом
             test_args = [
                 "parser-2gis",
-                "--cities", "omsk",
+                "--cities",
+                "omsk",
                 "--categories-mode",
                 cli_arg,
             ]
             # Добавляем значение в зависимости от типа поля
             # Используем getattr для совместимости с Pydantic v1 и v2
-            model_fields = getattr(ParserOptions, 'model_fields', None) or getattr(ParserOptions, '__fields__', {})
+            model_fields = getattr(ParserOptions, "model_fields", None) or getattr(
+                ParserOptions, "__fields__", {}
+            )
             field_info = model_fields[field]
-            field_type = field_info.annotation if hasattr(field_info, 'annotation') else field_info.type_
+            field_type = (
+                field_info.annotation
+                if hasattr(field_info, "annotation")
+                else field_info.type_
+            )
 
             # Проверяем тип поля с учётом специальных типов Pydantic
             if field_type == bool:
                 test_args.append("yes")
-            elif field_type == int or (isinstance(field_type, type) and issubclass(field_type, int)):
+            elif field_type == int or (
+                isinstance(field_type, type) and issubclass(field_type, int)
+            ):
                 # Для числовых типов (int, NonNegativeInt, PositiveInt)
                 # Используем значения в допустимых диапазонах
                 if field == "memory_threshold":
@@ -172,12 +191,13 @@ class TestAllParserOptionsArguments:
         """Проверка, что значения по умолчанию из ParserOptions совпадают с CLI."""
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
         ]
         with patch.object(sys, "argv", test_args):
             args, config = parse_arguments()
-            
+
             # Проверяем значения по умолчанию
             assert config.parser.skip_404_response is True
             assert config.parser.delay_between_clicks == 0
@@ -199,9 +219,11 @@ class TestArgumentValidation:
         """Проверка, что max_retries=0 вызывает ошибку."""
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
-            "--parser.max-retries", "0",
+            "--parser.max-retries",
+            "0",
         ]
         with patch.object(sys, "argv", test_args):
             with pytest.raises(SystemExit):
@@ -211,9 +233,11 @@ class TestArgumentValidation:
         """Проверка, что отрицательный retry_delay_base вызывает ошибку."""
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
-            "--parser.retry-delay-base", "-1",
+            "--parser.retry-delay-base",
+            "-1",
         ]
         with patch.object(sys, "argv", test_args):
             with pytest.raises(SystemExit):
@@ -223,9 +247,11 @@ class TestArgumentValidation:
         """Проверка, что слишком низкий memory_threshold вызывает ошибку."""
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
-            "--parser.memory-threshold", "0",
+            "--parser.memory-threshold",
+            "0",
         ]
         with patch.object(sys, "argv", test_args):
             with pytest.raises(SystemExit):
@@ -235,9 +261,11 @@ class TestArgumentValidation:
         """Проверка, что недопустимое значение retry-on-network-errors вызывает ошибку."""
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
-            "--parser.retry-on-network-errors", "invalid",
+            "--parser.retry-on-network-errors",
+            "invalid",
         ]
         with patch.object(sys, "argv", test_args):
             with pytest.raises(SystemExit):
@@ -247,7 +275,7 @@ class TestArgumentValidation:
 class TestRunShArguments:
     """
     Тесты для аргументов, используемых в run.sh.
-    
+
     Этот тест предотвращает ошибки, когда run.sh использует аргументы,
     которые не зарегистрированы в main.py.
     """
@@ -255,7 +283,7 @@ class TestRunShArguments:
     def test_run_sh_default_arguments(self):
         """
         Проверка, что все аргументы из run.sh (без параметров) работают.
-        
+
         Симулирует вызов: ./run.sh
         Который использует:
         --cities omsk
@@ -270,19 +298,27 @@ class TestRunShArguments:
         """
         test_args = [
             "parser-2gis",
-            "--cities", "omsk",
+            "--cities",
+            "omsk",
             "--categories-mode",
-            "--parallel-workers", "10",
-            "--chrome.headless", "yes",
-            "--chrome.disable-images", "yes",
-            "--parser.stop-on-first-404", "yes",
-            "--parser.max-consecutive-empty-pages", "5",
-            "--parser.max-retries", "3",
-            "--parser.retry-on-network-errors", "yes",
+            "--parallel-workers",
+            "10",
+            "--chrome.headless",
+            "yes",
+            "--chrome.disable-images",
+            "yes",
+            "--parser.stop-on-first-404",
+            "yes",
+            "--parser.max-consecutive-empty-pages",
+            "5",
+            "--parser.max-retries",
+            "3",
+            "--parser.retry-on-network-errors",
+            "yes",
         ]
         with patch.object(sys, "argv", test_args):
             args, config = parse_arguments()
-            
+
             # Проверяем, что все аргументы распарсены корректно
             assert args.cities == ["omsk"]
             assert args.categories_mode is True
@@ -298,17 +334,24 @@ class TestRunShArguments:
         """Проверка кастомных значений аргументов из run.sh."""
         test_args = [
             "parser-2gis",
-            "--cities", "moscow", "spb",
+            "--cities",
+            "moscow",
+            "spb",
             "--categories-mode",
-            "--parallel-workers", "5",
-            "--parser.max-retries", "5",
-            "--parser.retry-on-network-errors", "yes",
-            "--parser.retry-delay-base", "2",
-            "--parser.memory-threshold", "4096",
+            "--parallel-workers",
+            "5",
+            "--parser.max-retries",
+            "5",
+            "--parser.retry-on-network-errors",
+            "yes",
+            "--parser.retry-delay-base",
+            "2",
+            "--parser.memory-threshold",
+            "4096",
         ]
         with patch.object(sys, "argv", test_args):
             args, config = parse_arguments()
-            
+
             assert args.cities == ["moscow", "spb"]
             assert args.parallel_workers == 5
             assert config.parser.max_retries == 5

@@ -11,9 +11,12 @@
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from parser_2gis.common import (floor_to_hundreds, report_from_validation_error,
-                                unwrap_dot_dict, wait_until_finished)
-
+from parser_2gis.common import (
+    floor_to_hundreds,
+    report_from_validation_error,
+    unwrap_dot_dict,
+    wait_until_finished,
+)
 
 
 class TestFloorToHundreds:
@@ -54,20 +57,20 @@ class TestUnwrapDotDict:
 
     def test_unwrap_simple_path(self):
         """Проверка разворачивания простого пути."""
-        input_dict = {'a.b': 'value'}
-        expected = {'a': {'b': 'value'}}
+        input_dict = {"a.b": "value"}
+        expected = {"a": {"b": "value"}}
         assert unwrap_dot_dict(input_dict) == expected
 
     def test_unwrap_nested_paths(self):
         """Проверка разворачивания вложенных путей."""
-        input_dict = {'a.b.c': 'value1', 'a.b.d': 'value2'}
-        expected = {'a': {'b': {'c': 'value1', 'd': 'value2'}}}
+        input_dict = {"a.b.c": "value1", "a.b.d": "value2"}
+        expected = {"a": {"b": {"c": "value1", "d": "value2"}}}
         assert unwrap_dot_dict(input_dict) == expected
 
     def test_unwrap_multiple_top_level(self):
         """Проверка разворачивания нескольких верхнеуровневых ключей."""
-        input_dict = {'a.b': 'value1', 'c.d': 'value2'}
-        expected = {'a': {'b': 'value1'}, 'c': {'d': 'value2'}}
+        input_dict = {"a.b": "value1", "c.d": "value2"}
+        expected = {"a": {"b": "value1"}, "c": {"d": "value2"}}
         assert unwrap_dot_dict(input_dict) == expected
 
     def test_unwrap_empty_dict(self):
@@ -77,20 +80,20 @@ class TestUnwrapDotDict:
     def test_unwrap_preserves_values(self):
         """Проверка сохранения значений разных типов."""
         input_dict = {
-            'a.int': 42,
-            'a.float': 3.14,
-            'a.string': 'test',
-            'a.bool': True,
-            'a.list': [1, 2, 3],
-            'a.dict': {'nested': 'value'},
+            "a.int": 42,
+            "a.float": 3.14,
+            "a.string": "test",
+            "a.bool": True,
+            "a.list": [1, 2, 3],
+            "a.dict": {"nested": "value"},
         }
         result = unwrap_dot_dict(input_dict)
-        assert result['a']['int'] == 42
-        assert result['a']['float'] == 3.14
-        assert result['a']['string'] == 'test'
-        assert result['a']['bool'] is True
-        assert result['a']['list'] == [1, 2, 3]
-        assert result['a']['dict'] == {'nested': 'value'}
+        assert result["a"]["int"] == 42
+        assert result["a"]["float"] == 3.14
+        assert result["a"]["string"] == "test"
+        assert result["a"]["bool"] is True
+        assert result["a"]["list"] == [1, 2, 3]
+        assert result["a"]["dict"] == {"nested": "value"}
 
 
 class TestReportFromValidationError:
@@ -98,44 +101,45 @@ class TestReportFromValidationError:
 
     class SimpleModel(BaseModel):
         """Простая модель для тестирования."""
+
         name: str
         age: int
 
     def test_report_with_invalid_value(self):
         """Проверка отчёта с невалидным значением."""
         try:
-            self.SimpleModel(name='test', age='invalid')
+            self.SimpleModel(name="test", age="invalid")
         except ValidationError as e:
-            report = report_from_validation_error(e, {'name': 'test', 'age': 'invalid'})
-            assert 'age' in report
-            assert report['age']['invalid_value'] == 'invalid'
-            assert 'error_message' in report['age']
+            report = report_from_validation_error(e, {"name": "test", "age": "invalid"})
+            assert "age" in report
+            assert report["age"]["invalid_value"] == "invalid"
+            assert "error_message" in report["age"]
 
     def test_report_without_dict(self):
         """Проверка отчёта без словаря значений."""
         try:
-            self.SimpleModel(name='test', age='invalid')
+            self.SimpleModel(name="test", age="invalid")
         except ValidationError as e:
             report = report_from_validation_error(e)
-            assert 'age' in report
-            assert 'error_message' in report['age']
+            assert "age" in report
+            assert "error_message" in report["age"]
 
     def test_report_with_multiple_errors(self):
         """Проверка отчёта с несколькими ошибками."""
         try:
-            self.SimpleModel(name=123, age='invalid')
+            self.SimpleModel(name=123, age="invalid")
         except ValidationError as e:
             report = report_from_validation_error(e)
-            assert 'name' in report or 'age' in report
+            assert "name" in report or "age" in report
 
     def test_report_with_missing_value(self):
         """Проверка отчёта с отсутствующим значением."""
         try:
-            self.SimpleModel(name='test', age='invalid')
+            self.SimpleModel(name="test", age="invalid")
         except ValidationError as e:
-            report = report_from_validation_error(e, {'name': 'test'})
-            assert 'age' in report
-            assert report['age']['invalid_value'] == '<No value>'
+            report = report_from_validation_error(e, {"name": "test"})
+            assert "age" in report
+            assert report["age"]["invalid_value"] == "<No value>"
 
 
 class TestWaitUntilFinished:
@@ -143,47 +147,50 @@ class TestWaitUntilFinished:
 
     def test_wait_until_finished_success(self):
         """Проверка успешного завершения."""
-        counter = {'value': 0}
+        counter = {"value": 0}
 
         @wait_until_finished(timeout=5, finished=lambda x: x >= 3, poll_interval=0.1)
         def increment():
-            counter['value'] += 1
-            return counter['value']
+            counter["value"] += 1
+            return counter["value"]
 
         result = increment()
         assert result >= 3
 
     def test_wait_until_finished_timeout(self):
         """Проверка таймаута."""
-        counter = {'value': 0}
+        counter = {"value": 0}
 
-        @wait_until_finished(timeout=0.5, finished=lambda x: x >= 100, poll_interval=0.1)
+        @wait_until_finished(
+            timeout=0.5, finished=lambda x: x >= 100, poll_interval=0.1
+        )
         def increment():
-            counter['value'] += 1
-            return counter['value']
+            counter["value"] += 1
+            return counter["value"]
 
         with pytest.raises(TimeoutError):
             increment()
 
     def test_wait_until_finished_no_exception(self):
         """Проверка без выбрасывания исключения."""
-        counter = {'value': 0}
+        counter = {"value": 0}
 
         @wait_until_finished(
             timeout=0.5,
             finished=lambda x: x >= 100,
             poll_interval=0.1,
-            throw_exception=False
+            throw_exception=False,
         )
         def increment():
-            counter['value'] += 1
-            return counter['value']
+            counter["value"] += 1
+            return counter["value"]
 
         result = increment()
         assert result < 100
 
     def test_wait_until_finished_immediate_success(self):
         """Проверка немедленного успеха."""
+
         @wait_until_finished(timeout=5, finished=lambda x: x is True, poll_interval=0.1)
         def return_true():
             return True

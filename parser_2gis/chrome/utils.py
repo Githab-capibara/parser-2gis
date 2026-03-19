@@ -53,6 +53,7 @@ def locate_chrome_path() -> str | None:
                 return os.path.realpath(binary_path)
 
         except subprocess.CalledProcessError:
+            # Binary не найден в PATH, продолжаем поиск
             pass
 
     return None

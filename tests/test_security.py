@@ -26,7 +26,6 @@ from parser_2gis.parser.parsers.firm import (
 from parser_2gis.cache import _validate_cached_data
 from parser_2gis.chrome.remote import _validate_js_code
 
-
 # =============================================================================
 # ПРОБЛЕМА 1: XSS УЯЗВИМОСТЬ ЧЕРЕЗ window.initialState (firm.py)
 # =============================================================================
@@ -38,7 +37,7 @@ class TestXSSVulnerabilityInitialState:
     def test_validate_initial_state_valid_data(self):
         """
         Тест 1: Валидация корректных данных.
-        
+
         Проверяет что валидные данные проходят проверку.
         """
         # Корректные данные initialState
@@ -61,14 +60,14 @@ class TestXSSVulnerabilityInitialState:
         }
 
         # Проверяем что валидация проходит успешно
-        assert _validate_initial_state(valid_data) is True, (
-            "Корректные данные initialState должны проходить валидацию"
-        )
+        assert (
+            _validate_initial_state(valid_data) is True
+        ), "Корректные данные initialState должны проходить валидацию"
 
     def test_validate_initial_state_rejects_dangerous_js(self):
         """
         Тест 2: Отклонение данных с опасными JS-конструкциями.
-        
+
         Проверяет что данные с XSS паттернами отклоняются.
         """
         # Данные с XSS атаками
@@ -88,7 +87,7 @@ class TestXSSVulnerabilityInitialState:
                 "data": {
                     "entity": {
                         "profile": {
-                            "website": 'javascript:alert(document.cookie)',
+                            "website": "javascript:alert(document.cookie)",
                         }
                     }
                 }
@@ -118,7 +117,7 @@ class TestXSSVulnerabilityInitialState:
                 "data": {
                     "entity": {
                         "profile": {
-                            "comment": 'Посмотрите document.cookie',
+                            "comment": "Посмотрите document.cookie",
                         }
                     }
                 }
@@ -146,46 +145,46 @@ class TestXSSVulnerabilityInitialState:
         ]
 
         for i, data in enumerate(dangerous_data):
-            assert _validate_initial_state(data) is False, (
-                f"Данные с XSS атакой (тест {i + 1}) должны быть отклонены"
-            )
+            assert (
+                _validate_initial_state(data) is False
+            ), f"Данные с XSS атакой (тест {i + 1}) должны быть отклонены"
 
     def test_validate_initial_state_rejects_deep_nesting(self):
         """
         Тест 3: Отклонение данных с превышением глубины вложенности.
-        
+
         Проверяет что данные с чрезмерной вложенностью отклоняются
         для предотвращения DoS атак.
         """
         # Создаём данные с глубиной вложенности больше MAX_INITIAL_STATE_DEPTH
         deep_data = {"level_0": {}}
         current = deep_data["level_0"]
-        
+
         for i in range(1, MAX_INITIAL_STATE_DEPTH + 5):  # Превышаем лимит
             current[f"level_{i}"] = {}
             current = current[f"level_{i}"]
-        
+
         # Добавляем данные на самом глубоком уровне
         current["payload"] = "malicious data"
 
         # Проверяем что данные отклоняются из-за глубины
-        assert _validate_initial_state(deep_data) is False, (
-            f"Данные с глубиной вложенности > {MAX_INITIAL_STATE_DEPTH} должны быть отклонены"
-        )
+        assert (
+            _validate_initial_state(deep_data) is False
+        ), f"Данные с глубиной вложенности > {MAX_INITIAL_STATE_DEPTH} должны быть отклонены"
 
         # Проверяем что данные с допустимой глубиной проходят
         valid_deep_data = {"level_0": {}}
         current = valid_deep_data["level_0"]
-        
+
         for i in range(1, MAX_INITIAL_STATE_DEPTH - 1):  # В пределах лимита
             current[f"level_{i}"] = {}
             current = current[f"level_{i}"]
-        
+
         current["payload"] = "valid data"
 
-        assert _validate_initial_state(valid_deep_data) is True, (
-            f"Данные с глубиной вложенности < {MAX_INITIAL_STATE_DEPTH} должны проходить валидацию"
-        )
+        assert (
+            _validate_initial_state(valid_deep_data) is True
+        ), f"Данные с глубиной вложенности < {MAX_INITIAL_STATE_DEPTH} должны проходить валидацию"
 
 
 # =============================================================================
@@ -199,7 +198,7 @@ class TestSQLInjectionInCache:
     def test_validate_cached_data_valid_data(self):
         """
         Тест 1: Валидация корректных данных кэша.
-        
+
         Проверяет что валидные данные кэша проходят проверку.
         """
         # Корректные данные кэша
@@ -220,14 +219,14 @@ class TestSQLInjectionInCache:
         }
 
         # Проверяем что валидация проходит успешно
-        assert _validate_cached_data(valid_data) is True, (
-            "Корректные данные кэша должны проходить валидацию"
-        )
+        assert (
+            _validate_cached_data(valid_data) is True
+        ), "Корректные данные кэша должны проходить валидацию"
 
     def test_validate_cached_data_rejects_sql_injection(self):
         """
         Тест 2: Отклонение данных с SQL injection паттернами.
-        
+
         Проверяет что данные с SQL injection паттернами отклоняются.
         """
         # Данные с SQL injection атаками
@@ -260,14 +259,14 @@ class TestSQLInjectionInCache:
         ]
 
         for i, data in enumerate(dangerous_data):
-            assert _validate_cached_data(data) is False, (
-                f"Данные с SQL injection (тест {i + 1}) должны быть отклонены"
-            )
+            assert (
+                _validate_cached_data(data) is False
+            ), f"Данные с SQL injection (тест {i + 1}) должны быть отклонены"
 
     def test_validate_cached_data_rejects_xss_patterns(self):
         """
         Тест 3: Отклонение данных с XSS паттернами.
-        
+
         Проверяет что данные с XSS паттернами также отклоняются
         для комплексной защиты.
         """
@@ -290,7 +289,7 @@ class TestSQLInjectionInCache:
                 "data": {
                     "items": [
                         {
-                            "website": 'javascript:alert(document.cookie)',
+                            "website": "javascript:alert(document.cookie)",
                         }
                     ]
                 },
@@ -342,9 +341,9 @@ class TestSQLInjectionInCache:
         ]
 
         for i, data in enumerate(xss_data):
-            assert _validate_cached_data(data) is False, (
-                f"Данные с XSS паттерном (тест {i + 1}) должны быть отклонены"
-            )
+            assert (
+                _validate_cached_data(data) is False
+            ), f"Данные с XSS паттерном (тест {i + 1}) должны быть отклонены"
 
 
 # =============================================================================
@@ -358,7 +357,7 @@ class TestUnsafeEvalUsage:
     def test_validate_js_code_rejects_eval(self):
         """
         Тест 1: Отклонение кода с eval().
-        
+
         Проверяет что JavaScript код с eval() отклоняется.
         """
         # Код с eval()
@@ -372,17 +371,15 @@ class TestUnsafeEvalUsage:
 
         for code in dangerous_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert is_valid is False, (
-                f"Код с eval() должен быть отклонён: {code}"
-            )
-            assert "eval" in error_message.lower() or "опасный" in error_message.lower(), (
-                f"Сообщение об ошибке должно упоминать eval: {error_message}"
-            )
+            assert is_valid is False, f"Код с eval() должен быть отклонён: {code}"
+            assert (
+                "eval" in error_message.lower() or "опасный" in error_message.lower()
+            ), f"Сообщение об ошибке должно упоминать eval: {error_message}"
 
     def test_validate_js_code_rejects_unicode_encoding(self):
         """
         Тест 2: Отклонение кода с Unicode кодировкой.
-        
+
         Проверяет что код с попытками обхода через Unicode отклоняется.
         """
         # Код с Unicode кодировкой для обхода фильтров
@@ -399,21 +396,19 @@ class TestUnsafeEvalUsage:
 
         for code in unicode_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert is_valid is False, (
-                f"Код с Unicode/HTML entity кодировкой должен быть отклонён: {code}"
-            )
             assert (
-                "unicode" in error_message.lower() 
+                is_valid is False
+            ), f"Код с Unicode/HTML entity кодировкой должен быть отклонён: {code}"
+            assert (
+                "unicode" in error_message.lower()
                 or "кодировк" in error_message.lower()
                 or "html entity" in error_message.lower()
-            ), (
-                f"Сообщение об ошибке должно упоминать кодировку: {error_message}"
-            )
+            ), f"Сообщение об ошибке должно упоминать кодировку: {error_message}"
 
     def test_validate_js_code_rejects_atob(self):
         """
         Тест 3: Отклонение кода с atob().
-        
+
         Проверяет что код с atob() (base64 декодер) отклоняется
         для предотвращения скрытия опасного кода.
         """
@@ -431,57 +426,53 @@ class TestUnsafeEvalUsage:
 
         for code in atob_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert is_valid is False, (
-                f"Код с atob() должен быть отклонён: {code}"
-            )
-            assert "atob" in error_message.lower(), (
-                f"Сообщение об ошибке должно упоминать atob: {error_message}"
-            )
+            assert is_valid is False, f"Код с atob() должен быть отклонён: {code}"
+            assert (
+                "atob" in error_message.lower()
+            ), f"Сообщение об ошибке должно упоминать atob: {error_message}"
 
     # Дополнительные тесты для комплексной проверки
     def test_validate_js_code_valid_code(self):
         """
         Дополнительный тест: Валидация корректного JavaScript кода.
-        
+
         Проверяет что безопасный код проходит валидацию.
         """
         # Безопасный JavaScript код
         valid_codes = [
             'console.log("Hello, World!")',
             'document.querySelector(".element")',
-            'const x = 1 + 2;',
-            'function test() { return true; }',
+            "const x = 1 + 2;",
+            "function test() { return true; }",
             'document.getElementById("myElement")',
             'window.addEventListener("load", handler)',
         ]
 
         for code in valid_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert is_valid is True, (
-                f"Безопасный код должен проходить валидацию: {code}. Ошибка: {error_message}"
-            )
+            assert (
+                is_valid is True
+            ), f"Безопасный код должен проходить валидацию: {code}. Ошибка: {error_message}"
 
     def test_validate_js_code_rejects_string_fromcharcode(self):
         """
         Дополнительный тест: Отклонение кода с String.fromCharCode().
-        
+
         Проверяет что код с String.fromCharCode() отклоняется.
         """
         # Код с String.fromCharCode()
         charcode = 'String.fromCharCode(101, 118, 97, 108)("alert(1)")'
         is_valid, error_message = _validate_js_code(charcode)
-        
-        assert is_valid is False, (
-            "Код с String.fromCharCode() должен быть отклонён"
-        )
-        assert "fromcharcode" in error_message.lower(), (
-            f"Сообщение об ошибке должно упоминать fromCharCode: {error_message}"
-        )
+
+        assert is_valid is False, "Код с String.fromCharCode() должен быть отклонён"
+        assert (
+            "fromcharcode" in error_message.lower()
+        ), f"Сообщение об ошибке должно упоминать fromCharCode: {error_message}"
 
     def test_validate_js_code_rejects_concat_obfuscation(self):
         """
         Дополнительный тест: Отклонение кода с конкатенацией для обхода.
-        
+
         Проверяет что подозрительная конкатенация строк отклоняется.
         """
         # Код с конкатенацией для обхода фильтров
@@ -493,9 +484,9 @@ class TestUnsafeEvalUsage:
 
         for code in concat_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert is_valid is False, (
-                f"Код с подозрительной конкатенацией должен быть отклонён: {code}"
-            )
+            assert (
+                is_valid is False
+            ), f"Код с подозрительной конкатенацией должен быть отклонён: {code}"
 
 
 # =============================================================================
@@ -509,7 +500,7 @@ class TestSecurityIntegration:
     def test_safe_extract_initial_state_integration(self):
         """
         Интеграционный тест: Безопасное извлечение initialState.
-        
+
         Проверяет что _safe_extract_initial_state корректно работает
         с валидными и невалидными данными.
         """
@@ -526,16 +517,11 @@ class TestSecurityIntegration:
         }
 
         result = _safe_extract_initial_state(
-            valid_initial_state,
-            ["data", "entity", "profile"]
+            valid_initial_state, ["data", "entity", "profile"]
         )
 
-        assert result is not None, (
-            "Валидные данные должны быть извлечены"
-        )
-        assert result["name"] == "ООО Ромашка", (
-            "Данные должны быть корректно извлечены"
-        )
+        assert result is not None, "Валидные данные должны быть извлечены"
+        assert result["name"] == "ООО Ромашка", "Данные должны быть корректно извлечены"
 
         # Невалидные данные (с XSS)
         invalid_initial_state = {
@@ -549,18 +535,15 @@ class TestSecurityIntegration:
         }
 
         result = _safe_extract_initial_state(
-            invalid_initial_state,
-            ["data", "entity", "profile"]
+            invalid_initial_state, ["data", "entity", "profile"]
         )
 
-        assert result is None, (
-            "Данные с XSS должны быть отклонены"
-        )
+        assert result is None, "Данные с XSS должны быть отклонены"
 
     def test_validate_js_code_edge_cases(self):
         """
         Интеграционный тест: Граничные случаи валидации JS кода.
-        
+
         Проверяет обработку граничных случаев.
         """
         # Пустой код

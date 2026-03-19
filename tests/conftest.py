@@ -5,6 +5,7 @@
 в нескольких тестовых модулях для тестирования исправлений аудита.
 """
 
+import asyncio
 import os
 import sqlite3
 import sys
@@ -18,12 +19,13 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 # Добавляем корень проекта в путь
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 # =============================================================================
 # ФИКСТУРЫ ДЛЯ H1: OSError в _merge_csv_files()
 # =============================================================================
+
 
 @pytest.fixture
 def mock_oserror() -> MagicMock:
@@ -32,7 +34,7 @@ def mock_oserror() -> MagicMock:
     Returns:
         MagicMock для имитации OSError.
     """
-    with patch('builtins.OSError') as mock_error:
+    with patch("builtins.OSError") as mock_error:
         mock_error.side_effect = OSError("Mocked OSError")
         yield mock_error
 
@@ -52,11 +54,11 @@ def temp_csv_files(tmp_path: Path) -> Generator[List[Path], None, None]:
     csv_files = []
     for i in range(3):
         csv_file = tmp_path / f"test_{i}.csv"
-        with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+        with open(csv_file, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(['col1', 'col2', 'category'])
+            writer.writerow(["col1", "col2", "category"])
             for j in range(10):
-                writer.writerow([f'value_{i}_{j}', f'data_{i}_{j}', f'category_{i}'])
+                writer.writerow([f"value_{i}_{j}", f"data_{i}_{j}", f"category_{i}"])
         csv_files.append(csv_file)
 
     yield csv_files
@@ -74,7 +76,7 @@ def mock_file_open_oserror() -> Generator[MagicMock, None, None]:
     Yields:
         MagicMock для имитации OSError при open().
     """
-    with patch('builtins.open') as mock_open:
+    with patch("builtins.open") as mock_open:
         mock_open.side_effect = OSError("Mocked OSError on file open")
         yield mock_open
 
@@ -82,6 +84,7 @@ def mock_file_open_oserror() -> Generator[MagicMock, None, None]:
 # =============================================================================
 # ФИКСТУРЫ ДЛЯ H2: shutdown() ThreadPoolExecutor
 # =============================================================================
+
 
 @pytest.fixture
 def mock_executor() -> MagicMock:
@@ -113,6 +116,7 @@ def executor_with_exception() -> MagicMock:
 # ФИКСТУРЫ ДЛЯ H3: Timeout для Chrome DevTools
 # =============================================================================
 
+
 @pytest.fixture
 def mock_chrome_timeout() -> Generator[MagicMock, None, None]:
     """Фикстура для mock timeout операций Chrome.
@@ -120,7 +124,7 @@ def mock_chrome_timeout() -> Generator[MagicMock, None, None]:
     Yields:
         MagicMock для имитации timeout.
     """
-    with patch('parser_2gis.chrome.remote.ThreadPoolExecutor') as mock_executor_class:
+    with patch("parser_2gis.chrome.remote.ThreadPoolExecutor") as mock_executor_class:
         mock_executor = MagicMock()
         mock_executor.__enter__ = Mock(return_value=mock_executor)
         mock_executor.__exit__ = Mock(return_value=False)
@@ -140,7 +144,7 @@ def mock_chrome_success() -> Generator[MagicMock, None, None]:
     Yields:
         MagicMock для имитации успешного выполнения.
     """
-    with patch('parser_2gis.chrome.remote.ThreadPoolExecutor') as mock_executor_class:
+    with patch("parser_2gis.chrome.remote.ThreadPoolExecutor") as mock_executor_class:
         mock_executor = MagicMock()
         mock_executor.__enter__ = Mock(return_value=mock_executor)
         mock_executor.__exit__ = Mock(return_value=False)
@@ -170,6 +174,7 @@ def mock_pychrome_browser() -> MagicMock:
 # =============================================================================
 # ФИКСТУРЫ ДЛЯ M1: Обработка ошибок БД в кэше
 # =============================================================================
+
 
 @pytest.fixture
 def mock_db_connection() -> MagicMock:
@@ -204,7 +209,7 @@ def mock_database_locked_error() -> Generator[MagicMock, None, None]:
     Yields:
         MagicMock для имитации временной ошибки БД.
     """
-    with patch('parser_2gis.cache.sqlite3.Error') as mock_error_class:
+    with patch("parser_2gis.cache.sqlite3.Error") as mock_error_class:
         mock_error = MagicMock()
         mock_error.args = ("database is locked",)
         mock_error_class.side_effect = mock_error
@@ -218,7 +223,7 @@ def mock_disk_io_error() -> Generator[MagicMock, None, None]:
     Yields:
         MagicMock для имитации критической ошибки БД.
     """
-    with patch('parser_2gis.cache.sqlite3.Error') as mock_error_class:
+    with patch("parser_2gis.cache.sqlite3.Error") as mock_error_class:
         mock_error = MagicMock()
         mock_error.args = ("disk I/O error",)
         mock_error_class.side_effect = mock_error
@@ -232,7 +237,7 @@ def mock_no_such_table_error() -> Generator[MagicMock, None, None]:
     Yields:
         MagicMock для имитации ошибки отсутствия таблицы.
     """
-    with patch('parser_2gis.cache.sqlite3.Error') as mock_error_class:
+    with patch("parser_2gis.cache.sqlite3.Error") as mock_error_class:
         mock_error = MagicMock()
         mock_error.args = ("no such table",)
         mock_error_class.side_effect = mock_error
@@ -243,6 +248,7 @@ def mock_no_such_table_error() -> Generator[MagicMock, None, None]:
 # ФИКСТУРЫ ДЛЯ M2: skipped_count в cache.py
 # =============================================================================
 
+
 @pytest.fixture
 def sample_urls() -> List[str]:
     """Фикстура для примеров URL.
@@ -251,9 +257,9 @@ def sample_urls() -> List[str]:
         Список примеров URL.
     """
     return [
-        'https://2gis.ru/moscow/search/Аптеки',
-        'https://2gis.ru/spb/search/Рестораны',
-        'https://2gis.ru/kazan/search/Магазины',
+        "https://2gis.ru/moscow/search/Аптеки",
+        "https://2gis.ru/spb/search/Рестораны",
+        "https://2gis.ru/kazan/search/Магазины",
     ]
 
 
@@ -265,12 +271,12 @@ def sample_cache_data() -> Dict[str, Any]:
         Словарь с примером данных кэша.
     """
     return {
-        'name': 'Тестовая организация',
-        'address': 'г. Москва, ул. Тестовая, д. 1',
-        'phones': ['+7 (495) 123-45-67'],
-        'emails': ['test@example.com'],
-        'website': 'https://example.com',
-        'rubrics': ['Тестовая рубрика'],
+        "name": "Тестовая организация",
+        "address": "г. Москва, ул. Тестовая, д. 1",
+        "phones": ["+7 (495) 123-45-67"],
+        "emails": ["test@example.com"],
+        "website": "https://example.com",
+        "rubrics": ["Тестовая рубрика"],
     }
 
 
@@ -281,7 +287,7 @@ def mock_cache_with_serialization_error() -> Generator[MagicMock, None, None]:
     Yields:
         MagicMock для имитации ошибки сериализации.
     """
-    with patch('parser_2gis.cache._serialize_json') as mock_serialize:
+    with patch("parser_2gis.cache._serialize_json") as mock_serialize:
         mock_serialize.side_effect = TypeError("Mocked serialization error")
         yield mock_serialize
 
@@ -289,6 +295,7 @@ def mock_cache_with_serialization_error() -> Generator[MagicMock, None, None]:
 # =============================================================================
 # ФИКСТУРЫ ДЛЯ M5: LRU eviction временных файлов
 # =============================================================================
+
 
 @pytest.fixture
 def temp_files_registry() -> Generator[set, None, None]:
@@ -332,6 +339,7 @@ def mock_temp_file_paths(tmp_path: Path) -> List[Path]:
 # ФИКСТУРЫ ДЛЯ M6: Code coverage настройки
 # =============================================================================
 
+
 @pytest.fixture
 def ini_file_path() -> Path:
     """Фикстура для пути к pytest.ini.
@@ -339,7 +347,7 @@ def ini_file_path() -> Path:
     Returns:
         Путь к файлу pytest.ini.
     """
-    return Path(__file__).parent.parent / 'pytest.ini'
+    return Path(__file__).parent.parent / "pytest.ini"
 
 
 @pytest.fixture
@@ -352,12 +360,13 @@ def ini_file_content(ini_file_path: Path) -> str:
     Returns:
         Содержимое файла pytest.ini.
     """
-    return ini_file_path.read_text(encoding='utf-8')
+    return ini_file_path.read_text(encoding="utf-8")
 
 
 # =============================================================================
 # ФИКСТУРЫ ДЛЯ M8: Унификация буферов
 # =============================================================================
+
 
 @pytest.fixture
 def buffer_constants() -> Dict[str, int]:
@@ -373,15 +382,16 @@ def buffer_constants() -> Dict[str, int]:
     )
 
     return {
-        'DEFAULT_BUFFER_SIZE': DEFAULT_BUFFER_SIZE,
-        'CSV_BATCH_SIZE': CSV_BATCH_SIZE,
-        'MERGE_BATCH_SIZE': MERGE_BATCH_SIZE,
+        "DEFAULT_BUFFER_SIZE": DEFAULT_BUFFER_SIZE,
+        "CSV_BATCH_SIZE": CSV_BATCH_SIZE,
+        "MERGE_BATCH_SIZE": MERGE_BATCH_SIZE,
     }
 
 
 # =============================================================================
 # ФИКСТУРЫ ДЛЯ L3: Константы poll_interval
 # =============================================================================
+
 
 @pytest.fixture
 def poll_constants() -> Dict[str, float]:
@@ -397,15 +407,16 @@ def poll_constants() -> Dict[str, float]:
     )
 
     return {
-        'DEFAULT_POLL_INTERVAL': DEFAULT_POLL_INTERVAL,
-        'MAX_POLL_INTERVAL': MAX_POLL_INTERVAL,
-        'EXPONENTIAL_BACKOFF_MULTIPLIER': EXPONENTIAL_BACKOFF_MULTIPLIER,
+        "DEFAULT_POLL_INTERVAL": DEFAULT_POLL_INTERVAL,
+        "MAX_POLL_INTERVAL": MAX_POLL_INTERVAL,
+        "EXPONENTIAL_BACKOFF_MULTIPLIER": EXPONENTIAL_BACKOFF_MULTIPLIER,
     }
 
 
 # =============================================================================
 # ФИКСТУРЫ ДЛЯ L7: DeprecationWarning
 # =============================================================================
+
 
 @pytest.fixture
 def warning_recorder() -> Generator[List[Warning], None, None]:
@@ -416,7 +427,8 @@ def warning_recorder() -> Generator[List[Warning], None, None]:
     """
     warnings_list: List[Warning] = []
 
-    with patch('warnings.warn') as mock_warn:
+    with patch("warnings.warn") as mock_warn:
+
         def record_warning(message: Warning, *args: Any, **kwargs: Any) -> None:
             warnings_list.append(message)
 
@@ -431,13 +443,14 @@ def mock_pychrome_deprecation() -> Generator[MagicMock, None, None]:
     Yields:
         MagicMock для имитации предупреждения.
     """
-    with patch('warnings.filterwarnings') as mock_filter:
+    with patch("warnings.filterwarnings") as mock_filter:
         yield mock_filter
 
 
 # =============================================================================
 # ФИКСТУРЫ ДЛЯ L10: async_wait_until_finished()
 # =============================================================================
+
 
 @pytest.fixture
 def event_loop() -> Generator[Any, None, None]:
@@ -464,6 +477,7 @@ def async_function_success() -> Callable:
     Returns:
         Фабрика async функций.
     """
+
     async def success_function() -> str:
         await asyncio.sleep(0.01)
         return "success"
@@ -478,6 +492,7 @@ def async_function_timeout() -> Callable:
     Returns:
         Фабрика async функций.
     """
+
     async def timeout_function() -> None:
         await asyncio.sleep(10)
 
@@ -488,14 +503,15 @@ def async_function_timeout() -> Callable:
 # ОБЩИЕ ФИКСТУРЫ
 # =============================================================================
 
-@pytest.fixture(scope='session')
+
+@pytest.fixture(scope="session")
 def test_data_dir() -> str:
     """Фикстура для директории с тестовыми данными.
 
     Returns:
         Путь к директории с тестовыми данными.
     """
-    return os.path.join(os.path.dirname(__file__), 'data')
+    return os.path.join(os.path.dirname(__file__), "data")
 
 
 @pytest.fixture
@@ -508,8 +524,8 @@ def temp_file(tmp_path: Path) -> str:
     Returns:
         Путь к временному файлу.
     """
-    file_path = tmp_path / 'test_file.txt'
-    file_path.write_text('')
+    file_path = tmp_path / "test_file.txt"
+    file_path.write_text("")
     return str(file_path)
 
 
@@ -521,24 +537,24 @@ def sample_config_dict() -> Dict[str, Any]:
         Словарь с примером конфигурации.
     """
     return {
-        'chrome': {
-            'headless': True,
-            'memory_limit': 512,
-            'disable_images': True,
+        "chrome": {
+            "headless": True,
+            "memory_limit": 512,
+            "disable_images": True,
         },
-        'parser': {
-            'max_records': 10,
-            'delay_between_clicks': 100,
-            'skip_404_response': True,
+        "parser": {
+            "max_records": 10,
+            "delay_between_clicks": 100,
+            "skip_404_response": True,
         },
-        'writer': {
-            'encoding': 'utf-8-sig',
-            'verbose': False,
-            'csv': {
-                'add_rubrics': True,
-                'add_comments': False,
-            }
-        }
+        "writer": {
+            "encoding": "utf-8-sig",
+            "verbose": False,
+            "csv": {
+                "add_rubrics": True,
+                "add_comments": False,
+            },
+        },
     }
 
 
@@ -550,12 +566,12 @@ def sample_org_data() -> Dict[str, Any]:
         Словарь с примером данных организации.
     """
     return {
-        'name': 'Тестовая организация',
-        'address': 'г. Москва, ул. Тестовая, д. 1',
-        'phones': ['+7 (495) 123-45-67'],
-        'emails': ['test@example.com'],
-        'website': 'https://example.com',
-        'rubrics': ['Тестовая рубрика'],
+        "name": "Тестовая организация",
+        "address": "г. Москва, ул. Тестовая, д. 1",
+        "phones": ["+7 (495) 123-45-67"],
+        "emails": ["test@example.com"],
+        "website": "https://example.com",
+        "rubrics": ["Тестовая рубрика"],
     }
 
 
@@ -566,13 +582,18 @@ def setup_test_environment() -> Generator[None, None, None]:
     Выполняется перед каждым тестом.
     """
     # Настройка перед тестом
-    os.environ['TESTING'] = 'True'
+    os.environ["TESTING"] = "True"
+
+    # Инициализируем logger для тестов
+    import logging
+
+    logging.getLogger("parser-2gis").setLevel(logging.DEBUG)
 
     yield
 
     # Очистка после теста
-    if 'TESTING' in os.environ:
-        del os.environ['TESTING']
+    if "TESTING" in os.environ:
+        del os.environ["TESTING"]
 
 
 @pytest.fixture
@@ -582,16 +603,10 @@ def mock_response() -> Dict[str, Any]:
     Returns:
         Словарь с примером ответа.
     """
-    return {
-        'status': 'success',
-        'data': {
-            'items': [],
-            'total': 0
-        }
-    }
+    return {"status": "success", "data": {"items": [], "total": 0}}
 
 
-@pytest.fixture(params=['csv', 'json', 'xlsx'])
+@pytest.fixture(params=["csv", "json", "xlsx"])
 def output_format(request: pytest.FixtureRequest) -> str:
     """Фикстура для перебора форматов вывода.
 

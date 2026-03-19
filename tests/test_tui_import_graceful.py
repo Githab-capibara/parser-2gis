@@ -14,9 +14,9 @@ def test_tui_stub_functions_exist():
     with open(main_py_path, "r") as f:
         content = f.read()
 
-    assert "def _tui_omsk_stub" in content, (
-        "Функция _tui_omsk_stub не найдена в main.py"
-    )
+    assert (
+        "def _tui_omsk_stub" in content
+    ), "Функция _tui_omsk_stub не найдена в main.py"
     assert "def _tui_stub" in content, "Функция _tui_stub не найдена в main.py"
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import mmap
 import os
 import re
@@ -86,7 +87,8 @@ def _open_file_with_mmap_support(
     file_path: str,
     mode: str = "r",
     encoding: Optional[str] = None,
-) -> Tuple[Union[mmap.mmap, object], bool]:
+    create_if_missing: bool = False,
+) -> Tuple[Union[io.TextIOWrapper, object], bool]:
     """
     Открывает файл с использованием mmap для больших файлов или обычной буферизации.
 
@@ -94,6 +96,7 @@ def _open_file_with_mmap_support(
         file_path: Путь к файлу.
         mode: Режим открытия файла ('r' для чтения, 'w' для записи).
         encoding: Кодировка файла (только для текстового режима).
+        create_if_missing: Создать файл если он не существует (по умолчанию False).
 
     Returns:
         Кортеж (file_object, is_mmap):
@@ -103,12 +106,28 @@ def _open_file_with_mmap_support(
     Raises:
         OSError: При ошибке получения размера файла или открытия mmap.
         ValueError: При некорректных параметрах.
+        FileNotFoundError: Если файл не существует и create_if_missing=False.
 
     Примечание:
         - Для файлов >10MB используется mmap.mmap()
         - Для файлов <=10MB используется обычная буферизация
         - Детальное логирование выбора метода чтения
     """
+    # Создаём файл если он не существует и create_if_missing=True
+    if create_if_missing and mode == "r":
+        try:
+            if not os.path.exists(file_path):
+                # Создаём пустой файл
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write("")
+        except OSError as create_error:
+            logger.warning(
+                "Не удалось создать файл %s: %s.",
+                file_path,
+                create_error,
+            )
+            raise
+
     try:
         # Получаем размер файла
         file_size = os.path.getsize(file_path)
@@ -134,11 +153,11 @@ def _open_file_with_mmap_support(
             # Открываем файл в бинарном режиме для mmap
             fp = open(file_path, "rb")
             # Создаём mmap объект
-            mmapped_file = mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_READ)
+            mmapped_file = mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_READ)  # type: ignore[mmap.mmap]
             # Оборачиваем в TextIOWrapper для текстового чтения
-            import io
+            # mmap.mmap совместим с RawIOBase, но mypy не может это вывести
             text_file = io.TextIOWrapper(
-                mmapped_file,
+                mmapped_file,  # type: ignore[arg-type]
                 encoding=encoding or "utf-8",
                 errors="replace",
             )
@@ -172,7 +191,7 @@ def _open_file_with_mmap_support(
 
 
 def _close_file_with_mmap_support(
-    file_obj: Union[mmap.mmap, object],
+    file_obj: Union[io.TextIOWrapper, object],
     is_mmap: bool,
     underlying_fp: Optional[object] = None,
 ) -> None:
@@ -207,7 +226,9 @@ def _close_file_with_mmap_support(
         )
 
 
-def _calculate_optimal_buffer_size(file_path: Optional[str] = None, file_size_bytes: Optional[int] = None) -> int:
+def _calculate_optimal_buffer_size(
+    file_path: Optional[str] = None, file_size_bytes: Optional[int] = None
+) -> int:
     """
     Рассчитывает оптимальный размер буфера для чтения/записи CSV файлов.
 
@@ -235,10 +256,15 @@ def _calculate_optimal_buffer_size(file_path: Optional[str] = None, file_size_by
         try:
             custom_buffer = int(env_buffer_size)
             if custom_buffer > 0:
-                logger.debug("Используется пользовательский размер буфера: %d байт", custom_buffer)
+                logger.debug(
+                    "Используется пользовательский размер буфера: %d байт",
+                    custom_buffer,
+                )
                 return custom_buffer
         except ValueError:
-            logger.warning("Некорректное значение PARSER_CSV_BUFFER_SIZE: %s", env_buffer_size)
+            logger.warning(
+                "Некорректное значение PARSER_CSV_BUFFER_SIZE: %s", env_buffer_size
+            )
 
     # Определяем размер файла если не предоставлен
     if file_size_bytes is None and file_path is not None:
@@ -258,13 +284,12 @@ def _calculate_optimal_buffer_size(file_path: Optional[str] = None, file_size_by
     if file_size_bytes > threshold_bytes:
         # Для больших файлов используем увеличенный буфер
         optimal_size = min(
-            DEFAULT_BUFFER_SIZE * LARGE_FILE_BUFFER_MULTIPLIER,
-            MAX_BUFFER_SIZE
+            DEFAULT_BUFFER_SIZE * LARGE_FILE_BUFFER_MULTIPLIER, MAX_BUFFER_SIZE
         )
         logger.debug(
             "Файл большой (%.2f MB), используется увеличенный буфер: %d байт",
             file_size_bytes / (1024 * 1024),
-            optimal_size
+            optimal_size,
         )
         return optimal_size
     else:
@@ -272,7 +297,7 @@ def _calculate_optimal_buffer_size(file_path: Optional[str] = None, file_size_by
         logger.debug(
             "Файл стандартного размера (%.2f MB), используется стандартный буфер: %d байт",
             file_size_bytes / (1024 * 1024),
-            DEFAULT_BUFFER_SIZE
+            DEFAULT_BUFFER_SIZE,
         )
         return DEFAULT_BUFFER_SIZE
 
@@ -524,9 +549,10 @@ class CSVWriter(FileWriter):
                     complex_columns_count[c] = 0
 
         # Первый проход: подсчёт непустых значений в сложных колонках
+        file_size: Optional[int] = None
         try:
             optimal_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
-            
+
             # Получаем размер файла для выбора метода чтения
             try:
                 file_size = os.path.getsize(self._file_path)
@@ -622,15 +648,13 @@ class CSVWriter(FileWriter):
             optimal_read_buffer = _calculate_optimal_buffer_size(
                 file_path=self._file_path
             )
-            file_size = (
-                os.path.getsize(self._file_path)
-                if os.path.exists(self._file_path)
-                else None
-            )
+            # Обновляем размер файла для текущего файла
+            if os.path.exists(self._file_path):
+                file_size = os.path.getsize(self._file_path)
             optimal_write_buffer = _calculate_optimal_buffer_size(
                 file_size_bytes=file_size
             )
-            
+
             # Определяем метод чтения на основе размера файла
             try:
                 use_mmap = _should_use_mmap(file_size) if file_size else False
@@ -654,7 +678,7 @@ class CSVWriter(FileWriter):
                 )
                 is_mmap = False
                 underlying_fp = None
-            
+
             f_tmp_csv = self._open_file(
                 tmp_csv_name, "w", newline="", buffering=optimal_write_buffer
             )
@@ -751,7 +775,7 @@ class CSVWriter(FileWriter):
             Использует хеширование строк с Unicode-нормализацией для надёжного сравнения.
             SHA256 используется вместо MD5 для большей безопасности.
             Включает улучшенную обработку ошибок и очистку временных файлов.
-            
+
             Для файлов >10MB используется mmap для экономии памяти.
             Для файлов <=10MB используется обычная буферизация.
         """
@@ -769,10 +793,18 @@ class CSVWriter(FileWriter):
             return
 
         try:
-            optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
-            file_size = os.path.getsize(self._file_path) if os.path.exists(self._file_path) else None
-            optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
-            
+            optimal_read_buffer = _calculate_optimal_buffer_size(
+                file_path=self._file_path
+            )
+            file_size = (
+                os.path.getsize(self._file_path)
+                if os.path.exists(self._file_path)
+                else None
+            )
+            optimal_write_buffer = _calculate_optimal_buffer_size(
+                file_size_bytes=file_size
+            )
+
             # Определяем метод чтения на основе размера файла
             try:
                 use_mmap = _should_use_mmap(file_size) if file_size else False
@@ -801,7 +833,7 @@ class CSVWriter(FileWriter):
                 )
                 is_mmap = False
                 underlying_fp = None
-            
+
             f_tmp_csv = self._open_file(
                 tmp_csv_name,
                 "w",
@@ -815,13 +847,14 @@ class CSVWriter(FileWriter):
                 temp_created = True
 
                 # Оптимизация: читаем и записываем пакетно
-                batch = []
+                batch: List[str] = []
                 batch_size = HASH_BATCH_SIZE
 
-                for line_num, line in enumerate(f_csv, 1):
+                for line_num, line in enumerate(f_csv, 1):  # type: ignore[arg-type]
+                    line_str: str = line  # type: ignore[assignment]
                     try:
                         # Нормализуем строку: удаляем завершающие пробелы и newlines
-                        normalized_line = line.rstrip("\r\n")
+                        normalized_line = line_str.rstrip("\r\n")
 
                         # Unicode-нормализация для корректного сравнения
                         # NFKD разлагает символы на базовые символы + диакритические знаки
@@ -847,9 +880,7 @@ class CSVWriter(FileWriter):
 
                     except Exception as line_error:
                         logger.warning(
-                            "Ошибка обработки строки %d: %s",
-                            line_num,
-                            line_error
+                            "Ошибка обработки строки %d: %s", line_num, line_error
                         )
                         # Пропускаем проблемную строку и продолжаем
 

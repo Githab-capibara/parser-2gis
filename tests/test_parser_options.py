@@ -32,7 +32,7 @@ class TestParserOptions:
             delay_between_clicks=500,
             max_records=100,
             use_gc=True,
-            gc_pages_interval=5
+            gc_pages_interval=5,
         )
         assert options.skip_404_response is False
         assert options.delay_between_clicks == 500
@@ -79,13 +79,13 @@ class TestParserException:
 
     def test_parser_exception_creation(self):
         """Проверка создания исключения."""
-        exc = ParserException('Test error')
+        exc = ParserException("Test error")
         # Проверяем что базовый текст входит в сообщение исключения
-        assert 'Test error' in str(exc)
+        assert "Test error" in str(exc)
 
     def test_parser_exception_inheritance(self):
         """Проверка наследования."""
-        exc = ParserException('Test error')
+        exc = ParserException("Test error")
         assert isinstance(exc, Exception)
 
 

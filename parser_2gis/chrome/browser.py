@@ -15,6 +15,7 @@ from .utils import free_port, locate_chrome_path
 if TYPE_CHECKING:
     from .options import ChromeOptions
 
+
 class ChromeBrowser:
     """Браузер Chrome с временным профилем.
 
@@ -95,7 +96,9 @@ class ChromeBrowser:
             # ИСПОЛЬЗУЕМ TemporaryDirectory для автоматической очистки профиля
             # TemporaryDirectory гарантирует удаление профиля даже при ошибке или KeyboardInterrupt
             # Маркер для отложенной очистки при следующем запуске создаётся автоматически
-            self._profile_tempdir = tempfile.TemporaryDirectory(prefix="chrome_profile_")
+            self._profile_tempdir = tempfile.TemporaryDirectory(
+                prefix="chrome_profile_"
+            )
             self._profile_path = self._profile_tempdir.name
 
             # Устанавливаем restrictive права на директорию профиля (0o700 - только владелец)
@@ -169,18 +172,20 @@ class ChromeBrowser:
                 # Очистка профиля при ошибке запуска
                 try:
                     shutil.rmtree(self._profile_path, ignore_errors=True)
-                except Exception as e:
-                    logger.debug("Не удалось удалить профиль при ошибке запуска: %s", e)
+                except Exception as cleanup_error:
+                    logger.debug(
+                        "Не удалось удалить профиль при ошибке запуска: %s",
+                        cleanup_error,
+                    )
                 raise
-        except Exception:
+        except Exception as e:
             # Если ошибка произошла после создания TemporaryDirectory,
             # гарантируем его очистку в finally блоке
+            logger.error("Ошибка инициализации Chrome: %s", e)
             if self._profile_tempdir is not None:
                 try:
                     self._profile_tempdir.cleanup()
-                    logger.debug(
-                        "Профиль Chrome очищен при ошибке инициализации"
-                    )
+                    logger.debug("Профиль Chrome очищен при ошибке инициализации")
                 except Exception as cleanup_error:
                     logger.debug(
                         "Ошибка при очистке профиля: %s",
@@ -348,9 +353,11 @@ class ChromeBrowser:
         """Закрывает браузер при выходе из контекста."""
         self.close()
 
+
 # Константы для очистки профилей
 ORPHANED_PROFILE_MARKER = ".chrome_profile_marker"
 ORPHANED_PROFILE_MAX_AGE_HOURS = 24  # Максимальный возраст профиля перед удалением
+
 
 def cleanup_orphaned_profiles(
     profiles_dir: Optional[Path] = None,
@@ -489,6 +496,7 @@ def cleanup_orphaned_profiles(
 
     return deleted_count
 
+
 def _is_profile_in_use(profile_path: Path) -> bool:
     """Проверяет, используется ли профиль активным процессом Chrome.
     - Проверяет активные процессы перед удалением профиля
@@ -506,16 +514,13 @@ def _is_profile_in_use(profile_path: Path) -> bool:
 
         # Получаем список всех процессов Chrome
         result = subprocess.run(
-            ['ps', 'aux'],
-            capture_output=True,
-            text=True,
-            timeout=5
+            ["ps", "aux"], capture_output=True, text=True, timeout=5
         )
 
         # Проверяем, есть ли процессы с этим профилем
         profile_str = str(profile_path)
         for line in result.stdout.splitlines():
-            if profile_str in line and 'chrome' in line.lower():
+            if profile_str in line and "chrome" in line.lower():
                 # Проверяем, что это не наш процесс
                 parts = line.split()
                 if len(parts) >= 2:
@@ -542,6 +547,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
             e,
         )
         return False
+
 
 def _safe_remove_profile(profile_path: Path) -> None:
     """

@@ -22,17 +22,18 @@ class TestPydanticCompatibility:
     def test_pydantic_version_detected(self):
         """Проверка, что версия Pydantic определена корректно."""
         import pydantic
+
         assert pydantic.VERSION.startswith("2.") == PYDANTIC_V2
 
     def test_get_model_dump_returns_dict(self):
         """
         Тест 1: Проверка, что get_model_dump возвращает словарь.
-        
+
         Выявляет ошибку AttributeError, если метод model_dump/dict отсутствует.
         """
         config = Configuration()
         result = get_model_dump(config)
-        
+
         assert isinstance(result, dict)
         assert "chrome" in result
         assert "parser" in result
@@ -42,12 +43,12 @@ class TestPydanticCompatibility:
     def test_get_model_dump_with_exclude(self):
         """
         Тест 2: Проверка, что get_model_dump поддерживает exclude.
-        
+
         Выявляет ошибку передачи аргументов, несовместимых с версией Pydantic.
         """
         config = Configuration(path="/tmp/test.config")
         result = get_model_dump(config, exclude={"path"})
-        
+
         assert "path" not in result
         assert "chrome" in result
         assert "version" in result
@@ -55,12 +56,12 @@ class TestPydanticCompatibility:
     def test_get_model_fields_set_returns_set(self):
         """
         Тест 3: Проверка, что get_model_fields_set возвращает set.
-        
+
         Выявляет ошибку AttributeError, если model_fields_set/__fields_set__ отсутствует.
         """
         config = Configuration()
         fields = get_model_fields_set(config)
-        
+
         assert isinstance(fields, set)
         # При создании по умолчанию поля могут быть пустыми (Pydantic v2)
         # или содержать все поля (Pydantic v1) - проверяем только тип
@@ -68,26 +69,26 @@ class TestPydanticCompatibility:
     def test_get_model_fields_set_with_custom_values(self):
         """
         Тест 4: Проверка, что get_model_fields_set отслеживает изменённые поля.
-        
+
         Выявляет ошибку, когда изменённые поля не отслеживаются корректно.
-        
+
         Примечание: В Pydantic v2 изменение вложенных моделей (chrome.headless)
         не добавляет родительское поле (chrome) в model_fields_set автоматически.
         Тест проверяет, что функция get_model_fields_set работает без ошибок.
         """
         config = Configuration()
         original_fields = get_model_fields_set(config)
-        
+
         # Изменяем значения
         config.chrome.headless = True
         config.parser.max_records = 5000
-        
+
         # Получаем fields после изменений
         new_fields = get_model_fields_set(config)
-        
+
         # Проверяем, что функция возвращает set (не падает с ошибкой)
         assert isinstance(new_fields, set)
-        
+
         # В Pydantic v2 fields могут оставаться пустыми при изменении вложенных моделей
         # Это ожидаемое поведение - главное, что функция работает
         assert isinstance(original_fields, set)
@@ -96,22 +97,22 @@ class TestPydanticCompatibility:
     def test_configuration_serialization_roundtrip(self):
         """
         Тест 5: Проверка полной сериализации/десериализации конфигурации.
-        
+
         Выявляет ошибки совместимости при сохранении и загрузке конфигурации.
         """
         original_config = Configuration()
         original_config.chrome.headless = True
         original_config.parser.max_records = 3000
-        
+
         # Сериализуем
         config_dict = get_model_dump(original_config, exclude={"path"})
-        
+
         # Проверяем, что это словарь
         assert isinstance(config_dict, dict)
-        
+
         # Десериализуем обратно (через конструктор)
         restored_config = Configuration(**config_dict)
-        
+
         # Проверяем, что данные сохранились
         assert restored_config.chrome.headless is True
         assert restored_config.parser.max_records == 3000
@@ -123,32 +124,32 @@ class TestArgumentHelpFormatterCompatibility:
     def test_argument_help_formatter_initialization(self):
         """
         Тест 6: Проверка инициализации ArgumentHelpFormatter.
-        
+
         Выявляет ошибку AttributeError при инициализации форматтера.
         """
         from parser_2gis.main import ArgumentHelpFormatter
-        
+
         # Передаём требуемый аргумент prog
         formatter = ArgumentHelpFormatter(prog="Parser2GIS")
-        
+
         assert hasattr(formatter, "_default_config")
         assert isinstance(formatter._default_config, dict)
 
     def test_argument_help_formatter_default_values(self):
         """
         Тест 7: Проверка, что форматер получает значения по умолчанию.
-        
+
         Выявляет ошибку, если конфигурация не сериализуется корректно.
         """
         from parser_2gis.main import ArgumentHelpFormatter
-        
+
         formatter = ArgumentHelpFormatter(prog="Parser2GIS")
         config = formatter._default_config
-        
+
         # Проверяем наличие основных секций
         assert "chrome" in config
         assert "parser" in config
-        
+
         # Проверяем, что значения по умолчанию корректны
         assert isinstance(config["chrome"]["headless"], bool)
         assert isinstance(config["parser"]["max_records"], int)
@@ -182,26 +183,26 @@ class TestConfigurationSaveWithCompatibility:
     def test_save_config_uses_compatible_method(self):
         """
         Тест 8: Проверка, что save_config использует совместимый метод.
-        
+
         Выявляет ошибку, если save_config использует несуществующий метод.
         """
         import json
         import tempfile
         from pathlib import Path
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = Path(tmpdir) / "test.config"
             config = Configuration(path=config_path)
             config.chrome.headless = True
-            
+
             # Сохраняем - не должно возникнуть AttributeError
             config.save_config()
-            
+
             # Проверяем, что файл создан
             assert config_path.exists()
-            
+
             # Проверяем содержимое
             with open(config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            
+
             assert data["chrome"]["headless"] is True

@@ -27,7 +27,6 @@ from parser_2gis.main import cleanup_resources
 from parser_2gis.parallel_parser import ParallelCityParser
 from parser_2gis.cache import CacheManager, _ConnectionPool
 
-
 # =============================================================================
 # ПРОБЛЕМА 7: НЕПОЛНАЯ ОБРАБОТКА ИСКЛЮЧЕНИЙ В cleanup_resources() (main.py)
 # =============================================================================
@@ -36,21 +35,25 @@ from parser_2gis.cache import CacheManager, _ConnectionPool
 class TestCleanupResourcesExceptionHandling:
     """Тесты для проблемы 7: Неполная обработка исключений в cleanup_resources()."""
 
-    @patch('parser_2gis.main.ChromeRemote')
-    @patch('parser_2gis.main.Cache')
-    @patch('parser_2gis.main.gc.collect')
+    @patch("parser_2gis.main.ChromeRemote")
+    @patch("parser_2gis.main.Cache")
+    @patch("parser_2gis.main.gc.collect")
     def test_handle_attribute_error(self, mock_gc, mock_cache, mock_chrome):
         """
         Тест 1: Обработка AttributeError.
-        
+
         Проверяет что AttributeError при доступе к несуществующим
         атрибутам корректно обрабатывается.
         """
         # Настраиваем моки чтобы вызвать AttributeError
         mock_chrome._active_instances = MagicMock()
-        mock_chrome._active_instances.__iter__ = MagicMock(side_effect=AttributeError("Mocked AttributeError"))
-        
-        mock_cache.close_all = MagicMock(side_effect=AttributeError("Mocked Cache AttributeError"))
+        mock_chrome._active_instances.__iter__ = MagicMock(
+            side_effect=AttributeError("Mocked AttributeError")
+        )
+
+        mock_cache.close_all = MagicMock(
+            side_effect=AttributeError("Mocked Cache AttributeError")
+        )
 
         # Вызываем cleanup_resources - не должно выбросить исключение
         try:
@@ -59,13 +62,13 @@ class TestCleanupResourcesExceptionHandling:
         except AttributeError:
             pytest.fail("cleanup_resources не должен выбрасывать AttributeError")
 
-    @patch('parser_2gis.main.ChromeRemote')
-    @patch('parser_2gis.main.Cache')
-    @patch('parser_2gis.main.gc.collect')
+    @patch("parser_2gis.main.ChromeRemote")
+    @patch("parser_2gis.main.Cache")
+    @patch("parser_2gis.main.gc.collect")
     def test_handle_memory_error(self, mock_gc, mock_cache, mock_chrome):
         """
         Тест 2: Обработка MemoryError.
-        
+
         Проверяет что MemoryError корректно обрабатывается
         и не прерывает очистку ресурсов.
         """
@@ -81,28 +84,32 @@ class TestCleanupResourcesExceptionHandling:
         except MemoryError:
             pytest.fail("cleanup_resources не должен выбрасывать MemoryError")
 
-    @patch('parser_2gis.main.ChromeRemote')
-    @patch('parser_2gis.main.Cache')
-    @patch('parser_2gis.main.gc.collect')
+    @patch("parser_2gis.main.ChromeRemote")
+    @patch("parser_2gis.main.Cache")
+    @patch("parser_2gis.main.gc.collect")
     def test_handle_keyboard_interrupt(self, mock_gc, mock_cache, mock_chrome):
         """
         Тест 3: Обработка KeyboardInterrupt.
-        
+
         Проверяет что KeyboardInterrupt корректно обрабатывается
         и позволяет завершить очистку.
         """
         # Настраиваем моки
         mock_chrome._active_instances = []
         mock_cache.close_all = MagicMock()
-        
+
         # Имитируем KeyboardInterrupt при вызове gc.collect
         # Но в cleanup_resources он должен быть обработан
-        original_cleanup = cleanup_resources.__wrapped__ if hasattr(cleanup_resources, '__wrapped__') else cleanup_resources
-        
+        original_cleanup = (
+            cleanup_resources.__wrapped__
+            if hasattr(cleanup_resources, "__wrapped__")
+            else cleanup_resources
+        )
+
         # Вызываем cleanup_resources в безопасном режиме
         try:
             # Мокаем gc.collect чтобы не вызывать реальный GC
-            with patch('parser_2gis.main.gc.collect', return_value=None):
+            with patch("parser_2gis.main.gc.collect", return_value=None):
                 cleanup_resources()
             # Если дошли сюда - тест пройден
         except KeyboardInterrupt:
@@ -111,19 +118,21 @@ class TestCleanupResourcesExceptionHandling:
     def test_cleanup_resources_with_none_instances(self):
         """
         Дополнительный тест: Очистка с None значениями.
-        
+
         Проверяет что cleanup_resources корректно работает
         когда глобальные переменные не инициализированы.
         """
         # Мокаем отсутствующие атрибуты
-        with patch('parser_2gis.main.ChromeRemote', None):
-            with patch('parser_2gis.main.Cache', None):
-                with patch('parser_2gis.main.gc.collect', return_value=None):
+        with patch("parser_2gis.main.ChromeRemote", None):
+            with patch("parser_2gis.main.Cache", None):
+                with patch("parser_2gis.main.gc.collect", return_value=None):
                     # Вызываем cleanup_resources - не должно выбросить исключение
                     try:
                         cleanup_resources()
                     except (AttributeError, TypeError):
-                        pytest.fail("cleanup_resources должен обрабатывать None значения")
+                        pytest.fail(
+                            "cleanup_resources должен обрабатывать None значения"
+                        )
 
 
 # =============================================================================
@@ -137,7 +146,7 @@ class TestKeyboardInterruptHandling:
     def test_keyboard_interrupt_sets_cancel_flag(self):
         """
         Тест 1: KeyboardInterrupt устанавливает флаг отмены.
-        
+
         Проверяет что при KeyboardInterrupt устанавливается
         флаг отмены операций.
         """
@@ -152,26 +161,26 @@ class TestKeyboardInterruptHandling:
             output_dir=tempfile.gettempdir(),
             config=mock_config,
             max_workers=2,
-            timeout_per_url=300
+            timeout_per_url=300,
         )
 
         # Проверяем что флаг отмены изначально не установлен
-        assert parser._cancel_event.is_set() is False, (
-            "Флаг отмены не должен быть установлен изначально"
-        )
+        assert (
+            parser._cancel_event.is_set() is False
+        ), "Флаг отмены не должен быть установлен изначально"
 
         # Имитируем KeyboardInterrupt через установку флага
         parser._cancel_event.set()
 
         # Проверяем что флаг установлен
-        assert parser._cancel_event.is_set() is True, (
-            "Флаг отмены должен быть установлен"
-        )
+        assert (
+            parser._cancel_event.is_set() is True
+        ), "Флаг отмены должен быть установлен"
 
     def test_cancel_pending_tasks(self):
         """
         Тест 2: Отмена всех ожидающих задач.
-        
+
         Проверяет что при отмене все ожидающие задачи
         корректно отменяются.
         """
@@ -185,7 +194,7 @@ class TestKeyboardInterruptHandling:
             output_dir=tempfile.gettempdir(),
             config=mock_config,
             max_workers=2,
-            timeout_per_url=300
+            timeout_per_url=300,
         )
 
         # Устанавливаем флаг отмены
@@ -195,20 +204,16 @@ class TestKeyboardInterruptHandling:
         success, message = parser.parse_single_url(
             url="https://2gis.ru/moscow/search/Кафе",
             category_name="Кафе",
-            city_name="Москва"
+            city_name="Москва",
         )
 
-        assert success is False, (
-            "При отмене задача должна возвращать False"
-        )
-        assert "Отменено" in message, (
-            "Сообщение должно указывать на отмену"
-        )
+        assert success is False, "При отмене задача должна возвращать False"
+        assert "Отменено" in message, "Сообщение должно указывать на отмену"
 
     def test_returns_false_on_interrupt(self):
         """
         Тест 3: Возврат False при прерывании.
-        
+
         Проверяет что операции возвращают False при прерывании.
         """
         mock_config = MagicMock()
@@ -221,7 +226,7 @@ class TestKeyboardInterruptHandling:
             output_dir=tempfile.gettempdir(),
             config=mock_config,
             max_workers=2,
-            timeout_per_url=300
+            timeout_per_url=300,
         )
 
         # Устанавливаем флаг отмены
@@ -232,18 +237,18 @@ class TestKeyboardInterruptHandling:
 
         # URLs должны быть сгенерированы но статистика должна показать 0
         with parser._lock:
-            assert parser._stats["total"] == len(urls), (
-                "Статистика должна быть обновлена"
-            )
+            assert parser._stats["total"] == len(
+                urls
+            ), "Статистика должна быть обновлена"
 
     def test_keyboard_interrupt_in_thread_pool(self):
         """
         Дополнительный тест: KeyboardInterrupt в пуле потоков.
-        
+
         Проверяет что KeyboardInterrupt в потоке корректно обрабатывается.
         """
         import tempfile
-        
+
         mock_config = MagicMock()
         mock_cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         mock_categories = [{"id": 1, "name": "Кафе"}]
@@ -254,17 +259,19 @@ class TestKeyboardInterruptHandling:
             output_dir=tempfile.gettempdir(),
             config=mock_config,
             max_workers=2,
-            timeout_per_url=300
+            timeout_per_url=300,
         )
 
         # Мокаем parse_single_url чтобы выбросить KeyboardInterrupt
-        with patch.object(parser, 'parse_single_url', side_effect=KeyboardInterrupt("Mocked")):
+        with patch.object(
+            parser, "parse_single_url", side_effect=KeyboardInterrupt("Mocked")
+        ):
             # Проверяем что исключение пробрасывается
             with pytest.raises(KeyboardInterrupt):
                 parser.parse_single_url(
                     url="https://2gis.ru/moscow/search/Кафе",
                     category_name="Кафе",
-                    city_name="Москва"
+                    city_name="Москва",
                 )
 
 
@@ -307,7 +314,7 @@ class TestCacheManagerErrorHandling:
 
             # Заменяем метод get на мок версию
             cache.get = mock_get_with_retry
-            
+
             try:
                 # Пытаемся получить данные - должна быть повторная попытка
                 # в реальной реализации
@@ -317,9 +324,7 @@ class TestCacheManagerErrorHandling:
                 pass
 
             # Проверяем что была попытка выполнения
-            assert call_count[0] >= 1, (
-                "Должна быть выполнена хотя бы одна попытка"
-            )
+            assert call_count[0] >= 1, "Должна быть выполнена хотя бы одна попытка"
 
             cache.close()
 
@@ -337,7 +342,7 @@ class TestCacheManagerErrorHandling:
             # Т.к. sqlite3.Connection нельзя мокать напрямую,
             # проверяем через интеграционный тест
             cache.set("test_url", {"data": "test_value"})
-            
+
             # Получаем данные - должно работать
             result = cache.get("test_url")
             assert result is not None, "Данные должны быть получены"
@@ -358,7 +363,7 @@ class TestCacheManagerErrorHandling:
             # Т.к. sqlite3.Connection нельзя мокать напрямую,
             # проверяем через интеграционный тест
             cache.set("test_url", {"data": "test_value"})
-            
+
             # Получаем данные - должно работать
             result = cache.get("test_url")
             assert result is not None, "Данные должны быть получены"
@@ -368,7 +373,7 @@ class TestCacheManagerErrorHandling:
     def test_cache_get_with_expired_entry(self):
         """
         Дополнительный тест: Получение истёкшей записи.
-        
+
         Проверяет что истёкшие записи корректно удаляются.
         """
         with TemporaryDirectory() as temp_dir:
@@ -379,24 +384,22 @@ class TestCacheManagerErrorHandling:
 
             # Мокаем datetime.now чтобы вернуть время в будущем
             future_time = datetime.now() + timedelta(hours=25)
-            
-            with patch('parser_2gis.cache.datetime') as mock_datetime:
+
+            with patch("parser_2gis.cache.datetime") as mock_datetime:
                 mock_datetime.now.return_value = future_time
                 mock_datetime.fromisoformat = datetime.fromisoformat
 
                 # Пытаемся получить данные - должен вернуть None (истёк)
                 result = cache.get("test_url")
-                
-                assert result is None, (
-                    "Истёкшие данные должны возвращать None"
-                )
+
+                assert result is None, "Истёкшие данные должны возвращать None"
 
             cache.close()
 
     def test_cache_get_with_invalid_json(self):
         """
         Дополнительный тест: Получение данных с некорректным JSON.
-        
+
         Проверяет что повреждённые JSON данные корректно обрабатываются.
         """
         with TemporaryDirectory() as temp_dir:
@@ -405,23 +408,31 @@ class TestCacheManagerErrorHandling:
             # Вставляем повреждённые данные напрямую в БД
             conn = cache._pool.get_connection()
             cursor = conn.cursor()
-            
+
             import hashlib
+
             url_hash = hashlib.sha256("test_url".encode()).hexdigest()
             expires_at = datetime.now() + timedelta(hours=24)
-            
-            cursor.execute("""
+
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO cache (url_hash, url, data, timestamp, expires_at)
                 VALUES (?, ?, ?, ?, ?)
-            """, (url_hash, "test_url", "invalid json {{{", datetime.now().isoformat(), expires_at.isoformat()))
+            """,
+                (
+                    url_hash,
+                    "test_url",
+                    "invalid json {{{",
+                    datetime.now().isoformat(),
+                    expires_at.isoformat(),
+                ),
+            )
             conn.commit()
 
             # Пытаемся получить данные - должен вернуть None и удалить запись
             result = cache.get("test_url")
-            
-            assert result is None, (
-                "Некорректные JSON данные должны возвращать None"
-            )
+
+            assert result is None, "Некорректные JSON данные должны возвращать None"
 
             cache.close()
 
@@ -437,34 +448,26 @@ class TestErrorHandlingIntegration:
     def test_cleanup_resources_comprehensive(self):
         """
         Интеграционный тест: Комплексная проверка cleanup_resources.
-        
+
         Проверяет что cleanup_resources обрабатывает все типы ошибок.
         """
         errors_handled = []
 
         # Мокаем все возможные источники ошибок
-        with patch('parser_2gis.main.ChromeRemote') as mock_chrome:
-            with patch('parser_2gis.main.Cache') as mock_cache:
-                with patch('parser_2gis.main.gc.collect') as mock_gc:
+        with patch("parser_2gis.main.ChromeRemote") as mock_chrome:
+            with patch("parser_2gis.main.Cache") as mock_cache:
+                with patch("parser_2gis.main.gc.collect") as mock_gc:
                     # Настраиваем моки с различными ошибками
                     mock_chrome._active_instances = MagicMock()
                     type(mock_chrome._active_instances).__iter__ = MagicMock(
-                        side_effect=[
-                            AttributeError("Test"),
-                            TypeError("Test"),
-                            []
-                        ]
+                        side_effect=[AttributeError("Test"), TypeError("Test"), []]
                     )
-                    
-                    mock_cache.close_all = MagicMock(side_effect=[
-                        RuntimeError("Test"),
-                        None
-                    ])
-                    
-                    mock_gc.side_effect = [
-                        MemoryError("Test"),
-                        None
-                    ]
+
+                    mock_cache.close_all = MagicMock(
+                        side_effect=[RuntimeError("Test"), None]
+                    )
+
+                    mock_gc.side_effect = [MemoryError("Test"), None]
 
                     # Вызываем несколько раз для проверки разных сценариев
                     for i in range(3):
@@ -475,14 +478,14 @@ class TestErrorHandlingIntegration:
                             errors_handled.append(False)
 
                     # Проверяем что все вызовы прошли без исключений
-                    assert all(errors_handled), (
-                        "cleanup_resources должен обрабатывать все ошибки"
-                    )
+                    assert all(
+                        errors_handled
+                    ), "cleanup_resources должен обрабатывать все ошибки"
 
     def test_cache_manager_concurrent_access(self):
         """
         Интеграционный тест: Параллельный доступ к кэшу.
-        
+
         Проверяет что кэш корректно работает при параллельном доступе.
         """
         with TemporaryDirectory() as temp_dir:
@@ -496,7 +499,7 @@ class TestErrorHandlingIntegration:
                     for i in range(10):
                         key = f"worker_{worker_id}_key_{i}"
                         value = {"data": f"value_{i}"}
-                        
+
                         cache.set(key, value)
                         result = cache.get(key)
                         results.append((worker_id, i, result is not None))
@@ -522,7 +525,6 @@ class TestErrorHandlingIntegration:
 
 # Импортируем tempfile для использования в тестах
 import tempfile
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -138,8 +138,10 @@ class FileMerger:
                             "Lock файл существует (возраст: %d сек), ожидаем...",
                             lock_age,
                         )
-                except OSError:
-                    pass
+                except OSError as cleanup_error:
+                    logger.debug(
+                        "Ошибка при удалении stale lock файла: %s", cleanup_error
+                    )
 
             # Пытаемся получить блокировку с таймаутом
             start_time = time.time()

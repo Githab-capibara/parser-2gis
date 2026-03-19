@@ -441,7 +441,7 @@ class StatisticsExporter:
             html_parts.append("""            <tr>
                 <td colspan="2"><strong>Ошибки:</strong></td>
             </tr>""")
-            
+
             for error in stats.errors:
                 # Экранируем HTML для предотвращения XSS-атак
                 safe_error = html_module.escape(str(error))

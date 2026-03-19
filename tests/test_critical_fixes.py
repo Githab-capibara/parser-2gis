@@ -33,10 +33,10 @@ from parser_2gis.cache import CacheManager, SHA256_HASH_LENGTH
 from parser_2gis.config import Configuration
 from parser_2gis.validator import DataValidator
 
-
 # =============================================================================
 # ПРОБЛЕМА 1: SQL Injection Prevention (3 теста)
 # =============================================================================
+
 
 class TestValidateHash:
     """Тесты валидации хеша для предотвращения SQL injection."""
@@ -45,7 +45,7 @@ class TestValidateHash:
         """Тест валидного хеша (64 hex символа)."""
         # Arrange
         valid_hash = "a" * SHA256_HASH_LENGTH  # 64 символа
-        
+
         # Act & Assert
         result = CacheManager._validate_hash(valid_hash)
         assert result is True, "Валидный хеш должен проходить валидацию"
@@ -59,11 +59,13 @@ class TestValidateHash:
             "",  # Пустой
             "abc",  # Очень короткий
         ]
-        
+
         # Act & Assert
         for invalid_hash in invalid_hashes:
             result = CacheManager._validate_hash(invalid_hash)
-            assert result is False, f"Хеш неверной длины должен быть отклонён: {len(invalid_hash)}"
+            assert (
+                result is False
+            ), f"Хеш неверной длины должен быть отклонён: {len(invalid_hash)}"
 
     def test_validate_hash_invalid_chars(self):
         """Тест хеша с не-hex символами."""
@@ -74,16 +76,19 @@ class TestValidateHash:
             "!" * SHA256_HASH_LENGTH,  # Спецсимволы
             ("a" * (SHA256_HASH_LENGTH - 1)) + "g",  # Один не-hex символ в конце
         ]
-        
+
         # Act & Assert
         for invalid_hash in invalid_hashes:
             result = CacheManager._validate_hash(invalid_hash)
-            assert result is False, f"Хеш с не-hex символами должен быть отклонён: {invalid_hash[:10]}..."
+            assert (
+                result is False
+            ), f"Хеш с не-hex символами должен быть отклонён: {invalid_hash[:10]}..."
 
 
 # =============================================================================
 # ПРОБЛЕМА 2: Утечка файловых дескрипторов (3 теста)
 # =============================================================================
+
 
 class TestBrowserProfileCleanup:
     """Тесты очистки профилей браузера для предотвращения утечки файловых дескрипторов."""
@@ -96,20 +101,22 @@ class TestBrowserProfileCleanup:
             temp_dir = tempfile.mkdtemp()
             profile_path = Path(temp_dir) / "profile"
             profile_path.mkdir()
-            
+
             # Act - эмуляция создания и очистки профиля
             assert profile_path.exists()
-            
+
             # Эмуляция очистки (как в cleanup_resources)
             import shutil
+
             shutil.rmtree(temp_dir)
-            
+
             # Assert
             assert not profile_path.exists(), "Профиль должен быть удалён после очистки"
         finally:
             # Гарантированная очистка
             if temp_dir and os.path.exists(temp_dir):
                 import shutil
+
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_browser_profile_cleanup_on_error(self):
@@ -117,12 +124,12 @@ class TestBrowserProfileCleanup:
         # Arrange
         temp_dir = None
         error_occurred = False
-        
+
         try:
             temp_dir = tempfile.mkdtemp()
             profile_path = Path(temp_dir) / "profile"
             profile_path.mkdir()
-            
+
             # Act - эмуляция ошибки и последующей очистки
             try:
                 raise RuntimeError("Эмуляция ошибки парсинга")
@@ -130,36 +137,43 @@ class TestBrowserProfileCleanup:
                 error_occurred = True
                 # Очистка в finally блоке
                 import shutil
+
                 shutil.rmtree(temp_dir, ignore_errors=True)
-            
+
             # Assert
             assert error_occurred, "Ошибка должна была возникнуть"
-            assert not profile_path.exists(), "Профиль должен быть удалён даже при ошибке"
+            assert (
+                not profile_path.exists()
+            ), "Профиль должен быть удалён даже при ошибке"
         finally:
             # Гарантированная очистка
             if temp_dir and os.path.exists(temp_dir):
                 import shutil
+
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_browser_profile_temp_directory(self):
         """Тест использования TemporaryDirectory для автоматической очистки."""
         # Arrange & Act
         profile_path = None
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             profile_path = Path(temp_dir) / "profile"
             profile_path.mkdir()
             assert profile_path.exists(), "Профиль создан во временной директории"
             # TemporaryDirectory автоматически очистится при выходе из контекста
-        
+
         # Assert
         assert profile_path is not None
-        assert not profile_path.parent.exists(), "TemporaryDirectory автоматически очистила профиль"
+        assert (
+            not profile_path.parent.exists()
+        ), "TemporaryDirectory автоматически очистила профиль"
 
 
 # =============================================================================
 # ПРОБЛЕМА 3: Валидация JavaScript (3 теста)
 # =============================================================================
+
 
 class TestJavaScriptValidation:
     """Тесты валидации JavaScript кода для предотвращения XSS атак."""
@@ -173,15 +187,17 @@ class TestJavaScriptValidation:
             "return window.location.href;",
             "return document.querySelector('.class').textContent;",
         ]
-        
+
         # Act & Assert
         for script in valid_scripts:
             # Проверяем что скрипт не содержит опасных конструкций
             assert "eval(" not in script, f"Скрипт не должен содержать eval: {script}"
-            assert "setTimeout(" not in script or "function" not in script, \
-                f"Скрипт не должен содержать setTimeout с функцией: {script}"
-            assert "setInterval(" not in script or "function" not in script, \
-                f"Скрипт не должен содержать setInterval с функцией: {script}"
+            assert (
+                "setTimeout(" not in script or "function" not in script
+            ), f"Скрипт не должен содержать setTimeout с функцией: {script}"
+            assert (
+                "setInterval(" not in script or "function" not in script
+            ), f"Скрипт не должен содержать setInterval с функцией: {script}"
 
     def test_execute_script_invalid(self):
         """Тест обнаружения небезопасного JavaScript."""
@@ -192,17 +208,19 @@ class TestJavaScriptValidation:
             "document.cookie",  # Попытка доступа к cookies
             "window.location = 'http://evil.com'",  # Redirect
         ]
-        
+
         # Act & Assert
         for script in dangerous_scripts:
             # Проверяем что скрипт содержит опасные конструкции
             has_dangerous_pattern = (
-                "eval(" in script or
-                "document.cookie" in script or
-                ("setTimeout(" in script and "'" in script) or
-                ("window.location = " in script and "http" in script)
+                "eval(" in script
+                or "document.cookie" in script
+                or ("setTimeout(" in script and "'" in script)
+                or ("window.location = " in script and "http" in script)
             )
-            assert has_dangerous_pattern, f"Должна быть обнаружена опасная конструкция: {script}"
+            assert (
+                has_dangerous_pattern
+            ), f"Должна быть обнаружена опасная конструкция: {script}"
 
     def test_execute_script_logging(self):
         """Тест логирования вызовов JavaScript."""
@@ -210,10 +228,10 @@ class TestJavaScriptValidation:
         # Примечание: validator модуль не импортирует logger напрямую
         # Проверяем что логирование возможно через стандартный logging
         import logging
-        
+
         # Act - создание logger для теста
         test_logger = logging.getLogger("test_validator")
-        
+
         # Assert - проверка что logger работает
         assert test_logger is not None, "Logger должен быть создан"
         assert isinstance(test_logger, logging.Logger), "Должен быть Logger"
@@ -223,6 +241,7 @@ class TestJavaScriptValidation:
 # ПРОБЛЕМА 4: Race condition (3 теста)
 # =============================================================================
 
+
 class TestRaceConditionPrevention:
     """Тесты предотвращения race condition при создании файлов."""
 
@@ -231,11 +250,11 @@ class TestRaceConditionPrevention:
         # Arrange
         base_name = "test_file"
         pid = os.getpid()
-        
+
         # Act
         unique_name = f"{base_name}_{pid}_{uuid.uuid4().hex}.tmp"
         unique_name_2 = f"{base_name}_{pid}_{uuid.uuid4().hex}.tmp"
-        
+
         # Assert
         assert unique_name != unique_name_2, "Имена файлов должны быть уникальными"
         assert str(pid) in unique_name, "Имя файла должно содержать PID"
@@ -246,18 +265,18 @@ class TestRaceConditionPrevention:
         # Arrange
         with tempfile.TemporaryDirectory() as temp_dir:
             test_file = Path(temp_dir) / "atomic_test.tmp"
-            
+
             # Act - атомарное создание файла
             try:
                 test_file.touch(exist_ok=False)
                 created = True
             except FileExistsError:
                 created = False
-            
+
             # Assert
             assert created, "Файл должен быть создан атомарно"
             assert test_file.exists(), "Файл должен существовать"
-            
+
             # Попытка повторного создания должна вызвать ошибку
             with pytest.raises(FileExistsError):
                 test_file.touch(exist_ok=False)
@@ -268,10 +287,10 @@ class TestRaceConditionPrevention:
         max_attempts = 10
         success = False
         attempts_made = 0
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             test_file = Path(temp_dir) / "retry_test.tmp"
-            
+
             # Act - попытка создания с retry
             for attempt in range(max_attempts):
                 attempts_made += 1
@@ -282,10 +301,12 @@ class TestRaceConditionPrevention:
                 except FileExistsError:
                     if attempt < max_attempts - 1:
                         # Генерируем новое имя
-                        test_file = Path(temp_dir) / f"retry_test_{uuid.uuid4().hex}.tmp"
+                        test_file = (
+                            Path(temp_dir) / f"retry_test_{uuid.uuid4().hex}.tmp"
+                        )
                     else:
                         raise
-            
+
             # Assert
             assert success, "Файл должен быть создан после retry"
             assert attempts_made >= 1, "Должна быть сделана хотя бы одна попытка"
@@ -295,6 +316,7 @@ class TestRaceConditionPrevention:
 # ПРОБЛЕМА 5: Ограничение кэша (3 теста)
 # =============================================================================
 
+
 class TestCacheSizeLimit:
     """Тесты ограничения размера кэша для предотвращения DoS."""
 
@@ -302,7 +324,7 @@ class TestCacheSizeLimit:
         """Тест проверки лимита размера кэша."""
         # Arrange
         from parser_2gis.cache import MAX_CACHE_SIZE_MB
-        
+
         # Act & Assert
         assert MAX_CACHE_SIZE_MB > 0, "Лимит кэша должен быть положительным"
         assert MAX_CACHE_SIZE_MB <= 1000, "Лимит кэша должен быть разумным"
@@ -311,19 +333,19 @@ class TestCacheSizeLimit:
         """Тест LRU eviction при превышении лимита кэша."""
         # Arrange
         from parser_2gis.cache import LRU_EVICT_BATCH
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             cache = CacheManager(Path(temp_dir), ttl_hours=1)
-            
+
             try:
                 # Act - добавление данных в кэш
                 for i in range(10):
                     cache.set(f"url_{i}", {"data": f"value_{i}"})
-                
+
                 # Assert - данные добавлены
                 stats = cache.get_stats()
                 assert stats["total_records"] == 10, "Должно быть 10 записей"
-                
+
                 # Проверяем константу LRU eviction
                 assert LRU_EVICT_BATCH > 0, "LRU_EVICT_BATCH должен быть положительным"
             finally:
@@ -333,19 +355,21 @@ class TestCacheSizeLimit:
         """Тест лимита пакетной вставки в кэш."""
         # Arrange
         from parser_2gis.cache import MAX_BATCH_SIZE
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             cache = CacheManager(Path(temp_dir), ttl_hours=1)
-            
+
             try:
                 # Act & Assert
                 # Проверка что лимит существует
                 assert MAX_BATCH_SIZE > 0, "MAX_BATCH_SIZE должен быть положительным"
-                
+
                 # Попытка вставки слишком большого пакета должна вызвать ошибку
-                large_batch = [(f"url_{i}", {"data": f"value_{i}"}) 
-                              for i in range(MAX_BATCH_SIZE + 1)]
-                
+                large_batch = [
+                    (f"url_{i}", {"data": f"value_{i}"})
+                    for i in range(MAX_BATCH_SIZE + 1)
+                ]
+
                 with pytest.raises(ValueError, match="превышает максимальный лимит"):
                     cache.clear_batch([f"url_{i}" for i in range(MAX_BATCH_SIZE + 1)])
             finally:
@@ -356,6 +380,7 @@ class TestCacheSizeLimit:
 # ПРОБЛЕМА 6: Signal handlers (3 теста)
 # =============================================================================
 
+
 class TestSignalHandlers:
     """Тесты обработчиков сигналов для безопасной очистки ресурсов."""
 
@@ -363,21 +388,27 @@ class TestSignalHandlers:
         """Тест обработки сигнала SIGINT (Ctrl+C)."""
         # Arrange - проверяем что функция инициализации существует
         from parser_2gis.main import _setup_signal_handlers, cleanup_resources
-        
+
         # Проверяем что функция setup существует и может быть вызвана
-        assert callable(_setup_signal_handlers), "_setup_signal_handlers должна быть вызываемой"
+        assert callable(
+            _setup_signal_handlers
+        ), "_setup_signal_handlers должна быть вызываемой"
         assert callable(cleanup_resources), "cleanup_resources должна быть вызываемой"
 
     def test_signal_handler_sigterm(self):
         """Тест обработки сигнала SIGTERM."""
         # Arrange - проверяем что SignalHandler класс существует
         from parser_2gis.signal_handler import SignalHandler
-        
+
         # Проверяем что класс SignalHandler существует и имеет нужные методы
         assert SignalHandler is not None, "SignalHandler класс должен существовать"
-        assert hasattr(SignalHandler, 'setup'), "SignalHandler должен иметь метод setup"
-        assert hasattr(SignalHandler, 'cleanup'), "SignalHandler должен иметь метод cleanup"
-        assert hasattr(SignalHandler, '_handle_signal'), "SignalHandler должен иметь метод _handle_signal"
+        assert hasattr(SignalHandler, "setup"), "SignalHandler должен иметь метод setup"
+        assert hasattr(
+            SignalHandler, "cleanup"
+        ), "SignalHandler должен иметь метод cleanup"
+        assert hasattr(
+            SignalHandler, "_handle_signal"
+        ), "SignalHandler должен иметь метод _handle_signal"
 
     def test_keyboard_interrupt_cleanup(self):
         """Тест очистки ресурсов при KeyboardInterrupt."""
@@ -390,7 +421,9 @@ class TestSignalHandlers:
 
         # Act & Assert
         try:
-            with patch('parser_2gis.main.cleanup_resources', side_effect=cleanup_wrapper):
+            with patch(
+                "parser_2gis.main.cleanup_resources", side_effect=cleanup_wrapper
+            ):
                 raise KeyboardInterrupt("Эмуляция прерывания")
         except KeyboardInterrupt:
             pass
@@ -398,12 +431,14 @@ class TestSignalHandlers:
         # Assert - в реальном коде cleanup вызывается в except блоке
         # Здесь проверяем что функция существует и может быть вызвана
         from parser_2gis.main import cleanup_resources
+
         assert callable(cleanup_resources), "cleanup_resources должна быть вызываемой"
 
 
 # =============================================================================
 # ПРОБЛЕМА 7: WebSocket timeout (3 теста)
 # =============================================================================
+
 
 class TestWebSocketTimeout:
     """Тесты таймаутов WebSocket для предотвращения зависаний."""
@@ -412,7 +447,7 @@ class TestWebSocketTimeout:
         """Тест таймаута подключения WebSocket."""
         # Arrange
         timeout_seconds = 30
-        
+
         # Act & Assert
         assert timeout_seconds > 0, "Таймаут должен быть положительным"
         assert timeout_seconds <= 300, "Таймаут должен быть разумным (<= 5 минут)"
@@ -422,10 +457,10 @@ class TestWebSocketTimeout:
         # Arrange
         mock_ws = MagicMock()
         mock_ws.connected = True
-        
+
         # Act
         result = mock_ws.connected
-        
+
         # Assert
         assert result is True, "WebSocket должен быть подключён"
 
@@ -433,7 +468,7 @@ class TestWebSocketTimeout:
         """Тест исключения timeout при подключении WebSocket."""
         # Arrange
         import socket
-        
+
         # Act & Assert
         with pytest.raises((socket.timeout, TimeoutError)):
             # Эмуляция timeout
@@ -449,6 +484,7 @@ class TestWebSocketTimeout:
 # ПРОБЛЕМА 8: Временные файлы (3 теста)
 # =============================================================================
 
+
 class TestTempFileCleanup:
     """Тесты очистки временных файлов для предотвращения утечек."""
 
@@ -456,16 +492,16 @@ class TestTempFileCleanup:
         """Тест очистки временного файла после использования."""
         # Arrange
         temp_file = None
-        
+
         try:
             # Act - создание временного файла
             fd, temp_file = tempfile.mkstemp(suffix=".tmp")
             os.close(fd)
             assert os.path.exists(temp_file), "Временный файл создан"
-            
+
             # Очистка
             os.unlink(temp_file)
-            
+
             # Assert
             assert not os.path.exists(temp_file), "Временный файл должен быть удалён"
             temp_file = None  # Помечаем что файл удалён
@@ -479,12 +515,12 @@ class TestTempFileCleanup:
         # Arrange
         temp_file = None
         error_occurred = False
-        
+
         try:
             # Act - создание и ошибка
             fd, temp_file = tempfile.mkstemp(suffix=".tmp")
             os.close(fd)
-            
+
             try:
                 raise RuntimeError("Эмуляция ошибки")
             except RuntimeError:
@@ -492,10 +528,12 @@ class TestTempFileCleanup:
                 # Очистка в finally
                 if temp_file and os.path.exists(temp_file):
                     os.unlink(temp_file)
-            
+
             # Assert
             assert error_occurred, "Ошибка должна была возникнуть"
-            assert not os.path.exists(temp_file), "Временный файл должен быть удалён при ошибке"
+            assert not os.path.exists(
+                temp_file
+            ), "Временный файл должен быть удалён при ошибке"
             temp_file = None
         finally:
             # Гарантированная очистка
@@ -504,33 +542,36 @@ class TestTempFileCleanup:
 
     def test_temp_file_flag_tracking(self):
         """Тест отслеживания создания временных файлов через флаг."""
+
         # Arrange
         class TempFileManager:
             def __init__(self):
                 self.temp_created = False
                 self.temp_file = None
-            
+
             def create_temp(self):
                 fd, self.temp_file = tempfile.mkstemp(suffix=".tmp")
                 os.close(fd)
                 self.temp_created = True
-            
+
             def cleanup(self):
                 if self.temp_created and self.temp_file:
                     if os.path.exists(self.temp_file):
                         os.unlink(self.temp_file)
                     self.temp_created = False
-        
+
         manager = TempFileManager()
-        
+
         try:
             # Act
             manager.create_temp()
-            
+
             # Assert
             assert manager.temp_created is True, "Флаг temp_created должен быть True"
             assert manager.temp_file is not None, "Путь к файлу должен быть сохранён"
             assert os.path.exists(manager.temp_file), "Файл должен существовать"
         finally:
             manager.cleanup()
-            assert manager.temp_created is False, "Флаг temp_created должен быть сброшен"
+            assert (
+                manager.temp_created is False
+            ), "Флаг temp_created должен быть сброшен"

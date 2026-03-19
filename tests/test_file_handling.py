@@ -32,7 +32,6 @@ from parser_2gis.parallel_parser import (
     MAX_TEMP_FILES,
 )
 
-
 # =============================================================================
 # ПРОБЛЕМА 2: RACE CONDITION С ВРЕМЕННЫМИ ФАЙЛАМИ (parallel_parser.py)
 # =============================================================================
@@ -54,7 +53,7 @@ class TestRaceConditionTempFiles:
     def test_atomic_temp_file_creation(self):
         """
         Тест 1: Атомарное создание временных файлов.
-        
+
         Проверяет что временные файлы регистрируются атомарно
         и не возникает race condition при регистрации.
         """
@@ -69,12 +68,10 @@ class TestRaceConditionTempFiles:
 
             # Проверяем что файл зарегистрирован
             with _temp_files_lock:
-                assert temp_path in _temp_files_registry, (
-                    "Временный файл должен быть зарегистрирован"
-                )
-                assert len(_temp_files_registry) == 1, (
-                    "В реестре должен быть один файл"
-                )
+                assert (
+                    temp_path in _temp_files_registry
+                ), "Временный файл должен быть зарегистрирован"
+                assert len(_temp_files_registry) == 1, "В реестре должен быть один файл"
         finally:
             # Очищаем
             _temp_files_registry.clear()
@@ -84,7 +81,7 @@ class TestRaceConditionTempFiles:
     def test_temp_file_cleanup(self):
         """
         Тест 2: Корректная очистка временных файлов.
-        
+
         Проверяет что временные файлы корректно удаляются
         при очистке.
         """
@@ -100,24 +97,20 @@ class TestRaceConditionTempFiles:
 
             # Проверяем что все файлы зарегистрированы
             with _temp_files_lock:
-                assert len(_temp_files_registry) == 3, (
-                    "В реестре должно быть 3 файла"
-                )
+                assert len(_temp_files_registry) == 3, "В реестре должно быть 3 файла"
 
             # Очищаем все файлы
             _cleanup_all_temp_files()
 
             # Проверяем что реестр очищен
             with _temp_files_lock:
-                assert len(_temp_files_registry) == 0, (
-                    "Реестр должен быть очищен"
-                )
+                assert len(_temp_files_registry) == 0, "Реестр должен быть очищен"
 
             # Проверяем что файлы удалены
             for temp_path in temp_files:
-                assert not temp_path.exists(), (
-                    f"Временный файл {temp_path} должен быть удалён"
-                )
+                assert (
+                    not temp_path.exists()
+                ), f"Временный файл {temp_path} должен быть удалён"
 
         finally:
             # Гарантированная очистка
@@ -129,7 +122,7 @@ class TestRaceConditionTempFiles:
     def test_parallel_file_registration(self):
         """
         Тест 3: Параллельная запись без конфликтов.
-        
+
         Проверяет что несколько потоков могут регистрировать
         файлы без race condition.
         """
@@ -147,7 +140,7 @@ class TestRaceConditionTempFiles:
                     tmp.write(f"thread {thread_id} file {i}".encode())
                     _register_temp_file(temp_path)
                     thread_files.append(temp_path)
-            
+
             with lock:
                 registered_files.extend(thread_files)
 
@@ -170,15 +163,15 @@ class TestRaceConditionTempFiles:
                 actual_count = len(_temp_files_registry)
                 # Проверяем что реестр не пуст и не превышает лимит
                 assert actual_count > 0, "Реестр не должен быть пустым"
-                assert actual_count <= MAX_TEMP_FILES, (
-                    f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
-                )
+                assert (
+                    actual_count <= MAX_TEMP_FILES
+                ), f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
 
             # Проверяем что файлы существуют
             existing_files = sum(1 for f in registered_files if f.exists())
-            assert existing_files == len(registered_files), (
-                f"Все {len(registered_files)} файлов должны существовать"
-            )
+            assert existing_files == len(
+                registered_files
+            ), f"Все {len(registered_files)} файлов должны существовать"
 
         finally:
             # Очищаем
@@ -188,7 +181,7 @@ class TestRaceConditionTempFiles:
     def test_lru_eviction_on_limit(self):
         """
         Дополнительный тест: LRU eviction при достижении лимита.
-        
+
         Проверяет что при превышении лимита происходит eviction.
         """
         # Создаём больше файлов чем лимит
@@ -202,9 +195,9 @@ class TestRaceConditionTempFiles:
 
             # Проверяем что реестр не превышает лимит
             with _temp_files_lock:
-                assert len(_temp_files_registry) <= MAX_TEMP_FILES, (
-                    f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
-                )
+                assert (
+                    len(_temp_files_registry) <= MAX_TEMP_FILES
+                ), f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
 
         finally:
             _cleanup_all_temp_files()
@@ -225,16 +218,16 @@ class TestCSVFileDescriptorLeak:
     def test_csv_file_close_on_error(self):
         """
         Тест 1: Закрытие файлов при ошибке чтения.
-        
+
         Проверяет что файловые дескрипторы закрываются
         даже при возникновении ошибки.
         """
         # Создаём тестовый CSV файл
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
             writer = csv.writer(tmp)
-            writer.writerow(['col1', 'col2', 'col3'])
+            writer.writerow(["col1", "col2", "col3"])
             for i in range(10):
-                writer.writerow([f'value{i}_1', f'value{i}_2', f'value{i}_3'])
+                writer.writerow([f"value{i}_1", f"value{i}_2", f"value{i}_3"])
             temp_path = tmp.name
 
         try:
@@ -243,7 +236,7 @@ class TestCSVFileDescriptorLeak:
 
             # Имитируем ошибку при чтении
             try:
-                with open(temp_path, 'r', encoding='utf-8-sig') as f:
+                with open(temp_path, "r", encoding="utf-8-sig") as f:
                     reader = csv.DictReader(f)
                     for i, row in enumerate(reader):
                         if i == 5:
@@ -266,16 +259,16 @@ class TestCSVFileDescriptorLeak:
     def test_csv_file_close_on_success(self):
         """
         Тест 2: Закрытие файлов при нормальном завершении.
-        
+
         Проверяет что файловые дескрипторы закрываются
         при успешном чтении.
         """
         # Создаём тестовый CSV файл
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
             writer = csv.writer(tmp)
-            writer.writerow(['col1', 'col2', 'col3'])
+            writer.writerow(["col1", "col2", "col3"])
             for i in range(100):
-                writer.writerow([f'value{i}_1', f'value{i}_2', f'value{i}_3'])
+                writer.writerow([f"value{i}_1", f"value{i}_2", f"value{i}_3"])
             temp_path = tmp.name
 
         try:
@@ -283,7 +276,7 @@ class TestCSVFileDescriptorLeak:
 
             # Читаем файл успешно
             rows_read = 0
-            with open(temp_path, 'r', encoding='utf-8-sig') as f:
+            with open(temp_path, "r", encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     rows_read += 1
@@ -291,7 +284,9 @@ class TestCSVFileDescriptorLeak:
             file_descriptors_after = self._count_open_fds()
 
             # Проверяем что все строки прочитаны
-            assert rows_read == 100, f"Должно быть прочитано 100 строк, прочитано {rows_read}"
+            assert (
+                rows_read == 100
+            ), f"Должно быть прочитано 100 строк, прочитано {rows_read}"
 
             # Проверяем что файловые дескрипторы освобождены
             assert file_descriptors_after <= file_descriptors_before + 1, (
@@ -306,7 +301,7 @@ class TestCSVFileDescriptorLeak:
     def test_open_file_descriptor_count(self):
         """
         Тест 3: Проверка количества открытых файловых дескрипторов.
-        
+
         Проверяет что при множественном чтении CSV не происходит
         утечки файловых дескрипторов.
         """
@@ -314,11 +309,19 @@ class TestCSVFileDescriptorLeak:
         temp_files = []
         try:
             for i in range(10):
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".csv", delete=False
+                ) as tmp:
                     writer = csv.writer(tmp)
-                    writer.writerow(['col1', 'col2', 'col3'])
+                    writer.writerow(["col1", "col2", "col3"])
                     for j in range(50):
-                        writer.writerow([f'file{i}_row{j}_1', f'file{i}_row{j}_2', f'file{i}_row{j}_3'])
+                        writer.writerow(
+                            [
+                                f"file{i}_row{j}_1",
+                                f"file{i}_row{j}_2",
+                                f"file{i}_row{j}_3",
+                            ]
+                        )
                     temp_files.append(tmp.name)
 
             # Измеряем количество открытых дескрипторов до
@@ -327,10 +330,12 @@ class TestCSVFileDescriptorLeak:
             # Читаем все файлы многократно
             for iteration in range(5):
                 for temp_path in temp_files:
-                    with open(temp_path, 'r', encoding='utf-8-sig') as f:
+                    with open(temp_path, "r", encoding="utf-8-sig") as f:
                         reader = csv.DictReader(f)
                         rows = list(reader)
-                        assert len(rows) == 50, f"Должно быть 50 строк, прочитано {len(rows)}"
+                        assert (
+                            len(rows) == 50
+                        ), f"Должно быть 50 строк, прочитано {len(rows)}"
 
             # Измеряем количество открытых дескрипторов после
             fds_after = self._count_open_fds()
@@ -351,23 +356,25 @@ class TestCSVFileDescriptorLeak:
         """Подсчитывает количество открытых файловых дескрипторов."""
         try:
             # Для Linux
-            fd_dir = f'/proc/{os.getpid()}/fd'
+            fd_dir = f"/proc/{os.getpid()}/fd"
             return len(os.listdir(fd_dir))
         except (OSError, FileNotFoundError):
             # Fallback для других систем
             try:
                 import resource
+
                 # Получаем максимальное количество дескрипторов
                 soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
                 # Подсчитываем открытые через lsof
                 import subprocess
+
                 result = subprocess.run(
-                    ['lsof', '-p', str(os.getpid())],
+                    ["lsof", "-p", str(os.getpid())],
                     capture_output=True,
                     text=True,
-                    timeout=5
+                    timeout=5,
                 )
-                return len(result.stdout.strip().split('\n')) - 1  # Минус заголовок
+                return len(result.stdout.strip().split("\n")) - 1  # Минус заголовок
             except Exception:
                 # Если ничего не работает, возвращаем 0
                 return 0
@@ -384,7 +391,7 @@ class TestFileHandlingIntegration:
     def test_temp_file_registry_thread_safety(self):
         """
         Интеграционный тест: Потокобезопасность реестра временных файлов.
-        
+
         Проверяет что операции с реестром потокобезопасны.
         """
         operations = []
@@ -399,12 +406,12 @@ class TestFileHandlingIntegration:
                         temp_path = Path(tmp.name)
                         _register_temp_file(temp_path)
                         temp_files.append(temp_path)
-                        
+
                         with lock:
                             operations.append(f"thread_{thread_id}_register_{i}")
-                        
+
                         time.sleep(0.001)  # Небольшая задержка
-                    
+
                     # Сразу unregister
                     _unregister_temp_file(temp_path)
                     with lock:
@@ -426,9 +433,9 @@ class TestFileHandlingIntegration:
 
             # Проверяем что реестр пуст после завершения
             with _temp_files_lock:
-                assert len(_temp_files_registry) == 0, (
-                    "Реестр должен быть пуст после завершения всех потоков"
-                )
+                assert (
+                    len(_temp_files_registry) == 0
+                ), "Реестр должен быть пуст после завершения всех потоков"
 
         finally:
             _cleanup_all_temp_files()
@@ -437,15 +444,15 @@ class TestFileHandlingIntegration:
     def test_concurrent_csv_operations(self):
         """
         Интеграционный тест: Параллельные операции с CSV.
-        
+
         Проверяет что параллельное чтение CSV не вызывает утечек.
         """
         # Создаём тестовый CSV
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
             writer = csv.writer(tmp)
-            writer.writerow(['col1', 'col2', 'col3'])
+            writer.writerow(["col1", "col2", "col3"])
             for i in range(100):
-                writer.writerow([f'val{i}_1', f'val{i}_2', f'val{i}_3'])
+                writer.writerow([f"val{i}_1", f"val{i}_2", f"val{i}_3"])
             temp_path = tmp.name
 
         results = []
@@ -453,7 +460,7 @@ class TestFileHandlingIntegration:
         def read_csv(thread_id):
             """Читает CSV из потока."""
             rows = []
-            with open(temp_path, 'r', encoding='utf-8-sig') as f:
+            with open(temp_path, "r", encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     rows.append(row)
@@ -471,9 +478,9 @@ class TestFileHandlingIntegration:
 
             # Проверяем что все потоки прочитали все строки
             for thread_id, row_count in results:
-                assert row_count == 100, (
-                    f"Поток {thread_id} должен прочитать 100 строк, прочитано {row_count}"
-                )
+                assert (
+                    row_count == 100
+                ), f"Поток {thread_id} должен прочитать 100 строк, прочитано {row_count}"
 
         finally:
             if os.path.exists(temp_path):

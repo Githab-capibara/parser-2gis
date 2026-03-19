@@ -161,9 +161,9 @@ class TestParallelParserStatsThreadSafety:
             + parser._stats["failed"]
             + parser._stats["skipped"]
         )
-        assert sum_parts == parser._stats["total"], (
-            f"Сумма частей ({sum_parts}) не равна total ({parser._stats['total']})"
-        )
+        assert (
+            sum_parts == parser._stats["total"]
+        ), f"Сумма частей ({sum_parts}) не равна total ({parser._stats['total']})"
 
     def test_stats_lock_prevents_race_condition(self, tmp_path: Any) -> None:
         """
@@ -231,9 +231,9 @@ class TestParallelParserStatsThreadSafety:
             thread.join()
 
         # Проверяем что не было гонок
-        assert len(read_errors) == 0, (
-            f"Обнаружены гонки состояний: {read_errors[:5]}"  # Показываем первые 5
-        )
+        assert (
+            len(read_errors) == 0
+        ), f"Обнаружены гонки состояний: {read_errors[:5]}"  # Показываем первые 5
 
         # Проверяем итоговую статистику
         expected = num_iterations * num_threads

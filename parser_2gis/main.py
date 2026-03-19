@@ -101,15 +101,13 @@ def _tui_stub() -> None:
 
 
 try:
-    from .tui_textual import run_tui as run_new_tui_omsk
     from .tui_textual import Parser2GISTUI
+    from .tui_textual import run_tui as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функции
     run_new_tui_omsk = _tui_omsk_stub
     Parser2GISTUI = _tui_stub  # type: ignore[misc,assignment]
-    logger.warning(
-        "TUI модуль (textual) недоступен. TUI функции будут недоступны"
-    )
+    logger.warning("TUI модуль (textual) недоступен. TUI функции будут недоступны")
 
 
 def _validate_positive_int(
@@ -147,7 +145,7 @@ def _validate_cli_argument(
     arg_parser: argparse.ArgumentParser,
     attr_name: str,
     min_val: int,
-    max_val: int,
+    max_val: float,
     error_name: str,
     convert_to_int: bool = False,
 ) -> None:
@@ -177,7 +175,9 @@ def _validate_cli_argument(
             arg_parser.error(str(e))
 
 
-def _validate_urls(args: argparse.Namespace, arg_parser: argparse.ArgumentParser) -> None:
+def _validate_urls(
+    args: argparse.Namespace, arg_parser: argparse.ArgumentParser
+) -> None:
     """
     Валидирует URL из аргументов командной строки.
 
@@ -359,7 +359,7 @@ def cleanup_resources() -> None:
                         logger.error(
                             "Атрибут экземпляра ChromeRemote недоступен при закрытии: %s",
                             attr_error,
-                            exc_info=True
+                            exc_info=True,
                         )
                         chrome_errors += 1
                     except RuntimeError as runtime_error:
@@ -367,7 +367,7 @@ def cleanup_resources() -> None:
                         logger.error(
                             "RuntimeError при закрытии ChromeRemote: %s",
                             runtime_error,
-                            exc_info=True
+                            exc_info=True,
                         )
                         chrome_errors += 1
                     except Exception as instance_error:
@@ -376,14 +376,14 @@ def cleanup_resources() -> None:
                             "Ошибка при закрытии экземпляра ChromeRemote: %s (тип: %s)",
                             instance_error,
                             type(instance_error).__name__,
-                            exc_info=True
+                            exc_info=True,
                         )
                         chrome_errors += 1
 
                 logger.info(
                     "Закрыто экземпляров ChromeRemote: %d, ошибок: %d",
                     chrome_instances_closed,
-                    chrome_errors
+                    chrome_errors,
                 )
 
                 if chrome_errors > 0:
@@ -396,15 +396,13 @@ def cleanup_resources() -> None:
                 logger.error(
                     "_active_instances не является итерируемым: %s",
                     type_error,
-                    exc_info=True
+                    exc_info=True,
                 )
                 error_count += 1
             except AttributeError as attr_error:
                 # _active_instances не существует
                 logger.error(
-                    "_active_instances не существует: %s",
-                    attr_error,
-                    exc_info=True
+                    "_active_instances не существует: %s", attr_error, exc_info=True
                 )
                 error_count += 1
 
@@ -417,9 +415,7 @@ def cleanup_resources() -> None:
             except AttributeError as attr_error:
                 # Метод close_all не существует
                 logger.error(
-                    "Метод Cache.close_all не существует: %s",
-                    attr_error,
-                    exc_info=True
+                    "Метод Cache.close_all не существует: %s", attr_error, exc_info=True
                 )
                 error_count += 1
             except RuntimeError as runtime_error:
@@ -427,7 +423,7 @@ def cleanup_resources() -> None:
                 logger.error(
                     "RuntimeError при закрытии кэша базы данных: %s",
                     runtime_error,
-                    exc_info=True
+                    exc_info=True,
                 )
                 error_count += 1
             except Exception as cache_error:
@@ -436,7 +432,7 @@ def cleanup_resources() -> None:
                     "Ошибка при закрытии кэша базы данных: %s (тип: %s)",
                     cache_error,
                     type(cache_error).__name__,
-                    exc_info=True
+                    exc_info=True,
                 )
                 error_count += 1
 
@@ -450,7 +446,7 @@ def cleanup_resources() -> None:
                 "Ошибка при вызове gc.collect(): %s (тип: %s)",
                 gc_error,
                 type(gc_error).__name__,
-                exc_info=True
+                exc_info=True,
             )
             error_count += 1
 
@@ -458,7 +454,7 @@ def cleanup_resources() -> None:
         logger.info(
             "Очистка ресурсов завершена. Успешно: %d, Ошибок: %d",
             success_count,
-            error_count
+            error_count,
         )
 
     except ImportError as e:
@@ -467,7 +463,7 @@ def cleanup_resources() -> None:
             "Не удалось импортировать модули для очистки: %s (тип: %s)",
             e,
             type(e).__name__,
-            exc_info=True
+            exc_info=True,
         )
         error_count += 1
     except MemoryError as e:
@@ -475,7 +471,7 @@ def cleanup_resources() -> None:
         logger.critical(
             "Критическая ошибка: нехватка памяти при очистке ресурсов: %s",
             e,
-            exc_info=True
+            exc_info=True,
         )
         error_count += 1
     except KeyboardInterrupt:
@@ -490,7 +486,7 @@ def cleanup_resources() -> None:
             "Непредвиденная ошибка при очистке ресурсов: %s (тип: %s)",
             e,
             type(e).__name__,
-            exc_info=True
+            exc_info=True,
         )
         error_count += 1
 
@@ -514,8 +510,8 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         OSError: Если произошла ошибка операционной системы.
     """
     # ЛИМИТЫ ОТКЛЮЧЕНЫ - без ограничений
-    MAX_CITIES_FILE_SIZE = float('inf')  # Без ограничений размера файла
-    MAX_CITIES_COUNT = float('inf')  # Без ограничений количества городов
+    MAX_CITIES_FILE_SIZE = float("inf")  # Без ограничений размера файла
+    MAX_CITIES_COUNT = float("inf")  # Без ограничений количества городов
 
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)
@@ -552,8 +548,13 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
 
         # Валидация структуры данных
         if not isinstance(all_cities, list):
-            logger.error("Файл городов должен содержать список, а не %s", type(all_cities).__name__)
-            raise ValueError(f"Файл городов должен содержать список, получен {type(all_cities).__name__}")
+            logger.error(
+                "Файл городов должен содержать список, а не %s",
+                type(all_cities).__name__,
+            )
+            raise ValueError(
+                f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
+            )
 
         # ЛИМИТЫ ОТКЛЮЧЕНЫ - проверка количества городов отключена
         if len(all_cities) > MAX_CITIES_COUNT:
@@ -569,7 +570,9 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         # Валидируем каждый город
         for i, city in enumerate(all_cities):
             if not isinstance(city, dict):
-                logger.error("Город %d должен быть словарём, а не %s", i, type(city).__name__)
+                logger.error(
+                    "Город %d должен быть словарём, а не %s", i, type(city).__name__
+                )
                 raise ValueError(f"Город {i} должен быть словарём")
 
             # Проверяем обязательные поля
@@ -582,8 +585,12 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
                 raise ValueError(f"Поля 'name' и 'url' города {i} должны быть строками")
 
             # Проверяем URL на корректность
-            if not city["url"].startswith("http://") and not city["url"].startswith("https://"):
-                logger.error("URL города %d должен начинаться с http:// или https://", i)
+            if not city["url"].startswith("http://") and not city["url"].startswith(
+                "https://"
+            ):
+                logger.error(
+                    "URL города %d должен начинаться с http:// или https://", i
+                )
                 raise ValueError(f"URL города {i} некорректен")
 
         logger.debug("Файл городов валидирован: %d городов", len(all_cities))
@@ -945,13 +952,13 @@ def parse_arguments(
     # Валидация числовых CLI аргументов перед инициализацией конфигурации
     # ЛИМИТЫ ОТКЛЮЧЕНЫ - устанавливаем максимально возможные значения
     _validate_cli_argument(
-        args, arg_parser, "parser.max_retries", 1, float('inf'), "--parser.max-retries"
+        args, arg_parser, "parser.max_retries", 1, float("inf"), "--parser.max-retries"
     )
     _validate_cli_argument(
-        args, arg_parser, "parser.timeout", 1, float('inf'), "--parser.timeout"
+        args, arg_parser, "parser.timeout", 1, float("inf"), "--parser.timeout"
     )
     _validate_cli_argument(
-        args, arg_parser, "parser.max_workers", 1, float('inf'), "--parser.max-workers"
+        args, arg_parser, "parser.max_workers", 1, float("inf"), "--parser.max-workers"
     )
 
     # ПРИОРИТЕТ 2: Валидация аргументов Chrome
@@ -960,7 +967,7 @@ def parse_arguments(
         arg_parser,
         "chrome.startup_delay",
         0,
-        float('inf'),
+        float("inf"),
         "--chrome.startup-delay",
         convert_to_int=True,
     )
@@ -971,18 +978,18 @@ def parse_arguments(
         arg_parser,
         "parser.gc_pages_interval",
         1,
-        float('inf'),
+        float("inf"),
         "--parser.gc-pages-interval",
     )
     _validate_cli_argument(
-        args, arg_parser, "parser.max_records", 1, float('inf'), "--parser.max-records"
+        args, arg_parser, "parser.max_records", 1, float("inf"), "--parser.max-records"
     )
     _validate_cli_argument(
         args,
         arg_parser,
         "parser.max_consecutive_empty_pages",
         1,
-        float('inf'),
+        float("inf"),
         "--parser.max-consecutive-empty-pages",
     )
     _validate_cli_argument(
@@ -990,7 +997,7 @@ def parse_arguments(
         arg_parser,
         "parser.delay_between_clicks",
         0,
-        float('inf'),
+        float("inf"),
         "--parser.delay-between-clicks",
     )
     _validate_cli_argument(
@@ -998,7 +1005,7 @@ def parse_arguments(
         arg_parser,
         "parser.retry_delay_base",
         1,
-        float('inf'),
+        float("inf"),
         "--parser.retry-delay-base",
     )
     _validate_cli_argument(
@@ -1006,7 +1013,7 @@ def parse_arguments(
         arg_parser,
         "parser.memory_threshold",
         256,
-        float('inf'),
+        float("inf"),
         "--parser.memory-threshold",
     )
     _validate_cli_argument(
@@ -1014,7 +1021,7 @@ def parse_arguments(
         arg_parser,
         "chrome.memory_limit",
         256,
-        float('inf'),
+        float("inf"),
         "--chrome.memory-limit",
     )
     _validate_cli_argument(
@@ -1022,7 +1029,7 @@ def parse_arguments(
         arg_parser,
         "writer.csv.columns_per_entity",
         1,
-        float('inf'),
+        float("inf"),
         "--writer.csv.columns-per-entity",
     )
 
@@ -1173,12 +1180,12 @@ def main() -> None:
 
             # Создаём и запускаем параллельный парсер с TUI
             # Приводим тип categories к list[dict] для совместимости с ParallelCityParser
-            categories_list: list[dict] = CATEGORIES_93  # type: ignore[assignment]
+            # categories_list: list[dict] = CATEGORIES_93  # type: ignore[assignment]
 
             # Используем новый TUI интерфейс
             logger.info("🎨 Запуск TUI интерфейса...")
 
-            output_file = str(output_dir / "merged_result.csv")
+            # output_file = str(output_dir / "merged_result.csv")
 
             # Запускаем новый TUI с параллельным парсингом
             # Для параллельного парсинга с TUI используйте --tui-new-omsk

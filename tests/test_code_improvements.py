@@ -25,11 +25,11 @@ class TestConfigurationRobustness:
     def test_configuration_with_extreme_values(self):
         """Проверка конфигурации с экстремальными значениями."""
         config = Configuration()
-        
+
         # Проверяем, что можно установить граничные значения
         config.parser.max_records = 1
         assert config.parser.max_records == 1
-        
+
         config.parser.max_records = 10000
         assert config.parser.max_records == 10000
 
@@ -53,13 +53,13 @@ class TestCommonFunctionRobustness:
     def test_wait_until_finished_decorator_basic(self):
         """Проверка декоратора wait_until_finished."""
         call_count = 0
-        
+
         @wait_until_finished(timeout=5, finished=lambda x: x is True)
         def test_func():
             nonlocal call_count
             call_count += 1
             return True
-        
+
         result = test_func()
         assert result is True
         assert call_count >= 1
@@ -71,9 +71,7 @@ class TestCommonFunctionRobustness:
 
     def test_unwrap_dot_dict_with_deep_nesting(self):
         """Проверка unwrap_dot_dict с глубокой вложенностью."""
-        dot_dict = {
-            "level1.level2.level3.level4": "value"
-        }
+        dot_dict = {"level1.level2.level3.level4": "value"}
         result = unwrap_dot_dict(dot_dict)
         assert result["level1"]["level2"]["level3"]["level4"] == "value"
 
@@ -126,10 +124,10 @@ class TestErrorHandlingComprehensive:
     def test_configuration_merge_is_callable(self):
         """Проверка что merge_with работает без ошибок."""
         config1 = Configuration()
-        
+
         config2 = Configuration()
         config2.chrome.disable_images = True
-        
+
         # Метод merge_with должен работать без исключений
         config1.merge_with(config2)
         # Конфигурация должна остаться в валидном состоянии
@@ -140,7 +138,7 @@ class TestErrorHandlingComprehensive:
         """Проверка загрузки конфигурации с поврежденным JSON."""
         config_file = tmp_path / "corrupted.json"
         config_file.write_text("{invalid json}")
-        
+
         # Должна вернуться конфигурация по умолчанию или вызваться исключение
         with pytest.raises(Exception):  # ValueError или JSONDecodeError
             Configuration.load(config_file, auto_create=False)
@@ -181,6 +179,7 @@ class TestConcurrencyPatterns:
                 config.parser.max_records = value * 100
                 # Даем время на изменение
                 import time
+
                 time.sleep(0.01)
                 # Проверяем значение (может быть перезаписано другим потоком)
                 results.append(config.parser.max_records)
@@ -223,13 +222,15 @@ class TestBoundaryConditions:
     def test_wait_until_finished_timeout_decorator(self):
         """Проверка декоратора wait_until_finished с таймаутом."""
         call_count = 0
-        
-        @wait_until_finished(timeout=0.5, finished=lambda x: False, throw_exception=False)
+
+        @wait_until_finished(
+            timeout=0.5, finished=lambda x: False, throw_exception=False
+        )
         def slow_func():
             nonlocal call_count
             call_count += 1
             return False
-        
+
         # Функция должна быть вызвана несколько раз перед истечением таймаута
         slow_func()
         assert call_count >= 1
@@ -239,16 +240,16 @@ class TestBoundaryConditions:
         config = Configuration()
         cities = [
             {"name": "Moscow", "code": "moscow", "domain": "ru"},
-            {"name": "Omsk", "code": "omsk", "domain": "ru"}
+            {"name": "Omsk", "code": "omsk", "domain": "ru"},
         ]
         categories = [
             {"name": "Cafes", "code": "cafes"},
-            {"name": "Shops", "code": "shops"}
+            {"name": "Shops", "code": "shops"},
         ]
 
         parser = ParallelCityParser(cities, categories, "/tmp", config)
         urls = parser.generate_all_urls()
-        
+
         # Должно быть 2 города * 2 категории = 4 URL
         assert len(urls) == 4
         # Каждый URL должен быть кортежем (url, category_name, city_name)
@@ -257,4 +258,3 @@ class TestBoundaryConditions:
             assert isinstance(category, str)
             assert isinstance(city, str)
             assert "moscow" in url.lower() or "omsk" in url.lower()
-

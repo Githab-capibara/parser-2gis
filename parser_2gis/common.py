@@ -16,6 +16,7 @@ import asyncio
 import functools
 import logging
 import re
+import sys
 import time
 import urllib.parse
 from functools import lru_cache
@@ -61,7 +62,7 @@ EXPONENTIAL_BACKOFF_MULTIPLIER: float = 2
 # =============================================================================
 
 # ЛИМИТЫ ОТКЛЮЧЕНЫ - без ограничений
-MAX_DATA_SIZE: int = float('inf')  # Без ограничений размера данных
+MAX_DATA_SIZE: int = sys.maxsize  # Без ограничений размера данных
 
 # =============================================================================
 # ГЛОБАЛЬНЫЕ КОНСТАНТЫ БУФЕРИЗАЦИИ
@@ -201,7 +202,7 @@ def _is_sensitive_key(key: str) -> bool:
 def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     """
     Очищает чувствительные данные из значения.
-    
+
     - Переписано на итеративный подход с явным стеком вместо рекурсии
     - Предотвращает RecursionError при обработке глубоко вложенных структур
     - Добавлена проверка максимального размера данных перед обработкой (MAX_DATA_SIZE = 10MB)
@@ -220,11 +221,11 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     """
     # _visited теперь локальная переменная, а не параметр функции
     _visited: set = set()
-    
+
     # Проверка максимального размера данных перед обработкой
     try:
         value_str = repr(value)
-        value_size = len(value_str.encode('utf-8'))
+        value_size = len(value_str.encode("utf-8"))
 
         if value_size > MAX_DATA_SIZE:
             logger.error(
@@ -244,8 +245,8 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
             exc_info=True,
         )
         raise ValueError(
-            f"Нехватка памяти при проверке размера данных. "
-            f"Данные слишком большие для обработки."
+            "Нехватка памяти при проверке размера данных. "
+            "Данные слишком большие для обработки."
         ) from size_check_error
 
     try:
@@ -262,8 +263,14 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                 current_id = id(current_value)
 
                 # Быстрая проверка для неизменяемых типов - не требуют обработки
-                if current_value is None or isinstance(current_value, (str, int, float, bool)):
-                    result = "<REDACTED>" if current_key and _is_sensitive_key(current_key) else current_value
+                if current_value is None or isinstance(
+                    current_value, (str, int, float, bool)
+                ):
+                    result = (
+                        "<REDACTED>"
+                        if current_key and _is_sensitive_key(current_key)
+                        else current_value
+                    )
                     if parent is not None and parent_key is not None:
                         if isinstance(parent, dict):
                             parent[parent_key] = result
@@ -347,8 +354,8 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                     exc_info=True,
                 )
                 raise ValueError(
-                    f"Нехватка памяти при очистке данных. "
-                    f"Данные слишком большие для обработки в памяти."
+                    "Нехватка памяти при очистке данных. "
+                    "Данные слишком большие для обработки в памяти."
                 ) from mem_error
             except Exception as step_error:
                 logger.error(
@@ -373,8 +380,8 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
             exc_info=True,
         )
         raise ValueError(
-            f"Нехватка памяти при очистке чувствительных данных. "
-            f"Рекомендуется уменьшить размер входных данных."
+            "Нехватка памяти при очистке чувствительных данных. "
+            "Рекомендуется уменьшить размер входных данных."
         ) from memory_error
     except ValueError:
         raise
@@ -473,17 +480,29 @@ def wait_until_finished(
             effective_finished = (
                 override_finished
                 if override_finished is not None
-                else (finished if finished is not None else decorator_finished or _default_predicate)
+                else (
+                    finished
+                    if finished is not None
+                    else decorator_finished or _default_predicate
+                )
             )
             effective_throw = (
                 override_throw_exception
                 if override_throw_exception is not None
-                else (throw_exception if throw_exception is not None else decorator_throw_exception)
+                else (
+                    throw_exception
+                    if throw_exception is not None
+                    else decorator_throw_exception
+                )
             )
             effective_poll = (
                 override_poll_interval
                 if override_poll_interval is not None
-                else (poll_interval if poll_interval is not None else decorator_poll_interval)
+                else (
+                    poll_interval
+                    if poll_interval is not None
+                    else decorator_poll_interval
+                )
             )
 
             ret: Any = None
@@ -493,7 +512,10 @@ def wait_until_finished(
 
             while True:
                 # Проверка таймаута в начале цикла
-                if effective_timeout is not None and time.time() - start_time > effective_timeout:
+                if (
+                    effective_timeout is not None
+                    and time.time() - start_time > effective_timeout
+                ):
                     timeout_msg = f"Превышено время ожидания для {func.__name__}"
                     if effective_throw:
                         raise TimeoutError(timeout_msg)
@@ -536,7 +558,9 @@ def wait_until_finished(
     return outer
 
 
-def report_from_validation_error(ex: ValidationError, d: Optional[Dict[str, Any]] = None) -> Dict[str, Dict[str, Any]]:
+def report_from_validation_error(
+    ex: ValidationError, d: Optional[Dict[str, Any]] = None
+) -> Dict[str, Dict[str, Any]]:
     """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
 
     Note:
@@ -852,7 +876,9 @@ def generate_category_url(
     return _generate_category_url_cached(city_key, category_key)
 
 
-def generate_city_urls(cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None) -> List[str]:
+def generate_city_urls(
+    cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None
+) -> List[str]:
     """Генерирует URL для парсинга по списку городов.
 
     Оптимизация:
@@ -981,15 +1007,23 @@ def async_wait_until_finished(
             **kwargs: Any,
         ) -> Any:
             # Приоритет: override_* > значения из декоратора
-            effective_timeout = override_timeout if override_timeout is not None else decorator_timeout
+            effective_timeout = (
+                override_timeout if override_timeout is not None else decorator_timeout
+            )
             effective_finished = (
-                override_finished if override_finished is not None else decorator_finished or _default_predicate
+                override_finished
+                if override_finished is not None
+                else decorator_finished or _default_predicate
             )
             effective_throw_exception = (
-                override_throw_exception if override_throw_exception is not None else decorator_throw_exception
+                override_throw_exception
+                if override_throw_exception is not None
+                else decorator_throw_exception
             )
             effective_poll_interval = (
-                override_poll_interval if override_poll_interval is not None else decorator_poll_interval
+                override_poll_interval
+                if override_poll_interval is not None
+                else decorator_poll_interval
             )
 
             start_time = asyncio.get_event_loop().time()
@@ -1002,7 +1036,9 @@ def async_wait_until_finished(
                     elapsed = asyncio.get_event_loop().time() - start_time
                     if elapsed > effective_timeout:
                         if effective_throw_exception:
-                            raise TimeoutError(f"Функция {func.__name__} не завершилась за {effective_timeout} секунд")
+                            raise TimeoutError(
+                                f"Функция {func.__name__} не завершилась за {effective_timeout} секунд"
+                            )
                         return None
 
                 # Вызываем функцию

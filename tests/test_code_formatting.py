@@ -39,13 +39,19 @@ class TestBlackFormatting:
         )
 
         # Если black не установлен, пропускаем тест
-        if result.returncode == 127 or "not found" in result.stderr or "No module named black" in result.stderr:
+        if (
+            result.returncode == 127
+            or "not found" in result.stderr
+            or "No module named black" in result.stderr
+        ):
             pytest.skip("black не установлен")
 
         # black возвращает 1 если файлы нужно отформатировать
         if result.returncode == 1:
             # Форматирование не критично для функциональности - помечаем как warning
-            pytest.skip(f"black требует форматирования:\n{result.stdout}\n{result.stderr}")
+            pytest.skip(
+                f"black требует форматирования:\n{result.stdout}\n{result.stderr}"
+            )
 
         # Тест проходит если returncode == 0
         assert result.returncode == 0, f"black обнаружил проблемы:\n{result.stdout}"
@@ -74,7 +80,11 @@ class TestBlackFormatting:
         )
 
         # Если black не установлен, пропускаем тест
-        if result.returncode == 127 or "not found" in result.stderr or "No module named black" in result.stderr:
+        if (
+            result.returncode == 127
+            or "not found" in result.stderr
+            or "No module named black" in result.stderr
+        ):
             pytest.skip("black не установлен")
 
         if result.returncode == 1:
@@ -109,13 +119,19 @@ class TestIsortImports:
         )
 
         # Если isort не установлен, пропускаем тест
-        if result.returncode == 127 or "not found" in result.stderr or "No module named isort" in result.stderr:
+        if (
+            result.returncode == 127
+            or "not found" in result.stderr
+            or "No module named isort" in result.stderr
+        ):
             pytest.skip("isort не установлен")
 
         # isort возвращает 1 если импорты не отсортированы
         if result.returncode == 1:
             # Сортировка импортов не критична для функциональности - помечаем как warning
-            pytest.skip(f"isort требует сортировки импортов:\n{result.stdout}\n{result.stderr}")
+            pytest.skip(
+                f"isort требует сортировки импортов:\n{result.stdout}\n{result.stderr}"
+            )
 
         # Тест проходит если returncode == 0
         assert result.returncode == 0, f"isort обнаружил проблемы:\n{result.stdout}"
@@ -141,12 +157,18 @@ class TestIsortImports:
         )
 
         # Если isort не установлен, пропускаем тест
-        if result.returncode == 127 or "not found" in result.stderr or "No module named isort" in result.stderr:
+        if (
+            result.returncode == 127
+            or "not found" in result.stderr
+            or "No module named isort" in result.stderr
+        ):
             pytest.skip("isort не установлен")
 
         if result.returncode == 1:
             # Сортировка импортов не критична для функциональности - помечаем как warning
-            pytest.skip(f"isort требует сортировки импортов в ключевых файлах:\n{result.stdout}")
+            pytest.skip(
+                f"isort требует сортировки импортов в ключевых файлах:\n{result.stdout}"
+            )
 
         assert result.returncode == 0
 
@@ -157,7 +179,7 @@ class TestFlake8PEP8:
     def test_flake8_check(self):
         """
         Тест 6.3: Проверка flake8.
-        
+
         Запускает flake8.
         Проверяет что нет нарушений PEP 8.
         """
@@ -174,15 +196,15 @@ class TestFlake8PEP8:
             text=True,
             cwd="/home/d/parser-2gis",
         )
-        
+
         # Если flake8 не установлен, пропускаем тест
         if result.returncode == 127 or "not found" in result.stderr:
             pytest.skip("flake8 не установлен")
-        
+
         # Выводим вывод для отладки
         if result.stdout:
             print(f"flake8 output: {result.stdout}")
-        
+
         # Тест проходит всегда - flake8 может находить проблемы
         # Это скорее informational тест
         assert True
@@ -207,14 +229,14 @@ class TestFlake8PEP8:
             text=True,
             cwd="/home/d/parser-2gis",
         )
-        
+
         # Если flake8 не установлен, пропускаем тест
         if result.returncode == 127 or "not found" in result.stderr:
             pytest.skip("flake8 не установлен")
-        
+
         if result.returncode == 1:
             print(f"Нарушения в исправленных файлах:\n{result.stdout}")
-        
+
         # Тест проходит всегда
         assert True
 
@@ -227,22 +249,22 @@ class TestCodeStyle:
         Проверка что нет trailing whitespace.
         """
         from pathlib import Path
-        
+
         parser_dir = Path("/home/d/parser-2gis/parser_2gis")
-        
+
         files_with_trailing = []
-        
+
         for py_file in parser_dir.rglob("*.py"):
             try:
-                content = py_file.read_text(encoding='utf-8')
+                content = py_file.read_text(encoding="utf-8")
             except Exception:
                 continue
-            
-            for i, line in enumerate(content.split('\n'), 1):
+
+            for i, line in enumerate(content.split("\n"), 1):
                 # Проверяем trailing whitespace (но не пустые строки)
                 if line != line.rstrip() and line.strip():
                     files_with_trailing.append((py_file, i))
-        
+
         if files_with_trailing:
             error_msg = "Найден trailing whitespace:\n"
             for file_path, line_num in files_with_trailing[:10]:  # Показываем первые 10
@@ -256,20 +278,20 @@ class TestCodeStyle:
         Проверка что нет tab символов (используются только пробелы).
         """
         from pathlib import Path
-        
+
         parser_dir = Path("/home/d/parser-2gis/parser_2gis")
-        
+
         files_with_tabs = []
-        
+
         for py_file in parser_dir.rglob("*.py"):
             try:
-                content = py_file.read_text(encoding='utf-8')
+                content = py_file.read_text(encoding="utf-8")
             except Exception:
                 continue
-            
-            if '\t' in content:
+
+            if "\t" in content:
                 files_with_tabs.append(py_file)
-        
+
         if files_with_tabs:
             error_msg = "Найдены tab символы (используйте пробелы):\n"
             for file_path in files_with_tabs:

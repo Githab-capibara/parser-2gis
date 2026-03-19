@@ -8,44 +8,31 @@ from __future__ import annotations
 
 import json
 import logging
-import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical, Center
-from textual.screen import Screen
 from textual.widgets import (
-    Static,
-    Button,
-    Label,
     Footer,
     Header,
-    Input,
-    Checkbox,
-    ProgressBar,
-    DataTable,
-    Log,
-    RichLog,
 )
-from textual import work
-from textual.worker import Worker, WorkerState
 
 from ..config import Configuration
 from ..data.categories_93 import CATEGORIES_93
 from ..parallel_parser import ParallelCityParser
 from .screens import (
-    MainMenuScreen,
-    CitySelectorScreen,
-    CategorySelectorScreen,
-    ParsingScreen,
-    BrowserSettingsScreen,
-    ParserSettingsScreen,
-    OutputSettingsScreen,
-    CacheViewerScreen,
     AboutScreen,
+    BrowserSettingsScreen,
+    CacheViewerScreen,
+    CategorySelectorScreen,
+    CitySelectorScreen,
+    MainMenuScreen,
+    OutputSettingsScreen,
+    ParserSettingsScreen,
+    ParsingScreen,
 )
 
 
@@ -61,31 +48,31 @@ class TUIApp(App):
     Screen {
         background: $surface;
     }
-    
+
     #main-menu {
         align: center middle;
     }
-    
+
     .title-container {
         width: 100%;
         height: auto;
         content-align: center middle;
         margin-bottom: 1;
     }
-    
+
     .title {
         text-style: bold;
         color: $text;
         width: 100%;
         content-align: center top;
     }
-    
+
     .subtitle {
         color: $text-muted;
         width: 100%;
         content-align: center top;
     }
-    
+
     .menu-container {
         width: 60;
         height: auto;
@@ -93,66 +80,66 @@ class TUIApp(App):
         border: solid $primary;
         padding: 1 2;
     }
-    
+
     .menu-button {
         width: 100%;
         margin: 1 0;
     }
-    
+
     .logo {
         width: 100%;
         content-align: center top;
         color: $accent;
         text-style: bold;
     }
-    
+
     .counter-panel {
         width: 100%;
         height: 3;
         content-align: center middle;
         margin: 1 0;
     }
-    
+
     .stats-container {
         width: 100%;
         height: auto;
     }
-    
+
     .stat-label {
         width: 100%;
         margin: 0;
     }
-    
+
     .progress-container {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
-    
+
     .log-container {
         width: 100%;
         height: 1fr;
         border: solid $primary;
         padding: 1;
     }
-    
+
     .search-panel {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
-    
+
     .city-list {
         width: 100%;
         height: 1fr;
     }
-    
+
     .button-row {
         width: 100%;
         height: auto;
         align: center middle;
     }
-    
+
     .divider {
         height: 1;
         background: $primary;

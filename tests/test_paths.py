@@ -38,13 +38,13 @@ class TestDataPath:
         """Проверка, что data_path содержит данные."""
         path = data_path()
         # Должны быть файлы cities.json и rubrics.json
-        assert (path / 'cities.json').exists()
-        assert (path / 'rubrics.json').exists()
+        assert (path / "cities.json").exists()
+        assert (path / "rubrics.json").exists()
 
     def test_data_path_contains_images(self):
         """Проверка, что data_path содержит изображения."""
         path = data_path()
-        images_dir = path / 'images'
+        images_dir = path / "images"
         assert images_dir.exists()
         assert images_dir.is_dir()
 
@@ -76,8 +76,8 @@ class TestUserPath:
         """Проверка имени директории parser-2gis."""
         path_config = user_path(is_config=True)
         path_data = user_path(is_config=False)
-        assert 'parser-2gis' in str(path_config)
-        assert 'parser-2gis' in str(path_data)
+        assert "parser-2gis" in str(path_config)
+        assert "parser-2gis" in str(path_data)
 
 
 class TestImagePath:
@@ -85,35 +85,35 @@ class TestImagePath:
 
     def test_image_path_icon_png(self):
         """Проверка image_path для icon.png."""
-        path = image_path('icon', 'png')
+        path = image_path("icon", "png")
         assert os.path.exists(path)
-        assert path.endswith('.png')
+        assert path.endswith(".png")
 
     def test_image_path_logo_png(self):
         """Проверка image_path для logo.png."""
-        path = image_path('logo', 'png')
+        path = image_path("logo", "png")
         assert os.path.exists(path)
-        assert path.endswith('.png')
+        assert path.endswith(".png")
 
     def test_image_path_loading_gif(self):
         """Проверка image_path для loading.gif."""
-        path = image_path('loading', 'gif')
+        path = image_path("loading", "gif")
         assert os.path.exists(path)
-        assert path.endswith('.gif')
+        assert path.endswith(".gif")
 
     def test_image_path_without_extension(self):
         """Проверка image_path без указания расширения."""
-        path = image_path('icon')
+        path = image_path("icon")
         assert os.path.exists(path)
 
     def test_image_path_not_found(self):
         """Проверка image_path для несуществующего файла."""
         with pytest.raises(FileNotFoundError):
-            image_path('nonexistent_image')
+            image_path("nonexistent_image")
 
     def test_image_path_returns_absolute(self):
         """Проверка, что image_path возвращает абсолютный путь."""
-        path = image_path('icon', 'png')
+        path = image_path("icon", "png")
         assert os.path.isabs(path)
 
 
@@ -122,20 +122,21 @@ class TestImageData:
 
     def test_image_data_icon_png(self):
         """Проверка image_data для icon.png."""
-        data = image_data('icon', 'png')
+        data = image_data("icon", "png")
         assert isinstance(data, bytes)
         assert len(data) > 0
 
     def test_image_data_logo_png(self):
         """Проверка image_data для logo.png."""
-        data = image_data('logo', 'png')
+        data = image_data("logo", "png")
         assert isinstance(data, bytes)
         assert len(data) > 0
 
     def test_image_data_is_base64(self):
         """Проверка, что image_data возвращает base64."""
         import base64
-        data = image_data('icon', 'png')
+
+        data = image_data("icon", "png")
         # Должно быть валидным base64
         try:
             base64.b64decode(data)
@@ -144,19 +145,19 @@ class TestImageData:
 
     def test_image_data_without_extension(self):
         """Проверка image_data без указания расширения."""
-        data = image_data('icon')
+        data = image_data("icon")
         assert isinstance(data, bytes)
         assert len(data) > 0
 
     def test_image_data_not_found(self):
         """Проверка image_data для несуществующего файла."""
         with pytest.raises(FileNotFoundError):
-            image_data('nonexistent_image')
+            image_data("nonexistent_image")
 
     def test_image_data_cached(self):
         """Проверка кэширования image_data."""
-        data1 = image_data('icon', 'png')
-        data2 = image_data('icon', 'png')
+        data1 = image_data("icon", "png")
+        data2 = image_data("icon", "png")
         assert data1 is data2  # Один и тот же объект благодаря lru_cache
 
 
@@ -167,10 +168,10 @@ class TestImagePathVsImageData:
         """Проверка, что image_data соответствует файлу."""
         import base64
 
-        path = image_path('icon', 'png')
-        data = image_data('icon', 'png')
+        path = image_path("icon", "png")
+        data = image_data("icon", "png")
 
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             file_data = base64.b64encode(f.read())
 
         assert data == file_data
@@ -181,24 +182,30 @@ class TestImageFormats:
 
     def test_png_images(self):
         """Проверка PNG изображений."""
-        png_images = ['icon', 'logo', 'rubric_folder', 'rubric_item',
-                      'settings', 'settings_inverted']
+        png_images = [
+            "icon",
+            "logo",
+            "rubric_folder",
+            "rubric_item",
+            "settings",
+            "settings_inverted",
+        ]
         for name in png_images:
             try:
-                path = image_path(name, 'png')
+                path = image_path(name, "png")
                 assert os.path.exists(path)
             except FileNotFoundError:
                 pass  # Некоторые изображения могут отсутствовать
 
     def test_gif_images(self):
         """Проверка GIF изображений."""
-        path = image_path('loading', 'gif')
+        path = image_path("loading", "gif")
         assert os.path.exists(path)
 
     def test_ico_images(self):
         """Проверка ICO изображений."""
         try:
-            path = image_path('icon', 'ico')
+            path = image_path("icon", "ico")
             assert os.path.exists(path)
         except FileNotFoundError:
             pass  # Может отсутствовать на некоторых платформах
@@ -206,7 +213,7 @@ class TestImageFormats:
     def test_icns_images(self):
         """Проверка ICNS изображений."""
         try:
-            path = image_path('icon', 'icns')
+            path = image_path("icon", "icns")
             assert os.path.exists(path)
         except FileNotFoundError:
             pass  # Может отсутствовать на некоторых платформах

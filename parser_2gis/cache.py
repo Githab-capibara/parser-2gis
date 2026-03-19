@@ -22,8 +22,8 @@
 
 import hashlib
 import json
-import logging
 import sqlite3
+import sys
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -79,7 +79,8 @@ def _serialize_json(data: Dict[str, Any]) -> str:
             return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
         except (TypeError, ValueError) as json_error:
             raise TypeError(
-                f"Критическая ошибка сериализации json: {json_error}. " f"Тип данных: {type(data).__name__}"
+                f"Критическая ошибка сериализации json: {json_error}. "
+                f"Тип данных: {type(data).__name__}"
             ) from json_error
 
 
@@ -145,10 +146,13 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
     except (json.JSONDecodeError, UnicodeDecodeError) as json_error:
         error_type = "Unicode" if isinstance(json_error, UnicodeDecodeError) else "JSON"
         raise ValueError(
-            f"Критическая ошибка десериализации ({error_type}): {json_error}. " f"Длина данных: {len(data)}"
+            f"Критическая ошибка десериализации ({error_type}): {json_error}. "
+            f"Длина данных: {len(data)}"
         ) from json_error
     except TypeError as type_error:
-        raise TypeError(f"Некорректный тип данных кэша: {type_error}. Длина данных: {len(data)}") from type_error
+        raise TypeError(
+            f"Некорректный тип данных кэша: {type_error}. Длина данных: {len(data)}"
+        ) from type_error
 
 
 def _validate_cached_data(data: Any, depth: int = 0) -> bool:
@@ -168,9 +172,9 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
         True если данные безопасны, False иначе.
     """
     # ЛИМИТЫ ОТКЛЮЧЕНЫ - без ограничений
-    MAX_DATA_DEPTH: int = float('inf')  # Без ограничений глубины
-    MAX_STRING_LENGTH: int = float('inf')  # Без ограничений длины строки
-    
+    MAX_DATA_DEPTH: int = sys.maxsize  # Без ограничений глубины
+    MAX_STRING_LENGTH: int = sys.maxsize  # Без ограничений длины строки
+
     # Расширенный список SQL паттернов для обнаружения injection атак
     SQL_INJECTION_PATTERNS: List[str] = [
         "--",  # SQL комментарий
@@ -182,7 +186,7 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
         "UNION ALL SELECT",  # UNION ALL SELECT
         "OR 1=1",  # OR 1=1 (всегда истина)
         "OR '1'='1'",  # OR '1'='1' (всегда истина)
-        "OR \"1\"=\"1\"",  # OR "1"="1" (всегда истина)
+        'OR "1"="1"',  # OR "1"="1" (всегда истина)
         "OR 1 = 1",  # OR 1 = 1 (с пробелами)
         "AND 1=1",  # AND 1=1
         "AND '1'='1'",  # AND '1'='1'
@@ -217,7 +221,10 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
 
     # Проверяем глубину вложенности
     if depth > MAX_DATA_DEPTH:
-        logger.warning("Превышена максимальная глубина вложенности данных кэша (%d)", MAX_DATA_DEPTH)
+        logger.warning(
+            "Превышена максимальная глубина вложенности данных кэша (%d)",
+            MAX_DATA_DEPTH,
+        )
         return False
 
     # Базовые типы
@@ -245,7 +252,7 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
                 MAX_STRING_LENGTH,
             )
             return False
-        
+
         # Проверяем строку на опасные конструкции
         # Это предотвращает потенциальные SQL injection и XSS атаки
         dangerous_patterns: List[str] = [
@@ -276,10 +283,10 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
             "/*",  # SQL комментарий блочный
             "*/",  # Закрытие SQL комментария
         ]
-        
+
         # Объединяем все паттерны
         all_patterns = SQL_INJECTION_PATTERNS + dangerous_patterns
-        
+
         data_upper = data.upper()
         for pattern in all_patterns:
             if pattern.upper() in data_upper:
@@ -448,7 +455,9 @@ class _ConnectionPool:
                 try:
                     conn.close()
                 except Exception as e:
-                    logger.debug("Не удалось закрыть соединение SQLite: %s", e, exc_info=True)
+                    logger.debug(
+                        "Не удалось закрыть соединение SQLite: %s", e, exc_info=True
+                    )
             self._all_conns.clear()
 
     def __del__(self) -> None:
@@ -780,7 +789,9 @@ class CacheManager:
                 cursor.execute(self.SQL_DELETE, (url_hash,))
                 conn.commit()
             except sqlite3.Error as cleanup_error:
-                logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
+                logger.warning(
+                    "Ошибка при удалении повреждённой записи: %s", cleanup_error
+                )
             return None
         except Exception as general_error:
             logger.error(
@@ -1001,7 +1012,9 @@ class CacheManager:
 
         # ВАЖНО: Ограничиваем максимальный размер пакета для предотвращения DoS
         if len(url_hashes) > MAX_BATCH_SIZE:
-            raise ValueError(f"Размер пакета {len(url_hashes)} превышает максимальный лимит {MAX_BATCH_SIZE}")
+            raise ValueError(
+                f"Размер пакета {len(url_hashes)} превышает максимальный лимит {MAX_BATCH_SIZE}"
+            )
 
         # ВАЖНО: Строгая валидация каждого хеша (64 символа, hex)
         # Это предотвращает SQL injection через некорректные хеши
@@ -1068,7 +1081,9 @@ class CacheManager:
 
             # Размер файла базы данных с обработкой ошибок
             try:
-                cache_size = self._cache_file.stat().st_size if self._cache_file.exists() else 0
+                cache_size = (
+                    self._cache_file.stat().st_size if self._cache_file.exists() else 0
+                )
             except OSError:
                 # Файл недоступен или ошибка файловой системы
                 cache_size = 0
@@ -1146,7 +1161,9 @@ class CacheManager:
         except Exception as e:
             # Логирование ошибки вместо игнорирования
             # В __del__ нельзя выбрасывать исключения
-            logger.error("Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True)
+            logger.error(
+                "Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True
+            )
 
     @staticmethod
     def _hash_url(url: str) -> str:
@@ -1286,7 +1303,10 @@ class CacheManager:
                     max_iterations = 50  # Защита от бесконечного цикла
 
                     # Циклически удаляем записи пока размер не станет меньше лимита
-                    while cache_size_mb > MAX_CACHE_SIZE_MB and eviction_iterations < max_iterations:
+                    while (
+                        cache_size_mb > MAX_CACHE_SIZE_MB
+                        and eviction_iterations < max_iterations
+                    ):
                         eviction_iterations += 1
 
                         # Удаляем пакет старых записей (LRU - по timestamp)
@@ -1296,7 +1316,9 @@ class CacheManager:
 
                         if deleted_count == 0:
                             # Нечего удалять - выходим из цикла
-                            logger.debug("LRU eviction: записей для удаления не осталось")
+                            logger.debug(
+                                "LRU eviction: записей для удаления не осталось"
+                            )
                             break
 
                         total_deleted += deleted_count
@@ -1312,14 +1334,16 @@ class CacheManager:
 
                     if eviction_iterations >= max_iterations:
                         logger.warning(
-                            "LRU eviction: достигнут лимит итераций (%d), " "текущий размер %.2f MB",
+                            "LRU eviction: достигнут лимит итераций (%d), "
+                            "текущий размер %.2f MB",
                             max_iterations,
                             cache_size_mb,
                         )
 
                     if total_deleted > 0:
                         logger.info(
-                            "LRU eviction завершена: удалено %d записей за %d итераций, " "новый размер %.2f MB",
+                            "LRU eviction завершена: удалено %d записей за %d итераций, "
+                            "новый размер %.2f MB",
                             total_deleted,
                             eviction_iterations,
                             cache_size_mb,

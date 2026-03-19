@@ -17,6 +17,7 @@ for _ in range(2):
     try:
         import parser_2gis.paths
         from parser_2gis.chrome import ChromeOptions, ChromeRemote
+
         break
     except ImportError:
         here = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +26,7 @@ for _ in range(2):
             sys.path.insert(1, parent_dir)
 
 # URL API для получения списка регионов
-_REGIONS_LIST_RESPONSE = r'https://catalog\.api\.2gis.[^/]+/.*/region/list'
+_REGIONS_LIST_RESPONSE = r"https://catalog\.api\.2gis.[^/]+/.*/region/list"
 
 # ПРИМЕЧАНИЕ:
 # Также есть список городов в 'https://hermes.2gis.ru/api/data/availableParameters'
@@ -34,33 +35,35 @@ _REGIONS_LIST_RESPONSE = r'https://catalog\.api\.2gis.[^/]+/.*/region/list'
 
 chrome_options = ChromeOptions(headless=True)
 with ChromeRemote(chrome_options, [_REGIONS_LIST_RESPONSE]) as chrome_remote:
-    chrome_remote.navigate('https://data.2gis.com', timeout=300)
+    chrome_remote.navigate("https://data.2gis.com", timeout=300)
     response = chrome_remote.wait_response(_REGIONS_LIST_RESPONSE)
     data = chrome_remote.get_response_body(response)
 
     try:
         doc = json.loads(data)
     except json.JSONDecodeError:
-        print('Возвращён некорректный JSON документ!', file=sys.stderr)
+        print("Возвращён некорректный JSON документ!", file=sys.stderr)
         sys.exit(1)
 
     if not doc:
-        print('Нет ответа, выходим!', file=sys.stderr)
+        print("Нет ответа, выходим!", file=sys.stderr)
         sys.exit(1)
 
     cities = []
-    for item in doc['result']['items']:
-        cities.append({
-            # "name" может содержать завершающий символ подчёркивания
-            # по некоторым причинам, избавляемся от него.
-            'name': item['name'].strip('_'),
-            'code': item['code'],
-            'domain': item['domain'],
-            'country_code': item['country_code'],
-        })
+    for item in doc["result"]["items"]:
+        cities.append(
+            {
+                # "name" может содержать завершающий символ подчёркивания
+                # по некоторым причинам, избавляемся от него.
+                "name": item["name"].strip("_"),
+                "code": item["code"],
+                "domain": item["domain"],
+                "country_code": item["country_code"],
+            }
+        )
 
-    cities = sorted(cities, key=lambda x: x['domain'])
-    cities_path = parser_2gis.paths.data_path() / 'cities.json'
-    with open(cities_path, 'w', encoding='utf-8') as f:
+    cities = sorted(cities, key=lambda x: x["domain"])
+    cities_path = parser_2gis.paths.data_path() / "cities.json"
+    with open(cities_path, "w", encoding="utf-8") as f:
         json.dump(cities, f, ensure_ascii=False, indent=4)
-        print(f'Сохранено {len(cities)} городов в {cities_path}')
+        print(f"Сохранено {len(cities)} городов в {cities_path}")

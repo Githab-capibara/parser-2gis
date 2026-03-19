@@ -484,13 +484,14 @@ class TestMediumIssues:
         def test_timeout_per_url_validation(self, tmp_path):
             """Тест 11.2: Валидация timeout_per_url."""
             from parser_2gis.config import Configuration
-            from parser_2gis.parallel_parser import ParallelCityParser
+            from parser_2gis.parallel_parser import MIN_TIMEOUT, ParallelCityParser
 
             config = Configuration()
             cities = [{"code": "msk", "name": "Москва"}]
             categories = [{"id": 1, "name": "Аптеки"}]
 
             # Проверяем валидацию минимального значения
+            # timeout_per_url должен быть не менее MIN_TIMEOUT (1 секунда)
             with pytest.raises(ValueError):
                 ParallelCityParser(
                     cities=cities,
@@ -498,7 +499,7 @@ class TestMediumIssues:
                     output_dir=str(tmp_path),
                     config=config,
                     max_workers=1,
-                    timeout_per_url=30,  # Меньше MIN_TIMEOUT=60
+                    timeout_per_url=0,  # Меньше MIN_TIMEOUT=1
                 )
 
         def test_timeout_per_url_used_in_parse(self, tmp_path):

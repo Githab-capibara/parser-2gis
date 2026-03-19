@@ -184,10 +184,14 @@ class DataValidator:
                 return ValidationResult(
                     False,
                     None,
-                    [f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"],
+                    [
+                        f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"
+                    ],
                 )
 
-            return ValidationResult(True, self._add_extension(self._format_phone(cleaned), extension), [])
+            return ValidationResult(
+                True, self._add_extension(self._format_phone(cleaned), extension), []
+            )
 
         # Обработка международных номеров
         if cleaned.startswith("+"):
@@ -205,7 +209,9 @@ class DataValidator:
                     ],
                 )
 
-            return ValidationResult(True, self._add_extension(f"+{international_digits}", extension), [])
+            return ValidationResult(
+                True, self._add_extension(f"+{international_digits}", extension), []
+            )
 
         # Номер без префикса - пробуем определить
         if len(digits_only) == 11:
@@ -222,8 +228,14 @@ class DataValidator:
                 [],
             )
 
-        if self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(digits_only) <= self.INTERNATIONAL_PHONE_MAX_LENGTH:
-            return ValidationResult(True, self._add_extension(f"+{digits_only}", extension), [])
+        if (
+            self.INTERNATIONAL_PHONE_MIN_LENGTH
+            <= len(digits_only)
+            <= self.INTERNATIONAL_PHONE_MAX_LENGTH
+        ):
+            return ValidationResult(
+                True, self._add_extension(f"+{digits_only}", extension), []
+            )
 
         return ValidationResult(
             False,
@@ -289,7 +301,9 @@ class DataValidator:
 
         # Проверка максимальной длины (RFC 5321)
         if len(email) > 254:
-            return ValidationResult(False, None, ["Email превышает максимальную длину (254 символа)"])
+            return ValidationResult(
+                False, None, ["Email превышает максимальную длину (254 символа)"]
+            )
 
         # Проверка наличия @ - быстрая предварительная проверка
         if "@" not in email:
@@ -303,7 +317,9 @@ class DataValidator:
         if check_mx:
             mx_valid = self._check_mx_records(email)
             if not mx_valid:
-                return ValidationResult(False, None, ["Домен email не имеет MX записей"])
+                return ValidationResult(
+                    False, None, ["Домен email не имеет MX записей"]
+                )
 
         return ValidationResult(True, email, [])
 
@@ -379,7 +395,10 @@ class DataValidator:
 
             # Проверяем что схема именно http или https
             if parsed.scheme not in ("http", "https"):
-                error_msg = f"Неподдерживаемая схема URL: {parsed.scheme} " "(требуется http или https)"
+                error_msg = (
+                    f"Неподдерживаемая схема URL: {parsed.scheme} "
+                    "(требуется http или https)"
+                )
                 return ValidationResult(False, None, [error_msg])
 
             return ValidationResult(True, url, [])

@@ -134,10 +134,7 @@ def _cleanup_expired_cache() -> int:
     """
     cleaned = 0
     with _http_cache_lock:
-        expired_keys = [
-            key for key, entry in _http_cache.items()
-            if entry.is_expired()
-        ]
+        expired_keys = [key for key, entry in _http_cache.items() if entry.is_expired()]
         for key in expired_keys:
             del _http_cache[key]
             cleaned += 1
@@ -150,11 +147,7 @@ def _cleanup_expired_cache() -> int:
 
 @sleep_and_retry
 @limits(calls=EXTERNAL_RATE_LIMIT_CALLS, period=EXTERNAL_RATE_LIMIT_PERIOD)
-def _rate_limited_request(
-    method: str,
-    url: str,
-    **kwargs
-) -> requests.Response:
+def _rate_limited_request(method: str, url: str, **kwargs) -> requests.Response:
     """Выполняет HTTP запрос с rate limiting для внешних запросов к 2GIS.
 
     - Применяет @sleep_and_retry декоратор ко всем внешним запросам
@@ -188,7 +181,7 @@ def _safe_external_request(
     verify_ssl: bool = True,
     timeout: int = 60,
     use_cache: bool = True,
-    **kwargs
+    **kwargs,
 ) -> requests.Response:
     """Безопасный внешний HTTP запрос с rate limiting, валидацией SSL и кэшированием.
 
@@ -215,8 +208,8 @@ def _safe_external_request(
         200
     """
     # Устанавливаем параметры по умолчанию
-    kwargs.setdefault('verify', verify_ssl)
-    kwargs.setdefault('timeout', timeout)
+    kwargs.setdefault("verify", verify_ssl)
+    kwargs.setdefault("timeout", timeout)
 
     # Проверяем кэш если включено
     if use_cache:
@@ -239,13 +232,13 @@ def _safe_external_request(
             # Ограничиваем размер кэша (LRU eviction)
             if len(_http_cache) >= HTTP_CACHE_MAXSIZE:
                 # Удаляем oldest 10% записей
-                keys_to_remove = list(_http_cache.keys())[:HTTP_CACHE_MAXSIZE // 10]
+                keys_to_remove = list(_http_cache.keys())[: HTTP_CACHE_MAXSIZE // 10]
                 for key in keys_to_remove:
                     del _http_cache[key]
                 logger.debug(
                     "Достигнут лимит кэша HTTP (%d записей), удалено %d старых записей",
                     len(_http_cache),
-                    len(keys_to_remove)
+                    len(keys_to_remove),
                 )
 
         # Периодическая очистка истёкших записей (каждый 10-й запрос)
@@ -433,72 +426,95 @@ def _validate_js_code(
 
     # Проверяем на попытки обхода через unicode кодировку
     # \u0065\u0076\u0061\u006C = eval
-    if re.search(r'\\u00[0-9a-fA-F]{2}', code, re.IGNORECASE):
+    if re.search(r"\\u00[0-9a-fA-F]{2}", code, re.IGNORECASE):
         return False, "Обнаружена попытка обхода через Unicode кодировку"
 
     # Проверяем на расширенную Unicode кодировку (\u{...})
-    if re.search(r'\\u\{[0-9a-fA-F]+\}', code, re.IGNORECASE):
+    if re.search(r"\\u\{[0-9a-fA-F]+\}", code, re.IGNORECASE):
         return False, "Обнаружена попытка обхода через расширенную Unicode кодировку"
 
     # Проверяем на HTML entity кодировку
-    if re.search(r'&#x[0-9a-fA-F]+;|&#\d+;', code, re.IGNORECASE):
+    if re.search(r"&#x[0-9a-fA-F]+;|&#\d+;", code, re.IGNORECASE):
         return False, "Обнаружена попытка обхода через HTML entity кодировку"
 
     # Проверяем на octal кодировку (\042, \050 и т.д.)
-    if re.search(r'\\0[0-7]{2,3}', code):
+    if re.search(r"\\0[0-7]{2,3}", code):
         return False, "Обнаружена попытка обхода через Octal кодировку"
 
     # Проверяем на hex кодировку (\x41, \x42 и т.д.)
-    if re.search(r'\\x[0-9a-fA-F]{2}', code, re.IGNORECASE):
+    if re.search(r"\\x[0-9a-fA-F]{2}", code, re.IGNORECASE):
         return False, "Обнаружена попытка обхода через Hex кодировку"
 
     # Проверяем на base64 кодировку (может скрывать опасный код)
     # atob() - декодирование base64
-    if re.search(r'\batob\s*\(\s*[^)]+\)', code, re.IGNORECASE):
+    if re.search(r"\batob\s*\(\s*[^)]+\)", code, re.IGNORECASE):
         return False, "Функция atob() запрещена (может скрывать опасный код)"
 
     # btoa() - кодирование в base64
-    if re.search(r'\bbtoa\s*\(\s*[^)]+\)', code, re.IGNORECASE):
+    if re.search(r"\bbtoa\s*\(\s*[^)]+\)", code, re.IGNORECASE):
         return False, "Функция btoa() запрещена (может скрывать опасный код)"
 
     # Проверка на Buffer.from с base64
-    if re.search(r'Buffer\s*\.\s*from\s*\([^,]+,\s*["\']base64["\']', code, re.IGNORECASE):
+    if re.search(
+        r'Buffer\s*\.\s*from\s*\([^,]+,\s*["\']base64["\']', code, re.IGNORECASE
+    ):
         return False, "Buffer.from с base64 запрещён (может скрывать опасный код)"
 
     # Проверяем на String.fromCharCode (может использоваться для обхода)
-    if re.search(r'String\s*\.\s*fromCharCode\s*\(', code, re.IGNORECASE):
+    if re.search(r"String\s*\.\s*fromCharCode\s*\(", code, re.IGNORECASE):
         return False, "String.fromCharCode() запрещён (может использоваться для обхода)"
 
     # Проверяем на String.fromCodePoint (аналог fromCharCode)
-    if re.search(r'String\s*\.\s*fromCodePoint\s*\(', code, re.IGNORECASE):
-        return False, "String.fromCodePoint() запрещён (может использоваться для обхода)"
+    if re.search(r"String\s*\.\s*fromCodePoint\s*\(", code, re.IGNORECASE):
+        return (
+            False,
+            "String.fromCodePoint() запрещён (может использоваться для обхода)",
+        )
 
     # Проверяем на Character.fromCharCode
-    if re.search(r'Character\s*\.\s*fromCharCode\s*\(', code, re.IGNORECASE):
-        return False, "Character.fromCharCode() запрещён (может использоваться для обхода)"
+    if re.search(r"Character\s*\.\s*fromCharCode\s*\(", code, re.IGNORECASE):
+        return (
+            False,
+            "Character.fromCharCode() запрещён (может использоваться для обхода)",
+        )
 
     # Проверяем на конкатенацию строк для обхода фильтров
     # Обнаруживаем подозрительные комбинации типа "ev" + "al"
-    if '+' in code and ('"' in code or "'" in code):
+    if "+" in code and ('"' in code or "'" in code):
         # Проверяем потенциально опасные комбинации
         dangerous_concat = [
-            'eval', 'function', 'settimeout', 'setinterval',
-            'fromcharcode', 'newfunction', 'document', 'window',
-            'prototype', 'constructor', '__proto__'
+            "eval",
+            "function",
+            "settimeout",
+            "setinterval",
+            "fromcharcode",
+            "newfunction",
+            "document",
+            "window",
+            "prototype",
+            "constructor",
+            "__proto__",
         ]
         # Удаляем все не-буквенные символы для проверки
-        code_letters_only = ''.join(c for c in code.lower() if c.isalpha())
+        code_letters_only = "".join(c for c in code.lower() if c.isalpha())
         for dangerous in dangerous_concat:
             # Проверяем есть ли опасное слово в коде (даже в разбитой форме)
             if dangerous in code_letters_only:
-                return False, f"Обнаружена подозрительная конкатенация строк с {dangerous}"
+                return (
+                    False,
+                    f"Обнаружена подозрительная конкатенация строк с {dangerous}",
+                )
 
     # Дополнительная проверка на конкатенацию с array join
     if re.search(r'\[\s*["\'][^"\']*["\']\s*\]\s*\.\s*join\s*\(', code, re.IGNORECASE):
         return False, "Обнаружена подозрительная конкатенация через array.join()"
 
     # Проверка на split('').reverse().join() - техника обфускации
-    if re.search(r'split\s*\(\s*["\']["\']\s*\)\s*\.reverse\s*\(\)\s*\.join\s*\(', code, re.IGNORECASE):
+    if re.search(
+        r'split\s*\(\s*["\']["\']\s*\)\s*\.reverse\s*\(\)\s*\.join\s*\(',
+        code,
+        re.IGNORECASE,
+    ):
         return False, "Обнаружена обфускация через split().reverse().join()"
 
     # Проверка на опасные паттерны с использованием скомпилированных regex
@@ -507,36 +523,46 @@ def _validate_js_code(
             return False, f"Обнаружен опасный паттерн в JavaScript коде: {description}"
 
     # Проверяем на попытки использования setTimeout/setInterval с функцией
-    if re.search(r'setTimeout\s*\(\s*function\s*\(', code, re.IGNORECASE):
+    if re.search(r"setTimeout\s*\(\s*function\s*\(", code, re.IGNORECASE):
         # Это допустимо, но логируем для аудита
         logger.debug("Обнаружен setTimeout с function - допустимо")
 
     # Проверяем на new Function()
-    if re.search(r'new\s+Function\s*\(', code, re.IGNORECASE):
+    if re.search(r"new\s+Function\s*\(", code, re.IGNORECASE):
         return False, "Конструктор 'new Function()' запрещён"
 
     # Проверяем на присваивание eval переменной (попытка обхода)
-    if re.search(r'\b\s*\w+\s*=\s*eval\s*;', code):
+    if re.search(r"\b\s*\w+\s*=\s*eval\s*;", code):
         return False, "Присваивание eval переменной запрещено (попытка обхода)"
 
     # Проверка на обфускацию через множественные escape-последовательности
     # Подсчитываем количество escape-последовательностей
-    escape_count = len(re.findall(r'\\[uUxX0-9]', code))
+    escape_count = len(re.findall(r"\\[uUxX0-9]", code))
     max_escape_ratio = 0.3  # Максимальное соотношение escape-последовательностей
     if len(code) > 100 and escape_count / len(code) > max_escape_ratio:
-        return False, "Обнаружена подозрительная обфускация кода (множественные escape-последовательности)"
+        return (
+            False,
+            "Обнаружена подозрительная обфускация кода (множественные escape-последовательности)",
+        )
 
     # Проверка на чрезмерное использование специальных символов (признак обфускации)
     special_chars = re.findall(r'[^a-zA-Z0-9\s_$.(){}[\],;:\'"`=+\-*/<>!&|]', code)
     if len(code) > 100 and len(special_chars) / len(code) > 0.7:
-        return False, "Обнаружена подозрительная обфускация кода (чрезмерное использование специальных символов)"
+        return (
+            False,
+            "Обнаружена подозрительная обфускация кода (чрезмерное использование специальных символов)",
+        )
 
     # Проверка на подозрительные переменные с именами типа _0x1234 (обфускация)
-    if re.search(r'var\s+_[0-9a-fA-F]{4,}\s*=', code) or re.search(r'let\s+_[0-9a-fA-F]{4,}\s*=', code):
+    if re.search(r"var\s+_[0-9a-fA-F]{4,}\s*=", code) or re.search(
+        r"let\s+_[0-9a-fA-F]{4,}\s*=", code
+    ):
         return False, "Обнаружена обфускация кода (подозрительные имена переменных)"
 
     # Проверка на self-executing функции с обфускацией
-    if re.search(r'\(function\s*\([^)]*\)\s*\{[^}]*\}\s*\)\.call\s*\(', code, re.IGNORECASE):
+    if re.search(
+        r"\(function\s*\([^)]*\)\s*\{[^}]*\}\s*\)\.call\s*\(", code, re.IGNORECASE
+    ):
         logger.debug("Обнаружена self-executing функция с .call() - допустимо")
 
     # Проверка на Array.from с подозрительными аргументами
@@ -811,7 +837,7 @@ class ChromeRemote:
                     if self._dev_url:
                         # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
                         _safe_external_request(
-                            'put',
+                            "put",
                             "%s/json/close/%s" % (self._dev_url, self._chrome_tab.id),
                             timeout=5,
                             verify=True,  # Явная валидация SSL сертификатов
@@ -922,8 +948,9 @@ class ChromeRemote:
             self._setup_tab()
             self._init_tab_monitor()
 
-        except Exception:
+        except Exception as e:
             # При любой ошибке закрываем браузер для предотвращения утечки ресурсов
+            logger.error("Ошибка запуска Chrome: %s", e)
             if self._chrome_browser:
                 logger.warning("Закрытие браузера из-за ошибки при запуске")
                 self._chrome_browser.close()
@@ -993,7 +1020,7 @@ class ChromeRemote:
                 # requests.put не принимает параметр json=True, используем данные запроса
                 # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
                 resp = _safe_external_request(
-                    'put',
+                    "put",
                     "%s/json/new" % (self._dev_url),
                     json={},  # Пустой JSON для создания вкладки
                     timeout=60,  # Увеличенный timeout для стабильности
@@ -1025,7 +1052,7 @@ class ChromeRemote:
             tab.stop()
         # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
         _safe_external_request(
-            'put',
+            "put",
             "%s/json/close/%s" % (self._dev_url, tab.id),
             verify=True,  # Явная валидация SSL сертификатов
         )
@@ -1182,7 +1209,7 @@ class ChromeRemote:
             if self._chrome_tab is None:
                 return
 
-            last_check_time = 0
+            last_check_time: float = 0.0
 
             while not self._chrome_tab._stopped.is_set():
                 current_time = time.time()
@@ -1192,7 +1219,7 @@ class ChromeRemote:
                     try:
                         # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
                         ret = _safe_external_request(
-                            'get',
+                            "get",
                             "%s/json" % self._dev_url,
                             timeout=3,
                             verify=True,  # Явная валидация SSL сертификатов
@@ -1227,10 +1254,12 @@ class ChromeRemote:
         def wrapped_send(*args, **kwargs) -> Any:
             try:
                 return original_send(*args, **kwargs)
-            except pychrome.UserAbortException:
+            except pychrome.UserAbortException as e:
                 if tab_detached.is_set():
+                    logger.debug("Вкладка была остановлена: %s", e)
                     raise pychrome.RuntimeException("Вкладка была остановлена")
                 else:
+                    logger.debug("UserAbortException при отправке: %s", e)
                     raise
 
         self._chrome_tab._send = wrapped_send
@@ -1740,7 +1769,9 @@ class ChromeRemote:
                 self.clear_requests()
                 logger.debug("Очередь запросов очищена")
             except Exception as clear_requests_error:
-                logger.warning("Ошибка при очистке очереди запросов: %s", clear_requests_error)
+                logger.warning(
+                    "Ошибка при очистке очереди запросов: %s", clear_requests_error
+                )
 
             # Обнуляем очереди ответов
             self._response_queues = {}

@@ -14,8 +14,13 @@ from pathlib import Path
 import pytest
 
 from parser_2gis.config import Configuration
-from parser_2gis.writer import (CSVWriter, JSONWriter, XLSXWriter,
-                                WriterOptions, get_writer)
+from parser_2gis.writer import (
+    CSVWriter,
+    JSONWriter,
+    XLSXWriter,
+    WriterOptions,
+    get_writer,
+)
 from parser_2gis.chrome import ChromeOptions
 from parser_2gis.logger import LogOptions
 from parser_2gis.parser import ParserOptions
@@ -58,14 +63,14 @@ class TestConfigWithWriter:
         """Проверка опций writer в конфигурации."""
         config = Configuration()
         assert config.writer is not None
-        assert config.writer.encoding == 'utf-8-sig'
+        assert config.writer.encoding == "utf-8-sig"
 
     def test_config_custom_writer_options(self):
         """Проверка кастомных опций writer."""
         config = Configuration()
-        config.writer.encoding = 'utf-8'
+        config.writer.encoding = "utf-8"
         config.writer.verbose = False
-        assert config.writer.encoding == 'utf-8'
+        assert config.writer.encoding == "utf-8"
         assert config.writer.verbose is False
 
     def test_config_writer_csv_options(self):
@@ -76,11 +81,11 @@ class TestConfigWithWriter:
 
     def test_get_writer_with_config(self):
         """Проверка получения writer с конфигурацией."""
-        with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
             try:
                 config = Configuration()
                 # get_writer требует file_path, file_format и writer_options
-                writer = get_writer(f.name, 'csv', config.writer)
+                writer = get_writer(f.name, "csv", config.writer)
                 assert isinstance(writer, CSVWriter)
             finally:
                 if os.path.exists(f.name):
@@ -114,13 +119,13 @@ class TestConfigWithLogger:
         """Проверка опций логгера в конфигурации."""
         config = Configuration()
         assert config.log is not None
-        assert config.log.level == 'DEBUG'
+        assert config.log.level == "DEBUG"
 
     def test_config_custom_log_options(self):
         """Проверка кастомных опций логгера."""
         config = Configuration()
-        config.log.level = 'INFO'
-        assert config.log.level == 'INFO'
+        config.log.level = "INFO"
+        assert config.log.level == "INFO"
 
 
 class TestFullIntegration:
@@ -150,22 +155,22 @@ class TestFullIntegration:
         config2 = Configuration()
         # Явно устанавливаем поля, чтобы они попали в model_fields_set
         config2.parser = ParserOptions(max_records=100)
-        config2.writer = WriterOptions(encoding='utf-8')
+        config2.writer = WriterOptions(encoding="utf-8")
         config2.chrome = ChromeOptions(headless=True)
-        config2.log = LogOptions(level='INFO')
+        config2.log = LogOptions(level="INFO")
 
         config1.merge_with(config2)
 
         # Проверяем, что значение изменилось на 100
         assert config1.parser.max_records == 100
-        assert config1.writer.encoding == 'utf-8'
+        assert config1.writer.encoding == "utf-8"
         assert config1.chrome.headless is True
-        assert config1.log.level == 'INFO'
+        assert config1.log.level == "INFO"
 
     def test_config_save_load_roundtrip(self):
         """Проверка сохранения и загрузки конфигурации."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = Path(tmpdir) / 'test.config'
+            config_path = Path(tmpdir) / "test.config"
 
             # Создаём и настраиваем конфигурацию
             config1 = Configuration(path=config_path)
@@ -188,7 +193,7 @@ class TestWriterFormats:
 
     def test_csv_writer_creation(self):
         """Проверка создания CSV writer."""
-        with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
             try:
                 config = Configuration()
                 writer = CSVWriter(f.name, config.writer)
@@ -200,7 +205,7 @@ class TestWriterFormats:
 
     def test_json_writer_creation(self):
         """Проверка создания JSON writer."""
-        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             try:
                 config = Configuration()
                 writer = JSONWriter(f.name, config.writer)
@@ -212,7 +217,7 @@ class TestWriterFormats:
 
     def test_xlsx_writer_creation(self):
         """Проверка создания XLSX writer."""
-        with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
             try:
                 config = Configuration()
                 writer = XLSXWriter(f.name, config.writer)
@@ -239,10 +244,10 @@ class TestParserOptionsIntegration:
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError):
-            Configuration(parser={'max_records': 0})
+            Configuration(parser={"max_records": 0})
 
         with pytest.raises(ValidationError):
-            Configuration(parser={'delay_between_clicks': -1})
+            Configuration(parser={"delay_between_clicks": -1})
 
 
 class TestWriterOptionsIntegration:
@@ -251,7 +256,7 @@ class TestWriterOptionsIntegration:
     def test_writer_options_default_values(self):
         """Проверка значений по умолчанию."""
         config = Configuration()
-        assert config.writer.encoding == 'utf-8-sig'
+        assert config.writer.encoding == "utf-8-sig"
         assert config.writer.verbose is True
         assert config.writer.csv.add_rubrics is True
 
@@ -260,10 +265,10 @@ class TestWriterOptionsIntegration:
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError):
-            Configuration(writer={'encoding': 'invalid-encoding'})
+            Configuration(writer={"encoding": "invalid-encoding"})
 
         with pytest.raises(ValidationError):
-            Configuration(writer={'csv': {'columns_per_entity': 0}})
+            Configuration(writer={"csv": {"columns_per_entity": 0}})
 
 
 class TestChromeOptionsIntegration:
@@ -282,4 +287,4 @@ class TestChromeOptionsIntegration:
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError):
-            Configuration(chrome={'memory_limit': 0})
+            Configuration(chrome={"memory_limit": 0})

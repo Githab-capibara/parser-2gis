@@ -129,9 +129,10 @@ class TestPEP8Compliance:
                     if "E302" in line:
                         violations.append(f"{py_file}: {line}")
 
-        assert len(violations) == 0, (
-            f"Обнаружены нарушения E302 (2 пустые строки):\n"
-            + "\n".join(violations[:10])
+        assert (
+            len(violations) == 0
+        ), f"Обнаружены нарушения E302 (2 пустые строки):\n" + "\n".join(
+            violations[:10]
         )
 
     def test_no_e305_violations(self) -> None:
@@ -195,9 +196,10 @@ class TestPEP8Compliance:
                     if "W293" in line:
                         violations.append(f"{py_file}: {line}")
 
-        assert len(violations) == 0, (
-            f"Обнаружены нарушения W293 (whitespace в пустых строках):\n"
-            + "\n".join(violations[:10])
+        assert (
+            len(violations) == 0
+        ), f"Обнаружены нарушения W293 (whitespace в пустых строках):\n" + "\n".join(
+            violations[:10]
         )
 
 
@@ -233,9 +235,10 @@ class TestPEP8ComplianceSpecificFiles:
             if any(code in line for code in ["E302", "E305", "W293"]):
                 relevant_violations.append(line)
 
-        assert len(relevant_violations) == 0, (
-            f"Обнаружены нарушения PEP 8 в {file_path}:\n"
-            + "\n".join(relevant_violations)
+        assert (
+            len(relevant_violations) == 0
+        ), f"Обнаружены нарушения PEP 8 в {file_path}:\n" + "\n".join(
+            relevant_violations
         )
 
 

@@ -21,22 +21,22 @@ class TestErrorLogging:
     def test_error_logging_with_context(self, caplog):
         """
         Тест 7.1: Проверка логирования ошибок.
-        
+
         Вызывает функцию с ошибкой.
         Проверяет что logger.error вызван с контекстом.
         """
         from parser_2gis.logger import logger
-        
+
         # Устанавливаем уровень логирования для тестов
         logger.setLevel(logging.ERROR)
-        
+
         # Логируем ошибку с контекстом
         error_detail = "Тестовая ошибка"
         file_name = "test_file.py"
         operation = "тестовая операция"
-        
+
         logger.error("Ошибка при %s в файле %s: %s", operation, file_name, error_detail)
-        
+
         # Проверяем что сообщение содержит контекст
         assert "Ошибка при" in caplog.text
         assert operation in caplog.text
@@ -48,16 +48,16 @@ class TestErrorLogging:
         Проверка что signal_handler логирует ошибки с деталями.
         """
         from parser_2gis.signal_handler import SignalHandler
-        
+
         handler = SignalHandler()
         handler.setup()
-        
+
         # Симулируем ошибку при восстановлении обработчика
-        with patch('parser_2gis.signal_handler.signal.signal') as mock_signal:
+        with patch("parser_2gis.signal_handler.signal.signal") as mock_signal:
             mock_signal.side_effect = RuntimeError("Test restore error")
-            
+
             handler.cleanup()
-        
+
         # Проверяем что ошибка была залогирована с деталями
         assert "Ошибка при восстановлении обработчика сигнала" in caplog.text
         assert "RuntimeError" in caplog.text or "Test restore error" in caplog.text
@@ -67,20 +67,24 @@ class TestErrorLogging:
         Проверка что parallel_parser логирует ошибки merge.
         """
         from parser_2gis.parallel_helpers import FileMerger
-        
+
         # Создаем FileMerger
         merger = FileMerger(output_dir=tmp_path)
-        
+
         # Пытаемся объединить несуществующие файлы
         csv_files = [tmp_path / "nonexistent.csv"]
         output_file = str(tmp_path / "output.csv")
-        
+
         # Вызываем с правильным порядком аргументов: output_file, csv_files
         result = merger.merge_csv_files(output_file, csv_files)
-        
+
         # Проверяем что было логирование ошибки
         # Файл не существует, должно быть логирование
-        assert result is False or "Не найдено CSV файлов" in caplog.text or "warning" in caplog.text.lower()
+        assert (
+            result is False
+            or "Не найдено CSV файлов" in caplog.text
+            or "warning" in caplog.text.lower()
+        )
 
 
 class TestLoggingLevels:
@@ -89,16 +93,16 @@ class TestLoggingLevels:
     def test_critical_errors_on_error_level(self, caplog):
         """
         Тест 7.2: Проверка что критичные ошибки на ERROR.
-        
+
         Проверяет что критичные ошибки логируются на уровне ERROR.
         """
         from parser_2gis.logger import logger
-        
+
         logger.setLevel(logging.ERROR)
-        
+
         # Логируем критичную ошибку
         logger.error("Критичная ошибка: не удалось подключиться к браузеру")
-        
+
         # Проверяем уровень
         assert len(caplog.records) == 1
         assert caplog.records[0].levelname == "ERROR"
@@ -107,44 +111,44 @@ class TestLoggingLevels:
     def test_non_critical_on_debug_warning(self, caplog):
         """
         Проверка что некритичные ошибки на DEBUG/WARNING.
-        
+
         Проверяет что некритичные проблемы логируются на соответствующем уровне.
         """
         from parser_2gis.logger import logger
-        
+
         logger.setLevel(logging.DEBUG)
-        
+
         # Логируем предупреждение
         logger.warning("Предупреждение: медленное соединение")
-        
+
         # Логируем debug сообщение
         logger.debug("Debug: детали операции")
-        
+
         # Проверяем уровни
         assert len(caplog.records) == 2
-        
+
         warning_record = caplog.records[0]
         debug_record = caplog.records[1]
-        
+
         assert warning_record.levelname == "WARNING"
         assert debug_record.levelname == "DEBUG"
 
     def test_cleanup_errors_on_warning(self, caplog):
         """
         Проверка что ошибки очистки на WARNING.
-        
+
         Ошибки при очистке ресурсов не критичны и должны быть на WARNING.
         """
         from parser_2gis.logger import logger
-        
+
         logger.setLevel(logging.WARNING)
-        
+
         # Симулируем ошибку очистки
         try:
             raise OSError("Не удалось удалить временный файл")
         except OSError as e:
             logger.warning("Не удалось удалить временный файл: %s", e)
-        
+
         assert len(caplog.records) == 1
         assert caplog.records[0].levelname == "WARNING"
 
@@ -155,23 +159,22 @@ class TestLoggingContext:
     def test_log_messages_contain_variable_names(self, caplog):
         """
         Тест 7.3: Проверка что сообщения содержат имена переменных.
-        
+
         Проверяет что сообщения логирования содержат имена и значения переменных.
         """
         from parser_2gis.logger import logger
-        
+
         logger.setLevel(logging.INFO)
-        
+
         # Логируем с контекстом
         city_name = "Москва"
         category = "Кафе"
         url = "https://2gis.ru/moscow/search/Кафе"
-        
+
         logger.info(
-            "Парсинг города %s, категория %s, URL: %s",
-            city_name, category, url
+            "Парсинг города %s, категория %s, URL: %s", city_name, category, url
         )
-        
+
         # Проверяем что все переменные в сообщении
         assert city_name in caplog.text
         assert category in caplog.text
@@ -182,19 +185,21 @@ class TestLoggingContext:
         Проверка что сообщения содержат детали операции.
         """
         from parser_2gis.logger import logger
-        
+
         logger.setLevel(logging.INFO)
-        
+
         # Логируем с деталями операции
         operation = "объединение файлов"
         files_count = 5
         output_file = "result.csv"
-        
+
         logger.info(
             "Операция: %s, файлов: %d, выходной файл: %s",
-            operation, files_count, output_file
+            operation,
+            files_count,
+            output_file,
         )
-        
+
         # Проверяем детали
         assert operation in caplog.text
         assert str(files_count) in caplog.text
@@ -206,15 +211,15 @@ class TestLoggingContext:
         """
         import traceback
         from parser_2gis.logger import logger
-        
+
         logger.setLevel(logging.ERROR)
-        
+
         # Логируем исключение с traceback
         try:
             raise ValueError("Тестовая ошибка")
         except ValueError:
             logger.error("Ошибка: %s", traceback.format_exc())
-        
+
         # Проверяем что traceback в логе
         assert "ValueError" in caplog.text
         assert "Тестовая ошибка" in caplog.text
@@ -229,7 +234,7 @@ class TestLoggerConfiguration:
         Проверка что логгер имеет обработчики.
         """
         from parser_2gis.logger import logger
-        
+
         # Логгер должен иметь хотя бы один обработчик после setup
         # В тестах может не быть обработчиков, поэтому просто проверяем
         # что логгер существует
@@ -242,18 +247,18 @@ class TestLoggerConfiguration:
         Проверка что уровень логгера настраивается.
         """
         from parser_2gis.logger import logger
-        
+
         # Сохраняем оригинальный уровень
         original_level = logger.level
-        
+
         try:
             # Устанавливаем новый уровень
             logger.setLevel(logging.DEBUG)
             assert logger.level == logging.DEBUG
-            
+
             logger.setLevel(logging.WARNING)
             assert logger.level == logging.WARNING
-            
+
         finally:
             # Восстанавливаем уровень
             logger.setLevel(original_level)

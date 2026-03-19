@@ -25,8 +25,8 @@ class TestParallelParserMock:
 
     def test_parallel_parser_initialization(self) -> None:
         """Тест инициализации ParallelCityParser с валидными параметрами."""
-        from parser_2gis.parallel_parser import ParallelCityParser
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel_parser import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Рестораны"}]
@@ -48,14 +48,14 @@ class TestParallelParserMock:
 
     def test_parallel_parser_invalid_workers(self) -> None:
         """Тест валидации max_workers."""
-        from parser_2gis.parallel_parser import ParallelCityParser
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel_parser import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Рестораны"}]
         config = Configuration()
 
-        with pytest.raises(ValueError, match="max_workers должен быть от"):
+        with pytest.raises(ValueError, match="max_workers должен быть не менее"):
             ParallelCityParser(
                 cities=cities,
                 categories=categories,
@@ -66,26 +66,27 @@ class TestParallelParserMock:
 
     def test_parallel_parser_invalid_timeout(self) -> None:
         """Тест валидации timeout_per_url."""
-        from parser_2gis.parallel_parser import ParallelCityParser
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel_parser import MIN_TIMEOUT, ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Рестораны"}]
         config = Configuration()
 
-        with pytest.raises(ValueError, match="timeout_per_url должен быть от"):
+        # timeout_per_url должен быть не менее MIN_TIMEOUT (1 секунда)
+        with pytest.raises(ValueError, match="timeout_per_url должен быть не менее"):
             ParallelCityParser(
                 cities=cities,
                 categories=categories,
                 output_dir=tempfile.mkdtemp(),
                 config=config,
-                timeout_per_url=10,  # Недопустимое значение (минимум 60)
+                timeout_per_url=0,  # Недопустимое значение (меньше MIN_TIMEOUT)
             )
 
     def test_merge_csv_files_empty_dir(self, tmp_path: Path) -> None:
         """Тест объединения CSV файлов в пустой директории."""
-        from parser_2gis.parallel_parser import ParallelCityParser
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel_parser import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Рестораны"}]
@@ -106,8 +107,9 @@ class TestParallelParserMock:
     def test_merge_csv_files_single_file(self, tmp_path: Path) -> None:
         """Тест объединения одного CSV файла."""
         import csv
-        from parser_2gis.parallel_parser import ParallelCityParser
+
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel_parser import ParallelCityParser
 
         # Создаём тестовый CSV файл с правильным именем (с категорией)
         test_file = tmp_path / "test_Рестораны.csv"
@@ -138,8 +140,9 @@ class TestParallelParserMock:
         """Тест отмены операции объединения через cancel_event."""
         import csv
         import threading
-        from parser_2gis.parallel_parser import ParallelCityParser
+
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel_parser import ParallelCityParser
 
         # Создаём несколько тестовых CSV файлов
         for i in range(3):
@@ -276,8 +279,9 @@ class TestCacheMock:
     @patch("parser_2gis.cache.sqlite3.connect")
     def test_cache_initialization(self, mock_connect: Mock) -> None:
         """Тест инициализации кэша с мокированным SQLite."""
-        from parser_2gis.cache import Cache
         from pathlib import Path
+
+        from parser_2gis.cache import Cache
 
         mock_conn = MagicMock()
         mock_connect.return_value = mock_conn
@@ -290,8 +294,9 @@ class TestCacheMock:
     @patch("parser_2gis.cache.sqlite3.connect")
     def test_cache_set_get(self, mock_connect: Mock) -> None:
         """Тест записи и чтения из кэша."""
-        from parser_2gis.cache import Cache
         from pathlib import Path
+
+        from parser_2gis.cache import Cache
 
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -311,8 +316,9 @@ class TestCacheMock:
     @patch("parser_2gis.cache.sqlite3.connect")
     def test_cache_get_missing_key(self, mock_connect: Mock) -> None:
         """Тест чтения отсутствующего ключа из кэша."""
-        from parser_2gis.cache import Cache
         from pathlib import Path
+
+        from parser_2gis.cache import Cache
 
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -328,8 +334,9 @@ class TestCacheMock:
     @patch("parser_2gis.cache.sqlite3.connect")
     def test_cache_clear(self, mock_connect: Mock) -> None:
         """Тест очистки кэша."""
-        from parser_2gis.cache import Cache
         from pathlib import Path
+
+        from parser_2gis.cache import Cache
 
         mock_conn = MagicMock()
         mock_connect.return_value = mock_conn
@@ -343,8 +350,9 @@ class TestCacheMock:
     @patch("parser_2gis.cache.sqlite3.connect")
     def test_cache_close(self, mock_connect: Mock) -> None:
         """Тест закрытия соединения с кэшем."""
-        from parser_2gis.cache import Cache
         from pathlib import Path
+
+        from parser_2gis.cache import Cache
 
         mock_conn = MagicMock()
         mock_connect.return_value = mock_conn
@@ -379,6 +387,7 @@ class TestHelperFunctions:
         # Освобождаем блокировку
         if lock_handle:
             import fcntl
+
             fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
             lock_handle.close()
 
@@ -460,22 +469,20 @@ class TestEdgeCases:
     def test_merge_with_special_characters(self, tmp_path: Path) -> None:
         """Тест объединения файлов со специальными символами в данных."""
         import csv
-        from parser_2gis.parallel_parser import ParallelCityParser
+
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel_parser import ParallelCityParser
 
         # Создаём файл со специальными символами в правильной директории
         test_file = tmp_path / "test_Категория.csv"
         with open(test_file, "w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(
-                f,
-                fieldnames=["Название", "Описание"],
-                quoting=csv.QUOTE_MINIMAL
+                f, fieldnames=["Название", "Описание"], quoting=csv.QUOTE_MINIMAL
             )
             writer.writeheader()
-            writer.writerow({
-                "Название": 'Тест "с кавычками"',
-                "Описание": "Текст\nс\nпереносами"
-            })
+            writer.writerow(
+                {"Название": 'Тест "с кавычками"', "Описание": "Текст\nс\nпереносами"}
+            )
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Категория"}]
@@ -498,8 +505,9 @@ class TestEdgeCases:
     def test_merge_with_unicode_filenames(self, tmp_path: Path) -> None:
         """Тест объединения файлов с Unicode именами."""
         import csv
-        from parser_2gis.parallel_parser import ParallelCityParser
+
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel_parser import ParallelCityParser
 
         # Создаём файл с Unicode именем
         test_file = tmp_path / "test_Рестораны_Москва.csv"
@@ -529,15 +537,16 @@ class TestEdgeCases:
     def test_atexit_cleanup_registration(self) -> None:
         """Тест регистрации очистки через atexit."""
         import atexit
+
+        # Проверяем что функция очистки зарегистрирована в atexit
+        # Это сложно проверить напрямую, но можем проверить что функции работают
+        from pathlib import Path
+
         from parser_2gis.parallel_parser import (
             _cleanup_all_temp_files,
             _register_temp_file,
             _unregister_temp_file,
         )
-
-        # Проверяем что функция очистки зарегистрирована в atexit
-        # Это сложно проверить напрямую, но можем проверить что функции работают
-        from pathlib import Path
 
         temp_file = Path("/tmp/test_atexit_cleanup.tmp")
         temp_file.touch()

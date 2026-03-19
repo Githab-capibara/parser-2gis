@@ -40,6 +40,7 @@ def _validate_initial_state(data: Any, depth: int = 0) -> bool:
     if isinstance(data, (int, float)):
         # Проверяем на NaN и Infinity
         import math
+
         if isinstance(data, float) and (math.isnan(data) or math.isinf(data)):
             logger.warning("Обнаружено NaN/Infinity в initialState")
             return False
@@ -48,16 +49,23 @@ def _validate_initial_state(data: Any, depth: int = 0) -> bool:
     if isinstance(data, str):
         # Проверяем строку на опасные JS-конструкции
         dangerous_patterns = [
-            '<script', 'javascript:', 'onerror=', 'onload=',
-            'eval(', 'Function(', 'document.cookie', 'localStorage',
-            'sessionStorage', 'XMLHttpRequest', 'fetch('
+            "<script",
+            "javascript:",
+            "onerror=",
+            "onload=",
+            "eval(",
+            "Function(",
+            "document.cookie",
+            "localStorage",
+            "sessionStorage",
+            "XMLHttpRequest",
+            "fetch(",
         ]
         data_lower = data.lower()
         for pattern in dangerous_patterns:
             if pattern.lower() in data_lower:
                 logger.warning(
-                    "Обнаружена опасная конструкция в initialState: %s",
-                    pattern
+                    "Обнаружена опасная конструкция в initialState: %s", pattern
                 )
                 return False
         return True
@@ -80,16 +88,12 @@ def _validate_initial_state(data: Any, depth: int = 0) -> bool:
         return True
 
     # Недопустимый тип
-    logger.warning(
-        "Недопустимый тип данных в initialState: %s",
-        type(data).__name__
-    )
+    logger.warning("Недопустимый тип данных в initialState: %s", type(data).__name__)
     return False
 
 
 def _safe_extract_initial_state(
-    raw_data: Any,
-    required_keys: list[str]
+    raw_data: Any, required_keys: list[str]
 ) -> Optional[Dict[str, Any]]:
     """Безопасно извлекает данные из initialState с валидацией.
 
@@ -190,9 +194,7 @@ class FirmParser(MainParser):
                 return
             # Используем новую функцию валидации вместо ручной проверки
             required_keys = ["data", "entity", "profile"]
-            profile_data = _safe_extract_initial_state(
-                initial_state, required_keys
-            )
+            profile_data = _safe_extract_initial_state(initial_state, required_keys)
 
             if not profile_data:
                 logger.warning("Данные организации не прошли валидацию.")
