@@ -368,7 +368,7 @@ def validate_phone(phone: str) -> ValidationResult:
         ValidationResult с информацией о валидности телефона.
 
     Example:
-        >>> result = validate_phone("+7 (999) 123-45-67")
+        >>> result = validate_phone("+7 (495) 123-45-67")
         >>> print(result.is_valid)
         True
     """

@@ -136,7 +136,10 @@ class DataValidator:
 
         # Извлекаем extension (добавочный номер) перед обработкой
         extension = None
-        ext_patterns = [r"\s*(?:доб\.?\s*|ext\.?\s*)(\d+)", r"\s*-\s*(\d+)$"]
+        # Паттерны должны содержать явное ключевое слово "доб" или "ext"
+        ext_patterns = [
+            r"\s*(?:доб\.?\s*|ext\.?\s*)(\d+)",  # доб. 1234, ext 1234, доб1234
+        ]
         for pattern in ext_patterns:
             ext_match = re.search(pattern, phone, re.IGNORECASE)
             if ext_match:

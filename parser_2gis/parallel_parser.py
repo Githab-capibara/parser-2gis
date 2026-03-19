@@ -72,6 +72,8 @@ class _TempFileTimer:
     - Использование weak references для предотвращения утечек памяти
     - Мониторинг количества временных файлов
     - Автоматическая очистка осиротевших файлов
+    - Добавлена блокировка для защиты общих данных (_lock)
+    - Добавлено событие для координации остановки (_stop_event)
 
     Пример использования:
         >>> cleanup_timer = _TempFileTimer(temp_dir=Path('/tmp'))
@@ -102,6 +104,8 @@ class _TempFileTimer:
         self._orphan_age = orphan_age
         self._timer: Optional[threading.Timer] = None
         self._is_running = False
+        self._stop_event = threading.Event()  # Событие для координации остановки
+        self._lock = threading.Lock()  # Блокировка для защиты общих данных
         self._cleanup_count = 0
         self._weak_ref = weakref.ref(self)
 
@@ -114,7 +118,8 @@ class _TempFileTimer:
 
     def _cleanup_callback(self) -> None:
         """Callback для периодической очистки."""
-        if not self._is_running:
+        # Проверяем флаг остановки через _stop_event
+        if self._stop_event.is_set():
             return
 
         try:
@@ -125,9 +130,16 @@ class _TempFileTimer:
                 cleanup_error,
                 exc_info=True,
             )
+        except BaseException as base_error:
+            # Обработка всех исключений включая KeyboardInterrupt и SystemExit
+            logger.error(
+                "Критическая ошибка в callback очистки: %s",
+                base_error,
+                exc_info=True,
+            )
         finally:
-            # Планируем следующую очистку
-            if self._is_running:
+            # Планируем следующую очистку только если не была установлена остановка
+            if not self._stop_event.is_set():
                 self._schedule_next_cleanup()
 
     def _schedule_next_cleanup(self) -> None:
@@ -197,7 +209,9 @@ class _TempFileTimer:
                     )
 
             if deleted_count > 0:
-                self._cleanup_count += deleted_count
+                # Используем блокировку для защиты общих данных
+                with self._lock:
+                    self._cleanup_count += deleted_count
                 logger.info(
                     "Периодическая очистка: удалено %d временных файлов (всего: %d)",
                     deleted_count,
@@ -216,25 +230,42 @@ class _TempFileTimer:
 
     def start(self) -> None:
         """Запускает таймер периодической очистки."""
-        if self._is_running:
-            logger.warning("Таймер очистки уже запущен")
-            return
+        # Используем блокировку для защиты общих данных
+        with self._lock:
+            if self._is_running:
+                logger.warning("Таймер очистки уже запущен")
+                return
 
-        self._is_running = True
+            self._is_running = True
+            self._stop_event.clear()  # Сбрасываем событие остановки
+
         self._schedule_next_cleanup()
         logger.info("Запущен таймер периодической очистки временных файлов")
 
     def stop(self) -> None:
         """Останавливает таймер периодической очистки."""
-        self._is_running = False
+        # Устанавливаем событие остановки
+        self._stop_event.set()
 
+        # Используем блокировку для защиты общих данных
+        with self._lock:
+            self._is_running = False
+
+            if self._timer is not None:
+                try:
+                    self._timer.cancel()
+                except Exception as cancel_error:
+                    logger.debug("Ошибка при отмене таймера: %s", cancel_error)
+                finally:
+                    self._timer = None
+
+        # Ожидаем завершения таймера с таймаутом
         if self._timer is not None:
             try:
-                self._timer.cancel()
-            except Exception as cancel_error:
-                logger.debug("Ошибка при отмене таймера: %s", cancel_error)
-            finally:
-                self._timer = None
+                # Ждём завершения таймера не более 2 интервалов
+                self._timer.join(timeout=self._interval * 2)
+            except Exception as join_error:
+                logger.debug("Ошибка при ожидании таймера: %s", join_error)
 
         logger.info(
             "Таймер периодической очистки остановлен (всего удалено файлов: %d)",
@@ -504,6 +535,7 @@ def _merge_csv_files(
     fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
     writer = None
     outfile = None
+    infile: Optional[object] = None
 
     try:
         try:
@@ -528,7 +560,7 @@ def _merge_csv_files(
             else:
                 return False, 0, []
 
-        with outfile:
+        try:
             for csv_file in file_paths:
                 if cancel_event is not None and cancel_event.is_set():
                     log("Объединение отменено пользователем", "warning")
@@ -551,6 +583,8 @@ def _merge_csv_files(
                         f"Предупреждение: файл {csv_file.name} не содержит категорию в имени",
                         "warning",
                     )
+
+                infile = None
                 try:
                     infile = open(
                         csv_file,
@@ -595,67 +629,74 @@ def _merge_csv_files(
                     else:
                         continue
 
-                with infile:
-                    try:
-                        reader = csv.DictReader(infile)
+                try:
+                    reader = csv.DictReader(infile)
 
-                        if not reader.fieldnames:
-                            log(
-                                f"Файл {csv_file} пуст или не имеет заголовков",
-                                "warning",
-                            )
-                            continue
+                    if not reader.fieldnames:
+                        log(
+                            f"Файл {csv_file} пуст или не имеет заголовков",
+                            "warning",
+                        )
+                        continue
 
-                        fieldnames_key = tuple(reader.fieldnames)
-                        if fieldnames_key not in fieldnames_cache:
-                            fieldnames = list(reader.fieldnames)
-                            if "Категория" not in fieldnames:
-                                fieldnames.insert(0, "Категория")
-                            fieldnames_cache[fieldnames_key] = fieldnames
-                        else:
-                            fieldnames = fieldnames_cache[fieldnames_key]
+                    fieldnames_key = tuple(reader.fieldnames)
+                    if fieldnames_key not in fieldnames_cache:
+                        fieldnames = list(reader.fieldnames)
+                        if "Категория" not in fieldnames:
+                            fieldnames.insert(0, "Категория")
+                        fieldnames_cache[fieldnames_key] = fieldnames
+                    else:
+                        fieldnames = fieldnames_cache[fieldnames_key]
 
-                        if writer is None:
-                            writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-                            writer.writeheader()
+                    if writer is None:
+                        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+                        writer.writeheader()
 
-                        batch = []
-                        batch_total = 0
+                    batch = []
+                    batch_total = 0
 
-                        for row in reader:
-                            row_with_category = {"Категория": category_name, **row}
-                            batch.append(row_with_category)
+                    for row in reader:
+                        row_with_category = {"Категория": category_name, **row}
+                        batch.append(row_with_category)
 
-                            if len(batch) >= batch_size:
-                                writer.writerows(batch)
-                                batch_total += len(batch)
-                                batch.clear()
-
-                        if batch:
+                        if len(batch) >= batch_size:
                             writer.writerows(batch)
                             batch_total += len(batch)
+                            batch.clear()
 
-                        total_rows += batch_total
-                        log(
-                            f"Файл {csv_file.name} обработан (строк: {batch_total})",
-                            "debug",
-                        )
+                    if batch:
+                        writer.writerows(batch)
+                        batch_total += len(batch)
 
-                    except OSError as csv_error:
-                        error_type = type(csv_error).__name__
-                        log(
-                            f"Ошибка при обработке CSV {csv_file} ({error_type}): {csv_error}",
-                            "error",
-                        )
-                        # Продолжаем со следующим файлом
-                        continue
-                    except csv.Error as csv_parse_error:
-                        # Обработка ошибок парсинга CSV
-                        log(
-                            f"Ошибка парсинга CSV {csv_file}: {csv_parse_error}",
-                            "error",
-                        )
-                        continue
+                    total_rows += batch_total
+                    log(
+                        f"Файл {csv_file.name} обработан (строк: {batch_total})",
+                        "debug",
+                    )
+
+                except OSError as csv_error:
+                    error_type = type(csv_error).__name__
+                    log(
+                        f"Ошибка при обработке CSV {csv_file} ({error_type}): {csv_error}",
+                        "error",
+                    )
+                    # Продолжаем со следующим файлом
+                    continue
+                except csv.Error as csv_parse_error:
+                    # Обработка ошибок парсинга CSV
+                    log(
+                        f"Ошибка парсинга CSV {csv_file}: {csv_parse_error}",
+                        "error",
+                    )
+                    continue
+                finally:
+                    # Гарантированно закрываем infile
+                    if infile is not None:
+                        try:
+                            infile.close()
+                            log(f"Файл {csv_file.name} закрыт", "debug")
+                        except Exception as close_error:
+                            log(f"Ошибка при закрытии файла {csv_file.name}: {close_error}", "debug")
 
                 files_to_delete.append(csv_file)
 
@@ -666,6 +707,22 @@ def _merge_csv_files(
             log(f"Объединение завершено. Всего записей: {total_rows}", "info")
             return True, total_rows, files_to_delete
 
+        finally:
+            # Гарантированная очистка outfile в finally блоке
+            if outfile is not None:
+                try:
+                    if not outfile.closed:
+                        outfile.close()
+                        log("Выходной файл закрыт в finally блоке", "debug")
+                except Exception as close_error:
+                    log(f"Ошибка при закрытии выходного файла в finally: {close_error}", "error")
+
+    except KeyboardInterrupt:
+        # Обработка прерывания пользователем (Ctrl+C)
+        log("Объединение прервано пользователем (KeyboardInterrupt)", "warning")
+        # Гарантированная очистка ресурсов при прерывании
+        return False, 0, files_to_delete
+
     except OSError as e:
         error_type = type(e).__name__
         error_details = str(e)
@@ -673,20 +730,15 @@ def _merge_csv_files(
             f"Критическая ошибка ОС при объединении CSV ({error_type}): {error_details}",
             "error",
         )
+        # Возвращаем files_to_delete для очистки даже при ошибке
+        return False, 0, files_to_delete
 
-        # Попытка очистки ресурсов при ошибке
-        if outfile is not None:
-            try:
-                outfile.close()
-            except Exception as close_error:
-                log(f"Ошибка при закрытии выходного файла: {close_error}", "debug")
-
-        return False, 0, []
     except Exception as e:
         # Обработка всех остальных исключений
         error_type = type(e).__name__
         log(f"Непредвиденная ошибка при объединении CSV ({error_type}): {e}", "error")
-        return False, 0, []
+        # Возвращаем files_to_delete для очистки даже при ошибке
+        return False, 0, files_to_delete
 
 
 def _cleanup_source_files(file_paths: list[Path], log_callback: Optional[Callable[[str, str], None]] = None) -> int:

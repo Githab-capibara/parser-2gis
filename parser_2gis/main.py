@@ -134,6 +134,103 @@ def _validate_positive_int(
     return value
 
 
+def _validate_cli_argument(
+    args: argparse.Namespace,
+    arg_parser: argparse.ArgumentParser,
+    attr_name: str,
+    min_val: int,
+    max_val: int,
+    error_name: str,
+    convert_to_int: bool = False,
+) -> None:
+    """
+    Валидирует CLI аргумент и выводит ошибку при некорректном значении.
+
+    Args:
+        args: Аргументы командной строки.
+        arg_parser: Парсер аргументов для вывода ошибок.
+        attr_name: Имя атрибута для проверки.
+        min_val: Минимально допустимое значение.
+        max_val: Максимально допустимое значение.
+        error_name: Имя аргумента для сообщения об ошибке.
+        convert_to_int: Конвертировать значение в int перед валидацией.
+
+    Примечание:
+        Функция безопасно проверяет наличие атрибута и его значение.
+        При ошибке валидации вызывает arg_parser.error().
+    """
+    if hasattr(args, attr_name) and getattr(args, attr_name) is not None:
+        try:
+            value = getattr(args, attr_name)
+            if convert_to_int:
+                value = int(value)
+            _validate_positive_int(value, min_val, max_val, error_name)
+        except ValueError as e:
+            arg_parser.error(str(e))
+
+
+def _validate_urls(args: argparse.Namespace, arg_parser: argparse.ArgumentParser) -> None:
+    """
+    Валидирует URL из аргументов командной строки.
+
+    Args:
+        args: Аргументы командной строки.
+        arg_parser: Парсер аргументов для вывода ошибок.
+
+    Raises:
+        SystemExit: При обнаружении некорректных URL.
+
+    Примечание:
+        Использует validate_url из validation.py для проверки каждого URL.
+        При ошибке выводит список всех некорректных URL.
+    """
+    if args.url:
+        url_errors = []
+        for url in args.url:
+            result = validate_url(url)
+            if not result.is_valid:
+                url_errors.append(f"{url} ({result.error})")
+
+        if url_errors:
+            arg_parser.error(f"Некорректный формат URL: {'; '.join(url_errors)}.")
+
+
+def _handle_configuration_validation(
+    config_args: dict[str, Any],
+    arg_parser: argparse.ArgumentParser,
+) -> Configuration:
+    """
+    Инициализирует конфигурацию и обрабатывает ошибки валидации.
+
+    Args:
+        config_args: Словарь аргументов для инициализации Configuration.
+        arg_parser: Парсер аргументов для вывода ошибок.
+
+    Returns:
+        Экземпляр Configuration.
+
+    Raises:
+        SystemExit: При ошибке валидации конфигурации.
+
+    Примечание:
+        Формирует понятное сообщение об ошибках валидации.
+        Использует report_from_validation_error для детализации ошибок.
+    """
+    try:
+        return Configuration(**config_args)
+    except pydantic.ValidationError as e:
+        errors = []
+        errors_report = report_from_validation_error(e, config_args)
+        for path, description in errors_report.items():
+            arg = description["invalid_value"]
+            error_msg = description["error_message"]
+            errors.append(f"аргумент --{path} {arg} ({error_msg})")
+
+        arg_parser.error(", ".join(errors))
+        # Недостижимый код, но нужен для type checker
+        raise
+
+
 # Функция _validate_url удалена - используется validate_url из validation.py
 # Это устраняет дублирование кода валидации и обеспечивает единую точку валидации URL
 
@@ -837,160 +934,87 @@ def parse_arguments(
 
     # Валидация числовых CLI аргументов перед инициализацией конфигурации
     # ПРИОРИТЕТ 1: Валидация аргументов парсера
-    if (
-        hasattr(args, "parser.max_retries")
-        and getattr(args, "parser.max_retries") is not None
-    ):
-        try:
-            _validate_positive_int(
-                getattr(args, "parser.max_retries"), 1, 100, "--parser.max-retries"
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if hasattr(args, "parser.timeout") and getattr(args, "parser.timeout") is not None:
-        try:
-            _validate_positive_int(
-                getattr(args, "parser.timeout"), 1, 3600, "--parser.timeout"
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if (
-        hasattr(args, "parser.max_workers")
-        and getattr(args, "parser.max_workers") is not None
-    ):
-        try:
-            _validate_positive_int(
-                getattr(args, "parser.max_workers"), 1, 50, "--parser.max-workers"
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
+    _validate_cli_argument(
+        args, arg_parser, "parser.max_retries", 1, 100, "--parser.max-retries"
+    )
+    _validate_cli_argument(
+        args, arg_parser, "parser.timeout", 1, 3600, "--parser.timeout"
+    )
+    _validate_cli_argument(
+        args, arg_parser, "parser.max_workers", 1, 50, "--parser.max-workers"
+    )
 
     # ПРИОРИТЕТ 2: Валидация аргументов Chrome
-    if (
-        hasattr(args, "chrome.startup_delay")
-        and getattr(args, "chrome.startup_delay") is not None
-    ):
-        try:
-            _validate_positive_int(
-                int(getattr(args, "chrome.startup_delay")),
-                0,
-                60,
-                "--chrome.startup-delay",
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
+    _validate_cli_argument(
+        args,
+        arg_parser,
+        "chrome.startup_delay",
+        0,
+        60,
+        "--chrome.startup-delay",
+        convert_to_int=True,
+    )
 
     # ПРИОРИТЕТ 3: Валидация других числовых аргументов
-    if (
-        hasattr(args, "parser.gc_pages_interval")
-        and getattr(args, "parser.gc_pages_interval") is not None
-    ):
-        try:
-            _validate_positive_int(
-                getattr(args, "parser.gc_pages_interval"),
-                1,
-                1000,
-                "--parser.gc-pages-interval",
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if (
-        hasattr(args, "parser.max_records")
-        and getattr(args, "parser.max_records") is not None
-    ):
-        try:
-            _validate_positive_int(
-                getattr(args, "parser.max_records"), 1, 1000000, "--parser.max-records"
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if (
-        hasattr(args, "parser.max_consecutive_empty_pages")
-        and getattr(args, "parser.max_consecutive_empty_pages") is not None
-    ):
-        try:
-            _validate_positive_int(
-                getattr(args, "parser.max_consecutive_empty_pages"),
-                1,
-                100,
-                "--parser.max-consecutive-empty-pages",
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if (
-        hasattr(args, "parser.delay_between_clicks")
-        and getattr(args, "parser.delay_between_clicks") is not None
-    ):
-        try:
-            _validate_positive_int(
-                getattr(args, "parser.delay_between_clicks"),
-                0,
-                10000,
-                "--parser.delay-between-clicks",
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if (
-        hasattr(args, "parser.retry_delay_base")
-        and getattr(args, "parser.retry_delay_base") is not None
-    ):
-        try:
-            _validate_positive_int(
-                getattr(args, "parser.retry_delay_base"),
-                1,
-                60,
-                "--parser.retry-delay-base",
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if (
-        hasattr(args, "parser.memory_threshold")
-        and getattr(args, "parser.memory_threshold") is not None
-    ):
-        try:
-            _validate_positive_int(
-                getattr(args, "parser.memory_threshold"),
-                256,
-                8192,
-                "--parser.memory-threshold",
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if (
-        hasattr(args, "chrome.memory_limit")
-        and getattr(args, "chrome.memory_limit") is not None
-    ):
-        try:
-            _validate_positive_int(
-                getattr(args, "chrome.memory_limit"),
-                256,
-                16384,
-                "--chrome.memory-limit",
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
-
-    if (
-        hasattr(args, "writer.csv.columns_per_entity")
-        and getattr(args, "writer.csv.columns_per_entity") is not None
-    ):
-        try:
-            _validate_positive_int(
-                getattr(args, "writer.csv.columns_per_entity"),
-                1,
-                20,
-                "--writer.csv.columns-per-entity",
-            )
-        except ValueError as e:
-            arg_parser.error(str(e))
+    _validate_cli_argument(
+        args,
+        arg_parser,
+        "parser.gc_pages_interval",
+        1,
+        1000,
+        "--parser.gc-pages-interval",
+    )
+    _validate_cli_argument(
+        args, arg_parser, "parser.max_records", 1, 1000000, "--parser.max-records"
+    )
+    _validate_cli_argument(
+        args,
+        arg_parser,
+        "parser.max_consecutive_empty_pages",
+        1,
+        100,
+        "--parser.max-consecutive-empty-pages",
+    )
+    _validate_cli_argument(
+        args,
+        arg_parser,
+        "parser.delay_between_clicks",
+        0,
+        10000,
+        "--parser.delay-between-clicks",
+    )
+    _validate_cli_argument(
+        args,
+        arg_parser,
+        "parser.retry_delay_base",
+        1,
+        60,
+        "--parser.retry-delay-base",
+    )
+    _validate_cli_argument(
+        args,
+        arg_parser,
+        "parser.memory_threshold",
+        256,
+        8192,
+        "--parser.memory-threshold",
+    )
+    _validate_cli_argument(
+        args,
+        arg_parser,
+        "chrome.memory_limit",
+        256,
+        16384,
+        "--chrome.memory-limit",
+    )
+    _validate_cli_argument(
+        args,
+        arg_parser,
+        "writer.csv.columns_per_entity",
+        1,
+        20,
+        "--writer.csv.columns-per-entity",
+    )
 
     # Пропускаем валидацию URL для TUI режимов - там выбор происходит в интерфейсе
     is_tui_mode = getattr(args, "tui_new", False) or getattr(
@@ -1012,31 +1036,10 @@ def parse_arguments(
             arg_parser.error("--categories-mode требует указания --cities")
 
     # Валидация URL если они указаны
-    if args.url:
-        invalid_urls = []
-        url_errors = []
-        for url in args.url:
-            # Используем validate_url из validation.py вместо локальной функции
-            result = validate_url(url)
-            if not result.is_valid:
-                invalid_urls.append(url)
-                url_errors.append(f"{url} ({result.error})")
+    _validate_urls(args, arg_parser)
 
-        if invalid_urls:
-            arg_parser.error(f"Некорректный формат URL: {'; '.join(url_errors)}.")
-
-    try:
-        # Инициализируем конфигурацию аргументами командной строки
-        config = Configuration(**config_args)
-    except pydantic.ValidationError as e:
-        errors = []
-        errors_report = report_from_validation_error(e, config_args)
-        for path, description in errors_report.items():
-            arg = description["invalid_value"]
-            error_msg = description["error_message"]
-            errors.append(f"аргумент --{path} {arg} ({error_msg})")
-
-        arg_parser.error(", ".join(errors))
+    # Инициализируем конфигурацию аргументами командной строки
+    config = _handle_configuration_validation(config_args, arg_parser)
 
     return args, config
 
@@ -1170,11 +1173,11 @@ def main() -> None:
                 "Параллельный парсинг с TUI через CLI временно недоступен. "
                 "Используйте --tui-new-omsk для запуска с预设 настройками."
             )
-            
+
             # Вычисляем длительность
             duration = time.time() - start_time
             duration_str = f"{duration:.2f} сек."
-            
+
             logger.info("Параллельный парсинг завершён!")
             logger.info("Результаты сохранены в папку: %s", output_dir.absolute())
             log_parser_finish(

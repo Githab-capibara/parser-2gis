@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import mmap
 import os
 import re
 import shutil
 import unicodedata
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from pydantic import ValidationError
 
@@ -56,6 +57,154 @@ LARGE_FILE_BUFFER_MULTIPLIER = 4
 
 # Максимальный размер буфера (1 MB)
 MAX_BUFFER_SIZE = 1048576
+
+# Порог размера файла для использования mmap (10 MB)
+# Файлы больше этого размера будут читаться через mmap для оптимизации памяти
+MMAP_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def _should_use_mmap(file_size_bytes: int) -> bool:
+    """
+    Определяет, следует ли использовать mmap для чтения файла.
+
+    Args:
+        file_size_bytes: Размер файла в байтах.
+
+    Returns:
+        True если размер файла превышает порог MMAP_THRESHOLD_BYTES.
+
+    Примечание:
+        mmap эффективен для больших файлов (>10MB) так как:
+        - Не загружает весь файл в память
+        - Использует виртуальную память ОС
+        - Уменьшает накладные расходы на ввод-вывод
+    """
+    return file_size_bytes > MMAP_THRESHOLD_BYTES
+
+
+def _open_file_with_mmap_support(
+    file_path: str,
+    mode: str = "r",
+    encoding: Optional[str] = None,
+) -> Tuple[Union[mmap.mmap, object], bool]:
+    """
+    Открывает файл с использованием mmap для больших файлов или обычной буферизации.
+
+    Args:
+        file_path: Путь к файлу.
+        mode: Режим открытия файла ('r' для чтения, 'w' для записи).
+        encoding: Кодировка файла (только для текстового режима).
+
+    Returns:
+        Кортеж (file_object, is_mmap):
+        - file_object: объект файла или mmap
+        - is_mmap: True если используется mmap
+
+    Raises:
+        OSError: При ошибке получения размера файла или открытия mmap.
+        ValueError: При некорректных параметрах.
+
+    Примечание:
+        - Для файлов >10MB используется mmap.mmap()
+        - Для файлов <=10MB используется обычная буферизация
+        - Детальное логирование выбора метода чтения
+    """
+    try:
+        # Получаем размер файла
+        file_size = os.path.getsize(file_path)
+    except OSError as size_error:
+        logger.warning(
+            "Не удалось получить размер файла %s: %s. Используется обычная буферизация.",
+            file_path,
+            size_error,
+        )
+        # При ошибке получения размера используем обычную буферизацию
+        file_obj = open(file_path, mode, encoding=encoding)
+        return file_obj, False
+
+    # Определяем метод чтения на основе размера файла
+    use_mmap = _should_use_mmap(file_size) and mode == "r"
+
+    if use_mmap:
+        try:
+            logger.info(
+                "Файл большой (%.2f MB > 10 MB), используется mmap для чтения",
+                file_size / (1024 * 1024),
+            )
+            # Открываем файл в бинарном режиме для mmap
+            fp = open(file_path, "rb")
+            # Создаём mmap объект
+            mmapped_file = mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_READ)
+            # Оборачиваем в TextIOWrapper для текстового чтения
+            import io
+            text_file = io.TextIOWrapper(
+                mmapped_file,
+                encoding=encoding or "utf-8",
+                errors="replace",
+            )
+            return text_file, True
+        except OSError as mmap_error:
+            logger.warning(
+                "Не удалось открыть mmap для файла %s: %s. Используется обычная буферизация.",
+                file_path,
+                mmap_error,
+            )
+            # Fallback на обычную буферизацию
+            file_obj = open(file_path, mode, encoding=encoding)
+            return file_obj, False
+        except Exception as unexpected_error:
+            logger.error(
+                "Непредвиденная ошибка при открытии mmap для файла %s: %s. "
+                "Используется обычная буферизация.",
+                file_path,
+                unexpected_error,
+            )
+            # Fallback на обычную буферизацию
+            file_obj = open(file_path, mode, encoding=encoding)
+            return file_obj, False
+    else:
+        logger.debug(
+            "Файл стандартного размера (%.2f MB <= 10 MB), используется обычная буферизация",
+            file_size / (1024 * 1024),
+        )
+        file_obj = open(file_path, mode, encoding=encoding)
+        return file_obj, False
+
+
+def _close_file_with_mmap_support(
+    file_obj: Union[mmap.mmap, object],
+    is_mmap: bool,
+    underlying_fp: Optional[object] = None,
+) -> None:
+    """
+    Корректно закрывает файл, открытый с mmap или обычной буферизацией.
+
+    Args:
+        file_obj: Объект файла или mmap.
+        is_mmap: True если используется mmap.
+        underlying_fp: Исходный файловый дескриптор для mmap (если есть).
+
+    Примечание:
+        - Для mmap: закрывает TextIOWrapper, mmap и файловый дескриптор
+        - Для обычной буферизации: просто закрывает файл
+    """
+    try:
+        if is_mmap:
+            # Закрываем TextIOWrapper
+            if hasattr(file_obj, "close"):
+                file_obj.close()
+            # Закрываем underlying файловый дескриптор если предоставлен
+            if underlying_fp is not None and hasattr(underlying_fp, "close"):
+                underlying_fp.close()
+        else:
+            # Обычное закрытие файла
+            if hasattr(file_obj, "close"):
+                file_obj.close()
+    except Exception as close_error:
+        logger.warning(
+            "Ошибка при закрытии файла: %s",
+            close_error,
+        )
 
 
 def _calculate_optimal_buffer_size(file_path: Optional[str] = None, file_size_bytes: Optional[int] = None) -> int:
@@ -343,14 +492,19 @@ class CSVWriter(FileWriter):
         """Постобработка: Удаление пустых колонок.
 
         Оптимизация:
-        - Увеличенная буферизация чтения/записи (128KB)
+        - Увеличенная буферизация чтения/записи (256KB)
+        - mmap для больших файлов (>10MB) вместо обычной буферизации
         - Пакетная запись строк для снижения накладных расходов
         - Предварительное вычисление regex паттерна
+        - Проверка размера файла и выбор оптимального метода чтения
 
         Примечание:
             Функция анализирует все строки CSV и удаляет колонки,
             которые не содержат данных (за исключением сложных колонок,
             таких как phone_1, phone_2 и т.д.).
+
+            Для файлов >10MB используется mmap для экономии памяти.
+            Для файлов <=10MB используется обычная буферизация.
         """
         complex_columns = list(self._complex_mapping.keys())
 
@@ -369,14 +523,42 @@ class CSVWriter(FileWriter):
                 if complex_columns_pattern.match(c):
                     complex_columns_count[c] = 0
 
+        # Первый проход: подсчёт непустых значений в сложных колонках
         try:
             optimal_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
+            
+            # Получаем размер файла для выбора метода чтения
+            try:
+                file_size = os.path.getsize(self._file_path)
+                use_mmap = _should_use_mmap(file_size)
+                logger.info(
+                    "Анализ колонок: размер файла %.2f MB, используется %s",
+                    file_size / (1024 * 1024),
+                    "mmap" if use_mmap else "обычная буферизация",
+                )
+            except OSError as size_error:
+                logger.warning(
+                    "Не удалось получить размер файла для анализа колонок: %s",
+                    size_error,
+                )
+                use_mmap = False
 
-            # Первый проход: подсчёт непустых значений в сложных колонках
+            if use_mmap:
+                # Используем mmap для больших файлов
+                f_csv, is_mmap = _open_file_with_mmap_support(
+                    self._file_path, "r", encoding="utf-8-sig"
+                )
+                # Сохраняем ссылку на underlying файловый дескриптор
+                underlying_fp = None  # Будет извлечён из f_csv если нужно
+            else:
+                # Используем обычную буферизацию
+                f_csv = self._open_file(
+                    self._file_path, "r", encoding="utf-8-sig", buffering=optimal_buffer
+                )
+                is_mmap = False
+                underlying_fp = None
 
-            with self._open_file(
-                self._file_path, "r", encoding="utf-8-sig", buffering=optimal_buffer
-            ) as f_csv:
+            try:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
 
                 # Используем enumerate с шагом для уменьшения количества итераций
@@ -392,11 +574,18 @@ class CSVWriter(FileWriter):
                     if (idx + 1) % CSV_BATCH_SIZE == 0:
                         batch_count += 1
 
-            logger.debug(
-                "Подсчёт заполненности колонок завершён (обработано пакетов: %d, буфер: %d байт)",
-                batch_count,
-                optimal_buffer,
-            )
+                logger.debug(
+                    "Подсчёт заполненности колонок завершён (обработано пакетов: %d, буфер: %d байт, mmap: %s)",
+                    batch_count,
+                    optimal_buffer,
+                    use_mmap,
+                )
+            finally:
+                # Гарантированно закрываем файл
+                if is_mmap:
+                    _close_file_with_mmap_support(f_csv, is_mmap, underlying_fp)
+                else:
+                    f_csv.close()
 
         except Exception as e:
             logger.error("Ошибка при чтении CSV для анализа колонок: %s", e)
@@ -441,16 +630,36 @@ class CSVWriter(FileWriter):
             optimal_write_buffer = _calculate_optimal_buffer_size(
                 file_size_bytes=file_size
             )
+            
+            # Определяем метод чтения на основе размера файла
+            try:
+                use_mmap = _should_use_mmap(file_size) if file_size else False
+                logger.info(
+                    "Запись CSV без пустых колонок: размер файла %.2f MB, используется %s",
+                    file_size / (1024 * 1024) if file_size else 0,
+                    "mmap" if use_mmap else "обычная буферизация",
+                )
+            except OSError:
+                use_mmap = False
 
-            # Чтение исходного файла и запись нового с увеличенной буферизацией
-            with (
-                self._open_file(
+            # Открываем файлы с mmap или обычной буферизацией
+            if use_mmap:
+                f_csv, is_mmap = _open_file_with_mmap_support(
+                    self._file_path, "r", encoding="utf-8-sig"
+                )
+                underlying_fp = None
+            else:
+                f_csv = self._open_file(
                     self._file_path, "r", buffering=optimal_read_buffer
-                ) as f_csv,
-                self._open_file(
-                    tmp_csv_name, "w", newline="", buffering=optimal_write_buffer
-                ) as f_tmp_csv,
-            ):
+                )
+                is_mmap = False
+                underlying_fp = None
+            
+            f_tmp_csv = self._open_file(
+                tmp_csv_name, "w", newline="", buffering=optimal_write_buffer
+            )
+
+            try:
                 # ВАЖНО: Помечаем что временный файл создан
                 temp_created = True
 
@@ -483,12 +692,20 @@ class CSVWriter(FileWriter):
                     total_batches += 1
 
                 logger.debug(
-                    "Запись CSV завершена (всего пакетов: %d, размер пакета: %d, буфер чтения: %d, буфер записи: %d)",
+                    "Запись CSV завершена (всего пакетов: %d, размер пакета: %d, буфер чтения: %d, буфер записи: %d, mmap: %s)",
                     total_batches,
                     batch_size,
                     optimal_read_buffer,
                     optimal_write_buffer,
+                    use_mmap,
                 )
+            finally:
+                # Гарантированно закрываем файлы
+                if is_mmap:
+                    _close_file_with_mmap_support(f_csv, is_mmap, underlying_fp)
+                else:
+                    f_csv.close()
+                f_tmp_csv.close()
 
             # Замена оригинального файла новым с безопасной обработкой
             move_success = _safe_move_file(tmp_csv_name, self._file_path)
@@ -523,15 +740,20 @@ class CSVWriter(FileWriter):
         """Постобработка: Удаление дубликатов.
 
         Оптимизация:
-        - Увеличенная буферизация чтения/записи (128KB)
+        - mmap для больших файлов (>10MB) вместо обычной буферизации
+        - Увеличенная буферизация чтения/записи (256KB)
         - Предварительное выделение множества хешей
         - Использование bytes для хеширования вместо str
         - Пакетная запись строк для снижения накладных расходов
+        - Проверка размера файла и выбор оптимального метода чтения
 
         Примечание:
             Использует хеширование строк с Unicode-нормализацией для надёжного сравнения.
             SHA256 используется вместо MD5 для большей безопасности.
             Включает улучшенную обработку ошибок и очистку временных файлов.
+            
+            Для файлов >10MB используется mmap для экономии памяти.
+            Для файлов <=10MB используется обычная буферизация.
         """
         file_root, file_ext = os.path.splitext(self._file_path)
         tmp_csv_name = f"{file_root}.deduplicated{file_ext}"
@@ -550,24 +772,45 @@ class CSVWriter(FileWriter):
             optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
             file_size = os.path.getsize(self._file_path) if os.path.exists(self._file_path) else None
             optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
+            
+            # Определяем метод чтения на основе размера файла
+            try:
+                use_mmap = _should_use_mmap(file_size) if file_size else False
+                logger.info(
+                    "Удаление дубликатов: размер файла %.2f MB, используется %s",
+                    file_size / (1024 * 1024) if file_size else 0,
+                    "mmap" if use_mmap else "обычная буферизация",
+                )
+            except OSError:
+                use_mmap = False
 
-            # Чтение исходного файла и запись нового без дубликатов
-            # Используем увеличенную буферизацию для улучшения производительности
-            with (
-                self._open_file(
+            # Открываем файлы с mmap или обычной буферизацией
+            if use_mmap:
+                f_csv, is_mmap = _open_file_with_mmap_support(
+                    self._file_path,
+                    "r",
+                    encoding="utf-8-sig",
+                )
+                underlying_fp = None
+            else:
+                f_csv = self._open_file(
                     self._file_path,
                     "r",
                     encoding="utf-8-sig",
                     buffering=optimal_read_buffer,
-                ) as f_csv,
-                self._open_file(
-                    tmp_csv_name,
-                    "w",
-                    encoding=self._options.encoding,
-                    newline="",
-                    buffering=optimal_write_buffer,
-                ) as f_tmp_csv,
-            ):
+                )
+                is_mmap = False
+                underlying_fp = None
+            
+            f_tmp_csv = self._open_file(
+                tmp_csv_name,
+                "w",
+                encoding=self._options.encoding,
+                newline="",
+                buffering=optimal_write_buffer,
+            )
+
+            try:
                 # ВАЖНО: Помечаем что временный файл создан
                 temp_created = True
 
@@ -614,18 +857,27 @@ class CSVWriter(FileWriter):
                 if batch:
                     f_tmp_csv.writelines(batch)
 
-            if duplicates_count > 0:
-                logger.info("Удалено дубликатов: %d", duplicates_count)
-            else:
-                logger.debug(
-                    "Дубликаты не найдены (буфер чтения: %d, буфер записи: %d)",
-                    optimal_read_buffer,
-                    optimal_write_buffer
-                )
+                if duplicates_count > 0:
+                    logger.info("Удалено дубликатов: %d", duplicates_count)
+                else:
+                    logger.debug(
+                        "Дубликаты не найдены (буфер чтения: %d, буфер записи: %d, mmap: %s)",
+                        optimal_read_buffer,
+                        optimal_write_buffer,
+                        use_mmap,
+                    )
+            finally:
+                # Гарантированно закрываем файлы
+                if is_mmap:
+                    _close_file_with_mmap_support(f_csv, is_mmap, underlying_fp)
+                else:
+                    f_csv.close()
+                f_tmp_csv.close()
 
             # Замена оригинального файла новым с безопасной обработкой
             move_success = _safe_move_file(tmp_csv_name, self._file_path)
             if move_success:
+                logger.info("Удалены дубликаты из CSV")
                 temp_created = False  # Файл успешно перемещён, очистка не требуется
             else:
                 logger.error("Не удалось переместить файл с удалёнными дубликатами")

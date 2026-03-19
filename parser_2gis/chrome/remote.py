@@ -383,6 +383,10 @@ def _validate_js_code(
     - Усилена проверка на опасные конструкции
     - Добавлены дополнительные паттерны для обнаружения атак
     - Проверка на обход существующих фильтров
+    - Добавлена проверка на base64 кодировку (atob функции)
+    - Добавлена проверка на String.fromCharCode
+    - Добавлена проверка на подозрительную конкатенацию строк
+    - Добавлена проверка на обфускацию кода
 
     Args:
         code: JavaScript код для валидации.
@@ -400,6 +404,10 @@ def _validate_js_code(
         - Проверка типа данных
         - Обнаружение опасных паттернов (eval, Function, document.write)
         - Проверка на попытки обхода фильтра (кодировки, unicode)
+        - Проверка на base64 кодировку
+        - Проверка на String.fromCharCode
+        - Проверка на подозрительную конкатенацию
+        - Проверка на обфускацию кода
     """
     # Проверка на None
     if code is None:
@@ -428,30 +436,70 @@ def _validate_js_code(
     if re.search(r'\\u00[0-9a-fA-F]{2}', code, re.IGNORECASE):
         return False, "Обнаружена попытка обхода через Unicode кодировку"
 
+    # Проверяем на расширенную Unicode кодировку (\u{...})
+    if re.search(r'\\u\{[0-9a-fA-F]+\}', code, re.IGNORECASE):
+        return False, "Обнаружена попытка обхода через расширенную Unicode кодировку"
+
     # Проверяем на HTML entity кодировку
     if re.search(r'&#x[0-9a-fA-F]+;|&#\d+;', code, re.IGNORECASE):
         return False, "Обнаружена попытка обхода через HTML entity кодировку"
 
+    # Проверяем на octal кодировку (\042, \050 и т.д.)
+    if re.search(r'\\0[0-7]{2,3}', code):
+        return False, "Обнаружена попытка обхода через Octal кодировку"
+
+    # Проверяем на hex кодировку (\x41, \x42 и т.д.)
+    if re.search(r'\\x[0-9a-fA-F]{2}', code, re.IGNORECASE):
+        return False, "Обнаружена попытка обхода через Hex кодировку"
+
     # Проверяем на base64 кодировку (может скрывать опасный код)
-    if re.search(r'atob\s*\([^)]+\)', code, re.IGNORECASE):
+    # atob() - декодирование base64
+    if re.search(r'\batob\s*\(\s*[^)]+\)', code, re.IGNORECASE):
         return False, "Функция atob() запрещена (может скрывать опасный код)"
+
+    # btoa() - кодирование в base64
+    if re.search(r'\bbtoa\s*\(\s*[^)]+\)', code, re.IGNORECASE):
+        return False, "Функция btoa() запрещена (может скрывать опасный код)"
+
+    # Проверка на Buffer.from с base64
+    if re.search(r'Buffer\s*\.\s*from\s*\([^,]+,\s*["\']base64["\']', code, re.IGNORECASE):
+        return False, "Buffer.from с base64 запрещён (может скрывать опасный код)"
 
     # Проверяем на String.fromCharCode (может использоваться для обхода)
     if re.search(r'String\s*\.\s*fromCharCode\s*\(', code, re.IGNORECASE):
         return False, "String.fromCharCode() запрещён (может использоваться для обхода)"
 
+    # Проверяем на String.fromCodePoint (аналог fromCharCode)
+    if re.search(r'String\s*\.\s*fromCodePoint\s*\(', code, re.IGNORECASE):
+        return False, "String.fromCodePoint() запрещён (может использоваться для обхода)"
+
+    # Проверяем на Character.fromCharCode
+    if re.search(r'Character\s*\.\s*fromCharCode\s*\(', code, re.IGNORECASE):
+        return False, "Character.fromCharCode() запрещён (может использоваться для обхода)"
+
     # Проверяем на конкатенацию строк для обхода фильтров
     # Обнаруживаем подозрительные комбинации типа "ev" + "al"
-    # Проверяем наличие конкатенации строк с +
     if '+' in code and ('"' in code or "'" in code):
         # Проверяем потенциально опасные комбинации
-        dangerous_concat = ['eval', 'function', 'settimeout', 'setinterval', 'fromcharcode', 'newfunction']
+        dangerous_concat = [
+            'eval', 'function', 'settimeout', 'setinterval',
+            'fromcharcode', 'newfunction', 'document', 'window',
+            'prototype', 'constructor', '__proto__'
+        ]
         # Удаляем все не-буквенные символы для проверки
         code_letters_only = ''.join(c for c in code.lower() if c.isalpha())
         for dangerous in dangerous_concat:
             # Проверяем есть ли опасное слово в коде (даже в разбитой форме)
             if dangerous in code_letters_only:
                 return False, f"Обнаружена подозрительная конкатенация строк с {dangerous}"
+
+    # Дополнительная проверка на конкатенацию с array join
+    if re.search(r'\[\s*["\'][^"\']*["\']\s*\]\s*\.\s*join\s*\(', code, re.IGNORECASE):
+        return False, "Обнаружена подозрительная конкатенация через array.join()"
+
+    # Проверка на split('').reverse().join() - техника обфускации
+    if re.search(r'split\s*\(\s*["\']["\']\s*\)\s*\.reverse\s*\(\)\s*\.join\s*\(', code, re.IGNORECASE):
+        return False, "Обнаружена обфускация через split().reverse().join()"
 
     # Проверка на опасные паттерны с использованием скомпилированных regex
     for pattern, description in _DANGEROUS_JS_PATTERNS:
@@ -470,6 +518,30 @@ def _validate_js_code(
     # Проверяем на присваивание eval переменной (попытка обхода)
     if re.search(r'\b\s*\w+\s*=\s*eval\s*;', code):
         return False, "Присваивание eval переменной запрещено (попытка обхода)"
+
+    # Проверка на обфускацию через множественные escape-последовательности
+    # Подсчитываем количество escape-последовательностей
+    escape_count = len(re.findall(r'\\[uUxX0-9]', code))
+    max_escape_ratio = 0.3  # Максимальное соотношение escape-последовательностей
+    if len(code) > 100 and escape_count / len(code) > max_escape_ratio:
+        return False, "Обнаружена подозрительная обфускация кода (множественные escape-последовательности)"
+
+    # Проверка на чрезмерное использование специальных символов (признак обфускации)
+    special_chars = re.findall(r'[^a-zA-Z0-9\s_$.(){}[\],;:\'"`=+\-*/<>!&|]', code)
+    if len(code) > 100 and len(special_chars) / len(code) > 0.7:
+        return False, "Обнаружена подозрительная обфускация кода (чрезмерное использование специальных символов)"
+
+    # Проверка на подозрительные переменные с именами типа _0x1234 (обфускация)
+    if re.search(r'var\s+_[0-9a-fA-F]{4,}\s*=', code) or re.search(r'let\s+_[0-9a-fA-F]{4,}\s*=', code):
+        return False, "Обнаружена обфускация кода (подозрительные имена переменных)"
+
+    # Проверка на self-executing функции с обфускацией
+    if re.search(r'\(function\s*\([^)]*\)\s*\{[^}]*\}\s*\)\.call\s*\(', code, re.IGNORECASE):
+        logger.debug("Обнаружена self-executing функция с .call() - допустимо")
+
+    # Проверка на Array.from с подозрительными аргументами
+    if re.search(r'Array\s*\.\s*from\s*\(\s*["\'][^"\']*["\']', code, re.IGNORECASE):
+        return False, "Array.from со строкой запрещён (может использоваться для обхода)"
 
     return True, ""
 
@@ -1585,31 +1657,103 @@ class ChromeRemote:
         Примечание:
             Функция гарантирует очистку всех ресурсов даже при ошибках.
             Включает очистку кэша портов для предотвращения утечек памяти.
+            Использует блокировку finally для гарантии очистки ресурсов.
         """
+        logger.info("Начало остановки ChromeRemote...")
+
         try:
             # Закрываем вкладку
             if self._chrome_tab is not None:
                 try:
+                    logger.debug("Закрытие Chrome вкладки...")
                     self._close_tab(self._chrome_tab)
-                except (pychrome.RuntimeException, RequestException) as e:
-                    logger.debug("Ошибка при закрытии вкладки: %s", e)
+                    logger.info("Chrome вкладка успешно закрыта")
+                except (pychrome.RuntimeException, RequestException) as close_tab_error:
+                    logger.error(
+                        "Ошибка при закрытии вкладки: %s (тип: %s)",
+                        close_tab_error,
+                        type(close_tab_error).__name__,
+                    )
+                except Exception as unexpected_close_error:
+                    logger.error(
+                        "Непредвиденная ошибка при закрытии вкладки: %s",
+                        unexpected_close_error,
+                        exc_info=True,
+                    )
+                finally:
+                    # Гарантированно обнуляем _chrome_tab
+                    self._chrome_tab = None
+                    logger.debug("_chrome_tab обнулён")
 
             # Закрываем браузер
             if self._chrome_browser is not None:
                 try:
+                    logger.debug("Закрытие Chrome браузера...")
                     self._chrome_browser.close()
-                except Exception as e:
-                    logger.debug("Ошибка при закрытии браузера: %s", e)
+                    logger.info("Chrome браузер успешно закрыт")
+                except Exception as close_browser_error:
+                    logger.error(
+                        "Ошибка при закрытии браузера: %s (тип: %s)",
+                        close_browser_error,
+                        type(close_browser_error).__name__,
+                    )
+                finally:
+                    # Гарантированно обнуляем _chrome_browser
+                    self._chrome_browser = None
+                    logger.debug("_chrome_browser обнулён")
+
+            # Отключаем интерфейс
+            if self._chrome_interface is not None:
+                try:
+                    logger.debug("Отключение Chrome интерфейса...")
+                    self._chrome_interface.close()
+                    logger.info("Chrome интерфейс успешно отключён")
+                except Exception as close_interface_error:
+                    logger.error(
+                        "Ошибка при отключении интерфейса: %s (тип: %s)",
+                        close_interface_error,
+                        type(close_interface_error).__name__,
+                    )
+                finally:
+                    # Гарантированно обнуляем _chrome_interface
+                    self._chrome_interface = None
+                    logger.debug("_chrome_interface обнулён")
+
+        except Exception as outer_error:
+            logger.critical(
+                "Критическая ошибка при остановке ChromeRemote: %s (тип: %s)",
+                outer_error,
+                type(outer_error).__name__,
+                exc_info=True,
+            )
+        finally:
+            # Блок finally для гарантии очистки ресурсов даже при критических ошибках
+            logger.debug("Выполнение финальной очистки ресурсов...")
+
+            # Гарантированно обнуляем все ресурсы
+            self._chrome_tab = None
+            self._chrome_browser = None
+            self._chrome_interface = None
 
             # Очищаем запросы и очереди
-            self.clear_requests()
+            try:
+                self.clear_requests()
+                logger.debug("Очередь запросов очищена")
+            except Exception as clear_requests_error:
+                logger.warning("Ошибка при очистке очереди запросов: %s", clear_requests_error)
+
+            # Обнуляем очереди ответов
             self._response_queues = {}
+            logger.debug("Очереди ответов обнулены")
 
             # Очищаем кэш портов
-            _clear_port_cache()
+            try:
+                _clear_port_cache()
+                logger.debug("Кэш портов очищен")
+            except Exception as clear_cache_error:
+                logger.warning("Ошибка при очистке кэша портов: %s", clear_cache_error)
 
-        except Exception as e:
-            logger.error("Непредвиденная ошибка при остановке ChromeRemote: %s", e)
+            logger.info("Завершение остановки ChromeRemote - все ресурсы очищены")
 
     def __enter__(self) -> ChromeRemote:
         self.start()

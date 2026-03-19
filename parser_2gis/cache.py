@@ -27,7 +27,7 @@ import sqlite3
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .logger import logger
 
@@ -156,6 +156,9 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     - Проверяет тип данных (только dict, list, str, int, float, bool, None)
     - Ограничивает глубину вложенности для предотвращения DoS
     - Проверяет строки на наличие потенциально опасных SQL/JS конструкций
+    - Добавлена проверка на UNION SELECT
+    - Добавлена проверка на OR 1=1 и подобные конструкции
+    - Добавлена максимальная длина строки (MAX_STRING_LENGTH = 10000)
 
     Args:
         data: Данные для валидации.
@@ -165,11 +168,56 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
         True если данные безопасны, False иначе.
     """
     # Константы валидации
-    MAX_DATA_DEPTH = 20  # Максимальная глубина вложенности
+    MAX_DATA_DEPTH: int = 20  # Максимальная глубина вложенности
+    MAX_STRING_LENGTH: int = 10000  # Максимальная длина строки для предотвращения DoS
+    
+    # Расширенный список SQL паттернов для обнаружения injection атак
+    SQL_INJECTION_PATTERNS: List[str] = [
+        "--",  # SQL комментарий
+        "; DROP",  # DROP TABLE
+        "DELETE FROM",  # DELETE
+        "INSERT INTO",  # INSERT
+        "UPDATE ",  # UPDATE
+        "UNION SELECT",  # UNION SELECT атака
+        "UNION ALL SELECT",  # UNION ALL SELECT
+        "OR 1=1",  # OR 1=1 (всегда истина)
+        "OR '1'='1'",  # OR '1'='1' (всегда истина)
+        "OR \"1\"=\"1\"",  # OR "1"="1" (всегда истина)
+        "OR 1 = 1",  # OR 1 = 1 (с пробелами)
+        "AND 1=1",  # AND 1=1
+        "AND '1'='1'",  # AND '1'='1'
+        "OR 'a'='a'",  # OR 'a'='a'
+        "OR ''=''",  # OR ''=''
+        "EXEC ",  # EXEC выполнение
+        "EXECUTE ",  # EXECUTE выполнение
+        "XP_",  # Расширенные хранимые процедуры
+        "SP_",  # Хранимые процедуры
+        "WAITFOR DELAY",  # Задержка времени
+        "BENCHMARK(",  # MySQL benchmark
+        "SLEEP(",  # SLEEP функция
+        "LOAD_FILE(",  # Загрузка файла
+        "INTO OUTFILE",  # Выгрузка в файл
+        "INTO DUMPFILE",  # Выгрузка в файл
+        "INFORMATION_SCHEMA",  # Схема информации
+        "SYS.TABLES",  # Системные таблицы
+        "PG_CATALOG",  # PostgreSQL каталог
+        "HAVING 1=1",  # HAVING 1=1
+        "ORDER BY 1",  # ORDER BY для определения колонок
+        "ORDER BY 1--",  # ORDER BY с комментарием
+        "GROUP BY ",  # GROUP BY для определения колонок
+        "CHAR(",  # CHAR функция для обхода
+        "CONCAT(",  # CONCAT функция
+        "SUBSTRING(",  # SUBSTRING функция
+        "ASCII(",  # ASCII функция
+        "HEX(",  # HEX функция
+        "UNHEX(",  # UNHEX функция
+        "0x",  # Hex значения
+        "0X",  # Hex значения (верхний регистр)
+    ]
 
     # Проверяем глубину вложенности
     if depth > MAX_DATA_DEPTH:
-        logger.warning("Превышена максимальная глубина вложенности данных кэша")
+        logger.warning("Превышена максимальная глубина вложенности данных кэша (%d)", MAX_DATA_DEPTH)
         return False
 
     # Базовые типы
@@ -189,34 +237,68 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
         return True
 
     if isinstance(data, str):
+        # Проверяем максимальную длину строки
+        if len(data) > MAX_STRING_LENGTH:
+            logger.warning(
+                "Длина строки превышает максимальный лимит: %d (максимум: %d)",
+                len(data),
+                MAX_STRING_LENGTH,
+            )
+            return False
+        
         # Проверяем строку на опасные конструкции
         # Это предотвращает потенциальные SQL injection и XSS атаки
-        dangerous_patterns = [
-            "--",  # SQL комментарий
-            "; DROP",
-            "DELETE FROM",
-            "INSERT INTO",
-            "UPDATE ",  # SQL команды
+        dangerous_patterns: List[str] = [
+            # XSS атаки
             "<script",
             "javascript:",
             "onerror=",
-            "onload=",  # XSS
+            "onload=",
+            "onclick=",
+            "onmouseover=",
+            "onfocus=",
+            "onblur=",
+            # JS eval и подобные
             "eval(",
-            "Function(",  # JS eval
+            "Function(",
+            "setTimeout(",
+            "setInterval(",
+            # Дополнительные SQL паттерны
+            "DROP TABLE",
+            "TRUNCATE TABLE",
+            "ALTER TABLE",
+            "CREATE TABLE",
+            "REPLACE INTO",
+            "SELECT *",
+            "SELECT 1",
+            "SELECT @@",
+            "#",  # MySQL комментарий
+            "/*",  # SQL комментарий блочный
+            "*/",  # Закрытие SQL комментария
         ]
+        
+        # Объединяем все паттерны
+        all_patterns = SQL_INJECTION_PATTERNS + dangerous_patterns
+        
         data_upper = data.upper()
-        for pattern in dangerous_patterns:
+        for pattern in all_patterns:
             if pattern.upper() in data_upper:
-                logger.warning("Обнаружена опасная конструкция в данных кэша: %s", pattern)
+                logger.warning(
+                    "Обнаружена опасная конструкция в данных кэша: %s",
+                    pattern,
+                )
                 return False
         return True
 
     if isinstance(data, dict):
         # Проверяем на __proto__ и другие опасные ключи (prototype pollution)
-        dangerous_keys = {"__proto__", "constructor", "prototype"}
+        dangerous_keys: Set[str] = {"__proto__", "constructor", "prototype"}
         for key in data.keys():
             if isinstance(key, str) and key.lower() in dangerous_keys:
-                logger.warning("Обнаружена потенциальная __proto__ атака: ключ '%s'", key)
+                logger.warning(
+                    "Обнаружена потенциальная __proto__ атака: ключ '%s'",
+                    key,
+                )
                 return False
 
         # Рекурсивно проверяем все значения словаря

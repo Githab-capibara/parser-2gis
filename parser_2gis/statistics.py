@@ -336,6 +336,7 @@ class StatisticsExporter:
         """Генерация HTML отчета.
 
         Создает красивый HTML отчет с использованием CSS стилей.
+        Оптимизация: используется список и join() вместо конкатенации строк.
 
         Args:
             stats: Объект статистики
@@ -345,7 +346,11 @@ class StatisticsExporter:
         """
         data = self._prepare_for_dict(stats)
 
-        html = """<!DOCTYPE html>
+        # Используем список для накопления частей HTML вместо конкатенации
+        html_parts: list[str] = []
+
+        # Добавляем заголовок HTML документа
+        html_parts.append("""<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -408,8 +413,7 @@ class StatisticsExporter:
                 <th>Значение</th>
             </tr>
         </thead>
-        <tbody>
-"""
+        <tbody>""")
 
         # Добавляем данные в таблицу
         for key, value in data.items():
@@ -427,35 +431,35 @@ class StatisticsExporter:
             safe_key = html_module.escape(str(key))
             safe_value = html_module.escape(str(value))
 
-            html += "            <tr>\n"
-            html += f"                <td>{safe_key}</td>\n"
-            html += f'                <td class="{value_class}">{safe_value}</td>\n'
-            html += "            </tr>\n"
+            html_parts.append(f"""            <tr>
+                <td>{safe_key}</td>
+                <td class="{value_class}">{safe_value}</td>
+            </tr>""")
 
         # Добавляем ошибки, если есть
         if stats.errors:
-            html += """            <tr>
+            html_parts.append("""            <tr>
                 <td colspan="2"><strong>Ошибки:</strong></td>
-            </tr>
-"""
+            </tr>""")
+            
             for error in stats.errors:
                 # Экранируем HTML для предотвращения XSS-атак
                 safe_error = html_module.escape(str(error))
-                html += f"""            <tr>
+                html_parts.append(f"""            <tr>
                 <td colspan="2">{safe_error}</td>
-            </tr>
-"""
+            </tr>""")
 
-        html += f"""        </tbody>
+        # Добавляем закрывающую часть HTML документа
+        html_parts.append(f"""        </tbody>
     </table>
     <div class="footer">
         Сгенерировано: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     </div>
 </body>
-</html>
-"""
+</html>""")
 
-        return html
+        # Объединяем все части в одну строку
+        return "\n".join(html_parts)
 
     def _generate_text(self, stats: ParserStatistics) -> str:
         """Генерация текстового отчета.
