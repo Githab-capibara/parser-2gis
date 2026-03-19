@@ -94,13 +94,21 @@ def _tui_omsk_stub() -> None:
     raise RuntimeError("TUI модуль недоступен")
 
 
+def _tui_stub() -> None:
+    """Stub функция для Parser2GISTUI когда модуль недоступен."""
+    logger.error("TUI модуль (textual) недоступен. Установите: pip install textual")
+    raise RuntimeError("TUI модуль недоступен")
+
+
 try:
     from .tui_textual import run_tui as run_new_tui_omsk
+    from .tui_textual import Parser2GISTUI
 except ImportError:
-    # Модуль недоступен - используем stub функцию
+    # Модуль недоступен - используем stub функции
     run_new_tui_omsk = _tui_omsk_stub
+    Parser2GISTUI = _tui_stub  # type: ignore[misc,assignment]
     logger.warning(
-        "TUI модуль (textual) недоступен. Функция --tui-new-omsk будет недоступна"
+        "TUI модуль (textual) недоступен. TUI функции будут недоступны"
     )
 
 
@@ -1094,16 +1102,19 @@ def main() -> None:
     # Обработка TUI интерфейсов
     if getattr(args, "tui_new_omsk", False):
         # Запуск нового TUI с автоматическим парсингом Омска
-        if run_new_tui_omsk is None:
-            logger.error("Новый TUI модуль (textual) недоступен")
+        # Проверяем, является ли run_new_tui_omsk stub функцией (недоступен модуль)
+        if run_new_tui_omsk is _tui_omsk_stub:  # type: ignore[comparison-overlap]
+            logger.error("TUI модуль (textual) недоступен")
             sys.exit(1)
         run_new_tui_omsk()
         return
 
     if getattr(args, "tui_new", False):
         # Запуск нового TUI без автоматического парсинга
-        from .tui_textual import Parser2GISTUI
-
+        # Проверяем, является ли Parser2GISTUI stub функцией (недоступен модуль)
+        if Parser2GISTUI is _tui_stub:  # type: ignore[comparison-overlap]
+            logger.error("TUI модуль (textual) недоступен")
+            sys.exit(1)
         app = Parser2GISTUI()
         app.run()
         return
