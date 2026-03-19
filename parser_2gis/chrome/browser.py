@@ -15,7 +15,6 @@ from .utils import free_port, locate_chrome_path
 if TYPE_CHECKING:
     from .options import ChromeOptions
 
-
 class ChromeBrowser:
     """Браузер Chrome с временным профилем.
 
@@ -81,8 +80,6 @@ class ChromeBrowser:
                     original_binary_path,
                     binary_path,
                 )
-
-            # Исправление проблемы 10: ПОВТОРНАЯ валидация пути ПОСЛЕ os.path.realpath()
             # Это критически важно для предотвращения symlink атак
             # Злоумышленник может создать цепочку ссылок где конечный путь будет опасным
             # Поэтому валидируем канонический путь ещё раз после нормализации
@@ -176,7 +173,6 @@ class ChromeBrowser:
                     logger.debug("Не удалось удалить профиль при ошибке запуска: %s", e)
                 raise
         except Exception:
-            # ИСПРАВЛЕНИЕ #5: ГАРАНТИРОВАННАЯ ОЧИСТКА ПРИ ОШИБКЕ ИНИЦИАЛИЗАЦИИ
             # Если ошибка произошла после создания TemporaryDirectory,
             # гарантируем его очистку в finally блоке
             if self._profile_tempdir is not None:
@@ -352,11 +348,9 @@ class ChromeBrowser:
         """Закрывает браузер при выходе из контекста."""
         self.close()
 
-
 # Константы для очистки профилей
 ORPHANED_PROFILE_MARKER = ".chrome_profile_marker"
 ORPHANED_PROFILE_MAX_AGE_HOURS = 24  # Максимальный возраст профиля перед удалением
-
 
 def cleanup_orphaned_profiles(
     profiles_dir: Optional[Path] = None,
@@ -495,11 +489,8 @@ def cleanup_orphaned_profiles(
 
     return deleted_count
 
-
 def _is_profile_in_use(profile_path: Path) -> bool:
     """Проверяет, используется ли профиль активным процессом Chrome.
-
-    Исправление проблемы #10 (Неполная очистка профилей Chrome):
     - Проверяет активные процессы перед удалением профиля
     - Предотвращает удаление активных профилей
 
@@ -552,12 +543,9 @@ def _is_profile_in_use(profile_path: Path) -> bool:
         )
         return False
 
-
 def _safe_remove_profile(profile_path: Path) -> None:
     """
     Безопасно удаляет профиль Chrome с обработкой ошибок.
-
-    Исправление проблемы #10:
     - Проверяет активные процессы перед удалением
     - Обрабатывает ошибки удаления файлов
 
@@ -565,7 +553,6 @@ def _safe_remove_profile(profile_path: Path) -> None:
         profile_path: Путь к директории профиля для удаления.
     """
     try:
-        # ИСПРАВЛЕНИЕ #10: ПРОВЕРКА АКТИВНЫХ ПРОЦЕССОВ
         if _is_profile_in_use(profile_path):
             logger.warning(
                 "Профиль Chrome используется активным процессом, пропускаем удаление: %s",

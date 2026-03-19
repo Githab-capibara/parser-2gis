@@ -52,7 +52,6 @@ MAX_TIMEOUT: int = 3600
 DEFAULT_TIMEOUT: int = 300
 
 # =============================================================================
-# ИСПРАВЛЕНИЕ C3: ПЕРИОДИЧЕСКАЯ ОЧИСТКА ВРЕМЕННЫХ ФАЙЛОВ
 # =============================================================================
 
 # Интервал периодической очистки временных файлов в секундах (60 секунд)
@@ -69,8 +68,7 @@ class _TempFileCleanupTimer:
     """
     Таймер для периодической очистки временных файлов.
 
-    Исправление C3 (ОПТИМИЗАЦИЯ):
-    - Периодическая очистка через threading.Timer
+        - Периодическая очистка через threading.Timer
     - Использование weak references для предотвращения утечек памяти
     - Мониторинг количества временных файлов
     - Автоматическая очистка осиротевших файлов
@@ -255,7 +253,6 @@ class _TempFileCleanupTimer:
         except Exception:
             pass
 
-
 # =============================================================================
 # КОНСТАНТЫ ПРОГРЕССА И ОТОБРАЖЕНИЯ
 # =============================================================================
@@ -295,7 +292,6 @@ MAX_UNIQUE_NAME_ATTEMPTS: int = 10
 # - 5 минут - достаточно для обработки больших файлов (1GB+)
 # - Защита от зависших процессов (осиротевшие lock файлы)
 # - Достаточно времени для завершения медленных дисковых операций
-# ИСПРАВЛЕНИЕ 3: Вынесено в переменную окружения PARSER_MERGE_LOCK_TIMEOUT с дефолтным значением
 MERGE_LOCK_TIMEOUT: int = int(os.getenv("PARSER_MERGE_LOCK_TIMEOUT", "300"))
 
 # Максимальный возраст lock файла в секундах (5 минут)
@@ -304,11 +300,10 @@ MERGE_LOCK_TIMEOUT: int = int(os.getenv("PARSER_MERGE_LOCK_TIMEOUT", "300"))
 # - 5 минут - 5x запас на случай медленных дисков/больших файлов
 # - Lock файлы старше считаются осиротевшими (процесс упал)
 # - Баланс между защитой от race condition и очисткой мусора
-# ИСПРАВЛЕНИЕ 3: Вынесено в переменную окружения PARSER_MAX_LOCK_FILE_AGE с дефолтным значением
 MAX_LOCK_FILE_AGE: int = int(os.getenv("PARSER_MAX_LOCK_FILE_AGE", "300"))
 
 # =============================================================================
-# КОНСТАНТА ДЛЯ ОГРАНИЧЕНИЯ ВРЕМЕННЫХ ФАЙЛОВ (ИСПРАВЛЕНИЕ M5)
+# КОНСТАНТА ДЛЯ ОГРАНИЧЕНИЯ ВРЕМЕННЫХ ФАЙЛОВ
 # =============================================================================
 
 # Максимальное количество отслеживаемых временных файлов
@@ -316,7 +311,6 @@ MAX_LOCK_FILE_AGE: int = int(os.getenv("PARSER_MAX_LOCK_FILE_AGE", "300"))
 # - Типичное количество временных файлов: 10-100
 # - 1000 - разумный лимит для предотвращения утечки памяти
 # - При достижении лимита происходит LRU eviction
-# ИСПРАВЛЕНИЕ 3: Вынесено в переменную окружения PARSER_MAX_TEMP_FILES с дефолтным значением
 MAX_TEMP_FILES: int = int(os.getenv("PARSER_MAX_TEMP_FILES", "1000"))
 
 # =============================================================================
@@ -325,7 +319,6 @@ MAX_TEMP_FILES: int = int(os.getenv("PARSER_MAX_TEMP_FILES", "1000"))
 
 # Глобальный набор для отслеживания временных файлов созданных этим процессом
 # Используется для гарантированной очистки при аварийном завершении
-# ИСПРАВЛЕНИЕ 2.2: Добавлена потокобезопасность с использованием RLock
 
 _temp_files_lock = threading.RLock()
 _temp_files_registry: set[Path] = set()
@@ -334,8 +327,7 @@ _temp_files_registry: set[Path] = set()
 def _register_temp_file(file_path: Path) -> None:
     """Регистрирует временный файл для последующей очистки.
 
-    Исправление M5:
-    - Добавлено ограничение максимального размера реестра
+        - Добавлено ограничение максимального размера реестра
     - Реализована LRU eviction при достижении лимита
     - Удаляются oldest записи при превышении MAX_TEMP_FILES
 
@@ -398,13 +390,13 @@ def _cleanup_all_temp_files() -> None:
         finally:
             _temp_files_lock.release()
 
-
 # Регистрируем очистку через atexit для гарантированной очистки при аварийном завершении
 atexit.register(_cleanup_all_temp_files)
 
 # =============================================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ РЕФАКТОРИНГА MERGE_CSV_FILES
 # =============================================================================
+
 
 
 def _acquire_merge_lock(
@@ -521,7 +513,6 @@ def _merge_csv_files(
     outfile = None
 
     try:
-        # ИСПРАВЛЕНИЕ A3: Обработка OSError при открытии выходного файла
         try:
             outfile = open(
                 output_path, "w", encoding=encoding, newline="", buffering=buffer_size
@@ -568,8 +559,6 @@ def _merge_csv_files(
                         f"Предупреждение: файл {csv_file.name} не содержит категорию в имени",
                         "warning",
                     )
-
-                # ИСПРАВЛЕНИЕ A3: Обработка OSError при открытии входного файла
                 try:
                     infile = open(
                         csv_file,
@@ -646,7 +635,6 @@ def _merge_csv_files(
                         )
 
                     except OSError as csv_error:
-                        # ИСПРАВЛЕНИЕ A3: Обработка OSError при чтении/записи CSV
                         error_type = type(csv_error).__name__
                         log(f"Ошибка при обработке CSV {csv_file} ({error_type}): {csv_error}", "error")
                         # Продолжаем со следующим файлом
@@ -666,7 +654,6 @@ def _merge_csv_files(
             return True, total_rows, files_to_delete
 
     except OSError as e:
-        # ИСПРАВЛЕНИЕ A3: Детальная обработка OSError с указанием контекста
         error_type = type(e).__name__
         error_details = str(e)
         log(f"Критическая ошибка ОС при объединении CSV ({error_type}): {error_details}", "error")
@@ -744,7 +731,6 @@ def _validate_merged_file(
         "info",
     )
     return True
-
 
 if TYPE_CHECKING:
     from .config import Configuration
@@ -870,8 +856,6 @@ class ParallelCityParser:
         self._merge_temp_files: List[Path] = []
         # Блокировка для потокобезопасного доступа к временным файлам
         self._merge_lock = threading.Lock()
-
-        # ИСПРАВЛЕНИЕ C3: Инициализация таймера периодической очистки временных файлов
         self._temp_file_cleanup_timer: Optional[_TempFileCleanupTimer] = None
         if self.config.parallel.use_temp_file_cleanup:  # type: ignore[attr-defined]
             try:
@@ -1062,8 +1046,6 @@ class ParallelCityParser:
                 f"Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filename})",
                 "info",
             )
-
-            # ИСПРАВЛЕНИЕ 2: Обработка исключений при инициализации parser/writer
             try:
                 writer = get_writer(str(temp_filepath), "csv", self.config.writer)
                 parser = get_parser(
@@ -1699,8 +1681,6 @@ class ParallelCityParser:
         """
         start_time = time.time()
         total_tasks = len(self.cities) * len(self.categories)
-
-        # ИСПРАВЛЕНИЕ C3: Запуск таймера периодической очистки временных файлов
         if self._temp_file_cleanup_timer is not None:
             try:
                 self._temp_file_cleanup_timer.start()
@@ -1787,7 +1767,6 @@ class ParallelCityParser:
                     )
 
                 except KeyboardInterrupt:
-                    # ИСПРАВЛЕНИЕ #11: ОБРАБОТКА KeyboardInterrrupt
                     self.log(
                         "⚠️ Парсинг прерван пользователем (KeyboardInterrupt)",
                         "warning",
@@ -1808,7 +1787,6 @@ class ParallelCityParser:
                     )
 
         except KeyboardInterrupt:
-            # ИСПРАВЛЕНИЕ #11: ОБРАБОТКА KeyboardInterrrupt на уровне цикла
             self.log(
                 "⚠️ Парсинг прерван пользователем (KeyboardInterrupt в цикле)",
                 "warning",
@@ -1884,8 +1862,6 @@ class ParallelCityParser:
             "Ошибки": failed_count,
         }
         log_parser_finish(success=True, stats=stats, duration=duration_str)
-
-        # ИСПРАВЛЕНИЕ C3: Остановка таймера периодической очистки временных файлов
         if self._temp_file_cleanup_timer is not None:
             try:
                 self._temp_file_cleanup_timer.stop()

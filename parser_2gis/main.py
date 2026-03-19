@@ -9,17 +9,13 @@ from __future__ import annotations
 
 import argparse
 import gc
-import ipaddress
 import json
-import signal
-import socket
 import sys
-import threading
 import time
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Optional, TypedDict
-from urllib.parse import urlparse
 
 import pydantic
 
@@ -138,28 +134,21 @@ def _validate_positive_int(
     return value
 
 
-# ИСПРАВЛЕНИЕ 4: Функция _validate_url удалена - используется validate_url из validation.py
+# Функция _validate_url удалена - используется validate_url из validation.py
 # Это устраняет дублирование кода валидации и обеспечивает единую точку валидации URL
 
 # Глобальный экземпляр обработчика сигналов
-
 _signal_handler_instance: Optional[SignalHandler] = None
 
-# ИСПРАВЛЕНИЕ КРИТИЧЕСКОЙ ПРОБЛЕМЫ 2 (RACE CONDITION):
-# Добавлен threading.Lock для защиты глобальной переменной от состояния гонки
-# в многопоточной среде
-_signal_handler_lock = threading.Lock()
 
+@lru_cache(maxsize=1)
+def _get_signal_handler_cached() -> SignalHandler:
+    """Кэшированная версия получения SignalHandler через lru_cache.
 
-def _get_signal_handler() -> SignalHandler:
-    """
-    Получает глобальный экземпляр SignalHandler с использованием double-checked locking.
-
-    Исправление C1 (RACE CONDITION):
-    - Реализован double-checked locking для оптимизации производительности
-    - Первая проверка без блокировки для быстрого пути
-    - Вторая проверка с блокировкой для гарантии потокобезопасности
-    - Используется threading.Lock для защиты глобальной переменной
+    - Используется functools.lru_cache для создания синглтона
+    - Устраняет необходимость в double-checked locking
+    - Гарантирует потокобезопасность на уровне реализации lru_cache
+    - Более эффективная производительность без накладных расходов на блокировки
 
     Returns:
         Экземпляр SignalHandler для обработки сигналов.
@@ -168,23 +157,40 @@ def _get_signal_handler() -> SignalHandler:
         RuntimeError: Если обработчик сигналов не инициализирован.
 
     Примечание:
-        Double-checked locking снижает накладные расходы на синхронизацию
-        для часто вызываемой функции, обеспечивая при этом потокобезопасность.
+        lru_cache(maxsize=1) обеспечивает синглтон-поведение с автоматической
+        потокобезопасностью. Это заменяет ручную реализацию double-checked locking.
+    """
+    if _signal_handler_instance is None:
+        raise RuntimeError(
+            "SignalHandler не инициализирован. Вызовите _setup_signal_handlers()."
+        )
+    return _signal_handler_instance
+
+
+def _get_signal_handler() -> SignalHandler:
+    """
+    Получает глобальный экземпляр SignalHandler с использованием lru_cache.
+
+    - Используется functools.lru_cache для создания синглтона вместо double-checked locking
+    - Устраняет необходимость в threading.Lock
+    - Гарантирует потокобезопасность на уровне реализации lru_cache
+    - Более эффективная производительность без накладных расходов на блокировки
+
+    Returns:
+        Экземпляр SignalHandler для обработки сигналов.
+
+    Raises:
+        RuntimeError: Если обработчик сигналов не инициализирован.
+
+    Примечание:
+        lru_cache(maxsize=1) обеспечивает синглтон-поведение с автоматической
+        потокобезопасностью. Это заменяет ручную реализацию double-checked locking.
 
         Пример использования:
             >>> handler = _get_signal_handler()
             >>> handler.setup()
     """
-    # Первая проверка без блокировки (быстрый путь)
-    if _signal_handler_instance is None:
-        with _signal_handler_lock:
-            # Вторая проверка с блокировкой (double-checked locking)
-            if _signal_handler_instance is None:
-                raise RuntimeError(
-                    "SignalHandler не инициализирован. Вызовите _setup_signal_handlers()."
-                )
-
-    return _signal_handler_instance
+    return _get_signal_handler_cached()
 
 
 def _setup_signal_handlers() -> None:
@@ -195,12 +201,11 @@ def _setup_signal_handlers() -> None:
         - SIGINT (Ctrl+C) - прерывание пользователем
         - SIGTERM - сигнал завершения от системы
         - Используется класс SignalHandler для инкапсуляции состояния
-        - Операция защищена threading.Lock для предотвращения race condition
+        - Инициализация выполняется один раз при старте приложения
     """
     global _signal_handler_instance
-    with _signal_handler_lock:
-        _signal_handler_instance = SignalHandler(cleanup_callback=cleanup_resources)
-        _signal_handler_instance.setup()
+    _signal_handler_instance = SignalHandler(cleanup_callback=cleanup_resources)
+    _signal_handler_instance.setup()
     logger.debug(
         "Обработчики сигналов SIGINT и SIGTERM установлены через SignalHandler"
     )
@@ -209,7 +214,6 @@ def _setup_signal_handlers() -> None:
 def cleanup_resources() -> None:
     """Выполняет централизованную очистку ресурсов приложения.
 
-    Исправление C2 (УЛУЧШЕНИЕ ОБРАБОТКИ ИСКЛЮЧЕНИЙ):
     - Добавлены специфичные except блоки для разных типов ошибок
     - Гарантированная очистка всех ресурсов даже при частичных ошибках
     - Детальное логирование для отладки с уровнем ERROR для всех исключений
@@ -389,7 +393,6 @@ def cleanup_resources() -> None:
 def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
     """Загружает JSON файл с городами с корректной обработкой ошибок.
 
-    Исправление проблемы #9 (Отсутствие валидации):
     - Добавлена проверка размера файла перед загрузкой
     - Валидация структуры данных после загрузки
     - Защита от ReDoS и DoS атак через большие файлы
@@ -413,7 +416,7 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         logger.error("Файл городов не найден: %s", cities_path)
         raise FileNotFoundError(f"Файл {cities_path} не найден")
 
-    # ИСПРАВЛЕНИЕ #9: ПРОВЕРКА РАЗМЕРА ФАЙЛА
+    # Проверка размера файла
     try:
         file_size = cities_path.stat().st_size
         if file_size == 0:
@@ -441,7 +444,7 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         with open(cities_path, "r", encoding="utf-8") as f:
             all_cities = json.load(f)
 
-        # ИСПРАВЛЕНИЕ #9: ВАЛИДАЦИЯ СТРУКТУРЫ ДАННЫХ
+        # Валидация структуры данных
         if not isinstance(all_cities, list):
             logger.error("Файл городов должен содержать список, а не %s", type(all_cities).__name__)
             raise ValueError(f"Файл городов должен содержать список, получен {type(all_cities).__name__}")
@@ -1013,7 +1016,7 @@ def parse_arguments(
         invalid_urls = []
         url_errors = []
         for url in args.url:
-            # ИСПРАВЛЕНИЕ 4: Используем validate_url из validation.py вместо локальной функции
+            # Используем validate_url из validation.py вместо локальной функции
             result = validate_url(url)
             if not result.is_valid:
                 invalid_urls.append(url)

@@ -47,7 +47,7 @@ __all__ = [
 ]
 
 # =============================================================================
-# КОНСТАНТЫ ДЛЯ POLLING (ИСПРАВЛЕНИЕ L3)
+# КОНСТАНТЫ ДЛЯ POLLING
 # =============================================================================
 
 # Начальный интервал опроса в секундах
@@ -60,7 +60,7 @@ MAX_POLL_INTERVAL: float = 2.0
 EXPONENTIAL_BACKOFF_MULTIPLIER: float = 2
 
 # =============================================================================
-# ГЛОБАЛЬНЫЕ КОНСТАНТЫ БУФЕРИЗАЦИИ (ИСПРАВЛЕНИЕ M8)
+# ГЛОБАЛЬНЫЕ КОНСТАНТЫ БУФЕРИЗАЦИИ
 # =============================================================================
 
 # Эти константы используются во всех модулях для чтения/записи файлов
@@ -96,7 +96,6 @@ MERGE_BATCH_SIZE: int = 500
 # Это устраняет глобальное состояние и следует лучшим практикам Python
 logger = logging.getLogger(__name__)
 
-
 def _get_logger() -> "Logger":
     """Получает logger для модуля common.
 
@@ -110,7 +109,6 @@ def _get_logger() -> "Logger":
     from .logger import logger as app_logger
 
     return app_logger
-
 
 # Набор чувствительных ключей для фильтрации данных
 # Оптимизация: скомпилированный regex для быстрой проверки
@@ -164,7 +162,6 @@ _SENSITIVE_KEY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-
 def _is_sensitive_key(key: str) -> bool:
     """
     Проверяет, является ли ключ чувствительным.
@@ -191,12 +188,9 @@ def _is_sensitive_key(key: str) -> bool:
     # Проверка по скомпилированному regex паттерну
     return bool(_SENSITIVE_KEY_PATTERN.search(key_lower))
 
-
 def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     """
     Очищает чувствительные данные из значения.
-
-    Исправление проблемы 2.1 (КРИТИЧЕСКОЕ):
     - Переписано на итеративный подход с явным стеком вместо рекурсии
     - Предотвращает RecursionError при обработке глубоко вложенных структур
     - _visited сделан локальной переменной с очисткой в finally для предотвращения утечки памяти
@@ -213,7 +207,6 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
         Используется set с id объектов вместо WeakSet для предотвращения ошибок
         с объектами, не поддерживающими слабые ссылки.
     """
-    # ИСПРАВЛЕНИЕ КРИТИЧЕСКОЙ УТЕЧКИ ПАМЯТИ:
     # _visited теперь локальная переменная, а не параметр функции
     # Это предотвращает накопление данных между вызовами функции
     _visited: set = set()
@@ -350,14 +343,13 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
         )
         raise
     finally:
-        # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: очистка _visited после обработки
+        # Очистка _visited после обработки
         # Это предотвращает утечку памяти при обработке множества структур данных
         try:
             _visited.clear()
         except Exception as cleanup_error:
             # Ошибка при очистке _visited - логируем но не прерываем выполнение
             logger.warning("Ошибка при очистке _visited: %s", cleanup_error)
-
 
 def _default_predicate(value: Any) -> bool:
     """Предикат по умолчанию для проверки результата.
@@ -370,7 +362,6 @@ def _default_predicate(value: Any) -> bool:
     """
     return bool(value)
 
-
 def wait_until_finished(
     timeout: Optional[int] = None,
     finished: Optional[Callable[[Any], bool]] = None,
@@ -382,8 +373,7 @@ def wait_until_finished(
     """Декоратор опрашивает обёрнутую функцию до истечения времени или пока
     предикат `finished` не вернёт `True`.
 
-    Исправление D3 (TYPE HINTS):
-    - Добавлены полные аннотации типов для всех параметров
+        - Добавлены полные аннотации типов для всех параметров
     - Использован Callable[[Callable[..., Any]], Callable[..., Any]] для точного типа декоратора
     - Сохранена обратная совместимость с существующим кодом
 
@@ -517,7 +507,6 @@ def wait_until_finished(
 
     return outer
 
-
 def report_from_validation_error(
     ex: ValidationError, d: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Dict[str, Any]]:
@@ -554,7 +543,6 @@ def report_from_validation_error(
         }
 
     return error_report
-
 
 def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
     """Разворачивает плоский словарь с ключами в виде точечного пути к значениям.
@@ -612,7 +600,6 @@ def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
 
     return output
 
-
 def floor_to_hundreds(arg: Union[int, float]) -> int:
     """Округляет число вниз до ближайшей сотни.
 
@@ -624,10 +611,8 @@ def floor_to_hundreds(arg: Union[int, float]) -> int:
     """
     return int((arg // 100) * 100)
 
-
 # Кэшируем по отдельным полям (code, domain) для более эффективного использования памяти
 # и уменьшения количества повторных валидаций одинаковых городов
-
 
 # Увеличены размеры lru_cache для улучшения производительности
 # _validate_city_cached=512 (было 256) - увеличено для поддержки большего количества городов
@@ -639,8 +624,6 @@ def floor_to_hundreds(arg: Union[int, float]) -> int:
 @lru_cache(maxsize=512)
 def _validate_city_cached(code: str, domain: str) -> Dict[str, Any]:
     """Кэшированная версия валидации города.
-
-    Исправление проблемы 3.3 и 11 (ОПТИМИЗАЦИЯ):
     - Размер кэша увеличен с 256 до 512 для улучшения производительности
     - Кэширование по отдельным полям (code, domain) вместо кортежа
     - Прямая передача строк вместо кортежа снижает накладные расходы
@@ -662,7 +645,6 @@ def _validate_city_cached(code: str, domain: str) -> Dict[str, Any]:
         "code": code,
         "domain": domain,
     }
-
 
 def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     """Валидирует структуру города.
@@ -706,7 +688,6 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     # Оптимизация: передаём code и domain как отдельные аргументы для эффективного кэширования
     return _validate_city_cached(city["code"], city["domain"])
 
-
 # Увеличены размеры lru_cache для улучшения производительности
 # _validate_category_cached=256 (было 128) - увеличено для поддержки большего количества категорий
 # ОБОСНОВАНИЕ: Увеличение размера кэша улучшает производительность при парсинге
@@ -716,8 +697,6 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
 @lru_cache(maxsize=256)
 def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
     """Кэшированная версия валидации категории.
-
-    Исправление проблемы 3.3 и 11 (ОПТИМИЗАЦИЯ):
     - Размер кэша увеличен с 128 до 256 для улучшения производительности
     - Снижение потребления памяти без потери производительности
 
@@ -732,7 +711,6 @@ def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
         "query": category_tuple[1],
         "rubric_code": category_tuple[2] if category_tuple[2] else None,
     }
-
 
 def _validate_category(category: Any) -> Dict[str, Any]:
     """Валидирует структуру категории.
@@ -766,7 +744,6 @@ def _validate_category(category: Any) -> Dict[str, Any]:
         category.get("rubric_code", ""),
     )
     return _validate_category_cached(category_key)
-
 
 # Оптимизация: кэширование сгенерированных URL
 @lru_cache(maxsize=4096)
@@ -897,13 +874,10 @@ def generate_city_urls(
 
     return urls
 
-
 # url_query_encode=2048 - оптимально для часто используемых поисковых запросов
 @lru_cache(maxsize=2048)
 def url_query_encode(query: str) -> str:
     """Кодирует строку запроса для URL.
-
-    Исправление проблемы 3.3:
     - Размер кэша установлен в 2048 вместо 4096 (оптимально для часто используемых запросов)
     - Снижение потребления памяти без потери производительности
     - lru_cache для кэширования часто используемых запросов
@@ -917,10 +891,10 @@ def url_query_encode(query: str) -> str:
     """
     return urllib.parse.quote(query, safe="")
 
+# =============================================================================
+# ASYNC ВЕРСИЯ WAIT_UNTIL_FINISHED
+# =============================================================================
 
-# =============================================================================
-# ASYNC ВЕРСИЯ WAIT_UNTIL_FINISHED (ИСПРАВЛЕНИЕ L10)
-# =============================================================================
 
 
 def async_wait_until_finished(
@@ -934,8 +908,7 @@ def async_wait_until_finished(
     """
     Async версия декоратора wait_until_finished для asyncio.
 
-    Исправление L10:
-    - Использует asyncio.sleep() вместо time.sleep()
+        - Использует asyncio.sleep() вместо time.sleep()
     - Совместим с asyncio event loop
     - Не блокирует event loop при ожидании
 
@@ -1029,17 +1002,15 @@ def async_wait_until_finished(
 
     return outer
 
-
 # =============================================================================
-# МОНИТОРИНГ КЭШЕЙ (ИСПРАВЛЕНИЕ M3)
+# МОНИТОРИНГ КЭШЕЙ
 # =============================================================================
 
 
 def get_cache_stats() -> Dict[str, Any]:
     """Возвращает статистику по всем кэшам lru_cache.
 
-    Исправление M3:
-    - Мониторинг hit/miss ratio для оптимизации размеров кэшей
+        - Мониторинг hit/miss ratio для оптимизации размеров кэшей
     - Помогает выявить узкие места производительности
     - Возвращает информацию о размере, попаданиях и промахах
 
@@ -1068,8 +1039,7 @@ def get_cache_stats() -> Dict[str, Any]:
 def log_cache_stats() -> None:
     """Выводит статистику кэшей в лог.
 
-    Исправление M3:
-    - Автоматический вывод статистики кэшей при завершении парсинга
+        - Автоматический вывод статистики кэшей при завершении парсинга
     - Помогает оптимизировать размеры кэшей на основе реальных данных
 
     Example:

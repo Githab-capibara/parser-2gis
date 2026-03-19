@@ -45,12 +45,9 @@ except ImportError:
     _use_orjson = False
     orjson = None  # type: ignore
 
-
 def _serialize_json(data: Dict[str, Any]) -> str:
     """
     Сериализует данные в JSON формат.
-
-    Исправление проблемы 1.4:
     - Выбрасываем явные исключения с контекстом вместо logger.warning
     - Используем orjson если установлен (в 2-3 раза быстрее)
     - Fallback на стандартный json если orjson недоступен
@@ -86,12 +83,9 @@ def _serialize_json(data: Dict[str, Any]) -> str:
                 f"Тип данных: {type(data).__name__}"
             ) from json_error
 
-
 def _deserialize_json(data: str) -> Dict[str, Any]:
     """
     Десериализует JSON строку в данные с валидацией структуры.
-
-    Исправление проблемы 1.4 и #4 (SQL Injection/валидация):
     - Выбрасываем явные исключения с контекстом вместо logger.warning
     - Используем orjson если установлен
     - Fallback на стандартный json если orjson недоступен
@@ -115,8 +109,6 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
             deserialized = orjson.loads(data)  # type: ignore
         else:
             deserialized = json.loads(data)
-
-        # ИСПРАВЛЕНИЕ #4: ВАЛИДАЦИЯ СТРУКТУРЫ ДАННЫХ
         # Проверяем что данные являются словарём
         if not isinstance(deserialized, dict):
             logger.error(
@@ -162,11 +154,8 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
             f"Длина данных: {len(data)}"
         ) from type_error
 
-
 def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     """Валидирует данные кэша на безопасность.
-
-    Исправление проблемы #4:
     - Проверяет тип данных (только dict, list, str, int, float, bool, None)
     - Ограничивает глубину вложенности для предотвращения DoS
     - Проверяет строки на наличие потенциально опасных SQL/JS конструкций
@@ -244,7 +233,6 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     )
     return False
 
-
 # Экспортируемые символы модуля
 __all__ = ["CacheManager"]
 
@@ -269,7 +257,6 @@ LRU_EVICT_BATCH: int = 100
 
 # Длина SHA256 хеша в hex формате
 SHA256_HASH_LENGTH: int = 64
-
 
 class _ConnectionPool:
     """
@@ -379,8 +366,6 @@ class _ConnectionPool:
     def __del__(self) -> None:
         """
         Гарантирует закрытие соединений при уничтожении объекта.
-
-        Исправление проблемы 7 (Connection pool не закрывает соединения при GC):
         - Вызывает close_all() с обработкой исключений
         - Добавляет warning в лог если соединения не закрыты явно
         - В __del__ нельзя выбрасывать исключения - все ошибки логируются
@@ -408,7 +393,6 @@ class _ConnectionPool:
                 del_error,
                 exc_info=True,
             )
-
 
 class CacheManager:
     """Менеджер кэша результатов парсинга.
@@ -577,8 +561,6 @@ class CacheManager:
 
         Проверяет наличие кэша для указанного URL. Если кэш существует
         и не истек, возвращает кэшированные данные. Иначе возвращает None.
-
-        Исправление проблемы #12 (Недостаточная обработка ошибок):
         - Различение временных и критических ошибок БД
         - Автоматическая повторная попытка при временных ошибках
         - Детальное логирование для отладки
@@ -633,7 +615,6 @@ class CacheManager:
             return _deserialize_json(data)
 
         except sqlite3.Error as db_error:
-            # ИСПРАВЛЕНИЕ #12: РАЗЛИЧЕНИЕ ВРЕМЕННЫХ И КРИТИЧЕСКИХ ОШИБОК
             error_str = str(db_error).lower()
 
             # Временные ошибки - можно повторить попытку
@@ -691,7 +672,6 @@ class CacheManager:
                 return None
 
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as decode_error:
-            # ИСПРАВЛЕНИЕ #12: ОБРАБОТКА ОШИБОК ДЕСЕРИАЛИЗАЦИИ
             # Обрабатываем ошибки десериализации - удаляем повреждённую запись
             error_type = type(decode_error).__name__
             logger.warning(
@@ -710,7 +690,6 @@ class CacheManager:
                 )
             return None
         except Exception as general_error:
-            # ИСПРАВЛЕНИЕ #12: ОБРАБОТКА ЛЮБЫХ ДРУГИХ ОШИБОК
             logger.error(
                 "Непредвиденная ошибка при чтении кэша для URL %s: %s (тип: %s)",
                 url,
@@ -1061,8 +1040,6 @@ class CacheManager:
     def __del__(self) -> None:
         """
         Гарантирует закрытие соединений при уничтожении объекта.
-
-        Исправление проблемы 3 (КРИТИЧЕСКОЕ):
         - В __del__ нельзя выбрасывать исключения - все ошибки логируются
         - Не следует полагаться на этот метод для гарантированной очистки
         - Всегда вызывайте close() явно или используйте контекстный менеджер
@@ -1093,8 +1070,6 @@ class CacheManager:
 
         Вычисляет SHA256 хеш от указанного URL для использования
         в качестве ключа в базе данных кэша.
-
-        Исправление проблемы 5 (КРИТИЧЕСКОЕ):
         - Добавлена проверка на None и тип данных
         - Выбрасывается явное исключение при некорректных входных данных
 
@@ -1279,7 +1254,6 @@ class CacheManager:
             logger.warning("Ошибка при проверке размера кэша: %s", os_error)
         except sqlite3.Error as db_error:
             logger.warning("Ошибка БД при LRU eviction: %s", db_error)
-
 
 # Алиас для обратной совместимости
 Cache = CacheManager

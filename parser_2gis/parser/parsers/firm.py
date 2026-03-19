@@ -8,15 +8,12 @@ from .main import MainParser
 if TYPE_CHECKING:
     from ...writer import FileWriter
 
-
 # Константы для валидации initialState
 MAX_INITIAL_STATE_DEPTH = 10  # Максимальная глубина вложенности данных
 
 
 def _validate_initial_state(data: Any, depth: int = 0) -> bool:
     """Рекурсивно валидирует структуру initialState на безопасность.
-
-    Исправление проблемы #1 (XSS уязвимость):
     - Проверяет тип данных (только dict, list, str, int, float, bool, None)
     - Ограничивает глубину вложенности для предотвращения DoS
     - Проверяет строки на наличие опасных JS-конструкций
@@ -191,8 +188,6 @@ class FirmParser(MainParser):
                     "Данные организации не найдены (initialState отсутствует)."
                 )
                 return
-
-            # ИСПРАВЛЕНИЕ #1: Безопасное извлечение данных с строгой валидацией
             # Используем новую функцию валидации вместо ручной проверки
             required_keys = ["data", "entity", "profile"]
             profile_data = _safe_extract_initial_state(

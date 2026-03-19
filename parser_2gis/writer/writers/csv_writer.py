@@ -46,7 +46,6 @@ HASH_BATCH_SIZE = 1000
 CSV_BATCH_SIZE_LOCAL = CSV_BATCH_SIZE
 
 # =============================================================================
-# ИСПРАВЛЕНИЕ B2: ДИНАМИЧЕСКИЙ БУФЕР ДЛЯ CSV
 # =============================================================================
 
 # Порог размера файла для использования увеличенного буфера (100 MB)
@@ -63,8 +62,7 @@ def _calculate_optimal_buffer_size(file_path: Optional[str] = None, file_size_by
     """
     Рассчитывает оптимальный размер буфера для чтения/записи CSV файлов.
 
-    Исправление B2 (ОПТИМИЗАЦИЯ):
-    - Для файлов >100MB используется увеличенный буфер (1MB)
+        - Для файлов >100MB используется увеличенный буфер (1MB)
     - Для файлов <=100MB используется стандартный буфер (256KB)
     - Автоматическое определение размера файла если не предоставлен
     - Настройка через конфигурацию (переменные окружения)
@@ -133,8 +131,6 @@ def _calculate_optimal_buffer_size(file_path: Optional[str] = None, file_size_by
 def _safe_move_file(src: str, dst: str) -> bool:
     """
     Безопасное перемещение файла с fallback на copy+delete.
-
-    Исправление проблемы 8 (shutil.move оставляет оба файла):
     - Обрабатывает ошибку shutil.move() с fallback на copy+delete
     - Проверяет существование файла после move
     - Удаляет source файл если move успешен но source остался
@@ -203,10 +199,19 @@ def _safe_move_file(src: str, dst: str) -> bool:
 
 
 class CSVWriter(FileWriter):
-    """Писатель в CSV-таблицу."""
+    """Писатель в CSV-таблицу.
+
+    Предназначен для записи данных парсинга в файлы формата CSV.
+    Поддерживает постобработку: удаление пустых колонок и дубликатов.
+    """
 
     @property
     def _type_names(self) -> dict[str, str]:
+        """Возвращает отображение типов на русские названия.
+
+        Returns:
+            Словарь с маппингом типов: 'parking' -> 'Парковка' и т.д.
+        """
         return {
             "parking": "Парковка",
             "street": "Улица",
@@ -217,6 +222,15 @@ class CSVWriter(FileWriter):
 
     @property
     def _complex_mapping(self) -> dict[str, Any]:
+        """Возвращает отображение сложных полей с несколькими значениями.
+
+        Сложное отображение означает, что его содержимое может содержать несколько сущностей,
+        связанных пользовательскими настройками.
+        Например: phone -> phone_1, phone_2, ..., phone_n
+
+        Returns:
+            Словарь с маппингом полей: 'phone' -> 'Телефон' и т.д.
+        """
         # Сложное отображение означает, что его содержимое может содержать несколько сущностей,
         # связанных пользовательскими настройками.
         # Например: phone -> phone_1, phone_2, ..., phone_n
@@ -237,6 +251,15 @@ class CSVWriter(FileWriter):
 
     @property
     def _data_mapping(self) -> dict[str, Any]:
+        """Возвращает полное отображение данных для CSV колонок.
+
+        Формирует маппинг между полями данных и названиями колонок в CSV.
+        Включает сложные поля (телефоны, email и т.д.) с учётом настройки
+        columns_per_entity.
+
+        Returns:
+            Словарь с маппингом всех полей для CSV выгрузки.
+        """
         data_mapping = {
             "name": "Наименование",
             "description": "Описание",
@@ -347,7 +370,6 @@ class CSVWriter(FileWriter):
                     complex_columns_count[c] = 0
 
         try:
-            # ИСПРАВЛЕНИЕ B2: Используем динамический буфер для оптимальной производительности
             optimal_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
 
             # Первый проход: подсчёт непустых значений в сложных колонках
@@ -408,9 +430,17 @@ class CSVWriter(FileWriter):
         temp_created = False
 
         try:
-            # ИСПРАВЛЕНИЕ B2: Используем динамический буфер для оптимальной производительности
-            optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
-            optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=os.path.getsize(self._file_path) if os.path.exists(self._file_path) else None)
+            optimal_read_buffer = _calculate_optimal_buffer_size(
+                file_path=self._file_path
+            )
+            file_size = (
+                os.path.getsize(self._file_path)
+                if os.path.exists(self._file_path)
+                else None
+            )
+            optimal_write_buffer = _calculate_optimal_buffer_size(
+                file_size_bytes=file_size
+            )
 
             # Чтение исходного файла и запись нового с увеличенной буферизацией
             with (
@@ -517,7 +547,6 @@ class CSVWriter(FileWriter):
             return
 
         try:
-            # ИСПРАВЛЕНИЕ B2: Используем динамический буфер для оптимальной производительности
             optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
             file_size = os.path.getsize(self._file_path) if os.path.exists(self._file_path) else None
             optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
@@ -575,7 +604,9 @@ class CSVWriter(FileWriter):
 
                     except Exception as line_error:
                         logger.warning(
-                            "Ошибка обработки строки %d: %s", line_num, line_error
+                            "Ошибка обработки строки %d: %s",
+                            line_num,
+                            line_error
                         )
                         # Пропускаем проблемную строку и продолжаем
 
@@ -586,8 +617,11 @@ class CSVWriter(FileWriter):
             if duplicates_count > 0:
                 logger.info("Удалено дубликатов: %d", duplicates_count)
             else:
-                logger.debug("Дубликаты не найдены (буфер чтения: %d, буфер записи: %d)",
-                           optimal_read_buffer, optimal_write_buffer)
+                logger.debug(
+                    "Дубликаты не найдены (буфер чтения: %d, буфер записи: %d)",
+                    optimal_read_buffer,
+                    optimal_write_buffer
+                )
 
             # Замена оригинального файла новым с безопасной обработкой
             move_success = _safe_move_file(tmp_csv_name, self._file_path)

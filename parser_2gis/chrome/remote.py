@@ -7,7 +7,6 @@ import socket
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -27,8 +26,6 @@ from .constants import (
     MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
     MAX_RESPONSE_SIZE,  # L9: лимит размера загружаемых файлов
     MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
-    RATE_LIMIT_CALLS,  # L4: магические числа вынесены в константы
-    RATE_LIMIT_PERIOD,  # L4: магические числа вынесены в константы
 )
 from .dom import DOMNode
 from .exceptions import ChromeException
@@ -80,12 +77,12 @@ _DANGEROUS_JS_PATTERNS = [
 ]
 
 # =============================================================================
-# ИСПРАВЛЕНИЕ #3: RATE LIMITING ДЛЯ ВНЕШНИХ ЗАПРОСОВ
+# RATE LIMITING ДЛЯ ВНЕШНИХ ЗАПРОСОВ
 # =============================================================================
 
 
 # =============================================================================
-# ИСПРАВЛЕНИЕ B3: КЭШИРОВАНИЕ HTTP ЗАПРОСОВ С TTL
+# КЭШИРОВАНИЕ HTTP ЗАПРОСОВ С TTL
 # =============================================================================
 
 # Время жизни кэша HTTP запросов в секундах (5 минут)
@@ -160,7 +157,6 @@ def _rate_limited_request(
 ) -> requests.Response:
     """Выполняет HTTP запрос с rate limiting для внешних запросов к 2GIS.
 
-    Исправление проблемы #3 (Отсутствие rate limiting):
     - Применяет @sleep_and_retry декоратор ко всем внешним запросам
     - Ограничивает количество запросов до EXTERNAL_RATE_LIMIT_CALLS в секунду
     - Предотвращает блокировки со стороны 2GIS
@@ -196,7 +192,6 @@ def _safe_external_request(
 ) -> requests.Response:
     """Безопасный внешний HTTP запрос с rate limiting, валидацией SSL и кэшированием.
 
-    Исправление B3 (ОПТИМИЗАЦИЯ):
     - Добавлено кэширование запросов по (method, url, verify_ssl)
     - TTL кэша: 5 минут (настраивается через HTTP_CACHE_TTL_SECONDS)
     - Размер кэша: до 1024 записей (настраивается через HTTP_CACHE_MAXSIZE)
@@ -281,7 +276,6 @@ _PORT_CACHE_TTL = 2.0  # Время жизни кэша порта в секун
 def _check_port_cached(port: int) -> bool:
     """Проверяет доступность порта с кэшированием через lru_cache.
 
-    Исправление проблемы 3.2 и 13 (ОПТИМИЗАЦИЯ):
     - Размер кэша уменьшен с 128 до 64 (экономия памяти без потери производительности)
     - Использует lru_cache(maxsize=64) для автоматического кэширования
     - Кэширует результат проверки порта
@@ -307,7 +301,6 @@ def _check_port_available_internal(
 ) -> bool:
     """Внутренняя функция проверки порта без кэширования.
 
-    Исправление H1 (утечка сокетов):
     - Сокет создаётся внутри цикла retries
     - Явное закрытие в блоке finally гарантирует освобождение ресурса
     - Предотвращает утечку файловых дескрипторов при множественных проверках
@@ -387,7 +380,6 @@ def _validate_js_code(
 ) -> tuple[bool, str]:
     """Валидирует JavaScript код на безопасность.
 
-    Исправление проблемы #14 (Небезопасное использование eval()):
     - Усилена проверка на опасные конструкции
     - Добавлены дополнительные паттерны для обнаружения атак
     - Проверка на обход существующих фильтров
@@ -431,8 +423,6 @@ def _validate_js_code(
             f"JavaScript код превышает максимальную длину ({len(code)} > {max_length} символов)",
         )
 
-    # ИСПРАВЛЕНИЕ #14: ДОПОЛНИТЕЛЬНЫЕ ПРОВЕРКИ НА ОПАСНЫЕ КОНСТРУКЦИИ
-
     # Проверяем на попытки обхода через unicode кодировку
     # \u0065\u0076\u0061\u006C = eval
     if re.search(r'\\u00[0-9a-fA-F]{2}', code, re.IGNORECASE):
@@ -468,7 +458,6 @@ def _validate_js_code(
         if pattern.search(code):
             return False, f"Обнаружен опасный паттерн в JavaScript коде: {description}"
 
-    # ИСПРАВЛЕНИЕ #14: ПРОВЕРКА НА СКОМОКАННЫЕ КОНСТРУКЦИИ
     # Проверяем на попытки использования setTimeout/setInterval с функцией
     if re.search(r'setTimeout\s*\(\s*function\s*\(', code, re.IGNORECASE):
         # Это допустимо, но логируем для аудита
@@ -574,13 +563,10 @@ class ChromeRemote:
         chrome_options: Параметры ChromeOptions.
         response_patterns: Паттерны URL ответов для перехвата.
 
-    Исправление H3 (rate limiting):
-        - RATE_LIMIT_CALLS: максимальное количество вызовов за период
-        - RATE_LIMIT_PERIOD: период времени в секундах
+    Примечание:
+        Использует rate limiting из constants.py для ограничения
+        количества вызовов API.
     """
-
-    RATE_LIMIT_CALLS: int = 10  # 10 вызовов в секунду
-    RATE_LIMIT_PERIOD: int = 1  # период 1 секунда
 
     def __init__(
         self, chrome_options: ChromeOptions, response_patterns: list[str]
@@ -751,7 +737,6 @@ class ChromeRemote:
                         self._chrome_tab.stop()
                     # Закрываем вкладку через API
                     if self._dev_url:
-                        # Исправление проблемы 3: добавлена явная валидация SSL сертификатов
                         # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
                         _safe_external_request(
                             'put',
@@ -934,7 +919,6 @@ class ChromeRemote:
                     "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
                 )
                 # requests.put не принимает параметр json=True, используем данные запроса
-                # Исправление проблемы 3: добавлена явная валидация SSL сертификатов
                 # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
                 resp = _safe_external_request(
                     'put',
@@ -967,7 +951,6 @@ class ChromeRemote:
         """Закрывает Chrome-вкладку."""
         if tab.status == pychrome.Tab.status_started:
             tab.stop()
-        # Исправление проблемы 3: добавлена явная валидация SSL сертификатов
         # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
         _safe_external_request(
             'put',
@@ -1135,7 +1118,6 @@ class ChromeRemote:
                 # Проверяем вкладку только если прошло достаточно времени
                 if current_time - last_check_time >= MONITOR_INTERVAL:
                     try:
-                        # Исправление проблемы 3: добавлена явная валидация SSL сертификатов
                         # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
                         ret = _safe_external_request(
                             'get',
@@ -1308,7 +1290,7 @@ class ChromeRemote:
             else:
                 response_body = response_data.get("body", "")
 
-            # Исправление проблемы 9: проверка размера ответа для предотвращения DoS атак
+            # Проверка размера ответа для предотвращения DoS атак
             # Проверяем размер полученного тела ответа
             if len(response_body) > MAX_RESPONSE_SIZE:
                 logger.warning(
@@ -1412,10 +1394,9 @@ class ChromeRemote:
             - Наличие опасных паттернов (eval, Function, document.write)
             - Общий размер всех добавленных скриптов (защита от DoS)
 
-        Исправление проблемы 20 (БЕЗОПАСНОСТЬ):
-            - Добавлена проверка общего размера всех JS скриптов
-            - Превышение MAX_TOTAL_JS_SIZE вызывает RuntimeError
-            - Защита от DoS атак через множество маленьких скриптов
+        - Добавлена проверка общего размера всех JS скриптов
+        - Превышение MAX_TOTAL_JS_SIZE вызывает RuntimeError
+        - Защита от DoS атак через множество маленьких скриптов
         """
         if self._chrome_tab is None:
             logger.error("Chrome tab не инициализирован в add_start_script")
@@ -1479,11 +1460,10 @@ class ChromeRemote:
             - Максимальную длину
             - Наличие опасных паттернов (eval, Function, document.write)
 
-        Исправление H3:
-            - Добавлен rate limiting через декоратор @sleep_and_retry и @limits
-            - Ограничение: 10 вызовов в секунду для предотвращения перегрузки CDP
-            - Добавлен параметр timeout для предотвращения зависаний
-            - Используется ThreadPoolExecutor для выполнения с таймаутом
+        - Добавлен rate limiting через декоратор @sleep_and_retry и @limits
+        - Ограничение: 10 вызовов в секунду для предотвращения перегрузки CDP
+        - Добавлен параметр timeout для предотвращения зависаний
+        - Используется ThreadPoolExecutor для выполнения с таймаутом
         """
         if self._chrome_tab is None:
             logger.error("Chrome tab не инициализирован в execute_script")
@@ -1508,7 +1488,6 @@ class ChromeRemote:
     def _execute_script_internal(self, expression: str, timeout: int = 30) -> Any:
         """Внутренний метод выполнения скрипта с rate limiting.
 
-        Исправление проблемы 6 (RATE LIMITING):
         - Декораторы @sleep_and_retry и @limits обеспечивают rate limiting
         - Ограничение: 5 вызовов в секунду для внешних запросов к 2GIS
         - Автоматическая пауза при превышении лимита вызовов
@@ -1605,6 +1584,7 @@ class ChromeRemote:
 
         Примечание:
             Функция гарантирует очистку всех ресурсов даже при ошибках.
+            Включает очистку кэша портов для предотвращения утечек памяти.
         """
         try:
             # Закрываем вкладку
@@ -1624,6 +1604,9 @@ class ChromeRemote:
             # Очищаем запросы и очереди
             self.clear_requests()
             self._response_queues = {}
+
+            # Очищаем кэш портов
+            _clear_port_cache()
 
         except Exception as e:
             logger.error("Непредвиденная ошибка при остановке ChromeRemote: %s", e)
