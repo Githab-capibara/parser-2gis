@@ -290,20 +290,95 @@ LRU_EVICT_BATCH: int = 100
 # Длина SHA256 хеша в hex формате
 SHA256_HASH_LENGTH: int = 64
 
+# =============================================================================
+# ВАЛИДАЦИЯ ENV ПЕРЕМЕННЫХ ДЛЯ CONNECTION POOL
+# =============================================================================
+
+
+# Импортируем функцию валидации из parallel_parser если доступна
+# или определяем локально для избежания циклических импортов
+def _validate_pool_env_int(
+    env_name: str,
+    default: int,
+    min_value: Optional[int] = None,
+    max_value: Optional[int] = None,
+) -> int:
+    """Валидирует ENV переменную для параметров пула соединений.
+
+    Args:
+        env_name: Имя ENV переменной.
+        default: Значение по умолчанию.
+        min_value: Минимальное допустимое значение.
+        max_value: Максимальное допустимое значение.
+
+    Returns:
+        Валидированное целое число в допустимом диапазоне.
+    """
+    value_str = os.getenv(env_name)
+
+    if value_str is None:
+        return default
+
+    try:
+        value = int(value_str)
+
+        # Проверяем минимальное значение
+        if min_value is not None and value < min_value:
+            logger.warning(
+                "ENV переменная %s=%d меньше минимального значения %d. Используется %d",
+                env_name,
+                value,
+                min_value,
+                min_value,
+            )
+            return min_value
+
+        # Проверяем максимальное значение
+        if max_value is not None and value > max_value:
+            logger.warning(
+                "ENV переменная %s=%d больше максимального значения %d. Используется %d",
+                env_name,
+                value,
+                max_value,
+                max_value,
+            )
+            return max_value
+
+        return value
+
+    except ValueError:
+        logger.warning(
+            "ENV переменная %s=%s не является целым числом. Используется значение по умолчанию %d",
+            env_name,
+            value_str,
+            default,
+        )
+        return default
+
+
 # Максимальное количество соединений в пуле (10-20 соединений)
 # ОБОСНОВАНИЕ: 20 соединений выбрано исходя из:
 # - Типичное количество потоков: 5-15
 # - Каждое соединение занимает ~1-5MB памяти
 # - 20 * 5MB = 100MB - разумный предел для большинства систем
 # - queue.Queue для управления соединениями обеспечивает потокобезопасность
-MAX_POOL_SIZE: int = int(os.getenv("PARSER_MAX_POOL_SIZE", "20"))
+# Допустимый диапазон: 5-50 соединений
+MAX_POOL_SIZE: int = _validate_pool_env_int(
+    "PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50
+)
 
 # Минимальное количество соединений в пуле
-MIN_POOL_SIZE: int = int(os.getenv("PARSER_MIN_POOL_SIZE", "5"))
+# Допустимый диапазон: 1-10 соединений
+MIN_POOL_SIZE: int = _validate_pool_env_int(
+    "PARSER_MIN_POOL_SIZE", default=5, min_value=1, max_value=10
+)
 
 # Время жизни соединения в секундах (5 минут)
 # Соединения старше этого возраста будут пересозданы
-CONNECTION_MAX_AGE: int = int(os.getenv("PARSER_CONNECTION_MAX_AGE", "300"))
+# Допустимый диапазон: 60-3600 секунд (1 час)
+CONNECTION_MAX_AGE: int = _validate_pool_env_int(
+    "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
+)
 
 
 class _ConnectionPool:
@@ -360,7 +435,9 @@ class _ConnectionPool:
         self._pool_size = max(MIN_POOL_SIZE, min(pool_size, MAX_POOL_SIZE))
         self._local = threading.local()
         self._all_conns: List[sqlite3.Connection] = []
-        self._lock = threading.Lock()
+        # ИСПРАВЛЕНИЕ 8: Используем RLock для реентерабельности
+        # RLock позволяет одному и тому же потоку получать блокировку несколько раз
+        self._lock = threading.RLock()
         # Оптимизация 16: queue.Queue для управления соединениями
         self._connection_queue: queue.Queue[sqlite3.Connection] = queue.Queue(
             maxsize=self._pool_size
@@ -402,8 +479,18 @@ class _ConnectionPool:
                         )
                         try:
                             conn.close()
-                        except Exception:
-                            pass
+                        except sqlite3.Error as db_error:
+                            logger.warning(
+                                "Ошибка БД при закрытии устаревшего соединения: %s",
+                                db_error,
+                                exc_info=True,
+                            )
+                        except OSError as os_error:
+                            logger.warning(
+                                "Ошибка ОС при закрытии устаревшего соединения: %s",
+                                os_error,
+                                exc_info=True,
+                            )
                         with self._lock:
                             if conn in self._all_conns:
                                 self._all_conns.remove(conn)
@@ -448,8 +535,18 @@ class _ConnectionPool:
             logger.debug("Queue заполнена, закрываем соединение")
             try:
                 conn.close()
-            except Exception:
-                pass
+            except sqlite3.Error as db_error:
+                logger.warning(
+                    "Ошибка БД при закрытии соединения (queue заполнена): %s",
+                    db_error,
+                    exc_info=True,
+                )
+            except OSError as os_error:
+                logger.warning(
+                    "Ошибка ОС при закрытии соединения (queue заполнена): %s",
+                    os_error,
+                    exc_info=True,
+                )
             with self._lock:
                 if conn in self._all_conns:
                     self._all_conns.remove(conn)
@@ -504,8 +601,18 @@ class _ConnectionPool:
                 conn = self._connection_queue.get_nowait()
                 try:
                     conn.close()
-                except Exception:
-                    pass
+                except sqlite3.Error as db_error:
+                    logger.warning(
+                        "Ошибка БД при закрытии соединения (очистка queue): %s",
+                        db_error,
+                        exc_info=True,
+                    )
+                except OSError as os_error:
+                    logger.warning(
+                        "Ошибка ОС при закрытии соединения (очистка queue): %s",
+                        os_error,
+                        exc_info=True,
+                    )
             except queue.Empty:
                 break
 

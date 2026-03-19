@@ -60,16 +60,97 @@ MAX_TIMEOUT: int = 3600  # 1 час максимум
 DEFAULT_TIMEOUT: int = 300
 
 # =============================================================================
+# ВАЛИДАЦИЯ ENV ПЕРЕМЕННЫХ
+# =============================================================================
+
+
+def _validate_env_int(
+    env_name: str,
+    default: int,
+    min_value: Optional[int] = None,
+    max_value: Optional[int] = None,
+) -> int:
+    """Валидирует ENV переменную как целое число в допустимом диапазоне.
+
+    Args:
+        env_name: Имя ENV переменной.
+        default: Значение по умолчанию.
+        min_value: Минимальное допустимое значение (None если нет ограничения).
+        max_value: Максимальное допустимое значение (None если нет ограничения).
+
+    Returns:
+        Валидированное целое число.
+
+    Raises:
+        ValueError: Если значение выходит за пределы диапазона или не является целым числом.
+
+    Примечание:
+        - Логгирует предупреждения при невалидных значениях
+        - Возвращает значение по умолчанию при ошибках
+    """
+    value_str = os.getenv(env_name)
+
+    if value_str is None:
+        return default
+
+    try:
+        value = int(value_str)
+
+        # Проверяем минимальное значение
+        if min_value is not None and value < min_value:
+            logger.warning(
+                "ENV переменная %s=%d меньше минимального значения %d. Используется %d",
+                env_name,
+                value,
+                min_value,
+                min_value,
+            )
+            return min_value
+
+        # Проверяем максимальное значение
+        if max_value is not None and value > max_value:
+            logger.warning(
+                "ENV переменная %s=%d больше максимального значения %d. Используется %d",
+                env_name,
+                value,
+                max_value,
+                max_value,
+            )
+            return max_value
+
+        return value
+
+    except ValueError:
+        logger.warning(
+            "ENV переменная %s=%s не является целым числом. Используется значение по умолчанию %d",
+            env_name,
+            value_str,
+            default,
+        )
+        return default
+
+
+# =============================================================================
+# КОНСТАНТЫ С ВАЛИДАЦИЕЙ ENV ПЕРЕМЕННЫХ
 # =============================================================================
 
 # Интервал периодической очистки временных файлов в секундах (60 секунд)
-TEMP_FILE_CLEANUP_INTERVAL = int(os.getenv("PARSER_TEMP_FILE_CLEANUP_INTERVAL", "60"))
+# Допустимый диапазон: 10-3600 секунд (10 минут)
+TEMP_FILE_CLEANUP_INTERVAL = _validate_env_int(
+    "PARSER_TEMP_FILE_CLEANUP_INTERVAL", default=60, min_value=10, max_value=3600
+)
 
 # Максимальное количество временных файлов для мониторинга
-MAX_TEMP_FILES_MONITORING = int(os.getenv("PARSER_MAX_TEMP_FILES_MONITORING", "1000"))
+# Допустимый диапазон: 100-10000
+MAX_TEMP_FILES_MONITORING = _validate_env_int(
+    "PARSER_MAX_TEMP_FILES_MONITORING", default=1000, min_value=100, max_value=10000
+)
 
 # Возраст временного файла в секундах, после которого он считается осиротевшим (300 секунд = 5 минут)
-ORPHANED_TEMP_FILE_AGE = int(os.getenv("PARSER_ORPHANED_TEMP_FILE_AGE", "300"))
+# Допустимый диапазон: 60-86400 секунд (1 день)
+ORPHANED_TEMP_FILE_AGE = _validate_env_int(
+    "PARSER_ORPHANED_TEMP_FILE_AGE", default=300, min_value=60, max_value=86400
+)
 
 
 class _TempFileTimer:
@@ -361,7 +442,10 @@ MAX_UNIQUE_NAME_ATTEMPTS: int = 10
 # - 5 минут - достаточно для обработки больших файлов (1GB+)
 # - Защита от зависших процессов (осиротевшие lock файлы)
 # - Достаточно времени для завершения медленных дисковых операций
-MERGE_LOCK_TIMEOUT: int = int(os.getenv("PARSER_MERGE_LOCK_TIMEOUT", "300"))
+# Допустимый диапазон: 60-3600 секунд (1 час)
+MERGE_LOCK_TIMEOUT: int = _validate_env_int(
+    "PARSER_MERGE_LOCK_TIMEOUT", default=300, min_value=60, max_value=3600
+)
 
 # Максимальный возраст lock файла в секундах (5 минут)
 # ОБОСНОВАНИЕ: 300 секунд выбрано исходя из:
@@ -369,7 +453,10 @@ MERGE_LOCK_TIMEOUT: int = int(os.getenv("PARSER_MERGE_LOCK_TIMEOUT", "300"))
 # - 5 минут - 5x запас на случай медленных дисков/больших файлов
 # - Lock файлы старше считаются осиротевшими (процесс упал)
 # - Баланс между защитой от race condition и очисткой мусора
-MAX_LOCK_FILE_AGE: int = int(os.getenv("PARSER_MAX_LOCK_FILE_AGE", "300"))
+# Допустимый диапазон: 60-3600 секунд (1 час)
+MAX_LOCK_FILE_AGE: int = _validate_env_int(
+    "PARSER_MAX_LOCK_FILE_AGE", default=300, min_value=60, max_value=3600
+)
 
 # =============================================================================
 # КОНСТАНТА ДЛЯ ОГРАНИЧЕНИЯ ВРЕМЕННЫХ ФАЙЛОВ
@@ -380,7 +467,10 @@ MAX_LOCK_FILE_AGE: int = int(os.getenv("PARSER_MAX_LOCK_FILE_AGE", "300"))
 # - Типичное количество временных файлов: 10-100
 # - 1000 - разумный лимит для предотвращения утечки памяти
 # - При достижении лимита происходит LRU eviction
-MAX_TEMP_FILES: int = int(os.getenv("PARSER_MAX_TEMP_FILES", "1000"))
+# Допустимый диапазон: 100-5000 файлов
+MAX_TEMP_FILES: int = _validate_env_int(
+    "PARSER_MAX_TEMP_FILES", default=1000, min_value=100, max_value=5000
+)
 
 # =============================================================================
 # ГЛОБАЛЬНЫЙ НАБОР ДЛЯ ОТСЛЕЖИВАНИЯ ВРЕМЕННЫХ ФАЙЛОВ (ATEXIT ОЧИСТКА)
@@ -440,24 +530,64 @@ def _cleanup_all_temp_files() -> None:
     """Очищает все зарегистрированные временные файлы.
 
     Вызывается через atexit при завершении процесса для предотвращения утечек.
+
+    Использует контекстный менеджер для гарантии освобождения блокировки
+    и конкретные типы исключений для лучшего логирования.
     """
-    if _temp_files_lock.acquire(timeout=5.0):
+    from contextlib import contextmanager
+
+    @contextmanager
+    def temp_file_lock_context():
+        """Контекстный менеджер для безопасного управления блокировкой."""
+        lock_acquired = _temp_files_lock.acquire(timeout=5.0)
         try:
-            for temp_file in list(_temp_files_registry):
-                try:
-                    if temp_file.exists():
-                        temp_file.unlink()
-                        logger.debug(
-                            "Временный файл удалён через atexit: %s", temp_file
-                        )
-                except Exception as e:
-                    logger.debug(
-                        "Не удалось удалить временный файл %s: %s", temp_file, e
-                    )
-                finally:
-                    _temp_files_registry.discard(temp_file)
+            yield lock_acquired
         finally:
-            _temp_files_lock.release()
+            if lock_acquired:
+                _temp_files_lock.release()
+
+    with temp_file_lock_context() as lock_acquired:
+        if not lock_acquired:
+            logger.warning(
+                "Не удалось получить блокировку для очистки временных файлов"
+            )
+            return
+
+        for temp_file in list(_temp_files_registry):
+            try:
+                if temp_file.exists():
+                    temp_file.unlink()
+                    logger.debug("Временный файл удалён через atexit: %s", temp_file)
+            except FileNotFoundError:
+                # Файл уже удалён - это нормально
+                logger.debug("Временный файл уже удалён: %s", temp_file)
+            except PermissionError as perm_error:
+                # Нет прав на удаление
+                logger.error(
+                    "Нет прав на удаление временного файла %s: %s",
+                    temp_file,
+                    perm_error,
+                    exc_info=True,
+                )
+            except OSError as os_error:
+                # Ошибка ОС при удалении
+                logger.error(
+                    "Ошибка ОС при удалении временного файла %s: %s",
+                    temp_file,
+                    os_error,
+                    exc_info=True,
+                )
+            except Exception as e:
+                # Любая другая ошибка
+                logger.error(
+                    "Не удалось удалить временный файл %s: %s (тип: %s)",
+                    temp_file,
+                    e,
+                    type(e).__name__,
+                    exc_info=True,
+                )
+            finally:
+                _temp_files_registry.discard(temp_file)
 
 
 # Регистрируем очистку через atexit для гарантированной очистки при аварийном завершении

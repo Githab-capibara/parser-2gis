@@ -74,6 +74,12 @@ _DANGEROUS_JS_PATTERNS = [
         re.compile(r"\.src\s*=\s*['\"]http"),
         "установка src с http запрещена",
     ),
+    # Дополнительные паттерны для обнаружения обфускации
+    (re.compile(r"\[\s*['\"]eval['\"]\s*\]"), "обфускация eval через массив"),
+    (re.compile(r"window\s*\[\s*['\"]eval['\"]\s*\]"), "доступ к eval через window[]"),
+    (re.compile(r"this\s*\[\s*['\"]eval['\"]\s*\]"), "доступ к eval через this[]"),
+    (re.compile(r"global\s*\[\s*['\"]eval['\"]\s*\]"), "доступ к eval через global[]"),
+    (re.compile(r"self\s*\[\s*['\"]eval['\"]\s*\]"), "доступ к eval через self[]"),
 ]
 
 # =============================================================================
@@ -535,6 +541,26 @@ def _validate_js_code(
     if re.search(r"\b\s*\w+\s*=\s*eval\s*;", code):
         return False, "Присваивание eval переменной запрещено (попытка обхода)"
 
+    # Проверка на присваивание Function переменной (попытка обхода)
+    if re.search(r"\b\s*\w+\s*=\s*Function\s*;", code):
+        return False, "Присваивание Function переменной запрещено (попытка обхода)"
+
+    # Проверка на доступ к eval через квадратные скобки eval["..."]
+    if re.search(r'\beval\s*\[\s*["\'][a-zA-Z]+["\']\s*\]', code):
+        return False, "Доступ к eval через квадратные скобки запрещён"
+
+    # Проверка на доступ к Function через квадратные скобки
+    if re.search(r'\bFunction\s*\[\s*["\'][a-zA-Z]+["\']\s*\]', code):
+        return False, "Доступ к Function через квадратные скобки запрещён"
+
+    # Проверка на использование Object.prototype.constructor
+    if re.search(r"Object\s*\.\s*prototype\s*\.\s*constructor", code, re.IGNORECASE):
+        return False, "Object.prototype.constructor запрещён (попытка обхода)"
+
+    # Проверка на использование constructor.constructor
+    if re.search(r"constructor\s*\.\s*constructor", code, re.IGNORECASE):
+        return False, "constructor.constructor запрещён (попытка обхода)"
+
     # Проверка на обфускацию через множественные escape-последовательности
     # Подсчитываем количество escape-последовательностей
     escape_count = len(re.findall(r"\\[uUxX0-9]", code))
@@ -568,6 +594,20 @@ def _validate_js_code(
     # Проверка на Array.from с подозрительными аргументами
     if re.search(r'Array\s*\.\s*from\s*\(\s*["\'][^"\']*["\']', code, re.IGNORECASE):
         return False, "Array.from со строкой запрещён (может использоваться для обхода)"
+
+    # Проверка на использование Reflect.construct (обход Function constructor)
+    if re.search(r"Reflect\s*\.\s*construct", code, re.IGNORECASE):
+        return False, "Reflect.construct запрещён (может использоваться для обхода)"
+
+    # Проверка на использование apply/call для Function
+    if re.search(r"Function\s*\.\s*(?:apply|call)\s*\(", code, re.IGNORECASE):
+        return False, "Function.apply/call запрещён (попытка обхода)"
+
+    # Проверка на использование скомпилированного RegExp с eval/Function
+    if re.search(
+        r"new\s+RegExp\s*\([^)]*(?:eval|Function)[^)]*\)", code, re.IGNORECASE
+    ):
+        return False, "RegExp с eval/Function запрещён (попытка обхода)"
 
     return True, ""
 

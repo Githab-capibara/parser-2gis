@@ -292,6 +292,15 @@ class ChromeBrowser:
                                 process_pid,
                             )
 
+                except ProcessLookupError as proc_error:
+                    # Процесс уже завершён
+                    logger.debug("Процесс уже завершён: %s", proc_error)
+                    process_closed = True
+                    process_status = "already_terminated"
+                except PermissionError as perm_error:
+                    # Нет прав на завершение процесса
+                    logger.error("Нет прав на завершение процесса: %s", perm_error)
+                    process_status = "permission_denied"
                 except Exception as terminate_error:
                     logger.warning("Ошибка при завершении Chrome: %s", terminate_error)
 
@@ -330,6 +339,17 @@ class ChromeBrowser:
                                 )
                                 process_status = "kill_timeout"
 
+                    except ProcessLookupError as proc_error:
+                        # Процесс уже завершён
+                        logger.debug("Процесс уже завершён (kill): %s", proc_error)
+                        process_closed = True
+                        process_status = "already_killed"
+                    except PermissionError as perm_error:
+                        # Нет прав на завершение процесса
+                        logger.error(
+                            "Нет прав на принудительное завершение: %s", perm_error
+                        )
+                        process_status = "kill_permission_denied"
                     except Exception as kill_error:
                         logger.error(
                             "Ошибка при принудительном закрытии Chrome: %s", kill_error
@@ -352,23 +372,46 @@ class ChromeBrowser:
             )
 
         # TemporaryDirectory.cleanup() гарантирует удаление профиля
+        profile_cleanup_error = None
         try:
             if hasattr(self, "_profile_tempdir") and self._profile_tempdir is not None:
                 self._profile_tempdir.cleanup()
                 logger.debug(
                     "Временный профиль Chrome удалён через TemporaryDirectory.cleanup()"
                 )
+        except (OSError, IOError) as profile_error:
+            logger.error(
+                "Ошибка ОС/IO при удалении профиля через TemporaryDirectory: %s",
+                profile_error,
+                exc_info=True,
+            )
+            profile_cleanup_error = profile_error
         except Exception as profile_error:
             logger.error(
-                "Ошибка при удалении профиля через TemporaryDirectory: %s",
+                "Непредвиденная ошибка при удалении профиля через TemporaryDirectory: %s",
                 profile_error,
+                exc_info=True,
             )
-            try:
-                if hasattr(self, "_profile_path") and self._profile_path:
-                    shutil.rmtree(self._profile_path, ignore_errors=True)
-                    logger.debug("Профиль удалён через fallback shutil.rmtree()")
-            except Exception as fallback_error:
-                logger.error("Fallback очистка профиля не удалась: %s", fallback_error)
+            profile_cleanup_error = profile_error
+        finally:
+            # Fallback очистка через shutil.rmtree() если TemporaryDirectory не удался
+            if profile_cleanup_error is not None:
+                try:
+                    if hasattr(self, "_profile_path") and self._profile_path:
+                        shutil.rmtree(self._profile_path, ignore_errors=True)
+                        logger.debug("Профиль удалён через fallback shutil.rmtree()")
+                except (OSError, IOError) as fallback_error:
+                    logger.error(
+                        "Ошибка ОС/IO при fallback очистке профиля: %s",
+                        fallback_error,
+                        exc_info=True,
+                    )
+                except Exception as fallback_error:
+                    logger.error(
+                        "Непредвиденная ошибка при fallback очистке профиля: %s",
+                        fallback_error,
+                        exc_info=True,
+                    )
 
     def __repr__(self) -> str:
         classname = self.__class__.__name__
