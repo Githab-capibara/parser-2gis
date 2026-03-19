@@ -257,18 +257,20 @@ class TestChromeBrowserMock:
         mock_free_port.return_value = 9222
         mock_process = MagicMock()
         mock_process.pid = 12345
-        # terminate таймаут, kill успешен
-        mock_process.wait.side_effect = [
-            subprocess.TimeoutExpired(cmd="chrome", timeout=5),
-            None,  # kill успешен
-        ]
+        # poll() возвращает None (процесс ещё работает)
+        # wait() выбрасывает TimeoutExpired
+        # poll() после kill() возвращает код выхода
+        mock_process.poll.side_effect = [None, -9]  # None = работает, -9 = SIGKILL
+        mock_process.wait.side_effect = subprocess.TimeoutExpired(
+            cmd="chrome", timeout=5
+        )
         mock_popen.return_value = mock_process
 
         chrome_options = ChromeOptions()
         browser = ChromeBrowser(chrome_options)
         browser.close()
 
-        # Проверяем что kill был вызван после terminate
+        # Проверяем что terminate и kill были вызваны
         mock_process.terminate.assert_called_once()
         mock_process.kill.assert_called_once()
 

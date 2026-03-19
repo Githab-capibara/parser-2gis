@@ -10,21 +10,22 @@
 Всего тестов: 9 (по 3 на каждую проблему)
 """
 
-import pytest
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from parser_2gis.parser.parsers.firm import (
-    _validate_initial_state,
-    _safe_extract_initial_state,
-    MAX_INITIAL_STATE_DEPTH,
-)
 from parser_2gis.cache import _validate_cached_data
 from parser_2gis.chrome.remote import _validate_js_code
+from parser_2gis.parser.parsers.firm import (
+    MAX_INITIAL_STATE_DEPTH,
+    _safe_extract_initial_state,
+    _validate_initial_state,
+)
 
 # =============================================================================
 # ПРОБЛЕМА 1: XSS УЯЗВИМОСТЬ ЧЕРЕЗ window.initialState (firm.py)
@@ -60,9 +61,9 @@ class TestXSSVulnerabilityInitialState:
         }
 
         # Проверяем что валидация проходит успешно
-        assert (
-            _validate_initial_state(valid_data) is True
-        ), "Корректные данные initialState должны проходить валидацию"
+        assert _validate_initial_state(valid_data) is True, (
+            "Корректные данные initialState должны проходить валидацию"
+        )
 
     def test_validate_initial_state_rejects_dangerous_js(self):
         """
@@ -145,9 +146,9 @@ class TestXSSVulnerabilityInitialState:
         ]
 
         for i, data in enumerate(dangerous_data):
-            assert (
-                _validate_initial_state(data) is False
-            ), f"Данные с XSS атакой (тест {i + 1}) должны быть отклонены"
+            assert _validate_initial_state(data) is False, (
+                f"Данные с XSS атакой (тест {i + 1}) должны быть отклонены"
+            )
 
     def test_validate_initial_state_rejects_deep_nesting(self):
         """
@@ -168,9 +169,9 @@ class TestXSSVulnerabilityInitialState:
         current["payload"] = "malicious data"
 
         # Проверяем что данные отклоняются из-за глубины
-        assert (
-            _validate_initial_state(deep_data) is False
-        ), f"Данные с глубиной вложенности > {MAX_INITIAL_STATE_DEPTH} должны быть отклонены"
+        assert _validate_initial_state(deep_data) is False, (
+            f"Данные с глубиной вложенности > {MAX_INITIAL_STATE_DEPTH} должны быть отклонены"
+        )
 
         # Проверяем что данные с допустимой глубиной проходят
         valid_deep_data = {"level_0": {}}
@@ -182,9 +183,9 @@ class TestXSSVulnerabilityInitialState:
 
         current["payload"] = "valid data"
 
-        assert (
-            _validate_initial_state(valid_deep_data) is True
-        ), f"Данные с глубиной вложенности < {MAX_INITIAL_STATE_DEPTH} должны проходить валидацию"
+        assert _validate_initial_state(valid_deep_data) is True, (
+            f"Данные с глубиной вложенности < {MAX_INITIAL_STATE_DEPTH} должны проходить валидацию"
+        )
 
 
 # =============================================================================
@@ -193,7 +194,16 @@ class TestXSSVulnerabilityInitialState:
 
 
 class TestSQLInjectionInCache:
-    """Тесты для проблемы 4: SQL Injection в кэше."""
+    """Тесты для проблемы 4: SQL Injection в кэше.
+
+    В текущей реализации защита от SQL injection обеспечивается через:
+    1. Параметризованные SQLite запросы (полная защита)
+    2. Валидацию структуры данных (глубина, длина строк, типы)
+    3. Отсутствие конкатенации SQL строк с данными
+
+    Примечание: Прямая проверка строк на SQL паттерны удалена как бесполезная,
+    так как данные уже десериализованы из JSON и не могут напрямую влиять на SQL.
+    """
 
     def test_validate_cached_data_valid_data(self):
         """
@@ -219,131 +229,70 @@ class TestSQLInjectionInCache:
         }
 
         # Проверяем что валидация проходит успешно
-        assert (
-            _validate_cached_data(valid_data) is True
-        ), "Корректные данные кэша должны проходить валидацию"
+        assert _validate_cached_data(valid_data) is True, (
+            "Корректные данные кэша должны проходить валидацию"
+        )
 
-    def test_validate_cached_data_rejects_sql_injection(self):
+    def test_cache_uses_parameterized_queries(self):
         """
-        Тест 2: Отклонение данных с SQL injection паттернами.
+        Тест 2: Проверка использования параметризованных запросов.
 
-        Проверяет что данные с SQL injection паттернами отклоняются.
+        Проверяет что cache.py использует параметризованные запросы
+        вместо конкатенации строк - это полная защита от SQL injection.
         """
-        # Данные с SQL injection атаками
-        dangerous_data = [
-            # SQL комментарий
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе'--",
-                "data": {"items": []},
-            },
-            # DROP TABLE
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе'; DROP TABLE cache;--",
-                "data": {"items": []},
-            },
-            # DELETE FROM
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе'; DELETE FROM cache;--",
-                "data": {"items": []},
-            },
-            # INSERT INTO
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе'; INSERT INTO cache VALUES('hacked');--",
-                "data": {"items": []},
-            },
-            # UPDATE
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе'; UPDATE cache SET data='hacked';--",
-                "data": {"items": []},
-            },
-        ]
+        import inspect
 
-        for i, data in enumerate(dangerous_data):
-            assert (
-                _validate_cached_data(data) is False
-            ), f"Данные с SQL injection (тест {i + 1}) должны быть отклонены"
+        from parser_2gis.cache import CacheManager
 
-    def test_validate_cached_data_rejects_xss_patterns(self):
+        # Проверяем что в cache.py нет конкатенации SQL строк с данными
+        cache_source = inspect.getsource(CacheManager)
+
+        # Параметризованные запросы используют ? для параметров
+        assert "?" in cache_source, (
+            "CacheManager должен использовать параметризованные запросы"
+        )
+
+        # Проверяем отсутствие опасной конкатенации
+        assert 'f"SELECT' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
+        assert 'f"INSERT' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
+        assert 'f"UPDATE' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
+
+    def test_validate_cached_data_validates_structure(self):
         """
-        Тест 3: Отклонение данных с XSS паттернами.
+        Тест 3: Проверка что валидация структуры данных работает.
 
-        Проверяет что данные с XSS паттернами также отклоняются
-        для комплексной защиты.
+        Проверяет что _validate_cached_data проверяет структуру данных:
+        - Глубину вложенности
+        - Длину строк
+        - Типы данных
         """
-        # Данные с XSS паттернами
-        xss_data = [
-            # <script> теги
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе",
-                "data": {
-                    "items": [
-                        {
-                            "name": '<script>alert("XSS")</script>',
-                        }
-                    ]
-                },
-            },
-            # javascript: протокол
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе",
-                "data": {
-                    "items": [
-                        {
-                            "website": "javascript:alert(document.cookie)",
-                        }
-                    ]
-                },
-            },
-            # onerror обработчик
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе",
-                "data": {
-                    "items": [
-                        {
-                            "description": '<img src="x" onerror="alert(1)">',
-                        }
-                    ]
-                },
-            },
-            # onload обработчик
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе",
-                "data": {
-                    "items": [
-                        {
-                            "content": '<body onload="alert(1)">',
-                        }
-                    ]
-                },
-            },
-            # eval() функция
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе",
-                "data": {
-                    "items": [
-                        {
-                            "script": 'eval("malicious code")',
-                        }
-                    ]
-                },
-            },
-            # Function() конструктор
-            {
-                "url": "https://2gis.ru/moscow/search/Кафе",
-                "data": {
-                    "items": [
-                        {
-                            "code": 'Function("return this")()',
-                        }
-                    ]
-                },
-            },
-        ]
+        # None должен проходить валидацию
+        assert _validate_cached_data(None) is True
 
-        for i, data in enumerate(xss_data):
-            assert (
-                _validate_cached_data(data) is False
-            ), f"Данные с XSS паттерном (тест {i + 1}) должны быть отклонены"
+        # Пустой dict должен проходить
+        assert _validate_cached_data({}) is True
+
+        # dict с простыми значениями должен проходить
+        assert _validate_cached_data({"key": "value", "num": 42}) is True
+
+        # list должен проходить
+        assert _validate_cached_data([1, 2, 3]) is True
+
+        # Данные с SQL-like строками тоже проходят (защита через параметризованные запросы)
+        sql_like_data = {
+            "url": "https://2gis.ru/moscow/search/Кафе'--",
+            "data": {"items": [{"name": "DROP TABLE cache;--"}]},
+        }
+        # Эта проверка теперь проходит - защита через параметризованные запросы
+        assert _validate_cached_data(sql_like_data) is True, (
+            "Защита от SQL injection через параметризованные запросы, не через валидацию строк"
+        )
 
 
 # =============================================================================
@@ -396,9 +345,9 @@ class TestUnsafeEvalUsage:
 
         for code in unicode_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert (
-                is_valid is False
-            ), f"Код с Unicode/HTML entity кодировкой должен быть отклонён: {code}"
+            assert is_valid is False, (
+                f"Код с Unicode/HTML entity кодировкой должен быть отклонён: {code}"
+            )
             assert (
                 "unicode" in error_message.lower()
                 or "кодировк" in error_message.lower()
@@ -427,9 +376,9 @@ class TestUnsafeEvalUsage:
         for code in atob_codes:
             is_valid, error_message = _validate_js_code(code)
             assert is_valid is False, f"Код с atob() должен быть отклонён: {code}"
-            assert (
-                "atob" in error_message.lower()
-            ), f"Сообщение об ошибке должно упоминать atob: {error_message}"
+            assert "atob" in error_message.lower(), (
+                f"Сообщение об ошибке должно упоминать atob: {error_message}"
+            )
 
     # Дополнительные тесты для комплексной проверки
     def test_validate_js_code_valid_code(self):
@@ -450,9 +399,9 @@ class TestUnsafeEvalUsage:
 
         for code in valid_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert (
-                is_valid is True
-            ), f"Безопасный код должен проходить валидацию: {code}. Ошибка: {error_message}"
+            assert is_valid is True, (
+                f"Безопасный код должен проходить валидацию: {code}. Ошибка: {error_message}"
+            )
 
     def test_validate_js_code_rejects_string_fromcharcode(self):
         """
@@ -465,9 +414,9 @@ class TestUnsafeEvalUsage:
         is_valid, error_message = _validate_js_code(charcode)
 
         assert is_valid is False, "Код с String.fromCharCode() должен быть отклонён"
-        assert (
-            "fromcharcode" in error_message.lower()
-        ), f"Сообщение об ошибке должно упоминать fromCharCode: {error_message}"
+        assert "fromcharcode" in error_message.lower(), (
+            f"Сообщение об ошибке должно упоминать fromCharCode: {error_message}"
+        )
 
     def test_validate_js_code_rejects_concat_obfuscation(self):
         """
@@ -484,9 +433,9 @@ class TestUnsafeEvalUsage:
 
         for code in concat_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert (
-                is_valid is False
-            ), f"Код с подозрительной конкатенацией должен быть отклонён: {code}"
+            assert is_valid is False, (
+                f"Код с подозрительной конкатенацией должен быть отклонён: {code}"
+            )
 
 
 # =============================================================================

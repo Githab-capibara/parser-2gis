@@ -1,3 +1,7 @@
+# Конфигурация pre-commit хуков для parser-2gis
+# ИСПРАВЛЕНИЕ 27: Добавлено black форматирование
+# ИСПРАВЛЕНИЕ 28: Добавлено isort для сортировки импортов
+# ИСПРАВЛЕНИЕ 29: Добавлено autoflake для удаления неиспользуемых импортов
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -12,12 +16,55 @@ repos:
         args: [--autofix, --no-ensure-ascii, --no-sort-keys]
       - id: check-ast
       - id: debug-statements
+      # ИСПРАВЛЕНИЕ 30: Проверка на утечки ресурсов (открытые файлы)
+      - id: check-executables-have-shebangs
+
+  # ИСПРАВЛЕНИЕ 29: autoflake для удаления неиспользуемых импортов
+  - repo: https://github.com/myint/autoflake
+    rev: v2.2.1
+    hooks:
+      - id: autoflake
+        args:
+          - --in-place
+          - --remove-all-unused-imports
+          - --remove-unused-variables
+          - --expand-star-imports
+          - --ignore-init-module-imports
+
+  # ИСПРАВЛЕНИЕ 28: isort для сортировки импортов
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort (python)
+        args:
+          - --profile=black
+          - --line-length=100
+          - --src-path=parser_2gis
+          - --src-path=tests
+
+  # ИСПРАВЛЕНИЕ 27: black для форматирования кода
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        language_version: python3
+        args:
+          - --line-length=100
+          - --target-version=py38
+          - --target-version=py39
+          - --target-version=py310
+          - --target-version=py311
+          - --target-version=py312
 
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
       - id: flake8
         language_version: python3
+        args:
+          - --max-line-length=100
+          - --extend-ignore=E203,E501,W503
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
@@ -25,3 +72,7 @@ repos:
       - id: mypy
         additional_dependencies: [types-requests>=2.31.0]
         files: parser_2gis
+        args:
+          - --ignore-missing-imports
+          - --disallow-untyped-defs
+          - --disallow-incomplete-defs

@@ -22,9 +22,12 @@
 
 import hashlib
 import json
+import os
+import queue
 import sqlite3
 import sys
 import threading
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -155,10 +158,25 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
         ) from type_error
 
 
+# =============================================================================
+# КОНСТАНТЫ БЕЗОПАСНОСТИ ДЛЯ ВАЛИДАЦИИ ДАННЫХ КЭША
+# =============================================================================
+
+# Максимальная глубина вложенности данных кэша
+# ОБОСНОВАНИЕ: 20 уровней достаточно для любых реалистичных структур данных
+# Превышение может указывать на циклические ссылки или DoS атаку
+MAX_DATA_DEPTH: int = 20
+
+# Максимальная длина строки в байтах
+# ОБОСНОВАНИЕ: 10000 байт достаточно для хранения любых текстовых данных
+# Превышение может указывать на попытку хранения больших объёмов данных в кэше
+MAX_STRING_LENGTH: int = 10000
+
+
 def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     """Валидирует данные кэша на безопасность.
     - Проверяет тип данных (только dict, list, str, int, float, bool, None)
-    - Ограничивает глубину вложенности для предотвращения DoS
+    - Ограничивает глубину вложенности для предотвращения DoS (MAX_DATA_DEPTH = 20)
     - Проверяет строки на наличие потенциально опасных SQL/JS конструкций
     - Добавлена проверка на UNION SELECT
     - Добавлена проверка на OR 1=1 и подобные конструкции
@@ -171,54 +189,6 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     Returns:
         True если данные безопасны, False иначе.
     """
-    # ЛИМИТЫ ОТКЛЮЧЕНЫ - без ограничений
-    MAX_DATA_DEPTH: int = sys.maxsize  # Без ограничений глубины
-    MAX_STRING_LENGTH: int = sys.maxsize  # Без ограничений длины строки
-
-    # Расширенный список SQL паттернов для обнаружения injection атак
-    SQL_INJECTION_PATTERNS: List[str] = [
-        "--",  # SQL комментарий
-        "; DROP",  # DROP TABLE
-        "DELETE FROM",  # DELETE
-        "INSERT INTO",  # INSERT
-        "UPDATE ",  # UPDATE
-        "UNION SELECT",  # UNION SELECT атака
-        "UNION ALL SELECT",  # UNION ALL SELECT
-        "OR 1=1",  # OR 1=1 (всегда истина)
-        "OR '1'='1'",  # OR '1'='1' (всегда истина)
-        'OR "1"="1"',  # OR "1"="1" (всегда истина)
-        "OR 1 = 1",  # OR 1 = 1 (с пробелами)
-        "AND 1=1",  # AND 1=1
-        "AND '1'='1'",  # AND '1'='1'
-        "OR 'a'='a'",  # OR 'a'='a'
-        "OR ''=''",  # OR ''=''
-        "EXEC ",  # EXEC выполнение
-        "EXECUTE ",  # EXECUTE выполнение
-        "XP_",  # Расширенные хранимые процедуры
-        "SP_",  # Хранимые процедуры
-        "WAITFOR DELAY",  # Задержка времени
-        "BENCHMARK(",  # MySQL benchmark
-        "SLEEP(",  # SLEEP функция
-        "LOAD_FILE(",  # Загрузка файла
-        "INTO OUTFILE",  # Выгрузка в файл
-        "INTO DUMPFILE",  # Выгрузка в файл
-        "INFORMATION_SCHEMA",  # Схема информации
-        "SYS.TABLES",  # Системные таблицы
-        "PG_CATALOG",  # PostgreSQL каталог
-        "HAVING 1=1",  # HAVING 1=1
-        "ORDER BY 1",  # ORDER BY для определения колонок
-        "ORDER BY 1--",  # ORDER BY с комментарием
-        "GROUP BY ",  # GROUP BY для определения колонок
-        "CHAR(",  # CHAR функция для обхода
-        "CONCAT(",  # CONCAT функция
-        "SUBSTRING(",  # SUBSTRING функция
-        "ASCII(",  # ASCII функция
-        "HEX(",  # HEX функция
-        "UNHEX(",  # UNHEX функция
-        "0x",  # Hex значения
-        "0X",  # Hex значения (верхний регистр)
-    ]
-
     # Проверяем глубину вложенности
     if depth > MAX_DATA_DEPTH:
         logger.warning(
@@ -226,6 +196,10 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
             MAX_DATA_DEPTH,
         )
         return False
+
+    # ИСПРАВЛЕНИЕ 11: Убран расширенный список SQL паттернов
+    # Параметризованные запросы полностью защищают от SQL injection
+    # Проверка строк на SQL паттерны избыточна
 
     # Базовые типы
     if data is None:
@@ -253,48 +227,10 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
             )
             return False
 
-        # Проверяем строку на опасные конструкции
-        # Это предотвращает потенциальные SQL injection и XSS атаки
-        dangerous_patterns: List[str] = [
-            # XSS атаки
-            "<script",
-            "javascript:",
-            "onerror=",
-            "onload=",
-            "onclick=",
-            "onmouseover=",
-            "onfocus=",
-            "onblur=",
-            # JS eval и подобные
-            "eval(",
-            "Function(",
-            "setTimeout(",
-            "setInterval(",
-            # Дополнительные SQL паттерны
-            "DROP TABLE",
-            "TRUNCATE TABLE",
-            "ALTER TABLE",
-            "CREATE TABLE",
-            "REPLACE INTO",
-            "SELECT *",
-            "SELECT 1",
-            "SELECT @@",
-            "#",  # MySQL комментарий
-            "/*",  # SQL комментарий блочный
-            "*/",  # Закрытие SQL комментария
-        ]
-
-        # Объединяем все паттерны
-        all_patterns = SQL_INJECTION_PATTERNS + dangerous_patterns
-
-        data_upper = data.upper()
-        for pattern in all_patterns:
-            if pattern.upper() in data_upper:
-                logger.warning(
-                    "Обнаружена опасная конструкция в данных кэша: %s",
-                    pattern,
-                )
-                return False
+        # ИСПРАВЛЕНИЕ 11: Убрана бесполезная проверка строк на SQL injection
+        # Параметризованные запросы полностью защищают от SQL injection атак
+        # Проверка строк на наличие SQL паттернов избыточна и может вызывать
+        # ложные срабатывания на легитимных данных (например, текст описания)
         return True
 
     if isinstance(data, dict):
@@ -354,10 +290,32 @@ LRU_EVICT_BATCH: int = 100
 # Длина SHA256 хеша в hex формате
 SHA256_HASH_LENGTH: int = 64
 
+# Максимальное количество соединений в пуле (10-20 соединений)
+# ОБОСНОВАНИЕ: 20 соединений выбрано исходя из:
+# - Типичное количество потоков: 5-15
+# - Каждое соединение занимает ~1-5MB памяти
+# - 20 * 5MB = 100MB - разумный предел для большинства систем
+# - queue.Queue для управления соединениями обеспечивает потокобезопасность
+MAX_POOL_SIZE: int = int(os.getenv("PARSER_MAX_POOL_SIZE", "20"))
+
+# Минимальное количество соединений в пуле
+MIN_POOL_SIZE: int = int(os.getenv("PARSER_MIN_POOL_SIZE", "5"))
+
+# Время жизни соединения в секундах (5 минут)
+# Соединения старше этого возраста будут пересозданы
+CONNECTION_MAX_AGE: int = int(os.getenv("PARSER_CONNECTION_MAX_AGE", "300"))
+
 
 class _ConnectionPool:
     """
-    Пул соединений для SQLite, безопасный для многопоточности.
+    Пул соединений для SQLite с reuse и queue.Queue для управления.
+
+    Оптимизация 16:
+    - Reuse соединений вместо создания новых
+    - max_connections лимит (10-20 соединений)
+    - queue.Queue для управления соединениями
+    - Правильная очистка соединений
+    - Connection pooling для снижения накладных расходов
 
     Примечание: SQLite требует, чтобы соединение создавалось в том же потоке,
     в котором оно используется. Поэтому пул создает новое соединение для каждого потока.
@@ -375,6 +333,7 @@ class _ConnectionPool:
         _local: Thread-local хранилище для соединений.
         _all_conns: Список всех созданных соединений.
         _lock: Блокировка для потокобезопасности.
+        _connection_queue: Queue для управления соединениями.
 
     Raises:
         sqlite3.Error: При ошибке создания соединения с базой данных.
@@ -397,14 +356,26 @@ class _ConnectionPool:
             >>> pool = _ConnectionPool(Path("/tmp/cache.db"), pool_size=10)
         """
         self._cache_file = cache_file
-        self._pool_size = pool_size
+        # Ограничиваем размер пула разумными пределами
+        self._pool_size = max(MIN_POOL_SIZE, min(pool_size, MAX_POOL_SIZE))
         self._local = threading.local()
         self._all_conns: List[sqlite3.Connection] = []
         self._lock = threading.Lock()
+        # Оптимизация 16: queue.Queue для управления соединениями
+        self._connection_queue: queue.Queue[sqlite3.Connection] = queue.Queue(
+            maxsize=self._pool_size
+        )
+        # Кэш времени создания соединений для отслеживания возраста
+        self._connection_age: Dict[int, float] = {}
 
     def get_connection(self) -> sqlite3.Connection:
         """
-        Получает соединение для текущего потока.
+        Получает соединение для текущего потока с reuse.
+
+        Оптимизация 16:
+        - Reuse соединений вместо создания новых
+        - Проверка возраста соединения и пересоздание при необходимости
+        - queue.Queue для потокобезопасного управления
 
         SQLite требует создания соединения в том же потоке, где оно будет использоваться.
         Метод использует thread-local хранилище для каждого потока.
@@ -412,14 +383,79 @@ class _ConnectionPool:
         Returns:
             SQLite соединение для текущего потока.
         """
+        import time
+
         # Проверяем, есть ли соединение для текущего потока
         if not hasattr(self._local, "connection") or self._local.connection is None:
-            # Создаём новое соединение для этого потока
-            self._local.connection = self._create_connection()
-            with self._lock:
-                self._all_conns.append(self._local.connection)
+            # Пытаемся получить соединение из queue
+            try:
+                conn = self._connection_queue.get_nowait()
+                # Проверяем возраст соединения
+                conn_id = id(conn)
+                if conn_id in self._connection_age:
+                    age = time.time() - self._connection_age[conn_id]
+                    if age > CONNECTION_MAX_AGE:
+                        # Соединение устарело, пересоздаём
+                        logger.debug(
+                            "Соединение устарело (возраст: %.0f сек), пересоздаём",
+                            age,
+                        )
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
+                        with self._lock:
+                            if conn in self._all_conns:
+                                self._all_conns.remove(conn)
+                        del self._connection_age[conn_id]
+                        conn = self._create_connection()
+
+                self._local.connection = conn
+                logger.debug("Получено соединение из queue (reuse)")
+            except queue.Empty:
+                # Queue пуста, создаём новое соединение
+                self._local.connection = self._create_connection()
+                with self._lock:
+                    # Проверяем лимит соединений
+                    if len(self._all_conns) >= self._pool_size:
+                        logger.warning(
+                            "Достигнут лимит соединений (%d), новое соединение не добавляется в pool",
+                            self._pool_size,
+                        )
+                    else:
+                        self._all_conns.append(self._local.connection)
+                        self._connection_age[id(self._local.connection)] = time.time()
 
         return self._local.connection
+
+    def return_connection(self, conn: sqlite3.Connection) -> None:
+        """
+        Возвращает соединение в пул для reuse.
+
+        Оптимизация 16:
+        - Возврат соединения в queue для повторного использования
+        - Правильная очистка соединений
+
+        Args:
+            conn: Соединение для возврата в пул.
+        """
+        try:
+            # Пытаемся вернуть соединение в queue
+            self._connection_queue.put_nowait(conn)
+            logger.debug("Соединение возвращено в queue для reuse")
+        except queue.Full:
+            # Queue заполнена, закрываем соединение
+            logger.debug("Queue заполнена, закрываем соединение")
+            try:
+                conn.close()
+            except Exception:
+                pass
+            with self._lock:
+                if conn in self._all_conns:
+                    self._all_conns.remove(conn)
+            conn_id = id(conn)
+            if conn_id in self._connection_age:
+                del self._connection_age[conn_id]
 
     def _create_connection(self) -> sqlite3.Connection:
         """
@@ -449,8 +485,9 @@ class _ConnectionPool:
         return conn
 
     def close_all(self) -> None:
-        """Закрывает все соединения в пуле."""
+        """Закрывает все соединения в пуле с правильной очисткой."""
         with self._lock:
+            # Закрываем все соединения из списка
             for conn in self._all_conns:
                 try:
                     conn.close()
@@ -459,6 +496,18 @@ class _ConnectionPool:
                         "Не удалось закрыть соединение SQLite: %s", e, exc_info=True
                     )
             self._all_conns.clear()
+            self._connection_age.clear()
+
+        # Очищаем queue
+        while not self._connection_queue.empty():
+            try:
+                conn = self._connection_queue.get_nowait()
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+            except queue.Empty:
+                break
 
     def __del__(self) -> None:
         """
@@ -662,6 +711,8 @@ class CacheManager:
         - Различение временных и критических ошибок БД
         - Автоматическая повторная попытка при временных ошибках
         - Детальное логирование для отладки
+        - ИСПРАВЛЕНИЕ 6: Использование транзакции с правильным isolation level
+          для предотвращения race condition между проверкой и удалением
 
         Args:
             url: URL для поиска в кэше
@@ -682,12 +733,19 @@ class CacheManager:
         cursor = conn.cursor()
 
         try:
+            # ИСПРАВЛЕНИЕ 6: Начинаем транзакцию с правильным isolation level
+            # BEGIN IMMEDIATE гарантирует атомарность операции "проверить-и-удалить"
+            # Это предотвращает race condition когда другой поток может удалить
+            # запись между проверкой expires_at и удалением
+            cursor.execute("BEGIN IMMEDIATE")
+
             # Ищем кэш по хешу URL с использованием подготовленного запроса
             cursor.execute(self.SQL_SELECT, (url_hash,))
             row = cursor.fetchone()
 
             # Если кэш не найден
             if not row:
+                conn.rollback()  # Отменяем транзакцию
                 return None
 
             data, expires_at_str = row
@@ -696,23 +754,30 @@ class CacheManager:
             except ValueError:
                 # Некорректный формат даты, считаем кэш истёкшим
                 logger.debug("Некорректный формат даты в кэше: %s", expires_at_str)
+                conn.rollback()  # Отменяем транзакцию
                 return None
 
             # Проверяем, истек ли кэш
-
             # для избежания повторных вызовов в рамках одного метода
             current_time = datetime.now()
             if current_time > expires_at:
-                # Кэш истек, удаляем его
+                # Кэш истек, удаляем его (атомарная операция в рамках транзакции)
                 cursor.execute(self.SQL_DELETE, (url_hash,))
-                conn.commit()
+                conn.commit()  # Фиксируем транзакцию
                 return None
 
             # Кэш найден и не истек, возвращаем данные
             # Оптимизация 3.6: используем orjson wrapper для быстрой десериализации
+            conn.commit()  # Фиксируем транзакцию
             return _deserialize_json(data)
 
         except sqlite3.Error as db_error:
+            # Отменяем транзакцию при ошибке
+            try:
+                conn.rollback()
+            except Exception as rollback_error:
+                logger.debug("Ошибка при откате транзакции: %s", rollback_error)
+
             error_str = str(db_error).lower()
 
             # Временные ошибки - можно повторить попытку

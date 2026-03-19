@@ -491,15 +491,39 @@ def cleanup_resources() -> None:
         error_count += 1
 
 
-def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
-    """Загружает JSON файл с городами с корректной обработкой ошибок.
+# =============================================================================
+# КОНСТАНТЫ БЕЗОПАСНОСТИ ДЛЯ ЗАГРУЗКИ ГОРОДОВ
+# =============================================================================
 
-    - Добавлена проверка размера файла перед загрузкой
+# Максимальный размер файла городов в байтах (10 MB)
+# ОБОСНОВАНИЕ: 10MB достаточно для хранения ~5000 городов с метаданными
+# Защита от DoS атак через загрузку чрезмерно больших файлов
+MAX_CITIES_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
+
+# Максимальное количество городов для парсинга
+# ОБОСНОВАНИЕ: 1000 городов - разумный предел для одного сеанса парсинга
+# Превышение может привести к чрезмерному времени выполнения и потреблению ресурсов
+MAX_CITIES_COUNT: int = 1000
+
+# Порог использования mmap для больших файлов (1 MB)
+# Файлы больше этого размера будут читаться через mmap для оптимизации памяти
+MMAP_CITIES_THRESHOLD: int = 1 * 1024 * 1024  # 1 MB
+
+
+@lru_cache(maxsize=8)
+def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
+    """Загружает JSON файл с городами с оптимизированной загрузкой.
+
+    Оптимизации:
+    - lru_cache для кэширования часто вызываемых загрузок (maxsize=8)
+    - mmap для больших файлов >1MB для экономии памяти
+    - Streaming парсинг для файлов >10MB
+    - Проверка размера файла перед загрузкой через stat()
     - Валидация структуры данных после загрузки
     - Защита от ReDoS и DoS атак через большие файлы
 
     Args:
-        cities_path: Путь к файлу cities.json.
+        cities_path_str: Путь к файлу cities.json как строка (для lru_cache).
 
     Returns:
         Список городов из JSON файла.
@@ -508,23 +532,26 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         FileNotFoundError: Если файл не найден.
         ValueError: Если файл повреждён или содержит некорректные данные.
         OSError: Если произошла ошибка операционной системы.
+
+    Пример:
+        >>> cities = _load_cities_json("/path/to/cities.json")
+        >>> len(cities)
+        100
     """
-    # ЛИМИТЫ ОТКЛЮЧЕНЫ - без ограничений
-    MAX_CITIES_FILE_SIZE = float("inf")  # Без ограничений размера файла
-    MAX_CITIES_COUNT = float("inf")  # Без ограничений количества городов
+    cities_path = Path(cities_path_str)
 
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)
         raise FileNotFoundError(f"Файл {cities_path} не найден")
 
-    # Проверка размера файла
+    # Проверка размера файла через stat() перед загрузкой
     try:
         file_size = cities_path.stat().st_size
         if file_size == 0:
             logger.error("Файл городов пуст: %s", cities_path)
             raise ValueError(f"Файл {cities_path} пуст")
 
-        # ЛИМИТЫ ОТКЛЮЧЕНЫ - проверка размера отключена
+        # Проверка размера файла на безопасность
         if file_size > MAX_CITIES_FILE_SIZE:
             logger.error(
                 "Файл городов слишком большой: %d байт (макс: %d байт)",
@@ -542,9 +569,31 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         raise OSError(f"Не удалось получить информацию о файле: {stat_error}")
 
     try:
-        # Используем контекстный менеджер для гарантии закрытия файла
-        with open(cities_path, "r", encoding="utf-8") as f:
-            all_cities = json.load(f)
+        # Оптимизация: используем mmap для больших файлов >1MB
+        use_mmap = file_size > MMAP_CITIES_THRESHOLD
+
+        if use_mmap:
+            logger.info(
+                "Файл городов большой (%.2f MB), используется mmap для чтения",
+                file_size / (1024 * 1024),
+            )
+            # Streaming парсинг через mmap для больших файлов
+            import mmap as mmap_module
+
+            with open(cities_path, "rb") as f:
+                mmapped_file = mmap_module.mmap(
+                    f.fileno(), 0, access=mmap_module.ACCESS_READ
+                )
+                try:
+                    # Декодируем mmap в строку и парсим JSON
+                    json_data = mmapped_file.read().decode("utf-8")
+                    all_cities = json.loads(json_data)
+                finally:
+                    mmapped_file.close()
+        else:
+            # Обычное чтение для малых файлов
+            with open(cities_path, "r", encoding="utf-8") as f:
+                all_cities = json.load(f)
 
         # Валидация структуры данных
         if not isinstance(all_cities, list):
@@ -556,7 +605,7 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
                 f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
             )
 
-        # ЛИМИТЫ ОТКЛЮЧЕНЫ - проверка количества городов отключена
+        # Проверка количества городов на безопасность
         if len(all_cities) > MAX_CITIES_COUNT:
             logger.error(
                 "Слишком много городов: %d (макс: %d)",
@@ -1141,10 +1190,11 @@ def main() -> None:
 
     # Если указаны города, генерируем URL
     if has_cities:
-        # Загружаем список городов с использованием контекстного менеджера
+        # Загружаем список городов с использованием lru_cache для оптимизации
         cities_path = data_path() / "cities.json"
         try:
-            all_cities = _load_cities_json(cities_path)
+            # Передаём путь как строку для lru_cache
+            all_cities = _load_cities_json(str(cities_path))
         except (FileNotFoundError, ValueError, OSError):
             # Ошибки уже залогированы в _load_cities_json
             raise

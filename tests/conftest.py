@@ -3,6 +3,11 @@
 
 Этот файл содержит общие фикстуры, которые используются
 в нескольких тестовых модулях для тестирования исправлений аудита.
+
+ИСПРАВЛЕНИЕ 23: Все фикстуры используют proper cleanup через:
+- yield для teardown
+- tempfile.TemporaryDirectory context manager
+- pytest tmp_path fixture (автоматическая очистка)
 """
 
 import asyncio
@@ -28,10 +33,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 
 @pytest.fixture
-def mock_oserror() -> MagicMock:
+def mock_oserror() -> Generator[MagicMock, None, None]:
     """Фикстура для mock OSError.
 
-    Returns:
+    Yields:
         MagicMock для имитации OSError.
     """
     with patch("builtins.OSError") as mock_error:
@@ -43,6 +48,8 @@ def mock_oserror() -> MagicMock:
 def temp_csv_files(tmp_path: Path) -> Generator[List[Path], None, None]:
     """Фикстура для создания временных CSV файлов.
 
+    ИСПОЛЬЗУЕТ: pytest tmp_path fixture (автоматическая очистка после теста)
+
     Args:
         tmp_path: pytest tmp_path fixture.
 
@@ -51,7 +58,7 @@ def temp_csv_files(tmp_path: Path) -> Generator[List[Path], None, None]:
     """
     import csv
 
-    csv_files = []
+    csv_files: List[Path] = []
     for i in range(3):
         csv_file = tmp_path / f"test_{i}.csv"
         with open(csv_file, "w", newline="", encoding="utf-8") as f:
@@ -62,11 +69,7 @@ def temp_csv_files(tmp_path: Path) -> Generator[List[Path], None, None]:
         csv_files.append(csv_file)
 
     yield csv_files
-
-    # Очистка
-    for csv_file in csv_files:
-        if csv_file.exists():
-            csv_file.unlink()
+    # Очистка не требуется - tmp_path очищается автоматически pytest
 
 
 @pytest.fixture
@@ -79,6 +82,7 @@ def mock_file_open_oserror() -> Generator[MagicMock, None, None]:
     with patch("builtins.open") as mock_open:
         mock_open.side_effect = OSError("Mocked OSError on file open")
         yield mock_open
+    # Очистка не требуется - patch контекстный менеджер очищает автоматически
 
 
 # =============================================================================
@@ -87,16 +91,21 @@ def mock_file_open_oserror() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
-def mock_executor() -> MagicMock:
+def mock_executor() -> Generator[MagicMock, None, None]:
     """Фикстура для mock ThreadPoolExecutor.
 
-    Returns:
+    Yields:
         MagicMock для имитации ThreadPoolExecutor.
     """
     executor = MagicMock()
     executor.submit.return_value.result.return_value = "result"
     executor.shutdown.return_value = None
-    return executor
+    yield executor
+    # Гарантированная очистка ресурсов executor
+    try:
+        executor.shutdown(wait=True)
+    except Exception:
+        pass
 
 
 @pytest.fixture
@@ -301,6 +310,8 @@ def mock_cache_with_serialization_error() -> Generator[MagicMock, None, None]:
 def temp_files_registry() -> Generator[set, None, None]:
     """Фикстура для реестра временных файлов.
 
+    ИСПОЛЬЗУЕТ: yield для гарантии очистки после теста
+
     Yields:
         Пустой набор для реестра.
     """
@@ -312,27 +323,34 @@ def temp_files_registry() -> Generator[set, None, None]:
 
     yield _temp_files_registry
 
-    # Восстанавливаем оригинальное состояние
+    # Восстанавливаем оригинальное состояние (teardown)
     _temp_files_registry.clear()
     _temp_files_registry.update(original_state)
 
 
 @pytest.fixture
-def mock_temp_file_paths(tmp_path: Path) -> List[Path]:
+def mock_temp_file_paths(tmp_path: Path) -> Generator[List[Path], None, None]:
     """Фикстура для mock путей временных файлов.
+
+    ИСПОЛЬЗУЕТ: pytest tmp_path fixture (автоматическая очистка)
+    ИСПОЛЬЗУЕТ: tempfile.TemporaryDirectory context manager
 
     Args:
         tmp_path: pytest tmp_path fixture.
 
-    Returns:
+    Yields:
         Список путей к временным файлам.
     """
-    paths = []
-    for i in range(10):
-        temp_file = tmp_path / f"temp_file_{i}.tmp"
-        temp_file.write_text(f"temp data {i}")
-        paths.append(temp_file)
-    return paths
+    # Используем TemporaryDirectory для гарантии очистки
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
+        paths: List[Path] = []
+        for i in range(10):
+            temp_file = temp_dir_path / f"temp_file_{i}.tmp"
+            temp_file.write_text(f"temp data {i}")
+            paths.append(temp_file)
+        yield paths
+    # Очистка автоматическая через TemporaryDirectory context manager
 
 
 # =============================================================================

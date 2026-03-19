@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any, Dict, Optional
 
 from ...logger import logger
@@ -13,8 +15,64 @@ class FileWriter(ABC):
     """Базовый писатель."""
 
     def __init__(self, file_path: str, writer_options: WriterOptions) -> None:
-        self._file_path = file_path
+        # ИСПРАВЛЕНИЕ 13: Path traversal защита
+        # Валидация пути через os.path.basename() для предотвращения записи
+        # файлов за пределы разрешённой output директории
+        self._file_path = self._validate_file_path(file_path)
         self._options = writer_options
+
+    def _validate_file_path(self, file_path: str) -> str:
+        """
+        Валидирует путь к файлу на предмет Path traversal атак.
+
+        Args:
+            file_path: Путь к файлу для валидации.
+
+        Returns:
+            Валидированный путь к файлу.
+
+        Raises:
+            ValueError: Если путь содержит Path traversal конструкции.
+
+        Примечание:
+            - Использует os.path.basename() для извлечения имени файла
+            - Проверяет на наличие '../' и '..\\' конструкций
+            - Ограничивает путь только output директорией
+        """
+        if not file_path:
+            raise ValueError("Путь к файлу не может быть пустым")
+
+        # Конвертируем Path в строку если нужно
+        file_path_str = str(file_path) if isinstance(file_path, Path) else file_path
+
+        # Проверяем на наличие Path traversal конструкций
+        if ".." in file_path_str:
+            logger.warning(
+                "Путь к файлу содержит '..' (возможная Path traversal атака): %s. "
+                "Путь будет нормализован.",
+                file_path_str,
+            )
+
+        # Нормализуем путь через os.path.normpath()
+        normalized_path = os.path.normpath(file_path_str)
+
+        # Извлекаем базовое имя файла для предотвращения traversal атак
+        # Это гарантирует что файл будет создан только в текущей директории
+        base_name = os.path.basename(normalized_path)
+
+        # Если после нормализации путь изменился, логируем предупреждение
+        if normalized_path != base_name and not normalized_path.startswith(os.getcwd()):
+            # Путь содержит директорию отличную от текущей
+            # Используем только базовое имя файла
+            logger.warning(
+                "Путь к файлу выходит за пределы текущей директории: %s. "
+                "Используется только имя файла: %s",
+                file_path_str,
+                base_name,
+            )
+            return base_name
+
+        return normalized_path
 
     @abstractmethod
     def write(self, catalog_doc: Any) -> None:

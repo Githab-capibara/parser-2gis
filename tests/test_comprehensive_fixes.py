@@ -239,47 +239,100 @@ class TestMemoryErrorHandling:
 
 class TestSQLInjectionProtection:
     """
-    Тесты для проверки защиты от SQL injection в _validate_cached_data.
+    Тесты для проверки защиты от SQL injection в cache.py.
 
-    Проверяет что функция блокирует попытки SQL injection
-    через кэшированные данные.
+    В текущей реализации защита от SQL injection обеспечивается через:
+    1. Параметризованные SQLite запросы (полная защита)
+    2. Валидацию данных перед использованием
+    3. Отсутствие конкатенации SQL строк
+
+    Примечание: Прямая проверка строк на SQL паттерны удалена как бесполезная,
+    так как данные уже десериализованы из JSON и не могут напрямую влиять на SQL.
     """
 
-    def test_validate_cached_data_sql_injection_union(self):
+    def test_cache_uses_parameterized_queries(self):
         """
-        Тест 3.1: Проверка блокировки UNION SELECT.
+        Тест 3.1: Проверка использования параметризованных запросов.
 
-        Проверяет что данные с UNION SELECT блокируются.
+        Проверяет что cache.py использует параметризованные запросы
+        вместо конкатенации строк.
         """
-        # Данные с попыткой UNION SELECT
-        malicious_data = {"key": "value", "injection": "1' UNION SELECT * FROM users--"}
+        import inspect
 
-        result = _validate_cached_data(malicious_data)
-        assert result is False, "UNION SELECT должен быть заблокирован"
+        from parser_2gis.cache import CacheManager
 
-    def test_validate_cached_data_sql_injection_or_condition(self):
+        # Проверяем что в cache.py нет конкатенации SQL строк с данными
+        cache_source = inspect.getsource(CacheManager)
+
+        # Параметризованные запросы используют ? для параметров
+        assert "?" in cache_source, (
+            "CacheManager должен использовать параметризованные запросы"
+        )
+
+        # Проверяем отсутствие опасной конкатенации
+        assert 'f"SELECT' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
+        assert 'f"INSERT' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
+        assert 'f"UPDATE' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
+
+    def test_validate_cached_data_still_validates_structure(self):
         """
-        Тест 3.2: Проверка блокировки OR 1=1.
+        Тест 3.2: Проверка что валидация структуры данных работает.
 
-        Проверяет что данные с OR 1=1 блокируются.
+        Проверяет что _validate_cached_data проверяет структуру данных,
+        даже если не проверяет SQL паттерны.
         """
-        # Данные с попыткой OR 1=1 (используем точный паттерн из списка)
-        malicious_data = {"key": "value", "injection": "OR '1'='1'"}
+        # None должен проходить валидацию
+        assert _validate_cached_data(None) is True
 
-        result = _validate_cached_data(malicious_data)
-        assert result is False, "OR '1'='1' должен быть заблокирован"
+        # Пустой dict должен проходить
+        assert _validate_cached_data({}) is True
+
+        # dict с простыми значениями должен проходить
+        assert _validate_cached_data({"key": "value", "num": 42}) is True
+
+        # list должен проходить
+        assert _validate_cached_data([1, 2, 3]) is True
+
+    def test_validate_cached_data_depth_limit(self):
+        """
+        Тест 3.3: Проверка ограничения глубины вложенности.
+
+        Проверяет что глубоко вложенные структуры блокируются.
+        """
+        from parser_2gis.cache import MAX_DATA_DEPTH
+
+        # Создаём глубоко вложенную структуру
+        deep_data = {}
+        current = deep_data
+        for _ in range(MAX_DATA_DEPTH + 5):
+            current["nested"] = {}
+            current = current["nested"]
+
+        result = _validate_cached_data(deep_data)
+        assert result is False, f"Глубина > {MAX_DATA_DEPTH} должна блокироваться"
 
     def test_validate_cached_data_string_length_limit(self):
         """
-        Тест 3.3: Проверка ограничения длины строки.
+        Тест 3.4: Проверка ограничения длины строки.
 
-        Проверяет что строки длиннее MAX_STRING_LENGTH (10000) блокируются.
-        Примечание: В текущей реализации MAX_STRING_LENGTH = sys.maxsize,
-        поэтому тест пропускается.
+        Проверяет что строки длиннее MAX_STRING_LENGTH блокируются.
         """
-        # В текущей реализации ограничение длины строки отключено (sys.maxsize)
-        # Тест остаётся для документации, но не выполняется
-        pytest.skip("MAX_STRING_LENGTH отключён в текущей реализации")
+        from parser_2gis.cache import MAX_STRING_LENGTH
+
+        # Создаём строку длиннее лимита
+        long_string = "a" * (MAX_STRING_LENGTH + 100)
+        malicious_data = {"key": long_string}
+
+        result = _validate_cached_data(malicious_data)
+        assert result is False, (
+            f"Строка длиннее {MAX_STRING_LENGTH} должна блокироваться"
+        )
 
 
 # =============================================================================

@@ -241,6 +241,9 @@ class ChromeBrowser:
             2. Принудительное завершение через kill() + wait(timeout=10)
 
         Важно:
+            - ИСПРАВЛЕНИЕ 8: Проверка poll() после terminate() для обнаружения zombie процессов
+            - Использовать kill() если terminate() не работает
+            - Добавлен wait() с timeout для предотвращения утечки процессов
             - Метод обрабатывает zombie процессы через wait() с timeout
             - TemporaryDirectory.cleanup() гарантирует удаление профиля
             - Все ошибки логируются для последующего анализа
@@ -260,20 +263,34 @@ class ChromeBrowser:
                     self._proc.terminate()
                     logger.debug("Отправлен сигнал SIGTERM процессу %d", process_pid)
 
-                    try:
-                        self._proc.wait(timeout=5)
+                    # ИСПРАВЛЕНИЕ 8: Проверка poll() для обнаружения завершения процесса
+                    # poll() возвращает None если процесс ещё работает, или код выхода
+                    poll_result = self._proc.poll()
+                    if poll_result is not None:
+                        # Процесс уже завершился
                         process_closed = True
-                        process_status = "terminated"
+                        process_status = f"terminated (exit code: {poll_result})"
                         logger.debug(
-                            "Chrome браузер корректно завершён (PID: %d)",
+                            "Chrome браузер корректно завершён (PID: %d, exit code: %d)",
                             process_pid,
+                            poll_result,
                         )
-                    except subprocess.TimeoutExpired:
-                        logger.warning(
-                            "Таймаут (5 сек) при завершении Chrome PID %d, "
-                            "принудительное закрытие через kill()",
-                            process_pid,
-                        )
+                    else:
+                        # Процесс ещё работает, ждём завершения с timeout
+                        try:
+                            self._proc.wait(timeout=5)
+                            process_closed = True
+                            process_status = "terminated"
+                            logger.debug(
+                                "Chrome браузер корректно завершён (PID: %d)",
+                                process_pid,
+                            )
+                        except subprocess.TimeoutExpired:
+                            logger.warning(
+                                "Таймаут (5 сек) при завершении Chrome PID %d, "
+                                "принудительное закрытие через kill()",
+                                process_pid,
+                            )
 
                 except Exception as terminate_error:
                     logger.warning("Ошибка при завершении Chrome: %s", terminate_error)
@@ -286,20 +303,32 @@ class ChromeBrowser:
                             "Отправлен сигнал SIGKILL процессу %d", process_pid
                         )
 
-                        try:
-                            self._proc.wait(timeout=10)
+                        # ИСПРАВЛЕНИЕ 8: Проверка poll() после kill()
+                        poll_result = self._proc.poll()
+                        if poll_result is not None:
                             process_closed = True
-                            process_status = "killed"
+                            process_status = f"killed (exit code: {poll_result})"
                             logger.debug(
-                                "Chrome браузер принудительно завершён (PID: %d)",
+                                "Chrome браузер принудительно завершён (PID: %d, exit code: %d)",
                                 process_pid,
+                                poll_result,
                             )
-                        except subprocess.TimeoutExpired:
-                            logger.error(
-                                "Таймаут (10 сек) после SIGKILL для PID %d",
-                                process_pid,
-                            )
-                            process_status = "kill_timeout"
+                        else:
+                            # Процесс всё ещё работает после kill(), ждём с большим timeout
+                            try:
+                                self._proc.wait(timeout=10)
+                                process_closed = True
+                                process_status = "killed"
+                                logger.debug(
+                                    "Chrome браузер принудительно завершён (PID: %d)",
+                                    process_pid,
+                                )
+                            except subprocess.TimeoutExpired:
+                                logger.error(
+                                    "Таймаут (10 сек) после SIGKILL для PID %d",
+                                    process_pid,
+                                )
+                                process_status = "kill_timeout"
 
                     except Exception as kill_error:
                         logger.error(

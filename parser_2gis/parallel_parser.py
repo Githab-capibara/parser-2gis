@@ -36,17 +36,25 @@ from .writer import get_writer
 # КОНСТАНТЫ ВАЛИДАЦИИ ПАРАМЕТРОВ
 # =============================================================================
 
-# ЛИМИТЫ ОТКЛЮЧЕНЫ - без ограничений
+# Минимальное количество рабочих потоков
 MIN_WORKERS: int = 1  # Минимум 1 работник
 
-# Максимальное количество рабочих потоков - БЕЗ ОГРАНИЧЕНИЙ
-MAX_WORKERS: int = sys.maxsize  # Без ограничений количества потоков
+# Максимальное количество рабочих потоков (разумный предел для I/O операций)
+# ОБОСНОВАНИЕ: 20 потоков выбрано исходя из:
+# - Типичное количество ядер CPU: 4-16
+# - I/O-bound операции (парсинг) требуют больше потоков чем ядер
+# - 20 потоков - баланс между производительностью и потреблением памяти
+# - Каждый поток создаёт экземпляр браузера (~100-200MB памяти)
+# - 20 * 200MB = 4GB - разумный предел для большинства систем
+MAX_WORKERS: int = 20  # Разумный предел для I/O операций
 
 # Минимальный таймаут на один URL в секундах
 MIN_TIMEOUT: int = 1  # Минимум 1 секунда
 
-# Максимальный таймаут на один URL - БЕЗ ОГРАНИЧЕНИЙ
-MAX_TIMEOUT: int = sys.maxsize  # Без ограничений таймаута
+# Максимальный таймаут на один URL в секундах (1 час)
+# ОБОСНОВАНИЕ: 3600 секунд (1 час) - разумный максимум для парсинга одного URL
+# Превышение может указывать на проблемы с сетью или зависание
+MAX_TIMEOUT: int = 3600  # 1 час максимум
 
 # Таймаут по умолчанию на один URL в секундах (5 минут)
 DEFAULT_TIMEOUT: int = 300
@@ -232,14 +240,29 @@ class _TempFileTimer:
 
     def start(self) -> None:
         """Запускает таймер периодической очистки."""
-        # Используем блокировку для защиты общих данных
-        with self._lock:
+        # ИСПРАВЛЕНИЕ 7: Используем try/finally для гарантии освобождения блокировки
+        # Добавлен timeout к acquire() для предотвращения deadlock
+        lock_acquired = False
+        try:
+            # Пытаемся получить блокировку с таймаутом (5 секунд)
+            lock_acquired = self._lock.acquire(timeout=5.0)
+            if not lock_acquired:
+                logger.warning(
+                    "Не удалось получить блокировку в start() (таймаут 5 сек). "
+                    "Возможна конкуренция за ресурсы."
+                )
+                return
+
             if self._is_running:
                 logger.warning("Таймер очистки уже запущен")
                 return
 
             self._is_running = True
             self._stop_event.clear()  # Сбрасываем событие остановки
+        finally:
+            # Гарантированно освобождаем блокировку
+            if lock_acquired:
+                self._lock.release()
 
         self._schedule_next_cleanup()
         logger.info("Запущен таймер периодической очистки временных файлов")
@@ -249,8 +272,19 @@ class _TempFileTimer:
         # Устанавливаем событие остановки
         self._stop_event.set()
 
-        # Используем блокировку для защиты общих данных
-        with self._lock:
+        # ИСПРАВЛЕНИЕ 7: Используем try/finally для гарантии освобождения блокировки
+        # Добавлен timeout к acquire() для предотвращения deadlock
+        lock_acquired = False
+        try:
+            # Пытаемся получить блокировку с таймаутом (5 секунд)
+            lock_acquired = self._lock.acquire(timeout=5.0)
+            if not lock_acquired:
+                logger.warning(
+                    "Не удалось получить блокировку в stop() (таймаут 5 сек). "
+                    "Возможна конкуренция за ресурсы."
+                )
+                return
+
             self._is_running = False
 
             if self._timer is not None:
@@ -260,6 +294,10 @@ class _TempFileTimer:
                     logger.debug("Ошибка при отмене таймера: %s", cancel_error)
                 finally:
                     self._timer = None
+        finally:
+            # Гарантированно освобождаем блокировку
+            if lock_acquired:
+                self._lock.release()
 
         # Ожидаем завершения таймера с таймаутом
         if self._timer is not None:
@@ -643,9 +681,18 @@ def _merge_csv_files(
                 try:
                     reader = csv.DictReader(infile)
 
-                    if not reader.fieldnames:
+                    # Проверка reader.fieldnames на None или пустоту
+                    # Это предотвращает IndexError при доступе к пустым файлам
+                    if reader.fieldnames is None:
                         log(
-                            f"Файл {csv_file} пуст или не имеет заголовков",
+                            f"Файл {csv_file} пуст или не имеет заголовков (fieldnames=None)",
+                            "warning",
+                        )
+                        continue
+
+                    if len(reader.fieldnames) == 0:
+                        log(
+                            f"Файл {csv_file} имеет пустой список заголовков",
                             "warning",
                         )
                         continue
@@ -855,18 +902,25 @@ class ParallelCityParser:
         if not categories:
             raise ValueError("Список категорий не может быть пустым")
 
-        # Валидация входных данных: ЛИМИТЫ ОТКЛЮЧЕНЫ
-        # min_workers = 1 (минимум 1 работник)
-        # max_workers = inf (без ограничений)
+        # Валидация max_workers: проверка на разумные пределы
         if max_workers < MIN_WORKERS:
             raise ValueError(f"max_workers должен быть не менее {MIN_WORKERS}")
+        if max_workers > MAX_WORKERS:
+            raise ValueError(
+                f"max_workers слишком большой: {max_workers} (максимум: {MAX_WORKERS}). "
+                f"Превышение лимита может привести к чрезмерному потреблению памяти и снижению производительности."
+            )
 
-        # timeout_per_url: ЛИМИТЫ ОТКЛЮЧЕНЫ
-        # min_timeout = 1 (минимум 1 секунда)
-        # max_timeout = inf (без ограничений)
+        # Валидация timeout_per_url: проверка на разумные пределы
         if timeout_per_url < MIN_TIMEOUT:
             raise ValueError(
                 f"timeout_per_url должен быть не менее {MIN_TIMEOUT} секунд"
+            )
+        if timeout_per_url > MAX_TIMEOUT:
+            raise ValueError(
+                f"timeout_per_url слишком большой: {timeout_per_url} секунд "
+                f"(максимум: {MAX_TIMEOUT} секунд = {MAX_TIMEOUT // 3600} ч.). "
+                f"Превышение лимита может указывать на проблемы с сетью или зависание."
             )
 
         self.cities = cities

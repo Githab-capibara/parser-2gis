@@ -587,6 +587,22 @@ class CSVWriter(FileWriter):
             try:
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
 
+                # ИСПРАВЛЕНИЕ 9: Проверка reader.fieldnames на None/пустоту
+                # Это предотвращает ошибки при обработке пустых файлов
+                if csv_reader.fieldnames is None:
+                    logger.warning(
+                        "Файл %s пуст или не имеет заголовков (fieldnames=None). Пропускаем обработку.",
+                        self._file_path,
+                    )
+                    return
+
+                if len(csv_reader.fieldnames) == 0:
+                    logger.warning(
+                        "Файл %s имеет пустой список заголовков. Пропускаем обработку.",
+                        self._file_path,
+                    )
+                    return
+
                 # Используем enumerate с шагом для уменьшения количества итераций
                 batch_count = 0
                 for idx, row in enumerate(csv_reader):
@@ -689,6 +705,22 @@ class CSVWriter(FileWriter):
 
                 csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
+
+                # ИСПРАВЛЕНИЕ 9: Проверка reader.fieldnames на None/пустоту
+                # Это предотвращает ошибки при обработке пустых файлов
+                if csv_reader.fieldnames is None:
+                    logger.warning(
+                        "Файл %s пуст или не имеет заголовков (fieldnames=None). Пропускаем обработку.",
+                        self._file_path,
+                    )
+                    return
+
+                if len(csv_reader.fieldnames) == 0:
+                    logger.warning(
+                        "Файл %s имеет пустой список заголовков. Пропускаем обработку.",
+                        self._file_path,
+                    )
+                    return
 
                 # Запись нового заголовка
                 csv_writer.writerow(new_data_mapping)

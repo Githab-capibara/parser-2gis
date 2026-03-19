@@ -229,53 +229,38 @@ class TestParallelParserValidationErrors:
                 max_workers=0,
             )
 
-        # Проверяем что НЕ возникает ошибка при max_workers=100 (лимиты отключены)
+        # Проверяем что НЕ возникает ошибка при допустимых значениях
+        # max_workers <= 20, timeout <= 3600
         parser = ParallelCityParser(
             cities=cities,
             categories=categories,
             output_dir=output_dir,
             config=config,
-            max_workers=100,
+            max_workers=15,
+            timeout_per_url=3000,
         )
-        assert parser.max_workers == 100
+        assert parser.max_workers == 15
+        assert parser.timeout_per_url == 3000
 
-    def test_invalid_timeout_raises_error(self, tmp_path: Any) -> None:
-        """
-        Проверка что некорректный timeout вызывает ошибку.
+        # Проверяем что возникает ошибка при превышении лимитов
+        with pytest.raises(ValueError, match="max_workers слишком большой"):
+            ParallelCityParser(
+                cities=cities,
+                categories=categories,
+                output_dir=output_dir,
+                config=config,
+                max_workers=100,  # > 20 максимум
+            )
 
-        Args:
-            tmp_path: pytest фикстура для временной директории.
-        """
-        from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
-
-        cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
-        categories = [{"name": "Кафе", "id": 1, "query": "Кафе"}]
-        output_dir = str(tmp_path / "output")
-
-        config = Configuration()
-
-        # Проверяем что возникает ValueError при timeout=0
-        with pytest.raises(ValueError, match="timeout_per_url должен быть не менее"):
+        with pytest.raises(ValueError, match="timeout_per_url слишком большой"):
             ParallelCityParser(
                 cities=cities,
                 categories=categories,
                 output_dir=output_dir,
                 config=config,
                 max_workers=3,
-                timeout_per_url=0,
+                timeout_per_url=10000,  # > 3600 максимум
             )
-
-        # Проверяем что НЕ возникает ошибка при timeout=10000 (лимиты отключены)
-        parser = ParallelCityParser(
-            cities=cities,
-            categories=categories,
-            output_dir=output_dir,
-            config=config,
-            max_workers=3,
-            timeout_per_url=10000,
-        )
-        assert parser.timeout_per_url == 10000
 
 
 class TestParallelParserOutputDirErrors:
