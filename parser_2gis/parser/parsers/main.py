@@ -235,29 +235,21 @@ class MainParser:
             logger.error("Ошибка при переходе на страницу %d: %s", n_page, e)
             return None
 
-    def parse(self, writer: FileWriter) -> None:
-        """Парсит URL с элементами результатов.
+    def _navigate_to_search(self, url: str) -> bool:
+        """Выполняет навигацию к поисковой выдаче с обработкой ошибок и повторными попытками.
 
         Args:
-            writer: Целевой файловый писатель.
+            url: URL для навигации.
+
+        Returns:
+            True если навигация успешна, False иначе.
 
         Примечание:
-            Функция включает улучшенную обработку HTTP ошибок (404, 403, 500 и т.д.),
-            детальную обработку ошибок на каждом этапе парсинга и оптимизацию
-            работы с памятью через очистку посещённых ссылок.
+            - Автоматический повторный парсинг при временных ошибках (502, 503, 504, TimeoutError)
+            - Экспоненциальная задержка между попытками с jitter
+            - Обработка HTTP статусов (404, 403, 5xx)
         """
-        # Начиная со страницы 6 и далее
-        # 2GIS автоматически перенаправляет пользователя в начало (anti-bot защита).
-        # Если в URL найден аргумент страницы, мы должны вручную перейти к ней сначала.
-
-        current_page_number = 1
-        url = re.sub(r"/page/\d+", "", self._url, re.I)
-
-        page_match = re.search(r"/page/(?P<page_number>\d+)", self._url, re.I)
-        walk_page_number = int(page_match.group("page_number")) if page_match else None
-
         # Переходим по URL с возможностью повторных попыток при ошибках сети
-        # Автоматический повторный парсинг при временных ошибках (502, 503, 504, TimeoutError)
         for retry_attempt in range(self._options.max_retries + 1):
             try:
                 # Первая попытка или повторная
@@ -273,7 +265,7 @@ class MainParser:
                     url, referer="https://google.com", timeout=NAVIGATION_TIMEOUT
                 )
                 # Если навигация успешна - выходим из цикла
-                break
+                return True
 
             except TimeoutError as timeout_error:
                 # Явная обработка TimeoutError с retry logic
@@ -281,7 +273,6 @@ class MainParser:
                     retry_attempt < self._options.max_retries
                     and self._options.retry_on_network_errors
                 ):
-
                     # Формула: base_delay * (2 ** retry) + random.uniform(0, 1)
                     base_delay = self._options.retry_delay_base * (2**retry_attempt)
                     jitter = random.uniform(0, 1)
@@ -298,7 +289,7 @@ class MainParser:
                 else:
                     # Исчерпаны все попытки
                     logger.error("Таймаут навигации по URL %s: %s", url, timeout_error)
-                    return
+                    return False
 
             except Exception as navigate_error:
                 error_msg = str(navigate_error).lower()
@@ -314,7 +305,6 @@ class MainParser:
                     and self._options.retry_on_network_errors
                     and is_network_error
                 ):
-
                     # Формула: base_delay * (2 ** retry) + random.uniform(0, 1)
                     base_delay = self._options.retry_delay_base * (2**retry_attempt)
                     jitter = random.uniform(0, 1)
@@ -331,36 +321,49 @@ class MainParser:
                 else:
                     # Либо это не ошибка сети, либо исчерпаны все попытки
                     logger.error("Ошибка навигации по URL %s: %s", url, navigate_error)
-                    return
+                    return False
 
-        # Документ загружен, получаем его ответ
+        return False
+
+    def _validate_document_response(self) -> Optional[Dict[str, Any]]:
+        """Получает и валидирует ответ документа после навигации.
+
+        Returns:
+            Валидированный ответ документа или None при ошибке.
+
+        Примечание:
+            - Проверяет MIME тип (должен быть text/html)
+            - Обрабатывает HTTP статусы (404, 403, 5xx)
+            - Учитывает настройки skip_404_response и stop_on_first_404
+        """
+        # Получаем ответы
         try:
             responses = self._chrome_remote.get_responses()
         except Exception as e:
             logger.error("Ошибка при получении ответов: %s", e)
-            return
+            return None
 
         if not responses:
             logger.error("Ошибка получения ответа сервера.")
-            return
+            return None
 
         # Безопасное получение первого ответа с проверкой
         try:
             document_response = responses[0]
         except (IndexError, KeyError):
             logger.error("Список ответов пуст или некорректен.")
-            return
+            return None
 
         # Проверка наличия документа
         if not document_response:
             logger.error("Первый ответ пуст.")
-            return
+            return None
 
         # Обработка MIME типа
         mime_type = document_response.get("mimeType", "")
         if mime_type != "text/html":
             logger.error("Неверный тип MIME ответа: %s", mime_type)
-            return
+            return None
 
         # Улучшенная обработка HTTP статусов
         http_status = document_response.get("status", 0)
@@ -369,35 +372,206 @@ class MainParser:
             logger.warning('Сервер вернул 404: "Точных совпадений нет / Не найдено".')
             if self._options.skip_404_response:
                 logger.info("Пропуск URL из-за 404 ответа (skip_404_response=True).")
-                return
+                return None
             # Если включен режим немедленной остановки при первом 404 - завершаем парсинг
             if self._options.stop_on_first_404:
                 logger.info(
                     "Немедленная остановка парсинга при первом 404 (stop_on_first_404=True)."
                 )
-                return
+                return None
 
         elif http_status == 403:
             logger.error("Сервер вернул 403: Доступ запрещён. Возможна блокировка.")
-            return
+            return None
 
         elif http_status in (500, 502, 503, 504):
             logger.error(
                 "Сервер вернул ошибку %d: Временная проблема на стороне сервера.",
                 http_status,
             )
-            return
+            return None
 
         elif http_status < 200 or http_status >= 400:
             logger.warning("Сервер вернул нестандартный статус: %d", http_status)
 
+        return document_response
+
+    def _parse_firm_page(self, link: "DOMNode", writer: FileWriter) -> bool:
+        """Парсит страницу организации по ссылке.
+
+        Args:
+            link: DOM-узел ссылки на организацию.
+            writer: Файловый писатель для сохранения данных.
+
+        Returns:
+            True если данные успешно записаны, False иначе.
+
+        Примечание:
+            - Кликает на ссылку для получения API запроса
+            - Ожидает ответ Catalog Item Document
+            - Парсит JSON и записывает в writer
+            - Обрабатывает до MAX_RESPONSE_ATTEMPTS попыток
+        """
+        resp: Optional[Dict[str, Any]] = None
+
+        for attempt in range(MAX_RESPONSE_ATTEMPTS):
+            try:
+                # Кликаем на ссылку, чтобы спровоцировать запрос
+                # с ключом авторизации и секретными аргументами
+                self._chrome_remote.perform_click(link)
+
+                # Задержка между кликами, может быть полезна, если
+                # anti-bot сервис 2GIS станет более строгим.
+                if self._options.delay_between_clicks:
+                    self._chrome_remote.wait(self._options.delay_between_clicks / 1000)
+
+                # Собираем ответы и собираем полезные данные.
+                resp = self._chrome_remote.wait_response(self._item_response_pattern)
+
+                # Если запрос не удался - повторяем, иначе идём дальше.
+                if resp and resp.get("status", -1) >= 0:
+                    break
+
+                # Добавляем небольшую задержку между попытками для снижения нагрузки
+                if attempt < MAX_RESPONSE_ATTEMPTS - 1:
+                    self._chrome_remote.wait(RESPONSE_RETRY_DELAY)
+
+            except Exception as click_error:
+                logger.warning(
+                    "Ошибка при клике на ссылку (попытка %d): %s",
+                    attempt + 1,
+                    click_error,
+                )
+                if attempt < MAX_RESPONSE_ATTEMPTS - 1:
+                    self._chrome_remote.wait(RESPONSE_RETRY_DELAY)
+
+        # Пропускаем позицию, если все попытки получить ответ неудачны
+        if not resp or resp.get("status", -1) < 0:
+            logger.error(
+                "Не удалось получить ответ после %d попыток, пропуск позиции.",
+                MAX_RESPONSE_ATTEMPTS,
+            )
+            return False
+
+        # Получаем данные тела ответа
+        try:
+            data = self._chrome_remote.get_response_body(resp)
+        except Exception as body_error:
+            logger.error("Ошибка при получении тела ответа: %s", body_error)
+            return False
+
+        # Парсим JSON
+        doc: Optional[Dict[str, Any]] = None
+        try:
+            doc = json.loads(data) if data else None
+        except json.JSONDecodeError as json_error:
+            logger.error(
+                'Сервер вернул некорректный JSON документ: "%s...", ошибка: %s',
+                data[:100] if data else "",
+                json_error,
+            )
+            return False
+
+        if doc:
+            # Записываем API документ в файл
+            try:
+                writer.write(doc)
+                return True
+            except Exception as write_error:
+                logger.error("Ошибка записи данных: %s", write_error)
+                return False
+        else:
+            logger.error("Данные не получены, пропуск позиции.")
+            return False
+
+    def _handle_pagination(
+        self,
+        current_page_number: int,
+        walk_page_number: Optional[int],
+    ) -> tuple[int, bool]:
+        """Обрабатывает пагинацию и переход на следующую страницу.
+
+        Args:
+            current_page_number: Текущий номер страницы.
+            walk_page_number: Целевой номер страницы для перехода (или None).
+
+        Returns:
+            Кортеж (next_page_number, should_continue):
+            - next_page_number: Номер следующей страницы
+            - should_continue: True если есть следующие страницы
+
+        Примечание:
+            - Вычисляет следующую страницу на основе доступных
+            - Обрабатывает режим перехода к определённой странице
+            - Возвращает False если достигнут конец результатов
+        """
+        # Вычисляем следующий номер страницы
+        if walk_page_number is not None:
+            try:
+                available_pages = self._get_available_pages()
+                available_pages_ahead = {
+                    k: v
+                    for k, v in available_pages.items()
+                    if k > current_page_number
+                }
+                next_page_number = min(
+                    available_pages_ahead,
+                    key=lambda n: (
+                        abs(n - walk_page_number)
+                        if walk_page_number is not None
+                        else 0
+                    ),
+                    default=current_page_number + 1,
+                )
+            except Exception as pages_error:
+                logger.error(
+                    "Ошибка при вычислении следующей страницы: %s", pages_error
+                )
+                next_page_number = current_page_number + 1
+        else:
+            next_page_number = current_page_number + 1
+
+        # Переходим на следующую страницу
+        current_page_number_result = self._go_page(next_page_number)
+        if not current_page_number_result:
+            logger.info("Достигнут конец результатов поиска")
+            return next_page_number, False
+
+        # Сбрасываем страницу назначения, если мы закончили переход к желаемой странице
+        if walk_page_number is not None and walk_page_number <= current_page_number_result:
+            walk_page_number = None
+
+        return current_page_number_result, True
+
+    def _parse_search_results(
+        self,
+        writer: FileWriter,
+        walk_page_number: Optional[int],
+        visited_links: Optional[OrderedDict[str, None]] = None,
+        max_visited_links: int = MAX_VISITED_LINKS_SIZE,
+    ) -> None:
+        """Парсит результаты поисковой выдачи.
+
+        Args:
+            writer: Файловый писатель для сохранения данных.
+            walk_page_number: Целевой номер страницы для перехода (или None).
+            visited_links: OrderedDict для хранения посещённых ссылок (опционально).
+            max_visited_links: Максимальный размер visited_links.
+
+        Примечание:
+            - Основной цикл парсинга ссылок
+            - Обработка пагинации
+            - Оптимизация памяти и GC
+            - Подсчёт пустых страниц и лимиты
+        """
         # Спарсенные записи
         collected_records = 0
 
         # Уже посещённые ссылки (с оптимизацией памяти)
         # Оптимизация 3.1: используем OrderedDict с ограничением размера для эффективного управления памятью
         # OrderedDict автоматически удаляет старые записи при превышении maxlen
-        visited_links: OrderedDict[str, None] = OrderedDict()
+        if visited_links is None:
+            visited_links = OrderedDict()
         visited_links_lock = threading.Lock()  # Блокировка для потокобезопасности
 
         # Оптимизация: кэшируем psutil.Process объект для снижения накладных расходов
@@ -468,9 +642,9 @@ class MainParser:
                     )
 
                     # Оптимизация 3.1: OrderedDict автоматически управляет размером
-                    # Удаляем старые записи при превышении MAX_VISITED_LINKS_SIZE
+                    # Удаляем старые записи при превышении max_visited_links
                     with visited_links_lock:
-                        if len(visited_links) > MAX_VISITED_LINKS_SIZE:
+                        if len(visited_links) > max_visited_links:
                             # Вычисляем количество элементов для удаления (75%)
                             target_remove = int(
                                 len(visited_links) * MEMORY_REMOVE_RATIO
@@ -564,10 +738,10 @@ class MainParser:
                         visited_links[url] = None
 
                     # Немедленное удаление старых ссылок при превышении лимита
-                    # Это гарантирует что visited_links не превысит MAX_VISITED_LINKS_SIZE
-                    if len(visited_links) > MAX_VISITED_LINKS_SIZE:
+                    # Это гарантирует что visited_links не превысит max_visited_links
+                    if len(visited_links) > max_visited_links:
                         # Вычисляем количество элементов для удаления (LRU - старые записи)
-                        overflow = len(visited_links) - MAX_VISITED_LINKS_SIZE
+                        overflow = len(visited_links) - max_visited_links
                         # Удаляем старые элементы из начала OrderedDict (LRU eviction)
                         for _ in range(overflow):
                             visited_links.popitem(last=False)
@@ -576,13 +750,15 @@ class MainParser:
                             "LRU eviction: удалено %d старых ссылок, осталось %d (max: %d)",
                             overflow,
                             len(visited_links),
-                            MAX_VISITED_LINKS_SIZE,
+                            max_visited_links,
                         )
 
                 return links
             except Exception as e:
                 logger.error("Ошибка при получении уникальных ссылок: %s", e)
                 return None
+
+        current_page_number = 1
 
         try:
             # Счётчик попыток получения ссылок для предотвращения бесконечного цикла
@@ -633,6 +809,13 @@ class MainParser:
                         )
                         return
 
+                    # Переходим к следующей странице
+                    next_page, should_continue = self._handle_pagination(
+                        current_page_number, walk_page_number
+                    )
+                    if not should_continue:
+                        return
+                    current_page_number = next_page
                     continue
                 else:
                     # Ссылки успешно получены - сбрасываем счётчик пустых страниц и попыток
@@ -643,82 +826,9 @@ class MainParser:
                 if not walk_page_number:
                     # Итерируемся по собранным ссылкам
                     for link in links:
-                        resp: Optional[Dict[str, Any]] = None
-
-                        for attempt in range(
-                            MAX_RESPONSE_ATTEMPTS
-                        ):  # 3 попытки получить ответ
-                            try:
-                                # Кликаем на ссылку, чтобы спровоцировать запрос
-                                # с ключом авторизации и секретными аргументами
-                                self._chrome_remote.perform_click(link)
-
-                                # Задержка между кликами, может быть полезна, если
-                                # anti-bot сервис 2GIS станет более строгим.
-                                if self._options.delay_between_clicks:
-                                    self._chrome_remote.wait(
-                                        self._options.delay_between_clicks / 1000
-                                    )
-
-                                # Собираем ответы и собираем полезные данные.
-                                resp = self._chrome_remote.wait_response(
-                                    self._item_response_pattern
-                                )
-
-                                # Если запрос не удался - повторяем, иначе идём дальше.
-                                if resp and resp.get("status", -1) >= 0:
-                                    break
-
-                                # Добавляем небольшую задержку между попытками для снижения нагрузки
-                                # Используем константу RESPONSE_RETRY_DELAY вместо магического числа
-                                if attempt < MAX_RESPONSE_ATTEMPTS - 1:
-                                    self._chrome_remote.wait(RESPONSE_RETRY_DELAY)
-
-                            except Exception as click_error:
-                                logger.warning(
-                                    "Ошибка при клике на ссылку (попытка %d): %s",
-                                    attempt + 1,
-                                    click_error,
-                                )
-                                if attempt < MAX_RESPONSE_ATTEMPTS - 1:
-                                    self._chrome_remote.wait(RESPONSE_RETRY_DELAY)
-
-                        # Пропускаем позицию, если все попытки получить ответ неудачны
-                        if not resp or resp.get("status", -1) < 0:
-                            logger.error(
-                                "Не удалось получить ответ после %d попыток, пропуск позиции.",
-                                MAX_RESPONSE_ATTEMPTS,
-                            )
-                            continue
-
-                        # Получаем данные тела ответа
-                        try:
-                            data = self._chrome_remote.get_response_body(resp)
-                        except Exception as body_error:
-                            logger.error(
-                                "Ошибка при получении тела ответа: %s", body_error
-                            )
-                            continue
-
-                        # Парсим JSON
-                        doc: Optional[Dict[str, Any]] = None
-                        try:
-                            doc = json.loads(data) if data else None
-                        except json.JSONDecodeError as json_error:
-                            logger.error(
-                                'Сервер вернул некорректный JSON документ: "%s...", ошибка: %s',
-                                data[:100] if data else "",
-                                json_error,
-                            )
-
-                        if doc:
-                            # Записываем API документ в файл
-                            try:
-                                writer.write(doc)
-                                collected_records += 1
-                            except Exception as write_error:
-                                logger.error("Ошибка записи данных: %s", write_error)
-                                continue
+                        # Парсим страницу организации
+                        if self._parse_firm_page(link, writer):
+                            collected_records += 1
 
                             # Проверяем достижение лимита после каждой успешной записи
                             if collected_records >= self._options.max_records:
@@ -726,12 +836,9 @@ class MainParser:
                                     "Спарсено максимально разрешенное количество записей с данного URL."
                                 )
                                 return
-                        else:
-                            logger.error("Данные не получены, пропуск позиции.")
 
                         # Очистка памяти после обработки каждой ссылки
-                        del resp
-                        del data
+                        gc.collect()
 
                 # Запускаем сборщик мусора и проверяем использование памяти
                 # Это выполняется каждые несколько страниц для предотвращения OutOfMemory ошибок
@@ -751,45 +858,13 @@ class MainParser:
                                 "Ошибка при запуске сборщика мусора: %s", gc_error
                             )
 
-                # Вычисляем следующий номер страницы и переходим к ней
-                if walk_page_number is not None:
-                    try:
-                        available_pages = self._get_available_pages()
-                        available_pages_ahead = {
-                            k: v
-                            for k, v in available_pages.items()
-                            if k > current_page_number
-                        }
-                        next_page_number = min(
-                            available_pages_ahead,
-                            key=lambda n: (
-                                abs(n - walk_page_number)
-                                if walk_page_number is not None
-                                else 0
-                            ),
-                            default=current_page_number + 1,
-                        )
-                    except Exception as pages_error:
-                        logger.error(
-                            "Ошибка при вычислении следующей страницы: %s", pages_error
-                        )
-                        next_page_number = current_page_number + 1
-                else:
-                    next_page_number = current_page_number + 1
-
-                current_page_number_result = self._go_page(next_page_number)
-                if not current_page_number_result:
-                    logger.info("Достигнут конец результатов поиска")
-                    break  # Достигли конца результатов поиска
-
-                current_page_number = current_page_number_result
-
-                # Сбрасываем страницу назначения, если мы закончили переход к желаемой странице
-                if (
-                    walk_page_number is not None
-                    and walk_page_number <= current_page_number
-                ):
-                    walk_page_number = None
+                # Переходим к следующей странице
+                next_page, should_continue = self._handle_pagination(
+                    current_page_number, walk_page_number
+                )
+                if not should_continue:
+                    return
+                current_page_number = next_page
 
                 # Освобождаем память, выделенную для собранных запросов
                 # Вызываем ПОСЛЕ перехода на следующую страницу, чтобы не удалить нужные запросы
@@ -808,6 +883,90 @@ class MainParser:
                 self._chrome_remote.clear_requests()
             except Exception as e:
                 logger.debug("Ошибка при очистке запросов: %s", e)
+
+    def parse(self, writer: FileWriter) -> None:
+        """Парсит URL с элементами результатов.
+
+        Args:
+            writer: Целевой файловый писатель.
+
+        Примечание:
+            Функция включает улучшенную обработку HTTP ошибок (404, 403, 500 и т.д.),
+            детальную обработку ошибок на каждом этапе парсинга и оптимизацию
+            работы с памятью через очистку посещённых ссылок.
+
+            Структура функции:
+            1. _navigate_to_search() — навигация к поиску
+            2. _validate_document_response() — валидация ответа
+            3. _parse_search_results() — парсинг выдачи
+            4. _handle_pagination() — обработка пагинации (вызывается внутри)
+        """
+        # Начиная со страницы 6 и далее
+        # 2GIS автоматически перенаправляет пользователя в начало (anti-bot защита).
+        # Если в URL найден аргумент страницы, мы должны вручную перейти к ней сначала.
+
+        url = re.sub(r"/page/\d+", "", self._url, re.I)
+
+        page_match = re.search(r"/page/(?P<page_number>\d+)", self._url, re.I)
+        walk_page_number = int(page_match.group("page_number")) if page_match else None
+
+        # Оптимизация: используем OrderedDict для эффективного управления памятью
+        # посещённых ссылок с автоматическим удалением старых записей (LRU eviction)
+        visited_links: OrderedDict[str, None] = OrderedDict()
+        max_visited_links = MAX_VISITED_LINKS_SIZE
+
+        # Навигация к поисковой выдаче с retry logic и jitter
+        max_retries = self._options.max_retries
+        base_delay = self._options.retry_delay_base
+
+        navigate_success = False
+        for attempt in range(max_retries + 1):
+            try:
+                # Первая попытка или повторная
+                if attempt > 0:
+                    logger.info(
+                        "Повторная попытка навигации (%d/%d) для URL: %s",
+                        attempt,
+                        max_retries,
+                        url,
+                    )
+
+                self._navigate_to_search(url)
+                navigate_success = True
+                break
+
+            except Exception as navigate_error:
+                if attempt < max_retries and self._options.retry_on_network_errors:
+                    # Добавляем jitter для предотвращения thundering herd эффекта
+                    # Формула: base_delay * (2 ** attempt) + random.uniform(0, 1)
+                    jitter = random.uniform(0, 1)
+                    delay = base_delay * (2**attempt) + jitter
+                    logger.warning(
+                        "Ошибка при навигации (попытка %d/%d): %s. "
+                        "Повторная попытка через %.1f сек...",
+                        attempt + 1,
+                        max_retries,
+                        navigate_error,
+                        delay,
+                    )
+                    time.sleep(delay)
+                else:
+                    # Исчерпаны все попытки
+                    logger.error("Таймаут навигации по URL %s: %s", url, navigate_error)
+                    return
+
+        # Если навигация не удалась - выходим
+        if not navigate_success:
+            return
+
+        # Валидация ответа документа
+        document_response = self._validate_document_response()
+        if document_response is None:
+            return
+
+        # Парсинг результатов поиска
+        # Передаём visited_links для управления памятью с eviction policy
+        self._parse_search_results(writer, walk_page_number, visited_links, max_visited_links)
 
     def close(self) -> None:
         self._chrome_remote.stop()
