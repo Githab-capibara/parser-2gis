@@ -505,9 +505,9 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         ValueError: Если файл повреждён или содержит некорректные данные.
         OSError: Если произошла ошибка операционной системы.
     """
-    # Константы валидации
-    MAX_CITIES_FILE_SIZE = 10 * 1024 * 1024  # 10 MB - максимальный размер файла
-    MAX_CITIES_COUNT = 10000  # Максимальное количество городов
+    # ЛИМИТЫ ОТКЛЮЧЕНЫ - без ограничений
+    MAX_CITIES_FILE_SIZE = float('inf')  # Без ограничений размера файла
+    MAX_CITIES_COUNT = float('inf')  # Без ограничений количества городов
 
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)
@@ -520,6 +520,7 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
             logger.error("Файл городов пуст: %s", cities_path)
             raise ValueError(f"Файл {cities_path} пуст")
 
+        # ЛИМИТЫ ОТКЛЮЧЕНЫ - проверка размера отключена
         if file_size > MAX_CITIES_FILE_SIZE:
             logger.error(
                 "Файл городов слишком большой: %d байт (макс: %d байт)",
@@ -546,6 +547,7 @@ def _load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
             logger.error("Файл городов должен содержать список, а не %s", type(all_cities).__name__)
             raise ValueError(f"Файл городов должен содержать список, получен {type(all_cities).__name__}")
 
+        # ЛИМИТЫ ОТКЛЮЧЕНЫ - проверка количества городов отключена
         if len(all_cities) > MAX_CITIES_COUNT:
             logger.error(
                 "Слишком много городов: %d (макс: %d)",
@@ -933,15 +935,15 @@ def parse_arguments(
     config_args = unwrap_dot_dict(vars(args))
 
     # Валидация числовых CLI аргументов перед инициализацией конфигурации
-    # ПРИОРИТЕТ 1: Валидация аргументов парсера
+    # ЛИМИТЫ ОТКЛЮЧЕНЫ - устанавливаем максимально возможные значения
     _validate_cli_argument(
-        args, arg_parser, "parser.max_retries", 1, 100, "--parser.max-retries"
+        args, arg_parser, "parser.max_retries", 1, float('inf'), "--parser.max-retries"
     )
     _validate_cli_argument(
-        args, arg_parser, "parser.timeout", 1, 3600, "--parser.timeout"
+        args, arg_parser, "parser.timeout", 1, float('inf'), "--parser.timeout"
     )
     _validate_cli_argument(
-        args, arg_parser, "parser.max_workers", 1, 50, "--parser.max-workers"
+        args, arg_parser, "parser.max_workers", 1, float('inf'), "--parser.max-workers"
     )
 
     # ПРИОРИТЕТ 2: Валидация аргументов Chrome
@@ -950,7 +952,7 @@ def parse_arguments(
         arg_parser,
         "chrome.startup_delay",
         0,
-        60,
+        float('inf'),
         "--chrome.startup-delay",
         convert_to_int=True,
     )
@@ -961,18 +963,18 @@ def parse_arguments(
         arg_parser,
         "parser.gc_pages_interval",
         1,
-        1000,
+        float('inf'),
         "--parser.gc-pages-interval",
     )
     _validate_cli_argument(
-        args, arg_parser, "parser.max_records", 1, 1000000, "--parser.max-records"
+        args, arg_parser, "parser.max_records", 1, float('inf'), "--parser.max-records"
     )
     _validate_cli_argument(
         args,
         arg_parser,
         "parser.max_consecutive_empty_pages",
         1,
-        100,
+        float('inf'),
         "--parser.max-consecutive-empty-pages",
     )
     _validate_cli_argument(
@@ -980,7 +982,7 @@ def parse_arguments(
         arg_parser,
         "parser.delay_between_clicks",
         0,
-        10000,
+        float('inf'),
         "--parser.delay-between-clicks",
     )
     _validate_cli_argument(
@@ -988,7 +990,7 @@ def parse_arguments(
         arg_parser,
         "parser.retry_delay_base",
         1,
-        60,
+        float('inf'),
         "--parser.retry-delay-base",
     )
     _validate_cli_argument(
@@ -996,7 +998,7 @@ def parse_arguments(
         arg_parser,
         "parser.memory_threshold",
         256,
-        8192,
+        float('inf'),
         "--parser.memory-threshold",
     )
     _validate_cli_argument(
@@ -1004,7 +1006,7 @@ def parse_arguments(
         arg_parser,
         "chrome.memory_limit",
         256,
-        16384,
+        float('inf'),
         "--chrome.memory-limit",
     )
     _validate_cli_argument(
@@ -1012,7 +1014,7 @@ def parse_arguments(
         arg_parser,
         "writer.csv.columns_per_entity",
         1,
-        20,
+        float('inf'),
         "--writer.csv.columns-per-entity",
     )
 

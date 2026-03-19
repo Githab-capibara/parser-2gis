@@ -36,17 +36,17 @@ from .writer import get_writer
 # КОНСТАНТЫ ВАЛИДАЦИИ ПАРАМЕТРОВ
 # =============================================================================
 
-# Минимальное количество рабочих потоков (минимум 1)
-MIN_WORKERS: int = 1
+# ЛИМИТЫ ОТКЛЮЧЕНЫ - без ограничений
+MIN_WORKERS: int = 1  # Минимум 1 работник
 
-# Максимальное количество рабочих потоков (ограничение для стабильности)
-MAX_WORKERS: int = 20
+# Максимальное количество рабочих потоков - БЕЗ ОГРАНИЧЕНИЙ
+MAX_WORKERS: int = float('inf')  # Без ограничений количества потоков
 
-# Минимальный таймаут на один URL в секундах (1 минута)
-MIN_TIMEOUT: int = 60
+# Минимальный таймаут на один URL в секундах
+MIN_TIMEOUT: int = 1  # Минимум 1 секунда
 
-# Максимальный таймаут на один URL в секундах (1 час)
-MAX_TIMEOUT: int = 3600
+# Максимальный таймаут на один URL - БЕЗ ОГРАНИЧЕНИЙ
+MAX_TIMEOUT: int = float('inf')  # Без ограничений таймаута
 
 # Таймаут по умолчанию на один URL в секундах (5 минут)
 DEFAULT_TIMEOUT: int = 300
@@ -834,13 +834,17 @@ class ParallelCityParser:
         if not categories:
             raise ValueError("Список категорий не может быть пустым")
 
-        # Валидация входных данных: ограничение max_workers (1-20)
-        if not MIN_WORKERS <= max_workers <= MAX_WORKERS:
-            raise ValueError(f"max_workers должен быть от {MIN_WORKERS} до {MAX_WORKERS}")
+        # Валидация входных данных: ЛИМИТЫ ОТКЛЮЧЕНЫ
+        # min_workers = 1 (минимум 1 работник)
+        # max_workers = inf (без ограничений)
+        if max_workers < MIN_WORKERS:
+            raise ValueError(f"max_workers должен быть не менее {MIN_WORKERS}")
 
-        # Валидация timeout_per_url (60-3600 секунд)
-        if not MIN_TIMEOUT <= timeout_per_url <= MAX_TIMEOUT:
-            raise ValueError(f"timeout_per_url должен быть от {MIN_TIMEOUT} до {MAX_TIMEOUT} секунд")
+        # timeout_per_url: ЛИМИТЫ ОТКЛЮЧЕНЫ
+        # min_timeout = 1 (минимум 1 секунда)
+        # max_timeout = inf (без ограничений)
+        if timeout_per_url < MIN_TIMEOUT:
+            raise ValueError(f"timeout_per_url должен быть не менее {MIN_TIMEOUT} секунд")
 
         self.cities = cities
         self.categories = categories

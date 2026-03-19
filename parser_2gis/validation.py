@@ -162,6 +162,8 @@ def is_valid_url(url: str) -> bool:
 def validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str) -> int:
     """Валидирует положительное целое число в заданном диапазоне.
 
+    ЛИМИТЫ ОТКЛЮЧЕНЫ - если max_val = float('inf'), проверка максимума отключена.
+
     Args:
         value: Значение для валидации.
         min_val: Минимально допустимое значение (включительно).
@@ -180,13 +182,18 @@ def validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str)
         >>> validate_positive_int(0, 1, 100, "--parser.max-retries")
         ValueError: --parser.max-retries должен быть от 1 до 100 (получено 0)
     """
-    if not (min_val <= value <= max_val):
-        raise ValueError(f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})")
+    if value < min_val:
+        raise ValueError(f"{arg_name} должен быть не менее {min_val} (получено {value})")
+    # ЛИМИТЫ ОТКЛЮЧЕНЫ - проверка максимума только если он не inf
+    if max_val != float('inf') and value > max_val:
+        raise ValueError(f"{arg_name} должен быть не более {max_val} (получено {value})")
     return value
 
 
 def validate_positive_float(value: float, min_val: float, max_val: float, arg_name: str) -> float:
     """Валидирует положительное число с плавающей точкой в заданном диапазоне.
+
+    ЛИМИТЫ ОТКЛЮЧЕНЫ - если max_val = float('inf'), проверка максимума отключена.
 
     Args:
         value: Значение для валидации.
@@ -204,8 +211,11 @@ def validate_positive_float(value: float, min_val: float, max_val: float, arg_na
         >>> validate_positive_float(1.5, 0.0, 10.0, "--chrome.startup-delay")
         1.5
     """
-    if not (min_val <= value <= max_val):
-        raise ValueError(f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})")
+    if value < min_val:
+        raise ValueError(f"{arg_name} должен быть не менее {min_val} (получено {value})")
+    # ЛИМИТЫ ОТКЛЮЧЕНЫ - проверка максимума только если он не inf
+    if max_val != float('inf') and value > max_val:
+        raise ValueError(f"{arg_name} должен быть не более {max_val} (получено {value})")
     return value
 
 

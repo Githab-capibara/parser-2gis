@@ -167,9 +167,9 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     Returns:
         True если данные безопасны, False иначе.
     """
-    # Константы валидации
-    MAX_DATA_DEPTH: int = 20  # Максимальная глубина вложенности
-    MAX_STRING_LENGTH: int = 10000  # Максимальная длина строки для предотвращения DoS
+    # ЛИМИТЫ ОТКЛЮЧЕНЫ - без ограничений
+    MAX_DATA_DEPTH: int = float('inf')  # Без ограничений глубины
+    MAX_STRING_LENGTH: int = float('inf')  # Без ограничений длины строки
     
     # Расширенный список SQL паттернов для обнаружения injection атак
     SQL_INJECTION_PATTERNS: List[str] = [
