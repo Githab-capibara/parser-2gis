@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import threading
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -16,8 +17,6 @@ from ..utils import BoxDrawing, GradientText, UnicodeIcons, format_number, forma
 from ..widgets import LogViewer, MultiProgressBar, ProgressBar
 
 if TYPE_CHECKING:
-    from pytermgui import Monitor as MonitorType
-
     from ..parallel_parser import ParallelParser
     from .app import TUIApp
 
@@ -110,8 +109,8 @@ class ParsingScreen:
         # Спиннер для активных операций
         self._spinner_active = False
 
-        # Monitor для автоматического обновления
-        self._monitor: Optional[MonitorType] = None
+        # Таймер для автоматического обновления
+        self._update_timer: Optional[threading.Timer] = None
 
     def _create_stats_cards(self) -> ptg.Container:
         """
@@ -147,7 +146,9 @@ class ParsingScreen:
         return ptg.Window(
             *labels,
             box="ROUNDED",
-            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Статистика[/]"),
+            title=ptg.tim.parse(
+                f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Статистика[/]"
+            ),
         )
 
     def _create_control_buttons(self) -> ptg.Container:
@@ -158,7 +159,9 @@ class ParsingScreen:
             Container с кнопками
         """
         # Кнопки с иконками
-        pause_icon = UnicodeIcons.EMOJI_PAUSE if not self._paused else UnicodeIcons.EMOJI_PLAY
+        pause_icon = (
+            UnicodeIcons.EMOJI_PAUSE if not self._paused else UnicodeIcons.EMOJI_PLAY
+        )
         pause_text = "Пауза" if not self._paused else "Продолжить"
 
         self._button_pause = [f"{pause_icon} {pause_text}", self._toggle_pause]
@@ -200,7 +203,9 @@ class ParsingScreen:
             self._page_progress.render(),
             self._record_progress.render(),
             box="ROUNDED",
-            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_START} Прогресс[/]"),
+            title=ptg.tim.parse(
+                f"[bold #00FFFF]{UnicodeIcons.EMOJI_START} Прогресс[/]"
+            ),
         )
 
         # Статистика
@@ -243,7 +248,9 @@ class ParsingScreen:
             ),
             width=95,
             box="DOUBLE",
-            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_ROCKET} Parser2GIS - Парсинг[/]"),
+            title=ptg.tim.parse(
+                f"[bold #00FF88]{UnicodeIcons.EMOJI_START} Parser2GIS - Парсинг[/]"
+            ),
         )
 
         # Запустить обновление
@@ -253,20 +260,18 @@ class ParsingScreen:
         return self._window.center()
 
     def _start_auto_update(self) -> None:
-        """Запустить автоматическое обновление отображения."""
-        # Используем Monitor из pytermgui для периодического обновления
-        # Проверяем наличие класса Monitor и обрабатываем ImportError
-        try:
-            if hasattr(ptg, "Monitor"):
-                self._monitor = ptg.Monitor()
-                # Attach с периодом 0.5 секунды (2 раза в секунду)
-                if hasattr(self._monitor, "attach"):
-                    self._monitor.attach(self._update_display, period=0.5)
-                if hasattr(self._monitor, "start"):
-                    self._monitor.start()
-        except (ImportError, AttributeError) as e:
-            # Если Monitor недоступен, логируем ошибку и продолжаем работу
-            self.add_log(f"Monitor недоступен: {e}", "WARNING")
+        """Запустить автоматическое обновление отображения через threading.Timer."""
+        # Запускаем периодическое обновление через Timer
+        self._schedule_update()
+
+    def _schedule_update(self) -> None:
+        """Запланировать следующее обновление отображения."""
+        # Обновляем дисплей
+        self._update_display()
+
+        # Планируем следующее обновление через 0.5 секунды
+        self._update_timer = threading.Timer(0.5, self._schedule_update)
+        self._update_timer.start()
 
     def update_progress(
         self,
@@ -362,8 +367,14 @@ class ParsingScreen:
         current_record = self._record_progress.completed
 
         if current_record > 0 and total_records > 0:
-            elapsed_seconds = (datetime.now() - self._start_time).total_seconds() if self._start_time else 1
-            records_per_sec = current_record / elapsed_seconds if elapsed_seconds > 0 else 1
+            elapsed_seconds = (
+                (datetime.now() - self._start_time).total_seconds()
+                if self._start_time
+                else 1
+            )
+            records_per_sec = (
+                current_record / elapsed_seconds if elapsed_seconds > 0 else 1
+            )
             remaining = total_records - current_record
             eta_seconds = remaining / records_per_sec if records_per_sec > 0 else 0
 
@@ -414,20 +425,17 @@ class ParsingScreen:
         """Остановить парсинг."""
         self.add_log("Остановка парсинга пользователем...", "WARNING")
 
-        # Остановить Monitor если запущен
-        if self._monitor is not None:
+        # Остановить таймер обновления если запущен
+        if self._update_timer is not None:
             try:
-                if hasattr(self._monitor, "detach"):
-                    self._monitor.detach(self._update_display)
-                if hasattr(self._monitor, "stop"):
-                    self._monitor.stop()
+                self._update_timer.cancel()
             except Exception as stop_error:
-                # Логгируем ошибку остановки монитора
+                # Логгируем ошибку остановки таймера
                 from ..logger import logger
 
-                logger.debug("Ошибка при остановке монитора: %s", stop_error)
+                logger.debug("Ошибка при остановке таймера: %s", stop_error)
             finally:
-                self._monitor = None
+                self._update_timer = None
 
         # Остановить парсер через приложение
         self._app._stop_parsing(success=False)

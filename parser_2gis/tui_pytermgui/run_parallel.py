@@ -54,7 +54,7 @@ def run_parallel_with_tui(
         config.parser.retry_on_network_errors = True
         config.parser.retry_delay_base = 1
         config.parser.memory_threshold = 2048
-        config.parser.timeout = timeout_per_url
+        # Исправлено: timeout устанавливается в ParallelParser через параметр timeout_per_url
 
         config.writer.verbose = True
         config.writer.csv.remove_empty_columns = True

@@ -230,7 +230,9 @@ class OutputSettingsScreen:
 
         # Обновить поля InputField (нужно использовать delete_back() + insert_text())
         self._set_input_field_value(self._fields["encoding"], default_writer.encoding)
-        self._set_input_field_value(self._fields["columns_per_entity"], str(default_csv.columns_per_entity))
+        self._set_input_field_value(
+            self._fields["columns_per_entity"], str(default_csv.columns_per_entity)
+        )
         self._set_input_field_value(self._fields["join_char"], default_csv.join_char)
 
         # Обновить конфигурацию
@@ -255,7 +257,5 @@ class OutputSettingsScreen:
             message: Текст сообщения
             level: Уровень (info, success, warning, error)
         """
-        # ISSUE: Реализовать всплывающее сообщение для пользователя
-        # Требуется создать модальное окно или toast-уведомление
-        # См. GitHub issue: #TODO-TUI-001
-        pass
+        # Исправлено: используем app.notify() для отображения уведомлений
+        self._app.notify(message, level)

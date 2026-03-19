@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 import pytermgui as ptg
 
@@ -102,7 +102,7 @@ class MainMenuScreen:
 
         return "\n".join(colored_lines)
 
-    def _create_menu_buttons(self) -> list[tuple[str, str, callable]]:
+    def _create_menu_buttons(self) -> list[tuple[str, str, Callable]]:
         """
         Создать конфигурацию кнопок меню.
 

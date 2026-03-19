@@ -42,7 +42,11 @@ class CityList:
         if not self._container:
             self._container = ptg.Container()
 
-        self._container.widgets.clear()
+        # Исправлено: используем _widgets для доступа к списку виджетов
+        if hasattr(self._container, "_widgets"):
+            self._container._widgets.clear()
+        elif hasattr(self._container, "widgets"):
+            self._container.widgets.clear()
 
         for i, city in enumerate(self._cities):
             city_name = city.get("name", "Неизвестно")
@@ -55,7 +59,11 @@ class CityList:
                 on_change=lambda checked, idx=i: self._toggle_city(idx, checked),
             )
 
-            self._container.add_widget(checkbox)
+            # Исправлено: используем _add_widget вместо add_widget
+            if hasattr(self._container, "_add_widget"):
+                self._container._add_widget(checkbox)
+            elif hasattr(self._container, "add_widget"):
+                self._container.add_widget(checkbox)
 
     def _toggle_city(self, index: int, checked: bool) -> None:
         """

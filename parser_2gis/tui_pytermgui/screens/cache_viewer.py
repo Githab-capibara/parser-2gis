@@ -128,25 +128,26 @@ class CacheViewerScreen:
             # Ограничить количество отображаемых записей
             display_entries = self._cache_entries[:20]
 
-            table_data = [["Файл", "URL", "Размер"]]
-            for entry in display_entries:
-                table_data.append(
-                    [
-                        entry["file"],
-                        (
-                            entry["url"][:40] + "..."
-                            if len(entry["url"]) > 40
-                            else entry["url"]
-                        ),
-                        self._format_size(entry["size"]),
-                    ]
-                )
+            # Создаём текстовое представление вместо Table
+            table_lines = [
+                "[bold]Файл[/]".ljust(25) + "[bold]URL[/]".ljust(45) + "[bold]Размер[/]"
+            ]
+            table_lines.append("─" * 85)
 
-            cache_table = ptg.Table(
-                *table_data,
-                headers=1,
-                column_widths=[20, 40, 10],
-            )
+            for entry in display_entries:
+                url_display = (
+                    entry["url"][:40] + "..."
+                    if len(entry["url"]) > 40
+                    else entry["url"]
+                )
+                line = (
+                    entry["file"][:23].ljust(25)
+                    + url_display.ljust(45)
+                    + self._format_size(entry["size"])
+                )
+                table_lines.append(line)
+
+            cache_table = ptg.Container(ptg.Label("\n".join(table_lines)), box="SIMPLE")
         else:
             cache_table = ptg.Label("[dim]Кэш пуст[/]")
 

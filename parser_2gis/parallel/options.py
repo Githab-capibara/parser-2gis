@@ -20,6 +20,7 @@ class ParallelOptions(BaseModel):
         orphaned_temp_file_age: Возраст временного файла в секундах, после которого он считается осиротевшим.
         merge_lock_timeout: Таймаут ожидания блокировки merge операции в секундах.
         max_lock_file_age: Максимальный возраст lock файла в секундах.
+        max_workers: Количество параллельных работников для парсинга.
     """
 
     use_temp_file_cleanup: bool = True
@@ -28,3 +29,4 @@ class ParallelOptions(BaseModel):
     orphaned_temp_file_age: PositiveInt = 300
     merge_lock_timeout: PositiveInt = 300
     max_lock_file_age: PositiveInt = 300
+    max_workers: PositiveInt = 10

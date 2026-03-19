@@ -199,7 +199,8 @@ class BrowserSettingsScreen:
         self._chrome_config.silent_browser = silent_browser
         self._chrome_config.memory_limit = memory_limit
 
-        if binary_path_str.strip():
+        # Исправлено: добавлена проверка типа перед вызовом strip()
+        if isinstance(binary_path_str, str) and binary_path_str.strip():
             self._chrome_config.binary_path = Path(binary_path_str)
         else:
             self._chrome_config.binary_path = None
@@ -248,7 +249,5 @@ class BrowserSettingsScreen:
             message: Текст сообщения
             level: Уровень (info, success, warning, error)
         """
-        # ISSUE: Реализовать всплывающее сообщение для пользователя
-        # Требуется создать модальное окно или toast-уведомление
-        # См. GitHub issue: #TODO-TUI-002
-        pass
+        # Исправлено: используем app.notify() для отображения уведомлений
+        self._app.notify(message, level)

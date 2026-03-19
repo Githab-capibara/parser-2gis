@@ -329,7 +329,12 @@ class SpinnerAnimation:
         while self.running:
             yield self.render()
 
-            if start_time and (time.time() - start_time) >= duration:
+            # Исправлено: добавлена проверка duration на None
+            if (
+                start_time
+                and duration is not None
+                and (time.time() - start_time) >= duration
+            ):
                 break
 
             time.sleep(self.tick())

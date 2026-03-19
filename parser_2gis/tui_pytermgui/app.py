@@ -136,7 +136,12 @@ class TUIApp:
             self._show_main_menu()
 
             # Установить глобальный обработчик клавиш
-            self._manager.preprocess_key = self._handle_global_key
+            try:
+                self._manager.preprocess_key = self._handle_global_key
+            except AttributeError:
+                logger.debug(
+                    "preprocess_key не поддерживается данной версией pytermgui"
+                )
 
             # Запуск цикла событий
             self._manager.run()
@@ -398,7 +403,7 @@ class TUIApp:
             "INFO",
         )
         self._add_log_to_parsing_screen(
-            f"Потоков: {self._config.parser.max_workers}", "DEBUG"
+            f"Потоков: {self._config.parallel.max_workers}", "DEBUG"
         )
 
         # Запустить парсер в отдельном потоке

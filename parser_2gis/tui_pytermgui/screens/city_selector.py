@@ -353,11 +353,16 @@ class CitySelectorScreen:
             counter_text = ptg.tim.parse(
                 f"[bold #00FF88]Выбрано:[/] [green]{selected_count}[/] из [dim]{total_count}[/]"
             )
-            self._counter_label._lines = [counter_text]
+            # Исправлено: используем правильный способ обновления Label
+            if hasattr(self._counter_label, "set_label"):
+                self._counter_label.set_label(counter_text)
+            elif hasattr(self._counter_label, "_lines"):
+                self._counter_label._lines = [counter_text]
 
         # Также обновляем заголовок кнопки "Далее"
         if self._button_container:
-            for widget in self._button_container.widgets:
+            # Исправлено: используем _widgets вместо widgets
+            for widget in getattr(self._button_container, "_widgets", []):
                 if hasattr(widget, "_label") and "Далее" in str(widget._label):
                     if selected_count > 0:
                         widget._label = ptg.tim.parse(
