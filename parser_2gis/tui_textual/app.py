@@ -185,7 +185,7 @@ class TUIApp(App):
         super().__init__(**kwargs)
         self._config = self._load_config()
         self._state = self._init_state()
-        self._logger: Optional[logging.Logger] = None
+        self._file_logger: Optional[logging.Logger] = None
         self._log_file: Optional[Path] = None
         self._parser: Optional[ParallelCityParser] = None
         self._running = False
@@ -286,14 +286,14 @@ class TUIApp(App):
             level: Уровень (info, success, warning, error)
         """
         self._last_notification = {"message": message, "level": level}
-        
+
         # Логирование
-        if self._logger:
-            log_method = getattr(self._logger, level, self._logger.info)
+        if self._file_logger:
+            log_method = getattr(self._file_logger, level, self._file_logger.info)
             log_method(message)
         else:
             logging.getLogger(__name__).info("[%s] %s", level, message)
-        
+
         # Показ уведомления через Textual
         self.notify(message, title=level.upper())
 
@@ -310,8 +310,8 @@ class TUIApp(App):
 
     def _setup_logging(self) -> None:
         """Настроить логирование."""
-        self._logger = logging.getLogger("parser_2gis.tui")
-        self._logger.setLevel(logging.INFO)
+        self._file_logger = logging.getLogger("parser_2gis.tui")
+        self._file_logger.setLevel(logging.INFO)
 
     def action_go_back(self) -> None:
         """Вернуться назад."""
@@ -319,7 +319,9 @@ class TUIApp(App):
 
     def action_toggle_dark(self) -> None:
         """Переключить тёмную тему."""
-        self.theme = "textual-dark" if self.theme == "textual-light" else "textual-light"
+        self.theme = (
+            "textual-dark" if self.theme == "textual-light" else "textual-light"
+        )
 
     def push_main_menu(self) -> None:
         """Показать главное меню."""

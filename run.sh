@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Скрипт запуска Parser2GIS с новым TUI интерфейсом на pytermgui
+# Скрипт запуска Parser2GIS с новым TUI интерфейсом на Textual
 # Автоматически активирует виртуальное окружение и запускает приложение
 # Поддерживает TUI и CLI режимы работы
 
@@ -53,7 +53,7 @@ print_help() {
     echo "  -f FORMAT                 - Формат: csv, xlsx, json"
     echo "  -h, --help                - Показать эту справку"
     echo ""
-    echo -e "${YELLOW}🎨 TUI интерфейс (pytermgui) отображает:${NC}"
+    echo -e "${YELLOW}🎨 TUI интерфейс (textual) отображает:${NC}"
     echo "  ✓ Главное меню с навигацией"
     echo "  ✓ Выбор городов с поиском (204 города)"
     echo "  ✓ Выбор категорий с поиском (93 категории)"
@@ -98,11 +98,11 @@ fi
 if [ $# -eq 0 ]; then
     # Без аргументов - запускаем НОВЫЙ TUI с парсингом Омска в 10 потоков
     print_header
-    echo -e "${GREEN}🚀 Запуск NEW TUI (pytermgui) с парсингом Омска${NC}"
+    echo -e "${GREEN}🚀 Запуск NEW TUI (textual) с парсингом Омска${NC}"
     echo -e "${BLUE}📊 Город: Омск${NC}"
     echo -e "${BLUE}📂 Категории: 93 (все доступные)${NC}"
     echo -e "${BLUE}🔧 Потоков: 10 (одновременных браузеров)${NC}"
-    echo -e "${YELLOW}🎨 Интерфейс: современный TUI на pytermgui${NC}"
+    echo -e "${YELLOW}🎨 Интерфейс: современный TUI на textual${NC}"
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
@@ -128,8 +128,8 @@ if [ $# -eq 0 ]; then
 elif [ "$1" = "--tui" ]; then
     # Запуск TUI без автоматического парсинга
     print_header
-    echo -e "${GREEN}🚀 Запуск NEW TUI (pytermgui)${NC}"
-    echo -e "${YELLOW}🎨 Интерфейс: современный TUI на pytermgui${NC}"
+    echo -e "${GREEN}🚀 Запуск NEW TUI (textual)${NC}"
+    echo -e "${YELLOW}🎨 Интерфейс: современный TUI на textual${NC}"
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
