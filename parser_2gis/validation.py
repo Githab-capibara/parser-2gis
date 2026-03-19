@@ -52,6 +52,7 @@ def validate_url(url: str) -> ValidationResult:
         - Наличие сетевого расположения (netloc)
         - Общий формат URL
         - Блокировка localhost и внутренних IP адресов
+        - Максимальная длина URL (2048 символов)
 
     Args:
         url: URL для валидации.
@@ -66,6 +67,13 @@ def validate_url(url: str) -> ValidationResult:
         ... else:
         ...     print(f"Ошибка: {result.error}")
     """
+    # Проверка максимальной длины URL (2048 символов - стандартный лимит)
+    if len(url) > 2048:
+        return ValidationResult(
+            is_valid=False,
+            error=f"Длина URL превышает максимальную (2048 символов). Текущая длина: {len(url)}",
+        )
+
     try:
         result = urlparse(url)
 
@@ -83,9 +91,7 @@ def validate_url(url: str) -> ValidationResult:
 
         # Проверяем, не является ли хост localhost
         if hostname.lower() in ("localhost", "127.0.0.1"):
-            return ValidationResult(
-                is_valid=False, error="Использование localhost запрещено"
-            )
+            return ValidationResult(is_valid=False, error="Использование localhost запрещено")
 
         # Проверяем, не является ли хост IP адресом
         try:
@@ -175,15 +181,11 @@ def validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str)
         ValueError: --parser.max-retries должен быть от 1 до 100 (получено 0)
     """
     if not (min_val <= value <= max_val):
-        raise ValueError(
-            f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})"
-        )
+        raise ValueError(f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})")
     return value
 
 
-def validate_positive_float(
-    value: float, min_val: float, max_val: float, arg_name: str
-) -> float:
+def validate_positive_float(value: float, min_val: float, max_val: float, arg_name: str) -> float:
     """Валидирует положительное число с плавающей точкой в заданном диапазоне.
 
     Args:
@@ -203,9 +205,7 @@ def validate_positive_float(
         1.5
     """
     if not (min_val <= value <= max_val):
-        raise ValueError(
-            f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})"
-        )
+        raise ValueError(f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})")
     return value
 
 
@@ -238,9 +238,7 @@ def validate_non_empty_string(value: str, field_name: str) -> str:
     return value.strip()
 
 
-def validate_string_length(
-    value: str, min_length: int, max_length: int, field_name: str
-) -> str:
+def validate_string_length(value: str, min_length: int, max_length: int, field_name: str) -> str:
     """Валидирует длину строки.
 
     Args:
@@ -295,9 +293,7 @@ def validate_non_empty_list(value: list, field_name: str) -> list:
     return value
 
 
-def validate_list_length(
-    value: list, min_length: int, max_length: int, field_name: str
-) -> list:
+def validate_list_length(value: list, min_length: int, max_length: int, field_name: str) -> list:
     """Валидирует длину списка.
 
     Args:
@@ -317,13 +313,9 @@ def validate_list_length(
         [1, 2, 3]
     """
     if len(value) < min_length:
-        raise ValueError(
-            f"{field_name} должен содержать не менее {min_length} элементов"
-        )
+        raise ValueError(f"{field_name} должен содержать не менее {min_length} элементов")
     if len(value) > max_length:
-        raise ValueError(
-            f"{field_name} должен содержать не более {max_length} элементов"
-        )
+        raise ValueError(f"{field_name} должен содержать не более {max_length} элементов")
     return value
 
 
@@ -353,9 +345,7 @@ def validate_email(email: str) -> ValidationResult:
         return ValidationResult(is_valid=False, error="Email не может быть пустым")
 
     if not _EMAIL_PATTERN.match(email):
-        return ValidationResult(
-            is_valid=False, error=f"Некорректный формат email: {email}"
-        )
+        return ValidationResult(is_valid=False, error=f"Некорректный формат email: {email}")
 
     return ValidationResult(is_valid=True, value=email, error=None)
 
@@ -365,9 +355,7 @@ def validate_email(email: str) -> ValidationResult:
 # =============================================================================
 
 # Скомпилированный regex паттерн для валидации российских телефонов
-_PHONE_PATTERN = re.compile(
-    r"^\+?7[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$"
-)
+_PHONE_PATTERN = re.compile(r"^\+?7[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$")
 
 
 def validate_phone(phone: str) -> ValidationResult:

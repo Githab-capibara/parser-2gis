@@ -114,7 +114,11 @@ class DataValidator:
         в единый формат: '8 (XXX) XXX-XX-XX' для российских номеров
         или международный формат для других стран.
 
-                - Добавлена нормализация Unicode через unicodedata.normalize("NFKC")
+        Поддерживает номера с добавочными (extension):
+        - Форматы: "доб. 1234", "ext. 1234", "ext 1234", "доб.1234"
+        - Возвращает номер в формате: "8 (XXX) XXX-XX-XX доб. 1234"
+
+        - Добавлена нормализация Unicode через unicodedata.normalize("NFKC")
         - Добавлен маппинг арабских/персидских цифр на латинские
         - Поддержка fullwidth символов и смешанных систем счисления
 
@@ -129,6 +133,17 @@ class DataValidator:
             Российские номера должны содержать 11 цифр.
             Международные номера должны содержать 10-15 цифр.
         """
+
+        # Извлекаем extension (добавочный номер) перед обработкой
+        extension = None
+        ext_patterns = [r"\s*(?:доб\.?\s*|ext\.?\s*)(\d+)", r"\s*-\s*(\d+)$"]
+        for pattern in ext_patterns:
+            ext_match = re.search(pattern, phone, re.IGNORECASE)
+            if ext_match:
+                extension = ext_match.group(1)
+                # Удаляем extension из строки для основной валидации
+                phone = re.sub(pattern, "", phone, flags=re.IGNORECASE).strip()
+                break
 
         # Нормализация Unicode (NFKC для совместимости цифр)
         phone = unicodedata.normalize("NFKC", phone)
@@ -166,12 +181,10 @@ class DataValidator:
                 return ValidationResult(
                     False,
                     None,
-                    [
-                        f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"
-                    ],
+                    [f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"],
                 )
 
-            return ValidationResult(True, self._format_phone(cleaned), [])
+            return ValidationResult(True, self._add_extension(self._format_phone(cleaned), extension), [])
 
         # Обработка международных номеров
         if cleaned.startswith("+"):
@@ -189,21 +202,25 @@ class DataValidator:
                     ],
                 )
 
-            return ValidationResult(True, f"+{international_digits}", [])
+            return ValidationResult(True, self._add_extension(f"+{international_digits}", extension), [])
 
         # Номер без префикса - пробуем определить
         if len(digits_only) == 11:
             if digits_only[0] == "8":
-                return ValidationResult(True, self._format_phone(digits_only), [])
+                return ValidationResult(
+                    True,
+                    self._add_extension(self._format_phone(digits_only), extension),
+                    [],
+                )
             # Предполагаем российский номер без префикса
-            return ValidationResult(True, self._format_phone("8" + digits_only), [])
+            return ValidationResult(
+                True,
+                self._add_extension(self._format_phone("8" + digits_only), extension),
+                [],
+            )
 
-        if (
-            self.INTERNATIONAL_PHONE_MIN_LENGTH
-            <= len(digits_only)
-            <= self.INTERNATIONAL_PHONE_MAX_LENGTH
-        ):
-            return ValidationResult(True, f"+{digits_only}", [])
+        if self.INTERNATIONAL_PHONE_MIN_LENGTH <= len(digits_only) <= self.INTERNATIONAL_PHONE_MAX_LENGTH:
+            return ValidationResult(True, self._add_extension(f"+{digits_only}", extension), [])
 
         return ValidationResult(
             False,
@@ -226,6 +243,20 @@ class DataValidator:
             Отформатированный телефонный номер
         """
         return f"{phone[0]} ({phone[1:4]}) {phone[4:7]}-{phone[7:9]}-{phone[9:11]}"
+
+    def _add_extension(self, phone: str, extension: Optional[str]) -> str:
+        """Добавить extension к отформатированному номеру.
+
+        Args:
+            phone: Отформатированный телефонный номер
+            extension: Добавочный номер (или None)
+
+        Returns:
+            Номер с extension если есть, иначе просто номер
+        """
+        if extension:
+            return f"{phone} доб. {extension}"
+        return phone
 
     def validate_email(self, email: str, check_mx: bool = False) -> ValidationResult:
         """Валидация email-адреса.
@@ -255,9 +286,7 @@ class DataValidator:
 
         # Проверка максимальной длины (RFC 5321)
         if len(email) > 254:
-            return ValidationResult(
-                False, None, ["Email превышает максимальную длину (254 символа)"]
-            )
+            return ValidationResult(False, None, ["Email превышает максимальную длину (254 символа)"])
 
         # Проверка наличия @ - быстрая предварительная проверка
         if "@" not in email:
@@ -271,9 +300,7 @@ class DataValidator:
         if check_mx:
             mx_valid = self._check_mx_records(email)
             if not mx_valid:
-                return ValidationResult(
-                    False, None, ["Домен email не имеет MX записей"]
-                )
+                return ValidationResult(False, None, ["Домен email не имеет MX записей"])
 
         return ValidationResult(True, email, [])
 
@@ -349,10 +376,7 @@ class DataValidator:
 
             # Проверяем что схема именно http или https
             if parsed.scheme not in ("http", "https"):
-                error_msg = (
-                    f"Неподдерживаемая схема URL: {parsed.scheme} "
-                    "(требуется http или https)"
-                )
+                error_msg = f"Неподдерживаемая схема URL: {parsed.scheme} " "(требуется http или https)"
                 return ValidationResult(False, None, [error_msg])
 
             return ValidationResult(True, url, [])
@@ -406,7 +430,9 @@ class DataValidator:
         validated = record.copy()
 
         # Конфигурация префиксов полей для валидации
-        field_prefixes = {
+        from typing import Callable
+
+        field_prefixes: Dict[str, Callable[[str], ValidationResult]] = {
             "phone_": self.validate_phone,
             "email_": self.validate_email,
             "website_": self.validate_url,

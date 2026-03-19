@@ -43,7 +43,7 @@ class ScrollArea(ptg.ScrollableWidget):
             Список строк для отображения
         """
         # Получить строки от контента
-        content_lines = []
+        content_lines: list[str] = []
 
         # Если контент - контейнер с виджетами
         if hasattr(self._content, "widgets"):
@@ -63,9 +63,7 @@ class ScrollArea(ptg.ScrollableWidget):
                             content_lines.append(str(widget))
                             from ..logger import logger
 
-                            logger.debug(
-                                "Ошибка при получении строк виджета: %s", widget_error
-                            )
+                            logger.debug("Ошибка при получении строк виджета: %s", widget_error)
                     else:
                         content_lines.append(str(widget))
         elif hasattr(self._content, "get_lines"):

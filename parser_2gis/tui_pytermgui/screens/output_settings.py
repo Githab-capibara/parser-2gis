@@ -11,6 +11,8 @@ import pytermgui as ptg
 from ..widgets import Checkbox
 
 if TYPE_CHECKING:
+    from pytermgui import SelectMenu as SelectMenuType
+
     from .app import TUIApp
 
 
@@ -34,7 +36,7 @@ class OutputSettingsScreen:
         self._csv_config = self._config.writer.csv
 
         # Поля формы
-        self._fields: dict[str, ptg.InputField | Checkbox | ptg.SelectMenu] = {}
+        self._fields: dict[str, ptg.InputField | Checkbox | SelectMenuType] = {}
 
     def create_window(self) -> ptg.Window:
         """
@@ -228,9 +230,7 @@ class OutputSettingsScreen:
 
         # Обновить поля InputField (нужно использовать delete_back() + insert_text())
         self._set_input_field_value(self._fields["encoding"], default_writer.encoding)
-        self._set_input_field_value(
-            self._fields["columns_per_entity"], str(default_csv.columns_per_entity)
-        )
+        self._set_input_field_value(self._fields["columns_per_entity"], str(default_csv.columns_per_entity))
         self._set_input_field_value(self._fields["join_char"], default_csv.join_char)
 
         # Обновить конфигурацию

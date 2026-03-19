@@ -96,6 +96,7 @@ MERGE_BATCH_SIZE: int = 500
 # Это устраняет глобальное состояние и следует лучшим практикам Python
 logger = logging.getLogger(__name__)
 
+
 def _get_logger() -> "Logger":
     """Получает logger для модуля common.
 
@@ -109,6 +110,7 @@ def _get_logger() -> "Logger":
     from .logger import logger as app_logger
 
     return app_logger
+
 
 # Набор чувствительных ключей для фильтрации данных
 # Оптимизация: скомпилированный regex для быстрой проверки
@@ -152,6 +154,25 @@ _SENSITIVE_KEYS: Set[str] = {
     "database_password",
     "connection_string",
     "conn_string",
+    # Добавленные ключи для полноты
+    "api_secret",
+    "apisecret",
+    "api-secret",
+    "access_key",
+    "secret_token",
+    "auth_token",
+    "bearer_token",
+    "github_token",
+    "gitlab_token",
+    "ssh_key",
+    "sshkey",
+    "ssh-private-key",
+    "gpg_key",
+    "pgp_key",
+    "certificate",
+    "cert_key",
+    "ssl_key",
+    "tls_key",
 }
 
 # Компилированный regex паттерн для проверки чувствительных ключей
@@ -162,6 +183,8 @@ _SENSITIVE_KEY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+
+@lru_cache(maxsize=None)
 def _is_sensitive_key(key: str) -> bool:
     """
     Проверяет, является ли ключ чувствительным.
@@ -188,6 +211,7 @@ def _is_sensitive_key(key: str) -> bool:
     # Проверка по скомпилированному regex паттерну
     return bool(_SENSITIVE_KEY_PATTERN.search(key_lower))
 
+
 def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     """
     Очищает чувствительные данные из значения.
@@ -209,6 +233,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     """
     # _visited теперь локальная переменная, а не параметр функции
     # Это предотвращает накопление данных между вызовами функции
+    # Объявляем _visited до try для гарантии доступности в finally
     _visited: set = set()
 
     try:
@@ -225,14 +250,8 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                 current_id = id(current_value)
 
                 # Быстрая проверка для неизменяемых типов - не требуют обработки
-                if current_value is None or isinstance(
-                    current_value, (str, int, float, bool)
-                ):
-                    result = (
-                        "<REDACTED>"
-                        if current_key and _is_sensitive_key(current_key)
-                        else current_value
-                    )
+                if current_value is None or isinstance(current_value, (str, int, float, bool)):
+                    result = "<REDACTED>" if current_key and _is_sensitive_key(current_key) else current_value
                     if parent is not None and parent_key is not None:
                         if isinstance(parent, dict):
                             parent[parent_key] = result
@@ -322,7 +341,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                     type(current_value).__name__,
                     current_key,
                     step_error,
-                    exc_info=True
+                    exc_info=True,
                 )
                 # Пробрасываем исключение для обработки на верхнем уровне
                 raise
@@ -339,7 +358,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
             "Критическая ошибка при очистке данных (тип: %s): %s",
             type(value).__name__,
             processing_error,
-            exc_info=True
+            exc_info=True,
         )
         raise
     finally:
@@ -351,6 +370,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
             # Ошибка при очистке _visited - логируем но не прерываем выполнение
             logger.warning("Ошибка при очистке _visited: %s", cleanup_error)
 
+
 def _default_predicate(value: Any) -> bool:
     """Предикат по умолчанию для проверки результата.
 
@@ -361,6 +381,7 @@ def _default_predicate(value: Any) -> bool:
     True если значение истинно, False иначе.
     """
     return bool(value)
+
 
 def wait_until_finished(
     timeout: Optional[int] = None,
@@ -430,29 +451,17 @@ def wait_until_finished(
             effective_finished = (
                 override_finished
                 if override_finished is not None
-                else (
-                    finished
-                    if finished is not None
-                    else decorator_finished or _default_predicate
-                )
+                else (finished if finished is not None else decorator_finished or _default_predicate)
             )
             effective_throw = (
                 override_throw_exception
                 if override_throw_exception is not None
-                else (
-                    throw_exception
-                    if throw_exception is not None
-                    else decorator_throw_exception
-                )
+                else (throw_exception if throw_exception is not None else decorator_throw_exception)
             )
             effective_poll = (
                 override_poll_interval
                 if override_poll_interval is not None
-                else (
-                    poll_interval
-                    if poll_interval is not None
-                    else decorator_poll_interval
-                )
+                else (poll_interval if poll_interval is not None else decorator_poll_interval)
             )
 
             ret: Any = None
@@ -462,10 +471,7 @@ def wait_until_finished(
 
             while True:
                 # Проверка таймаута в начале цикла
-                if (
-                    effective_timeout is not None
-                    and time.time() - start_time > effective_timeout
-                ):
+                if effective_timeout is not None and time.time() - start_time > effective_timeout:
                     timeout_msg = f"Превышено время ожидания для {func.__name__}"
                     if effective_throw:
                         raise TimeoutError(timeout_msg)
@@ -507,9 +513,8 @@ def wait_until_finished(
 
     return outer
 
-def report_from_validation_error(
-    ex: ValidationError, d: Optional[Dict[str, Any]] = None
-) -> Dict[str, Dict[str, Any]]:
+
+def report_from_validation_error(ex: ValidationError, d: Optional[Dict[str, Any]] = None) -> Dict[str, Dict[str, Any]]:
     """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
 
     Note:
@@ -543,6 +548,7 @@ def report_from_validation_error(
         }
 
     return error_report
+
 
 def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
     """Разворачивает плоский словарь с ключами в виде точечного пути к значениям.
@@ -600,6 +606,7 @@ def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
 
     return output
 
+
 def floor_to_hundreds(arg: Union[int, float]) -> int:
     """Округляет число вниз до ближайшей сотни.
 
@@ -611,8 +618,10 @@ def floor_to_hundreds(arg: Union[int, float]) -> int:
     """
     return int((arg // 100) * 100)
 
+
 # Кэшируем по отдельным полям (code, domain) для более эффективного использования памяти
 # и уменьшения количества повторных валидаций одинаковых городов
+
 
 # Увеличены размеры lru_cache для улучшения производительности
 # _validate_city_cached=512 (было 256) - увеличено для поддержки большего количества городов
@@ -645,6 +654,7 @@ def _validate_city_cached(code: str, domain: str) -> Dict[str, Any]:
         "code": code,
         "domain": domain,
     }
+
 
 def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     """Валидирует структуру города.
@@ -688,6 +698,7 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
     # Оптимизация: передаём code и domain как отдельные аргументы для эффективного кэширования
     return _validate_city_cached(city["code"], city["domain"])
 
+
 # Увеличены размеры lru_cache для улучшения производительности
 # _validate_category_cached=256 (было 128) - увеличено для поддержки большего количества категорий
 # ОБОСНОВАНИЕ: Увеличение размера кэша улучшает производительность при парсинге
@@ -711,6 +722,7 @@ def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
         "query": category_tuple[1],
         "rubric_code": category_tuple[2] if category_tuple[2] else None,
     }
+
 
 def _validate_category(category: Any) -> Dict[str, Any]:
     """Валидирует структуру категории.
@@ -744,6 +756,7 @@ def _validate_category(category: Any) -> Dict[str, Any]:
         category.get("rubric_code", ""),
     )
     return _validate_category_cached(category_key)
+
 
 # Оптимизация: кэширование сгенерированных URL
 @lru_cache(maxsize=4096)
@@ -817,9 +830,7 @@ def generate_category_url(
     return _generate_category_url_cached(city_key, category_key)
 
 
-def generate_city_urls(
-    cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None
-) -> List[str]:
+def generate_city_urls(cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None) -> List[str]:
     """Генерирует URL для парсинга по списку городов.
 
     Оптимизация:
@@ -874,6 +885,7 @@ def generate_city_urls(
 
     return urls
 
+
 # url_query_encode=2048 - оптимально для часто используемых поисковых запросов
 @lru_cache(maxsize=2048)
 def url_query_encode(query: str) -> str:
@@ -891,10 +903,10 @@ def url_query_encode(query: str) -> str:
     """
     return urllib.parse.quote(query, safe="")
 
+
 # =============================================================================
 # ASYNC ВЕРСИЯ WAIT_UNTIL_FINISHED
 # =============================================================================
-
 
 
 def async_wait_until_finished(
@@ -947,23 +959,15 @@ def async_wait_until_finished(
             **kwargs: Any,
         ) -> Any:
             # Приоритет: override_* > значения из декоратора
-            effective_timeout = (
-                override_timeout if override_timeout is not None else decorator_timeout
-            )
+            effective_timeout = override_timeout if override_timeout is not None else decorator_timeout
             effective_finished = (
-                override_finished
-                if override_finished is not None
-                else decorator_finished or _default_predicate
+                override_finished if override_finished is not None else decorator_finished or _default_predicate
             )
             effective_throw_exception = (
-                override_throw_exception
-                if override_throw_exception is not None
-                else decorator_throw_exception
+                override_throw_exception if override_throw_exception is not None else decorator_throw_exception
             )
             effective_poll_interval = (
-                override_poll_interval
-                if override_poll_interval is not None
-                else decorator_poll_interval
+                override_poll_interval if override_poll_interval is not None else decorator_poll_interval
             )
 
             start_time = asyncio.get_event_loop().time()
@@ -976,9 +980,7 @@ def async_wait_until_finished(
                     elapsed = asyncio.get_event_loop().time() - start_time
                     if elapsed > effective_timeout:
                         if effective_throw_exception:
-                            raise TimeoutError(
-                                f"Функция {func.__name__} не завершилась за {effective_timeout} секунд"
-                            )
+                            raise TimeoutError(f"Функция {func.__name__} не завершилась за {effective_timeout} секунд")
                         return None
 
                 # Вызываем функцию
@@ -1001,6 +1003,7 @@ def async_wait_until_finished(
         return inner
 
     return outer
+
 
 # =============================================================================
 # МОНИТОРИНГ КЭШЕЙ

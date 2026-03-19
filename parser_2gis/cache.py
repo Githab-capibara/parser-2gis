@@ -45,6 +45,7 @@ except ImportError:
     _use_orjson = False
     orjson = None  # type: ignore
 
+
 def _serialize_json(data: Dict[str, Any]) -> str:
     """
     Сериализует данные в JSON формат.
@@ -67,7 +68,6 @@ def _serialize_json(data: Dict[str, Any]) -> str:
         try:
             return orjson.dumps(data).decode("utf-8")
         except orjson.EncodeError as encode_error:
-
             raise TypeError(
                 f"Критическая ошибка сериализации orjson: {encode_error}. "
                 f"Тип данных: {type(data).__name__}, "
@@ -79,9 +79,9 @@ def _serialize_json(data: Dict[str, Any]) -> str:
             return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
         except (TypeError, ValueError) as json_error:
             raise TypeError(
-                f"Критическая ошибка сериализации json: {json_error}. "
-                f"Тип данных: {type(data).__name__}"
+                f"Критическая ошибка сериализации json: {json_error}. " f"Тип данных: {type(data).__name__}"
             ) from json_error
+
 
 def _deserialize_json(data: str) -> Dict[str, Any]:
     """
@@ -114,7 +114,7 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
             logger.error(
                 "Некорректный тип данных кэша после десериализации. Ожидался dict, получен %s. Размер данных: %d байт",
                 type(deserialized).__name__,
-                len(str(deserialized))
+                len(str(deserialized)),
             )
             raise TypeError(
                 f"Ожидался словарь после десериализации, получен {type(deserialized).__name__}. "
@@ -126,7 +126,7 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
             logger.error(
                 "Данные кэша содержат небезопасные конструкции. Тип: %s, Размер: %d байт",
                 type(deserialized).__name__,
-                len(str(deserialized))
+                len(str(deserialized)),
             )
             raise ValueError(
                 f"Данные кэша содержат небезопасные конструкции. "
@@ -145,14 +145,11 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
     except (json.JSONDecodeError, UnicodeDecodeError) as json_error:
         error_type = "Unicode" if isinstance(json_error, UnicodeDecodeError) else "JSON"
         raise ValueError(
-            f"Критическая ошибка десериализации ({error_type}): {json_error}. "
-            f"Длина данных: {len(data)}"
+            f"Критическая ошибка десериализации ({error_type}): {json_error}. " f"Длина данных: {len(data)}"
         ) from json_error
     except TypeError as type_error:
-        raise TypeError(
-            f"Некорректный тип данных кэша: {type_error}. "
-            f"Длина данных: {len(data)}"
-        ) from type_error
+        raise TypeError(f"Некорректный тип данных кэша: {type_error}. Длина данных: {len(data)}") from type_error
+
 
 def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     """Валидирует данные кэша на безопасность.
@@ -185,6 +182,7 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     if isinstance(data, (int, float)):
         # Проверяем на NaN и Infinity
         import math
+
         if isinstance(data, float) and (math.isnan(data) or math.isinf(data)):
             logger.warning("Обнаружено NaN/Infinity в данных кэша")
             return False
@@ -194,22 +192,33 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
         # Проверяем строку на опасные конструкции
         # Это предотвращает потенциальные SQL injection и XSS атаки
         dangerous_patterns = [
-            '--',  # SQL комментарий
-            '; DROP', 'DELETE FROM', 'INSERT INTO', 'UPDATE ',  # SQL команды
-            '<script', 'javascript:', 'onerror=', 'onload=',  # XSS
-            'eval(', 'Function(',  # JS eval
+            "--",  # SQL комментарий
+            "; DROP",
+            "DELETE FROM",
+            "INSERT INTO",
+            "UPDATE ",  # SQL команды
+            "<script",
+            "javascript:",
+            "onerror=",
+            "onload=",  # XSS
+            "eval(",
+            "Function(",  # JS eval
         ]
         data_upper = data.upper()
         for pattern in dangerous_patterns:
             if pattern.upper() in data_upper:
-                logger.warning(
-                    "Обнаружена опасная конструкция в данных кэша: %s",
-                    pattern
-                )
+                logger.warning("Обнаружена опасная конструкция в данных кэша: %s", pattern)
                 return False
         return True
 
     if isinstance(data, dict):
+        # Проверяем на __proto__ и другие опасные ключи (prototype pollution)
+        dangerous_keys = {"__proto__", "constructor", "prototype"}
+        for key in data.keys():
+            if isinstance(key, str) and key.lower() in dangerous_keys:
+                logger.warning("Обнаружена потенциальная __proto__ атака: ключ '%s'", key)
+                return False
+
         # Рекурсивно проверяем все значения словаря
         for key, value in data.items():
             if not isinstance(key, str):
@@ -227,11 +236,9 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
         return True
 
     # Недопустимый тип
-    logger.warning(
-        "Недопустимый тип данных в кэше: %s",
-        type(data).__name__
-    )
+    logger.warning("Недопустимый тип данных в кэше: %s", type(data).__name__)
     return False
+
 
 # Экспортируемые символы модуля
 __all__ = ["CacheManager"]
@@ -257,6 +264,7 @@ LRU_EVICT_BATCH: int = 100
 
 # Длина SHA256 хеша в hex формате
 SHA256_HASH_LENGTH: int = 64
+
 
 class _ConnectionPool:
     """
@@ -358,9 +366,7 @@ class _ConnectionPool:
                 try:
                     conn.close()
                 except Exception as e:
-                    logger.debug(
-                        "Не удалось закрыть соединение SQLite: %s", e, exc_info=True
-                    )
+                    logger.debug("Не удалось закрыть соединение SQLite: %s", e, exc_info=True)
             self._all_conns.clear()
 
     def __del__(self) -> None:
@@ -393,6 +399,7 @@ class _ConnectionPool:
                 del_error,
                 exc_info=True,
             )
+
 
 class CacheManager:
     """Менеджер кэша результатов парсинга.
@@ -625,6 +632,7 @@ class CacheManager:
                 )
                 # Повторная попытка через небольшую задержку
                 import time
+
                 time.sleep(0.5)
                 try:
                     # Повторяем запрос
@@ -671,7 +679,12 @@ class CacheManager:
                 )
                 return None
 
-        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as decode_error:
+        except (
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ) as decode_error:
             # Обрабатываем ошибки десериализации - удаляем повреждённую запись
             error_type = type(decode_error).__name__
             logger.warning(
@@ -685,9 +698,7 @@ class CacheManager:
                 cursor.execute(self.SQL_DELETE, (url_hash,))
                 conn.commit()
             except sqlite3.Error as cleanup_error:
-                logger.warning(
-                    "Ошибка при удалении повреждённой записи: %s", cleanup_error
-                )
+                logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
             return None
         except Exception as general_error:
             logger.error(
@@ -804,7 +815,6 @@ class CacheManager:
                     )
                     saved_count += 1
                 except (TypeError, ValueError) as serialize_error:
-
                     logger.warning(
                         "Ошибка сериализации данных для кэша (%s): %s",
                         url,
@@ -870,7 +880,6 @@ class CacheManager:
         cursor = conn.cursor()
 
         try:
-
             current_time = datetime.now()
 
             # Удаляем истекшие записи с использованием подготовленного запроса
@@ -910,9 +919,7 @@ class CacheManager:
 
         # ВАЖНО: Ограничиваем максимальный размер пакета для предотвращения DoS
         if len(url_hashes) > MAX_BATCH_SIZE:
-            raise ValueError(
-                f"Размер пакета {len(url_hashes)} превышает максимальный лимит {MAX_BATCH_SIZE}"
-            )
+            raise ValueError(f"Размер пакета {len(url_hashes)} превышает максимальный лимит {MAX_BATCH_SIZE}")
 
         # ВАЖНО: Строгая валидация каждого хеша (64 символа, hex)
         # Это предотвращает SQL injection через некорректные хеши
@@ -979,9 +986,7 @@ class CacheManager:
 
             # Размер файла базы данных с обработкой ошибок
             try:
-                cache_size = (
-                    self._cache_file.stat().st_size if self._cache_file.exists() else 0
-                )
+                cache_size = self._cache_file.stat().st_size if self._cache_file.exists() else 0
             except OSError:
                 # Файл недоступен или ошибка файловой системы
                 cache_size = 0
@@ -1059,9 +1064,7 @@ class CacheManager:
         except Exception as e:
             # Логирование ошибки вместо игнорирования
             # В __del__ нельзя выбрасывать исключения
-            logger.error(
-                "Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True
-            )
+            logger.error("Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True)
 
     @staticmethod
     def _hash_url(url: str) -> str:
@@ -1201,10 +1204,7 @@ class CacheManager:
                     max_iterations = 50  # Защита от бесконечного цикла
 
                     # Циклически удаляем записи пока размер не станет меньше лимита
-                    while (
-                        cache_size_mb > MAX_CACHE_SIZE_MB
-                        and eviction_iterations < max_iterations
-                    ):
+                    while cache_size_mb > MAX_CACHE_SIZE_MB and eviction_iterations < max_iterations:
                         eviction_iterations += 1
 
                         # Удаляем пакет старых записей (LRU - по timestamp)
@@ -1214,9 +1214,7 @@ class CacheManager:
 
                         if deleted_count == 0:
                             # Нечего удалять - выходим из цикла
-                            logger.debug(
-                                "LRU eviction: записей для удаления не осталось"
-                            )
+                            logger.debug("LRU eviction: записей для удаления не осталось")
                             break
 
                         total_deleted += deleted_count
@@ -1232,16 +1230,14 @@ class CacheManager:
 
                     if eviction_iterations >= max_iterations:
                         logger.warning(
-                            "LRU eviction: достигнут лимит итераций (%d), "
-                            "текущий размер %.2f MB",
+                            "LRU eviction: достигнут лимит итераций (%d), " "текущий размер %.2f MB",
                             max_iterations,
                             cache_size_mb,
                         )
 
                     if total_deleted > 0:
                         logger.info(
-                            "LRU eviction завершена: удалено %d записей за %d итераций, "
-                            "новый размер %.2f MB",
+                            "LRU eviction завершена: удалено %d записей за %d итераций, " "новый размер %.2f MB",
                             total_deleted,
                             eviction_iterations,
                             cache_size_mb,
@@ -1254,6 +1250,7 @@ class CacheManager:
             logger.warning("Ошибка при проверке размера кэша: %s", os_error)
         except sqlite3.Error as db_error:
             logger.warning("Ошибка БД при LRU eviction: %s", db_error)
+
 
 # Алиас для обратной совместимости
 Cache = CacheManager

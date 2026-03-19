@@ -12,16 +12,12 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import pytermgui as ptg
 
-from ..utils import (
-    BoxDrawing,
-    GradientText,
-    UnicodeIcons,
-    format_number,
-    format_time,
-)
+from ..utils import BoxDrawing, GradientText, UnicodeIcons, format_number, format_time
 from ..widgets import LogViewer, MultiProgressBar, ProgressBar
 
 if TYPE_CHECKING:
+    from pytermgui import Monitor as MonitorType
+
     from ..parallel_parser import ParallelParser
     from .app import TUIApp
 
@@ -115,7 +111,7 @@ class ParsingScreen:
         self._spinner_active = False
 
         # Monitor для автоматического обновления
-        self._monitor: Optional[ptg.Monitor] = None
+        self._monitor: Optional[MonitorType] = None
 
     def _create_stats_cards(self) -> ptg.Container:
         """
@@ -151,9 +147,7 @@ class ParsingScreen:
         return ptg.Window(
             *labels,
             box="ROUNDED",
-            title=ptg.tim.parse(
-                f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Статистика[/]"
-            ),
+            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_CHART} Статистика[/]"),
         )
 
     def _create_control_buttons(self) -> ptg.Container:
@@ -164,9 +158,7 @@ class ParsingScreen:
             Container с кнопками
         """
         # Кнопки с иконками
-        pause_icon = (
-            UnicodeIcons.EMOJI_PAUSE if not self._paused else UnicodeIcons.EMOJI_PLAY
-        )
+        pause_icon = UnicodeIcons.EMOJI_PAUSE if not self._paused else UnicodeIcons.EMOJI_PLAY
         pause_text = "Пауза" if not self._paused else "Продолжить"
 
         self._button_pause = [f"{pause_icon} {pause_text}", self._toggle_pause]
@@ -208,9 +200,7 @@ class ParsingScreen:
             self._page_progress.render(),
             self._record_progress.render(),
             box="ROUNDED",
-            title=ptg.tim.parse(
-                f"[bold #00FFFF]{UnicodeIcons.EMOJI_START} Прогресс[/]"
-            ),
+            title=ptg.tim.parse(f"[bold #00FFFF]{UnicodeIcons.EMOJI_START} Прогресс[/]"),
         )
 
         # Статистика
@@ -253,9 +243,7 @@ class ParsingScreen:
             ),
             width=95,
             box="DOUBLE",
-            title=ptg.tim.parse(
-                f"[bold #00FF88]{UnicodeIcons.EMOJI_ROCKET} Parser2GIS - Парсинг[/]"
-            ),
+            title=ptg.tim.parse(f"[bold #00FF88]{UnicodeIcons.EMOJI_ROCKET} Parser2GIS - Парсинг[/]"),
         )
 
         # Запустить обновление
@@ -374,14 +362,8 @@ class ParsingScreen:
         current_record = self._record_progress.completed
 
         if current_record > 0 and total_records > 0:
-            elapsed_seconds = (
-                (datetime.now() - self._start_time).total_seconds()
-                if self._start_time
-                else 1
-            )
-            records_per_sec = (
-                current_record / elapsed_seconds if elapsed_seconds > 0 else 1
-            )
+            elapsed_seconds = (datetime.now() - self._start_time).total_seconds() if self._start_time else 1
+            records_per_sec = current_record / elapsed_seconds if elapsed_seconds > 0 else 1
             remaining = total_records - current_record
             eta_seconds = remaining / records_per_sec if records_per_sec > 0 else 0
 
