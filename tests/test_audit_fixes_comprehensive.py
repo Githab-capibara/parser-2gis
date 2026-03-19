@@ -850,14 +850,14 @@ class TestCCleanupResources:
 
 
 # -----------------------------------------------------------------------------
-# C3: parallel_parser.py - Очистка временных файлов (_TempFileCleanupTimer)
+# C3: parallel_parser.py - Очистка временных файлов (_TempFileTimer)
 # -----------------------------------------------------------------------------
 
 
 class TestCTempFileCleanup:
     """Тесты периодической очистки временных файлов.
 
-    Проверяют работу _TempFileCleanupTimer:
+    Проверяют работу _TempFileTimer:
     - Периодическая очистка
     - Удаление старых файлов
     - Мониторинг количества файлов
@@ -870,10 +870,10 @@ class TestCTempFileCleanup:
         - Таймер запускается и работает
         - Очистка происходит периодически
         """
-        from parser_2gis.parallel_parser import _TempFileCleanupTimer
+        from parser_2gis.parallel_parser import _TempFileTimer
 
         # Создаём таймер с коротким интервалом для теста
-        timer = _TempFileCleanupTimer(
+        timer = _TempFileTimer(
             temp_dir=temp_dir,
             interval=1,  # 1 секунда для теста
             max_files=100,
@@ -903,7 +903,7 @@ class TestCTempFileCleanup:
         - Файлы старше orphan_age удаляются
         - Очистка работает корректно
         """
-        from parser_2gis.parallel_parser import _TempFileCleanupTimer
+        from parser_2gis.parallel_parser import _TempFileTimer
 
         # Создаём старый файл
         old_file = temp_dir / "old_temp.tmp"
@@ -914,7 +914,7 @@ class TestCTempFileCleanup:
         os.utime(old_file, (old_time, old_time))
 
         # Создаём таймер
-        timer = _TempFileCleanupTimer(
+        timer = _TempFileTimer(
             temp_dir=temp_dir,
             interval=60,
             max_files=100,
@@ -938,14 +938,14 @@ class TestCTempFileCleanup:
         - Мониторинг работает корректно
         - Предупреждения при превышении лимита
         """
-        from parser_2gis.parallel_parser import _TempFileCleanupTimer
+        from parser_2gis.parallel_parser import _TempFileTimer
 
         # Создаём множественные файлы
         for i in range(10):
             (temp_dir / f"temp_{i}.tmp").write_text("test", encoding="utf-8")
 
         # Создаём таймер с маленьким лимитом
-        timer = _TempFileCleanupTimer(
+        timer = _TempFileTimer(
             temp_dir=temp_dir,
             interval=60,
             max_files=5,  # Лимит 5 файлов
