@@ -112,10 +112,10 @@ if __name__ == "__main__":
                 "pyinstaller>=6.6.0",
             ],
             "tui": [
-                "pytermgui>=7.0.0",
+                "textual>=0.50.0",
             ],
             "all": [
-                "pytermgui>=7.0.0",
+                "textual>=0.50.0",
                 "pytest>=6.2,<8",
                 "tox>=4.0",
                 "pre-commit>=2.6",

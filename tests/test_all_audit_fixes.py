@@ -345,7 +345,7 @@ class TestTODOHandling:
         """Тест: Тривиальные TODO удалены из output_settings.py."""
         import inspect
 
-        import parser_2gis.tui_pytermgui.screens.output_settings as output_settings
+        import parser_2gis.tui_textual.screens.settings as output_settings
 
         source = inspect.getsource(output_settings)
 
@@ -362,7 +362,7 @@ class TestTODOHandling:
         """Тест: Важные TODO конвертированы в ISSUE format."""
         import inspect
 
-        import parser_2gis.tui_pytermgui.screens.parsing_screen as parsing_screen
+        import parser_2gis.tui_textual.screens.parsing_screen as parsing_screen
 
         source = inspect.getsource(parsing_screen)
 
@@ -590,7 +590,7 @@ class TestConditionalImportsFix:
 
         # Проверяем что импорт TUI имеет stub функцию или обработку
         has_stub = "_tui_omsk_stub" in source
-        has_tui_import = "run_new_tui_omsk" in source or "from .tui_pytermgui" in source
+        has_tui_import = "run_new_tui_omsk" in source or "from .tui_textual" in source
 
         assert has_stub or has_tui_import, "TUI импорт должен существовать"
 

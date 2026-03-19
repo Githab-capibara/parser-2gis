@@ -7,7 +7,7 @@
 Тесты покрывают исправления из отчета FIXES_IMPLEMENTATION_REPORT.md:
 - signal_handler.py: явная обработка ошибок при восстановлении обработчиков
 - parallel_parser.py: логирование ошибок в merge операциях
-- tui_pytermgui: обработка ошибок UI компонентов
+- tui_textual: обработка ошибок UI компонентов
 """
 
 import os
@@ -181,19 +181,19 @@ class TestTUIExceptionHandling:
 
     def test_tui_app_error_logged(self, caplog):
         """
-        Тест 1.3: Проверка обработки ошибок в tui_pytermgui.
-        
+        Тест 1.3: Проверка обработки ошибок в tui_textual.
+
         Проверяет что ошибки UI компонентов корректно логируются
         через logger.debug().
         """
         # Проверяем что модуль импортируется без ошибок
         try:
-            from parser_2gis.tui_pytermgui import app
+            from parser_2gis.tui_textual import app
             assert app is not None
         except ImportError as e:
             # Если TUI не доступен, пропускаем тест
             pytest.skip(f"TUI модуль не доступен: {e}")
-        
+
         # Тест проходит если модуль импортируется
         assert True
 

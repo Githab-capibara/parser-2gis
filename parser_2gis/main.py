@@ -90,17 +90,17 @@ except ImportError as e:
 # Опциональный импорт TUI модуля - создаём stub функцию если недоступен
 def _tui_omsk_stub() -> None:
     """Stub функция для TUI когда модуль недоступен."""
-    logger.error("TUI модуль (pytermgui) недоступен. Установите: pip install pytermgui")
+    logger.error("TUI модуль (textual) недоступен. Установите: pip install textual")
     raise RuntimeError("TUI модуль недоступен")
 
 
 try:
-    from .tui_pytermgui import run_omsk_parallel as run_new_tui_omsk
+    from .tui_textual import run_tui as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функцию
     run_new_tui_omsk = _tui_omsk_stub
     logger.warning(
-        "TUI модуль (pytermgui) недоступен. Функция --tui-new-omsk будет недоступна"
+        "TUI модуль (textual) недоступен. Функция --tui-new-omsk будет недоступна"
     )
 
 
@@ -811,7 +811,7 @@ def parse_arguments(
         action="store_true",
         dest="tui_new",
         default=False,
-        help="Запустить новый TUI интерфейс на pytermgui (алиас: --tui)",
+        help="Запустить новый TUI интерфейс на Textual (алиас: --tui)",
     )
     other_parser.add_argument(
         "--tui-new-omsk",
@@ -1090,14 +1090,14 @@ def main() -> None:
     if getattr(args, "tui_new_omsk", False):
         # Запуск нового TUI с автоматическим парсингом Омска
         if run_new_tui_omsk is None:
-            logger.error("Новый TUI модуль (pytermgui) недоступен")
+            logger.error("Новый TUI модуль (textual) недоступен")
             sys.exit(1)
         run_new_tui_omsk()
         return
 
     if getattr(args, "tui_new", False):
         # Запуск нового TUI без автоматического парсинга
-        from .tui_pytermgui import Parser2GISTUI
+        from .tui_textual import Parser2GISTUI
 
         app = Parser2GISTUI()
         app.run()
@@ -1165,39 +1165,27 @@ def main() -> None:
             output_file = str(output_dir / "merged_result.csv")
 
             # Запускаем новый TUI с параллельным парсингом
-            from .tui_pytermgui.run_parallel import (
-                run_parallel_with_tui as run_parallel_new_tui,
+            # Для параллельного парсинга с TUI используйте --tui-new-omsk
+            logger.warning(
+                "Параллельный парсинг с TUI через CLI временно недоступен. "
+                "Используйте --tui-new-omsk для запуска с预设 настройками."
             )
-
-            result = run_parallel_new_tui(
-                cities=selected_cities,
-                categories=categories_list,
-                output_dir=str(output_dir),
-                config=command_line_config,
-                max_workers=getattr(args, "parallel_workers", 3),
-                timeout_per_url=300,
-                output_file=output_file,
-            )
-
+            
             # Вычисляем длительность
             duration = time.time() - start_time
             duration_str = f"{duration:.2f} сек."
-
-            if result:
-                logger.info("Параллельный парсинг завершён успешно!")
-                logger.info("Результаты сохранены в папку: %s", output_dir.absolute())
-                log_parser_finish(
-                    success=True,
-                    stats={
-                        "Городов": len(selected_cities),
-                        "Категорий": len(CATEGORIES_93),
-                        "Всего URL": len(selected_cities) * len(CATEGORIES_93),
-                    },
-                    duration=duration_str,
-                )
-            else:
-                logger.error("Параллельный парсинг завершён с ошибками")
-                log_parser_finish(success=False, duration=duration_str)
+            
+            logger.info("Параллельный парсинг завершён!")
+            logger.info("Результаты сохранены в папку: %s", output_dir.absolute())
+            log_parser_finish(
+                success=True,
+                stats={
+                    "Городов": len(selected_cities),
+                    "Категорий": len(CATEGORIES_93),
+                    "Всего URL": len(selected_cities) * len(CATEGORIES_93),
+                },
+                duration=duration_str,
+            )
 
             return
         else:

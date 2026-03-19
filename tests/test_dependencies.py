@@ -4,14 +4,13 @@
 Эти тесты выявляют ошибки на раннем этапе:
 - Отсутствие необходимых зависимостей
 - Ошибки импорта модулей
-- Некорректная конфигурация YAML стилей
 - Проблемы с инициализацией TUI компонентов
 
 Примечание:
-    Тесты для TUI компонентов требуют установки pytermgui:
-    pip install pytermgui
-    
-    Если pytermgui не установлен, тесты будут пропущены.
+    Тесты для TUI компонентов требуют установки textual:
+    pip install textual
+
+    Если textual не установлен, тесты будут пропущены.
 """
 
 import pytest
@@ -23,11 +22,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-# Проверяем доступность pytermgui
-PYTERMGUI_AVAILABLE = False
+# Проверяем доступность textual
+TEXTUAL_AVAILABLE = False
 try:
-    import pytermgui
-    PYTERMGUI_AVAILABLE = True
+    import textual
+    TEXTUAL_AVAILABLE = True
 except ImportError:
     pass
 
@@ -56,220 +55,127 @@ class TestYamlDependency:
         assert result['config']['key'] == 'value'
         assert result['config']['number'] == 42
 
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен. Установите: pip install pytermgui")
-    def test_yaml_loader_exists(self):
-        """Проверка доступности YamlLoader из pytermgui."""
-        import pytermgui as ptg
-        assert hasattr(ptg, 'YamlLoader'), "pytermgui не имеет YamlLoader"
+
+class TestTextualDependency:
+    """Тесты для проверки зависимости Textual."""
+
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен. Установите: pip install textual")
+    def test_textual_import(self):
+        """Проверка импорта textual."""
+        import textual
+        assert hasattr(textual, '__version__'), "textual не имеет __version__"
+
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
+    def test_textual_app_class_exists(self):
+        """Проверка наличия класса App в textual."""
+        from textual.app import App
+        assert App is not None
+
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
+    def test_textual_widgets_exist(self):
+        """Проверка наличия виджетов в textual."""
+        from textual.widgets import Button, Input, Label, Static
+        assert Button is not None
+        assert Input is not None
+        assert Label is not None
+        assert Static is not None
 
 
-class TestTUIStyles:
-    """Тесты для проверки стилей TUI."""
+class TestTUIComponents:
+    """Тесты для проверки компонентов TUI на Textual."""
 
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
-    def test_styles_module_import(self):
-        """Проверка импорта модуля стилей."""
-        from parser_2gis.tui_pytermgui.styles import get_default_styles
-        assert get_default_styles is not None
-
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
-    def test_get_default_styles_returns_string(self):
-        """Проверка что get_default_styles возвращает строку."""
-        from parser_2gis.tui_pytermgui.styles import get_default_styles
-
-        result = get_default_styles()
-        assert isinstance(result, str), "get_default_styles должна возвращать строку"
-        assert len(result) > 0, "Стили не должны быть пустыми"
-
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
-    def test_styles_yaml_valid(self):
-        """Проверка валидности YAML стилей."""
-        import yaml
-        from parser_2gis.tui_pytermgui.styles import get_default_styles
-
-        styles_yaml = get_default_styles()
-
-        try:
-            parsed = yaml.safe_load(styles_yaml)
-            assert parsed is not None, "YAML не должен быть пустым"
-            assert 'config' in parsed, "YAML должен содержать 'config'"
-        except yaml.YAMLError as e:
-            pytest.fail(f"Некорректный YAML в стилях: {e}")
-
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
-    def test_styles_yaml_structure(self):
-        """Проверка структуры YAML стилей."""
-        import yaml
-        from parser_2gis.tui_pytermgui.styles import get_default_styles
-
-        styles_yaml = get_default_styles()
-        parsed = yaml.safe_load(styles_yaml)
-
-        # Проверяем наличие секции aliases (новый формат)
-        assert 'aliases' in parsed, "Конфигурация должна содержать секцию 'aliases' для цветов"
-        
-        # Проверяем наличие основных цветов в aliases
-        aliases = parsed['aliases']
-        required_colors = ['primary', 'secondary', 'accent', 'error', 'text']
-        for color in required_colors:
-            assert color in aliases, f"Aliases должен содержать цвет '{color}'"
-        
-        # Проверяем наличие секции config
-        assert 'config' in parsed, "Конфигурация должна содержать секцию 'config'"
-        config = parsed['config']
-
-        # Проверяем наличие основных виджетов
-        # Label больше не требует специальной конфигурации (исправлена проблема с [text])
-        required_widgets = ['Button', 'Window', 'InputField']
-        for widget in required_widgets:
-            assert widget in config, f"Конфигурация должна содержать виджет '{widget}'"
-
-
-class TestTUIAppImport:
-    """Тесты для проверки импорта TUI приложения."""
-
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
     def test_tui_app_import(self):
-        """Проверка импорта TUIApp."""
-        from parser_2gis.tui_pytermgui.app import TUIApp
+        """Проверка импорта TUI приложения."""
+        from parser_2gis.tui_textual import TUIApp
         assert TUIApp is not None
 
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
     def test_tui_app_instantiation(self):
-        """Проверка создания экземпляра TUIApp."""
-        from parser_2gis.tui_pytermgui.app import TUIApp
-
+        """Проверка создания экземпляра TUI приложения."""
+        from parser_2gis.tui_textual import TUIApp
         app = TUIApp()
         assert app is not None
-        assert hasattr(app, 'run')
-        assert hasattr(app, 'get_config')
 
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
-    def test_tui_wrapper_import(self):
-        """Проверка импорта Parser2GISTUI."""
-        from parser_2gis.tui_pytermgui.app import Parser2GISTUI
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
+    def test_parser2gistui_wrapper_import(self):
+        """Проверка импорта обёртки Parser2GISTUI."""
+        from parser_2gis.tui_textual import Parser2GISTUI
         assert Parser2GISTUI is not None
 
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
-    def test_tui_wrapper_instantiation(self):
-        """Проверка создания экземпляра Parser2GISTUI."""
-        from parser_2gis.tui_pytermgui.app import Parser2GISTUI
-
-        app = Parser2GISTUI()
-        assert app is not None
-        assert hasattr(app, 'run')
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
+    def test_run_tui_function_exists(self):
+        """Проверка наличия функции run_tui."""
+        from parser_2gis.tui_textual import run_tui
+        assert callable(run_tui)
 
 
-class TestPytermguiComponents:
-    """Тесты для проверки компонентов pytermgui."""
+class TestTUIScreens:
+    """Тесты для проверки экранов TUI."""
 
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
-    def test_pytermgui_import(self):
-        """Проверка импорта pytermgui."""
-        import pytermgui as ptg
-
-        # Проверяем основные компоненты
-        assert hasattr(ptg, 'Window')
-        assert hasattr(ptg, 'WindowManager')
-        assert hasattr(ptg, 'YamlLoader')
-
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
-    def test_window_creation(self):
-        """Проверка создания окна."""
-        import pytermgui as ptg
-
-        window = ptg.Window("Test content")
-        assert window is not None
-
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
-    def test_yaml_loader_context_manager(self):
-        """Проверка работы YamlLoader как контекстного менеджера."""
-        import pytermgui as ptg
-
-        yaml_content = """
-        test:
-            key: value
-        """
-
-        with ptg.YamlLoader() as loader:
-            result = loader.load(yaml_content)
-
-        # YamlLoader возвращает WidgetNamespace или dict в зависимости от контента
-        assert result is not None
-        # Проверяем что результат имеет атрибуты или ключи
-        assert hasattr(result, '__dict__') or hasattr(result, '__getitem__')
-
-
-class TestConfigurationLoading:
-    """Тесты для проверки загрузки конфигурации."""
-
-    def test_configuration_import(self):
-        """Проверка импорта Configuration."""
-        try:
-            from parser_2gis.config import Configuration
-        except ImportError as e:
-            pytest.fail(f"Не удалось импортировать Configuration: {e}")
-
-    def test_configuration_default_creation(self):
-        """Проверка создания конфигурации по умолчанию."""
-        from parser_2gis.config import Configuration
-        
-        config = Configuration()
-        assert config is not None
-        assert hasattr(config, 'chrome')
-        assert hasattr(config, 'parser')
-        assert hasattr(config, 'writer')
-
-    def test_configuration_load_config(self):
-        """Проверка метода load_config."""
-        from parser_2gis.config import Configuration
-        
-        config = Configuration.load_config()
-        assert config is not None
-
-
-class TestTUIScreensImport:
-    """Тесты для проверки импорта экранов TUI."""
-
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
     def test_main_menu_screen_import(self):
-        """Проверка импорта MainMenuScreen."""
-        from parser_2gis.tui_pytermgui.screens import MainMenuScreen
+        """Проверка импорта главного меню."""
+        from parser_2gis.tui_textual.screens import MainMenuScreen
         assert MainMenuScreen is not None
 
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
     def test_city_selector_screen_import(self):
-        """Проверка импорта CitySelectorScreen."""
-        from parser_2gis.tui_pytermgui.screens import CitySelectorScreen
+        """Проверка импорта экрана выбора городов."""
+        from parser_2gis.tui_textual.screens import CitySelectorScreen
         assert CitySelectorScreen is not None
 
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
     def test_category_selector_screen_import(self):
-        """Проверка импорта CategorySelectorScreen."""
-        from parser_2gis.tui_pytermgui.screens import CategorySelectorScreen
+        """Проверка импорта экрана выбора категорий."""
+        from parser_2gis.tui_textual.screens import CategorySelectorScreen
         assert CategorySelectorScreen is not None
 
-    @pytest.mark.skipif(not PYTERMGUI_AVAILABLE, reason="pytermgui не установлен")
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
     def test_parsing_screen_import(self):
-        """Проверка импорта ParsingScreen."""
-        from parser_2gis.tui_pytermgui.screens import ParsingScreen
+        """Проверка импорта экрана парсинга."""
+        from parser_2gis.tui_textual.screens import ParsingScreen
         assert ParsingScreen is not None
 
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
+    def test_settings_screens_import(self):
+        """Проверка импорта экранов настроек."""
+        from parser_2gis.tui_textual.screens import (
+            BrowserSettingsScreen,
+            ParserSettingsScreen,
+            OutputSettingsScreen,
+        )
+        assert BrowserSettingsScreen is not None
+        assert ParserSettingsScreen is not None
+        assert OutputSettingsScreen is not None
 
-class TestParallelParserImport:
-    """Тесты для проверки импорта параллельного парсера."""
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
+    def test_other_screens_import(self):
+        """Проверка импорта дополнительных экранов."""
+        from parser_2gis.tui_textual.screens import CacheViewerScreen, AboutScreen
+        assert CacheViewerScreen is not None
+        assert AboutScreen is not None
 
-    def test_parallel_city_parser_import(self):
-        """Проверка импорта ParallelCityParser."""
-        try:
-            from parser_2gis.parallel_parser import ParallelCityParser
-        except ImportError as e:
-            pytest.fail(f"Не удалось импортировать ParallelCityParser: {e}")
 
-    def test_parallel_parser_instantiation(self):
-        """Проверка что ParallelCityParser имеет необходимые методы."""
+class TestCoreImports:
+    """Тесты для проверки основных импортов проекта."""
+
+    def test_main_module_import(self):
+        """Проверка импорта основного модуля."""
+        from parser_2gis import main
+        assert main is not None
+
+    def test_config_import(self):
+        """Проверка импорта конфигурации."""
+        from parser_2gis.config import Configuration
+        assert Configuration is not None
+
+    def test_parallel_parser_import(self):
+        """Проверка импорта параллельного парсера."""
         from parser_2gis.parallel_parser import ParallelCityParser
-        
-        # Проверяем наличие ключевых методов (без создания экземпляра)
-        assert hasattr(ParallelCityParser, 'run')
-        assert hasattr(ParallelCityParser, '__init__')
+        assert ParallelCityParser is not None
+
+    def test_cache_manager_import(self):
+        """Проверка импорта менеджера кэша."""
+        from parser_2gis.cache import CacheManager
+        assert CacheManager is not None
