@@ -59,7 +59,9 @@ class InBuildingParser(MainParser):
             writer: Целевой файловый писатель.
         """
         # Переходим по URL с таймаутом 5 минут
-        self._chrome_remote.navigate(self._url, referer="https://google.com", timeout=300)
+        self._chrome_remote.navigate(
+            self._url, referer="https://google.com", timeout=300
+        )
 
         # Документ загружен, получаем ответ
         responses = self._chrome_remote.get_responses()
@@ -77,12 +79,15 @@ class InBuildingParser(MainParser):
         # Обработка 404
         if document_response.get("mimeType") != "text/html":
             logger.error(
-                "Неверный тип MIME ответа: %s", document_response.get("mimeType", "неизвестно")
+                "Неверный тип MIME ответа: %s",
+                document_response.get("mimeType", "неизвестно"),
             )
             return
 
         if document_response.get("status") == 404:
-            logger.warning('Сервер вернул сообщение "Точных совпадений нет / Не найдено".')
+            logger.warning(
+                'Сервер вернул сообщение "Точных совпадений нет / Не найдено".'
+            )
 
             if self._options.skip_404_response:
                 return
@@ -124,10 +129,14 @@ class InBuildingParser(MainParser):
                     # Задержка между кликами, может быть полезна, если
                     # анти-бот сервис 2GIS станет более строгим.
                     if self._options.delay_between_clicks:
-                        self._chrome_remote.wait(self._options.delay_between_clicks / 1000)
+                        self._chrome_remote.wait(
+                            self._options.delay_between_clicks / 1000
+                        )
 
                     # Получаем ответ и собираем полезную нагрузку.
-                    resp = self._chrome_remote.wait_response(self._item_response_pattern)
+                    resp = self._chrome_remote.wait_response(
+                        self._item_response_pattern
+                    )
 
                     # Если запрос не удался — повторяем, иначе идём дальше.
                     if resp and resp.get("status", -1) >= 0:
@@ -141,7 +150,8 @@ class InBuildingParser(MainParser):
                         doc = json.loads(data)
                     except json.JSONDecodeError:
                         logger.error(
-                            'Сервер вернул некорректный JSON документ: "%s", пропуск позиции.', data
+                            'Сервер вернул некорректный JSON документ: "%s", пропуск позиции.',
+                            data,
                         )
                         doc = None
                 else:

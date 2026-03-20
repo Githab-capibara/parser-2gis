@@ -170,7 +170,9 @@ class TestLoggingContext:
         category = "Кафе"
         url = "https://2gis.ru/moscow/search/Кафе"
 
-        logger.info("Парсинг города %s, категория %s, URL: %s", city_name, category, url)
+        logger.info(
+            "Парсинг города %s, категория %s, URL: %s", city_name, category, url
+        )
 
         # Проверяем что все переменные в сообщении
         assert city_name in caplog.text
@@ -191,7 +193,10 @@ class TestLoggingContext:
         output_file = "result.csv"
 
         logger.info(
-            "Операция: %s, файлов: %d, выходной файл: %s", operation, files_count, output_file
+            "Операция: %s, файлов: %d, выходной файл: %s",
+            operation,
+            files_count,
+            output_file,
         )
 
         # Проверяем детали

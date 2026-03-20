@@ -144,7 +144,13 @@ class TestAllParserOptionsArguments:
         for field in fields_to_test:
             cli_arg = f"--parser.{field.replace('_', '-')}"
             # Создаём тестовый вызов с этим аргументом
-            test_args = ["parser-2gis", "--cities", "omsk", "--categories-mode", cli_arg]
+            test_args = [
+                "parser-2gis",
+                "--cities",
+                "omsk",
+                "--categories-mode",
+                cli_arg,
+            ]
             # Добавляем значение в зависимости от типа поля
             # Используем getattr для совместимости с Pydantic v1 и v2
             model_fields = getattr(ParserOptions, "model_fields", None) or getattr(
@@ -152,7 +158,9 @@ class TestAllParserOptionsArguments:
             )
             field_info = model_fields[field]
             field_type = (
-                field_info.annotation if hasattr(field_info, "annotation") else field_info.type_
+                field_info.annotation
+                if hasattr(field_info, "annotation")
+                else field_info.type_
             )
 
             # Проверяем тип поля с учётом специальных типов Pydantic

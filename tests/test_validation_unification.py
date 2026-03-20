@@ -33,9 +33,9 @@ class TestValidateUrlImportInMain:
         from parser_2gis.validation import validate_url
 
         # Проверяем что это та же функция что и в validation.py
-        assert (
-            main_validate_url is validate_url
-        ), "main.validate_url должна ссылаться на validation.validate_url"
+        assert main_validate_url is validate_url, (
+            "main.validate_url должна ссылаться на validation.validate_url"
+        )
 
     def test_validate_url_function_exists(self) -> None:
         """
@@ -87,7 +87,9 @@ class TestValidateUrlDnsTimeout:
             def slow_getaddrinfo(*args: Any, **kwargs: Any) -> None:
                 # Проверяем что таймаут установлен в 5 секунд
                 current_timeout = socket.getdefaulttimeout()
-                assert current_timeout == 5, f"Ожидался таймаут 5 сек, получено {current_timeout}"
+                assert current_timeout == 5, (
+                    f"Ожидался таймаут 5 сек, получено {current_timeout}"
+                )
                 raise socket.gaierror("Mocked DNS timeout")
 
             with patch.object(socket, "getaddrinfo", side_effect=slow_getaddrinfo):
@@ -121,9 +123,9 @@ class TestValidateUrlDnsTimeout:
 
             # Проверяем что таймаут восстановлен
             current_timeout = socket.getdefaulttimeout()
-            assert (
-                current_timeout == test_timeout
-            ), f"Таймаут не восстановлен: ожидалось {test_timeout}, получено {current_timeout}"
+            assert current_timeout == test_timeout, (
+                f"Таймаут не восстановлен: ожидалось {test_timeout}, получено {current_timeout}"
+            )
 
         finally:
             # Сбрасываем таймаут
@@ -139,7 +141,9 @@ class TestValidateUrlDnsTimeout:
         from parser_2gis.validation import validate_url
 
         # Мокируем успешный DNS запрос
-        mock_addr_info = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 0))]
+        mock_addr_info = [
+            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 0))
+        ]
 
         with patch.object(socket, "getaddrinfo", return_value=mock_addr_info):
             result = validate_url("https://example.com/path")
@@ -175,7 +179,8 @@ class TestValidateUrlPrivateIpBlocked:
             result = validate_url(ip_url)
             assert result.is_valid is False, f"URL {ip_url} должен быть заблокирован"
             assert (
-                "private IP" in result.error.lower() or "private" in result.error.lower()
+                "private IP" in result.error.lower()
+                or "private" in result.error.lower()
             ), f"Ошибка должна упоминать private IP: {result.error}"
 
     def test_validate_url_localhost_blocked(self) -> None:
@@ -198,9 +203,9 @@ class TestValidateUrlPrivateIpBlocked:
         for url in localhost_urls:
             result = validate_url(url)
             assert result.is_valid is False, f"URL {url} должен быть заблокирован"
-            assert (
-                "localhost" in result.error.lower()
-            ), f"Ошибка должна упоминать localhost: {result.error}"
+            assert "localhost" in result.error.lower(), (
+                f"Ошибка должна упоминать localhost: {result.error}"
+            )
 
     def test_validate_url_loopback_blocked(self) -> None:
         """
@@ -239,7 +244,9 @@ class TestValidateUrlPrivateIpBlocked:
         from parser_2gis.validation import validate_url
 
         # Мокируем DNS запрос для публичного IP
-        mock_addr_info = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 0))]
+        mock_addr_info = [
+            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 0))
+        ]
 
         with patch.object(socket, "getaddrinfo", return_value=mock_addr_info):
             # Тестируем публичный URL
@@ -256,16 +263,18 @@ class TestValidateUrlPrivateIpBlocked:
         from parser_2gis.validation import validate_url
 
         # Мокируем DNS запрос который возвращает private IP
-        mock_addr_info = [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("192.168.1.1", 0))]
+        mock_addr_info = [
+            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("192.168.1.1", 0))
+        ]
 
         with patch.object(socket, "getaddrinfo", return_value=mock_addr_info):
             result = validate_url("https://internal.example.com/path")
-            assert (
-                result.is_valid is False
-            ), "Домен разрешающийся в private IP должен быть заблокирован"
-            assert (
-                "private" in result.error.lower()
-            ), f"Ошибка должна упоминать private IP: {result.error}"
+            assert result.is_valid is False, (
+                "Домен разрешающийся в private IP должен быть заблокирован"
+            )
+            assert "private" in result.error.lower(), (
+                f"Ошибка должна упоминать private IP: {result.error}"
+            )
 
 
 class TestValidateUrlEdgeCases:

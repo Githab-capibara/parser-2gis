@@ -8,7 +8,11 @@
 import pytest
 
 from parser_2gis.config import Configuration
-from parser_2gis.pydantic_compat import PYDANTIC_V2, get_model_dump, get_model_fields_set
+from parser_2gis.pydantic_compat import (
+    PYDANTIC_V2,
+    get_model_dump,
+    get_model_fields_set,
+)
 
 
 class TestPydanticCompatibility:

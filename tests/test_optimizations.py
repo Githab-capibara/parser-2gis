@@ -98,7 +98,9 @@ class TestUniqueNameAttemptsOptimized:
 
         # Проверяем что выполнение заняло разумное время (< 1 секунды)
         elapsed_time = time.time() - start_time
-        assert elapsed_time < 1.0, f"Merge занял слишком много времени: {elapsed_time} сек"
+        assert elapsed_time < 1.0, (
+            f"Merge занял слишком много времени: {elapsed_time} сек"
+        )
 
         # Проверяем что merge прошел успешно
         assert result is True
@@ -150,7 +152,9 @@ class TestLongStringsFixed:
         Проверяет что строки в parallel_parser.py
         не превышают максимальную длину.
         """
-        parser_module_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
+        parser_module_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
+        )
 
         # Читаем файл
         with open(parser_module_path, "r", encoding="utf-8") as f:
@@ -177,7 +181,9 @@ class TestLongStringsFixed:
         Проверяет что строки в browser.py
         не превышают максимальную длину.
         """
-        browser_module_path = Path(__file__).parent.parent / "parser_2gis" / "chrome" / "browser.py"
+        browser_module_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "chrome" / "browser.py"
+        )
 
         # Читаем файл
         with open(browser_module_path, "r", encoding="utf-8") as f:
@@ -204,7 +210,9 @@ class TestLongStringsFixed:
         Проверяет что строки в remote.py
         не превышают максимальную длину.
         """
-        remote_module_path = Path(__file__).parent.parent / "parser_2gis" / "chrome" / "remote.py"
+        remote_module_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "chrome" / "remote.py"
+        )
 
         # Читаем файл
         with open(remote_module_path, "r", encoding="utf-8") as f:
@@ -305,7 +313,9 @@ class TestPassReplacedWithEllipsis:
 
             # Проверяем что нет чрезмерного использования pass
             # Разрешаем до 10 pass в файле
-            assert bare_pass_count <= 10, f"Файл {file_path} содержит {bare_pass_count} pass"
+            assert bare_pass_count <= 10, (
+                f"Файл {file_path} содержит {bare_pass_count} pass"
+            )
 
 
 class TestOptimizationComprehensive:

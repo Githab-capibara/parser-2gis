@@ -19,9 +19,9 @@ def test_textual_version():
     min_version = version.parse("0.50.0")
     actual_version = version.parse(textual.__version__)
 
-    assert (
-        actual_version >= min_version
-    ), f"Версия textual ({actual_version}) меньше минимальной ({min_version})"
+    assert actual_version >= min_version, (
+        f"Версия textual ({actual_version}) меньше минимальной ({min_version})"
+    )
 
 
 def test_textual_widgets_importable():

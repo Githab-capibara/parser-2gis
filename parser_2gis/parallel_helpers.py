@@ -57,7 +57,10 @@ class FileMerger:
     """
 
     def __init__(
-        self, output_dir: Path, config: Any = None, cancel_event: Optional[threading.Event] = None
+        self,
+        output_dir: Path,
+        config: Any = None,
+        cancel_event: Optional[threading.Event] = None,
     ) -> None:
         """
         Инициализация FileMerger.
@@ -93,7 +96,9 @@ class FileMerger:
                         temp_file.unlink()
                         logger.debug("Временный файл удалён: %s", temp_file)
                 except Exception as e:
-                    logger.warning("Не удалось удалить временный файл %s: %s", temp_file, e)
+                    logger.warning(
+                        "Не удалось удалить временный файл %s: %s", temp_file, e
+                    )
             self._temp_files.clear()
 
     def _release_lock(self) -> None:
@@ -123,14 +128,20 @@ class FileMerger:
                 try:
                     lock_age = time.time() - lock_file_path.stat().st_mtime
                     if lock_age > MAX_LOCK_FILE_AGE:
-                        logger.debug("Удаление осиротевшего lock файла (возраст: %d сек)", lock_age)
+                        logger.debug(
+                            "Удаление осиротевшего lock файла (возраст: %d сек)",
+                            lock_age,
+                        )
                         lock_file_path.unlink()
                     else:
                         logger.warning(
-                            "Lock файл существует (возраст: %d сек), ожидаем...", lock_age
+                            "Lock файл существует (возраст: %d сек), ожидаем...",
+                            lock_age,
                         )
                 except OSError as cleanup_error:
-                    logger.debug("Ошибка при удалении stale lock файла: %s", cleanup_error)
+                    logger.debug(
+                        "Ошибка при удалении stale lock файла: %s", cleanup_error
+                    )
 
             # Пытаемся получить блокировку с таймаутом
             start_time = time.time()
@@ -139,7 +150,9 @@ class FileMerger:
                 try:
                     # pylint: disable=consider-using-with
                     lock_file_handle = open(lock_file_path, "w", encoding="utf-8")
-                    fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    fcntl.flock(
+                        lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB
+                    )
                     lock_file_handle.write(f"{os.getpid()}\n")
                     lock_file_handle.flush()
                     self._lock_file_handle = lock_file_handle
@@ -151,11 +164,15 @@ class FileMerger:
                         try:
                             lock_file_handle.close()
                         except Exception as close_error:
-                            logger.error("Ошибка при закрытии lock файла: %s", close_error)
+                            logger.error(
+                                "Ошибка при закрытии lock файла: %s", close_error
+                            )
                     self._lock_file_handle = None
 
                     if time.time() - start_time > MERGE_LOCK_TIMEOUT:
-                        logger.error("Таймаут ожидания lock файла (%d сек)", MERGE_LOCK_TIMEOUT)
+                        logger.error(
+                            "Таймаут ожидания lock файла (%d сек)", MERGE_LOCK_TIMEOUT
+                        )
                         return False
 
                     time.sleep(1)
@@ -243,7 +260,11 @@ class FileMerger:
                 output_encoding = "utf-8"
 
             with open(
-                temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
+                temp_output,
+                "w",
+                encoding=output_encoding,
+                newline="",
+                buffering=buffer_size,
             ) as outfile:
                 writer = None
                 total_rows = 0
@@ -266,7 +287,11 @@ class FileMerger:
                     )
 
                     with open(
-                        csv_file, "r", encoding=output_encoding, newline="", buffering=buffer_size
+                        csv_file,
+                        "r",
+                        encoding=output_encoding,
+                        newline="",
+                        buffering=buffer_size,
                     ) as infile:
                         reader = csv.DictReader(infile)
                         if not reader.fieldnames:
@@ -287,7 +312,9 @@ class FileMerger:
                                 writer.writerow(row)
                             total_rows += 1
 
-                logger.info("Объединено %d строк в файл %s", total_rows, temp_output.name)
+                logger.info(
+                    "Объединено %d строк в файл %s", total_rows, temp_output.name
+                )
 
             # Переименовываем временный файл в итоговый
             if output_file_path.exists():
@@ -435,7 +462,9 @@ class StatsCollector:
         with self._lock:
             self.success_count += 1
 
-    def record_error(self, error_message: str, city: str = "", category: str = "") -> None:
+    def record_error(
+        self, error_message: str, city: str = "", category: str = ""
+    ) -> None:
         """
         Записывает ошибку.
 

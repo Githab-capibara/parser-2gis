@@ -19,7 +19,9 @@ import pytest
 
 # Пути к файлам проекта
 PROJECT_ROOT = Path(__file__).parent.parent
-TUI_SETTINGS_FILE = PROJECT_ROOT / "parser_2gis" / "tui_textual" / "screens" / "settings.py"
+TUI_SETTINGS_FILE = (
+    PROJECT_ROOT / "parser_2gis" / "tui_textual" / "screens" / "settings.py"
+)
 CONFIG_FILE = PROJECT_ROOT / "parser_2gis" / "config.py"
 
 
@@ -34,7 +36,9 @@ class ConfigFieldExtractor:
     def __init__(self, settings_file: Path):
         self.settings_file = settings_file
         self.settings_content = ""
-        self.config_accesses: List[Tuple[str, str, int]] = []  # (section, field, line_number)
+        self.config_accesses: List[
+            Tuple[str, str, int]
+        ] = []  # (section, field, line_number)
 
     def load_settings(self) -> None:
         """Загружает содержимое файла настроек."""
@@ -112,7 +116,8 @@ class ConfigModelInspector:
         for py_file in self.project_root.rglob("*.py"):
             # Пропускаем тесты, виртуальное окружение, кэш
             if any(
-                part.startswith(".") or part in ("venv", "__pycache__", "tests", "htmlcov")
+                part.startswith(".")
+                or part in ("venv", "__pycache__", "tests", "htmlcov")
                 for part in py_file.parts
             ):
                 continue
@@ -198,7 +203,12 @@ class ConfigModelInspector:
 class TUIConfigFieldValidator:
     """Валидирует соответствие полей TUI моделям конфигурации."""
 
-    def __init__(self, settings_file: Path, config_file: Path, project_root: Optional[Path] = None):
+    def __init__(
+        self,
+        settings_file: Path,
+        config_file: Path,
+        project_root: Optional[Path] = None,
+    ):
         self.extractor = ConfigFieldExtractor(settings_file)
         self.inspector = ConfigModelInspector(
             config_file, project_root=project_root or settings_file.parent.parent.parent
@@ -267,7 +277,9 @@ class TUIConfigFieldValidator:
             report_lines.append(f"   Ошибка: {error['error']}")
 
             if error["available_fields"]:
-                report_lines.append(f"   Доступные поля: {', '.join(error['available_fields'])}")
+                report_lines.append(
+                    f"   Доступные поля: {', '.join(error['available_fields'])}"
+                )
 
             report_lines.append("")
 
@@ -301,7 +313,9 @@ def extractor(settings_file: Path) -> ConfigFieldExtractor:
 @pytest.fixture
 def inspector(config_file: Path, settings_file: Path) -> ConfigModelInspector:
     """Создаёт инспектор моделей конфигурации."""
-    insp = ConfigModelInspector(config_file, project_root=settings_file.parent.parent.parent)
+    insp = ConfigModelInspector(
+        config_file, project_root=settings_file.parent.parent.parent
+    )
     # Не загружаем config, так как теперь сканируем весь проект
     return insp
 
@@ -326,7 +340,9 @@ class TestConfigFieldExtractor:
     def test_extract_simple_access(self, tmp_path: Path) -> None:
         """Проверяет извлечение простого обращения к конфигурации."""
         test_file = tmp_path / "test_settings.py"
-        test_file.write_text("config.parser.timeout = 300\nconfig.parallel.max_workers = 10\n")
+        test_file.write_text(
+            "config.parser.timeout = 300\nconfig.parallel.max_workers = 10\n"
+        )
 
         extractor = ConfigFieldExtractor(test_file)
         accesses = extractor.extract_config_accesses()
@@ -338,7 +354,9 @@ class TestConfigFieldExtractor:
     def test_extract_multiple_accesses_same_line(self, tmp_path: Path) -> None:
         """Проверяет извлечение нескольких обращений в одной строке."""
         test_file = tmp_path / "test_settings.py"
-        test_file.write_text("config.parser.timeout = 300; config.parallel.max_workers = 10\n")
+        test_file.write_text(
+            "config.parser.timeout = 300; config.parallel.max_workers = 10\n"
+        )
 
         extractor = ConfigFieldExtractor(test_file)
         accesses = extractor.extract_config_accesses()
@@ -425,7 +443,9 @@ class TestTUIConfigFieldValidator:
     def test_validator_no_errors(self, tmp_path: Path) -> None:
         """Проверяет валидацию без ошибок."""
         test_settings = tmp_path / "test_settings.py"
-        test_settings.write_text("config.parser.timeout = 300\nconfig.parallel.max_workers = 10\n")
+        test_settings.write_text(
+            "config.parser.timeout = 300\nconfig.parallel.max_workers = 10\n"
+        )
 
         test_config = tmp_path / "test_config.py"
         test_config.write_text(
@@ -438,7 +458,9 @@ class TestTUIConfigFieldValidator:
             "    max_workers: int = 10\n"
         )
 
-        validator = TUIConfigFieldValidator(test_settings, test_config, project_root=tmp_path)
+        validator = TUIConfigFieldValidator(
+            test_settings, test_config, project_root=tmp_path
+        )
         errors = validator.validate()
 
         assert len(errors) == 0
@@ -459,7 +481,9 @@ class TestTUIConfigFieldValidator:
             "    existing_field: str = 'test'\n"
         )
 
-        validator = TUIConfigFieldValidator(test_settings, test_config, project_root=tmp_path)
+        validator = TUIConfigFieldValidator(
+            test_settings, test_config, project_root=tmp_path
+        )
         errors = validator.validate()
 
         assert len(errors) == 1
@@ -479,7 +503,9 @@ class TestTUIConfigFieldValidator:
             "    timeout: int = 300\n"
         )
 
-        validator = TUIConfigFieldValidator(test_settings, test_config, project_root=tmp_path)
+        validator = TUIConfigFieldValidator(
+            test_settings, test_config, project_root=tmp_path
+        )
         validator.validate()
         report = validator.get_error_report()
 
@@ -503,7 +529,9 @@ class TestRealTUIConfigFields:
         if not config_file.exists():
             pytest.skip(f"Файл конфигурации не найден: {config_file}")
 
-    def test_all_tui_fields_exist_in_models(self, validator: TUIConfigFieldValidator) -> None:
+    def test_all_tui_fields_exist_in_models(
+        self, validator: TUIConfigFieldValidator
+    ) -> None:
         """
         Главный тест: проверяет, что все поля, к которым обращается TUI,
         существуют в соответствующих Pydantic моделях.
@@ -516,10 +544,13 @@ class TestRealTUIConfigFields:
         if errors:
             error_report = validator.get_error_report()
             raise AssertionError(
-                f"Обнаружены несоответствия полей TUI и моделей конфигурации:\n\n" f"{error_report}"
+                f"Обнаружены несоответствия полей TUI и моделей конфигурации:\n\n"
+                f"{error_report}"
             )
 
-    def test_extractor_finds_all_config_accesses(self, extractor: ConfigFieldExtractor) -> None:
+    def test_extractor_finds_all_config_accesses(
+        self, extractor: ConfigFieldExtractor
+    ) -> None:
         """Проверяет, что экстрактор находит все обращения к конфигурации."""
         accesses = extractor.get_unique_accesses()
 
@@ -529,10 +560,14 @@ class TestRealTUIConfigFields:
         # Проверяем, что найдены хотя бы некоторые секции
         assert len(accesses) > 0, "Не найдено ни одного обращения к конфигурации"
         assert (
-            "parser" in sections_found or "chrome" in sections_found or "writer" in sections_found
+            "parser" in sections_found
+            or "chrome" in sections_found
+            or "writer" in sections_found
         ), "Не найдены обращения к основным секциям конфигурации"
 
-    def test_inspector_extracts_model_fields(self, inspector: ConfigModelInspector) -> None:
+    def test_inspector_extracts_model_fields(
+        self, inspector: ConfigModelInspector
+    ) -> None:
         """Проверяет, что инспектор извлекает поля из моделей."""
         fields = inspector.extract_model_fields()
 
@@ -545,7 +580,9 @@ class TestRealTUIConfigFields:
         for model_name, model_fields in fields.items():
             assert len(model_fields) > 0, f"Модель {model_name} не имеет полей"
 
-    def test_specific_parser_fields_exist(self, inspector: ConfigModelInspector) -> None:
+    def test_specific_parser_fields_exist(
+        self, inspector: ConfigModelInspector
+    ) -> None:
         """
         Проверяет наличие конкретных полей в ParserOptions.
 
@@ -554,7 +591,12 @@ class TestRealTUIConfigFields:
         parser_fields = inspector.get_fields_for_section("parser")
 
         # Поля, которые используются в TUI settings.py
-        required_fields = {"max_records", "delay_between_clicks", "max_retries", "timeout"}
+        required_fields = {
+            "max_records",
+            "delay_between_clicks",
+            "max_retries",
+            "timeout",
+        }
 
         missing = required_fields - parser_fields
 
@@ -563,7 +605,9 @@ class TestRealTUIConfigFields:
             f"Доступные поля: {sorted(parser_fields)}"
         )
 
-    def test_specific_parallel_fields_exist(self, inspector: ConfigModelInspector) -> None:
+    def test_specific_parallel_fields_exist(
+        self, inspector: ConfigModelInspector
+    ) -> None:
         """
         Проверяет наличие конкретных полей в ParallelOptions.
 
@@ -581,7 +625,9 @@ class TestRealTUIConfigFields:
             f"Доступные поля: {sorted(parallel_fields)}"
         )
 
-    def test_specific_chrome_fields_exist(self, inspector: ConfigModelInspector) -> None:
+    def test_specific_chrome_fields_exist(
+        self, inspector: ConfigModelInspector
+    ) -> None:
         """
         Проверяет наличие конкретных полей в ChromeOptions.
 
@@ -605,7 +651,9 @@ class TestRealTUIConfigFields:
             f"Доступные поля: {sorted(chrome_fields)}"
         )
 
-    def test_specific_writer_fields_exist(self, inspector: ConfigModelInspector) -> None:
+    def test_specific_writer_fields_exist(
+        self, inspector: ConfigModelInspector
+    ) -> None:
         """
         Проверяет наличие конкретных полей в WriterOptions.
 

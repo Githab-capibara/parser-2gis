@@ -63,7 +63,9 @@ class AdaptiveLimits:
         """
         self._records_on_first_pages.append(count)
         logger.debug(
-            "Добавлено записей: %d (всего записей: %d)", count, len(self._records_on_first_pages)
+            "Добавлено записей: %d (всего записей: %d)",
+            count,
+            len(self._records_on_first_pages),
         )
 
         # Анализируем размер города после 3-5 страниц
@@ -80,7 +82,9 @@ class AdaptiveLimits:
             return
 
         # Вычисляем среднее количество записей на страницу
-        avg_records = sum(self._records_on_first_pages) / len(self._records_on_first_pages)
+        avg_records = sum(self._records_on_first_pages) / len(
+            self._records_on_first_pages
+        )
 
         # Определяем класс города
         if avg_records <= self.CITY_SIZE_CLASSIFICATION["small"]:

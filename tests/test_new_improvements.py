@@ -313,7 +313,9 @@ class TestParallelTask:
     def test_initialization_default_priority(self):
         """Тест инициализации с приоритетом по умолчанию."""
         task = ParallelTask(
-            url="https://2gis.ru/moscow/search/Тест", category_name="Тест", city_name="Москва"
+            url="https://2gis.ru/moscow/search/Тест",
+            category_name="Тест",
+            city_name="Москва",
         )
 
         assert task.url == "https://2gis.ru/moscow/search/Тест"
@@ -337,7 +339,9 @@ class TestParallelTask:
     def test_start_and_finish(self):
         """Тест отметки начала и завершения."""
         task = ParallelTask(
-            url="https://2gis.ru/moscow/search/Тест", category_name="Тест", city_name="Москва"
+            url="https://2gis.ru/moscow/search/Тест",
+            category_name="Тест",
+            city_name="Москва",
         )
 
         assert task.duration() == 0
@@ -402,7 +406,9 @@ class TestParallelOptimizer:
         """Тест получения следующей задачи."""
         optimizer = ParallelOptimizer()
         optimizer.add_task(
-            url="https://2gis.ru/moscow/search/Тест", category_name="Тест", city_name="Москва"
+            url="https://2gis.ru/moscow/search/Тест",
+            category_name="Тест",
+            city_name="Москва",
         )
 
         task = optimizer.get_next_task()

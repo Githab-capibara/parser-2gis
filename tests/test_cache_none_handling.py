@@ -65,7 +65,8 @@ class TestCacheGetReturnsNoneOnMiss:
             # Устанавливаем старую дату истечения
             old_expires_at = (datetime.now() - timedelta(hours=25)).isoformat()
             cursor.execute(
-                "UPDATE cache SET expires_at = ? WHERE url_hash = ?", (old_expires_at, url_hash)
+                "UPDATE cache SET expires_at = ? WHERE url_hash = ?",
+                (old_expires_at, url_hash),
             )
             conn.commit()
 
@@ -121,7 +122,13 @@ class TestCacheGetReturnsNoneOnMiss:
                 (url_hash, url, data, timestamp, expires_at)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (url_hash, url, "{invalid json}", datetime.now().isoformat(), expires_at),
+                (
+                    url_hash,
+                    url,
+                    "{invalid json}",
+                    datetime.now().isoformat(),
+                    expires_at,
+                ),
             )
             conn.commit()
 

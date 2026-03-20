@@ -550,7 +550,11 @@ def sample_config_dict() -> Dict[str, Any]:
     """
     return {
         "chrome": {"headless": True, "memory_limit": 512, "disable_images": True},
-        "parser": {"max_records": 10, "delay_between_clicks": 100, "skip_404_response": True},
+        "parser": {
+            "max_records": 10,
+            "delay_between_clicks": 100,
+            "skip_404_response": True,
+        },
         "writer": {
             "encoding": "utf-8-sig",
             "verbose": False,

@@ -47,7 +47,10 @@ class TestSpecificSqliteException:
                 assert result is None
 
                 # Проверяем что ошибка была залогирована
-                assert "database is locked" in caplog.text or "заблокирована" in caplog.text
+                assert (
+                    "database is locked" in caplog.text
+                    or "заблокирована" in caplog.text
+                )
         finally:
             cache.close()
 
@@ -158,7 +161,8 @@ class TestSpecificSqliteException:
 
                 # Проверяем что ошибка была залогирована
                 assert (
-                    "Ошибка при откате транзакции" in caplog.text or "Rollback error" in caplog.text
+                    "Ошибка при откате транзакции" in caplog.text
+                    or "Rollback error" in caplog.text
                 )
         finally:
             cache.close()
@@ -272,10 +276,15 @@ class TestSpecificOsException:
             # Вызываем проверку возраста - не должно выбросить исключение
             from parser_2gis.chrome.browser import _check_profile_age_by_dir
 
-            _check_profile_age_by_dir(item=profile_dir, current_time=0, max_age_seconds=0)
+            _check_profile_age_by_dir(
+                item=profile_dir, current_time=0, max_age_seconds=0
+            )
 
             # Проверяем что ошибка была залогирована
-            assert "Ошибка получения информации" in caplog.text or "File not found" in caplog.text
+            assert (
+                "Ошибка получения информации" in caplog.text
+                or "File not found" in caplog.text
+            )
 
 
 class TestSpecificValueException:
@@ -461,7 +470,10 @@ class TestSpecificExceptionComprehensive:
                 assert result is None
 
                 # Проверяем что ошибка была залогирована
-                assert "Wrapped error" in caplog.text or "Непредвиденная ошибка" in caplog.text
+                assert (
+                    "Wrapped error" in caplog.text
+                    or "Непредвиденная ошибка" in caplog.text
+                )
         finally:
             cache.close()
 

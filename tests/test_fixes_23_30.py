@@ -40,9 +40,9 @@ class TestConftestCleanup:
         assert "yield" in content, "conftest.py должен использовать yield в фикстурах"
 
         # Проверяем что есть комментарии о cleanup
-        assert (
-            "очистка" in content.lower() or "cleanup" in content.lower()
-        ), "conftest.py должен содержать комментарии о cleanup"
+        assert "очистка" in content.lower() or "cleanup" in content.lower(), (
+            "conftest.py должен содержать комментарии о cleanup"
+        )
 
     def test_conftest_uses_tmp_path_fixture(self, conftest_path: Path) -> None:
         """Проверяет что фикстуры используют tmp_path."""
@@ -56,9 +56,9 @@ class TestConftestCleanup:
         content = conftest_path.read_text(encoding="utf-8")
 
         # Проверяем что TemporaryDirectory используется
-        assert (
-            "TemporaryDirectory" in content
-        ), "conftest.py должен использовать tempfile.TemporaryDirectory"
+        assert "TemporaryDirectory" in content, (
+            "conftest.py должен использовать tempfile.TemporaryDirectory"
+        )
 
 
 # =============================================================================
@@ -88,7 +88,9 @@ class TestCoverageThreshold:
         assert match, "pytest.ini должен содержать --cov-fail-under"
 
         threshold = int(match.group(1))
-        assert threshold >= 85, f"Coverage threshold должен быть >= 85%, текущий: {threshold}%"
+        assert threshold >= 85, (
+            f"Coverage threshold должен быть >= 85%, текущий: {threshold}%"
+        )
 
     def test_coveragerc_exists(self, coveragerc_path: Path) -> None:
         """Проверяет что .coveragerc существует."""
@@ -104,7 +106,9 @@ class TestCoverageThreshold:
         assert match, ".coveragerc должен содержать fail_under"
 
         threshold = int(match.group(1))
-        assert threshold >= 85, f"Coverage threshold должен быть >= 85%, текущий: {threshold}%"
+        assert threshold >= 85, (
+            f"Coverage threshold должен быть >= 85%, текущий: {threshold}%"
+        )
 
 
 # =============================================================================
@@ -125,18 +129,18 @@ class TestDeprecationWarning:
         content = pytest_ini_path.read_text(encoding="utf-8")
 
         # Проверяем что нет ignore для pychrome
-        assert (
-            "ignore::DeprecationWarning:pychrome" not in content
-        ), "pytest.ini не должен игнорировать DeprecationWarning для pychrome"
+        assert "ignore::DeprecationWarning:pychrome" not in content, (
+            "pytest.ini не должен игнорировать DeprecationWarning для pychrome"
+        )
 
     def test_no_websocket_deprecation_ignore(self, pytest_ini_path: Path) -> None:
         """Проверяет что нет игнорирования DeprecationWarning для websocket."""
         content = pytest_ini_path.read_text(encoding="utf-8")
 
         # Проверяем что нет ignore для websocket
-        assert (
-            "ignore::DeprecationWarning:websocket" not in content
-        ), "pytest.ini не должен игнорировать DeprecationWarning для websocket"
+        assert "ignore::DeprecationWarning:websocket" not in content, (
+            "pytest.ini не должен игнорировать DeprecationWarning для websocket"
+        )
 
 
 # =============================================================================
@@ -182,7 +186,12 @@ class TestLineLength:
                             continue
                         if len(line) > 100:
                             long_lines.append(
-                                (str(py_file.relative_to(parser_2gis_dir)), i, len(line), line[:60])
+                                (
+                                    str(py_file.relative_to(parser_2gis_dir)),
+                                    i,
+                                    len(line),
+                                    line[:60],
+                                )
                             )
             except Exception:
                 pass
@@ -194,11 +203,12 @@ class TestLineLength:
         # - f-strings с множеством переменных
         # - Комментарии к сложной логике
         # - Docstring примеры
-        assert (
-            len(long_lines) <= 70
-        ), f"Найдено {len(long_lines)} строк длиннее 100 символов:\n" + "\n".join(
-            f"{path}:{line}:{length} - {content}..."
-            for path, line, length, content in long_lines[:20]
+        assert len(long_lines) <= 70, (
+            f"Найдено {len(long_lines)} строк длиннее 100 символов:\n"
+            + "\n".join(
+                f"{path}:{line}:{length} - {content}..."
+                for path, line, length, content in long_lines[:20]
+            )
         )
 
 
@@ -252,7 +262,9 @@ class TestUnusedImports:
                     # Считаем вхождения в коде (не в импортах)
                     lines = content.split("\n")
                     code_lines = [
-                        line for line in lines if not line.strip().startswith(("import", "from"))
+                        line
+                        for line in lines
+                        if not line.strip().startswith(("import", "from"))
                     ]
                     code_text = "\n".join(code_lines)
 
@@ -266,10 +278,9 @@ class TestUnusedImports:
 
         # Разрешаем до 5 потенциально неиспользуемых импортов
         # (статический анализ не всегда точен)
-        assert (
-            len(unused_imports) <= 5
-        ), f"Найдено {len(unused_imports)} потенциально неиспользуемых импортов:\n" + "\n".join(
-            f"{path}: {imp}" for path, imp in unused_imports[:10]
+        assert len(unused_imports) <= 5, (
+            f"Найдено {len(unused_imports)} потенциально неиспользуемых импортов:\n"
+            + "\n".join(f"{path}: {imp}" for path, imp in unused_imports[:10])
         )
 
 
@@ -304,7 +315,10 @@ class TestResourceLeaks:
                         if "with " in line and "open(" in line:
                             continue
                         # Ищем open() не в with
-                        if re.search(r"\bopen\s*\([^)]+\)", line) and "with " not in line:
+                        if (
+                            re.search(r"\bopen\s*\([^)]+\)", line)
+                            and "with " not in line
+                        ):
                             # Пропускаем строки с документацией
                             if '"""' not in line and "'''" not in line:
                                 # Пропускаем lock файлы (это специальный случай)
@@ -321,10 +335,11 @@ class TestResourceLeaks:
 
         # Разрешаем до 10 исключений (специальные случаи где open() возвращается из функции или используется в try/finally)
         # Эти случаи документированы и безопасны
-        assert (
-            len(issues) <= 10
-        ), f"Найдено {len(issues)} потенциальных утечек ресурсов:\n" + "\n".join(
-            f"{path}:{line} - {content}" for path, line, content in issues[:10]
+        assert len(issues) <= 10, (
+            f"Найдено {len(issues)} потенциальных утечек ресурсов:\n"
+            + "\n".join(
+                f"{path}:{line} - {content}" for path, line, content in issues[:10]
+            )
         )
 
 
@@ -340,11 +355,18 @@ class TestIntegration:
         """Проверяет что все конфигурационные файлы существуют."""
         root_dir = Path(__file__).parent.parent
 
-        config_files = ["pytest.ini", ".coveragerc", "pyproject.toml", ".pre-commit-config.yaml"]
+        config_files = [
+            "pytest.ini",
+            ".coveragerc",
+            "pyproject.toml",
+            ".pre-commit-config.yaml",
+        ]
 
         for config_file in config_files:
             config_path = root_dir / config_file
-            assert config_path.exists(), f"Конфигурационный файл {config_file} должен существовать"
+            assert config_path.exists(), (
+                f"Конфигурационный файл {config_file} должен существовать"
+            )
 
     def test_pre_commit_hooks_configured(self) -> None:
         """Проверяет что pre-commit хуки настроены."""
@@ -358,7 +380,9 @@ class TestIntegration:
         assert "isort" in content, ".pre-commit-config.yaml должен содержать isort"
 
         # Проверяем что есть autoflake
-        assert "autoflake" in content, ".pre-commit-config.yaml должен содержать autoflake"
+        assert "autoflake" in content, (
+            ".pre-commit-config.yaml должен содержать autoflake"
+        )
 
 
 if __name__ == "__main__":

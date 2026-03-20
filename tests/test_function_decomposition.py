@@ -100,7 +100,12 @@ class TestValidateCachedDataDecomposition:
         корректно валидирует словари с безопасными данными.
         """
         # Проверяем валидные словари
-        valid_dict = {"name": "Test", "value": 42, "nested": {"key": "value"}, "list": [1, 2, 3]}
+        valid_dict = {
+            "name": "Test",
+            "value": 42,
+            "nested": {"key": "value"},
+            "list": [1, 2, 3],
+        }
         assert _validate_dict_data(valid_dict, depth=0) is True
 
     def test_validate_cached_data_decomposed_dict_invalid_proto(self):
@@ -347,7 +352,9 @@ class TestCleanupOrphanedProfilesDecomposition:
         # Mock _is_profile_in_use для возврата False
         with patch("parser_2gis.chrome.browser._is_profile_in_use", return_value=False):
             # Вызываем функцию
-            deleted_count = cleanup_orphaned_profiles(profiles_dir=tmp_path, max_age_hours=24)
+            deleted_count = cleanup_orphaned_profiles(
+                profiles_dir=tmp_path, max_age_hours=24
+            )
 
             # Проверяем что старые профили были удалены
             assert deleted_count >= 2
