@@ -32,155 +32,221 @@ class ChromeBrowser:
         PermissionError: Если файл браузера не исполняемый.
     """
 
+    def _get_binary_path(self, chrome_options: ChromeOptions) -> str:
+        """Получает и валидирует путь к браузеру.
+
+        Args:
+            chrome_options: Опции Chrome для получения пути.
+
+        Returns:
+            Валидированный путь к браузеру.
+
+        Raises:
+            ChromePathNotFound: Если путь к Chrome не найден.
+        """
+        binary_path: str | None = None
+
+        if chrome_options.binary_path:
+            # Конвертируем Path в str если необходимо
+            if isinstance(chrome_options.binary_path, Path):
+                binary_path = str(chrome_options.binary_path)
+            else:
+                binary_path = chrome_options.binary_path
+        else:
+            binary_path = locate_chrome_path()
+
+        if not binary_path:
+            logger.error("Путь к Chrome браузеру не найден")
+            raise ChromePathNotFound
+
+        # Проверка и нормализация пути для предотвращения symlink атак
+        if os.path.islink(binary_path):
+            logger.warning(
+                "Путь к браузеру содержит символическую ссылку: %s. "
+                "Это может быть потенциально опасно (symlink атака). "
+                "Путь будет нормализован через realpath.",
+                binary_path,
+            )
+
+        # Нормализация пути через realpath
+        original_binary_path = binary_path
+        binary_path = os.path.realpath(binary_path)
+
+        if original_binary_path != binary_path:
+            logger.debug(
+                "Путь к браузеру нормализован: %s → %s",
+                original_binary_path,
+                binary_path,
+            )
+
+        logger.debug(
+            "Повторная валидация пути к браузеру после нормализации: %s",
+            binary_path,
+        )
+        self._validate_binary_path(binary_path)
+        logger.debug("Запуск Chrome браузера по пути: %s", binary_path)
+
+        return binary_path
+
+    def _create_profile_dir(self) -> tuple[tempfile.TemporaryDirectory, str]:
+        """Создаёт временную директорию профиля.
+
+        Returns:
+            Кортеж (TemporaryDirectory, путь к профилю).
+        """
+        profile_tempdir = tempfile.TemporaryDirectory(prefix="chrome_profile_")
+        profile_path = profile_tempdir.name
+
+        # Устанавливаем restrictive права на директорию профиля (0o700)
+        try:
+            os.chmod(profile_path, 0o700)
+        except OSError as chmod_error:
+            logger.warning(
+                "Не удалось установить права 0o700 на профиль %s: %s. "
+                "Профиль будет автоматически удалён при закрытии.",
+                profile_path,
+                chmod_error,
+            )
+
+        return profile_tempdir, profile_path
+
+    def _build_chrome_cmd(
+        self,
+        binary_path: str,
+        profile_path: str,
+        remote_port: int,
+        chrome_options: ChromeOptions,
+    ) -> list[str]:
+        """Формирует команду запуска Chrome.
+
+        Args:
+            binary_path: Путь к браузеру.
+            profile_path: Путь к профилю.
+            remote_port: Порт отладки.
+            chrome_options: Опции Chrome.
+
+        Returns:
+            Список аргументов командной строки.
+        """
+        # Валидация memory_limit перед формированием команды
+        memory_limit = (
+            chrome_options.memory_limit
+            if chrome_options.memory_limit is not None
+            else 2048
+        )
+
+        # Формирование команды запуска
+        chrome_cmd = [
+            binary_path,
+            f"--remote-debugging-port={remote_port}",
+            f"--user-data-dir={profile_path}",
+            "--no-default-browser-check",
+            "--no-first-run",
+            "--no-sandbox",
+            "--disable-fre",
+            # Ограничиваем remote-allow-origins для безопасности
+            "--remote-allow-origins=http://127.0.0.1:*",
+            "--js-flags=--expose-gc",
+            f"--max-old-space-size={memory_limit}",
+        ]
+
+        # Дополнительные опции
+        if chrome_options.start_maximized:
+            chrome_cmd.append("--start-maximized")
+
+        if chrome_options.headless:
+            logger.debug("В Chrome установлен скрытый режим (headless).")
+            chrome_cmd.append("--headless")
+            chrome_cmd.append("--disable-gpu")
+
+        if chrome_options.disable_images:
+            logger.debug("В Chrome отключены изображения.")
+            chrome_cmd.append("--blink-settings=imagesEnabled=false")
+
+        return chrome_cmd
+
+    def _launch_chrome_process(
+        self,
+        chrome_cmd: list[str],
+        profile_path: str,
+        chrome_options: ChromeOptions,
+    ) -> subprocess.Popen:
+        """Запускает процесс Chrome.
+
+        Args:
+            chrome_cmd: Команда запуска Chrome.
+            profile_path: Путь к профилю.
+            chrome_options: Опции Chrome.
+
+        Returns:
+            Процесс Chrome.
+
+        Raises:
+            Exception: При ошибке запуска.
+        """
+        try:
+            if chrome_options.silent_browser:
+                logger.debug("В Chrome отключён вывод отладочной информации.")
+                proc = subprocess.Popen(
+                    chrome_cmd,
+                    shell=False,
+                    stderr=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                )
+            else:
+                proc = subprocess.Popen(chrome_cmd, shell=False)
+
+            logger.debug("Chrome браузер запущен с PID: %d", proc.pid)
+            return proc
+
+        except Exception as e:
+            logger.error("Ошибка при запуске Chrome браузера: %s", e)
+            # Очистка профиля при ошибке запуска
+            try:
+                shutil.rmtree(profile_path, ignore_errors=True)
+            except Exception as cleanup_error:
+                logger.debug(
+                    "Не удалось удалить профиль при ошибке запуска: %s",
+                    cleanup_error,
+                )
+            raise
+
     def __init__(self, chrome_options: ChromeOptions) -> None:
         # Инициализируем переменные для гарантии очистки в finally
-        self._profile_tempdir = None
-        self._profile_path = None
-        self._proc = None
-        self._chrome_cmd = None
-        self._remote_port = None
+        self._profile_tempdir: Optional[tempfile.TemporaryDirectory] = None
+        self._profile_path: Optional[str] = None
+        self._proc: Optional[subprocess.Popen] = None
+        self._chrome_cmd: Optional[list[str]] = None
+        self._remote_port: Optional[int] = None
 
         try:
-            # Получаем путь к браузеру
-            from pathlib import Path
+            # Получаем и валидируем путь к браузеру
+            binary_path = self._get_binary_path(chrome_options)
 
-            binary_path: str | None = None
+            # Создаём временную директорию профиля
+            self._profile_tempdir, self._profile_path = self._create_profile_dir()
 
-            if chrome_options.binary_path:
-                # Конвертируем Path в str если необходимо
-                if isinstance(chrome_options.binary_path, Path):
-                    binary_path = str(chrome_options.binary_path)
-                else:
-                    binary_path = chrome_options.binary_path
-            else:
-                binary_path = locate_chrome_path()
-
-            if not binary_path:
-                logger.error("Путь к Chrome браузеру не найден")
-                raise ChromePathNotFound
-
-            # Добавлена явная проверка на символические ссылки перед нормализацией пути
-            # Это предотвращает symlink атаки когда злоумышленник подменяет путь к браузеру
-            if os.path.islink(binary_path):
-                logger.warning(
-                    "Путь к браузеру содержит символическую ссылку: %s. "
-                    "Это может быть потенциально опасно (symlink атака). "
-                    "Путь будет нормализован через realpath.",
-                    binary_path,
-                )
-
-            # Нормализация пути через realpath для предотвращения атак с символическими ссылками
-            # realpath() разрешает все символические ссылки и возвращает канонический путь
-            original_binary_path = binary_path
-            binary_path = os.path.realpath(binary_path)
-
-            # Дополнительная проверка: если путь изменился после realpath, логируем предупреждение
-            if original_binary_path != binary_path:
-                logger.debug(
-                    "Путь к браузеру нормализован: %s → %s",
-                    original_binary_path,
-                    binary_path,
-                )
-            # Это критически важно для предотвращения symlink атак
-            # Злоумышленник может создать цепочку ссылок где конечный путь будет опасным
-            # Поэтому валидируем канонический путь ещё раз после нормализации
-            logger.debug(
-                "Повторная валидация пути к браузеру после нормализации: %s",
-                binary_path,
-            )
-            self._validate_binary_path(binary_path)  # Повторная валидация!
-
-            # Первая валидация (оставлена для обратной совместимости и двойной проверки)
-            logger.debug("Запуск Chrome браузера по пути: %s", binary_path)
-
-            # ИСПОЛЬЗУЕМ TemporaryDirectory для автоматической очистки профиля
-            # TemporaryDirectory гарантирует удаление профиля даже при ошибке или KeyboardInterrupt
-            # Маркер для отложенной очистки при следующем запуске создаётся автоматически
-            self._profile_tempdir = tempfile.TemporaryDirectory(
-                prefix="chrome_profile_"
-            )
-            self._profile_path = self._profile_tempdir.name
-
-            # Устанавливаем restrictive права на директорию профиля (0o700 - только владелец)
-            # При ошибке TemporaryDirectory всё равно очистит профиль при закрытии
-            try:
-                os.chmod(self._profile_path, 0o700)
-            except OSError as chmod_error:
-                logger.warning(
-                    "Не удалось установить права 0o700 на профиль %s: %s. "
-                    "Профиль будет автоматически удалён при закрытии.",
-                    self._profile_path,
-                    chmod_error,
-                )
-                # НЕ выбрасываем исключение - TemporaryDirectory гарантирует очистку
-
+            # Получаем свободный порт
             self._remote_port = free_port()
 
-            # Валидация memory_limit перед формированием команды
-            memory_limit = (
-                chrome_options.memory_limit
-                if chrome_options.memory_limit is not None
-                else 2048
+            # Формируем команду запуска
+            self._chrome_cmd = self._build_chrome_cmd(
+                binary_path,
+                self._profile_path,
+                self._remote_port,
+                chrome_options,
             )
 
-            # Формирование команды запуска
-            self._chrome_cmd = [
-                binary_path,
-                f"--remote-debugging-port={self._remote_port}",
-                f"--user-data-dir={self._profile_path}",
-                "--no-default-browser-check",
-                "--no-first-run",
-                "--no-sandbox",
-                "--disable-fre",
-                # Ограничиваем remote-allow-origins для безопасности
-                # Используем 127.0.0.1 вместо localhost для более строгой безопасности
-                "--remote-allow-origins=http://127.0.0.1:*",
-                "--js-flags=--expose-gc",
-                f"--max-old-space-size={memory_limit}",
-            ]
+            # Запускаем процесс Chrome
+            self._proc = self._launch_chrome_process(
+                self._chrome_cmd,
+                self._profile_path,
+                chrome_options,
+            )
 
-            # Дополнительные опции
-            if chrome_options.start_maximized:
-                self._chrome_cmd.append("--start-maximized")
-
-            if chrome_options.headless:
-                logger.debug("В Chrome установлен скрытый режим (headless).")
-                self._chrome_cmd.append("--headless")
-                self._chrome_cmd.append("--disable-gpu")
-
-            if chrome_options.disable_images:
-                logger.debug("В Chrome отключены изображения.")
-                self._chrome_cmd.append("--blink-settings=imagesEnabled=false")
-
-            # Запуск процесса
-            try:
-                if chrome_options.silent_browser:
-                    logger.debug("В Chrome отключён вывод отладочной информации.")
-                    self._proc = subprocess.Popen(
-                        self._chrome_cmd,
-                        shell=False,
-                        stderr=subprocess.DEVNULL,
-                        stdout=subprocess.DEVNULL,
-                    )
-                else:
-                    self._proc = subprocess.Popen(self._chrome_cmd, shell=False)
-
-                logger.debug("Chrome браузер запущен с PID: %d", self._proc.pid)
-
-            except Exception as e:
-                logger.error("Ошибка при запуске Chrome браузера: %s", e)
-                # Очистка профиля при ошибке запуска
-                try:
-                    shutil.rmtree(self._profile_path, ignore_errors=True)
-                except Exception as cleanup_error:
-                    logger.debug(
-                        "Не удалось удалить профиль при ошибке запуска: %s",
-                        cleanup_error,
-                    )
-                raise
         except Exception as e:
             # Если ошибка произошла после создания TemporaryDirectory,
-            # гарантируем его очистку в finally блоке
+            # гарантируем его очистку
             logger.error("Ошибка инициализации Chrome: %s", e)
             if self._profile_tempdir is not None:
                 try:
@@ -232,147 +298,125 @@ class ChromeBrowser:
         """
         return self._remote_port
 
-    def close(self) -> None:
-        """Закрывает браузер и удаляет временный профиль.
+    def _terminate_process_graceful(self, process_pid: int) -> tuple[bool, str]:
+        """Пытается корректно завершить процесс через terminate().
 
-        Примечание:
-            Функция гарантирует попытку закрытия даже при ошибках.
-            Используется двухуровневая стратегия завершения:
-            1. Корректное завершение через terminate() + wait(timeout=5)
-            2. Принудительное завершение через kill() + wait(timeout=10)
+        Args:
+            process_pid: PID процесса для завершения.
 
-        Важно:
-            - ИСПРАВЛЕНИЕ 8: Проверка poll() после terminate() для обнаружения zombie процессов
-            - Использовать kill() если terminate() не работает
-            - Добавлен wait() с timeout для предотвращения утечки процессов
-            - Метод обрабатывает zombie процессы через wait() с timeout
-            - TemporaryDirectory.cleanup() гарантирует удаление профиля
-            - Все ошибки логируются для последующего анализа
+        Returns:
+            Кортеж (process_closed, process_status):
+            - process_closed: True если процесс завершён
+            - process_status: Статус завершения процесса
         """
-        logger.debug("Завершение работы Chrome браузера.")
-
-        process_closed = False
-        process_status = "unknown"
+        if not hasattr(self, "_proc") or self._proc is None:
+            return False, "no_process"
 
         try:
-            if hasattr(self, "_proc") and self._proc is not None:
-                process_pid = self._proc.pid
-                logger.debug("Завершение процесса Chrome с PID: %d", process_pid)
+            self._proc.terminate()
+            logger.debug("Отправлен сигнал SIGTERM процессу %d", process_pid)
 
-                # Попытка 1: Корректное завершение через terminate()
-                try:
-                    self._proc.terminate()
-                    logger.debug("Отправлен сигнал SIGTERM процессу %d", process_pid)
-
-                    # ИСПРАВЛЕНИЕ 8: Проверка poll() для обнаружения завершения процесса
-                    # poll() возвращает None если процесс ещё работает, или код выхода
-                    poll_result = self._proc.poll()
-                    if poll_result is not None:
-                        # Процесс уже завершился
-                        process_closed = True
-                        process_status = f"terminated (exit code: {poll_result})"
-                        logger.debug(
-                            "Chrome браузер корректно завершён (PID: %d, exit code: %d)",
-                            process_pid,
-                            poll_result,
-                        )
-                    else:
-                        # Процесс ещё работает, ждём завершения с timeout
-                        try:
-                            self._proc.wait(timeout=5)
-                            process_closed = True
-                            process_status = "terminated"
-                            logger.debug(
-                                "Chrome браузер корректно завершён (PID: %d)",
-                                process_pid,
-                            )
-                        except subprocess.TimeoutExpired:
-                            logger.warning(
-                                "Таймаут (5 сек) при завершении Chrome PID %d, "
-                                "принудительное закрытие через kill()",
-                                process_pid,
-                            )
-
-                except ProcessLookupError as proc_error:
-                    # Процесс уже завершён
-                    logger.debug("Процесс уже завершён: %s", proc_error)
-                    process_closed = True
-                    process_status = "already_terminated"
-                except PermissionError as perm_error:
-                    # Нет прав на завершение процесса
-                    logger.error("Нет прав на завершение процесса: %s", perm_error)
-                    process_status = "permission_denied"
-                except Exception as terminate_error:
-                    logger.warning("Ошибка при завершении Chrome: %s", terminate_error)
-
-                # Попытка 2: Принудительное завершение через kill()
-                if not process_closed:
-                    try:
-                        self._proc.kill()
-                        logger.debug(
-                            "Отправлен сигнал SIGKILL процессу %d", process_pid
-                        )
-
-                        # ИСПРАВЛЕНИЕ 8: Проверка poll() после kill()
-                        poll_result = self._proc.poll()
-                        if poll_result is not None:
-                            process_closed = True
-                            process_status = f"killed (exit code: {poll_result})"
-                            logger.debug(
-                                "Chrome браузер принудительно завершён (PID: %d, exit code: %d)",
-                                process_pid,
-                                poll_result,
-                            )
-                        else:
-                            # Процесс всё ещё работает после kill(), ждём с большим timeout
-                            try:
-                                self._proc.wait(timeout=10)
-                                process_closed = True
-                                process_status = "killed"
-                                logger.debug(
-                                    "Chrome браузер принудительно завершён (PID: %d)",
-                                    process_pid,
-                                )
-                            except subprocess.TimeoutExpired:
-                                logger.error(
-                                    "Таймаут (10 сек) после SIGKILL для PID %d",
-                                    process_pid,
-                                )
-                                process_status = "kill_timeout"
-
-                    except ProcessLookupError as proc_error:
-                        # Процесс уже завершён
-                        logger.debug("Процесс уже завершён (kill): %s", proc_error)
-                        process_closed = True
-                        process_status = "already_killed"
-                    except PermissionError as perm_error:
-                        # Нет прав на завершение процесса
-                        logger.error(
-                            "Нет прав на принудительное завершение: %s", perm_error
-                        )
-                        process_status = "kill_permission_denied"
-                    except Exception as kill_error:
-                        logger.error(
-                            "Ошибка при принудительном закрытии Chrome: %s", kill_error
-                        )
-                        process_status = "kill_error"
-
+            # Проверка poll() для обнаружения завершения процесса
+            poll_result = self._proc.poll()
+            if poll_result is not None:
+                # Процесс уже завершился
+                process_status = f"terminated (exit code: {poll_result})"
+                logger.debug(
+                    "Chrome браузер корректно завершён (PID: %d, exit code: %d)",
+                    process_pid,
+                    poll_result,
+                )
+                return True, process_status
             else:
-                logger.warning("Процесс Chrome не инициализирован")
+                # Процесс ещё работает, ждём завершения с timeout
+                try:
+                    self._proc.wait(timeout=5)
+                    logger.debug(
+                        "Chrome браузер корректно завершён (PID: %d)",
+                        process_pid,
+                    )
+                    return True, "terminated"
+                except subprocess.TimeoutExpired:
+                    logger.warning(
+                        "Таймаут (5 сек) при завершении Chrome PID %d, "
+                        "принудительное закрытие через kill()",
+                        process_pid,
+                    )
+                    return False, "terminate_timeout"
 
-        except Exception as e:
-            logger.error("Непредвиденная ошибка при закрытии Chrome: %s", e)
-            process_status = "unexpected_error"
+        except ProcessLookupError as proc_error:
+            # Процесс уже завершён
+            logger.debug("Процесс уже завершён: %s", proc_error)
+            return True, "already_terminated"
+        except PermissionError as perm_error:
+            # Нет прав на завершение процесса
+            logger.error("Нет прав на завершение процесса: %s", perm_error)
+            return False, "permission_denied"
+        except Exception as terminate_error:
+            logger.warning("Ошибка при завершении Chrome: %s", terminate_error)
+            return False, "terminate_error"
 
-        # Логируем финальный статус процесса
-        if hasattr(self, "_proc") and self._proc is not None:
-            logger.debug(
-                "Финальный статус процесса Chrome: %s (PID: %d)",
-                process_status,
-                self._proc.pid,
-            )
+    def _terminate_process_forceful(self, process_pid: int) -> tuple[bool, str]:
+        """Пытается принудительно завершить процесс через kill().
 
-        # TemporaryDirectory.cleanup() гарантирует удаление профиля
+        Args:
+            process_pid: PID процесса для завершения.
+
+        Returns:
+            Кортеж (process_closed, process_status):
+            - process_closed: True если процесс завершён
+            - process_status: Статус завершения процесса
+        """
+        if not hasattr(self, "_proc") or self._proc is None:
+            return False, "no_process"
+
+        try:
+            self._proc.kill()
+            logger.debug("Отправлен сигнал SIGKILL процессу %d", process_pid)
+
+            # Проверка poll() после kill()
+            poll_result = self._proc.poll()
+            if poll_result is not None:
+                process_status = f"killed (exit code: {poll_result})"
+                logger.debug(
+                    "Chrome браузер принудительно завершён (PID: %d, exit code: %d)",
+                    process_pid,
+                    poll_result,
+                )
+                return True, process_status
+            else:
+                # Процесс всё ещё работает после kill(), ждём с большим timeout
+                try:
+                    self._proc.wait(timeout=10)
+                    logger.debug(
+                        "Chrome браузер принудительно завершён (PID: %d)",
+                        process_pid,
+                    )
+                    return True, "killed"
+                except subprocess.TimeoutExpired:
+                    logger.error(
+                        "Таймаут (10 сек) после SIGKILL для PID %d",
+                        process_pid,
+                    )
+                    return False, "kill_timeout"
+
+        except ProcessLookupError as proc_error:
+            # Процесс уже завершён
+            logger.debug("Процесс уже завершён (kill): %s", proc_error)
+            return True, "already_killed"
+        except PermissionError as perm_error:
+            # Нет прав на завершение процесса
+            logger.error("Нет прав на принудительное завершение: %s", perm_error)
+            return False, "kill_permission_denied"
+        except Exception as kill_error:
+            logger.error("Ошибка при принудительном закрытии Chrome: %s", kill_error)
+            return False, "kill_error"
+
+    def _cleanup_profile(self) -> None:
+        """Очищает временный профиль Chrome.
+
+        Использует TemporaryDirectory.cleanup() с fallback на shutil.rmtree().
+        """
         profile_cleanup_error: Optional[Exception] = None
         try:
             if hasattr(self, "_profile_tempdir") and self._profile_tempdir is not None:
@@ -414,6 +458,62 @@ class ChromeBrowser:
                         exc_info=True,
                     )
 
+    def close(self) -> None:
+        """Закрывает браузер и удаляет временный профиль.
+
+        Примечание:
+            Функция гарантирует попытку закрытия даже при ошибках.
+            Используется двухуровневая стратегия завершения:
+            1. Корректное завершение через terminate() + wait(timeout=5)
+            2. Принудительное завершение через kill() + wait(timeout=10)
+
+        Важно:
+            - ИСПРАВЛЕНИЕ 8: Проверка poll() после terminate() для обнаружения zombie процессов
+            - Использовать kill() если terminate() не работает
+            - Добавлен wait() с timeout для предотвращения утечки процессов
+            - Метод обрабатывает zombie процессы через wait() с timeout
+            - TemporaryDirectory.cleanup() гарантирует удаление профиля
+            - Все ошибки логируются для последующего анализа
+        """
+        logger.debug("Завершение работы Chrome браузера.")
+
+        process_closed = False
+        process_status = "unknown"
+
+        try:
+            if hasattr(self, "_proc") and self._proc is not None:
+                process_pid = self._proc.pid
+                logger.debug("Завершение процесса Chrome с PID: %d", process_pid)
+
+                # Попытка 1: Корректное завершение через terminate()
+                process_closed, process_status = self._terminate_process_graceful(
+                    process_pid
+                )
+
+                # Попытка 2: Принудительное завершение через kill()
+                if not process_closed:
+                    process_closed, process_status = self._terminate_process_forceful(
+                        process_pid
+                    )
+
+            else:
+                logger.warning("Процесс Chrome не инициализирован")
+
+        except Exception as e:
+            logger.error("Непредвиденная ошибка при закрытии Chrome: %s", e)
+            process_status = "unexpected_error"
+
+        # Логируем финальный статус процесса
+        if hasattr(self, "_proc") and self._proc is not None:
+            logger.debug(
+                "Финальный статус процесса Chrome: %s (PID: %d)",
+                process_status,
+                self._proc.pid,
+            )
+
+        # Очистка профиля
+        self._cleanup_profile()
+
     def __repr__(self) -> str:
         classname = self.__class__.__name__
         return f"{classname}(arguments={self._chrome_cmd!r})"
@@ -430,6 +530,131 @@ class ChromeBrowser:
 # Константы для очистки профилей
 ORPHANED_PROFILE_MARKER = ".chrome_profile_marker"
 ORPHANED_PROFILE_MAX_AGE_HOURS = 24  # Максимальный возраст профиля перед удалением
+
+
+def _check_profile_age_and_delete(
+    item: Path,
+    marker_file: Path,
+    current_time: float,
+    max_age_seconds: float,
+) -> bool:
+    """Проверяет возраст профиля по маркеру и удаляет если старый.
+
+    Args:
+        item: Путь к директории профиля.
+        marker_file: Путь к файлу-маркеру.
+        current_time: Текущее время.
+        max_age_seconds: Максимальный возраст в секундах.
+
+    Returns:
+        True если профиль удалён, False иначе.
+    """
+    try:
+        marker_mtime = marker_file.stat().st_mtime
+        age_seconds = current_time - marker_mtime
+
+        if age_seconds > max_age_seconds:
+            # Профиль старый - удаляем
+            delete_marker = item / ".deleting_marker"
+            try:
+                # Атомарное создание маркера для предотвращения race condition
+                delete_marker.touch(exist_ok=False)
+            except FileExistsError:
+                # Другой процесс уже удаляет этот профиль
+                logger.debug("Профиль %s уже удаляется другим процессом", item.name)
+                return False
+
+            _safe_remove_profile(item)
+            logger.debug(
+                "Удалён осиротевший профиль: %s (возраст: %.1f ч)",
+                item.name,
+                age_seconds / 3600,
+            )
+            return True
+    except OSError as stat_error:
+        logger.debug(
+            "Ошибка получения информации о файле %s: %s",
+            marker_file,
+            stat_error,
+        )
+        # Если не можем получить информацию - удаляем профиль
+        _safe_remove_profile(item)
+        return True
+
+    return False
+
+
+def _check_profile_age_by_dir(
+    item: Path,
+    current_time: float,
+    max_age_seconds: float,
+) -> bool:
+    """Проверяет возраст профиля по директории и удаляет если старый.
+
+    Args:
+        item: Путь к директории профиля.
+        current_time: Текущее время.
+        max_age_seconds: Максимальный возраст в секундах.
+
+    Returns:
+        True если профиль удалён, False иначе.
+    """
+    try:
+        dir_mtime = item.stat().st_mtime
+        age_seconds = current_time - dir_mtime
+
+        if age_seconds > max_age_seconds:
+            # Профиль старый - удаляем
+            delete_marker = item / ".deleting_marker"
+            try:
+                # Атомарное создание маркера для предотвращения race condition
+                delete_marker.touch(exist_ok=False)
+            except FileExistsError:
+                # Другой процесс уже удаляет этот профиль
+                logger.debug("Профиль %s уже удаляется другим процессом", item.name)
+                return False
+
+            _safe_remove_profile(item)
+            logger.debug(
+                "Удалён осиротевший профиль (без маркера): %s (возраст: %.1f ч)",
+                item.name,
+                age_seconds / 3600,
+            )
+            return True
+    except OSError as stat_error:
+        logger.debug(
+            "Ошибка получения информации о директории %s: %s",
+            item,
+            stat_error,
+        )
+
+    return False
+
+
+def _process_orphaned_profile(
+    item: Path,
+    current_time: float,
+    max_age_seconds: float,
+) -> bool:
+    """Обрабатывает один осиротевший профиль.
+
+    Args:
+        item: Путь к директории профиля.
+        current_time: Текущее время.
+        max_age_seconds: Максимальный возраст в секундах.
+
+    Returns:
+        True если профиль удалён, False иначе.
+    """
+    # Проверяем наличие маркера
+    marker_file = item / ORPHANED_PROFILE_MARKER
+
+    if marker_file.exists():
+        return _check_profile_age_and_delete(
+            item, marker_file, current_time, max_age_seconds
+        )
+    else:
+        return _check_profile_age_by_dir(item, current_time, max_age_seconds)
 
 
 def cleanup_orphaned_profiles(
@@ -484,78 +709,9 @@ def cleanup_orphaned_profiles(
             if not item.name.startswith("chrome_profile_"):
                 continue
 
-            # Проверяем наличие маркера (для надёжности)
-            marker_file = item / ORPHANED_PROFILE_MARKER
-
-            # Если маркер существует, проверяем его возраст
-            if marker_file.exists():
-                try:
-                    marker_mtime = marker_file.stat().st_mtime
-                    age_seconds = current_time - marker_mtime
-
-                    if age_seconds > max_age_seconds:
-                        # Профиль старый - удаляем
-                        # Атомарная операция: пытаемся создать маркер удаления
-                        delete_marker = item / ".deleting_marker"
-                        try:
-                            # Атомарное создание маркера для предотвращения race condition
-                            delete_marker.touch(exist_ok=False)
-                        except FileExistsError:
-                            # Другой процесс уже удаляет этот профиль - пропускаем
-                            logger.debug(
-                                "Профиль %s уже удаляется другим процессом", item.name
-                            )
-                            continue
-
-                        _safe_remove_profile(item)
-                        deleted_count += 1
-                        logger.debug(
-                            "Удалён осиротевший профиль: %s (возраст: %.1f ч)",
-                            item.name,
-                            age_seconds / 3600,
-                        )
-                except OSError as stat_error:
-                    logger.debug(
-                        "Ошибка получения информации о файле %s: %s",
-                        marker_file,
-                        stat_error,
-                    )
-                    # Если не можем получить информацию - удаляем профиль
-                    _safe_remove_profile(item)
-                    deleted_count += 1
-            else:
-                # Маркера нет - проверяем возраст директории
-                try:
-                    dir_mtime = item.stat().st_mtime
-                    age_seconds = current_time - dir_mtime
-
-                    if age_seconds > max_age_seconds:
-                        # Профиль старый - удаляем
-                        # Атомарная операция: пытаемся создать маркер удаления
-                        delete_marker = item / ".deleting_marker"
-                        try:
-                            # Атомарное создание маркера для предотвращения race condition
-                            delete_marker.touch(exist_ok=False)
-                        except FileExistsError:
-                            # Другой процесс уже удаляет этот профиль - пропускаем
-                            logger.debug(
-                                "Профиль %s уже удаляется другим процессом", item.name
-                            )
-                            continue
-
-                        _safe_remove_profile(item)
-                        deleted_count += 1
-                        logger.debug(
-                            "Удалён осиротевший профиль (без маркера): %s (возраст: %.1f ч)",
-                            item.name,
-                            age_seconds / 3600,
-                        )
-                except OSError as stat_error:
-                    logger.debug(
-                        "Ошибка получения информации о директории %s: %s",
-                        item,
-                        stat_error,
-                    )
+            # Обрабатываем профиль
+            if _process_orphaned_profile(item, current_time, max_age_seconds):
+                deleted_count += 1
 
     except PermissionError as perm_error:
         logger.warning("Нет прав для доступа к директории профилей: %s", perm_error)

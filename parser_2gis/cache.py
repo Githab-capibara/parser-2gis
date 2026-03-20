@@ -172,6 +172,86 @@ MAX_DATA_DEPTH: int = 20
 MAX_STRING_LENGTH: int = 10000
 
 
+def _validate_numeric_data(data: float | int) -> bool:
+    """Валидирует числовые данные (int, float).
+
+    Args:
+        data: Числовые данные для валидации.
+
+    Returns:
+        True если данные корректны, False если обнаружены NaN/Infinity.
+    """
+    import math
+
+    if isinstance(data, float) and (math.isnan(data) or math.isinf(data)):
+        logger.warning("Обнаружено NaN/Infinity в данных кэша")
+        return False
+    return True
+
+
+def _validate_string_data(data: str) -> bool:
+    """Валидирует строковые данные.
+
+    Args:
+        data: Строка для валидации.
+
+    Returns:
+        True если строка корректна, False если превышает лимит длины.
+    """
+    if len(data) > MAX_STRING_LENGTH:
+        logger.warning(
+            "Длина строки превышает максимальный лимит: %d (максимум: %d)",
+            len(data),
+            MAX_STRING_LENGTH,
+        )
+        return False
+    return True
+
+
+def _validate_dict_data(data: dict, depth: int) -> bool:
+    """Валидирует данные типа dict.
+
+    Args:
+        data: Словарь для валидации.
+        depth: Текущая глубина вложенности.
+
+    Returns:
+        True если словарь корректен, False если обнаружены опасные ключи или значения.
+    """
+    # Проверяем на __proto__ и другие опасные ключи (prototype pollution)
+    dangerous_keys: Set[str] = {"__proto__", "constructor", "prototype"}
+    for key in data.keys():
+        if isinstance(key, str) and key.lower() in dangerous_keys:
+            logger.warning("Обнаружена потенциальная __proto__ атака: ключ '%s'", key)
+            return False
+
+    # Рекурсивно проверяем все значения словаря
+    for key, value in data.items():
+        if not isinstance(key, str):
+            logger.warning("Некорректный тип ключа в данных кэша")
+            return False
+        if not _validate_cached_data(value, depth + 1):
+            return False
+    return True
+
+
+def _validate_list_data(data: list, depth: int) -> bool:
+    """Валидирует данные типа list.
+
+    Args:
+        data: Список для валидации.
+        depth: Текущая глубина вложенности.
+
+    Returns:
+        True если список корректен, False если обнаружены недопустимые элементы.
+    """
+    # Рекурсивно проверяем все элементы списка
+    for item in data:
+        if not _validate_cached_data(item, depth + 1):
+            return False
+    return True
+
+
 def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     """Валидирует данные кэша на безопасность.
     - Проверяет тип данных (только dict, list, str, int, float, bool, None)
@@ -196,10 +276,6 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
         )
         return False
 
-    # ИСПРАВЛЕНИЕ 11: Убран расширенный список SQL паттернов
-    # Параметризованные запросы полностью защищают от SQL injection
-    # Проверка строк на SQL паттерны избыточна
-
     # Базовые типы
     if data is None:
         return True
@@ -208,55 +284,16 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
         return True
 
     if isinstance(data, (int, float)):
-        # Проверяем на NaN и Infinity
-        import math
-
-        if isinstance(data, float) and (math.isnan(data) or math.isinf(data)):
-            logger.warning("Обнаружено NaN/Infinity в данных кэша")
-            return False
-        return True
+        return _validate_numeric_data(data)
 
     if isinstance(data, str):
-        # Проверяем максимальную длину строки
-        if len(data) > MAX_STRING_LENGTH:
-            logger.warning(
-                "Длина строки превышает максимальный лимит: %d (максимум: %d)",
-                len(data),
-                MAX_STRING_LENGTH,
-            )
-            return False
-
-        # ИСПРАВЛЕНИЕ 11: Убрана бесполезная проверка строк на SQL injection
-        # Параметризованные запросы полностью защищают от SQL injection атак
-        # Проверка строк на наличие SQL паттернов избыточна и может вызывать
-        # ложные срабатывания на легитимных данных (например, текст описания)
-        return True
+        return _validate_string_data(data)
 
     if isinstance(data, dict):
-        # Проверяем на __proto__ и другие опасные ключи (prototype pollution)
-        dangerous_keys: Set[str] = {"__proto__", "constructor", "prototype"}
-        for key in data.keys():
-            if isinstance(key, str) and key.lower() in dangerous_keys:
-                logger.warning(
-                    "Обнаружена потенциальная __proto__ атака: ключ '%s'", key
-                )
-                return False
-
-        # Рекурсивно проверяем все значения словаря
-        for key, value in data.items():
-            if not isinstance(key, str):
-                logger.warning("Некорректный тип ключа в данных кэша")
-                return False
-            if not _validate_cached_data(value, depth + 1):
-                return False
-        return True
+        return _validate_dict_data(data, depth)
 
     if isinstance(data, list):
-        # Рекурсивно проверяем все элементы списка
-        for item in data:
-            if not _validate_cached_data(item, depth + 1):
-                return False
-        return True
+        return _validate_list_data(data, depth)
 
     # Недопустимый тип
     logger.warning("Недопустимый тип данных в кэше: %s", type(data).__name__)

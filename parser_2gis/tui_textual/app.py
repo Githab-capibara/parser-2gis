@@ -10,7 +10,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 from textual import work
 from textual.app import App, ComposeResult
@@ -191,8 +191,12 @@ class TUIApp(App):
         "about": AboutScreen,
     }
 
-    def __init__(self, **kwargs: Any) -> None:
-        """Инициализация приложения."""
+    def __init__(self, **kwargs: Mapping[str, Any]) -> None:
+        """Инициализация приложения.
+
+        Args:
+            **kwargs: Аргументы для родительского класса App.
+        """
         super().__init__(**kwargs)
         self._config = self._load_config()
         self._state = self._init_state()

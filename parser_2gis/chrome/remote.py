@@ -1080,7 +1080,7 @@ class ChromeRemote:
                 else:
                     raise ChromeException(
                         f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
-                    )
+                    ) from e
 
         raise ChromeException("Не удалось создать вкладку")
 
@@ -1292,7 +1292,7 @@ class ChromeRemote:
             except pychrome.UserAbortException as e:
                 if tab_detached.is_set():
                     logger.debug("Вкладка была остановлена: %s", e)
-                    raise pychrome.RuntimeException("Вкладка была остановлена")
+                    raise pychrome.RuntimeException("Вкладка была остановлена") from e
                 else:
                     logger.debug("UserAbortException при отправке: %s", e)
                     raise
@@ -1656,13 +1656,13 @@ class ChromeRemote:
                 future = executor.submit(execute_target)
                 try:
                     future.result(timeout=timeout)
-                except TimeoutError:
+                except TimeoutError as timeout_err:
                     logger.error(
                         "Превышено время выполнения JavaScript (%d секунд)", timeout
                     )
                     raise TimeoutError(
                         f"Выполнение скрипта превысило таймаут {timeout} секунд"
-                    )
+                    ) from timeout_err
 
             # Проверяем, не произошла ли ошибка при выполнении
             if result["error"]:

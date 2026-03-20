@@ -66,8 +66,8 @@ class FileLogger:
         # Валидация уровня логирования
         try:
             self._log_level = getattr(logging, log_level.upper())
-        except AttributeError:
-            raise ValueError(f"Некорректный уровень логирования: {log_level}")
+        except AttributeError as err:
+            raise ValueError(f"Некорректный уровень логирования: {log_level}") from err
 
         self._max_bytes = max_bytes
         self._backup_count = backup_count

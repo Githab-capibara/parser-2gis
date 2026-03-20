@@ -22,14 +22,15 @@ import threading
 import time
 import uuid
 import weakref
-from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
-
 from concurrent.futures import (
     ThreadPoolExecutor,
-    TimeoutError as FuturesTimeoutError,
     as_completed,
 )
+from concurrent.futures import (
+    TimeoutError as FuturesTimeoutError,
+)
+from pathlib import Path
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .logger import log_parser_finish, logger, print_progress
@@ -424,7 +425,7 @@ MERGE_BATCH_SIZE_LOCAL: int = MERGE_BATCH_SIZE
 # - 10 попыток - защита от крайне редких случаев генерации дубликатов
 # - Достаточно для защиты от бесконечного цикла при сбоях ФС
 # - Баланс между надёжностью и производительностью
-MAX_UNIQUE_NAME_ATTEMPTS: int = 10
+MAX_UNIQUE_NAME_ATTEMPTS: int = 3
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ БЛОКИРОВОК И ЗАЩИТЫ ОТ CONCURRENT OPERATIONS (ОБОСНОВАНИЕ)

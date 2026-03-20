@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import codecs
+
 from pydantic import BaseModel, Field
 
 try:
@@ -50,8 +51,8 @@ class WriterOptions(BaseModel):
         """Проверяет существование кодировки."""
         try:
             codecs.lookup(v)
-        except LookupError:
-            raise ValueError(f"Неизвестная кодировка: {v}")
+        except LookupError as lookup_err:
+            raise ValueError(f"Неизвестная кодировка: {v}") from lookup_err
         return v
 
     if PYDANTIC_V2:

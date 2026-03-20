@@ -2,9 +2,9 @@
 
 import json
 import logging
+import warnings
 
 import pychrome.tab
-import warnings
 import websocket
 
 pychrome_logger = logging.getLogger("pychrome")
@@ -37,6 +37,6 @@ def patch_pychrome():
                 if message["id"] in self.method_results:
                     self.method_results[message["id"]].put(message)
             else:  # pragma: no cover
-                warnings.warn("unknown message: %s" % message)
+                warnings.warn("unknown message: %s" % message, stacklevel=2)
 
     pychrome.tab.Tab._recv_loop = _recv_loop_patched
