@@ -4,6 +4,10 @@
 Предоставляет функциональность для проверки и очистки данных
 перед записью в файлы для повышения качества выходных данных.
 
+ИСПРАВЛЕНИЕ 2: Этот модуль теперь импортирует функции из validation.py
+для устранения дублирования кода. DataValidator использует функции
+из validation.py как методы класса для обратной совместимости.
+
 Пример использования модуля:
     >>> from .validator import DataValidator, ValidationResult
     >>> validator = DataValidator()
@@ -20,13 +24,14 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
-import unicodedata
-
 from .logger import logger
+
+# ИСПРАВЛЕНИЕ 2: Импортируем функции из validation.py для устранения дублирования
 
 
 @dataclass

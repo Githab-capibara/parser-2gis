@@ -224,8 +224,12 @@ class ChromeBrowser:
             raise PermissionError(error_msg)
 
     @property
-    def remote_port(self) -> int:
-        """Порт отладки."""
+    def remote_port(self) -> Optional[int]:
+        """Порт отладки.
+
+        Returns:
+            Порт отладки или None если не инициализирован.
+        """
         return self._remote_port
 
     def close(self) -> None:
@@ -369,7 +373,7 @@ class ChromeBrowser:
             )
 
         # TemporaryDirectory.cleanup() гарантирует удаление профиля
-        profile_cleanup_error = None
+        profile_cleanup_error: Optional[Exception] = None
         try:
             if hasattr(self, "_profile_tempdir") and self._profile_tempdir is not None:
                 self._profile_tempdir.cleanup()

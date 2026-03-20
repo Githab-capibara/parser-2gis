@@ -14,7 +14,7 @@ import sys
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, Optional, TypedDict
+from typing import Any, Callable, Dict, List, Optional, TypedDict
 
 import pydantic
 
@@ -508,12 +508,12 @@ MAX_CITIES_COUNT: int = 1000
 MMAP_CITIES_THRESHOLD: int = 1 * 1024 * 1024  # 1 MB
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=16)
 def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
     """Загружает JSON файл с городами с оптимизированной загрузкой.
 
     Оптимизации:
-    - lru_cache для кэширования часто вызываемых загрузок (maxsize=8)
+    - lru_cache для кэширования часто вызываемых загрузок (maxsize=16) (ИСПРАВЛЕНИЕ 7: увеличено с 8)
     - mmap для больших файлов >1MB для экономии памяти
     - Streaming парсинг для файлов >10MB
     - Проверка размера файла перед загрузкой через stat()
@@ -572,6 +572,10 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
         # Оптимизация: используем mmap для больших файлов >1MB
         use_mmap = file_size > MMAP_CITIES_THRESHOLD
 
+        # ИСПРАВЛЕНИЕ 1: Инициализируем all_cities перед try-finally блоком
+        # Это предотвращает ошибку UnboundLocalError при использовании переменной до присваивания
+        all_cities: Optional[List[Dict[str, Any]]] = None
+
         if use_mmap:
             logger.info(
                 "Файл городов большой (%.2f MB), используется mmap для чтения",
@@ -594,6 +598,11 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
             # Обычное чтение для малых файлов
             with open(cities_path, "r", encoding="utf-8") as f:
                 all_cities = json.load(f)
+
+        # ИСПРАВЛЕНИЕ 1: Проверка что all_cities был успешно инициализирован
+        if all_cities is None:
+            logger.error("Файл городов не был загружен (all_cities остался None)")
+            raise ValueError("Файл городов не был загружен корректно")
 
         # Валидация структуры данных
         if not isinstance(all_cities, list):

@@ -694,6 +694,12 @@ class CacheManager:
         ON cache(url_hash)
     """
 
+    # ИСПРАВЛЕНИЕ 5: Дополнительный индекс для cache_key для ускорения поиска
+    SQL_CREATE_CACHE_KEY_INDEX = """
+        CREATE INDEX IF NOT EXISTS idx_cache_key
+        ON cache(url_hash, expires_at)
+    """
+
     SQL_SELECT = """
         SELECT data, expires_at
         FROM cache
@@ -798,6 +804,9 @@ class CacheManager:
 
             # Создаем дополнительный индекс для url_hash для ускорения поиска
             conn.execute(self.SQL_CREATE_URL_HASH_INDEX)
+
+            # ИСПРАВЛЕНИЕ 5: Создаём составной индекс для ускорения поиска
+            conn.execute(self.SQL_CREATE_CACHE_KEY_INDEX)
 
             # Примечание: SQLite3 в Python не поддерживает prepare() для курсоров,
             # поэтому используем прямое выполнение с параметрами для защиты от SQL injection
