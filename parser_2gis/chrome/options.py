@@ -29,6 +29,7 @@ class ChromeOptions(BaseModel):
         disable_images: Отключить загрузку изображений для экономии трафика.
         silent_browser: Не показывать отладочную информацию Chrome в stdout.
         memory_limit: Максимальный размер памяти V8 в мегабайтах.
+        startup_delay: Задержка запуска браузера в секундах.
     """
 
     binary_path: Optional[pathlib.Path] = None
@@ -37,3 +38,4 @@ class ChromeOptions(BaseModel):
     disable_images: bool = True
     silent_browser: bool = True
     memory_limit: PositiveInt = default_memory_limit()
+    startup_delay: int = 0
