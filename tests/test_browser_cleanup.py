@@ -28,10 +28,7 @@ class TestCleanupOrphanedProfiles:
         Вызывает cleanup_orphaned_profiles().
         Проверяет что старые профили удалены, а новые не тронуты.
         """
-        from parser_2gis.chrome.browser import (
-            ORPHANED_PROFILE_MARKER,
-            cleanup_orphaned_profiles,
-        )
+        from parser_2gis.chrome.browser import ORPHANED_PROFILE_MARKER, cleanup_orphaned_profiles
 
         # Mock logger чтобы избежать AttributeError
         with patch("parser_2gis.chrome.browser.app_logger"):
@@ -53,14 +50,10 @@ class TestCleanupOrphanedProfiles:
             # Время модификации - сейчас (не меняем)
 
             # Вызываем очистку
-            deleted_count = cleanup_orphaned_profiles(
-                profiles_dir=tmp_path, max_age_hours=24
-            )
+            deleted_count = cleanup_orphaned_profiles(profiles_dir=tmp_path, max_age_hours=24)
 
             # Проверяем результаты
-            assert deleted_count == 1, (
-                f"Ожидалось удаление 1 профиля, удалено: {deleted_count}"
-            )
+            assert deleted_count == 1, f"Ожидалось удаление 1 профиля, удалено: {deleted_count}"
             assert not old_profile.exists(), "Старый профиль не был удален"
             assert new_profile.exists(), "Новый профиль был ошибочно удален"
 
@@ -83,9 +76,7 @@ class TestCleanupOrphanedProfiles:
             os.utime(old_profile, (old_time, old_time))
 
             # Вызываем очистку
-            deleted_count = cleanup_orphaned_profiles(
-                profiles_dir=tmp_path, max_age_hours=24
-            )
+            deleted_count = cleanup_orphaned_profiles(profiles_dir=tmp_path, max_age_hours=24)
 
             # Профиль должен быть удален несмотря на отсутствие маркера
             assert deleted_count == 1
@@ -110,9 +101,7 @@ class TestCleanupOrphanedProfiles:
 
             try:
                 # Вызываем очистку - должна обработать ошибку
-                deleted_count = cleanup_orphaned_profiles(
-                    profiles_dir=tmp_path, max_age_hours=24
-                )
+                deleted_count = cleanup_orphaned_profiles(profiles_dir=tmp_path, max_age_hours=24)
 
                 # Функция должна завершиться без исключений
                 assert isinstance(deleted_count, int)
@@ -160,18 +149,18 @@ class TestTemporaryDirectoryCleanup:
 
                     # Проверяем что профиль существует
                     assert profile_path.exists(), "Профиль не был создан"
-                    assert profile_path.name.startswith("chrome_profile_"), (
-                        f"Неверное имя профиля: {profile_path.name}"
-                    )
+                    assert profile_path.name.startswith(
+                        "chrome_profile_"
+                    ), f"Неверное имя профиля: {profile_path.name}"
 
                     # Закрываем браузер
                     browser.close()
 
                     # Проверяем что профиль удален
                     # TemporaryDirectory.cleanup() должен удалить профиль
-                    assert not profile_path.exists(), (
-                        f"Профиль не был удален после закрытия: {profile_path}"
-                    )
+                    assert (
+                        not profile_path.exists()
+                    ), f"Профиль не был удален после закрытия: {profile_path}"
 
                 except Exception as e:
                     # Если браузер не создался, тест всё равно проходит
@@ -213,9 +202,9 @@ class TestTemporaryDirectoryCleanup:
 
                     # После выхода из контекста профиль должен удалиться
                     assert profile_path is not None
-                    assert not profile_path.exists(), (
-                        "Профиль не был удален после выхода из контекстного менеджера"
-                    )
+                    assert (
+                        not profile_path.exists()
+                    ), "Профиль не был удален после выхода из контекстного менеджера"
 
                 except Exception as e:
                     pytest.skip(f"Не удалось создать браузер: {e}")
@@ -291,9 +280,7 @@ class TestSignalHandlerCleanup:
                 # terminate работает, но wait выбрасывает TimeoutExpired
                 mock_process.terminate.return_value = None
                 mock_process.wait.side_effect = [
-                    subprocess.TimeoutExpired(
-                        cmd="chrome", timeout=5
-                    ),  # Первый вызов - timeout
+                    subprocess.TimeoutExpired(cmd="chrome", timeout=5),  # Первый вызов - timeout
                     0,  # Второй вызов - успех
                 ]
                 mock_process.kill.return_value = None

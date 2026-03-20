@@ -24,9 +24,7 @@ class TestCategoryTypedDict:
         Вызывает функцию с существующей категорией.
         Проверяет что возвращается CategoryDict со всеми полями.
         """
-        from parser_2gis.data.categories_93 import (
-            get_category_by_name,
-        )
+        from parser_2gis.data.categories_93 import get_category_by_name
 
         # Вызываем функцию с существующей категорией
         result = get_category_by_name("Кафе")
@@ -82,17 +80,17 @@ class TestCategoryTypedDict:
 
         for i, category in enumerate(CATEGORIES_93, 1):
             # Проверяем наличие всех полей
-            assert required_fields.issubset(category.keys()), (
-                f"Категория {i} ({category.get('name', 'unknown')}) не имеет всех полей: {required_fields - set(category.keys())}"
-            )
+            assert required_fields.issubset(
+                category.keys()
+            ), f"Категория {i} ({category.get('name', 'unknown')}) не имеет всех полей: {required_fields - set(category.keys())}"
 
             # Проверяем что name и query - строки
-            assert isinstance(category["name"], str), (
-                f"Категория {i}: поле 'name' должно быть строкой"
-            )
-            assert isinstance(category["query"], str), (
-                f"Категория {i}: поле 'query' должно быть строкой"
-            )
+            assert isinstance(
+                category["name"], str
+            ), f"Категория {i}: поле 'name' должно быть строкой"
+            assert isinstance(
+                category["query"], str
+            ), f"Категория {i}: поле 'query' должно быть строкой"
 
             # Проверяем что rubric_code - строка или None
             assert category["rubric_code"] is None or isinstance(
@@ -100,9 +98,7 @@ class TestCategoryTypedDict:
             ), f"Категория {i}: поле 'rubric_code' должно быть строкой или None"
 
         # Проверяем что всего 93 категории
-        assert len(CATEGORIES_93) == 93, (
-            f"Ожидалось 93 категории, найдено: {len(CATEGORIES_93)}"
-        )
+        assert len(CATEGORIES_93) == 93, f"Ожидалось 93 категории, найдено: {len(CATEGORIES_93)}"
 
 
 class TestCategoryFunctions:
@@ -112,10 +108,7 @@ class TestCategoryFunctions:
         """
         Проверка что get_categories_list возвращает все категории.
         """
-        from parser_2gis.data.categories_93 import (
-            CATEGORIES_93,
-            get_categories_list,
-        )
+        from parser_2gis.data.categories_93 import CATEGORIES_93, get_categories_list
 
         result = get_categories_list()
 
@@ -131,10 +124,7 @@ class TestCategoryFunctions:
         from parser_2gis.data.categories_93 import generate_urls_for_city
 
         # Тестовый город
-        city = {
-            "code": "132",
-            "domain": "msk",
-        }
+        city = {"code": "132", "domain": "msk"}
 
         # Генерируем URL для первых 3 категорий
         test_categories = [
@@ -162,15 +152,10 @@ class TestCategoryFunctions:
 
         from parser_2gis.data.categories_93 import generate_urls_for_city
 
-        city = {
-            "code": "132",
-            "domain": "msk",
-        }
+        city = {"code": "132", "domain": "msk"}
 
         # Категория без rubric_code
-        test_categories = [
-            {"name": "Бургерные", "query": "Бургерные", "rubric_code": None},
-        ]
+        test_categories = [{"name": "Бургерные", "query": "Бургерные", "rubric_code": None}]
 
         urls = generate_urls_for_city(city, test_categories)
 
@@ -224,9 +209,9 @@ class TestTypeChecking:
             ]
 
             # Тест проходит если нет ошибок в categories_93.py
-            assert len(errors_in_categories) == 0, (
-                f"mypy обнаружил ошибки в categories_93.py: {errors_in_categories}"
-            )
+            assert (
+                len(errors_in_categories) == 0
+            ), f"mypy обнаружил ошибки в categories_93.py: {errors_in_categories}"
 
 
 # Запуск тестов через pytest

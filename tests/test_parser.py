@@ -40,10 +40,7 @@ def check_json_result(result_path, num_records):
 
 
 # Тестовые данные: формат и функция проверки
-testdata = [
-    ["csv", check_csv_result],
-    ["json", check_json_result],
-]
+testdata = [["csv", check_csv_result], ["json", check_json_result]]
 
 
 @pytest.mark.parametrize("format, result_checker", testdata)

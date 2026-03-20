@@ -161,9 +161,7 @@ class TestWaitUntilFinished:
         """Проверка таймаута."""
         counter = {"value": 0}
 
-        @wait_until_finished(
-            timeout=0.5, finished=lambda x: x >= 100, poll_interval=0.1
-        )
+        @wait_until_finished(timeout=0.5, finished=lambda x: x >= 100, poll_interval=0.1)
         def increment():
             counter["value"] += 1
             return counter["value"]
@@ -176,10 +174,7 @@ class TestWaitUntilFinished:
         counter = {"value": 0}
 
         @wait_until_finished(
-            timeout=0.5,
-            finished=lambda x: x >= 100,
-            poll_interval=0.1,
-            throw_exception=False,
+            timeout=0.5, finished=lambda x: x >= 100, poll_interval=0.1, throw_exception=False
         )
         def increment():
             counter["value"] += 1

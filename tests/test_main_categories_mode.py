@@ -21,8 +21,7 @@ class TestCategoriesModeValidation:
     def test_categories_mode_requires_cities(self):
         """--categories-mode без --cities должен вызывать ошибку."""
         with patch(
-            "sys.argv",
-            ["parser-2gis", "--categories-mode", "-o", "output.csv", "-f", "csv"],
+            "sys.argv", ["parser-2gis", "--categories-mode", "-o", "output.csv", "-f", "csv"]
         ):
             with pytest.raises(SystemExit) as exc_info:
                 parse_arguments()
@@ -81,16 +80,7 @@ class TestCategoriesModeValidation:
 
             try:
                 with patch(
-                    "sys.argv",
-                    [
-                        "parser-2gis",
-                        "--cities",
-                        "omsk",
-                        "-o",
-                        "output.csv",
-                        "-f",
-                        "csv",
-                    ],
+                    "sys.argv", ["parser-2gis", "--cities", "omsk", "-o", "output.csv", "-f", "csv"]
                 ):
                     args, config = parse_arguments()
 

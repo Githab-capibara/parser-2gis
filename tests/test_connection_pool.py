@@ -357,12 +357,7 @@ class TestConnectionPoolValidation:
         os.environ["TEST_POOL_VAR"] = "25"
 
         try:
-            value = _validate_pool_env_int(
-                "TEST_POOL_VAR",
-                default=10,
-                min_value=5,
-                max_value=50,
-            )
+            value = _validate_pool_env_int("TEST_POOL_VAR", default=10, min_value=5, max_value=50)
 
             # Проверяем что返回 валидированное значение
             assert value == 25
@@ -379,12 +374,7 @@ class TestConnectionPoolValidation:
         os.environ["TEST_POOL_VAR"] = "3"
 
         try:
-            value = _validate_pool_env_int(
-                "TEST_POOL_VAR",
-                default=10,
-                min_value=5,
-                max_value=50,
-            )
+            value = _validate_pool_env_int("TEST_POOL_VAR", default=10, min_value=5, max_value=50)
 
             # Проверяем что返回 минимальное значение
             assert value == 5
@@ -401,12 +391,7 @@ class TestConnectionPoolValidation:
         os.environ["TEST_POOL_VAR"] = "100"
 
         try:
-            value = _validate_pool_env_int(
-                "TEST_POOL_VAR",
-                default=10,
-                min_value=5,
-                max_value=50,
-            )
+            value = _validate_pool_env_int("TEST_POOL_VAR", default=10, min_value=5, max_value=50)
 
             # Проверяем что返回 максимальное значение
             assert value == 50
@@ -423,12 +408,7 @@ class TestConnectionPoolValidation:
         os.environ["TEST_POOL_VAR"] = "invalid"
 
         try:
-            value = _validate_pool_env_int(
-                "TEST_POOL_VAR",
-                default=10,
-                min_value=5,
-                max_value=50,
-            )
+            value = _validate_pool_env_int("TEST_POOL_VAR", default=10, min_value=5, max_value=50)
 
             # Проверяем что返回 значение по умолчанию
             assert value == 10

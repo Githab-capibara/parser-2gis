@@ -72,9 +72,7 @@ def _validate_initial_state(data: Any, depth: int = 0) -> bool:
         data_lower = data.lower()
         for pattern in dangerous_patterns:
             if pattern.lower() in data_lower:
-                logger.warning(
-                    "Обнаружена опасная конструкция в initialState: %s", pattern
-                )
+                logger.warning("Обнаружена опасная конструкция в initialState: %s", pattern)
                 return False
         return True
 
@@ -158,9 +156,7 @@ class FirmParser(MainParser):
             writer: Целевой файловый писатель.
         """
         # Переходим по URL с таймаутом 5 минут
-        self._chrome_remote.navigate(
-            self._url, referer="https://google.com", timeout=300
-        )
+        self._chrome_remote.navigate(self._url, referer="https://google.com", timeout=300)
 
         # Документ загружен, получаем ответ
         responses = self._chrome_remote.get_responses()
@@ -178,8 +174,7 @@ class FirmParser(MainParser):
         # Обработка 404
         if document_response.get("mimeType") != "text/html":
             logger.error(
-                "Неверный тип MIME ответа: %s",
-                document_response.get("mimeType", "неизвестно"),
+                "Неверный тип MIME ответа: %s", document_response.get("mimeType", "неизвестно")
             )
             return
 
@@ -196,9 +191,7 @@ class FirmParser(MainParser):
         try:
             initial_state = self._chrome_remote.execute_script("window.initialState")
             if not initial_state:
-                logger.warning(
-                    "Данные организации не найдены (initialState отсутствует)."
-                )
+                logger.warning("Данные организации не найдены (initialState отсутствует).")
                 return
             # Используем новую функцию валидации вместо ручной проверки
             required_keys = ["data", "entity", "profile"]

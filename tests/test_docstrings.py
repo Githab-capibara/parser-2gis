@@ -85,9 +85,7 @@ class TestTUIScreensHaveDocstrings:
 
         Проверяет что класс CategorySelectorScreen имеет docstring.
         """
-        from parser_2gis.tui_textual.screens.category_selector import (
-            CategorySelectorScreen,
-        )
+        from parser_2gis.tui_textual.screens.category_selector import CategorySelectorScreen
 
         # Проверяем что класс имеет docstring
         assert CategorySelectorScreen.__doc__ is not None
@@ -142,9 +140,7 @@ class TestPublicMethodsDocumented:
         # Получаем публичные методы
         public_methods = [
             name
-            for name, method in inspect.getmembers(
-                CacheManager, predicate=inspect.isfunction
-            )
+            for name, method in inspect.getmembers(CacheManager, predicate=inspect.isfunction)
             if not name.startswith("_")
         ]
 
@@ -152,9 +148,7 @@ class TestPublicMethodsDocumented:
         for method_name in public_methods:
             method = getattr(CacheManager, method_name)
             assert method.__doc__ is not None, f"Метод {method_name} не имеет docstring"
-            assert len(method.__doc__.strip()) > 0, (
-                f"Метод {method_name} имеет пустой docstring"
-            )
+            assert len(method.__doc__.strip()) > 0, f"Метод {method_name} имеет пустой docstring"
 
     def test_public_methods_documented_file_logger(self):
         """
@@ -167,9 +161,7 @@ class TestPublicMethodsDocumented:
         # Получаем публичные методы
         public_methods = [
             name
-            for name, method in inspect.getmembers(
-                FileLogger, predicate=inspect.isfunction
-            )
+            for name, method in inspect.getmembers(FileLogger, predicate=inspect.isfunction)
             if not name.startswith("_")
         ]
 
@@ -177,9 +169,7 @@ class TestPublicMethodsDocumented:
         for method_name in public_methods:
             method = getattr(FileLogger, method_name)
             assert method.__doc__ is not None, f"Метод {method_name} не имеет docstring"
-            assert len(method.__doc__.strip()) > 0, (
-                f"Метод {method_name} имеет пустой docstring"
-            )
+            assert len(method.__doc__.strip()) > 0, f"Метод {method_name} имеет пустой docstring"
 
     def test_public_methods_documented_chrome_browser(self):
         """
@@ -192,9 +182,7 @@ class TestPublicMethodsDocumented:
         # Получаем публичные методы
         public_methods = [
             name
-            for name, method in inspect.getmembers(
-                ChromeBrowser, predicate=inspect.isfunction
-            )
+            for name, method in inspect.getmembers(ChromeBrowser, predicate=inspect.isfunction)
             if not name.startswith("_")
         ]
 
@@ -202,9 +190,7 @@ class TestPublicMethodsDocumented:
         for method_name in public_methods:
             method = getattr(ChromeBrowser, method_name)
             assert method.__doc__ is not None, f"Метод {method_name} не имеет docstring"
-            assert len(method.__doc__.strip()) > 0, (
-                f"Метод {method_name} имеет пустой docstring"
-            )
+            assert len(method.__doc__.strip()) > 0, f"Метод {method_name} имеет пустой docstring"
 
     def test_public_methods_documented_parallel_parser(self):
         """
@@ -217,9 +203,7 @@ class TestPublicMethodsDocumented:
         # Получаем публичные методы
         public_methods = [
             name
-            for name, method in inspect.getmembers(
-                ParallelCityParser, predicate=inspect.isfunction
-            )
+            for name, method in inspect.getmembers(ParallelCityParser, predicate=inspect.isfunction)
             if not name.startswith("_")
         ]
 
@@ -227,9 +211,7 @@ class TestPublicMethodsDocumented:
         for method_name in public_methods:
             method = getattr(ParallelCityParser, method_name)
             assert method.__doc__ is not None, f"Метод {method_name} не имеет docstring"
-            assert len(method.__doc__.strip()) > 0, (
-                f"Метод {method_name} имеет пустой docstring"
-            )
+            assert len(method.__doc__.strip()) > 0, f"Метод {method_name} имеет пустой docstring"
 
     def test_public_methods_documented_configuration(self):
         """
@@ -242,9 +224,7 @@ class TestPublicMethodsDocumented:
         # Получаем публичные методы только определённые в Configuration (не унаследованные)
         public_methods = [
             name
-            for name, method in inspect.getmembers(
-                Configuration, predicate=inspect.isfunction
-            )
+            for name, method in inspect.getmembers(Configuration, predicate=inspect.isfunction)
             if not name.startswith("_") and method.__module__ == "parser_2gis.config"
         ]
 
@@ -252,9 +232,7 @@ class TestPublicMethodsDocumented:
         for method_name in public_methods:
             method = getattr(Configuration, method_name)
             assert method.__doc__ is not None, f"Метод {method_name} не имеет docstring"
-            assert len(method.__doc__.strip()) > 0, (
-                f"Метод {method_name} имеет пустой docstring"
-            )
+            assert len(method.__doc__.strip()) > 0, f"Метод {method_name} имеет пустой docstring"
 
 
 class TestDocstringQuality:
@@ -444,9 +422,9 @@ class TestDocstringConsistency:
 
             # Проверяем что docstring начинается с заглавной буквы
             stripped = docstring.strip()
-            assert stripped[0].isupper(), (
-                f"Docstring метода {method.__name__} должен начинаться с заглавной буквы"
-            )
+            assert stripped[
+                0
+            ].isupper(), f"Docstring метода {method.__name__} должен начинаться с заглавной буквы"
 
     def test_docstring_method_signature_match(self):
         """

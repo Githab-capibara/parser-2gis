@@ -100,12 +100,7 @@ class TestValidateCachedDataDecomposition:
         корректно валидирует словари с безопасными данными.
         """
         # Проверяем валидные словари
-        valid_dict = {
-            "name": "Test",
-            "value": 42,
-            "nested": {"key": "value"},
-            "list": [1, 2, 3],
-        }
+        valid_dict = {"name": "Test", "value": 42, "nested": {"key": "value"}, "list": [1, 2, 3]}
         assert _validate_dict_data(valid_dict, depth=0) is True
 
     def test_validate_cached_data_decomposed_dict_invalid_proto(self):
@@ -116,16 +111,11 @@ class TestValidateCachedDataDecomposition:
         отклоняет словари с __proto__ ключами.
         """
         # Проверяем некорректные словари (prototype pollution)
-        dangerous_dict = {
-            "__proto__": {"isAdmin": True},
-            "name": "Test",
-        }
+        dangerous_dict = {"__proto__": {"isAdmin": True}, "name": "Test"}
         assert _validate_dict_data(dangerous_dict, depth=0) is False
 
         # Проверяем другие опасные ключи
-        dangerous_dict2 = {
-            "constructor": {"prototype": {"isAdmin": True}},
-        }
+        dangerous_dict2 = {"constructor": {"prototype": {"isAdmin": True}}}
         assert _validate_dict_data(dangerous_dict2, depth=0) is False
 
     def test_validate_cached_data_decomposed_dict_depth_limit(self):
@@ -164,10 +154,7 @@ class TestValidateCachedDataDecomposition:
         отклоняет списки с некорректными элементами.
         """
         # Проверяем некорректные списки (с опасными вложениями)
-        invalid_list = [
-            1,
-            {"__proto__": {"isAdmin": True}},
-        ]
+        invalid_list = [1, {"__proto__": {"isAdmin": True}}]
         assert _validate_list_data(invalid_list, depth=0) is False
 
     def test_validate_cached_data_decomposed_comprehensive(self):
@@ -328,9 +315,7 @@ class TestCleanupOrphanedProfilesDecomposition:
         max_age_seconds = 24 * 3600
 
         result = _process_orphaned_profile(
-            item=profile_dir,
-            current_time=current_time,
-            max_age_seconds=max_age_seconds,
+            item=profile_dir, current_time=current_time, max_age_seconds=max_age_seconds
         )
 
         # Проверяем что профиль не был удалён (слишком молодой)
@@ -362,10 +347,7 @@ class TestCleanupOrphanedProfilesDecomposition:
         # Mock _is_profile_in_use для возврата False
         with patch("parser_2gis.chrome.browser._is_profile_in_use", return_value=False):
             # Вызываем функцию
-            deleted_count = cleanup_orphaned_profiles(
-                profiles_dir=tmp_path,
-                max_age_hours=24,
-            )
+            deleted_count = cleanup_orphaned_profiles(profiles_dir=tmp_path, max_age_hours=24)
 
             # Проверяем что старые профили были удалены
             assert deleted_count >= 2

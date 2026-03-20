@@ -93,9 +93,7 @@ class TestParallelParserInitErrors:
             # Вызываем parse_single_url
             url = "https://2gis.ru/moscow/search/Кафе"
             success, message = parser.parse_single_url(
-                url=url,
-                category_name="Кафе",
-                city_name="Москва",
+                url=url, category_name="Кафе", city_name="Москва"
             )
 
             # Проверяем что ошибка обработана
@@ -137,9 +135,7 @@ class TestParallelParserInitErrors:
             )
 
             # Проверяем что инициализация залогирована
-            assert any(
-                "Инициализирован парсер" in record.message for record in caplog.records
-            )
+            assert any("Инициализирован парсер" in record.message for record in caplog.records)
 
         # Проверяем что парсер создан успешно
         assert parser is not None

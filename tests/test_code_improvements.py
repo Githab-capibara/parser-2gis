@@ -219,9 +219,7 @@ class TestBoundaryConditions:
         """Проверка декоратора wait_until_finished с таймаутом."""
         call_count = 0
 
-        @wait_until_finished(
-            timeout=0.5, finished=lambda x: False, throw_exception=False
-        )
+        @wait_until_finished(timeout=0.5, finished=lambda x: False, throw_exception=False)
         def slow_func():
             nonlocal call_count
             call_count += 1
@@ -238,10 +236,7 @@ class TestBoundaryConditions:
             {"name": "Moscow", "code": "moscow", "domain": "ru"},
             {"name": "Omsk", "code": "omsk", "domain": "ru"},
         ]
-        categories = [
-            {"name": "Cafes", "code": "cafes"},
-            {"name": "Shops", "code": "shops"},
-        ]
+        categories = [{"name": "Cafes", "code": "cafes"}, {"name": "Shops", "code": "shops"}]
 
         parser = ParallelCityParser(cities, categories, "/tmp", config)
         urls = parser.generate_all_urls()

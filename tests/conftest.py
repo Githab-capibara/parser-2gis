@@ -391,11 +391,7 @@ def buffer_constants() -> Dict[str, int]:
     Returns:
         Словарь с константами буферизации.
     """
-    from parser_2gis.common import (
-        CSV_BATCH_SIZE,
-        DEFAULT_BUFFER_SIZE,
-        MERGE_BATCH_SIZE,
-    )
+    from parser_2gis.common import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE
 
     return {
         "DEFAULT_BUFFER_SIZE": DEFAULT_BUFFER_SIZE,
@@ -553,23 +549,12 @@ def sample_config_dict() -> Dict[str, Any]:
         Словарь с примером конфигурации.
     """
     return {
-        "chrome": {
-            "headless": True,
-            "memory_limit": 512,
-            "disable_images": True,
-        },
-        "parser": {
-            "max_records": 10,
-            "delay_between_clicks": 100,
-            "skip_404_response": True,
-        },
+        "chrome": {"headless": True, "memory_limit": 512, "disable_images": True},
+        "parser": {"max_records": 10, "delay_between_clicks": 100, "skip_404_response": True},
         "writer": {
             "encoding": "utf-8-sig",
             "verbose": False,
-            "csv": {
-                "add_rubrics": True,
-                "add_comments": False,
-            },
+            "csv": {"add_rubrics": True, "add_comments": False},
         },
     }
 

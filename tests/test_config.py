@@ -104,11 +104,7 @@ class TestConfigurationSaveLoad:
             config_path = pathlib.Path(tmpdir) / "test.config"
 
             # Создаём JSON с невалидными данными
-            invalid_data = {
-                "chrome": {
-                    "headless": "not_a_boolean",  # Должно быть True/False
-                }
-            }
+            invalid_data = {"chrome": {"headless": "not_a_boolean"}}  # Должно быть True/False
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(invalid_data, f)
 
@@ -197,11 +193,7 @@ class TestConfigurationValidation:
                 "disable_images": True,
                 "start_maximized": False,
             },
-            parser={
-                "max_records": 100,
-                "delay_between_clicks": 500,
-                "skip_404_response": True,
-            },
+            parser={"max_records": 100, "delay_between_clicks": 500, "skip_404_response": True},
         )
         assert config.chrome.headless is True
         assert config.chrome.memory_limit == 512

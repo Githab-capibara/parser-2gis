@@ -169,9 +169,7 @@ class CitySelectorScreen(Screen):
 
             is_selected = i in self._selected_indices
 
-            checkbox = Checkbox(
-                f"{city_name} ({country})", value=is_selected, id=f"city-{i}"
-            )
+            checkbox = Checkbox(f"{city_name} ({country})", value=is_selected, id=f"city-{i}")
             self._checkboxes.append(checkbox)
             container.mount(checkbox)
 
@@ -211,9 +209,7 @@ class CitySelectorScreen(Screen):
                 self._filtered_cities = self._cities.copy()
             else:
                 self._filtered_cities = [
-                    city
-                    for city in self._cities
-                    if query in city.get("name", "").lower()
+                    city for city in self._cities if query in city.get("name", "").lower()
                 ]
 
             self._populate_cities()

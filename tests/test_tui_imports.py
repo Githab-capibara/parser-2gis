@@ -48,10 +48,7 @@ class TestTUIImports:
         - from parser_2gis.cache import CacheManager
         """
         try:
-            from parser_2gis.tui_textual.screens.other_screens import (
-                AboutScreen,
-                CacheViewerScreen,
-            )
+            from parser_2gis.tui_textual.screens.other_screens import AboutScreen, CacheViewerScreen
 
             assert CacheViewerScreen is not None
             assert AboutScreen is not None
@@ -115,11 +112,7 @@ class TestRelativeImportErrors:
         import re
 
         screens_dir = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "parser_2gis",
-            "tui_textual",
-            "screens",
+            os.path.dirname(__file__), "..", "parser_2gis", "tui_textual", "screens"
         )
         screens_dir = os.path.abspath(screens_dir)
 
@@ -142,14 +135,11 @@ class TestRelativeImportErrors:
 
             matches = invalid_pattern.findall(content, re.MULTILINE)
             if matches:
-                errors.append(
-                    f"Файл {filename} содержит некорректные импорты: {matches}"
-                )
+                errors.append(f"Файл {filename} содержит некорректные импорты: {matches}")
 
         if errors:
             pytest.fail(
-                "Обнаружены некорректные относительные импорты в TUI экранах:\n"
-                + "\n".join(errors)
+                "Обнаружены некорректные относительные импорты в TUI экранах:\n" + "\n".join(errors)
             )
 
     def test_cache_viewer_screen_imports_correctly(self):
@@ -169,8 +159,7 @@ class TestRelativeImportErrors:
 
         # Проверяем, что используется правильный импорт
         assert (
-            "from parser_2gis.paths import" in source
-            or "from ...paths import" in source
+            "from parser_2gis.paths import" in source or "from ...paths import" in source
         ), "CacheViewerScreen должен использовать правильный импорт paths"
 
     def test_cache_viewer_action_clear_imports_correctly(self):
@@ -186,13 +175,11 @@ class TestRelativeImportErrors:
 
         # Проверяем, что используются правильные импорты
         assert (
-            "from parser_2gis.cache import" in source
-            or "from ...cache import" in source
+            "from parser_2gis.cache import" in source or "from ...cache import" in source
         ), "action_clear_cache должен использовать правильный импорт cache"
 
         assert (
-            "from parser_2gis.paths import" in source
-            or "from ...paths import" in source
+            "from parser_2gis.paths import" in source or "from ...paths import" in source
         ), "action_clear_cache должен использовать правильный импорт paths"
 
 

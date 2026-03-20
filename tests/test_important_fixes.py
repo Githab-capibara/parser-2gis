@@ -43,11 +43,7 @@ class TestUrlValidation:
         # Arrange
         from parser_2gis.validation import validate_url
 
-        localhost_urls = [
-            "http://localhost:8080",
-            "http://127.0.0.1:3000",
-            "https://localhost/api",
-        ]
+        localhost_urls = ["http://localhost:8080", "http://127.0.0.1:3000", "https://localhost/api"]
 
         # Act & Assert
         for url in localhost_urls:
@@ -100,9 +96,7 @@ class TestUrlValidation:
             is_valid = result.is_valid
             error_msg = result.error
             assert is_valid is True, f"Публичный URL должен быть разрешён: {url}"
-            assert error_msg is None, (
-                f"Не должно быть ошибки для валидного URL: {error_msg}"
-            )
+            assert error_msg is None, f"Не должно быть ошибки для валидного URL: {error_msg}"
 
 
 # =============================================================================
@@ -121,9 +115,7 @@ class TestRecursionErrorPrevention:
 
         # Act & Assert
         # Проверка что метод merge_with существует и принимает max_depth
-        assert hasattr(config1, "merge_with"), (
-            "Configuration должен иметь метод merge_with"
-        )
+        assert hasattr(config1, "merge_with"), "Configuration должен иметь метод merge_with"
 
         # Объединение с глубиной по умолчанию
         config1.merge_with(config2, max_depth=50)
@@ -161,14 +153,10 @@ class TestRecursionErrorPrevention:
         # Проверка что warning threshold вычисляется правильно (80% от max_depth)
         max_depth = 50
         expected_threshold = int(max_depth * 0.8)  # 40
-        assert expected_threshold == 40, (
-            "Порог предупреждения должен быть 80% от max_depth"
-        )
+        assert expected_threshold == 40, "Порог предупреждения должен быть 80% от max_depth"
 
         # Проверка что метод _check_depth_limit существует
-        assert hasattr(Configuration, "_check_depth_limit"), (
-            "Должен быть метод _check_depth_limit"
-        )
+        assert hasattr(Configuration, "_check_depth_limit"), "Должен быть метод _check_depth_limit"
 
 
 # =============================================================================
@@ -270,9 +258,9 @@ class TestUnicodeDecodeErrorHandling:
                 import inspect
 
                 source = inspect.getsource(CacheManager.get)
-                assert "UnicodeDecodeError" in source, (
-                    "Метод get должен обрабатывать UnicodeDecodeError"
-                )
+                assert (
+                    "UnicodeDecodeError" in source
+                ), "Метод get должен обрабатывать UnicodeDecodeError"
             finally:
                 cache.close()
 
@@ -489,11 +477,7 @@ class TestEmailValidation:
         validator = DataValidator()
 
         # Email с IDN доменом (кириллица)
-        idn_emails = [
-            "test@пример.рф",
-            "user@мвд.рф",
-            "admin@сайт.орг",
-        ]
+        idn_emails = ["test@пример.рф", "user@мвд.рф", "admin@сайт.орг"]
 
         # Act & Assert
         for email in idn_emails:
@@ -510,11 +494,9 @@ class TestEmailValidation:
         result_no_mx = validator.validate_email("test@example.com", check_mx=False)
 
         # Assert
-        assert result_no_mx.is_valid is True, (
-            "Email без проверки MX должен быть валиден (формат правильный)"
-        )
+        assert (
+            result_no_mx.is_valid is True
+        ), "Email без проверки MX должен быть валиден (формат правильный)"
 
         # Проверка что метод _check_mx_records существует
-        assert hasattr(validator, "_check_mx_records"), (
-            "Должен быть метод _check_mx_records"
-        )
+        assert hasattr(validator, "_check_mx_records"), "Должен быть метод _check_mx_records"

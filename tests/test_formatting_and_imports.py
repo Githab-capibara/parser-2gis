@@ -86,14 +86,7 @@ def run_black_check(files: List[Path]) -> Tuple[int, str, str]:
     """
     file_paths = [str(f) for f in files]
     result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "black",
-            "--check",
-            "--line-length=100",
-            *file_paths,
-        ],
+        [sys.executable, "-m", "black", "--check", "--line-length=100", *file_paths],
         capture_output=True,
         text=True,
         timeout=300,  # 5 минут таймаут
@@ -143,14 +136,7 @@ def run_autoflake_check(files: List[Path]) -> Tuple[int, str, str]:
     """
     file_paths = [str(f) for f in files]
     result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "autoflake",
-            "--check",
-            "--remove-all-unused-imports",
-            *file_paths,
-        ],
+        [sys.executable, "-m", "autoflake", "--check", "--remove-all-unused-imports", *file_paths],
         capture_output=True,
         text=True,
         timeout=300,  # 5 минут таймаут
@@ -233,11 +219,7 @@ class TestBlackFormatting:
         returncode, stdout, stderr = run_black_check(python_files)
 
         # Проверяем что black установлен
-        if (
-            returncode == 127
-            or "not found" in stderr
-            or "No module named black" in stderr
-        ):
+        if returncode == 127 or "not found" in stderr or "No module named black" in stderr:
             pytest.skip("black не установлен. Установите: pip install black")
 
         # Если black обнаружил проблемы
@@ -320,11 +302,7 @@ class TestIsortImports:
         returncode, stdout, stderr = run_isort_check(python_files)
 
         # Проверяем что isort установлен
-        if (
-            returncode == 127
-            or "not found" in stderr
-            or "No module named isort" in stderr
-        ):
+        if returncode == 127 or "not found" in stderr or "No module named isort" in stderr:
             pytest.skip("isort не установлен. Установите: pip install isort")
 
         # Если isort обнаружил проблемы
@@ -410,11 +388,7 @@ class TestAutoflakeUnusedImports:
         returncode, stdout, stderr = run_autoflake_check(python_files)
 
         # Проверяем что autoflake установлен
-        if (
-            returncode == 127
-            or "not found" in stderr
-            or "No module named autoflake" in stderr
-        ):
+        if returncode == 127 or "not found" in stderr or "No module named autoflake" in stderr:
             pytest.skip("autoflake не установлен. Установите: pip install autoflake")
 
         # Если autoflake обнаружил проблемы
@@ -437,9 +411,7 @@ class TestAutoflakeUnusedImports:
             pytest.fail(error_message)
 
         # Тест проходит
-        assert returncode == 0, (
-            f"autoflake завершил работу с кодом {returncode}: {stderr}"
-        )
+        assert returncode == 0, f"autoflake завершил работу с кодом {returncode}: {stderr}"
 
 
 class TestSyntaxErrors:
