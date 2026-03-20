@@ -79,7 +79,9 @@ class CacheViewerScreen(Screen):
             yield Static("💾 Просмотр кэша", classes="header")
 
             # Статистика кэша
-            yield Static("Загрузка статистики...", id="cache-stats", classes="stats-panel")
+            yield Static(
+                "Загрузка статистики...", id="cache-stats", classes="stats-panel"
+            )
 
             # Таблица кэша
             with ScrollableContainer():
@@ -102,7 +104,7 @@ class CacheViewerScreen(Screen):
 
     def _load_cache_stats(self) -> None:
         """Загрузить статистику кэша."""
-        from ..paths import cache_path
+        from parser_2gis.paths import cache_path
 
         cache_dir = cache_path()
         cache_file = cache_dir / "cache.db"
@@ -140,8 +142,8 @@ class CacheViewerScreen(Screen):
 
     def action_clear_cache(self) -> None:
         """Очистить кэш."""
-        from ..cache import CacheManager
-        from ..paths import cache_path
+        from parser_2gis.cache import CacheManager
+        from parser_2gis.paths import cache_path
 
         cache_dir = cache_path()
         cache_manager = CacheManager(cache_dir=str(cache_dir))
