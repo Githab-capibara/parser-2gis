@@ -28,3 +28,6 @@ KODA.md
 
 # Переменные окружения с секретами
 .env
+
+# Coverage
+.coverage

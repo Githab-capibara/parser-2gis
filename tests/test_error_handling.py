@@ -10,6 +10,9 @@
 Всего тестов: 9 (по 3 на каждую проблему)
 """
 
+from parser_2gis.parallel_parser import ParallelCityParser
+from parser_2gis.main import cleanup_resources
+from parser_2gis.cache import CacheManager
 import sqlite3
 import sys
 import tempfile
@@ -24,9 +27,6 @@ import pytest
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from parser_2gis.cache import CacheManager
-from parser_2gis.main import cleanup_resources
-from parser_2gis.parallel_parser import ParallelCityParser
 
 # =============================================================================
 # ПРОБЛЕМА 7: НЕПОЛНАЯ ОБРАБОТКА ИСКЛЮЧЕНИЙ В cleanup_resources() (main.py)

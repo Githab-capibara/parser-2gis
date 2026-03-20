@@ -571,13 +571,6 @@ class TestRealTUIConfigFields:
         """Проверяет, что инспектор извлекает поля из моделей."""
         fields = inspector.extract_model_fields()
 
-        # Проверяем наличие основных моделей
-        expected_models = {
-            "ParserOptions",
-            "ParallelOptions",
-            "ChromeOptions",
-            "WriterOptions",
-        }
         found_models = set(fields.keys())
 
         # Хотя бы некоторые модели должны быть найдены

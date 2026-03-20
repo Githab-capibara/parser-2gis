@@ -9,6 +9,13 @@
 Всего тестов: 6 (по 3 на каждую проблему)
 """
 
+from parser_2gis.chrome.browser import (
+    ORPHANED_PROFILE_MARKER,
+    ChromeBrowser,
+    _is_profile_in_use,
+    _safe_remove_profile,
+    cleanup_orphaned_profiles,
+)
 import os
 import subprocess
 import sys
@@ -22,13 +29,6 @@ import pytest
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from parser_2gis.chrome.browser import (
-    ORPHANED_PROFILE_MARKER,
-    ChromeBrowser,
-    _is_profile_in_use,
-    _safe_remove_profile,
-    cleanup_orphaned_profiles,
-)
 
 # =============================================================================
 # ПРОБЛЕМА 5: УТЕЧКА РЕСУРСОВ CHROME (browser.py)
