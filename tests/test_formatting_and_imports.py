@@ -107,14 +107,7 @@ def run_ruff_format_check(files: List[Path]) -> Tuple[int, str, str]:
     """
     file_paths = [str(f) for f in files]
     result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "ruff",
-            "format",
-            "--check",
-            *file_paths,
-        ],
+        [sys.executable, "-m", "ruff", "format", "--check", *file_paths],
         capture_output=True,
         text=True,
         timeout=300,  # 5 минут таймаут
