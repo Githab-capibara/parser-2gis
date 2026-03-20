@@ -6,9 +6,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
@@ -333,9 +333,7 @@ class TUIApp(App):
 
     def action_toggle_dark(self) -> None:
         """Переключить тёмную тему."""
-        self.theme = (
-            "textual-dark" if self.theme == "textual-light" else "textual-light"
-        )
+        self.theme = "textual-dark" if self.theme == "textual-light" else "textual-light"
 
     def push_main_menu(self) -> None:
         """Показать главное меню."""
@@ -422,11 +420,7 @@ class TUIApp(App):
             self.update_state(total_urls=total_urls)
 
             def progress_callback(success: int, failed: int, filename: str) -> None:
-                category = (
-                    filename.replace(".csv", "").split("_")[-1]
-                    if "_" in filename
-                    else ""
-                )
+                category = filename.replace(".csv", "").split("_")[-1] if "_" in filename else ""
                 self.update_state(
                     success_count=success,
                     error_count=failed,

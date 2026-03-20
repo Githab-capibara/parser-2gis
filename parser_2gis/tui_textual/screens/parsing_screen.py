@@ -153,14 +153,10 @@ class ParsingScreen(Screen):
         selected_city_names = self.app.selected_cities  # type: ignore
         selected_categories = self.app.selected_categories  # type: ignore
 
-        selected_cities = [
-            city for city in cities if city.get("name") in selected_city_names
-        ]
+        selected_cities = [city for city in cities if city.get("name") in selected_city_names]
 
         all_categories = self.app.get_categories()  # type: ignore
-        selected_cats = [
-            cat for cat in all_categories if cat.get("name") in selected_categories
-        ]
+        selected_cats = [cat for cat in all_categories if cat.get("name") in selected_categories]
 
         if not selected_cities or not selected_cats:
             self._add_log("[bold red]Ошибка: не выбраны города или категории[/]")

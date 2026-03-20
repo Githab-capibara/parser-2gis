@@ -6,4 +6,5 @@ TUI Parser2GIS на Textual.
 
 from .app import Parser2GISTUI, TUIApp, run_tui
 
+
 __all__ = ["TUIApp", "Parser2GISTUI", "run_tui"]

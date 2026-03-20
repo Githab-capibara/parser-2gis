@@ -128,18 +128,10 @@ combine_as_imports = true
 remove_redundant_aliases = true
 # Сортировка алиасов
 order_by_type = true
-# Группировка импортов с будущим
-future = true
 # Показывать изменённые файлы
 verbose = false
-# Показывать логи
-show_logs = false
-# Проверка только (без записи)
-check_only = false
 # Тихий режим
 quiet = false
-# Очень тихий режим
-silent = false
 
 [tool.autoflake]
 # Конфигурация autoflake для удаления неиспользуемых импортов

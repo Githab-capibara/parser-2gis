@@ -79,9 +79,7 @@ class CacheViewerScreen(Screen):
             yield Static("💾 Просмотр кэша", classes="header")
 
             # Статистика кэша
-            yield Static(
-                "Загрузка статистики...", id="cache-stats", classes="stats-panel"
-            )
+            yield Static("Загрузка статистики...", id="cache-stats", classes="stats-panel")
 
             # Таблица кэша
             with ScrollableContainer():
