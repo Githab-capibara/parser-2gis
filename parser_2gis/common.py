@@ -19,7 +19,7 @@ import re
 import time
 import urllib.parse
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from pydantic import ValidationError
 

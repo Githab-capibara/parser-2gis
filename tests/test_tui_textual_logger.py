@@ -8,9 +8,9 @@
 import pytest
 
 try:
-    from textual.app import App
+    from textual.app import App  # noqa: F401
 
-    from parser_2gis.tui_textual.app import Parser2GISTUI, TUIApp
+    from parser_2gis.tui_textual.app import TUIApp
 
     TEXTUAL_AVAILABLE = True
 except ImportError:
@@ -49,9 +49,9 @@ class TestTUILoggerInitialization:
             "app._logger не должен быть None. "
             "Проверьте, что __init__ не перезаписывает _logger после super().__init__()"
         )
-        assert not isinstance(
-            app._logger, type(None)
-        ), "app._logger не должен быть None после инициализации"
+        assert not isinstance(app._logger, type(None)), (
+            "app._logger не должен быть None после инициализации"
+        )
 
     @pytest.mark.asyncio
     async def test_file_logger_does_not_override_textual_logger(self):

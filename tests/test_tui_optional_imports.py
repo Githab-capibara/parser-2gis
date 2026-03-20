@@ -14,7 +14,7 @@
 import inspect
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -66,7 +66,6 @@ class TestOptionalTUIImports:
         Этот тест выявляет ошибку, когда main() не проверяет,
         является ли функция stub функцией, и пытается её вызвать напрямую.
         """
-        import argparse
 
         from parser_2gis.main import _tui_omsk_stub, _tui_stub
 
@@ -94,10 +93,8 @@ class TestTUIImportHandling:
         не работает корректно.
         """
         from parser_2gis.main import (
-            Parser2GISTUI,
             _tui_omsk_stub,
             _tui_stub,
-            run_new_tui_omsk,
         )
 
         # Проверяем, что мы можем сравнить функции
@@ -116,7 +113,6 @@ class TestTUIImportHandling:
         Этот тест выявляет ошибку, когда сообщение об ошибке
         не логируется перед вызовом RuntimeError.
         """
-        import logging
 
         from parser_2gis.main import _tui_omsk_stub, _tui_stub
 
@@ -198,8 +194,6 @@ class TestTUICommandLineFlags:
         """
         import sys
 
-        from parser_2gis.main import parse_arguments
-
         # Сохраняем оригинальные argv
         original_argv = sys.argv
 
@@ -211,10 +205,9 @@ class TestTUICommandLineFlags:
             # Проверяем, что парсер содержит этот аргумент
             import argparse
 
-            parser = argparse.ArgumentParser()
+            _parser = argparse.ArgumentParser()
 
             # Импортируем функцию парсинга и проверяем наличие флага
-            from parser_2gis.main import parse_arguments
 
             # Восстанавливаем argv
             sys.argv = original_argv
@@ -230,7 +223,6 @@ class TestTUICommandLineFlags:
         в парсер аргументов.
         """
         # Проверяем, что в main.py есть обработка этого флага
-        import inspect
 
         from parser_2gis.main import main
 

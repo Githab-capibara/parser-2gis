@@ -10,8 +10,6 @@
 
 import threading
 import time
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -62,7 +60,8 @@ class TestTempFilesRegistryThreadSafety:
         # Проверяем что все файлы добавлены в реестр
         with _temp_files_lock:
             assert len(_temp_files_registry) == num_threads, (
-                f"Ожидалось {num_threads} файлов в реестре, " f"но найдено {_temp_files_registry}"
+                f"Ожидалось {num_threads} файлов в реестре, "
+                f"но найдено {_temp_files_registry}"
             )
 
             for f in temp_files:
@@ -80,7 +79,6 @@ class TestTempFilesRegistryThreadSafety:
         Проверяет что timeout работает (5 секунд) и нет deadlock.
         """
         from parser_2gis.parallel_parser import (
-            _register_temp_file,
             _temp_files_lock,
         )
 
@@ -108,7 +106,7 @@ class TestTempFilesRegistryThreadSafety:
             # Пытаемся получить lock с timeout
             start_time = time.time()
             acquired = _temp_files_lock.acquire(timeout=5.0)
-            elapsed = time.time() - start_time
+            _elapsed = time.time() - start_time
 
             if not acquired:
                 timeout_occurred.set()
@@ -129,7 +127,9 @@ class TestTempFilesRegistryThreadSafety:
         holder_thread.join(timeout=5)
 
         # Проверяем что timeout сработал
-        assert timeout_occurred.is_set(), "Timeout не сработал - возможна проблема с блокировкой"
+        assert timeout_occurred.is_set(), (
+            "Timeout не сработал - возможна проблема с блокировкой"
+        )
 
     def test_cleanup_removes_all_files(self, tmp_path):
         """

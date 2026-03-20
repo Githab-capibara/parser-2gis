@@ -27,7 +27,7 @@ def test_tui_flag_error_message():
     from parser_2gis import main
 
     try:
-        from parser_2gis.tui_textual import run_tui as actual_run_tui
+        from parser_2gis.tui_textual import run_tui as actual_run_tui  # noqa: F401
 
         pytest.skip("textual установлен, пропускаем stub тест")
     except ImportError:

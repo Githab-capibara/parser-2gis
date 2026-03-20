@@ -8,21 +8,13 @@ import pytest
 
 try:
     from textual.app import App
-    from textual.containers import Container
-    from textual.widgets import Button, Checkbox, Input, Label, Static
 
     from parser_2gis.tui_textual.app import Parser2GISTUI, TUIApp
-    from parser_2gis.tui_textual.screens import (
-        AboutScreen,
-        BrowserSettingsScreen,
-        CacheViewerScreen,
-        CategorySelectorScreen,
-        CitySelectorScreen,
-        MainMenuScreen,
-        OutputSettingsScreen,
-        ParserSettingsScreen,
-        ParsingScreen,
-    )
+    from parser_2gis.tui_textual.screens.category_selector import CategorySelectorScreen
+    from parser_2gis.tui_textual.screens.city_selector import CitySelectorScreen
+    from parser_2gis.tui_textual.screens.main_menu import MainMenuScreen
+    from parser_2gis.tui_textual.screens.parsing_screen import ParsingScreen
+    from parser_2gis.tui_textual.screens.settings import BrowserSettingsScreen
 
     TEXTUAL_AVAILABLE = True
 except ImportError:
@@ -101,7 +93,6 @@ class TestTUIScreens:
 
     def test_main_menu_screen_creation(self):
         """Тест 6: Проверка создания главного меню."""
-        app = TUIApp()
         screen = MainMenuScreen()
         assert screen is not None
         # Проверка, что экран имеет правильные атрибуты
@@ -109,7 +100,6 @@ class TestTUIScreens:
 
     def test_city_selector_screen_creation(self):
         """Тест 7: Проверка создания экрана выбора городов."""
-        app = TUIApp()
         screen = CitySelectorScreen()
         assert screen is not None
         assert hasattr(screen, "_cities")
@@ -117,7 +107,6 @@ class TestTUIScreens:
 
     def test_category_selector_screen_creation(self):
         """Тест 8: Проверка создания экрана выбора категорий."""
-        app = TUIApp()
         screen = CategorySelectorScreen()
         assert screen is not None
         assert hasattr(screen, "_categories")
@@ -127,14 +116,12 @@ class TestTUIScreens:
 
     def test_browser_settings_screen_creation(self):
         """Тест 9: Проверка создания экрана настроек браузера."""
-        app = TUIApp()
         screen = BrowserSettingsScreen()
         assert screen is not None
         assert hasattr(screen, "compose")
 
     def test_parsing_screen_creation(self):
         """Тест 10: Проверка создания экрана парсинга."""
-        app = TUIApp()
         screen = ParsingScreen()
         assert screen is not None
         assert hasattr(screen, "_paused")
@@ -148,18 +135,18 @@ class TestTUINavigation:
 
     def test_screen_registration(self):
         """Тест навигации между экранами."""
-        app = TUIApp()
+        _app = TUIApp()
 
         # Проверка, что все экраны зарегистрированы
-        assert "main_menu" in app.SCREENS
-        assert "city_selector" in app.SCREENS
-        assert "category_selector" in app.SCREENS
-        assert "parsing" in app.SCREENS
-        assert "browser_settings" in app.SCREENS
-        assert "parser_settings" in app.SCREENS
-        assert "output_settings" in app.SCREENS
-        assert "cache_viewer" in app.SCREENS
-        assert "about" in app.SCREENS
+        assert "main_menu" in _app.SCREENS
+        assert "city_selector" in _app.SCREENS
+        assert "category_selector" in _app.SCREENS
+        assert "parsing" in _app.SCREENS
+        assert "browser_settings" in _app.SCREENS
+        assert "parser_settings" in _app.SCREENS
+        assert "output_settings" in _app.SCREENS
+        assert "cache_viewer" in _app.SCREENS
+        assert "about" in _app.SCREENS
 
 
 class TestTUIBindings:
@@ -167,13 +154,13 @@ class TestTUIBindings:
 
     def test_bindings_defined(self):
         """Тест горячих клавиш."""
-        app = TUIApp()
+        _app = TUIApp()
 
         # Проверка, что горячие клавиши определены
-        assert len(app.BINDINGS) > 0
+        assert len(_app.BINDINGS) > 0
 
         # Проверка наличия конкретных привязок
-        binding_keys = [b.key for b in app.BINDINGS]
+        binding_keys = [b.key for b in _app.BINDINGS]
         assert "q" in binding_keys
         assert "escape" in binding_keys
         assert "d" in binding_keys
@@ -184,17 +171,17 @@ class TestTUIIntegration:
 
     def test_app_has_all_methods(self):
         """Тест полного рабочего процесса."""
-        app = TUIApp()
+        _app = TUIApp()
 
         # Проверка наличия всех необходимых методов
-        assert hasattr(app, "push_screen")
-        assert hasattr(app, "pop_screen")
-        assert hasattr(app, "get_config")
-        assert hasattr(app, "save_config")
-        assert hasattr(app, "get_cities")
-        assert hasattr(app, "get_categories")
-        assert hasattr(app, "update_state")
-        assert hasattr(app, "get_state")
+        assert hasattr(_app, "push_screen")
+        assert hasattr(_app, "pop_screen")
+        assert hasattr(_app, "get_config")
+        assert hasattr(_app, "save_config")
+        assert hasattr(_app, "get_cities")
+        assert hasattr(_app, "get_categories")
+        assert hasattr(_app, "update_state")
+        assert hasattr(_app, "get_state")
 
 
 class TestTUIUtils:

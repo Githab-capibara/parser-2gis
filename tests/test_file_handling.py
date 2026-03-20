@@ -16,10 +16,8 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -69,9 +67,9 @@ class TestRaceConditionTempFiles:
 
             # Проверяем что файл зарегистрирован
             with _temp_files_lock:
-                assert (
-                    temp_path in _temp_files_registry
-                ), "Временный файл должен быть зарегистрирован"
+                assert temp_path in _temp_files_registry, (
+                    "Временный файл должен быть зарегистрирован"
+                )
                 assert len(_temp_files_registry) == 1, "В реестре должен быть один файл"
         finally:
             # Очищаем
@@ -109,7 +107,9 @@ class TestRaceConditionTempFiles:
 
             # Проверяем что файлы удалены
             for temp_path in temp_files:
-                assert not temp_path.exists(), f"Временный файл {temp_path} должен быть удалён"
+                assert not temp_path.exists(), (
+                    f"Временный файл {temp_path} должен быть удалён"
+                )
 
         finally:
             # Гарантированная очистка
@@ -156,21 +156,21 @@ class TestRaceConditionTempFiles:
                 t.join()
 
             # Проверяем что все файлы зарегистрированы
-            expected_count = num_threads * files_per_thread
+            _expected_count = num_threads * files_per_thread
             with _temp_files_lock:
                 # Из-за LRU eviction количество может быть меньше MAX_TEMP_FILES
                 actual_count = len(_temp_files_registry)
                 # Проверяем что реестр не пуст и не превышает лимит
                 assert actual_count > 0, "Реестр не должен быть пустым"
-                assert (
-                    actual_count <= MAX_TEMP_FILES
-                ), f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
+                assert actual_count <= MAX_TEMP_FILES, (
+                    f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
+                )
 
             # Проверяем что файлы существуют
             existing_files = sum(1 for f in registered_files if f.exists())
-            assert existing_files == len(
-                registered_files
-            ), f"Все {len(registered_files)} файлов должны существовать"
+            assert existing_files == len(registered_files), (
+                f"Все {len(registered_files)} файлов должны существовать"
+            )
 
         finally:
             # Очищаем
@@ -194,9 +194,9 @@ class TestRaceConditionTempFiles:
 
             # Проверяем что реестр не превышает лимит
             with _temp_files_lock:
-                assert (
-                    len(_temp_files_registry) <= MAX_TEMP_FILES
-                ), f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
+                assert len(_temp_files_registry) <= MAX_TEMP_FILES, (
+                    f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
+                )
 
         finally:
             _cleanup_all_temp_files()
@@ -283,7 +283,9 @@ class TestCSVFileDescriptorLeak:
             file_descriptors_after = self._count_open_fds()
 
             # Проверяем что все строки прочитаны
-            assert rows_read == 100, f"Должно быть прочитано 100 строк, прочитано {rows_read}"
+            assert rows_read == 100, (
+                f"Должно быть прочитано 100 строк, прочитано {rows_read}"
+            )
 
             # Проверяем что файловые дескрипторы освобождены
             assert file_descriptors_after <= file_descriptors_before + 1, (
@@ -306,7 +308,9 @@ class TestCSVFileDescriptorLeak:
         temp_files = []
         try:
             for i in range(10):
-                with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".csv", delete=False
+                ) as tmp:
                     writer = csv.writer(tmp)
                     writer.writerow(["col1", "col2", "col3"])
                     for j in range(50):
@@ -328,7 +332,9 @@ class TestCSVFileDescriptorLeak:
                     with open(temp_path, "r", encoding="utf-8-sig") as f:
                         reader = csv.DictReader(f)
                         rows = list(reader)
-                        assert len(rows) == 50, f"Должно быть 50 строк, прочитано {len(rows)}"
+                        assert len(rows) == 50, (
+                            f"Должно быть 50 строк, прочитано {len(rows)}"
+                        )
 
             # Измеряем количество открытых дескрипторов после
             fds_after = self._count_open_fds()
@@ -426,9 +432,9 @@ class TestFileHandlingIntegration:
 
             # Проверяем что реестр пуст после завершения
             with _temp_files_lock:
-                assert (
-                    len(_temp_files_registry) == 0
-                ), "Реестр должен быть пуст после завершения всех потоков"
+                assert len(_temp_files_registry) == 0, (
+                    "Реестр должен быть пуст после завершения всех потоков"
+                )
 
         finally:
             _cleanup_all_temp_files()
@@ -471,9 +477,9 @@ class TestFileHandlingIntegration:
 
             # Проверяем что все потоки прочитали все строки
             for thread_id, row_count in results:
-                assert (
-                    row_count == 100
-                ), f"Поток {thread_id} должен прочитать 100 строк, прочитано {row_count}"
+                assert row_count == 100, (
+                    f"Поток {thread_id} должен прочитать 100 строк, прочитано {row_count}"
+                )
 
         finally:
             if os.path.exists(temp_path):

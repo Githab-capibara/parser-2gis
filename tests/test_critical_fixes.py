@@ -17,20 +17,15 @@
 - Error case (ошибочный случай)
 """
 
-import hashlib
 import os
-import signal
 import tempfile
-import threading
-import time
 import uuid
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from parser_2gis.cache import SHA256_HASH_LENGTH, CacheManager
-from parser_2gis.config import Configuration
 from parser_2gis.validator import DataValidator
 
 # =============================================================================
@@ -63,7 +58,9 @@ class TestValidateHash:
         # Act & Assert
         for invalid_hash in invalid_hashes:
             result = CacheManager._validate_hash(invalid_hash)
-            assert result is False, f"Хеш неверной длины должен быть отклонён: {len(invalid_hash)}"
+            assert result is False, (
+                f"Хеш неверной длины должен быть отклонён: {len(invalid_hash)}"
+            )
 
     def test_validate_hash_invalid_chars(self):
         """Тест хеша с не-hex символами."""
@@ -78,9 +75,9 @@ class TestValidateHash:
         # Act & Assert
         for invalid_hash in invalid_hashes:
             result = CacheManager._validate_hash(invalid_hash)
-            assert (
-                result is False
-            ), f"Хеш с не-hex символами должен быть отклонён: {invalid_hash[:10]}..."
+            assert result is False, (
+                f"Хеш с не-hex символами должен быть отклонён: {invalid_hash[:10]}..."
+            )
 
 
 # =============================================================================
@@ -140,7 +137,9 @@ class TestBrowserProfileCleanup:
 
             # Assert
             assert error_occurred, "Ошибка должна была возникнуть"
-            assert not profile_path.exists(), "Профиль должен быть удалён даже при ошибке"
+            assert not profile_path.exists(), (
+                "Профиль должен быть удалён даже при ошибке"
+            )
         finally:
             # Гарантированная очистка
             if temp_dir and os.path.exists(temp_dir):
@@ -161,7 +160,9 @@ class TestBrowserProfileCleanup:
 
         # Assert
         assert profile_path is not None
-        assert not profile_path.parent.exists(), "TemporaryDirectory автоматически очистила профиль"
+        assert not profile_path.parent.exists(), (
+            "TemporaryDirectory автоматически очистила профиль"
+        )
 
 
 # =============================================================================
@@ -175,7 +176,7 @@ class TestJavaScriptValidation:
     def test_execute_script_valid(self):
         """Тест выполнения валидного JavaScript."""
         # Arrange
-        validator = DataValidator()
+        _validator = DataValidator()
         valid_scripts = [
             "return document.title;",
             "return window.location.href;",
@@ -186,12 +187,12 @@ class TestJavaScriptValidation:
         for script in valid_scripts:
             # Проверяем что скрипт не содержит опасных конструкций
             assert "eval(" not in script, f"Скрипт не должен содержать eval: {script}"
-            assert (
-                "setTimeout(" not in script or "function" not in script
-            ), f"Скрипт не должен содержать setTimeout с функцией: {script}"
-            assert (
-                "setInterval(" not in script or "function" not in script
-            ), f"Скрипт не должен содержать setInterval с функцией: {script}"
+            assert "setTimeout(" not in script or "function" not in script, (
+                f"Скрипт не должен содержать setTimeout с функцией: {script}"
+            )
+            assert "setInterval(" not in script or "function" not in script, (
+                f"Скрипт не должен содержать setInterval с функцией: {script}"
+            )
 
     def test_execute_script_invalid(self):
         """Тест обнаружения небезопасного JavaScript."""
@@ -212,7 +213,9 @@ class TestJavaScriptValidation:
                 or ("setTimeout(" in script and "'" in script)
                 or ("window.location = " in script and "http" in script)
             )
-            assert has_dangerous_pattern, f"Должна быть обнаружена опасная конструкция: {script}"
+            assert has_dangerous_pattern, (
+                f"Должна быть обнаружена опасная конструкция: {script}"
+            )
 
     def test_execute_script_logging(self):
         """Тест логирования вызовов JavaScript."""
@@ -293,7 +296,9 @@ class TestRaceConditionPrevention:
                 except FileExistsError:
                     if attempt < max_attempts - 1:
                         # Генерируем новое имя
-                        test_file = Path(temp_dir) / f"retry_test_{uuid.uuid4().hex}.tmp"
+                        test_file = (
+                            Path(temp_dir) / f"retry_test_{uuid.uuid4().hex}.tmp"
+                        )
                     else:
                         raise
 
@@ -355,8 +360,9 @@ class TestCacheSizeLimit:
                 assert MAX_BATCH_SIZE > 0, "MAX_BATCH_SIZE должен быть положительным"
 
                 # Попытка вставки слишком большого пакета должна вызвать ошибку
-                large_batch = [
-                    (f"url_{i}", {"data": f"value_{i}"}) for i in range(MAX_BATCH_SIZE + 1)
+                _large_batch = [
+                    (f"url_{i}", {"data": f"value_{i}"})
+                    for i in range(MAX_BATCH_SIZE + 1)
                 ]
 
                 with pytest.raises(ValueError, match="превышает максимальный лимит"):
@@ -379,7 +385,9 @@ class TestSignalHandlers:
         from parser_2gis.main import _setup_signal_handlers, cleanup_resources
 
         # Проверяем что функция setup существует и может быть вызвана
-        assert callable(_setup_signal_handlers), "_setup_signal_handlers должна быть вызываемой"
+        assert callable(_setup_signal_handlers), (
+            "_setup_signal_handlers должна быть вызываемой"
+        )
         assert callable(cleanup_resources), "cleanup_resources должна быть вызываемой"
 
     def test_signal_handler_sigterm(self):
@@ -390,10 +398,12 @@ class TestSignalHandlers:
         # Проверяем что класс SignalHandler существует и имеет нужные методы
         assert SignalHandler is not None, "SignalHandler класс должен существовать"
         assert hasattr(SignalHandler, "setup"), "SignalHandler должен иметь метод setup"
-        assert hasattr(SignalHandler, "cleanup"), "SignalHandler должен иметь метод cleanup"
-        assert hasattr(
-            SignalHandler, "_handle_signal"
-        ), "SignalHandler должен иметь метод _handle_signal"
+        assert hasattr(SignalHandler, "cleanup"), (
+            "SignalHandler должен иметь метод cleanup"
+        )
+        assert hasattr(SignalHandler, "_handle_signal"), (
+            "SignalHandler должен иметь метод _handle_signal"
+        )
 
     def test_keyboard_interrupt_cleanup(self):
         """Тест очистки ресурсов при KeyboardInterrupt."""
@@ -406,7 +416,9 @@ class TestSignalHandlers:
 
         # Act & Assert
         try:
-            with patch("parser_2gis.main.cleanup_resources", side_effect=cleanup_wrapper):
+            with patch(
+                "parser_2gis.main.cleanup_resources", side_effect=cleanup_wrapper
+            ):
                 raise KeyboardInterrupt("Эмуляция прерывания")
         except KeyboardInterrupt:
             pass
@@ -514,7 +526,9 @@ class TestTempFileCleanup:
 
             # Assert
             assert error_occurred, "Ошибка должна была возникнуть"
-            assert not os.path.exists(temp_file), "Временный файл должен быть удалён при ошибке"
+            assert not os.path.exists(temp_file), (
+                "Временный файл должен быть удалён при ошибке"
+            )
             temp_file = None
         finally:
             # Гарантированная очистка
@@ -553,4 +567,6 @@ class TestTempFileCleanup:
             assert os.path.exists(manager.temp_file), "Файл должен существовать"
         finally:
             manager.cleanup()
-            assert manager.temp_created is False, "Флаг temp_created должен быть сброшен"
+            assert manager.temp_created is False, (
+                "Флаг temp_created должен быть сброшен"
+            )

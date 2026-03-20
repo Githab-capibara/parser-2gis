@@ -8,7 +8,6 @@
 4. Точки входа используют новый TUI
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -26,12 +25,14 @@ class TestOldTUIRemoved:
         project_root = Path(__file__).parent.parent
         old_tui_dir = project_root / "parser_2gis" / "tui_pytermgui"
 
-        assert not old_tui_dir.exists(), f"Старый TUI модуль должен быть удален: {old_tui_dir}"
+        assert not old_tui_dir.exists(), (
+            f"Старый TUI модуль должен быть удален: {old_tui_dir}"
+        )
 
     def test_tui_pytermgui_import_fails(self):
         """Тест: Импорт tui_pytermgui вызывает ImportError."""
         with pytest.raises(ImportError):
-            import parser_2gis.tui_pytermgui
+            pass
 
     def test_no_pytermgui_references_in_code(self):
         """Тест: В коде нет ссылок на pytermgui."""
@@ -50,7 +51,9 @@ class TestOldTUIRemoved:
             if "pytermgui" in content.lower():
                 pytermgui_refs.append(str(py_file))
 
-        assert len(pytermgui_refs) == 0, f"Найдены ссылки на pytermgui в файлах: {pytermgui_refs}"
+        assert len(pytermgui_refs) == 0, (
+            f"Найдены ссылки на pytermgui в файлах: {pytermgui_refs}"
+        )
 
 
 class TestNewTUIExists:
@@ -61,7 +64,9 @@ class TestNewTUIExists:
         project_root = Path(__file__).parent.parent
         new_tui_dir = project_root / "parser_2gis" / "tui_textual"
 
-        assert new_tui_dir.exists(), f"Новый TUI модуль должен существовать: {new_tui_dir}"
+        assert new_tui_dir.exists(), (
+            f"Новый TUI модуль должен существовать: {new_tui_dir}"
+        )
 
     def test_tui_textual_app_exists(self):
         """Тест: Файл app.py существует в tui_textual."""
@@ -107,8 +112,7 @@ class TestMainModuleUsesNewTUI:
 
         # Загружаем модуль main.py напрямую
         main_path = Path(__file__).parent.parent / "parser_2gis" / "main.py"
-        spec = importlib.util.spec_from_file_location("main_module", main_path)
-        main_module = importlib.util.module_from_spec(spec)
+        _spec = importlib.util.spec_from_file_location("main_module", main_path)
 
         # Читаем исходный код напрямую из файла
         source = main_path.read_text(encoding="utf-8")
@@ -117,7 +121,6 @@ class TestMainModuleUsesNewTUI:
 
     def test_main_does_not_import_tui_pytermgui(self):
         """Тест: main.py не импортирует tui_pytermgui."""
-        import importlib.util
         from pathlib import Path
 
         # Загружаем модуль main.py напрямую
@@ -126,11 +129,12 @@ class TestMainModuleUsesNewTUI:
         # Читаем исходный код напрямую из файла
         source = main_path.read_text(encoding="utf-8")
 
-        assert "tui_pytermgui" not in source, "main.py не должен импортировать tui_pytermgui"
+        assert "tui_pytermgui" not in source, (
+            "main.py не должен импортировать tui_pytermgui"
+        )
 
     def test_run_new_tui_omsk_uses_textual(self):
         """Тест: run_new_tui_omsk использует textual."""
-        import importlib.util
         from pathlib import Path
 
         # Загружаем модуль main.py напрямую
@@ -154,7 +158,9 @@ class TestSetupPyUsesTextual:
 
         content = setup_file.read_text(encoding="utf-8")
 
-        assert "textual>=" in content, "setup.py должен содержать textual в зависимостях"
+        assert "textual>=" in content, (
+            "setup.py должен содержать textual в зависимостях"
+        )
 
     def test_setup_does_not_have_pytermgui(self):
         """Тест: setup.py не имеет pytermgui в зависимостях."""
@@ -188,7 +194,9 @@ class TestTUIFunctionality:
         ]
 
         for screen_name in expected_screens:
-            assert screen_name in app.SCREENS, f"Экран {screen_name} должен быть зарегистрирован"
+            assert screen_name in app.SCREENS, (
+                f"Экран {screen_name} должен быть зарегистрирован"
+            )
 
     def test_tui_app_has_bindings(self):
         """Тест: TUI приложение имеет горячие клавиши."""
@@ -257,9 +265,9 @@ class TestTUIFunctionality:
         ]
 
         for screen_class in screens:
-            assert hasattr(
-                screen_class, "compose"
-            ), f"{screen_class.__name__} должен иметь метод compose"
+            assert hasattr(screen_class, "compose"), (
+                f"{screen_class.__name__} должен иметь метод compose"
+            )
 
 
 class TestProjectStructure:
@@ -270,12 +278,16 @@ class TestProjectStructure:
         project_root = Path(__file__).parent.parent
         parser_dir = project_root / "parser_2gis"
 
-        tui_dirs = [d for d in parser_dir.iterdir() if d.is_dir() and d.name.startswith("tui_")]
+        tui_dirs = [
+            d for d in parser_dir.iterdir() if d.is_dir() and d.name.startswith("tui_")
+        ]
 
-        assert (
-            len(tui_dirs) == 1
-        ), f"Должен быть только один TUI модуль, найдено: {[d.name for d in tui_dirs]}"
-        assert tui_dirs[0].name == "tui_textual", "TUI модуль должен называться tui_textual"
+        assert len(tui_dirs) == 1, (
+            f"Должен быть только один TUI модуль, найдено: {[d.name for d in tui_dirs]}"
+        )
+        assert tui_dirs[0].name == "tui_textual", (
+            "TUI модуль должен называться tui_textual"
+        )
 
     def test_no_old_tui_test_files(self):
         """Тест: Нет тестов для старого TUI."""
@@ -285,6 +297,6 @@ class TestProjectStructure:
         # Ищем файлы с именами, указывающими на старый TUI
         old_tui_tests = [f for f in tests_dir.glob("*.py") if "pytermgui" in f.name]
 
-        assert (
-            len(old_tui_tests) == 0
-        ), f"Не должно быть тестов для старого TUI: {[f.name for f in old_tui_tests]}"
+        assert len(old_tui_tests) == 0, (
+            f"Не должно быть тестов для старого TUI: {[f.name for f in old_tui_tests]}"
+        )

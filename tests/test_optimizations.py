@@ -15,21 +15,12 @@
 """
 
 import csv
-import hashlib
-import json
-import os
 import tempfile
 import time
 from datetime import datetime, timedelta
 from functools import lru_cache
-from io import StringIO
 from pathlib import Path
-from typing import Dict, List, Optional
-from unittest.mock import MagicMock, Mock, patch
 
-import pytest
-
-from parser_2gis.cache import DEFAULT_BATCH_SIZE, CacheManager
 from parser_2gis.parallel_parser import MERGE_BATCH_SIZE
 
 # =============================================================================
@@ -61,11 +52,15 @@ class TestCityCache:
         get_city_data("moscow")
 
         # Assert
-        assert call_count == 2, "Должно быть только 2 реальных вызова (остальные из кэша)"
+        assert call_count == 2, (
+            "Должно быть только 2 реальных вызова (остальные из кэша)"
+        )
 
         # Проверка статистики кэша
         cache_info = get_city_data.cache_info()
-        assert cache_info.hits == 3, f"Должно быть 3 попадания в кэш, но {cache_info.hits}"
+        assert cache_info.hits == 3, (
+            f"Должно быть 3 попадания в кэш, но {cache_info.hits}"
+        )
         assert cache_info.misses == 2, f"Должно быть 2 промаха, но {cache_info.misses}"
 
     def test_city_cache_misses(self):
@@ -110,9 +105,13 @@ class TestCityCache:
         # Assert
         cache_info = get_city_data.cache_info()
         assert cache_info.maxsize == 100, "Максимальный размер кэша должен быть 100"
-        assert cache_info.currsize == 50, f"Текущий размер должен быть 50, но {cache_info.currsize}"
+        assert cache_info.currsize == 50, (
+            f"Текущий размер должен быть 50, но {cache_info.currsize}"
+        )
         assert cache_info.hits == 25, f"Должно быть 25 попаданий, но {cache_info.hits}"
-        assert cache_info.misses == 50, f"Должно быть 50 промахов, но {cache_info.misses}"
+        assert cache_info.misses == 50, (
+            f"Должно быть 50 промахов, но {cache_info.misses}"
+        )
 
 
 # =============================================================================
@@ -224,9 +223,9 @@ class TestCsvBatchReading:
             elapsed_time = time.time() - start_time
 
             # Assert
-            assert (
-                elapsed_time < 5.0
-            ), f"Чтение должно занять меньше 5 секунд, но заняло {elapsed_time:.2f}"
+            assert elapsed_time < 5.0, (
+                f"Чтение должно занять меньше 5 секунд, но заняло {elapsed_time:.2f}"
+            )
 
 
 # =============================================================================
@@ -249,7 +248,9 @@ class TestDatetimeCaching:
 
         # Assert
         # Кэшированное время должно быть тем же
-        assert cached_time == cached_time, "Кэшированное время должно быть консистентным"
+        assert cached_time == cached_time, (
+            "Кэшированное время должно быть консистентным"
+        )
 
     def test_datetime_single_call(self):
         """Тест одного вызова datetime.now() в методе."""
@@ -292,9 +293,9 @@ class TestDatetimeCaching:
         cache_time = time.time() - start
 
         # Assert
-        assert (
-            cache_time < no_cache_time
-        ), f"Кэширование должно быть быстрее: {cache_time:.4f} < {no_cache_time:.4f}"
+        assert cache_time < no_cache_time, (
+            f"Кэширование должно быть быстрее: {cache_time:.4f} < {no_cache_time:.4f}"
+        )
 
 
 # =============================================================================
@@ -336,7 +337,9 @@ class TestCsvMergeBatch:
                         reader = csv.DictReader(infile)
 
                         if writer is None:
-                            writer = csv.DictWriter(outfile, fieldnames=reader.fieldnames)
+                            writer = csv.DictWriter(
+                                outfile, fieldnames=reader.fieldnames
+                            )
                             writer.writeheader()
 
                         for row in reader:
@@ -378,7 +381,9 @@ class TestCsvMergeBatch:
                 category = stem.replace("_", " ")
 
             # Assert
-            assert category == "Рестораны", f"Категория должна быть 'Рестораны', но '{category}'"
+            assert category == "Рестораны", (
+                f"Категория должна быть 'Рестораны', но '{category}'"
+            )
 
     def test_csv_merge_performance(self):
         """Тест производительности пакетного объединения."""
@@ -415,7 +420,9 @@ class TestCsvMergeBatch:
                         reader = csv.DictReader(infile)
 
                         if writer is None:
-                            writer = csv.DictWriter(outfile, fieldnames=reader.fieldnames)
+                            writer = csv.DictWriter(
+                                outfile, fieldnames=reader.fieldnames
+                            )
                             writer.writeheader()
 
                         for row in reader:
@@ -430,10 +437,10 @@ class TestCsvMergeBatch:
             elapsed_time = time.time() - start_time
 
             # Assert
-            expected_rows = num_files * rows_per_file
-            assert (
-                elapsed_time < 10.0
-            ), f"Объединение должно занять меньше 10 секунд, но заняло {elapsed_time:.2f}"
+            _expected_rows = num_files * rows_per_file
+            assert elapsed_time < 10.0, (
+                f"Объединение должно занять меньше 10 секунд, но заняло {elapsed_time:.2f}"
+            )
 
 
 # =============================================================================

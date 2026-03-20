@@ -19,42 +19,28 @@
 Каждая проблема покрыта минимум 3 тестами.
 """
 
-import io
 import os
 import re
-import socket
-import sqlite3
-import sys
 import tempfile
-import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, patch
 
-import math
 import pytest
 
 # Импорты тестируемых модулей
 from parser_2gis.cache import (
     CacheManager,
-    _deserialize_json,
-    _serialize_json,
     _validate_cached_data,
 )
 from parser_2gis.chrome.remote import (
     ChromeRemote,
-    _check_port_cached,
-    _clear_port_cache,
     _validate_js_code,
 )
 from parser_2gis.common import (
-    MAX_DATA_SIZE,
     _sanitize_value,
-    _validate_category,
     _validate_category_cached,
-    _validate_city,
     _validate_city_cached,
 )
 from parser_2gis.statistics import (
@@ -63,8 +49,6 @@ from parser_2gis.statistics import (
 )
 from parser_2gis.writer.writers.csv_writer import (
     MMAP_THRESHOLD_BYTES,
-    _calculate_optimal_buffer_size,
-    _close_file_with_mmap_support,
     _open_file_with_mmap_support,
     _should_use_mmap,
 )
@@ -92,7 +76,7 @@ class TestChromeResourceCleanup:
         """
         # Создаём mock ChromeRemote
         with patch.object(ChromeRemote, "__init__", lambda x, **kwargs: None):
-            with patch("parser_2gis.chrome.remote.logger") as mock_logger:
+            with patch("parser_2gis.chrome.remote.logger"):
                 chrome = ChromeRemote.__new__(ChromeRemote)
                 chrome._chrome_browser = MagicMock()
                 chrome._chrome_interface = MagicMock()
@@ -120,7 +104,7 @@ class TestChromeResourceCleanup:
         и продолжает очистку остальных ресурсов.
         """
         with patch.object(ChromeRemote, "__init__", lambda x, **kwargs: None):
-            with patch("parser_2gis.chrome.remote.logger") as mock_logger:
+            with patch("parser_2gis.chrome.remote.logger"):
                 chrome = ChromeRemote.__new__(ChromeRemote)
                 chrome._chrome_browser = MagicMock()
                 chrome._chrome_interface = MagicMock()
@@ -137,8 +121,12 @@ class TestChromeResourceCleanup:
 
                 # Проверяем что все ресурсы обнулены в finally
                 assert chrome._chrome_tab is None, "_chrome_tab должен быть обнулён"
-                assert chrome._chrome_browser is None, "_chrome_browser должен быть обнулён"
-                assert chrome._chrome_interface is None, "_chrome_interface должен быть обнулён"
+                assert chrome._chrome_browser is None, (
+                    "_chrome_browser должен быть обнулён"
+                )
+                assert chrome._chrome_interface is None, (
+                    "_chrome_interface должен быть обнулён"
+                )
 
     def test_chrome_stop_logs_all_steps(self):
         """
@@ -148,7 +136,7 @@ class TestChromeResourceCleanup:
         для диагностики проблем.
         """
         with patch.object(ChromeRemote, "__init__", lambda x, **kwargs: None):
-            with patch("parser_2gis.chrome.remote.logger") as mock_logger:
+            with patch("parser_2gis.chrome.remote.logger"):
                 chrome = ChromeRemote.__new__(ChromeRemote)
                 chrome._chrome_browser = MagicMock()
                 chrome._chrome_interface = MagicMock()
@@ -255,24 +243,24 @@ class TestSQLInjectionProtection:
         """
         import inspect
 
-        from parser_2gis.cache import CacheManager
-
         # Проверяем что в cache.py нет конкатенации SQL строк с данными
         cache_source = inspect.getsource(CacheManager)
 
         # Параметризованные запросы используют ? для параметров
-        assert "?" in cache_source, "CacheManager должен использовать параметризованные запросы"
+        assert "?" in cache_source, (
+            "CacheManager должен использовать параметризованные запросы"
+        )
 
         # Проверяем отсутствие опасной конкатенации
-        assert (
-            'f"SELECT' not in cache_source or "%" not in cache_source
-        ), "CacheManager не должен использовать f-strings для SQL с данными"
-        assert (
-            'f"INSERT' not in cache_source or "%" not in cache_source
-        ), "CacheManager не должен использовать f-strings для SQL с данными"
-        assert (
-            'f"UPDATE' not in cache_source or "%" not in cache_source
-        ), "CacheManager не должен использовать f-strings для SQL с данными"
+        assert 'f"SELECT' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
+        assert 'f"INSERT' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
+        assert 'f"UPDATE' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
 
     def test_validate_cached_data_still_validates_structure(self):
         """
@@ -324,7 +312,9 @@ class TestSQLInjectionProtection:
         malicious_data = {"key": long_string}
 
         result = _validate_cached_data(malicious_data)
-        assert result is False, f"Строка длиннее {MAX_STRING_LENGTH} должна блокироваться"
+        assert result is False, (
+            f"Строка длиннее {MAX_STRING_LENGTH} должна блокироваться"
+        )
 
 
 # =============================================================================
@@ -413,7 +403,7 @@ class TestMergeCsvExceptions:
         categories = [{"id": 1, "name": "Аптеки"}]
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            parser = ParallelCityParser(
+            _parser = ParallelCityParser(
                 cities=cities,
                 categories=categories,
                 output_dir=tmp_dir,
@@ -434,9 +424,9 @@ class TestMergeCsvExceptions:
             source = inspect.getsource(ParallelCityParser.merge_csv_files)
 
             # Проверяем наличие обработки KeyboardInterrupt или finally
-            assert (
-                "KeyboardInterrupt" in source or "finally" in source
-            ), "merge_csv_files должен обрабатывать KeyboardInterrupt"
+            assert "KeyboardInterrupt" in source or "finally" in source, (
+                "merge_csv_files должен обрабатывать KeyboardInterrupt"
+            )
 
     def test_merge_csv_files_guarantees_file_cleanup(self):
         """
@@ -452,7 +442,7 @@ class TestMergeCsvExceptions:
         categories = [{"id": 1, "name": "Аптеки"}]
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            parser = ParallelCityParser(
+            _parser = ParallelCityParser(
                 cities=cities,
                 categories=categories,
                 output_dir=tmp_dir,
@@ -485,7 +475,9 @@ class TestMergeCsvExceptions:
         source = inspect.getsource(ParallelCityParser.merge_csv_files)
 
         # Проверяем что есть finally блок для закрытия файла
-        assert "finally" in source, "merge_csv_files должен иметь finally блок для закрытия файлов"
+        assert "finally" in source, (
+            "merge_csv_files должен иметь finally блок для закрытия файлов"
+        )
 
 
 # =============================================================================
@@ -515,9 +507,9 @@ class TestTempFileTimerThreadSafety:
         source = inspect.getsource(_TempFileTimer)
 
         # Проверяем использование threading.Event
-        assert (
-            "threading.Event" in source or "_stop_event" in source
-        ), "_TempFileTimer должен использовать threading.Event"
+        assert "threading.Event" in source or "_stop_event" in source, (
+            "_TempFileTimer должен использовать threading.Event"
+        )
 
     def test_temp_file_timer_thread_safety(self):
         """
@@ -533,9 +525,9 @@ class TestTempFileTimerThreadSafety:
         source = inspect.getsource(_TempFileTimer)
 
         # Проверяем использование lock
-        assert (
-            "_lock" in source and "threading.Lock" in source
-        ), "_TempFileTimer должен использовать threading.Lock"
+        assert "_lock" in source and "threading.Lock" in source, (
+            "_TempFileTimer должен использовать threading.Lock"
+        )
 
     def test_temp_file_timer_stop_join(self):
         """
@@ -551,7 +543,9 @@ class TestTempFileTimerThreadSafety:
         source = inspect.getsource(_TempFileTimer.stop)
 
         # Проверяем использование join()
-        assert "join" in source, "_TempFileTimer.stop должен использовать join() для ожидания"
+        assert "join" in source, (
+            "_TempFileTimer.stop должен использовать join() для ожидания"
+        )
 
 
 # =============================================================================
@@ -647,7 +641,9 @@ class TestLruCacheOptimization:
         assert info.hits > 0 or info.misses > 0, "Кэш должен работать"
 
         # Проверяем что maxsize >= 2048
-        assert info.maxsize >= 2048, f"Размер кэша должен быть >= 2048, получен {info.maxsize}"
+        assert info.maxsize >= 2048, (
+            f"Размер кэша должен быть >= 2048, получен {info.maxsize}"
+        )
 
     def test_validate_category_cached_increased_size(self):
         """
@@ -667,7 +663,9 @@ class TestLruCacheOptimization:
         assert info.hits > 0 or info.misses > 0, "Кэш должен работать"
 
         # Проверяем что maxsize >= 2048
-        assert info.maxsize >= 2048, f"Размер кэша должен быть >= 2048, получен {info.maxsize}"
+        assert info.maxsize >= 2048, (
+            f"Размер кэша должен быть >= 2048, получен {info.maxsize}"
+        )
 
     def test_lru_cache_performance_improvement(self):
         """
@@ -683,7 +681,7 @@ class TestLruCacheOptimization:
         start = time.time()
         for i in range(1000):
             _validate_city_cached(f"city{i % 100}", f"domain{i % 100}.2gis.ru")
-        time_with_cache = time.time() - start
+        _time_with_cache = time.time() - start
 
         # Проверяем что кэш имеет попадания
         info = _validate_city_cached.cache_info()
@@ -691,7 +689,9 @@ class TestLruCacheOptimization:
 
         # Кэш должен ускорить выполнение (хотя бы немного)
         # Это сложно измерить точно, но проверяем что hits > 0
-        assert info.hits > 500, f"Должно быть много попаданий в кэш, получено {info.hits}"
+        assert info.hits > 500, (
+            f"Должно быть много попаданий в кэш, получено {info.hits}"
+        )
 
 
 # =============================================================================
@@ -716,14 +716,12 @@ class TestStringConcatenationOptimization:
         """
         import inspect
 
-        from parser_2gis.statistics import StatisticsExporter
-
         source = inspect.getsource(StatisticsExporter._generate_html)
 
         # Проверяем что используется список (append или join)
-        assert (
-            "append" in source or ".join(" in source
-        ), "_generate_html должен использовать список для накопления строк"
+        assert "append" in source or ".join(" in source, (
+            "_generate_html должен использовать список для накопления строк"
+        )
 
     def test_generate_html_performance_optimization(self):
         """
@@ -732,7 +730,6 @@ class TestStringConcatenationOptimization:
         Проверяет что использование списка улучшает
         производительность vs конкатенация.
         """
-        from parser_2gis.statistics import ParserStatistics, StatisticsExporter
 
         stats = ParserStatistics()
         stats.start_time = datetime.now()
@@ -761,7 +758,6 @@ class TestStringConcatenationOptimization:
 
         Проверяет что HTML экранирует опасные символы.
         """
-        from parser_2gis.statistics import ParserStatistics, StatisticsExporter
 
         stats = ParserStatistics()
         stats.start_time = datetime.now()
@@ -772,9 +768,9 @@ class TestStringConcatenationOptimization:
         html = exporter._generate_html(stats)
 
         # Проверяем что script экранирован
-        assert "&lt;script&gt;" in html or html.escape in str(
-            type(html)
-        ), "HTML должен экранировать опасные символы"
+        assert "&lt;script&gt;" in html or html.escape in str(type(html)), (
+            "HTML должен экранировать опасные символы"
+        )
 
 
 # =============================================================================
@@ -848,7 +844,9 @@ class TestFileOptimization:
             tmp_path = tmp.name
 
         try:
-            with patch("parser_2gis.writer.writers.csv_writer.os.path.getsize") as mock_getsize:
+            with patch(
+                "parser_2gis.writer.writers.csv_writer.os.path.getsize"
+            ) as mock_getsize:
                 mock_getsize.side_effect = OSError("Mock getsize error")
 
                 # Должен вернуться к обычной буферизации
@@ -909,7 +907,9 @@ class TestCodeQuality:
                         redundant_count += 1
 
         # Допускаем несколько избыточных комментариев, но не много
-        assert redundant_count < 10, f"Слишком много избыточных комментариев: {redundant_count}"
+        assert redundant_count < 10, (
+            f"Слишком много избыточных комментариев: {redundant_count}"
+        )
 
     def test_only_why_not_what_comments(self):
         """
@@ -944,9 +944,9 @@ class TestCodeQuality:
 
         # Хотя бы некоторые комментарии должны объяснять "почему"
         # Если нет, это не критично - просто проверяем наличие любых комментариев
-        assert (
-            has_why_comments or "# " in source
-        ), "Комментарии должны объяснять 'почему' а не только 'что'"
+        assert has_why_comments or "# " in source, (
+            "Комментарии должны объяснять 'почему' а не только 'что'"
+        )
 
     def test_comments_in_russian(self):
         """
@@ -978,9 +978,9 @@ class TestCodeQuality:
         # Хотя бы 50% комментариев должны быть на русском
         if total_chars > 0:
             russian_ratio = russian_chars / total_chars
-            assert (
-                russian_ratio >= 0.3
-            ), f"Комментарии должны быть на русском (текущий ratio: {russian_ratio})"
+            assert russian_ratio >= 0.3, (
+                f"Комментарии должны быть на русском (текущий ratio: {russian_ratio})"
+            )
 
 
 # =============================================================================
@@ -1007,7 +1007,9 @@ class TestTypeHints:
         from parser_2gis.main import _validate_cli_argument
 
         # Проверяем что функция существует
-        assert callable(_validate_cli_argument), "_validate_cli_argument должна быть функцией"
+        assert callable(_validate_cli_argument), (
+            "_validate_cli_argument должна быть функцией"
+        )
 
         # Проверяем сигнатуру
         sig = inspect.signature(_validate_cli_argument)
@@ -1021,9 +1023,9 @@ class TestTypeHints:
             "max_val",
             "error_name",
         ]
-        assert all(
-            p in params for p in expected_params
-        ), f"_validate_cli_argument должна иметь параметры: {expected_params}"
+        assert all(p in params for p in expected_params), (
+            f"_validate_cli_argument должна иметь параметры: {expected_params}"
+        )
 
     def test_validate_urls_function_exists(self):
         """
@@ -1043,9 +1045,9 @@ class TestTypeHints:
         sig = inspect.signature(_validate_urls)
         params = list(sig.parameters.keys())
 
-        assert (
-            "args" in params and "arg_parser" in params
-        ), "_validate_urls должна иметь параметры args и arg_parser"
+        assert "args" in params and "arg_parser" in params, (
+            "_validate_urls должна иметь параметры args и arg_parser"
+        )
 
     def test_new_functions_have_type_hints(self):
         """
@@ -1081,7 +1083,9 @@ class TestTypeHints:
         has_annotations = any(
             p.annotation != inspect.Parameter.empty for p in sig.parameters.values()
         )
-        assert has_annotations, "_handle_configuration_validation должна иметь type hints"
+        assert has_annotations, (
+            "_handle_configuration_validation должна иметь type hints"
+        )
 
 
 # =============================================================================

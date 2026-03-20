@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import atexit
+import csv
 import fcntl
 import os
 import shutil
@@ -24,7 +25,7 @@ import weakref
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .logger import log_parser_finish, logger, print_progress
@@ -743,7 +744,7 @@ def _merge_csv_files(
                 stem = csv_file.stem
                 last_underscore_idx = stem.rfind("_")
                 category_name = (
-                    stem[last_underscore_idx + 1:].replace("_", " ")
+                    stem[last_underscore_idx + 1 :].replace("_", " ")
                     if last_underscore_idx > 0
                     else stem.replace("_", " ")
                 )
@@ -1522,7 +1523,7 @@ class ParallelCityParser:
         last_underscore_idx = stem.rfind("_")
 
         if last_underscore_idx > 0:
-            return stem[last_underscore_idx + 1:].replace("_", " ")
+            return stem[last_underscore_idx + 1 :].replace("_", " ")
         else:
             category = stem.replace("_", " ")
             self.log(
@@ -1656,8 +1657,6 @@ class ParallelCityParser:
         Returns:
             Кортеж (writer, total_rows).
         """
-        import csv
-
         # Извлекаем категорию из имени файла
         category_name = self._extract_category_from_filename(csv_file)
 

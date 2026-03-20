@@ -10,16 +10,6 @@
 Каждая проблема покрыта минимум 3 тестами.
 """
 
-import json
-import os
-import socket
-import tempfile
-import threading
-import time
-from datetime import datetime, timedelta
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
-
 import pytest
 
 # Импорты тестируемых модулей
@@ -30,7 +20,6 @@ from parser_2gis.cache import (
     _serialize_json,
 )
 from parser_2gis.validation import validate_url
-from parser_2gis.writer.options import WriterOptions
 from parser_2gis.writer.writers.csv_writer import CSVWriter
 
 # =============================================================================
@@ -54,7 +43,7 @@ class TestCriticalIssues:
             cities = [{"code": "msk", "name": "Москва"}]
             categories = [{"id": 1, "name": "Аптеки"}]
 
-            parser = ParallelCityParser(
+            _parser = ParallelCityParser(
                 cities=cities,
                 categories=categories,
                 output_dir=str(tmp_path),
@@ -73,7 +62,6 @@ class TestCriticalIssues:
             """Тест 1.2: Обработка KeyboardInterrupt."""
             import inspect
 
-            from parser_2gis.config import Configuration
             from parser_2gis.parallel_parser import ParallelCityParser
 
             source = inspect.getsource(ParallelCityParser.merge_csv_files)
@@ -85,7 +73,6 @@ class TestCriticalIssues:
             """Тест 1.3: Механизм lock файла."""
             import inspect
 
-            from parser_2gis.config import Configuration
             from parser_2gis.parallel_parser import ParallelCityParser
 
             source = inspect.getsource(ParallelCityParser.merge_csv_files)
@@ -211,7 +198,6 @@ class TestCriticalIssues:
             """Тест 5.1: Существует механизм блокировки merge."""
             import inspect
 
-            from parser_2gis.config import Configuration
             from parser_2gis.parallel_parser import ParallelCityParser
 
             source = inspect.getsource(ParallelCityParser.merge_csv_files)
@@ -228,7 +214,7 @@ class TestCriticalIssues:
             cities = [{"code": "msk", "name": "Москва"}]
             categories = [{"id": 1, "name": "Аптеки"}]
 
-            parser = ParallelCityParser(
+            _parser = ParallelCityParser(
                 cities=cities,
                 categories=categories,
                 output_dir=str(tmp_path),
@@ -249,7 +235,7 @@ class TestCriticalIssues:
             cities = [{"code": "msk", "name": "Москва"}]
             categories = [{"id": 1, "name": "Аптеки"}]
 
-            parser = ParallelCityParser(
+            _parser = ParallelCityParser(
                 cities=cities,
                 categories=categories,
                 output_dir=str(tmp_path),
@@ -260,7 +246,7 @@ class TestCriticalIssues:
             # Проверяем что используется атомарное переименование
             import inspect
 
-            source = inspect.getsource(parser.merge_csv_files)
+            source = inspect.getsource(_parser.merge_csv_files)
 
             assert ".replace(" in source or "shutil.move" in source
 
@@ -281,7 +267,6 @@ class TestImportantIssues:
             """Тест 6.1: Signal handler установлен."""
             # Проверяем что handler установлен (через inspect исходного кода)
             import inspect
-            import signal
 
             import parser_2gis.main as main_module
 
@@ -319,7 +304,6 @@ class TestImportantIssues:
 
         def test_connection_pool_has_del(self):
             """Тест 7.1: _ConnectionPool имеет __del__ метод."""
-            from parser_2gis.cache import _ConnectionPool
 
             # Проверяем наличие __del__
             assert hasattr(_ConnectionPool, "__del__")
@@ -327,8 +311,6 @@ class TestImportantIssues:
         def test_connection_pool_del_closes_connections(self):
             """Тест 7.2: __del__ закрывает соединения."""
             import inspect
-
-            from parser_2gis.cache import _ConnectionPool
 
             source = inspect.getsource(_ConnectionPool.__del__)
 
@@ -338,8 +320,6 @@ class TestImportantIssues:
         def test_connection_pool_del_handles_exceptions(self):
             """Тест 7.3: __del__ обрабатывает исключения."""
             import inspect
-
-            from parser_2gis.cache import _ConnectionPool
 
             source = inspect.getsource(_ConnectionPool.__del__)
 
@@ -432,7 +412,9 @@ class TestImportantIssues:
             assert not result.is_valid
             # Проверяем что ошибка содержит упоминание localhost или internal
             error_lower = (result.error or "").lower()
-            assert any(x in error_lower for x in ["localhost", "внутренних", "internal", "127"])
+            assert any(
+                x in error_lower for x in ["localhost", "внутренних", "internal", "127"]
+            )
 
         def test_validate_url_checks_private_ranges(self):
             """Тест 10.3: validate_url проверяет private диапазоны."""
@@ -482,7 +464,7 @@ class TestMediumIssues:
         def test_timeout_per_url_validation(self, tmp_path):
             """Тест 11.2: Валидация timeout_per_url."""
             from parser_2gis.config import Configuration
-            from parser_2gis.parallel_parser import MIN_TIMEOUT, ParallelCityParser
+            from parser_2gis.parallel_parser import ParallelCityParser
 
             config = Configuration()
             cities = [{"code": "msk", "name": "Москва"}]
@@ -504,7 +486,6 @@ class TestMediumIssues:
             """Тест 11.3: timeout_per_url используется в parse."""
             import inspect
 
-            from parser_2gis.config import Configuration
             from parser_2gis.parallel_parser import ParallelCityParser
 
             source = inspect.getsource(ParallelCityParser.parse_single_url)
@@ -540,8 +521,6 @@ class TestMediumIssues:
         def test_orjson_error_logging(self):
             """Тест 12.3: Логирование ошибок orjson."""
             import inspect
-
-            from parser_2gis.cache import logger as cache_logger
 
             source = inspect.getsource(_serialize_json)
 
@@ -590,8 +569,6 @@ class TestMediumIssues:
             """Тест 14.1: Проверка pattern на None."""
             import inspect
 
-            from parser_2gis.writer.writers.csv_writer import CSVWriter
-
             source = inspect.getsource(CSVWriter._remove_empty_columns)
 
             # Проверяем проверку на None
@@ -601,8 +578,6 @@ class TestMediumIssues:
             """Тест 14.2: Паттерн компилируется когда нужен."""
             import inspect
 
-            from parser_2gis.writer.writers.csv_writer import CSVWriter
-
             source = inspect.getsource(CSVWriter._remove_empty_columns)
 
             # Проверяем компиляцию паттерна
@@ -611,8 +586,6 @@ class TestMediumIssues:
         def test_pattern_match_safe(self):
             """Тест 14.3: pattern.match() безопасен."""
             import inspect
-
-            from parser_2gis.writer.writers.csv_writer import CSVWriter
 
             source = inspect.getsource(CSVWriter._remove_empty_columns)
 
@@ -671,7 +644,6 @@ class TestIntegration:
         from parser_2gis.chrome.browser import ChromeBrowser
         from parser_2gis.parallel_parser import ParallelCityParser
         from parser_2gis.parser.parsers.main import MainParser
-        from parser_2gis.writer.writers.csv_writer import CSVWriter
 
         # Проверяем что все модули импортированы
         assert main is not None
@@ -683,7 +655,6 @@ class TestIntegration:
 
     def test_no_syntax_errors(self):
         """Тест: Отсутствуют синтаксические ошибки."""
-        import tempfile
 
         import py_compile
 
