@@ -110,9 +110,7 @@ if __name__ == "__main__":
                 "wheel>=0.46.2",
                 "pyinstaller>=6.6.0",
             ],
-            "tui": [
-                "textual>=0.50.0",
-            ],
+            "tui": ["textual>=0.50.0"],
             "all": [
                 "textual>=0.50.0",
                 "pytest>=6.2,<8",

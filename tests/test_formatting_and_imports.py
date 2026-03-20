@@ -95,6 +95,34 @@ def run_black_check(files: List[Path]) -> Tuple[int, str, str]:
     return result.returncode, result.stdout, result.stderr
 
 
+def run_ruff_format_check(files: List[Path]) -> Tuple[int, str, str]:
+    """
+    Запускает ruff format --check для указанных файлов.
+
+    Args:
+        files: Список путей к файлам для проверки.
+
+    Returns:
+        Кортеж (return_code, stdout, stderr).
+    """
+    file_paths = [str(f) for f in files]
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ruff",
+            "format",
+            "--check",
+            *file_paths,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=300,  # 5 минут таймаут
+        cwd=str(PROJECT_ROOT),
+    )
+    return result.returncode, result.stdout, result.stderr
+
+
 def run_isort_check(files: List[Path]) -> Tuple[int, str, str]:
     """
     Запускает isort --check-only для указанных файлов.
@@ -206,67 +234,52 @@ def format_file_list(files: List[Path], max_files: int = 5) -> str:
 # =============================================================================
 
 
-class TestBlackFormatting:
-    """Тесты для проверки форматирования black."""
+class TestRuffFormatting:
+    """Тесты для проверки форматирования ruff."""
 
     @pytest.mark.formatting
-    def test_black_formatting_all_files(self):
+    def test_ruff_formatting_all_files(self):
         """
-        Тест 1: Проверка black форматирования ВСЕХ файлов в parser_2gis/.
+        Тест 1: Проверка ruff format ВСЕХ файлов в parser_2gis/.
 
-        Запускает black --check с line-length=100.
-        Проверяет что ВСЕ Python файлы отформатированы согласно black.
+        Запускает ruff format --check.
+        Проверяет что ВСЕ Python файлы отформатированы согласно ruff.
 
         Raises:
-            pytest.skip: Если black не установлен.
+            pytest.skip: Если ruff не установлен.
             AssertionError: Если файлы требуют форматирования.
         """
         python_files = get_all_python_files()
 
-        returncode, stdout, stderr = run_black_check(python_files)
+        returncode, stdout, stderr = run_ruff_format_check(python_files)
 
-        # Проверяем что black установлен
+        # Проверяем что ruff установлен
         if (
             returncode == 127
             or "not found" in stderr
-            or "No module named black" in stderr
+            or "No module named ruff" in stderr
         ):
-            pytest.skip("black не установлен. Установите: pip install black")
+            pytest.skip("ruff не установлен. Установите: pip install ruff")
 
-        # Если black обнаружил проблемы
+        # Если ruff обнаружил проблемы
         if returncode == 1:
-            # Пытаемся извлечь список файлов из вывода black
-            problematic_files = []
-            for line in stdout.split("\n"):
-                if line.endswith("would be reformatted"):
-                    file_path = line.replace("would be reformatted", "").strip()
-                    if file_path:
-                        problematic_files.append(Path(file_path))
-                elif "would reformat" in line:
-                    parts = line.split()
-                    if parts:
-                        problematic_files.append(Path(parts[-1]))
-
-            # Если не удалось извлечь файлы, используем все файлы
-            if not problematic_files:
-                problematic_files = python_files
-
             error_message = (
-                f"black обнаружил файлы, требующие форматирования (line-length=100):\n\n"
-                f"{format_file_list(problematic_files)}\n\n"
-                f"Вывод black:\n{stdout}\n{stderr}\n\n"
+                f"ruff format обнаружил файлы, требующие форматирования:\n\n"
+                f"{stdout}\n{stderr}\n\n"
                 f"Для автоматического форматирования выполните:\n"
-                f"  black --line-length=100 parser_2gis/"
+                f"  ruff format ."
             )
             pytest.fail(error_message)
 
         # Тест проходит
-        assert returncode == 0, f"black завершил работу с кодом {returncode}: {stderr}"
+        assert returncode == 0, (
+            f"ruff format завершил работу с кодом {returncode}: {stderr}"
+        )
 
     @pytest.mark.formatting
-    def test_black_formatting_detailed_report(self):
+    def test_ruff_formatting_detailed_report(self):
         """
-        Тест 2: Детальный отчет о форматировании black.
+        Тест 2: Детальный отчет о форматировании ruff.
 
         Проверяет каждый файл индивидуально и предоставляет детальный отчет.
         """
@@ -274,21 +287,21 @@ class TestBlackFormatting:
         unformatted_files = []
 
         for py_file in python_files:
-            returncode, stdout, stderr = run_black_check([py_file])
+            returncode, stdout, stderr = run_ruff_format_check([py_file])
 
             if returncode == 127 or "not found" in stderr:
-                pytest.skip("black не установлен")
+                pytest.skip("ruff не установлен")
 
             if returncode == 1:
                 unformatted_files.append(py_file)
 
         if unformatted_files:
             error_message = (
-                f"Следующие файлы не отформатированы black (line-length=100):\n\n"
+                f"Следующие файлы требуют форматирования ruff:\n\n"
                 f"{format_file_list(unformatted_files, max_files=10)}\n\n"
                 f"Всего файлов с нарушениями: {len(unformatted_files)} из {len(python_files)}\n\n"
                 f"Для исправления выполните:\n"
-                f"  black --line-length=100 {' '.join(str(f) for f in unformatted_files[:5])}"
+                f"  ruff format {' '.join(str(f) for f in unformatted_files[:5])}"
             )
             pytest.fail(error_message)
 
