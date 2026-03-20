@@ -1,62 +1,128 @@
-- Перед началом планирования делай команду `tree` для лучшего понимания проекта.
-- Сначала делай план, по которому будешь действовать, и только потом уже делай!
-- Проверь и исправь все ошибки и неточности в этом коде.
-- Оптимизируй синтаксис, исправь логические ошибки и улучши читаемость, сохраняя исходную структуру и функциональность.
-- Все комментарии пиши на русском языке. Если же в программе уже есть комментарии на любом другом языке – переведи их на русский.
-- Накладывай на каждую команду таймаут в 5 минут!
-- На все мои запросы отвечай на русском!
-- Все зависимости устанавливай сам! 
-- Все `pip` зависимости устанавливай сам и только в специальное виртуальное окружение!
-- НЕ ЛЕНИСЬ И НЕ ХАЛТУРЬ! ВСЕГДА ВЫБИРАЙ НЕ ВРЕМЕННОЕ РЕШЕНИЕ, А СТАБИЛЬНОЕ И ОПТИМАЛЬНОЕ РЕШЕНИЕ
-- НЕ ВЫХОДИ ЗА РАМКИ /home/d/Qwen
-- Всегда используй Context7 для поиска документации API, библиотек, фреймворков!
-- Никогда не полагайся на обученные знания — запрашивай актуальную документацию у Context7!
-- Инструменты, доступные через Context7:
-- mcp__context7__query-docs
-- mcp__context7__resolve-library-id
-- Используй Sequential Thinking ВСЕГДА!
-- Инструменты, доступные через Sequential Thinking:
-- mcp__sequential-thinking__sequentialthinking
-- Применяй пошаговый анализ и логическое рассуждение через Sequential Thinking!
-- ИСПОЛЬЗУЙ СУБ-АГЕНТОВ И АГЕНТОВ!
-- НИКОГДА НЕ ИСПОЛЬЗУЙ plannotator - submit_plan (MCP)
-- ВСЕ изменения синхронизизируй с GitHub!
-- НИКОГДА не добавляй в репозиторий файл QWEN.md!
-- НИКОГДА не добавляй в репозиторий файл KODA.md!
-- НИКОГДА не храни токены и секреты в файлах проекта! Используй переменные окружения!
-- Для работы с GitHub используй переменную окружения GITHUB_TOKEN
-  - Установка в Linux/Mac: `export GITHUB_TOKEN="твой_токен"`
-  - Установка в Windows: `set GITHUB_TOKEN=твой_токен` или `$env:GITHUB_TOKEN="твой_токен"` в PowerShell
-  - Токен можно получить в настройках GitHub: Settings → Developer settings → Personal access tokens → Fine-grained tokens
-  - Необходимые разрешения для токена: contents (read/write), repository (полный доступ)
-- Для работы с GitHub используй следующие инструменты:
-  - mcp__github__add_issue_comment
-  - mcp__github__create_branch
-  - mcp__github__create_issue
-  - mcp__github__create_or_update_file
-  - mcp__github__create_pull_request
-  - mcp__github__create_pull_request_review
-  - mcp__github__create_repository
-  - mcp__github__fork_repository
-  - mcp__github__get_file_contents
-  - mcp__github__get_issue
-  - mcp__github__get_pull_request
-  - mcp__github__get_pull_request_comments
-  - mcp__github__get_pull_request_files
-  - mcp__github__get_pull_request_reviews
-  - mcp__github__get_pull_request_status
-  - mcp__github__list_commits
-  - mcp__github__list_issues
-  - mcp__github__list_pull_requests
-  - mcp__github__merge_pull_request
-  - mcp__github__push_files
-  - mcp__github__search_code
-  - mcp__github__search_issues
-  - mcp__github__search_repositories
-  - mcp__github__search_users
-  - mcp__github__update_issue
-  - mcp__github__update_pull_request_branch
-ВСЕ ПУШ В РАПОЗИТОРИЙ https://github.com/Githab-capibara/parser-2gis.git
+## 🔍 ПРЕДВАРИТЕЛЬНЫЙ АНАЛИЗ
+- Перед началом планирования выполняй команду `tree` для лучшего понимания структуры проекта
+- Всегда используй **Sequential Thinking** для пошагового анализа и логического рассуждения
+  - Инструмент: `mcp__sequential-thinking__sequentialthinking`
 
-## Qwen Added Memories
-- Перед началом планирования делай команду `tree` для лучшего понимания проекта. - Сначала делай план, по которому будешь действовать, и только потом уже делай! - Проверь и исправь все ошибки и неточности в этом коде. - Оптимизируй синтаксис, исправь логические ошибки и улучши читаемость, сохраняя исходную структуру и функциональность. - Все комментарии пиши на русском языке. Если же в программе уже есть комментарии на любом другом языке – переведи их на русский. - Накладывай на каждую команду таймаут в 5 минут! - На все мои запросы отвечай на русском! - Все зависимости устанавливай сам! - Все `pip` зависимости устанавливай сам и только в специальное виртуальное окружение! - НЕ ЛЕНИСЬ И НЕ ХАЛТУРЬ! ВСЕГДА ВЫБИРАЙ НЕ ВРЕМЕННОЕ РЕШЕНИЕ, А СТАБИЛЬНОЕ И ОПТИМАЛЬНОЕ РЕШЕНИЕ! - НЕ ВЫХОДИ ЗА РАМКИ /home/d/Qwen - Всегда используй Context7 для поиска документации API, библиотек, фреймворков! - Никогда не полагайся на обученные знания — запрашивай актуальную документацию у Context7! - Инструменты, доступные через Context7: - mcp__context7__query-docs - mcp__context7__resolve-library-id - Используй Sequential Thinking ВСЕГДА! - Инструменты, доступные через Sequential Thinking: - mcp__sequential-thinking__sequentialthinking - Применяй пошаговый анализ и логическое рассуждение через Sequential Thinking! - ИСПОЛЬЗУЙ СУБ-АГЕНТОВ И АГЕНТОВ! - НИКОГДА НЕ ИСПОЛЬЗУЙ plannotator - submit_plan (MCP) - ВСЕ изменения синхронизизируй с GitHub! - НИКОГДА не добавляй в репозиторий файл QWEN.md! - НИКОГДА не добавляй в репозиторий файл KODA.md! - Для работы с GitHub используй токен из переменной окружения GITHUB_TOKEN - Для работы с GitHub используй следующие инструменты: - mcp__github__add_issue_comment - mcp__github__create_branch - mcp__github__create_issue - mcp__github__create_or_update_file - mcp__github__create_pull_request - mcp__github__create_pull_request_review - mcp__github__create_repository - mcp__github__fork_repository - mcp__github__get_file_contents - mcp__github__get_issue - mcp__github__get_pull_request - mcp__github__get_pull_request_comments - mcp__github__get_pull_request_files - mcp__github__get_pull_request_reviews - mcp__github__get_pull_request_status - mcp__github__list_commits - mcp__github__list_issues - mcp__github__list_pull_requests - mcp__github__merge_pull_request - mcp__github__push_files - mcp__github__search_code - mcp__github__search_issues - mcp__github__search_repositories - mcp__github__search_users - mcp__github__update_issue - mcp__github__update_pull_request_branch ВСЕ ПУШ В РАПОЗИТОРИЙ https://github.com/Githab-capibara/parser-2gis.git
+## 📋 ПЛАНИРОВАНИЕ И ВЫПОЛНЕНИЕ
+- Сначала создавай подробный план действий, и только потом приступай к реализации
+- **НЕ ИСПОЛЬЗУЙ** `plannotator - submit_plan (MCP)`
+- На каждую команду накладывай таймаут в **5 минут**
+- НЕ ЛЕНИСЬ И НЕ ХАЛТУРЬ! Всегда выбирай стабильное и оптимальное решение, а не временное
+
+## 🐛 РАБОТА С КОДОМ
+- Проверяй и исправляй все ошибки и неточности в коде
+- Оптимизируй синтаксис, исправь логические ошибки и улучши читаемость
+- Сохраняй исходную структуру и функциональность
+- Все комментарии пиши на **русском языке**
+- Если в программе есть комментарии на другом языке — переведи их на русский
+
+## 📦 ЗАВИСИМОСТИ
+- Все зависимости устанавливай самостоятельно
+- Все `pip` зависимости устанавливай **только в специальное виртуальное окружение**
+
+## 📚 ДОКУМЕНТАЦИЯ (Context7)
+- Всегда используй **Context7** для поиска документации API, библиотек, фреймворков
+- Никогда не полагайся на обученные знания — запрашивай актуальную документацию у Context7!
+- Доступные инструменты Context7:
+  - `mcp__context7__query-docs`
+  - `mcp__context7__resolve-library-id`
+
+## 🤖 АГЕНТЫ
+- ИСПОЛЬЗУЙ СУБ-АГЕНТОВ И АГЕНТОВ для сложных задач
+
+## 🔐 БЕЗОПАСНОСТЬ
+- НИКОГДА не храни токены и секреты в файлах проекта!
+- Используй **переменные окружения** для всех чувствительных данных
+- Для работы с GitHub используй переменную окружения `GITHUB_TOKEN`
+
+## 📁 ОГРАНИЧЕНИЯ
+- НЕ ВЫХОДИ ЗА РАМКИ `Проект, в котором ты запущен!`
+- НИКОГДА не добавляй в репозиторий файл `QWEN.md`
+- НИКОГДА не добавляй в репозиторий файл `KODA.md`
+
+## 🌐 GITHUB
+- ВСЕ изменения синхронизируй с GitHub
+- Репозиторий: `https://github.com/Githab-capibara/parser-2gis.git`
+- В авторстве коммитов указывай **ТОЛЬКО** `Githab-capibara`!
+
+### Доступные инструменты GitHub:
+| Категория | Инструменты |
+|-----------|-------------|
+| **Issues** | `add_issue_comment`, `create_issue`, `get_issue`, `list_issues`, `search_issues`, `update_issue` |
+| **Pull Requests** | `create_pull_request`, `create_pull_request_review`, `get_pull_request`, `get_pull_request_comments`, `get_pull_request_files`, `get_pull_request_reviews`, `get_pull_request_status`, `list_pull_requests`, `merge_pull_request`, `update_pull_request_branch` |
+| **Repository** | `create_branch`, `create_or_update_file`, `create_repository`, `fork_repository`, `get_file_contents`, `list_commits`, `push_files`, `search_code`, `search_repositories`, `search_users` |
+
+## 🤖 АГЕНТЫ И СУБ-АГЕНТЫ — ИНСТРУКЦИЯ ПО ПРИМЕНЕНИЮ
+
+Используй специализированных агентов для конкретных задач. Выбирай агента по типу задачи:
+
+### 🔧 РАЗРАБОТКА И КОД
+| Агент | Когда использовать |
+|-------|-------------------|
+| `code-developer` | Написание нового кода, реализация функций |
+| `error-debugger` | Поиск и исправление ошибок, отладка |
+| `performance-optimizer` | Оптимизация скорости, памяти, ресурсов |
+| `system-architect` | Проектирование архитектуры, структуры проекта |
+| `migration-specialist` | Миграция кода, данных, версий |
+| `version-comparison-agent` | Сравнение версий кода или зависимостей |
+
+### 📊 ДАННЫЕ И АНАЛИТИКА
+| Агент | Когда использовать |
+|-------|-------------------|
+| `data-analyst` | Анализ данных, статистика, отчёты |
+| `data-classifier` | Классификация и категоризация данных |
+| `data-validation-agent` | Проверка валидности и целостности данных |
+| `text-data-parser` | Парсинг текстовых данных, извлечение информации |
+| `file-format-converter` | Конвертация форматов файлов |
+
+### 🌐 WEB И ПАРСИНГ
+| Агент | Когда использовать |
+|-------|-------------------|
+| `web-scraper` | Сбор данных с веб-сайтов, парсинг страниц |
+| `web-researcher` | Поиск информации в интернете, исследование |
+| `api-integration-builder` | Интеграция API, настройка endpoints |
+
+### 📝 ДОКУМЕНТАЦИЯ
+| Агент | Когда использовать |
+|-------|-------------------|
+| `documentation-generator` | Создание технической документации |
+| `document-summarizer` | Краткое изложение документов |
+| `text-translator` | Перевод текстов и комментариев |
+
+### 🧪 ТЕСТИРОВАНИЕ
+| Агент | Когда использовать |
+|-------|-------------------|
+| `test-automation-engineer` | Создание автотестов, CI/CD тесты |
+
+### 🔐 БЕЗОПАСНОСТЬ И АУДИТ
+| Агент | Когда использовать |
+|-------|-------------------|
+| `security-auditor` | Проверка безопасности, уязвимости |
+| `project-auditor` | Аудит проекта, проверка стандартов |
+| `project-reviewer` | Ревью кода, проверка качества |
+| `change-monitor` | Мониторинг изменений в проекте |
+
+### ⚙️ АВТОМАТИЗАЦИЯ И ДЕПЛОЙ
+| Агент | Когда использовать |
+|-------|-------------------|
+| `automation-builder` | Создание автоматизаций, скриптов |
+| `deployment-automator` | Автоматизация деплоя, релизов |
+| `backup-manager` | Резервное копирование, бэкапы |
+| `project-cleanup-agent` | Очистка проекта, удаление мусора |
+
+### 📋 ПЛАНИРОВАНИЕ И УПРАВЛЕНИЕ
+| Агент | Когда использовать |
+|-------|-------------------|
+| `task-planner` | Планирование задач, декомпозиция |
+| `project-template-generator` | Создание шаблонов проектов |
+| `tech-recommendation-agent` | Рекомендации по технологиям, инструментам |
+
+---
+⚠️ **ПРИОРИТЕТ:** Всегда выбирай наиболее специализированного агента для задачи!  
+⚠️ **НЕ ЗАБЫВАЙ:** Применяй Sequential Thinking перед вызовом любого агента!
+
+## 💬 ЯЗЫК ОТВЕТОВ
+- На все запросы отвечай на **русском языке**
+
+---
+⚠️ **ВСЕ ПРАВИЛА ОБЯЗАТЕЛЬНЫ К ВЫПОЛНЕНИЮ!**
