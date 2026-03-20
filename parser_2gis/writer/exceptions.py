@@ -32,6 +32,4 @@ class WriterUnknownFileFormat(Exception):
         super().__init__(full_message, **kwargs)
 
 
-__all__ = [
-    "WriterUnknownFileFormat",
-]
+__all__ = ["WriterUnknownFileFormat"]

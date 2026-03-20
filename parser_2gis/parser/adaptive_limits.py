@@ -38,12 +38,7 @@ class AdaptiveLimits:
     }
 
     # Адаптивные таймауты для навигации (секунды)
-    ADAPTIVE_TIMEOUTS = {
-        "small": 30,
-        "medium": 60,
-        "large": 90,
-        "huge": 120,
-    }
+    ADAPTIVE_TIMEOUTS = {"small": 30, "medium": 60, "large": 90, "huge": 120}
 
     def __init__(self, base_limit: int = 3) -> None:
         """
@@ -68,9 +63,7 @@ class AdaptiveLimits:
         """
         self._records_on_first_pages.append(count)
         logger.debug(
-            "Добавлено записей: %d (всего записей: %d)",
-            count,
-            len(self._records_on_first_pages),
+            "Добавлено записей: %d (всего записей: %d)", count, len(self._records_on_first_pages)
         )
 
         # Анализируем размер города после 3-5 страниц
@@ -87,9 +80,7 @@ class AdaptiveLimits:
             return
 
         # Вычисляем среднее количество записей на страницу
-        avg_records = sum(self._records_on_first_pages) / len(
-            self._records_on_first_pages
-        )
+        avg_records = sum(self._records_on_first_pages) / len(self._records_on_first_pages)
 
         # Определяем класс города
         if avg_records <= self.CITY_SIZE_CLASSIFICATION["small"]:

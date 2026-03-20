@@ -70,10 +70,7 @@ class ParserStatistics:
             Новое значение счётчика или максимальное значение при переполнении.
         """
         if current_value >= self.max_counter_value:
-            logger.warning(
-                "Достигнуто максимальное значение счётчика: %d",
-                self.max_counter_value,
-            )
+            logger.warning("Достигнуто максимальное значение счётчика: %d", self.max_counter_value)
             return self.max_counter_value
 
         new_value = current_value + increment
@@ -313,13 +310,9 @@ class StatisticsExporter:
                 else "Не запущено"
             ),
             "Время завершения": (
-                stats.end_time.strftime("%Y-%m-%d %H:%M:%S")
-                if stats.end_time
-                else "Не завершено"
+                stats.end_time.strftime("%Y-%m-%d %H:%M:%S") if stats.end_time else "Не завершено"
             ),
-            "Время работы": (
-                str(stats.elapsed_time) if stats.elapsed_time else "Не завершено"
-            ),
+            "Время работы": (str(stats.elapsed_time) if stats.elapsed_time else "Не завершено"),
             "Всего URL": str(stats.total_urls),
             "Всего страниц": str(stats.total_pages),
             "Всего записей": str(stats.total_records),

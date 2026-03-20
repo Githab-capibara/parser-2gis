@@ -138,9 +138,7 @@ class DataValidator:
         # Извлекаем extension (добавочный номер) перед обработкой
         extension = None
         # Паттерны должны содержать явное ключевое слово "доб" или "ext"
-        ext_patterns = [
-            r"\s*(?:доб\.?\s*|ext\.?\s*)(\d+)",  # доб. 1234, ext 1234, доб1234
-        ]
+        ext_patterns = [r"\s*(?:доб\.?\s*|ext\.?\s*)(\d+)"]  # доб. 1234, ext 1234, доб1234
         for pattern in ext_patterns:
             ext_match = re.search(pattern, phone, re.IGNORECASE)
             if ext_match:
@@ -171,9 +169,7 @@ class DataValidator:
         # Обработка российских номеров (+7 или 8)
         if cleaned.startswith("+8"):
             return ValidationResult(
-                False,
-                None,
-                ["Некорректный международный префикс: +8 (должен быть +7 для России)"],
+                False, None, ["Некорректный международный префикс: +8 (должен быть +7 для России)"]
             )
 
         if cleaned.startswith("+7") or cleaned.startswith("8"):
@@ -185,9 +181,7 @@ class DataValidator:
                 return ValidationResult(
                     False,
                     None,
-                    [
-                        f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"
-                    ],
+                    [f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"],
                 )
 
             return ValidationResult(
@@ -218,15 +212,11 @@ class DataValidator:
         if len(digits_only) == 11:
             if digits_only[0] == "8":
                 return ValidationResult(
-                    True,
-                    self._add_extension(self._format_phone(digits_only), extension),
-                    [],
+                    True, self._add_extension(self._format_phone(digits_only), extension), []
                 )
             # Предполагаем российский номер без префикса
             return ValidationResult(
-                True,
-                self._add_extension(self._format_phone("8" + digits_only), extension),
-                [],
+                True, self._add_extension(self._format_phone("8" + digits_only), extension), []
             )
 
         if (
@@ -234,9 +224,7 @@ class DataValidator:
             <= len(digits_only)
             <= self.INTERNATIONAL_PHONE_MAX_LENGTH
         ):
-            return ValidationResult(
-                True, self._add_extension(f"+{digits_only}", extension), []
-            )
+            return ValidationResult(True, self._add_extension(f"+{digits_only}", extension), [])
 
         return ValidationResult(
             False,
@@ -318,9 +306,7 @@ class DataValidator:
         if check_mx:
             mx_valid = self._check_mx_records(email)
             if not mx_valid:
-                return ValidationResult(
-                    False, None, ["Домен email не имеет MX записей"]
-                )
+                return ValidationResult(False, None, ["Домен email не имеет MX записей"])
 
         return ValidationResult(True, email, [])
 
@@ -357,11 +343,7 @@ class DataValidator:
             # Проверяем, что есть хотя бы одна запись
             return len(answers) > 0
 
-        except (
-            dns.resolver.NXDOMAIN,
-            dns.resolver.NoAnswer,
-            dns.resolver.NoNameservers,
-        ):
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
             # Домен не существует или нет MX записей
             logger.debug("Домен %s не имеет MX записей", domain)
             return False
@@ -397,8 +379,7 @@ class DataValidator:
             # Проверяем что схема именно http или https
             if parsed.scheme not in ("http", "https"):
                 error_msg = (
-                    f"Неподдерживаемая схема URL: {parsed.scheme} "
-                    "(требуется http или https)"
+                    f"Неподдерживаемая схема URL: {parsed.scheme} " "(требуется http или https)"
                 )
                 return ValidationResult(False, None, [error_msg])
 

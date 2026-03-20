@@ -33,7 +33,7 @@ preview = false
 # Быстрый режим (пропуск проверок безопасности)
 fast = false
 # Количество отступов (пробелов)
-skip-magic-trailing-comma = false
+skip-magic-trailing-comma = true
 
 [tool.isort]
 # Конфигурация isort для сортировки импортов

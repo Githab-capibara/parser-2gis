@@ -32,6 +32,4 @@ class ParserException(Exception):
         super().__init__(full_message, **kwargs)
 
 
-__all__ = [
-    "ParserException",
-]
+__all__ = ["ParserException"]

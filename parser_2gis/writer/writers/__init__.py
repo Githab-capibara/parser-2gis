@@ -3,9 +3,4 @@ from .file_writer import FileWriter
 from .json_writer import JSONWriter
 from .xlsx_writer import XLSXWriter
 
-__all__ = [
-    "FileWriter",
-    "CSVWriter",
-    "XLSXWriter",
-    "JSONWriter",
-]
+__all__ = ["FileWriter", "CSVWriter", "XLSXWriter", "JSONWriter"]

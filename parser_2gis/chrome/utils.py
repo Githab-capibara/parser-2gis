@@ -28,12 +28,7 @@ def locate_chrome_path() -> str | None:
         "/sbin",
         "/opt/google/chrome",
     ]
-    browser_executables = [
-        "google-chrome",
-        "chrome",
-        "chrome-browser",
-        "google-chrome-stable",
-    ]
+    browser_executables = ["google-chrome", "chrome", "chrome-browser", "google-chrome-stable"]
 
     # Поиск в стандартных директориях
     for d in app_dirs:

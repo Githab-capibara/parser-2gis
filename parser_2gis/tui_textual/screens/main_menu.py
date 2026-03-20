@@ -12,9 +12,7 @@ from textual.widgets import Button, Static
 class MainMenuScreen(Screen):
     """Главное меню приложения."""
 
-    BINDINGS = [
-        Binding("q", "quit", "Выход"),
-    ]
+    BINDINGS = [Binding("q", "quit", "Выход")]
 
     CSS = """
     /* Центрирование главного экрана меню */
@@ -117,31 +115,15 @@ class MainMenuScreen(Screen):
 
             # Кнопки меню
             with Container(classes="menu-container"):
-                yield Button(
-                    "🚀 Запустить парсинг", id="start-parsing", classes="menu-button"
-                )
-                yield Button(
-                    "📁 Выбрать города", id="select-cities", classes="menu-button"
-                )
-                yield Button(
-                    "📂 Выбрать категории",
-                    id="select-categories",
-                    classes="menu-button",
-                )
+                yield Button("🚀 Запустить парсинг", id="start-parsing", classes="menu-button")
+                yield Button("📁 Выбрать города", id="select-cities", classes="menu-button")
+                yield Button("📂 Выбрать категории", id="select-categories", classes="menu-button")
 
                 yield Static("", classes="divider")
 
-                yield Button(
-                    "🌐 Настройки браузера",
-                    id="browser-settings",
-                    classes="menu-button",
-                )
-                yield Button(
-                    "⚙️ Настройки парсера", id="parser-settings", classes="menu-button"
-                )
-                yield Button(
-                    "📊 Настройки вывода", id="output-settings", classes="menu-button"
-                )
+                yield Button("🌐 Настройки браузера", id="browser-settings", classes="menu-button")
+                yield Button("⚙️ Настройки парсера", id="parser-settings", classes="menu-button")
+                yield Button("📊 Настройки вывода", id="output-settings", classes="menu-button")
 
                 yield Static("", classes="divider")
 
@@ -150,9 +132,7 @@ class MainMenuScreen(Screen):
 
                 yield Static("", classes="divider")
 
-                yield Button(
-                    "🚪 Выход", id="exit", classes="menu-button", variant="error"
-                )
+                yield Button("🚪 Выход", id="exit", classes="menu-button", variant="error")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Обработка нажатия кнопок."""

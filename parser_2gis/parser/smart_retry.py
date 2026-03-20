@@ -99,9 +99,7 @@ class SmartRetryManager:
         if "500" in error_lower:
             self._retry_count += 1  # Увеличиваем только при фактическом retry
             logger.info(
-                "Ошибка сервера 500. Повторная попытка %d/%d",
-                self._retry_count,
-                self._max_retries,
+                "Ошибка сервера 500. Повторная попытка %d/%d", self._retry_count, self._max_retries
             )
             return True
 
@@ -123,9 +121,7 @@ class SmartRetryManager:
             count: Количество новых записей.
         """
         self._total_records_collected += count
-        logger.debug(
-            "Добавлено %d записей (всего: %d)", count, self._total_records_collected
-        )
+        logger.debug("Добавлено %d записей (всего: %d)", count, self._total_records_collected)
 
     def get_retry_count(self) -> int:
         """

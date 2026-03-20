@@ -34,29 +34,16 @@ class CLIRunner(AbstractRunner):
         logger.info("🚀 Начало парсинга %d URL...", total_urls)
 
         try:
-            with get_writer(
-                self._output_path, self._format, self._config.writer
-            ) as writer:
+            with get_writer(self._output_path, self._format, self._config.writer) as writer:
                 for idx, url in enumerate(self._urls, 1):
-                    logger.info(
-                        "📄 [%d/%d] Парсинг ссылки: %s",
-                        idx,
-                        total_urls,
-                        url,
-                    )
+                    logger.info("📄 [%d/%d] Парсинг ссылки: %s", idx, total_urls, url)
                     with get_parser(
-                        url,
-                        chrome_options=self._config.chrome,
-                        parser_options=self._config.parser,
+                        url, chrome_options=self._config.chrome, parser_options=self._config.parser
                     ) as parser:
                         try:
                             parser.parse(writer)
                             parsed_count += 1
-                            logger.info(
-                                "✅ [%d/%d] Ссылка успешно обработана",
-                                idx,
-                                total_urls,
-                            )
+                            logger.info("✅ [%d/%d] Ссылка успешно обработана", idx, total_urls)
                         except Exception as parse_error:
                             error_count += 1
                             logger.error(
@@ -71,11 +58,7 @@ class CLIRunner(AbstractRunner):
             logger.error("🛑 Работа парсера прервана пользователем.")
             log_parser_finish(
                 success=False,
-                stats={
-                    "Всего URL": total_urls,
-                    "Обработано": parsed_count,
-                    "Ошибки": error_count,
-                },
+                stats={"Всего URL": total_urls, "Обработано": parsed_count, "Ошибки": error_count},
             )
             return
         except ConnectionError as e:
@@ -99,10 +82,7 @@ class CLIRunner(AbstractRunner):
             log_parser_finish(success=False)
             return
         except Exception as e:
-            if (
-                isinstance(e, ChromeRuntimeException)
-                and str(e) == "Вкладка была остановлена"
-            ):
+            if isinstance(e, ChromeRuntimeException) and str(e) == "Вкладка была остановлена":
                 logger.error("❌ Вкладка браузера была закрыта.")
             else:
                 logger.error("❌ Ошибка во время работы парсера.", exc_info=True)
@@ -121,11 +101,7 @@ class CLIRunner(AbstractRunner):
             }
 
             logger.info("🏁 Парсинг завершён.")
-            log_parser_finish(
-                success=error_count == 0,
-                stats=stats,
-                duration=duration_str,
-            )
+            log_parser_finish(success=error_count == 0, stats=stats, duration=duration_str)
 
     def stop(self) -> None:
         """Останавливает процесс парсинга в CLI режиме.

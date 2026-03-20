@@ -10,9 +10,7 @@ if TYPE_CHECKING:
     from .writers.file_writer import FileWriter
 
 
-def get_writer(
-    file_path: str, file_format: str, writer_options: WriterOptions
-) -> FileWriter:
+def get_writer(file_path: str, file_format: str, writer_options: WriterOptions) -> FileWriter:
     """Фабричная функция для создания писателя файлов.
 
     Args:
