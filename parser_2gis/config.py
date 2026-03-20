@@ -389,13 +389,13 @@ class Configuration(BaseModel):
             config.path = config_path  # type: ignore[assignment]
             return config  # type: ignore[return-value]
 
-        except (json.JSONDecodeError, ValueError) as json_error:
-            logger.error("Повреждённый JSON в конфигурации: %s", json_error)
-            return cls()
         except ValidationError as e:
             logger.warning("Ошибка валидации конфигурации")
             cls._backup_corrupted_config(config_path)
             cls._log_validation_errors(e)
+            return cls()
+        except (json.JSONDecodeError, ValueError) as json_error:
+            logger.error("Повреждённый JSON в конфигурации: %s", json_error)
             return cls()
 
         except Exception as e:
