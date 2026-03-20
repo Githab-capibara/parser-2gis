@@ -32,7 +32,7 @@ class TestOldTUIRemoved:
     def test_tui_pytermgui_import_fails(self):
         """Тест: Импорт tui_pytermgui вызывает ImportError."""
         with pytest.raises(ImportError):
-            pass
+            from parser_2gis import tui_pytermgui  # noqa: F401
 
     def test_no_pytermgui_references_in_code(self):
         """Тест: В коде нет ссылок на pytermgui."""
