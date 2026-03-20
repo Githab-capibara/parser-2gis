@@ -19,18 +19,24 @@ class CitySelectorScreen(Screen):
     ]
 
     CSS = """
+    /* Центрирование экрана выбора городов */
     CitySelectorScreen {
         align: center middle;
     }
 
+    /* Главный контейнер */
     #city-selector-container {
-        width: 80;
+        width: 100%;
+        max-width: 90;
+        min-width: 60;
         height: 80%;
         background: $surface-darken-2;
         border: solid $primary;
         padding: 1 2;
+        align: center middle;
     }
 
+    /* Заголовок */
     .header {
         width: 100%;
         height: 3;
@@ -39,16 +45,19 @@ class CitySelectorScreen(Screen):
         color: $accent;
     }
 
+    /* Панель поиска */
     .search-panel {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
 
+    /* Поле поиска */
     .search-input {
         width: 100%;
     }
 
+    /* Панель счётчика */
     .counter-panel {
         width: 100%;
         height: 3;
@@ -57,12 +66,14 @@ class CitySelectorScreen(Screen):
         background: $surface-darken-3;
     }
 
+    /* Контейнер списка городов */
     .city-list-container {
         width: 100%;
         height: 1fr;
         border: solid $secondary;
     }
 
+    /* Ряд кнопок */
     .button-row {
         width: 100%;
         height: auto;
@@ -70,8 +81,10 @@ class CitySelectorScreen(Screen):
         margin-top: 1;
     }
 
+    /* Кнопки в ряду */
     .button-row Button {
         margin: 0 1;
+        min-width: 12;
     }
     """
 

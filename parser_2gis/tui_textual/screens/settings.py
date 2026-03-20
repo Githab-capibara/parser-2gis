@@ -18,18 +18,24 @@ class BrowserSettingsScreen(Screen):
     ]
 
     CSS = """
+    /* Центрирование экрана настроек браузера */
     BrowserSettingsScreen {
         align: center middle;
     }
 
+    /* Главный контейнер */
     #browser-settings-container {
-        width: 70;
+        width: 100%;
+        max-width: 80;
+        min-width: 50;
         height: auto;
         background: $surface-darken-2;
         border: solid $primary;
         padding: 1 2;
+        align: center middle;
     }
 
+    /* Заголовок */
     .header {
         width: 100%;
         height: 3;
@@ -38,17 +44,20 @@ class BrowserSettingsScreen(Screen):
         color: $accent;
     }
 
+    /* Ряд настроек */
     .setting-row {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
 
+    /* Метка настройки */
     .setting-label {
         width: 100%;
         margin-bottom: 1;
     }
 
+    /* Ряд кнопок */
     .button-row {
         width: 100%;
         height: auto;
@@ -56,8 +65,10 @@ class BrowserSettingsScreen(Screen):
         margin-top: 2;
     }
 
+    /* Кнопки в ряду */
     .button-row Button {
         margin: 0 1;
+        min-width: 12;
     }
     """
 
@@ -142,18 +153,24 @@ class ParserSettingsScreen(Screen):
     ]
 
     CSS = """
+    /* Центрирование экрана настроек парсера */
     ParserSettingsScreen {
         align: center middle;
     }
 
+    /* Главный контейнер */
     #parser-settings-container {
-        width: 70;
+        width: 100%;
+        max-width: 80;
+        min-width: 50;
         height: auto;
         background: $surface-darken-2;
         border: solid $primary;
         padding: 1 2;
+        align: center middle;
     }
 
+    /* Заголовок */
     .header {
         width: 100%;
         height: 3;
@@ -162,22 +179,31 @@ class ParserSettingsScreen(Screen):
         color: $accent;
     }
 
+    /* Ряд настроек */
     .setting-row {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
 
+    /* Метка настройки */
     .setting-label {
         width: 100%;
         margin-bottom: 1;
     }
 
+    /* Ряд кнопок */
     .button-row {
         width: 100%;
         height: auto;
         align: center middle;
         margin-top: 2;
+    }
+
+    /* Кнопки в ряду */
+    .button-row Button {
+        margin: 0 1;
+        min-width: 12;
     }
     """
 
@@ -262,18 +288,24 @@ class OutputSettingsScreen(Screen):
     ]
 
     CSS = """
+    /* Центрирование экрана настроек вывода */
     OutputSettingsScreen {
         align: center middle;
     }
 
+    /* Главный контейнер */
     #output-settings-container {
-        width: 70;
+        width: 100%;
+        max-width: 80;
+        min-width: 50;
         height: auto;
         background: $surface-darken-2;
         border: solid $primary;
         padding: 1 2;
+        align: center middle;
     }
 
+    /* Заголовок */
     .header {
         width: 100%;
         height: 3;
@@ -282,22 +314,31 @@ class OutputSettingsScreen(Screen):
         color: $accent;
     }
 
+    /* Ряд настроек */
     .setting-row {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
 
+    /* Метка настройки */
     .setting-label {
         width: 100%;
         margin-bottom: 1;
     }
 
+    /* Ряд кнопок */
     .button-row {
         width: 100%;
         height: auto;
         align: center middle;
         margin-top: 2;
+    }
+
+    /* Кнопки в ряду */
+    .button-row Button {
+        margin: 0 1;
+        min-width: 12;
     }
     """
 

@@ -20,18 +20,24 @@ class ParsingScreen(Screen):
     ]
 
     CSS = """
+    /* Центрирование экрана парсинга */
     ParsingScreen {
         align: center middle;
     }
 
+    /* Главный контейнер */
     #parsing-container {
-        width: 90;
+        width: 100%;
+        max-width: 100;
+        min-width: 70;
         height: 85%;
         background: $surface-darken-2;
         border: solid $primary;
         padding: 1 2;
+        align: center middle;
     }
 
+    /* Заголовок */
     .header {
         width: 100%;
         height: 3;
@@ -40,32 +46,38 @@ class ParsingScreen(Screen):
         color: $accent;
     }
 
+    /* Секция прогресса */
     .progress-section {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
 
+    /* Метка прогресса */
     .progress-label {
         width: 100%;
         margin-bottom: 1;
     }
 
+    /* Контейнер статистики */
     .stats-container {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
 
+    /* Ряд статистики */
     .stat-row {
         width: 100%;
         height: auto;
     }
 
+    /* Метка статистики */
     .stat-label {
         width: 50%;
     }
 
+    /* Контейнер лога */
     .log-container {
         width: 100%;
         height: 1fr;
@@ -74,6 +86,7 @@ class ParsingScreen(Screen):
         margin: 1 0;
     }
 
+    /* Ряд кнопок */
     .button-row {
         width: 100%;
         height: auto;
@@ -81,8 +94,10 @@ class ParsingScreen(Screen):
         margin-top: 1;
     }
 
+    /* Кнопки в ряду */
     .button-row Button {
         margin: 0 1;
+        min-width: 12;
     }
     """
 

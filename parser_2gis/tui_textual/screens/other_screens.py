@@ -18,18 +18,24 @@ class CacheViewerScreen(Screen):
     ]
 
     CSS = """
+    /* Центрирование экрана просмотра кэша */
     CacheViewerScreen {
         align: center middle;
     }
 
+    /* Главный контейнер */
     #cache-viewer-container {
-        width: 80;
+        width: 100%;
+        max-width: 90;
+        min-width: 60;
         height: 80%;
         background: $surface-darken-2;
         border: solid $primary;
         padding: 1 2;
+        align: center middle;
     }
 
+    /* Заголовок */
     .header {
         width: 100%;
         height: 3;
@@ -38,6 +44,7 @@ class CacheViewerScreen(Screen):
         color: $accent;
     }
 
+    /* Панель статистики */
     .stats-panel {
         width: 100%;
         height: auto;
@@ -45,11 +52,13 @@ class CacheViewerScreen(Screen):
         background: $surface-darken-3;
     }
 
+    /* Таблица кэша */
     .cache-table {
         width: 100%;
         height: 1fr;
     }
 
+    /* Ряд кнопок */
     .button-row {
         width: 100%;
         height: auto;
@@ -57,8 +66,10 @@ class CacheViewerScreen(Screen):
         margin-top: 1;
     }
 
+    /* Кнопки в ряду */
     .button-row Button {
         margin: 0 1;
+        min-width: 12;
     }
     """
 
@@ -151,18 +162,24 @@ class AboutScreen(Screen):
     ]
 
     CSS = """
+    /* Центрирование экрана информации */
     AboutScreen {
         align: center middle;
     }
 
+    /* Главный контейнер */
     #about-container {
-        width: 70;
+        width: 100%;
+        max-width: 80;
+        min-width: 50;
         height: auto;
         background: $surface-darken-2;
         border: solid $primary;
         padding: 2 3;
+        align: center middle;
     }
 
+    /* Заголовок */
     .title {
         width: 100%;
         height: 3;
@@ -171,28 +188,38 @@ class AboutScreen(Screen):
         color: $accent;
     }
 
+    /* Информационная секция */
     .info-section {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
 
+    /* Метка информации */
     .info-label {
         width: 100%;
         margin: 1 0;
     }
 
+    /* Разделитель */
     .divider {
         height: 1;
         background: $primary;
         margin: 1 0;
     }
 
+    /* Ряд кнопок */
     .button-row {
         width: 100%;
         height: auto;
         align: center middle;
         margin-top: 2;
+    }
+
+    /* Кнопки в ряду */
+    .button-row Button {
+        margin: 0 1;
+        min-width: 12;
     }
     """
 

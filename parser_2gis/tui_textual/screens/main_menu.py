@@ -17,17 +17,23 @@ class MainMenuScreen(Screen):
     ]
 
     CSS = """
+    /* Центрирование главного экрана меню */
     MainMenuScreen {
         align: center middle;
     }
 
+    /* Контейнер логотипа */
     .logo-container {
-        width: 60;
+        width: 100%;
+        max-width: 60;
+        min-width: 40;
         height: auto;
         content-align: center middle;
         margin-bottom: 1;
+        align: center middle;
     }
 
+    /* Логотип */
     .logo {
         color: $accent;
         text-style: bold;
@@ -35,6 +41,7 @@ class MainMenuScreen(Screen):
         content-align: center top;
     }
 
+    /* Заголовок */
     .title {
         text-style: bold;
         color: $text;
@@ -43,31 +50,40 @@ class MainMenuScreen(Screen):
         margin: 1 0;
     }
 
+    /* Подзаголовок */
     .subtitle {
         color: $text-muted;
         width: 100%;
         content-align: center top;
     }
 
+    /* Контейнер меню */
     .menu-container {
-        width: 50;
+        width: 100%;
+        max-width: 50;
+        min-width: 40;
         height: auto;
         background: $surface-darken-2;
         border: solid $primary;
         padding: 1 2;
+        align: center middle;
     }
 
+    /* Кнопка меню */
     .menu-button {
         width: 100%;
         margin: 1 0;
+        align: center middle;
     }
 
+    /* Разделитель */
     .divider {
         height: 1;
         background: $primary;
         margin: 1 0;
     }
 
+    /* Версия */
     .version {
         color: $text-muted;
         width: 100%;

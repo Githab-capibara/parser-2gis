@@ -45,14 +45,22 @@ class TUIApp(App):
 
     # CSS стили приложения
     CSS = """
+    /* Базовые стили для всех экранов */
     Screen {
         background: $surface;
-    }
-
-    #main-menu {
         align: center middle;
     }
 
+    /* Контейнер главного меню */
+    #main-menu {
+        width: 100%;
+        max-width: 60;
+        min-width: 50;
+        height: auto;
+        align: center middle;
+    }
+
+    /* Контейнер заголовка */
     .title-container {
         width: 100%;
         height: auto;
@@ -60,6 +68,7 @@ class TUIApp(App):
         margin-bottom: 1;
     }
 
+    /* Заголовок */
     .title {
         text-style: bold;
         color: $text;
@@ -67,25 +76,33 @@ class TUIApp(App):
         content-align: center top;
     }
 
+    /* Подзаголовок */
     .subtitle {
         color: $text-muted;
         width: 100%;
         content-align: center top;
     }
 
+    /* Контейнер меню */
     .menu-container {
-        width: 60;
+        width: 100%;
+        max-width: 50;
+        min-width: 40;
         height: auto;
         background: $surface-darken-2;
         border: solid $primary;
         padding: 1 2;
+        align: center middle;
     }
 
+    /* Кнопка меню */
     .menu-button {
         width: 100%;
         margin: 1 0;
+        align: center middle;
     }
 
+    /* Логотип */
     .logo {
         width: 100%;
         content-align: center top;
@@ -93,6 +110,7 @@ class TUIApp(App):
         text-style: bold;
     }
 
+    /* Счётчик */
     .counter-panel {
         width: 100%;
         height: 3;
@@ -100,22 +118,26 @@ class TUIApp(App):
         margin: 1 0;
     }
 
+    /* Статистика */
     .stats-container {
         width: 100%;
         height: auto;
     }
 
+    /* Метка статистики */
     .stat-label {
         width: 100%;
         margin: 0;
     }
 
+    /* Контейнер прогресса */
     .progress-container {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
 
+    /* Лог */
     .log-container {
         width: 100%;
         height: 1fr;
@@ -123,23 +145,28 @@ class TUIApp(App):
         padding: 1;
     }
 
+    /* Панель поиска */
     .search-panel {
         width: 100%;
         height: auto;
         margin: 1 0;
     }
 
+    /* Список городов */
     .city-list {
         width: 100%;
         height: 1fr;
     }
 
+    /* Ряд кнопок */
     .button-row {
         width: 100%;
         height: auto;
         align: center middle;
+        dock: bottom;
     }
 
+    /* Разделитель */
     .divider {
         height: 1;
         background: $primary;
