@@ -176,7 +176,7 @@ class TestChromeBrowserMock:
     @patch("parser_2gis.chrome.browser.subprocess.Popen")
     @patch("parser_2gis.chrome.browser.free_port")
     @patch("parser_2gis.chrome.browser.locate_chrome_path")
-    @patch("parser_2gis.chrome.browser.logger")
+    @patch("parser_2gis.chrome.browser.app_logger")
     def test_browser_initialization(
         self,
         mock_logger: Mock,
@@ -205,7 +205,7 @@ class TestChromeBrowserMock:
     @patch("parser_2gis.chrome.browser.subprocess.Popen")
     @patch("parser_2gis.chrome.browser.free_port")
     @patch("parser_2gis.chrome.browser.locate_chrome_path")
-    @patch("parser_2gis.chrome.browser.logger")
+    @patch("parser_2gis.chrome.browser.app_logger")
     def test_browser_close_graceful(
         self,
         mock_logger: Mock,
@@ -237,7 +237,7 @@ class TestChromeBrowserMock:
     @patch("parser_2gis.chrome.browser.subprocess.Popen")
     @patch("parser_2gis.chrome.browser.free_port")
     @patch("parser_2gis.chrome.browser.locate_chrome_path")
-    @patch("parser_2gis.chrome.browser.logger")
+    @patch("parser_2gis.chrome.browser.app_logger")
     def test_browser_close_forceful(
         self,
         mock_logger: Mock,

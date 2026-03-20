@@ -9,13 +9,6 @@
 Всего тестов: 6 (по 3 на каждую проблему)
 """
 
-from parser_2gis.chrome.browser import (
-    ORPHANED_PROFILE_MARKER,
-    ChromeBrowser,
-    _is_profile_in_use,
-    _safe_remove_profile,
-    cleanup_orphaned_profiles,
-)
 import os
 import subprocess
 import sys
@@ -25,6 +18,14 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+from parser_2gis.chrome.browser import (
+    ORPHANED_PROFILE_MARKER,
+    ChromeBrowser,
+    _is_profile_in_use,
+    _safe_remove_profile,
+    cleanup_orphaned_profiles,
+)
 
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -83,7 +84,7 @@ class TestChromeResourceLeak:
                 mock_tempdir.cleanup.called or True
             )  # Тест проходит если cleanup вызван или не требуется
 
-    @patch("parser_2gis.chrome.browser.logger")
+    @patch("parser_2gis.chrome.browser.app_logger")
     @patch("parser_2gis.chrome.browser.subprocess.Popen")
     @patch("parser_2gis.chrome.browser.free_port")
     @patch("parser_2gis.chrome.browser.locate_chrome_path")
@@ -132,7 +133,7 @@ class TestChromeResourceLeak:
                 # Проверяем что процесс был завершён
                 mock_process.terminate.assert_called_once()
 
-    @patch("parser_2gis.chrome.browser.logger")
+    @patch("parser_2gis.chrome.browser.app_logger")
     @patch("parser_2gis.chrome.browser.tempfile.TemporaryDirectory")
     @patch("parser_2gis.chrome.browser.subprocess.Popen")
     @patch("parser_2gis.chrome.browser.free_port")
@@ -185,7 +186,7 @@ class TestChromeResourceLeak:
 class TestIncompleteChromeProfileCleanup:
     """Тесты для проблемы 10: Неполная очистка профилей Chrome."""
 
-    @patch("parser_2gis.chrome.browser.logger")
+    @patch("parser_2gis.chrome.browser.app_logger")
     def test_active_profile_not_deleted(self, mock_logger):
         """
         Тест 1: Проверка что активный профиль не удаляется.
@@ -216,7 +217,7 @@ class TestIncompleteChromeProfileCleanup:
                 # Проверяем что профиль НЕ удалён
                 assert profile_path.exists(), "Активный профиль не должен быть удалён"
 
-    @patch("parser_2gis.chrome.browser.logger")
+    @patch("parser_2gis.chrome.browser.app_logger")
     def test_inactive_profile_deleted(self, mock_logger):
         """
         Тест 2: Удаление неактивного профиля.
@@ -254,7 +255,7 @@ class TestIncompleteChromeProfileCleanup:
                     "Неактивный профиль должен быть удалён"
                 )
 
-    @patch("parser_2gis.chrome.browser.logger")
+    @patch("parser_2gis.chrome.browser.app_logger")
     def test_chrome_process_check(self, mock_logger):
         """
         Тест 3: Проверка наличия процесса Chrome.
@@ -290,7 +291,7 @@ user 67890 0.0 0.1 123456 7890 ? S 10:00 0:00 /usr/bin/firefox
                         "_is_profile_in_use должен возвращать bool"
                     )
 
-    @patch("parser_2gis.chrome.browser.logger")
+    @patch("parser_2gis.chrome.browser.app_logger")
     def test_cleanup_orphaned_profiles_function(self, mock_logger):
         """
         Дополнительный тест: Функция cleanup_orphaned_profiles.
@@ -342,7 +343,7 @@ user 67890 0.0 0.1 123456 7890 ? S 10:00 0:00 /usr/bin/firefox
 class TestResourceManagementIntegration:
     """Интеграционные тесты для управления ресурсами."""
 
-    @patch("parser_2gis.chrome.browser.logger")
+    @patch("parser_2gis.chrome.browser.app_logger")
     @patch("parser_2gis.chrome.browser.subprocess.Popen")
     @patch("parser_2gis.chrome.browser.free_port")
     @patch("parser_2gis.chrome.browser.locate_chrome_path")

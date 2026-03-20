@@ -34,7 +34,7 @@ class TestCleanupOrphanedProfiles:
         )
 
         # Mock logger чтобы избежать AttributeError
-        with patch("parser_2gis.chrome.browser.logger"):
+        with patch("parser_2gis.chrome.browser.app_logger"):
             # Создаем старый профиль (старше 24 часов)
             old_profile = tmp_path / "chrome_profile_old_123"
             old_profile.mkdir()
@@ -73,7 +73,7 @@ class TestCleanupOrphanedProfiles:
         from parser_2gis.chrome.browser import cleanup_orphaned_profiles
 
         # Mock logger
-        with patch("parser_2gis.chrome.browser.logger"):
+        with patch("parser_2gis.chrome.browser.app_logger"):
             # Создаем старый профиль без маркера
             old_profile = tmp_path / "chrome_profile_no_marker"
             old_profile.mkdir()
@@ -100,7 +100,7 @@ class TestCleanupOrphanedProfiles:
         from parser_2gis.chrome.browser import cleanup_orphaned_profiles
 
         # Mock logger
-        with patch("parser_2gis.chrome.browser.logger"):
+        with patch("parser_2gis.chrome.browser.app_logger"):
             # Создаем профиль
             profile = tmp_path / "chrome_profile_perms"
             profile.mkdir()
@@ -233,7 +233,7 @@ class TestSignalHandlerCleanup:
         """
 
         # Mock функции очистки
-        with patch("parser_2gis.chrome.browser.logger") as mock_logger:
+        with patch("parser_2gis.chrome.browser.app_logger") as mock_logger:
             # Создаем тестовую ситуацию
             from parser_2gis.chrome.browser import ChromeBrowser
             from parser_2gis.chrome.options import ChromeOptions
