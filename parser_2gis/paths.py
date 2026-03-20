@@ -111,3 +111,19 @@ def image_data(basename: str, ext: str | None = None) -> bytes:
     except (IOError, OSError):
         # Файл не может быть прочитан - ошибка логируется и пробрасывается дальше
         raise
+
+
+@functools.lru_cache()
+def cache_path() -> pathlib.Path:
+    """Получает путь к директории кэша для Linux Ubuntu.
+
+    Примечание:
+        Расположение пути для Linux Ubuntu:
+        * ~/.cache/parser-2gis (для кэша)
+
+    Returns:
+        Путь к директории кэша.
+    """
+    path = os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
+    path = os.path.join(path, "parser-2gis")
+    return pathlib.Path(path)
