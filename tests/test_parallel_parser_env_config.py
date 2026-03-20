@@ -11,12 +11,9 @@
 3. test_max_temp_files_from_env - Тест чтения MAX_TEMP_FILES из переменной окружения
 """
 
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
-from unittest.mock import patch
 
 import pytest
 
@@ -24,7 +21,9 @@ import pytest
 PROJECT_ROOT = Path(__file__).parent.parent
 
 
-def check_env_value(env_var: str, const_name: str, test_value: str, expected_value: int) -> bool:
+def check_env_value(
+    env_var: str, const_name: str, test_value: str, expected_value: int
+) -> bool:
     """
     Проверяет что переменная окружения читается корректно.
 
@@ -79,7 +78,9 @@ class TestParallelParserEnvConfig:
             Переменная окружения: PARSER_MERGE_LOCK_TIMEOUT
             Значение по умолчанию: 300 секунд
         """
-        result = check_env_value("PARSER_MERGE_LOCK_TIMEOUT", "MERGE_LOCK_TIMEOUT", "600", 600)
+        result = check_env_value(
+            "PARSER_MERGE_LOCK_TIMEOUT", "MERGE_LOCK_TIMEOUT", "600", 600
+        )
         assert result is True, "PARSER_MERGE_LOCK_TIMEOUT=600 должно читаться корректно"
 
     def test_max_lock_file_age_from_env(self) -> None:
@@ -93,7 +94,9 @@ class TestParallelParserEnvConfig:
             Переменная окружения: PARSER_MAX_LOCK_FILE_AGE
             Значение по умолчанию: 300 секунд
         """
-        result = check_env_value("PARSER_MAX_LOCK_FILE_AGE", "MAX_LOCK_FILE_AGE", "600", 600)
+        result = check_env_value(
+            "PARSER_MAX_LOCK_FILE_AGE", "MAX_LOCK_FILE_AGE", "600", 600
+        )
         assert result is True, "PARSER_MAX_LOCK_FILE_AGE=600 должно читаться корректно"
 
     def test_max_temp_files_from_env(self) -> None:
@@ -121,7 +124,9 @@ class TestParallelParserEnvConfigDefaults:
         Note:
             Значение по умолчанию: 300 секунд (5 минут)
         """
-        result = check_env_value("PARSER_MERGE_LOCK_TIMEOUT", "MERGE_LOCK_TIMEOUT", "300", 300)
+        result = check_env_value(
+            "PARSER_MERGE_LOCK_TIMEOUT", "MERGE_LOCK_TIMEOUT", "300", 300
+        )
         assert result is True, "PARSER_MERGE_LOCK_TIMEOUT по умолчанию должно быть 300"
 
     def test_max_lock_file_age_default_value(self) -> None:
@@ -131,7 +136,9 @@ class TestParallelParserEnvConfigDefaults:
         Note:
             Значение по умолчанию: 300 секунд (5 минут)
         """
-        result = check_env_value("PARSER_MAX_LOCK_FILE_AGE", "MAX_LOCK_FILE_AGE", "300", 300)
+        result = check_env_value(
+            "PARSER_MAX_LOCK_FILE_AGE", "MAX_LOCK_FILE_AGE", "300", 300
+        )
         assert result is True, "PARSER_MAX_LOCK_FILE_AGE по умолчанию должно быть 300"
 
     def test_max_temp_files_default_value(self) -> None:
@@ -141,7 +148,9 @@ class TestParallelParserEnvConfigDefaults:
         Note:
             Значение по умолчанию: 1000 файлов
         """
-        result = check_env_value("PARSER_MAX_TEMP_FILES", "MAX_TEMP_FILES", "1000", 1000)
+        result = check_env_value(
+            "PARSER_MAX_TEMP_FILES", "MAX_TEMP_FILES", "1000", 1000
+        )
         assert result is True, "PARSER_MAX_TEMP_FILES по умолчанию должно быть 1000"
 
 

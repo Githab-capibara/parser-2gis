@@ -11,7 +11,6 @@ import subprocess
 import sys
 
 import pytest
-import warnings
 
 
 class TestUnusedImports:
@@ -77,7 +76,9 @@ class TestUnusedImports:
         # Просто проверяем что модуль существует
         from pathlib import Path
 
-        visual_logger_py = Path("/home/d/parser-2gis/parser_2gis/logger/visual_logger.py")
+        visual_logger_py = Path(
+            "/home/d/parser-2gis/parser_2gis/logger/visual_logger.py"
+        )
         assert visual_logger_py.exists(), "visual_logger.py не найден"
 
 

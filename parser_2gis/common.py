@@ -564,8 +564,8 @@ def wait_until_finished(
                     raise
                 except Exception as e:
                     # Логирование ошибок выполнения функции
-                    logger = _get_logger()
-                    logger.debug(
+                    local_logger = _get_logger()
+                    local_logger.debug(
                         "Ошибка при выполнении функции %s (попытка): %s",
                         func.__name__,
                         e,
@@ -757,18 +757,20 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
         >>> result
         {'code': 'msk', 'domain': 'moscow.2gis.ru'}
     """
-    logger = _get_logger()
+    local_logger = _get_logger()
 
     if not isinstance(city, dict):
-        logger.warning("%s не является словарём: %s", field_name, city)
+        local_logger.warning("%s не является словарём: %s", field_name, city)
         raise ValueError(f"{field_name} должен быть словарём")
 
     if not all(key in city for key in ("code", "domain")):
-        logger.warning("Город не содержит обязательные поля (code, domain): %s", city)
+        local_logger.warning(
+            "Город не содержит обязательные поля (code, domain): %s", city
+        )
         raise ValueError(f"{field_name} должен содержать поля code и domain")
 
     if not isinstance(city["code"], str) or not isinstance(city["domain"], str):
-        logger.warning("Поля code и domain должны быть строками: %s", city)
+        local_logger.warning("Поля code и domain должны быть строками: %s", city)
         raise ValueError("code и domain должны быть строками")
 
     # Используем кэшированную версию для часто используемых городов
@@ -815,15 +817,17 @@ def _validate_category(category: Any) -> Dict[str, Any]:
     Raises:
         ValueError: Если категория некорректна.
     """
-    logger = _get_logger()
+    local_logger = _get_logger()
 
     if not isinstance(category, dict):
-        logger.warning("category не является словарём: %s", category)
+        local_logger.warning("category не является словарём: %s", category)
         raise ValueError("category должен быть словарём")
 
     # Проверка наличия name или query
     if "name" not in category and "query" not in category:
-        logger.warning("Категория должна содержать 'name' или 'query': %s", category)
+        local_logger.warning(
+            "Категория должна содержать 'name' или 'query': %s", category
+        )
         raise ValueError("category должен содержать 'name' или 'query'")
 
     # Используем кэшированную версию
@@ -883,21 +887,21 @@ def generate_category_url(
     Returns:
         URL для парсинга категории в городе.
     """
-    logger = _get_logger()
+    local_logger = _get_logger()
 
     # Минимальная валидация
     if not isinstance(city, dict) or "code" not in city or "domain" not in city:
-        logger.warning("Некорректный город: %s", city)
+        local_logger.warning("Некорректный город: %s", city)
         raise ValueError("city должен содержать code и domain")
 
     if not isinstance(category, dict):
-        logger.warning("Некорректная категория: %s", category)
+        local_logger.warning("Некорректная категория: %s", category)
         raise ValueError("category должен быть словарём")
 
     # Получаем query категории с fallback на name
     category_query = category.get("query", category.get("name", ""))
     if not category_query:
-        logger.warning("Категория не содержит query или name: %s", category)
+        local_logger.warning("Категория не содержит query или name: %s", category)
         raise ValueError("category должен содержать query или name")
 
     # Используем кэшированную версию
@@ -925,7 +929,7 @@ def generate_city_urls(
         Список URL для парсинга.
     """
     urls: List[str] = []
-    logger = _get_logger()
+    local_logger = _get_logger()
 
     # Предварительно вычисляем rubric_code
     rubric_code = rubric.get("code", "") if rubric else ""
@@ -937,15 +941,15 @@ def generate_city_urls(
         try:
             # Минимальная валидация
             if not isinstance(city, dict):
-                logger.warning("Город не является словарём: %s", city)
+                local_logger.warning("Город не является словарём: %s", city)
                 continue
 
             if "code" not in city or "domain" not in city:
-                logger.warning("Город без code/domain: %s", city)
+                local_logger.warning("Город без code/domain: %s", city)
                 continue
 
             if not isinstance(city["code"], str) or not isinstance(city["domain"], str):
-                logger.warning("code/domain должны быть строками: %s", city)
+                local_logger.warning("code/domain должны быть строками: %s", city)
                 continue
 
             # Формирование URL

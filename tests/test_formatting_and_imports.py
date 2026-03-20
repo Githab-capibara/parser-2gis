@@ -233,7 +233,11 @@ class TestBlackFormatting:
         returncode, stdout, stderr = run_black_check(python_files)
 
         # Проверяем что black установлен
-        if returncode == 127 or "not found" in stderr or "No module named black" in stderr:
+        if (
+            returncode == 127
+            or "not found" in stderr
+            or "No module named black" in stderr
+        ):
             pytest.skip("black не установлен. Установите: pip install black")
 
         # Если black обнаружил проблемы
@@ -316,7 +320,11 @@ class TestIsortImports:
         returncode, stdout, stderr = run_isort_check(python_files)
 
         # Проверяем что isort установлен
-        if returncode == 127 or "not found" in stderr or "No module named isort" in stderr:
+        if (
+            returncode == 127
+            or "not found" in stderr
+            or "No module named isort" in stderr
+        ):
             pytest.skip("isort не установлен. Установите: pip install isort")
 
         # Если isort обнаружил проблемы
@@ -402,7 +410,11 @@ class TestAutoflakeUnusedImports:
         returncode, stdout, stderr = run_autoflake_check(python_files)
 
         # Проверяем что autoflake установлен
-        if returncode == 127 or "not found" in stderr or "No module named autoflake" in stderr:
+        if (
+            returncode == 127
+            or "not found" in stderr
+            or "No module named autoflake" in stderr
+        ):
             pytest.skip("autoflake не установлен. Установите: pip install autoflake")
 
         # Если autoflake обнаружил проблемы
@@ -419,13 +431,15 @@ class TestAutoflakeUnusedImports:
                 f"Вывод autoflake:\n{stdout}\n{stderr}\n\n"
                 f"Найденные проблемы:\n"
                 + "\n".join(f"  {line}" for line in error_lines[:20])
-                + f"\n\nДля автоматического удаления выполните:\n"
-                f"  autoflake --remove-all-unused-imports -r parser_2gis/"
+                + "\n\nДля автоматического удаления выполните:\n"
+                "  autoflake --remove-all-unused-imports -r parser_2gis/"
             )
             pytest.fail(error_message)
 
         # Тест проходит
-        assert returncode == 0, f"autoflake завершил работу с кодом {returncode}: {stderr}"
+        assert returncode == 0, (
+            f"autoflake завершил работу с кодом {returncode}: {stderr}"
+        )
 
 
 class TestSyntaxErrors:

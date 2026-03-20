@@ -15,10 +15,10 @@ from __future__ import annotations
 import queue
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import psutil
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .logger import logger
 
@@ -26,7 +26,9 @@ from .logger import logger
 class ParallelTask:
     """Задача для параллельного парсинга."""
 
-    def __init__(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
+    def __init__(
+        self, url: str, category_name: str, city_name: str, priority: int = 0
+    ) -> None:
         """
         Инициализирует задачу.
 
@@ -68,7 +70,7 @@ class ParallelTask:
         """
         if self.start_time and self.end_time:
             return self.end_time - self.start_time
-        elif self.start_time:
+        if self.start_time:
             return time.time() - self.start_time
         return 0
 
@@ -129,7 +131,9 @@ class ParallelOptimizer:
             max_memory_mb,
         )
 
-    def add_task(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
+    def add_task(
+        self, url: str, category_name: str, city_name: str, priority: int = 0
+    ) -> None:
         """
         Добавляет задачу в очередь.
 
@@ -349,7 +353,7 @@ class ParallelOptimizer:
             # Оптимизация 3.5: используем Queue.empty() для проверки
             while not self._tasks.empty() or self._active_tasks:
                 # Проверяем ресурсы
-                available, memory_mb = self.check_resources()
+                available, _ = self.check_resources()
 
                 if not available:
                     logger.warning("Ожидание освобождения ресурсов...")
@@ -358,7 +362,10 @@ class ParallelOptimizer:
 
                 # Запускаем новые задачи если есть ресурсы
                 # Оптимизация 3.5: Queue.empty() для проверки наличия задач
-                while len(self._active_tasks) < self._max_workers and not self._tasks.empty():
+                while (
+                    len(self._active_tasks) < self._max_workers
+                    and not self._tasks.empty()
+                ):
                     task = self.get_next_task()
                     if task:
                         future = executor.submit(parse_func, task)
@@ -375,7 +382,7 @@ class ParallelOptimizer:
                 for future in as_completed(futures.keys(), timeout=1.0):
                     try:
                         task = futures[future]
-                        success, result = future.result(timeout=300)
+                        success, _ = future.result(timeout=300)
                         self.complete_task(task, success)
                         completed.append(future)
 

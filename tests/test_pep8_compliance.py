@@ -11,7 +11,6 @@
 3. test_no_w293_violations - Тест отсутствия whitespace в пустых строках
 """
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -129,8 +128,9 @@ class TestPEP8Compliance:
                     if "E302" in line:
                         violations.append(f"{py_file}: {line}")
 
-        assert len(violations) == 0, f"Обнаружены нарушения E302 (2 пустые строки):\n" + "\n".join(
-            violations[:10]
+        assert len(violations) == 0, (
+            "Обнаружены нарушения E302 (2 пустые строки):\n"
+            + "\n".join(violations[:10])
         )
 
     def test_no_e305_violations(self) -> None:
@@ -161,10 +161,9 @@ class TestPEP8Compliance:
                     if "E305" in line:
                         violations.append(f"{py_file}: {line}")
 
-        assert (
-            len(violations) == 0
-        ), f"Обнаружены нарушения E305 (2 пустые строки после класса/функции):\n" + "\n".join(
-            violations[:10]
+        assert len(violations) == 0, (
+            "Обнаружены нарушения E305 (2 пустые строки после класса/функции):\n"
+            + "\n".join(violations[:10])
         )
 
     def test_no_w293_violations(self) -> None:
@@ -195,10 +194,9 @@ class TestPEP8Compliance:
                     if "W293" in line:
                         violations.append(f"{py_file}: {line}")
 
-        assert (
-            len(violations) == 0
-        ), f"Обнаружены нарушения W293 (whitespace в пустых строках):\n" + "\n".join(
-            violations[:10]
+        assert len(violations) == 0, (
+            "Обнаружены нарушения W293 (whitespace в пустых строках):\n"
+            + "\n".join(violations[:10])
         )
 
 
@@ -234,9 +232,10 @@ class TestPEP8ComplianceSpecificFiles:
             if any(code in line for code in ["E302", "E305", "W293"]):
                 relevant_violations.append(line)
 
-        assert (
-            len(relevant_violations) == 0
-        ), f"Обнаружены нарушения PEP 8 в {file_path}:\n" + "\n".join(relevant_violations)
+        assert len(relevant_violations) == 0, (
+            f"Обнаружены нарушения PEP 8 в {file_path}:\n"
+            + "\n".join(relevant_violations)
+        )
 
 
 class TestPEP8ComplianceDetailed:
@@ -267,12 +266,14 @@ class TestPEP8ComplianceDetailed:
                     for line_num, line in enumerate(f, 1):
                         # Проверяем на пробелы в конце строки (перед newline)
                         if line.rstrip("\n\r") != line.rstrip():
-                            violations.append(f"{py_file}:{line_num}: trailing whitespace")
-            except Exception as e:
+                            violations.append(
+                                f"{py_file}:{line_num}: trailing whitespace"
+                            )
+            except Exception:
                 # Пропускаем файлы которые не удалось прочитать
                 pass
 
-        assert len(violations) == 0, f"Обнаружены пробелы в конце строк:\n" + "\n".join(
+        assert len(violations) == 0, "Обнаружены пробелы в конце строк:\n" + "\n".join(
             violations[:10]
         )
 
@@ -296,7 +297,7 @@ class TestPEP8ComplianceDetailed:
                         violations.append(f"{py_file}: {line}")
 
         assert len(violations) == 0, (
-            f"Обнаружены нарушения количества пустых строк:\n"
+            "Обнаружены нарушения количества пустых строк:\n"
             + "\n".join(violations[:10])
             + (f"\n... и ещё {len(violations) - 10}" if len(violations) > 10 else "")
         )
@@ -334,7 +335,7 @@ class TestPEP8ComplianceDetailed:
                 pass
 
         assert len(violations) == 0, (
-            f"Обнаружены смешанные табуляции и пробелы:\n"
+            "Обнаружены смешанные табуляции и пробелы:\n"
             + "\n".join(violations[:10])
             + (f"\n... и ещё {len(violations) - 10}" if len(violations) > 10 else "")
         )
@@ -359,7 +360,8 @@ class TestPEP8ComplianceConfiguration:
         config_exists = any(config.exists() for config in config_files)
 
         assert config_exists, (
-            "Конфигурация flake8 не найдена. " "Создайте setup.cfg или .flake8 в корне проекта"
+            "Конфигурация flake8 не найдена. "
+            "Создайте setup.cfg или .flake8 в корне проекта"
         )
 
     def test_setup_cfg_has_flake8_section(self) -> None:

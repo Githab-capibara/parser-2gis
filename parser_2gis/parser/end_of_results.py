@@ -36,9 +36,15 @@ class EndOfResultsDetector:
 
     # Паттерны DOM-элементов, указывающих на окончание
     DOM_END_SELECTORS = [
-        lambda node: node.local_name == "div"
-        and any(pattern in node.text.lower() for pattern in ["конец", "нет результатов"]),
-        lambda node: node.local_name == "p" and "ничего не найдено" in node.text.lower(),
+        lambda node: (
+            node.local_name == "div"
+            and any(
+                pattern in node.text.lower() for pattern in ["конец", "нет результатов"]
+            )
+        ),
+        lambda node: (
+            node.local_name == "p" and "ничего не найдено" in node.text.lower()
+        ),
     ]
 
     def __init__(self, chrome_remote: "ChromeRemote") -> None:
@@ -72,7 +78,9 @@ class EndOfResultsDetector:
                     return True
 
             # Проверяем DOM-элементы
-            nodes = dom_tree.search(lambda node: bool(node.text) and len(node.text) < 500)
+            nodes = dom_tree.search(
+                lambda node: bool(node.text) and len(node.text) < 500
+            )
             for selector in self.DOM_END_SELECTORS:
                 for node in nodes:
                     try:
@@ -101,9 +109,11 @@ class EndOfResultsDetector:
 
             # Ищем ссылки на страницы
             page_links = dom_tree.search(
-                lambda x: x.local_name == "a"
-                and "href" in x.attributes
-                and "/page/" in x.attributes.get("href", "")
+                lambda x: (
+                    x.local_name == "a"
+                    and "href" in x.attributes
+                    and "/page/" in x.attributes.get("href", "")
+                )
             )
 
             # Если есть хотя бы одна ссылка на страницу кроме первой

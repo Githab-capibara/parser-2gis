@@ -7,11 +7,6 @@
 - Корректность конфигурации и валидации
 """
 
-import tempfile
-import threading
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
-
 import pytest
 from concurrent.futures import ThreadPoolExecutor
 
@@ -224,7 +219,9 @@ class TestBoundaryConditions:
         """Проверка декоратора wait_until_finished с таймаутом."""
         call_count = 0
 
-        @wait_until_finished(timeout=0.5, finished=lambda x: False, throw_exception=False)
+        @wait_until_finished(
+            timeout=0.5, finished=lambda x: False, throw_exception=False
+        )
         def slow_func():
             nonlocal call_count
             call_count += 1

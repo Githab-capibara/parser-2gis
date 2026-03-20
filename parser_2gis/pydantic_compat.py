@@ -26,9 +26,8 @@ def get_model_dump(model: pydantic.BaseModel, **kwargs) -> dict:
     if PYDANTIC_V2:
         # Pydantic v2 использует model_dump()
         return model.model_dump(**kwargs)  # type: ignore[attr-defined]
-    else:
-        # Pydantic v1 использует dict()
-        return model.dict(**kwargs)
+    # Pydantic v1 использует dict()
+    return model.dict(**kwargs)
 
 
 def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
@@ -44,9 +43,8 @@ def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
     if PYDANTIC_V2:
         # Pydantic v2 использует model_fields_set
         return model.model_fields_set  # type: ignore[attr-defined]
-    else:
-        # Pydantic v1 использует __fields_set__
-        return model.__fields_set__
+    # Pydantic v1 использует __fields_set__
+    return model.__fields_set__
 
 
 def model_validate_json(json_str: str) -> pydantic.BaseModel:
@@ -62,12 +60,13 @@ def model_validate_json(json_str: str) -> pydantic.BaseModel:
     if PYDANTIC_V2:
         # Pydantic v2 использует model_validate_json
         return pydantic.BaseModel.model_validate_json(json_str)  # type: ignore[attr-defined]
-    else:
-        # Pydantic v1 использует parse_raw
-        return pydantic.BaseModel.parse_raw(json_str)
+    # Pydantic v1 использует parse_raw
+    return pydantic.BaseModel.parse_raw(json_str)
 
 
-def model_validate_json_class(cls: type[pydantic.BaseModel], json_str: str) -> pydantic.BaseModel:
+def model_validate_json_class(
+    cls: type[pydantic.BaseModel], json_str: str
+) -> pydantic.BaseModel:
     """
     Создаёт модель из JSON строки для указанного класса.
 
@@ -81,6 +80,5 @@ def model_validate_json_class(cls: type[pydantic.BaseModel], json_str: str) -> p
     if PYDANTIC_V2:
         # Pydantic v2 использует model_validate_json
         return cls.model_validate_json(json_str)  # type: ignore[attr-defined]
-    else:
-        # Pydantic v1 использует parse_raw
-        return cls.parse_raw(json_str)
+    # Pydantic v1 использует parse_raw
+    return cls.parse_raw(json_str)

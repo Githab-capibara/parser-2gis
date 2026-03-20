@@ -12,6 +12,7 @@
 
 import sqlite3
 import sys
+import tempfile
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -522,9 +523,6 @@ class TestErrorHandlingIntegration:
 
             cache.close()
 
-
-# Импортируем tempfile для использования в тестах
-import tempfile
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

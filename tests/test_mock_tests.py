@@ -10,8 +10,6 @@ Mock тесты для parallel_parser.py, browser.py и cache.py.
 
 from __future__ import annotations
 
-import os
-import signal
 import subprocess
 import tempfile
 from pathlib import Path
@@ -67,7 +65,7 @@ class TestParallelParserMock:
     def test_parallel_parser_invalid_timeout(self) -> None:
         """Тест валидации timeout_per_url."""
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import MIN_TIMEOUT, ParallelCityParser
+        from parser_2gis.parallel_parser import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Рестораны"}]
@@ -139,7 +137,6 @@ class TestParallelParserMock:
     def test_cancel_event_stops_merge(self, tmp_path: Path) -> None:
         """Тест отмены операции объединения через cancel_event."""
         import csv
-        import threading
 
         from parser_2gis.config import Configuration
         from parser_2gis.parallel_parser import ParallelCityParser
@@ -225,7 +222,9 @@ class TestChromeBrowserMock:
         mock_free_port.return_value = 9222
         mock_process = MagicMock()
         mock_process.pid = 12345
-        mock_process.wait.side_effect = subprocess.TimeoutExpired(cmd="chrome", timeout=5)
+        mock_process.wait.side_effect = subprocess.TimeoutExpired(
+            cmd="chrome", timeout=5
+        )
         mock_popen.return_value = mock_process
 
         chrome_options = ChromeOptions()
@@ -259,7 +258,9 @@ class TestChromeBrowserMock:
         # wait() выбрасывает TimeoutExpired
         # poll() после kill() возвращает код выхода
         mock_process.poll.side_effect = [None, -9]  # None = работает, -9 = SIGKILL
-        mock_process.wait.side_effect = subprocess.TimeoutExpired(cmd="chrome", timeout=5)
+        mock_process.wait.side_effect = subprocess.TimeoutExpired(
+            cmd="chrome", timeout=5
+        )
         mock_popen.return_value = mock_process
 
         chrome_options = ChromeOptions()
@@ -374,7 +375,9 @@ class TestHelperFunctions:
         def log_callback(msg: str, level: str) -> None:
             log_messages.append((level, msg))
 
-        lock_handle, acquired = _acquire_merge_lock(lock_file, timeout=5, log_callback=log_callback)
+        lock_handle, acquired = _acquire_merge_lock(
+            lock_file, timeout=5, log_callback=log_callback
+        )
 
         assert acquired is True
         assert lock_handle is not None
@@ -476,7 +479,9 @@ class TestEdgeCases:
                 f, fieldnames=["Название", "Описание"], quoting=csv.QUOTE_MINIMAL
             )
             writer.writeheader()
-            writer.writerow({"Название": 'Тест "с кавычками"', "Описание": "Текст\nс\nпереносами"})
+            writer.writerow(
+                {"Название": 'Тест "с кавычками"', "Описание": "Текст\nс\nпереносами"}
+            )
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Категория"}]
@@ -530,14 +535,12 @@ class TestEdgeCases:
 
     def test_atexit_cleanup_registration(self) -> None:
         """Тест регистрации очистки через atexit."""
-        import atexit
 
         # Проверяем что функция очистки зарегистрирована в atexit
         # Это сложно проверить напрямую, но можем проверить что функции работают
         from pathlib import Path
 
         from parser_2gis.parallel_parser import (
-            _cleanup_all_temp_files,
             _register_temp_file,
             _unregister_temp_file,
         )

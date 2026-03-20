@@ -34,19 +34,21 @@ class TestCategories93:
 
         for i, cat in enumerate(CATEGORIES_93, 1):
             assert isinstance(cat, dict), f"Категория {i} должна быть словарём"
-            assert required_keys.issubset(
-                cat.keys()
-            ), f"Категория {i} должна иметь ключи {required_keys}"
-            assert "name" in cat and len(cat["name"]) > 0, f"Категория {i} должна иметь название"
-            assert (
-                "query" in cat and len(cat["query"]) > 0
-            ), f"Категория {i} должна иметь поисковый запрос"
+            assert required_keys.issubset(cat.keys()), (
+                f"Категория {i} должна иметь ключи {required_keys}"
+            )
+            assert "name" in cat and len(cat["name"]) > 0, (
+                f"Категория {i} должна иметь название"
+            )
+            assert "query" in cat and len(cat["query"]) > 0, (
+                f"Категория {i} должна иметь поисковый запрос"
+            )
 
             # rubric_code может быть None или строкой
             if "rubric_code" in cat and cat["rubric_code"] is not None:
-                assert isinstance(
-                    cat["rubric_code"], str
-                ), f"rubric_code категории {i} должен быть строкой или None"
+                assert isinstance(cat["rubric_code"], str), (
+                    f"rubric_code категории {i} должен быть строкой или None"
+                )
 
     def test_get_categories_list(self):
         """Проверка функции get_categories_list."""
@@ -102,7 +104,7 @@ class TestGenerateUrlsForCity:
         assert len(urls) == 1
         assert "2gis.ru/moscow" in urls[0]
         # Проверяем кодированный URL (urllib.parse.quote кодирует кириллицу)
-        assert f'search/{urllib.parse.quote("Кафе")}' in urls[0]
+        assert f"search/{urllib.parse.quote('Кафе')}" in urls[0]
         assert "rubricId/161" in urls[0]
         assert "filters/sort=name" in urls[0]
 
@@ -137,7 +139,7 @@ class TestGenerateUrlsForCity:
         assert len(urls) == 1
         assert "rubricId" not in urls[0]
         # Проверяем кодированный URL
-        assert f'search/{urllib.parse.quote("Бургерные")}' in urls[0]
+        assert f"search/{urllib.parse.quote('Бургерные')}" in urls[0]
 
     def test_generate_urls_all_93_categories(self):
         """Проверка генерации URL для всех 93 категорий."""

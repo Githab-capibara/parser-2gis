@@ -9,6 +9,7 @@
 """
 
 import os
+import subprocess
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -308,9 +309,6 @@ class TestSignalHandlerCleanup:
                 except Exception as e:
                     pytest.skip(f"Не удалось создать браузер: {e}")
 
-
-# Импортируем subprocess для теста
-import subprocess
 
 # Запуск тестов через pytest
 if __name__ == "__main__":

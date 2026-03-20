@@ -9,7 +9,6 @@
 """
 
 import logging
-from io import StringIO
 from unittest.mock import patch
 
 import pytest
@@ -171,7 +170,9 @@ class TestLoggingContext:
         category = "Кафе"
         url = "https://2gis.ru/moscow/search/Кафе"
 
-        logger.info("Парсинг города %s, категория %s, URL: %s", city_name, category, url)
+        logger.info(
+            "Парсинг города %s, категория %s, URL: %s", city_name, category, url
+        )
 
         # Проверяем что все переменные в сообщении
         assert city_name in caplog.text

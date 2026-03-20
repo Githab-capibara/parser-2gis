@@ -101,7 +101,8 @@ def _tui_stub() -> None:
 
 
 try:
-    from .tui_textual import Parser2GISTUI, run_tui as run_new_tui_omsk
+    from .tui_textual import Parser2GISTUI
+    from .tui_textual import run_tui as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функции
     run_new_tui_omsk = _tui_omsk_stub
@@ -109,7 +110,9 @@ except ImportError:
     logger.warning("TUI модуль (textual) недоступен. TUI функции будут недоступны")
 
 
-def _validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str) -> int:
+def _validate_positive_int(
+    value: int, min_val: int, max_val: int, arg_name: str
+) -> int:
     """Валидирует положительное целое число в заданном диапазоне.
 
     Args:
@@ -131,7 +134,9 @@ def _validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str
         ValueError: --parser.max-retries должен быть от 1 до 100 (получено 0)
     """
     if not (min_val <= value <= max_val):
-        raise ValueError(f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})")
+        raise ValueError(
+            f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})"
+        )
     return value
 
 
@@ -170,7 +175,9 @@ def _validate_cli_argument(
             arg_parser.error(str(e))
 
 
-def _validate_urls(args: argparse.Namespace, arg_parser: argparse.ArgumentParser) -> None:
+def _validate_urls(
+    args: argparse.Namespace, arg_parser: argparse.ArgumentParser
+) -> None:
     """
     Валидирует URL из аргументов командной строки.
 
@@ -236,7 +243,7 @@ def _handle_configuration_validation(
 # Это устраняет дублирование кода валидации и обеспечивает единую точку валидации URL
 
 # Глобальный экземпляр обработчика сигналов
-_signal_handler_instance: Optional[SignalHandler] = None
+_SIGNAL_HANDLER_INSTANCE: Optional[SignalHandler] = None
 
 
 @lru_cache(maxsize=1)
@@ -258,9 +265,11 @@ def _get_signal_handler_cached() -> SignalHandler:
         lru_cache(maxsize=1) обеспечивает синглтон-поведение с автоматической
         потокобезопасностью. Это заменяет ручную реализацию double-checked locking.
     """
-    if _signal_handler_instance is None:
-        raise RuntimeError("SignalHandler не инициализирован. Вызовите _setup_signal_handlers().")
-    return _signal_handler_instance
+    if _SIGNAL_HANDLER_INSTANCE is None:
+        raise RuntimeError(
+            "SignalHandler не инициализирован. Вызовите _setup_signal_handlers()."
+        )
+    return _SIGNAL_HANDLER_INSTANCE
 
 
 def _get_signal_handler() -> SignalHandler:
@@ -299,10 +308,12 @@ def _setup_signal_handlers() -> None:
         - Используется класс SignalHandler для инкапсуляции состояния
         - Инициализация выполняется один раз при старте приложения
     """
-    global _signal_handler_instance
-    _signal_handler_instance = SignalHandler(cleanup_callback=cleanup_resources)
-    _signal_handler_instance.setup()
-    logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через SignalHandler")
+    global _SIGNAL_HANDLER_INSTANCE
+    _SIGNAL_HANDLER_INSTANCE = SignalHandler(cleanup_callback=cleanup_resources)
+    _SIGNAL_HANDLER_INSTANCE.setup()
+    logger.debug(
+        "Обработчики сигналов SIGINT и SIGTERM установлены через SignalHandler"
+    )
 
 
 def cleanup_resources() -> None:
@@ -390,7 +401,9 @@ def cleanup_resources() -> None:
                 error_count += 1
             except AttributeError as attr_error:
                 # _active_instances не существует
-                logger.error("_active_instances не существует: %s", attr_error, exc_info=True)
+                logger.error(
+                    "_active_instances не существует: %s", attr_error, exc_info=True
+                )
                 error_count += 1
 
         # Очистка кэша базы данных Cache
@@ -401,7 +414,9 @@ def cleanup_resources() -> None:
                 success_count += 1
             except AttributeError as attr_error:
                 # Метод close_all не существует
-                logger.error("Метод Cache.close_all не существует: %s", attr_error, exc_info=True)
+                logger.error(
+                    "Метод Cache.close_all не существует: %s", attr_error, exc_info=True
+                )
                 error_count += 1
             except RuntimeError as runtime_error:
                 # Ошибка при закрытии кэша
@@ -551,7 +566,9 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
         logger.debug("Размер файла городов: %d байт", file_size)
     except OSError as stat_error:
         logger.error("Ошибка получения информации о файле: %s", stat_error)
-        raise OSError(f"Не удалось получить информацию о файле: {stat_error}")
+        raise OSError(
+            f"Не удалось получить информацию о файле: {stat_error}"
+        ) from stat_error
 
     try:
         # Оптимизация: используем mmap для больших файлов >1MB
@@ -566,7 +583,9 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
             import mmap as mmap_module
 
             with open(cities_path, "rb") as f:
-                mmapped_file = mmap_module.mmap(f.fileno(), 0, access=mmap_module.ACCESS_READ)
+                mmapped_file = mmap_module.mmap(
+                    f.fileno(), 0, access=mmap_module.ACCESS_READ
+                )
                 try:
                     # Декодируем mmap в строку и парсим JSON
                     json_data = mmapped_file.read().decode("utf-8")
@@ -602,7 +621,9 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
         # Валидируем каждый город
         for i, city in enumerate(all_cities):
             if not isinstance(city, dict):
-                logger.error("Город %d должен быть словарём, а не %s", i, type(city).__name__)
+                logger.error(
+                    "Город %d должен быть словарём, а не %s", i, type(city).__name__
+                )
                 raise ValueError(f"Город {i} должен быть словарём")
 
             # Проверяем обязательные поля
@@ -615,8 +636,12 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
                 raise ValueError(f"Поля 'name' и 'url' города {i} должны быть строками")
 
             # Проверяем URL на корректность
-            if not city["url"].startswith("http://") and not city["url"].startswith("https://"):
-                logger.error("URL города %d должен начинаться с http:// или https://", i)
+            if not city["url"].startswith("http://") and not city["url"].startswith(
+                "https://"
+            ):
+                logger.error(
+                    "URL города %d должен начинаться с http:// или https://", i
+                )
                 raise ValueError(f"URL города {i} некорректен")
 
         logger.debug("Файл городов валидирован: %d городов", len(all_cities))
@@ -624,10 +649,10 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
 
     except json.JSONDecodeError as e:
         logger.error("Ошибка парсинга JSON в файле городов: %s", e)
-        raise ValueError(f"Некорректный формат JSON в файле городов: {e}")
+        raise ValueError(f"Некорректный формат JSON в файле городов: {e}") from e
     except OSError as e:
         logger.error("Ошибка ОС при чтении файла городов: %s", e)
-        raise OSError(f"Не удалось прочитать файл городов: {e}")
+        raise OSError(f"Не удалось прочитать файл городов: {e}") from e
 
 
 class ArgumentHelpFormatter(argparse.HelpFormatter):
@@ -795,7 +820,9 @@ def parse_arguments(
         metavar="{yes,no}",
         help="Отключить изображения в браузере",
     )
-    browser_parser.add_argument("--chrome.headless", metavar="{yes/no}", help="Скрыть браузер")
+    browser_parser.add_argument(
+        "--chrome.headless", metavar="{yes/no}", help="Скрыть браузер"
+    )
     browser_parser.add_argument(
         "--chrome.silent-browser",
         metavar="{yes/no}",
@@ -966,7 +993,9 @@ def parse_arguments(
         version=f"%(prog)s {version}",
         help="Показать версию программы и выйти",
     )
-    rest_parser.add_argument("-h", "--help", action="help", help="Показать эту справку и выйти")
+    rest_parser.add_argument(
+        "-h", "--help", action="help", help="Показать эту справку и выйти"
+    )
 
     args = arg_parser.parse_args(argv_copy)
     config_args = unwrap_dot_dict(vars(args))
@@ -976,7 +1005,9 @@ def parse_arguments(
     _validate_cli_argument(
         args, arg_parser, "parser.max_retries", 1, float("inf"), "--parser.max-retries"
     )
-    _validate_cli_argument(args, arg_parser, "parser.timeout", 1, float("inf"), "--parser.timeout")
+    _validate_cli_argument(
+        args, arg_parser, "parser.timeout", 1, float("inf"), "--parser.timeout"
+    )
     _validate_cli_argument(
         args, arg_parser, "parser.max_workers", 1, float("inf"), "--parser.max-workers"
     )
@@ -1054,14 +1085,18 @@ def parse_arguments(
     )
 
     # Пропускаем валидацию URL для TUI режимов - там выбор происходит в интерфейсе
-    is_tui_mode = getattr(args, "tui_new", False) or getattr(args, "tui_new_omsk", False)
+    is_tui_mode = getattr(args, "tui_new", False) or getattr(
+        args, "tui_new_omsk", False
+    )
 
     # Ручная валидация: требуется хотя бы один источник URL (кроме TUI режимов)
     if not is_tui_mode:
         has_cities = hasattr(args, "cities") and args.cities is not None
         has_url_source = args.url is not None or has_cities
         if not has_url_source:
-            arg_parser.error("Требуется указать хотя бы один источник URL: -i/--url или --cities")
+            arg_parser.error(
+                "Требуется указать хотя бы один источник URL: -i/--url или --cities"
+            )
 
         # Валидация: --categories-mode требует --cities
         categories_mode = getattr(args, "categories_mode", False)
@@ -1095,7 +1130,11 @@ def _get_output_dir(output_path: str | None) -> Path:
     if output_path_obj.suffix and output_path_obj.parent.exists():
         return output_path_obj.parent
     # Если путь не существует, возвращаем родителя или сам путь если нет родителя
-    return output_path_obj.parent if output_path_obj.parent != Path(".") else output_path_obj
+    return (
+        output_path_obj.parent
+        if output_path_obj.parent != Path(".")
+        else output_path_obj
+    )
 
 
 def main() -> None:
@@ -1185,7 +1224,9 @@ def main() -> None:
                 logger.error("Ошибка при создании директории output: %s", e)
                 raise
 
-            logger.info("Запуск параллельного парсинга по %d категориям", len(CATEGORIES_93))
+            logger.info(
+                "Запуск параллельного парсинга по %d категориям", len(CATEGORIES_93)
+            )
             logger.info("Города: %s", [c["name"] for c in selected_cities])
             logger.info("Количество потоков: %d", getattr(args, "parallel_workers", 3))
 
@@ -1222,14 +1263,14 @@ def main() -> None:
             )
 
             return
-        else:
-            # Обычный режим - генерируем URL по городам
-            query = args.query or "Организации"
-            rubric = {"code": args.rubric} if args.rubric else None
 
-            # Генерируем URL
-            generated_urls = generate_city_urls(selected_cities, query, rubric)
-            urls.extend(generated_urls)
+        # Обычный режим - генерируем URL по городам
+        query = args.query or "Организации"
+        rubric = {"code": args.rubric} if args.rubric else None
+
+        # Генерируем URL
+        generated_urls = generate_city_urls(selected_cities, query, rubric)
+        urls.extend(generated_urls)
 
     # Проверяем, что указаны обязательные параметры
     # В режиме categories_mode парсинг уже завершён выше, пропускаем проверки
@@ -1244,7 +1285,9 @@ def main() -> None:
         output_format = getattr(args, "format", None)
 
         if not output_path:
-            logger.error("Не указан путь к выходному файлу. Используйте -o/--output-path")
+            logger.error(
+                "Не указан путь к выходному файлу. Используйте -o/--output-path"
+            )
             sys.exit(1)
 
         if not output_format:
@@ -1306,7 +1349,9 @@ def _log_startup_info(
     format_str = format_value.upper() if format_value else "CSV (по умолчанию)"
 
     output_path_value = getattr(args, "output_path", None)
-    output_path_str = str(output_path_value) if output_path_value else "output/ (по умолчанию)"
+    output_path_str = (
+        str(output_path_value) if output_path_value else "output/ (по умолчанию)"
+    )
 
     # Формируем сводку конфигурации
     config_summary = {

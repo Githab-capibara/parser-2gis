@@ -37,7 +37,6 @@ class BuildStandaloneCommand(Command):
         import os
         import shutil
         import subprocess
-        import sys
 
         try:
             # Имя файла дистрибутива

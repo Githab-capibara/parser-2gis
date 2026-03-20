@@ -12,7 +12,6 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -61,9 +60,9 @@ class TestXSSVulnerabilityInitialState:
         }
 
         # Проверяем что валидация проходит успешно
-        assert (
-            _validate_initial_state(valid_data) is True
-        ), "Корректные данные initialState должны проходить валидацию"
+        assert _validate_initial_state(valid_data) is True, (
+            "Корректные данные initialState должны проходить валидацию"
+        )
 
     def test_validate_initial_state_rejects_dangerous_js(self):
         """
@@ -146,9 +145,9 @@ class TestXSSVulnerabilityInitialState:
         ]
 
         for i, data in enumerate(dangerous_data):
-            assert (
-                _validate_initial_state(data) is False
-            ), f"Данные с XSS атакой (тест {i + 1}) должны быть отклонены"
+            assert _validate_initial_state(data) is False, (
+                f"Данные с XSS атакой (тест {i + 1}) должны быть отклонены"
+            )
 
     def test_validate_initial_state_rejects_deep_nesting(self):
         """
@@ -169,9 +168,9 @@ class TestXSSVulnerabilityInitialState:
         current["payload"] = "malicious data"
 
         # Проверяем что данные отклоняются из-за глубины
-        assert (
-            _validate_initial_state(deep_data) is False
-        ), f"Данные с глубиной вложенности > {MAX_INITIAL_STATE_DEPTH} должны быть отклонены"
+        assert _validate_initial_state(deep_data) is False, (
+            f"Данные с глубиной вложенности > {MAX_INITIAL_STATE_DEPTH} должны быть отклонены"
+        )
 
         # Проверяем что данные с допустимой глубиной проходят
         valid_deep_data = {"level_0": {}}
@@ -183,9 +182,9 @@ class TestXSSVulnerabilityInitialState:
 
         current["payload"] = "valid data"
 
-        assert (
-            _validate_initial_state(valid_deep_data) is True
-        ), f"Данные с глубиной вложенности < {MAX_INITIAL_STATE_DEPTH} должны проходить валидацию"
+        assert _validate_initial_state(valid_deep_data) is True, (
+            f"Данные с глубиной вложенности < {MAX_INITIAL_STATE_DEPTH} должны проходить валидацию"
+        )
 
 
 # =============================================================================
@@ -229,9 +228,9 @@ class TestSQLInjectionInCache:
         }
 
         # Проверяем что валидация проходит успешно
-        assert (
-            _validate_cached_data(valid_data) is True
-        ), "Корректные данные кэша должны проходить валидацию"
+        assert _validate_cached_data(valid_data) is True, (
+            "Корректные данные кэша должны проходить валидацию"
+        )
 
     def test_cache_uses_parameterized_queries(self):
         """
@@ -248,18 +247,20 @@ class TestSQLInjectionInCache:
         cache_source = inspect.getsource(CacheManager)
 
         # Параметризованные запросы используют ? для параметров
-        assert "?" in cache_source, "CacheManager должен использовать параметризованные запросы"
+        assert "?" in cache_source, (
+            "CacheManager должен использовать параметризованные запросы"
+        )
 
         # Проверяем отсутствие опасной конкатенации
-        assert (
-            'f"SELECT' not in cache_source or "%" not in cache_source
-        ), "CacheManager не должен использовать f-strings для SQL с данными"
-        assert (
-            'f"INSERT' not in cache_source or "%" not in cache_source
-        ), "CacheManager не должен использовать f-strings для SQL с данными"
-        assert (
-            'f"UPDATE' not in cache_source or "%" not in cache_source
-        ), "CacheManager не должен использовать f-strings для SQL с данными"
+        assert 'f"SELECT' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
+        assert 'f"INSERT' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
+        assert 'f"UPDATE' not in cache_source or "%" not in cache_source, (
+            "CacheManager не должен использовать f-strings для SQL с данными"
+        )
 
     def test_validate_cached_data_validates_structure(self):
         """
@@ -288,9 +289,9 @@ class TestSQLInjectionInCache:
             "data": {"items": [{"name": "DROP TABLE cache;--"}]},
         }
         # Эта проверка теперь проходит - защита через параметризованные запросы
-        assert (
-            _validate_cached_data(sql_like_data) is True
-        ), "Защита от SQL injection через параметризованные запросы, не через валидацию строк"
+        assert _validate_cached_data(sql_like_data) is True, (
+            "Защита от SQL injection через параметризованные запросы, не через валидацию строк"
+        )
 
 
 # =============================================================================
@@ -343,9 +344,9 @@ class TestUnsafeEvalUsage:
 
         for code in unicode_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert (
-                is_valid is False
-            ), f"Код с Unicode/HTML entity кодировкой должен быть отклонён: {code}"
+            assert is_valid is False, (
+                f"Код с Unicode/HTML entity кодировкой должен быть отклонён: {code}"
+            )
             assert (
                 "unicode" in error_message.lower()
                 or "кодировк" in error_message.lower()
@@ -374,9 +375,9 @@ class TestUnsafeEvalUsage:
         for code in atob_codes:
             is_valid, error_message = _validate_js_code(code)
             assert is_valid is False, f"Код с atob() должен быть отклонён: {code}"
-            assert (
-                "atob" in error_message.lower()
-            ), f"Сообщение об ошибке должно упоминать atob: {error_message}"
+            assert "atob" in error_message.lower(), (
+                f"Сообщение об ошибке должно упоминать atob: {error_message}"
+            )
 
     # Дополнительные тесты для комплексной проверки
     def test_validate_js_code_valid_code(self):
@@ -397,9 +398,9 @@ class TestUnsafeEvalUsage:
 
         for code in valid_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert (
-                is_valid is True
-            ), f"Безопасный код должен проходить валидацию: {code}. Ошибка: {error_message}"
+            assert is_valid is True, (
+                f"Безопасный код должен проходить валидацию: {code}. Ошибка: {error_message}"
+            )
 
     def test_validate_js_code_rejects_string_fromcharcode(self):
         """
@@ -412,9 +413,9 @@ class TestUnsafeEvalUsage:
         is_valid, error_message = _validate_js_code(charcode)
 
         assert is_valid is False, "Код с String.fromCharCode() должен быть отклонён"
-        assert (
-            "fromcharcode" in error_message.lower()
-        ), f"Сообщение об ошибке должно упоминать fromCharCode: {error_message}"
+        assert "fromcharcode" in error_message.lower(), (
+            f"Сообщение об ошибке должно упоминать fromCharCode: {error_message}"
+        )
 
     def test_validate_js_code_rejects_concat_obfuscation(self):
         """
@@ -431,9 +432,9 @@ class TestUnsafeEvalUsage:
 
         for code in concat_codes:
             is_valid, error_message = _validate_js_code(code)
-            assert (
-                is_valid is False
-            ), f"Код с подозрительной конкатенацией должен быть отклонён: {code}"
+            assert is_valid is False, (
+                f"Код с подозрительной конкатенацией должен быть отклонён: {code}"
+            )
 
 
 # =============================================================================
@@ -463,7 +464,9 @@ class TestSecurityIntegration:
             }
         }
 
-        result = _safe_extract_initial_state(valid_initial_state, ["data", "entity", "profile"])
+        result = _safe_extract_initial_state(
+            valid_initial_state, ["data", "entity", "profile"]
+        )
 
         assert result is not None, "Валидные данные должны быть извлечены"
         assert result["name"] == "ООО Ромашка", "Данные должны быть корректно извлечены"
@@ -479,7 +482,9 @@ class TestSecurityIntegration:
             }
         }
 
-        result = _safe_extract_initial_state(invalid_initial_state, ["data", "entity", "profile"])
+        result = _safe_extract_initial_state(
+            invalid_initial_state, ["data", "entity", "profile"]
+        )
 
         assert result is None, "Данные с XSS должны быть отклонены"
 

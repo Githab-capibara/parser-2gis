@@ -87,7 +87,9 @@ class AdaptiveLimits:
             return
 
         # Вычисляем среднее количество записей на страницу
-        avg_records = sum(self._records_on_first_pages) / len(self._records_on_first_pages)
+        avg_records = sum(self._records_on_first_pages) / len(
+            self._records_on_first_pages
+        )
 
         # Определяем класс города
         if avg_records <= self.CITY_SIZE_CLASSIFICATION["small"]:

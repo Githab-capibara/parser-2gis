@@ -317,7 +317,7 @@ class _TempFileTimer:
         # Добавлен timeout к acquire() для предотвращения deadlock
         lock_acquired = False
         try:
-            # Пытаемся получить блокировку с таймаутом (5 секунд)
+            # pylint: disable=consider-using-with
             lock_acquired = self._lock.acquire(timeout=5.0)
             if not lock_acquired:
                 logger.warning(
@@ -349,7 +349,7 @@ class _TempFileTimer:
         # Добавлен timeout к acquire() для предотвращения deadlock
         lock_acquired = False
         try:
-            # Пытаемся получить блокировку с таймаутом (5 секунд)
+            # pylint: disable=consider-using-with
             lock_acquired = self._lock.acquire(timeout=5.0)
             if not lock_acquired:
                 logger.warning(
@@ -485,6 +485,7 @@ def _register_temp_file(file_path: Path) -> None:
     Args:
         file_path: Путь к временному файлу.
     """
+    # pylint: disable=consider-using-with
     if _temp_files_lock.acquire(timeout=5.0):
         try:
             if len(_temp_files_registry) >= MAX_TEMP_FILES:
@@ -511,6 +512,7 @@ def _unregister_temp_file(file_path: Path) -> None:
     Args:
         file_path: Путь к временному файлу.
     """
+    # pylint: disable=consider-using-with
     if _temp_files_lock.acquire(timeout=5.0):
         try:
             _temp_files_registry.discard(file_path)
@@ -639,8 +641,10 @@ def _acquire_merge_lock(
     # Пытаемся получить блокировку с таймаутом
     start_time = time.time()
     while not lock_acquired:
+        lock_file_handle = None
         try:
-            lock_file_handle = open(lock_file_path, "w")
+            # pylint: disable=consider-using-with
+            lock_file_handle = open(lock_file_path, "w", encoding="utf-8")
             fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             lock_file_handle.write(f"{os.getpid()}\n")
             lock_file_handle.flush()
@@ -691,7 +695,8 @@ def _merge_csv_files(
         - total_rows: Количество объединённых строк.
         - files_to_delete: Список файлов для удаления.
     """
-    import csv
+    # pylint: disable=reimported
+    import csv as csv_module
 
     def log(msg: str, level: str = "info") -> None:
         if log_callback:
@@ -721,6 +726,7 @@ def _merge_csv_files(
             if buffer_size > 8192:
                 log("Попытка fallback: уменьшаем размер буфера до 8KB", "warning")
                 try:
+                    # pylint: disable=consider-using-with
                     outfile = open(
                         output_path, "w", encoding=encoding, newline="", buffering=8192
                     )
@@ -779,6 +785,7 @@ def _merge_csv_files(
                             "warning",
                         )
                         try:
+                            # pylint: disable=consider-using-with
                             infile = open(
                                 csv_file,
                                 "r",
@@ -801,7 +808,7 @@ def _merge_csv_files(
                         continue
 
                 try:
-                    reader = csv.DictReader(infile)
+                    reader = csv_module.DictReader(infile)
 
                     # Проверка reader.fieldnames на None или пустоту
                     # Это предотвращает IndexError при доступе к пустым файлам
@@ -1067,7 +1074,7 @@ class ParallelCityParser:
             except (OSError, PermissionError) as e:
                 raise ValueError(
                     f"Нет прав на запись в директорию: {output_dir}. Ошибка: {e}"
-                )
+                ) from e
             finally:
                 # Гарантируем удаление тестового файла
                 if test_file is not None and test_file.exists():
@@ -1090,7 +1097,7 @@ class ParallelCityParser:
             except (OSError, PermissionError) as e:
                 raise ValueError(
                     f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}"
-                )
+                ) from e
             finally:
                 # Гарантируем удаление тестового файла
                 if test_file is not None and test_file.exists():
@@ -1524,13 +1531,13 @@ class ParallelCityParser:
 
         if last_underscore_idx > 0:
             return stem[last_underscore_idx + 1 :].replace("_", " ")
-        else:
-            category = stem.replace("_", " ")
-            self.log(
-                f"Предупреждение: файл {csv_file.name} не содержит категорию в имени",
-                "warning",
-            )
-            return category
+
+        category = stem.replace("_", " ")
+        self.log(
+            f"Предупреждение: файл {csv_file.name} не содержит категорию в имени",
+            "warning",
+        )
+        return category
 
     def _acquire_merge_lock(
         self, lock_file_path: Path
@@ -1570,9 +1577,10 @@ class ParallelCityParser:
             # Пытаемся получить блокировку с таймаутом
             start_time = time.time()
             while not lock_acquired:
+                lock_file_handle = None
                 try:
-                    # Атомарное создание lock файла с эксклюзивной блокировкой
-                    lock_file_handle = open(lock_file_path, "w")
+                    # pylint: disable=consider-using-with
+                    lock_file_handle = open(lock_file_path, "w", encoding="utf-8")
                     fcntl.flock(
                         lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB
                     )
@@ -1661,6 +1669,8 @@ class ParallelCityParser:
         category_name = self._extract_category_from_filename(csv_file)
 
         # Читаем исходный файл с увеличенной буферизацией
+        import csv
+
         with open(
             csv_file,
             "r",
@@ -1714,13 +1724,9 @@ class ParallelCityParser:
                 batch_total += len(batch)
 
             self.log(
-                "Файл %s обработан (строк: %d, пакетов: %d)"
-                % (
-                    csv_file.name,
-                    batch_total,
-                    (batch_total // batch_size)
-                    + (1 if batch_total % batch_size else 0),
-                ),
+                f"Файл {csv_file.name} обработан (строк: {batch_total}, пакетов: {
+                    (batch_total // batch_size) + (1 if batch_total % batch_size else 0)
+                })",
                 level="debug",
             )
 

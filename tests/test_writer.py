@@ -82,7 +82,9 @@ class TestWriterOptions:
 
     def test_writer_options_custom(self):
         """Проверка кастомных значений."""
-        options = WriterOptions(encoding="utf-8", verbose=False, csv=CSVOptions(add_rubrics=False))
+        options = WriterOptions(
+            encoding="utf-8", verbose=False, csv=CSVOptions(add_rubrics=False)
+        )
         assert options.encoding == "utf-8"
         assert options.verbose is False
         assert options.csv.add_rubrics is False

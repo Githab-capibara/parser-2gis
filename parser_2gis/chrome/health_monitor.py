@@ -44,7 +44,9 @@ class BrowserHealthMonitor:
     CPU_THRESHOLD_PERCENT = 95  # 95%
     STALL_THRESHOLD_SEC = 120  # 2 минуты без ответа
 
-    def __init__(self, browser: "ChromeBrowser", enable_auto_restart: bool = True) -> None:
+    def __init__(
+        self, browser: "ChromeBrowser", enable_auto_restart: bool = True
+    ) -> None:
         """
         Инициализирует монитор.
 
@@ -144,8 +146,13 @@ class BrowserHealthMonitor:
                             self._critical_errors_count += 1
 
                         # Рекомендуем перезапуск
-                        if self._enable_auto_restart and health_status["recommendation"]:
-                            health_status["recommendation"] += ". Рекомендуется перезапуск."
+                        if (
+                            self._enable_auto_restart
+                            and health_status["recommendation"]
+                        ):
+                            health_status["recommendation"] += (
+                                ". Рекомендуется перезапуск."
+                            )
 
                 except psutil.NoSuchProcess:
                     logger.error("Процесс браузера не найден")
@@ -183,7 +190,8 @@ class BrowserHealthMonitor:
             # Перезапуск если много критических ошибок
             if self._critical_errors_count >= 3:
                 logger.warning(
-                    "Превышен порог критических ошибок (%d). " "Рекомендуется перезапуск браузера.",
+                    "Превышен порог критических ошибок (%d). "
+                    "Рекомендуется перезапуск браузера.",
                     self._critical_errors_count,
                 )
                 return True
@@ -191,7 +199,7 @@ class BrowserHealthMonitor:
             # Перезапуск если браузер завис
             if health["time_since_activity"] > self.STALL_THRESHOLD_SEC:
                 logger.warning(
-                    "Браузер не отвечает %.1f сек. " "Рекомендуется перезапуск.",
+                    "Браузер не отвечает %.1f сек. Рекомендуется перезапуск.",
                     health["time_since_activity"],
                 )
                 return True
@@ -252,4 +260,6 @@ class BrowserHealthMonitor:
             enabled: True для включения, False для отключения.
         """
         self._enable_auto_restart = enabled
-        logger.info("Автоматический перезапуск: %s", "включен" if enabled else "отключен")
+        logger.info(
+            "Автоматический перезапуск: %s", "включен" if enabled else "отключен"
+        )

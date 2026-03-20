@@ -6,14 +6,13 @@
 - Добавлен logger для предупреждений о переполнении счётчиков
 """
 
+import html as html_module
 import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
-
-import html as html_module
 
 # Получаем логгер модуля
 logger = logging.getLogger(__name__)
@@ -43,7 +42,7 @@ class ParserStatistics:
     """
 
     # Константы для предотвращения переполнения
-    MAX_COUNTER_VALUE: int = 2**31 - 1  # Максимальное значение 32-битного signed int
+    max_counter_value: int = 2**31 - 1  # Максимальное значение 32-битного signed int
 
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
@@ -69,23 +68,23 @@ class ParserStatistics:
         Returns:
             Новое значение счётчика или максимальное значение при переполнении.
         """
-        if current_value >= self.MAX_COUNTER_VALUE:
+        if current_value >= self.max_counter_value:
             logger.warning(
                 "Достигнуто максимальное значение счётчика: %d",
-                self.MAX_COUNTER_VALUE,
+                self.max_counter_value,
             )
-            return self.MAX_COUNTER_VALUE
+            return self.max_counter_value
 
         new_value = current_value + increment
-        if new_value > self.MAX_COUNTER_VALUE:
+        if new_value > self.max_counter_value:
             logger.warning(
                 "Счётчик достигнет максимума: %d + %d = %d (ограничено до %d)",
                 current_value,
                 increment,
                 new_value,
-                self.MAX_COUNTER_VALUE,
+                self.max_counter_value,
             )
-            return self.MAX_COUNTER_VALUE
+            return self.max_counter_value
 
         return new_value
 
@@ -181,7 +180,6 @@ class StatisticsExporter:
 
     def __init__(self):
         """Инициализация экспортера статистики."""
-        pass
 
     @staticmethod
     def _ensure_dir(file_path: Path) -> None:
@@ -314,9 +312,13 @@ class StatisticsExporter:
                 else "Не запущено"
             ),
             "Время завершения": (
-                stats.end_time.strftime("%Y-%m-%d %H:%M:%S") if stats.end_time else "Не завершено"
+                stats.end_time.strftime("%Y-%m-%d %H:%M:%S")
+                if stats.end_time
+                else "Не завершено"
             ),
-            "Время работы": (str(stats.elapsed_time) if stats.elapsed_time else "Не завершено"),
+            "Время работы": (
+                str(stats.elapsed_time) if stats.elapsed_time else "Не завершено"
+            ),
             "Всего URL": str(stats.total_urls),
             "Всего страниц": str(stats.total_pages),
             "Всего записей": str(stats.total_records),
@@ -450,7 +452,7 @@ class StatisticsExporter:
         html_parts.append(f"""        </tbody>
     </table>
     <div class="footer">
-        Сгенерировано: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+        Сгенерировано: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
     </div>
 </body>
 </html>""")

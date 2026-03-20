@@ -1,3 +1,10 @@
+"""
+Модуль путей к ресурсам парсера.
+
+Предоставляет функции для получения путей к данным, изображениям
+и пользовательским директориям.
+"""
+
 from __future__ import annotations
 
 import base64
@@ -72,13 +79,13 @@ def image_path(basename: str, ext: str | None = None) -> str:
         if img_path.exists():
             return os.path.abspath(img_path)
         raise FileNotFoundError(f"Изображение {basename}.{ext} не найдено")
-    else:
-        # Если расширение не указано, ищем любой файл с таким basename
-        for img_name in os.listdir(images_dir):
-            img_basename, img_ext = os.path.splitext(img_name)
-            if img_basename == basename:
-                return os.path.abspath(images_dir / img_name)
-        raise FileNotFoundError(f"Изображение {basename} не найдено")
+
+    # Если расширение не указано, ищем любой файл с таким basename
+    for img_name in os.listdir(images_dir):
+        img_basename, _ = os.path.splitext(img_name)
+        if img_basename == basename:
+            return os.path.abspath(images_dir / img_name)
+    raise FileNotFoundError(f"Изображение {basename} не найдено")
 
 
 @functools.lru_cache()

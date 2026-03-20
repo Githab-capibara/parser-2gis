@@ -158,13 +158,15 @@ class TestAllParserOptionsArguments:
             )
             field_info = model_fields[field]
             field_type = (
-                field_info.annotation if hasattr(field_info, "annotation") else field_info.type_
+                field_info.annotation
+                if hasattr(field_info, "annotation")
+                else field_info.type_
             )
 
             # Проверяем тип поля с учётом специальных типов Pydantic
-            if field_type == bool:
+            if field_type is bool:
                 test_args.append("yes")
-            elif field_type == int or (
+            elif field_type is int or (
                 isinstance(field_type, type) and issubclass(field_type, int)
             ):
                 # Для числовых типов (int, NonNegativeInt, PositiveInt)
@@ -181,7 +183,7 @@ class TestAllParserOptionsArguments:
                     args, config = parse_arguments()
                     # Если парсинг прошёл без ошибки - аргумент зарегистрирован
                     assert True, f"Аргумент {cli_arg} успешно распарсен"
-                except SystemExit as e:
+                except SystemExit:
                     # Если возникла ошибка парсинга - аргумент не зарегистрирован
                     pytest.fail(f"Аргумент {cli_arg} не зарегистрирован в argparse")
 

@@ -1,3 +1,10 @@
+"""
+Модуль исключений парсера.
+
+Предоставляет базовые классы исключений для обработки ошибок
+в различных компонентах парсера (Chrome, парсер, writer).
+"""
+
 from .chrome.exceptions import (
     ChromeException,
     ChromePathNotFound,

@@ -6,7 +6,6 @@
 """
 
 import pytest
-from pydantic import BaseModel
 
 from parser_2gis.config import Configuration
 from parser_2gis.pydantic_compat import (

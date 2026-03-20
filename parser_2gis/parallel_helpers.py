@@ -96,7 +96,9 @@ class FileMerger:
                         temp_file.unlink()
                         logger.debug("Временный файл удалён: %s", temp_file)
                 except Exception as e:
-                    logger.warning("Не удалось удалить временный файл %s: %s", temp_file, e)
+                    logger.warning(
+                        "Не удалось удалить временный файл %s: %s", temp_file, e
+                    )
             self._temp_files.clear()
 
     def _release_lock(self) -> None:
@@ -137,14 +139,20 @@ class FileMerger:
                             lock_age,
                         )
                 except OSError as cleanup_error:
-                    logger.debug("Ошибка при удалении stale lock файла: %s", cleanup_error)
+                    logger.debug(
+                        "Ошибка при удалении stale lock файла: %s", cleanup_error
+                    )
 
             # Пытаемся получить блокировку с таймаутом
             start_time = time.time()
             while not self._lock_acquired:
+                lock_file_handle = None
                 try:
-                    lock_file_handle = open(lock_file_path, "w")
-                    fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    # pylint: disable=consider-using-with
+                    lock_file_handle = open(lock_file_path, "w", encoding="utf-8")
+                    fcntl.flock(
+                        lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB
+                    )
                     lock_file_handle.write(f"{os.getpid()}\n")
                     lock_file_handle.flush()
                     self._lock_file_handle = lock_file_handle
@@ -152,15 +160,19 @@ class FileMerger:
                     logger.debug("Lock file получен успешно")
                     return True
                 except (IOError, OSError):
-                    if self._lock_file_handle:
+                    if lock_file_handle:
                         try:
-                            self._lock_file_handle.close()
+                            lock_file_handle.close()
                         except Exception as close_error:
-                            logger.error("Ошибка при закрытии lock файла: %s", close_error)
-                        self._lock_file_handle = None
+                            logger.error(
+                                "Ошибка при закрытии lock файла: %s", close_error
+                            )
+                    self._lock_file_handle = None
 
                     if time.time() - start_time > MERGE_LOCK_TIMEOUT:
-                        logger.error("Таймаут ожидания lock файла (%d сек)", MERGE_LOCK_TIMEOUT)
+                        logger.error(
+                            "Таймаут ожидания lock файла (%d сек)", MERGE_LOCK_TIMEOUT
+                        )
                         return False
 
                     time.sleep(1)
@@ -300,7 +312,9 @@ class FileMerger:
                                 writer.writerow(row)
                             total_rows += 1
 
-                logger.info("Объединено %d строк в файл %s", total_rows, temp_output.name)
+                logger.info(
+                    "Объединено %d строк в файл %s", total_rows, temp_output.name
+                )
 
             # Переименовываем временный файл в итоговый
             if output_file_path.exists():
@@ -448,7 +462,9 @@ class StatsCollector:
         with self._lock:
             self.success_count += 1
 
-    def record_error(self, error_message: str, city: str = "", category: str = "") -> None:
+    def record_error(
+        self, error_message: str, city: str = "", category: str = ""
+    ) -> None:
         """
         Записывает ошибку.
 

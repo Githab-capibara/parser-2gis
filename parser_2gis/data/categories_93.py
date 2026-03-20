@@ -205,7 +205,7 @@ def generate_urls_for_city(
 
     urls = []
     for cat in categories:
-        base_url = f'https://2gis.{city["domain"]}/{city["code"]}'
+        base_url = f"https://2gis.{city['domain']}/{city['code']}"
         query_value = cat["query"]
         # Гарантируем что query_value это str
         if query_value is None:

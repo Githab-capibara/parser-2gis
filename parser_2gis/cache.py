@@ -42,9 +42,9 @@ from .logger import logger
 try:
     import orjson
 
-    _use_orjson = True
+    _USE_ORJSON = True
 except ImportError:
-    _use_orjson = False
+    _USE_ORJSON = False
     orjson = None  # type: ignore
 
 
@@ -65,7 +65,7 @@ def _serialize_json(data: Dict[str, Any]) -> str:
         TypeError: При ошибке сериализации данных с полным контекстом.
         ValueError: При ошибке преобразования данных.
     """
-    if _use_orjson and orjson is not None:
+    if _USE_ORJSON and orjson is not None:
         # orjson возвращает bytes, декодируем в строку
         try:
             return orjson.dumps(data).decode("utf-8")
@@ -108,7 +108,7 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
         TypeError: Если данные не являются словарём.
     """
     try:
-        if _use_orjson and orjson is not None:
+        if _USE_ORJSON and orjson is not None:
             deserialized = orjson.loads(data)  # type: ignore
         else:
             deserialized = json.loads(data)
@@ -907,35 +907,38 @@ class CacheManager:
                         retry_error,
                     )
                 return None  # Можно повторить попытку позже
-            elif "disk i/o error" in error_str:
-                # Критическая ошибка диска - пробрасываем исключение
+
+            # Критическая ошибка диска - пробрасываем исключение
+            if "disk i/o error" in error_str:
                 logger.critical(
                     "Критическая ошибка диска при получении кэша: %s",
                     db_error,
                 )
                 raise  # Пробрасываем исключение для обработки на верхнем уровне
-            elif "no such table" in error_str:
-                # Критическая ошибка - таблица не существует
+
+            # Критическая ошибка - таблица не существует
+            if "no such table" in error_str:
                 logger.critical(
                     "Таблица кэша не существует: %s",
                     db_error,
                 )
                 raise  # Пробрасываем исключение для обработки на верхнем уровне
-            elif "corrupt" in error_str or "malformed" in error_str:
-                # Повреждение базы данных
+
+            # Повреждение базы данных
+            if "corrupt" in error_str or "malformed" in error_str:
                 logger.critical(
                     "База данных повреждена: %s",
                     db_error,
                 )
                 raise  # Пробрасываем исключение для обработки на верхнем уровне
-            else:
-                # Остальные ошибки БД - логируем и возвращаем None
-                logger.error(
-                    "Неизвестная ошибка БД при получении кэша: %s (тип: %s)",
-                    db_error,
-                    type(db_error).__name__,
-                )
-                return None
+
+            # Остальные ошибки БД - логируем и возвращаем None
+            logger.error(
+                "Неизвестная ошибка БД при получении кэша: %s (тип: %s)",
+                db_error,
+                type(db_error).__name__,
+            )
+            return None
 
         except (
             UnicodeDecodeError,

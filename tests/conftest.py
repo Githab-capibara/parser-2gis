@@ -15,10 +15,8 @@ import os
 import sqlite3
 import sys
 import tempfile
-import threading
-import time
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Optional
+from typing import Any, Callable, Dict, Generator, List
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest

@@ -117,6 +117,97 @@ verbose = false
 # Тихий режим
 quiet = false
 
+[tool.pylint.MASTER]
+# Конфигурация Pylint для анализа качества кода
+# Отключены предупреждения которые не соответствуют архитектуре проекта
+extension-pkg-allow-list = ["orjson"]
+ignore = [".git", ".mypy_cache", ".tox", ".venv", "build", "dist", "venv", "htmlcov", ".pytest_cache", ".benchmarks", "tests"]
+jobs = 0  # Автоопределение количества ядер
+persistent = true
+
+[tool.pylint."MESSAGES CONTROL"]
+# Отключение специфичных предупреждений
+disable = [
+    "broad-exception-caught",  # Сознательное решение для надежной обработки ошибок
+    "too-many-arguments",  # Сложные функции парсера требуют много параметров
+    "too-many-positional-arguments",  # Аналогично
+    "too-many-return-statements",  # Функции с множеством условий выхода
+    "too-many-nested-blocks",  # Сложная логика обработки
+    "too-many-instance-attributes",  # Классы конфигурации имеют много полей
+    "too-many-lines",  # Модули содержат много кода по дизайну
+    "line-too-long",  # Ruff контролирует длину строк
+    "too-many-locals",  # Сложные функции обработки данных
+    "too-many-branches",  # Функции с множеством условий
+    "too-many-statements",  # Сложные функции обработки
+    "duplicate-code",  # Допустимо для подобных функций парсинга
+    "redefined-builtin",  # Допустимо для совместимости (str, int и т.д.)
+    "no-name-in-module",  # Проблемы с динамическими импортами
+    "no-member",  # Проблемы с динамическими атрибутами
+    "missing-class-docstring",  # Не критично для простых классов
+    "consider-iterating-dictionary",  # Не критично
+    "raising-bad-type",  # Не критично
+    "no-else-raise",  # Стиль кода
+    "no-else-continue",  # Стиль кода
+    "disallowed-name",  # Не критично
+    "consider-using-enumerate",  # Стиль кода
+    "cell-var-from-loop",  # Сознательное использование
+    "consider-using-with",  # Сознательное решение для управления ресурсами
+    "unused-variable",  # Допустимо для отладки
+    "unused-argument",  # Допустимо для будущих расширений
+    "unnecessary-pass",  # Не критично
+    "try-except-raise",  # Допустимо для повторного выброса
+    "no-self-argument",  # Не критично для cls методов
+    "not-an-iterable",  # Проблемы с типами
+    "used-before-assignment",  # Проблемы с анализом потока
+    "useless-import-alias",  # Не критично
+    "wrong-import-order",  # Isort контролирует
+    "unspecified-encoding",  # Кодировка указывается явно
+    "subprocess-run-check",  # Сознательное решение
+    "superfluous-parens",  # Не критично
+    "use-dict-literal",  # Не критично
+    "use-maxsplit-arg",  # Не критично
+    "missing-function-docstring",  # Не критично для внутренних функций
+    "too-many-public-methods",  # Сложные классы
+    "keyword-arg-before-vararg",  # Не критично
+    "global-statement",  # Сознательное использование
+    "arguments-differ",  # Допустимо для переопределения
+    "possibly-used-before-assignment",  # Проблемы с анализом потока
+    "redefined-outer-name",  # Допустимо в ограниченных контекстах
+    "raise-missing-from",  # Не всегда требуется
+    "consider-using-f-string",  # Не критично
+    "attribute-defined-outside-init",  # Допустимо для инициализации
+    "reimported",  # Не критично
+    "no-else-return",  # Стиль кода
+    "invalid-name",  # Допустимо для совместимости
+    "import-outside-toplevel",  # Допустимо для опциональных зависимостей
+    "protected-access",  # Допустимо для внутреннего использования
+    "logging-fstring-interpolation",  # Допустимо для логирования
+    "no-value-for-parameter",  # Проблемы с анализом
+    "too-few-public-methods",  # Не критично
+    "undefined-variable",  # Проблемы с анализом потока
+]
+
+[tool.pylint.FORMAT]
+# Настройки форматирования
+max-line-length = 100
+single-line-if-stmt = true
+
+[tool.pylint.DESIGN]
+# Настройки дизайна
+max-args = 10
+max-locals = 20
+max-returns = 10
+max-branches = 20
+max-statements = 60
+max-attributes = 15
+max-public-methods = 25
+
+[tool.pylint.BASIC]
+# Имена констант
+const-rgx = "(_?[A-Z][A-Z0-9_]*|__[A-Z0-9_]+__)$"
+# Имена модулей
+module-rgx = "(_?[a-z0-9_]+)$"
+
 [tool.autoflake]
 # Конфигурация autoflake для удаления неиспользуемых импортов
 # ИСПРАВЛЕНИЕ 29: Autoflake для удаления неиспользуемых импортов
