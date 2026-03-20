@@ -29,7 +29,9 @@ class QueueHandler(logging.Handler):
         self._log_queue.put(log_message)
 
 
-def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]], options: LogOptions) -> None:
+def setup_gui_logger(
+    log_queue: queue.Queue[tuple[str, str]], options: LogOptions
+) -> None:
     """Добавляет обработчик очереди к существующему логгеру, чтобы он
     отправлял логи в указанную очередь.
 
@@ -73,7 +75,11 @@ Logger = logging.Logger
 
 
 def log_parser_start(
-    version: str, urls_count: int, output_path: str, format: str, config_summary: dict | None = None
+    version: str,
+    urls_count: int,
+    output_path: str,
+    format: str,
+    config_summary: dict | None = None,
 ) -> None:
     """
     Логирует запуск парсера с подробной информацией.
@@ -121,7 +127,13 @@ def log_parser_finish(
         stats: Статистика работы.
         duration: Продолжительность работы.
     """
-    from .visual_logger import Emoji, print_error, print_header, print_stats, print_success
+    from .visual_logger import (
+        Emoji,
+        print_error,
+        print_header,
+        print_stats,
+        print_success,
+    )
 
     emoji = Emoji.SUCCESS if success else Emoji.ERROR
     title = f"{emoji} Парсинг завершён"

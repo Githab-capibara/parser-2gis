@@ -26,7 +26,9 @@ from .logger import logger
 class ParallelTask:
     """Задача для параллельного парсинга."""
 
-    def __init__(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
+    def __init__(
+        self, url: str, category_name: str, city_name: str, priority: int = 0
+    ) -> None:
         """
         Инициализирует задачу.
 
@@ -103,7 +105,12 @@ class ParallelOptimizer:
         # ИСПОЛЬЗУЕМ RLock (Reentrant Lock) для предотвращения deadlock
         # RLock позволяет одному и тому же потоку захватывать блокировку несколько раз
         self._lock = threading.RLock()
-        self._stats = {"total_tasks": 0, "completed": 0, "failed": 0, "avg_duration": 0.0}
+        self._stats = {
+            "total_tasks": 0,
+            "completed": 0,
+            "failed": 0,
+            "avg_duration": 0.0,
+        }
 
         # Оптимизация: кэшируем psutil.Process объект
         self._process_cache: Optional[psutil.Process] = None
@@ -124,7 +131,9 @@ class ParallelOptimizer:
             max_memory_mb,
         )
 
-    def add_task(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
+    def add_task(
+        self, url: str, category_name: str, city_name: str, priority: int = 0
+    ) -> None:
         """
         Добавляет задачу в очередь.
 
@@ -146,7 +155,10 @@ class ParallelOptimizer:
         self._stats["total_tasks"] += 1
 
         logger.debug(
-            "Добавлена задача: %s - %s (приоритет: %d)", city_name, category_name, priority
+            "Добавлена задача: %s - %s (приоритет: %d)",
+            city_name,
+            category_name,
+            priority,
         )
 
     def check_resources(self) -> Tuple[bool, float]:
@@ -299,7 +311,12 @@ class ParallelOptimizer:
             self._tasks = queue.Queue()
             self._active_tasks.clear()
             self._completed_tasks.clear()
-            self._stats = {"total_tasks": 0, "completed": 0, "failed": 0, "avg_duration": 0.0}
+            self._stats = {
+                "total_tasks": 0,
+                "completed": 0,
+                "failed": 0,
+                "avg_duration": 0.0,
+            }
         logger.debug("ParallelOptimizer сброшен")
 
     def run_parallel(
@@ -321,7 +338,10 @@ class ParallelOptimizer:
         Returns:
             True если все задачи выполнены успешно.
         """
-        logger.info("Запуск параллельного парсинга с оптимизацией (%d потоков)", self._max_workers)
+        logger.info(
+            "Запуск параллельного парсинга с оптимизацией (%d потоков)",
+            self._max_workers,
+        )
 
         success_count = 0
         failed_count = 0
@@ -342,13 +362,20 @@ class ParallelOptimizer:
 
                 # Запускаем новые задачи если есть ресурсы
                 # Оптимизация 3.5: Queue.empty() для проверки наличия задач
-                while len(self._active_tasks) < self._max_workers and not self._tasks.empty():
+                while (
+                    len(self._active_tasks) < self._max_workers
+                    and not self._tasks.empty()
+                ):
                     task = self.get_next_task()
                     if task:
                         future = executor.submit(parse_func, task)
                         futures[future] = task
                         self._active_tasks[id(task)] = task
-                        logger.debug("Запущена задача: %s - %s", task.city_name, task.category_name)
+                        logger.debug(
+                            "Запущена задача: %s - %s",
+                            task.city_name,
+                            task.category_name,
+                        )
 
                 # Проверяем завершенные задачи
                 completed = []
@@ -373,7 +400,10 @@ class ParallelOptimizer:
                     except Exception as e:
                         task = futures[future]
                         logger.error(
-                            "Ошибка в задаче %s - %s: %s", task.city_name, task.category_name, e
+                            "Ошибка в задаче %s - %s: %s",
+                            task.city_name,
+                            task.category_name,
+                            e,
                         )
                         self.complete_task(task, False)
                         completed.append(future)
@@ -388,7 +418,9 @@ class ParallelOptimizer:
                     time.sleep(0.1)
 
         logger.info(
-            "Параллельный парсинг завершен. Успешно: %d, Ошибок: %d", success_count, failed_count
+            "Параллельный парсинг завершен. Успешно: %d, Ошибок: %d",
+            success_count,
+            failed_count,
         )
 
         return failed_count == 0

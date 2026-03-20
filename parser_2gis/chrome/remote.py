@@ -44,8 +44,14 @@ _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
 _DANGEROUS_JS_PATTERNS = [
     (re.compile(r"\beval\s*\("), "eval() запрещён"),
     (re.compile(r"(?<![\w])Function\s*\("), "конструктор Function запрещён"),
-    (re.compile(r'\bsetTimeout\s*\([^,]*,\s*["\']'), "setTimeout с строковым кодом запрещён"),
-    (re.compile(r'\bsetInterval\s*\([^,]*,\s*["\']'), "setInterval с строковым кодом запрещён"),
+    (
+        re.compile(r'\bsetTimeout\s*\([^,]*,\s*["\']'),
+        "setTimeout с строковым кодом запрещён",
+    ),
+    (
+        re.compile(r'\bsetInterval\s*\([^,]*,\s*["\']'),
+        "setInterval с строковым кодом запрещён",
+    ),
     (re.compile(r"\bdocument\.write\s*\("), "document.write() запрещён"),
     (re.compile(r"\.innerHTML\s*="), "прямая установка innerHTML запрещена"),
     (re.compile(r"\.outerHTML\s*="), "прямая установка outerHTML запрещена"),
@@ -55,8 +61,14 @@ _DANGEROUS_JS_PATTERNS = [
     ),
     (re.compile(r"\bimport\s*\("), "динамический import запрещён"),
     (re.compile(r"\bWebSocket\s*\("), "WebSocket соединение запрещено"),
-    (re.compile(r"\bfetch\s*\([^)]*\)\s*\.then"), "fetch с обработкой .then() запрещён"),
-    (re.compile(r"\bfetch\s*\([^)]*\)\s*\.catch"), "fetch с обработкой .catch() запрещён"),
+    (
+        re.compile(r"\bfetch\s*\([^)]*\)\s*\.then"),
+        "fetch с обработкой .then() запрещён",
+    ),
+    (
+        re.compile(r"\bfetch\s*\([^)]*\)\s*\.catch"),
+        "fetch с обработкой .catch() запрещён",
+    ),
     (re.compile(r"\bXMLHttpRequest\s*\("), "XMLHttpRequest запрещён"),
     (re.compile(r"\.src\s*=\s*['\"]http"), "установка src с http запрещена"),
     # Дополнительные паттерны для обнаружения обфускации
@@ -280,7 +292,9 @@ def _check_port_cached(port: int) -> bool:
     return _check_port_available_internal(port, timeout=0.5, retries=1)
 
 
-def _check_port_available_internal(port: int, timeout: float = 0.5, retries: int = 2) -> bool:
+def _check_port_available_internal(
+    port: int, timeout: float = 0.5, retries: int = 2
+) -> bool:
     """Внутренняя функция проверки порта без кэширования.
 
     - Сокет создаётся внутри цикла retries
@@ -357,7 +371,9 @@ def _clear_port_cache() -> None:
     _check_port_cached.cache_clear()
 
 
-def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[bool, str]:
+def _validate_js_code(
+    code: str, max_length: int = MAX_JS_CODE_LENGTH
+) -> tuple[bool, str]:
     """Валидирует JavaScript код на безопасность.
 
     - Усилена проверка на опасные конструкции
@@ -395,7 +411,10 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
 
     # Проверка типа
     if not isinstance(code, str):
-        return (False, f"JavaScript код должен быть строкой, получен {type(code).__name__}")
+        return (
+            False,
+            f"JavaScript код должен быть строкой, получен {type(code).__name__}",
+        )
 
     # Проверка на пустую строку
     if not code.strip():
@@ -439,7 +458,9 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         return False, "Функция btoa() запрещена (может скрывать опасный код)"
 
     # Проверка на Buffer.from с base64
-    if re.search(r'Buffer\s*\.\s*from\s*\([^,]+,\s*["\']base64["\']', code, re.IGNORECASE):
+    if re.search(
+        r'Buffer\s*\.\s*from\s*\([^,]+,\s*["\']base64["\']', code, re.IGNORECASE
+    ):
         return False, "Buffer.from с base64 запрещён (может скрывать опасный код)"
 
     # Проверяем на String.fromCharCode (может использоваться для обхода)
@@ -448,11 +469,17 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
 
     # Проверяем на String.fromCodePoint (аналог fromCharCode)
     if re.search(r"String\s*\.\s*fromCodePoint\s*\(", code, re.IGNORECASE):
-        return (False, "String.fromCodePoint() запрещён (может использоваться для обхода)")
+        return (
+            False,
+            "String.fromCodePoint() запрещён (может использоваться для обхода)",
+        )
 
     # Проверяем на Character.fromCharCode
     if re.search(r"Character\s*\.\s*fromCharCode\s*\(", code, re.IGNORECASE):
-        return (False, "Character.fromCharCode() запрещён (может использоваться для обхода)")
+        return (
+            False,
+            "Character.fromCharCode() запрещён (может использоваться для обхода)",
+        )
 
     # Проверяем на конкатенацию строк для обхода фильтров
     # Обнаруживаем подозрительные комбинации типа "ev" + "al"
@@ -476,7 +503,10 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         for dangerous in dangerous_concat:
             # Проверяем есть ли опасное слово в коде (даже в разбитой форме)
             if dangerous in code_letters_only:
-                return (False, f"Обнаружена подозрительная конкатенация строк с {dangerous}")
+                return (
+                    False,
+                    f"Обнаружена подозрительная конкатенация строк с {dangerous}",
+                )
 
     # Дополнительная проверка на конкатенацию с array join
     if re.search(r'\[\s*["\'][^"\']*["\']\s*\]\s*\.\s*join\s*\(', code, re.IGNORECASE):
@@ -484,7 +514,9 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
 
     # Проверка на split('').reverse().join() - техника обфускации
     if re.search(
-        r'split\s*\(\s*["\']["\']\s*\)\s*\.reverse\s*\(\)\s*\.join\s*\(', code, re.IGNORECASE
+        r'split\s*\(\s*["\']["\']\s*\)\s*\.reverse\s*\(\)\s*\.join\s*\(',
+        code,
+        re.IGNORECASE,
     ):
         return False, "Обнаружена обфускация через split().reverse().join()"
 
@@ -551,7 +583,9 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         return False, "Обнаружена обфускация кода (подозрительные имена переменных)"
 
     # Проверка на self-executing функции с обфускацией
-    if re.search(r"\(function\s*\([^)]*\)\s*\{[^}]*\}\s*\)\.call\s*\(", code, re.IGNORECASE):
+    if re.search(
+        r"\(function\s*\([^)]*\)\s*\{[^}]*\}\s*\)\.call\s*\(", code, re.IGNORECASE
+    ):
         logger.debug("Обнаружена self-executing функция с .call() - допустимо")
 
     # Проверка на Array.from с подозрительными аргументами
@@ -567,7 +601,9 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         return False, "Function.apply/call запрещён (попытка обхода)"
 
     # Проверка на использование скомпилированного RegExp с eval/Function
-    if re.search(r"new\s+RegExp\s*\([^)]*(?:eval|Function)[^)]*\)", code, re.IGNORECASE):
+    if re.search(
+        r"new\s+RegExp\s*\([^)]*(?:eval|Function)[^)]*\)", code, re.IGNORECASE
+    ):
         return False, "RegExp с eval/Function запрещён (попытка обхода)"
 
     return True, ""
@@ -630,10 +666,14 @@ def _validate_remote_port(port: Any) -> int:
     """
     # Явная проверка на bool, так как bool является подклассом int
     if isinstance(port, bool):
-        raise ValueError(f"remote_port не должен быть bool, получен {type(port).__name__}")
+        raise ValueError(
+            f"remote_port не должен быть bool, получен {type(port).__name__}"
+        )
 
     if not isinstance(port, int):
-        raise ValueError(f"remote_port должен быть integer, получен {type(port).__name__}")
+        raise ValueError(
+            f"remote_port должен быть integer, получен {type(port).__name__}"
+        )
 
     # Проверка диапазона портов
     if port < 1024:
@@ -663,7 +703,9 @@ class ChromeRemote:
         количества вызовов API.
     """
 
-    def __init__(self, chrome_options: ChromeOptions, response_patterns: list[str]) -> None:
+    def __init__(
+        self, chrome_options: ChromeOptions, response_patterns: list[str]
+    ) -> None:
         self._chrome_options: ChromeOptions = chrome_options
         self._chrome_browser: Optional[ChromeBrowser] = None
         self._chrome_interface: Optional[pychrome.Browser] = None
@@ -718,7 +760,10 @@ class ChromeRemote:
                         continue
                     return False
 
-                logger.debug("Подключение к Chrome DevTools Protocol по адресу: %s", self._dev_url)
+                logger.debug(
+                    "Подключение к Chrome DevTools Protocol по адресу: %s",
+                    self._dev_url,
+                )
                 self._chrome_interface = pychrome.Browser(url=self._dev_url)
 
                 logger.debug("Создание вкладки через _create_tab()...")
@@ -785,7 +830,9 @@ class ChromeRemote:
             except ChromeException as e:
                 # Специфичные ошибки Chrome
                 logger.error(
-                    "Ошибка Chrome при подключению к DevTools Protocol (%s): %s", self._dev_url, e
+                    "Ошибка Chrome при подключению к DevTools Protocol (%s): %s",
+                    self._dev_url,
+                    e,
                 )
                 # Очистка ресурсов при ошибке
                 self._cleanup_interface()
@@ -866,7 +913,9 @@ class ChromeRemote:
 
             # Выполняем простой JavaScript запрос
             result = self._chrome_tab.Runtime.evaluate(
-                expression="1+1", returnByValue=True, timeout=5000  # 5 секунд таймаут
+                expression="1+1",
+                returnByValue=True,
+                timeout=5000,  # 5 секунд таймаут
             )
 
             # Проверяем результат
@@ -874,7 +923,9 @@ class ChromeRemote:
                 logger.debug("Проверка соединения пройдена")
                 return True
             else:
-                logger.warning("Проверка соединения вернула неожиданный результат: %s", result)
+                logger.warning(
+                    "Проверка соединения вернула неожиданный результат: %s", result
+                )
                 return False
 
         except Exception as e:
@@ -906,7 +957,9 @@ class ChromeRemote:
 
             for attempt in range(max_startup_attempts):
                 logger.debug(
-                    "Ожидание запуска Chrome (%.1f сек, попытка %d)...", startup_delay, attempt + 1
+                    "Ожидание запуска Chrome (%.1f сек, попытка %d)...",
+                    startup_delay,
+                    attempt + 1,
                 )
                 time.sleep(startup_delay)
 
@@ -925,7 +978,9 @@ class ChromeRemote:
 
             # Подключаем браузер к CDP с проверкой результата
             if not self._connect_interface():
-                raise ChromeException("Не удалось подключиться к Chrome DevTools Protocol")
+                raise ChromeException(
+                    "Не удалось подключиться к Chrome DevTools Protocol"
+                )
 
             self._setup_tab()
             self._init_tab_monitor()
@@ -996,7 +1051,9 @@ class ChromeRemote:
 
         for attempt in range(max_attempts):
             try:
-                logger.debug("Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts)
+                logger.debug(
+                    "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
+                )
                 # requests.put не принимает параметр json=True, используем данные запроса
                 # ИСПОЛЬЗУЕМ rate-limited запрос для предотвращения блокировок
                 resp = _safe_external_request(
@@ -1049,7 +1106,9 @@ class ChromeRemote:
         """
         # Строгая проверка, что вкладка существует
         if self._chrome_tab is None:
-            error_msg = "Chrome tab не инициализирован в _setup_tab. Вкладка не была создана."
+            error_msg = (
+                "Chrome tab не инициализирован в _setup_tab. Вкладка не была создана."
+            )
             logger.error(error_msg)
             raise RuntimeError(error_msg)
 
@@ -1065,7 +1124,9 @@ class ChromeRemote:
                 "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
                 "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
-            logger.warning("Не удалось получить user agent, используется запасной вариант")
+            logger.warning(
+                "Не удалось получить user agent, используется запасной вариант"
+            )
 
         self._chrome_tab.Network.setUserAgentOverride(userAgent=fixed_useragent)
 
@@ -1197,7 +1258,9 @@ class ChromeRemote:
                             timeout=3,
                             verify=True,  # Явная валидация SSL сертификатов
                         )
-                        tab_found = any(x["id"] == self._chrome_tab.id for x in ret.json())
+                        tab_found = any(
+                            x["id"] == self._chrome_tab.id for x in ret.json()
+                        )
                         if not tab_found:
                             tab_detached.set()
                             self._chrome_tab._stopped.set()
@@ -1206,7 +1269,9 @@ class ChromeRemote:
                         break
                     except Exception as monitor_error:
                         # Ловим любые неожиданные исключения и логируем их
-                        logger.debug("Ошибка в мониторином цикле вкладки: %s", monitor_error)
+                        logger.debug(
+                            "Ошибка в мониторином цикле вкладки: %s", monitor_error
+                        )
                         break
 
                 # Ждём следующего интервала
@@ -1248,7 +1313,9 @@ class ChromeRemote:
             logger.error("Chrome tab не инициализирован в navigate")
             return
         try:
-            ret = self._chrome_tab.Page.navigate(url=url, _timeout=timeout, referrer=referer)
+            ret = self._chrome_tab.Page.navigate(
+                url=url, _timeout=timeout, referrer=referer
+            )
             error_message = ret.get("errorText", None)
             if error_message:
                 raise ChromeException(error_message)
@@ -1385,7 +1452,9 @@ class ChromeRemote:
 
         except KeyError as e:
             # Отсутствует необходимое поле
-            logger.warning("Отсутствует поле в response при получении тела ответа: %s", e)
+            logger.warning(
+                "Отсутствует поле в response при получении тела ответа: %s", e
+            )
             return ""
 
         except Exception as e:
@@ -1433,7 +1502,12 @@ class ChromeRemote:
             logger.error("Chrome tab не инициализирован в get_document")
             # Возвращаем пустой DOMNode как fallback, используя алиасы полей pydantic
             return DOMNode(
-                nodeId=0, backendNodeId=0, nodeType=0, nodeName="", localName="", nodeValue=""
+                nodeId=0,
+                backendNodeId=0,
+                nodeType=0,
+                nodeName="",
+                localName="",
+                nodeValue="",
             )
         tree = self._chrome_tab.DOM.getDocument(depth=-1 if full else 1)
         return DOMNode(**tree["root"])
@@ -1582,8 +1656,12 @@ class ChromeRemote:
                 try:
                     future.result(timeout=timeout)
                 except TimeoutError:
-                    logger.error("Превышено время выполнения JavaScript (%d секунд)", timeout)
-                    raise TimeoutError(f"Выполнение скрипта превысило таймаут {timeout} секунд")
+                    logger.error(
+                        "Превышено время выполнения JavaScript (%d секунд)", timeout
+                    )
+                    raise TimeoutError(
+                        f"Выполнение скрипта превысило таймаут {timeout} секунд"
+                    )
 
             # Проверяем, не произошла ли ошибка при выполнении
             if result["error"]:
@@ -1725,7 +1803,9 @@ class ChromeRemote:
                 self.clear_requests()
                 logger.debug("Очередь запросов очищена")
             except Exception as clear_requests_error:
-                logger.warning("Ошибка при очистке очереди запросов: %s", clear_requests_error)
+                logger.warning(
+                    "Ошибка при очистке очереди запросов: %s", clear_requests_error
+                )
 
             # Обнуляем очереди ответов
             self._response_queues = {}

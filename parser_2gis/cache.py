@@ -191,7 +191,8 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     # Проверяем глубину вложенности
     if depth > MAX_DATA_DEPTH:
         logger.warning(
-            "Превышена максимальная глубина вложенности данных кэша (%d)", MAX_DATA_DEPTH
+            "Превышена максимальная глубина вложенности данных кэша (%d)",
+            MAX_DATA_DEPTH,
         )
         return False
 
@@ -236,7 +237,9 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
         dangerous_keys: Set[str] = {"__proto__", "constructor", "prototype"}
         for key in data.keys():
             if isinstance(key, str) and key.lower() in dangerous_keys:
-                logger.warning("Обнаружена потенциальная __proto__ атака: ключ '%s'", key)
+                logger.warning(
+                    "Обнаружена потенциальная __proto__ атака: ключ '%s'", key
+                )
                 return False
 
         # Рекурсивно проверяем все значения словаря
@@ -293,7 +296,10 @@ SHA256_HASH_LENGTH: int = 64
 # Импортируем функцию валидации из parallel_parser если доступна
 # или определяем локально для избежания циклических импортов
 def _validate_pool_env_int(
-    env_name: str, default: int, min_value: Optional[int] = None, max_value: Optional[int] = None
+    env_name: str,
+    default: int,
+    min_value: Optional[int] = None,
+    max_value: Optional[int] = None,
 ) -> int:
     """Валидирует ENV переменную для параметров пула соединений.
 
@@ -463,7 +469,9 @@ class _ConnectionPool:
                     age = time.time() - self._connection_age[conn_id]
                     if age > CONNECTION_MAX_AGE:
                         # Соединение устарело, пересоздаём
-                        logger.debug("Соединение устарело (возраст: %.0f сек), пересоздаём", age)
+                        logger.debug(
+                            "Соединение устарело (возраст: %.0f сек), пересоздаём", age
+                        )
                         try:
                             conn.close()
                         except sqlite3.Error as db_error:
@@ -576,7 +584,9 @@ class _ConnectionPool:
                 try:
                     conn.close()
                 except Exception as e:
-                    logger.debug("Не удалось закрыть соединение SQLite: %s", e, exc_info=True)
+                    logger.debug(
+                        "Не удалось закрыть соединение SQLite: %s", e, exc_info=True
+                    )
             self._all_conns.clear()
             self._connection_age.clear()
 
@@ -895,7 +905,9 @@ class CacheManager:
 
             # Критическая ошибка диска - пробрасываем исключение
             if "disk i/o error" in error_str:
-                logger.critical("Критическая ошибка диска при получении кэша: %s", db_error)
+                logger.critical(
+                    "Критическая ошибка диска при получении кэша: %s", db_error
+                )
                 raise  # Пробрасываем исключение для обработки на верхнем уровне
 
             # Критическая ошибка - таблица не существует
@@ -916,7 +928,12 @@ class CacheManager:
             )
             return None
 
-        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as decode_error:
+        except (
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ) as decode_error:
             # Обрабатываем ошибки десериализации - удаляем повреждённую запись
             error_type = type(decode_error).__name__
             logger.warning(
@@ -930,7 +947,9 @@ class CacheManager:
                 cursor.execute(self.SQL_DELETE, (url_hash,))
                 conn.commit()
             except sqlite3.Error as cleanup_error:
-                logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
+                logger.warning(
+                    "Ошибка при удалении повреждённой записи: %s", cleanup_error
+                )
             return None
         except Exception as general_error:
             logger.error(
@@ -1037,12 +1056,20 @@ class CacheManager:
                     # Используем кэшированную временную метку now для всех записей
                     cursor.execute(
                         self.SQL_INSERT_OR_REPLACE,
-                        (url_hash, url, data_json, now.isoformat(), expires_at.isoformat()),
+                        (
+                            url_hash,
+                            url,
+                            data_json,
+                            now.isoformat(),
+                            expires_at.isoformat(),
+                        ),
                     )
                     saved_count += 1
                 except (TypeError, ValueError) as serialize_error:
                     logger.warning(
-                        "Ошибка сериализации данных для кэша (%s): %s", url, serialize_error
+                        "Ошибка сериализации данных для кэша (%s): %s",
+                        url,
+                        serialize_error,
                     )
                     skipped_count += 1
                     continue
@@ -1212,12 +1239,18 @@ class CacheManager:
 
             # Размер файла базы данных с обработкой ошибок
             try:
-                cache_size = self._cache_file.stat().st_size if self._cache_file.exists() else 0
+                cache_size = (
+                    self._cache_file.stat().st_size if self._cache_file.exists() else 0
+                )
             except OSError:
                 # Файл недоступен или ошибка файловой системы
                 cache_size = 0
 
-            return {"total_records": total, "expired_records": expired, "cache_size": cache_size}
+            return {
+                "total_records": total,
+                "expired_records": expired,
+                "cache_size": cache_size,
+            }
 
         except sqlite3.Error as db_error:
             # Ошибка базы данных
@@ -1286,7 +1319,9 @@ class CacheManager:
         except Exception as e:
             # Логирование ошибки вместо игнорирования
             # В __del__ нельзя выбрасывать исключения
-            logger.error("Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True)
+            logger.error(
+                "Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True
+            )
 
     @staticmethod
     def _hash_url(url: str) -> str:
@@ -1427,7 +1462,8 @@ class CacheManager:
 
                     # Циклически удаляем записи пока размер не станет меньше лимита
                     while (
-                        cache_size_mb > MAX_CACHE_SIZE_MB and eviction_iterations < max_iterations
+                        cache_size_mb > MAX_CACHE_SIZE_MB
+                        and eviction_iterations < max_iterations
                     ):
                         eviction_iterations += 1
 
@@ -1438,7 +1474,9 @@ class CacheManager:
 
                         if deleted_count == 0:
                             # Нечего удалять - выходим из цикла
-                            logger.debug("LRU eviction: записей для удаления не осталось")
+                            logger.debug(
+                                "LRU eviction: записей для удаления не осталось"
+                            )
                             break
 
                         total_deleted += deleted_count

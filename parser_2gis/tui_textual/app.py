@@ -330,7 +330,9 @@ class TUIApp(App):
 
     def action_toggle_dark(self) -> None:
         """Переключить тёмную тему."""
-        self.theme = "textual-dark" if self.theme == "textual-light" else "textual-light"
+        self.theme = (
+            "textual-dark" if self.theme == "textual-light" else "textual-light"
+        )
 
     def push_main_menu(self) -> None:
         """Показать главное меню."""
@@ -417,7 +419,11 @@ class TUIApp(App):
             self.update_state(total_urls=total_urls)
 
             def progress_callback(success: int, failed: int, filename: str) -> None:
-                category = filename.replace(".csv", "").split("_")[-1] if "_" in filename else ""
+                category = (
+                    filename.replace(".csv", "").split("_")[-1]
+                    if "_" in filename
+                    else ""
+                )
                 self.update_state(
                     success_count=success,
                     error_count=failed,
@@ -426,7 +432,9 @@ class TUIApp(App):
                 )
 
             output_file = f"Омск_парсинг_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            result = parser.run(output_file=output_file, progress_callback=progress_callback)
+            result = parser.run(
+                output_file=output_file, progress_callback=progress_callback
+            )
 
             self._running = False
             self.call_from_thread(self._parsing_complete, result)

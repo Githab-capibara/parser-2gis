@@ -106,14 +106,22 @@ class BrowserSettingsScreen(Screen):
         if button_id == "save":
             config = self.app.get_config()  # type: ignore
             config.chrome.headless = self.query_one("#headless-switch", Switch).value
-            config.chrome.disable_images = self.query_one("#disable-images-switch", Switch).value
-            config.chrome.silent_browser = self.query_one("#silent-switch", Switch).value
+            config.chrome.disable_images = self.query_one(
+                "#disable-images-switch", Switch
+            ).value
+            config.chrome.silent_browser = self.query_one(
+                "#silent-switch", Switch
+            ).value
 
             memory_limit = self.query_one("#memory-limit-input", Input).value
-            config.chrome.memory_limit = int(memory_limit) if memory_limit.isdigit() else 512
+            config.chrome.memory_limit = (
+                int(memory_limit) if memory_limit.isdigit() else 512
+            )
 
             startup_delay = self.query_one("#startup-delay-input", Input).value
-            config.chrome.startup_delay = int(startup_delay) if startup_delay.isdigit() else 0
+            config.chrome.startup_delay = (
+                int(startup_delay) if startup_delay.isdigit() else 0
+            )
 
             self.app.save_config()  # type: ignore
             self.app.notify("Настройки сохранены", title="Успех")  # type: ignore
@@ -231,7 +239,9 @@ class ParserSettingsScreen(Screen):
             config = self.app.get_config()  # type: ignore
 
             max_records = self.query_one("#max-records-input", Input).value
-            config.parser.max_records = int(max_records) if max_records.isdigit() else 1000
+            config.parser.max_records = (
+                int(max_records) if max_records.isdigit() else 1000
+            )
 
             delay = self.query_one("#delay-input", Input).value
             config.parser.delay_between_clicks = int(delay) if delay.isdigit() else 500
@@ -359,8 +369,12 @@ class OutputSettingsScreen(Screen):
             encoding = self.query_one("#encoding-input", Input).value
             config.writer.encoding = encoding
 
-            config.writer.csv.add_rubrics = self.query_one("#add-rubrics-switch", Switch).value
-            config.writer.csv.add_comments = self.query_one("#add-comments-switch", Switch).value
+            config.writer.csv.add_rubrics = self.query_one(
+                "#add-rubrics-switch", Switch
+            ).value
+            config.writer.csv.add_comments = self.query_one(
+                "#add-comments-switch", Switch
+            ).value
             config.writer.csv.remove_duplicates = self.query_one(
                 "#remove-duplicates-switch", Switch
             ).value

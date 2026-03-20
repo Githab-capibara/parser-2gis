@@ -44,7 +44,9 @@ class BrowserHealthMonitor:
     CPU_THRESHOLD_PERCENT = 95  # 95%
     STALL_THRESHOLD_SEC = 120  # 2 минуты без ответа
 
-    def __init__(self, browser: "ChromeBrowser", enable_auto_restart: bool = True) -> None:
+    def __init__(
+        self, browser: "ChromeBrowser", enable_auto_restart: bool = True
+    ) -> None:
         """
         Инициализирует монитор.
 
@@ -63,7 +65,8 @@ class BrowserHealthMonitor:
         self._monitoring_active = False
 
         logger.info(
-            "Инициализирован BrowserHealthMonitor с RLock (auto_restart=%s)", enable_auto_restart
+            "Инициализирован BrowserHealthMonitor с RLock (auto_restart=%s)",
+            enable_auto_restart,
         )
 
     def record_activity(self) -> None:
@@ -134,7 +137,8 @@ class BrowserHealthMonitor:
                     if issues:
                         health_status["recommendation"] = "; ".join(issues)
                         logger.warning(
-                            "Обнаружены проблемы с браузером: %s", health_status["recommendation"]
+                            "Обнаружены проблемы с браузером: %s",
+                            health_status["recommendation"],
                         )
 
                         # Увеличиваем счетчик критических ошибок
@@ -142,8 +146,13 @@ class BrowserHealthMonitor:
                             self._critical_errors_count += 1
 
                         # Рекомендуем перезапуск
-                        if self._enable_auto_restart and health_status["recommendation"]:
-                            health_status["recommendation"] += ". Рекомендуется перезапуск."
+                        if (
+                            self._enable_auto_restart
+                            and health_status["recommendation"]
+                        ):
+                            health_status["recommendation"] += (
+                                ". Рекомендуется перезапуск."
+                            )
 
                 except psutil.NoSuchProcess:
                     logger.error("Процесс браузера не найден")
@@ -181,7 +190,8 @@ class BrowserHealthMonitor:
             # Перезапуск если много критических ошибок
             if self._critical_errors_count >= 3:
                 logger.warning(
-                    "Превышен порог критических ошибок (%d). " "Рекомендуется перезапуск браузера.",
+                    "Превышен порог критических ошибок (%d). "
+                    "Рекомендуется перезапуск браузера.",
                     self._critical_errors_count,
                 )
                 return True
@@ -250,4 +260,6 @@ class BrowserHealthMonitor:
             enabled: True для включения, False для отключения.
         """
         self._enable_auto_restart = enabled
-        logger.info("Автоматический перезапуск: %s", "включен" if enabled else "отключен")
+        logger.info(
+            "Автоматический перезапуск: %s", "включен" if enabled else "отключен"
+        )

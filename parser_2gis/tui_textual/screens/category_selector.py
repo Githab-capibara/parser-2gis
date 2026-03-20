@@ -111,10 +111,14 @@ class CategorySelectorScreen(Screen):
                 )
 
             # Счётчик
-            yield Static("Выбрано: 0 из 0", id="category-counter", classes="counter-panel")
+            yield Static(
+                "Выбрано: 0 из 0", id="category-counter", classes="counter-panel"
+            )
 
             # Список категорий
-            with ScrollableContainer(id="category-list", classes="category-list-container"):
+            with ScrollableContainer(
+                id="category-list", classes="category-list-container"
+            ):
                 # Категории будут добавлены динамически
                 pass
 
@@ -187,7 +191,9 @@ class CategorySelectorScreen(Screen):
                 self._filtered_categories = self._categories.copy()
             else:
                 self._filtered_categories = [
-                    cat for cat in self._categories if query in cat.get("name", "").lower()
+                    cat
+                    for cat in self._categories
+                    if query in cat.get("name", "").lower()
                 ]
 
             self._populate_categories()
@@ -231,7 +237,8 @@ class CategorySelectorScreen(Screen):
         elif button_id == "next":
             # Сохранить выбранные категории
             selected_names = [
-                self._categories[i].get("name", "") for i in sorted(self._selected_indices)
+                self._categories[i].get("name", "")
+                for i in sorted(self._selected_indices)
             ]
             self.app.selected_categories = selected_names  # type: ignore
             self.app.push_screen("parsing")  # type: ignore
