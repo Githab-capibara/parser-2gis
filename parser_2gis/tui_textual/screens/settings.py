@@ -70,7 +70,14 @@ class BrowserSettingsScreen(Screen):
     """
 
     def compose(self) -> ComposeResult:
-        """Создать интерфейс."""
+        """Создать интерфейс настроек браузера.
+
+        Генерирует виджеты для переключателей Headless, изображений,
+        тихого режима, полей ввода памяти и задержки, а также кнопок.
+
+        Returns:
+            ComposeResult: Результат композиции виджетов.
+        """
         with Container(id="browser-settings-container"):
             yield Static("🌐 Настройки браузера", classes="header")
 
@@ -100,7 +107,14 @@ class BrowserSettingsScreen(Screen):
                 yield Button("⬅️ Назад", id="back", variant="default")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Обработка кнопок."""
+        """Обработать нажатие кнопки на экране настроек браузера.
+
+        Обрабатывает кнопки: "Сохранить", "Сброс", "Назад".
+        При сохранении записывает значения из виджетов в конфигурацию.
+
+        Args:
+            event: Событие нажатия кнопки.
+        """
         button_id = event.button.id
 
         if button_id == "save":
@@ -133,7 +147,10 @@ class BrowserSettingsScreen(Screen):
             self.app.pop_screen()  # type: ignore
 
     def action_reset(self) -> None:
-        """Сброс настроек."""
+        """Сбросить настройки браузера к значениям по умолчанию.
+
+        Устанавливает переключатели в True и поля ввода в значения по умолчанию.
+        """
         self.query_one("#headless-switch", Switch).value = True
         self.query_one("#disable-images-switch", Switch).value = True
         self.query_one("#silent-switch", Switch).value = True
@@ -202,7 +219,14 @@ class ParserSettingsScreen(Screen):
     """
 
     def compose(self) -> ComposeResult:
-        """Создать интерфейс."""
+        """Создать интерфейс настроек парсера.
+
+        Генерирует виджеты для полей ввода лимита записей, задержки,
+        попыток, таймаута, количества потоков и кнопок.
+
+        Returns:
+            ComposeResult: Результат композиции виджетов.
+        """
         with Container(id="parser-settings-container"):
             yield Static("⚙️ Настройки парсера", classes="header")
 
@@ -232,7 +256,14 @@ class ParserSettingsScreen(Screen):
                 yield Button("⬅️ Назад", id="back", variant="default")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Обработка кнопок."""
+        """Обработать нажатие кнопки на экране настроек парсера.
+
+        Обрабатывает кнопки: "Сохранить", "Сброс", "Назад".
+        При сохранении записывает значения из виджетов в конфигурацию.
+
+        Args:
+            event: Событие нажатия кнопки.
+        """
         button_id = event.button.id
 
         if button_id == "save":
@@ -265,7 +296,10 @@ class ParserSettingsScreen(Screen):
             self.app.pop_screen()  # type: ignore
 
     def action_reset(self) -> None:
-        """Сброс настроек."""
+        """Сбросить настройки парсера к значениям по умолчанию.
+
+        Устанавливает поля ввода в значения по умолчанию для всех параметров.
+        """
         self.query_one("#max-records-input", Input).value = "1000"
         self.query_one("#delay-input", Input).value = "500"
         self.query_one("#max-retries-input", Input).value = "3"
@@ -334,7 +368,14 @@ class OutputSettingsScreen(Screen):
     """
 
     def compose(self) -> ComposeResult:
-        """Создать интерфейс."""
+        """Создать интерфейс настроек вывода.
+
+        Генерирует виджеты для поля ввода кодировки, переключателей
+        рубрик, комментариев, удаления дубликатов и кнопок.
+
+        Returns:
+            ComposeResult: Результат композиции виджетов.
+        """
         with Container(id="output-settings-container"):
             yield Static("📤 Настройки вывода", classes="header")
 
@@ -360,7 +401,14 @@ class OutputSettingsScreen(Screen):
                 yield Button("⬅️ Назад", id="back", variant="default")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Обработка кнопок."""
+        """Обработать нажатие кнопки на экране настроек вывода.
+
+        Обрабатывает кнопки: "Сохранить", "Сброс", "Назад".
+        При сохранении записывает значения из виджетов в конфигурацию.
+
+        Args:
+            event: Событие нажатия кнопки.
+        """
         button_id = event.button.id
 
         if button_id == "save":
@@ -389,7 +437,10 @@ class OutputSettingsScreen(Screen):
             self.app.pop_screen()  # type: ignore
 
     def action_reset(self) -> None:
-        """Сброс настроек."""
+        """Сбросить настройки вывода к значениям по умолчанию.
+
+        Устанавливает кодировку в "utf-8" и переключатели в значения по умолчанию.
+        """
         self.query_one("#encoding-input", Input).value = "utf-8"
         self.query_one("#add-rubrics-switch", Switch).value = True
         self.query_one("#add-comments-switch", Switch).value = False

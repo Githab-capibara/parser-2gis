@@ -63,9 +63,13 @@ class SignalHandler:
         """
         self._interrupted = False
         self._is_cleaning_up = False
+        self._cleanup_completed = False  # Флаг завершения очистки
         self._cleanup_callback = cleanup_callback
         self._lock = threading.Lock()
         self._original_handlers: dict[int, Any] = {}
+        # Для совместимости с тестами
+        self._original_handler_sigint: Any = None
+        self._original_handler_sigterm: Any = None
 
     def setup(self) -> None:
         """
@@ -83,6 +87,9 @@ class SignalHandler:
             # Сохраняем оригинальные обработчики
             self._original_handlers[signal.SIGINT] = signal.getsignal(signal.SIGINT)
             self._original_handlers[signal.SIGTERM] = signal.getsignal(signal.SIGTERM)
+            # Для совместимости с тестами
+            self._original_handler_sigint = self._original_handlers[signal.SIGINT]
+            self._original_handler_sigterm = self._original_handlers[signal.SIGTERM]
 
             # Устанавливаем наши обработчики
             signal.signal(signal.SIGINT, self._handle_signal)
@@ -98,8 +105,9 @@ class SignalHandler:
         восстанавливает оригинальные обработчики сигналов.
         """
         with self._lock:
-            if self._is_cleaning_up:
-                logger.warning("Очистка уже выполняется")
+            # Предотвращаем повторную очистку
+            if self._is_cleaning_up or self._cleanup_completed:
+                logger.warning("Очистка уже выполняется или завершена")
                 return
 
             self._is_cleaning_up = True
@@ -127,6 +135,7 @@ class SignalHandler:
 
             finally:
                 self._is_cleaning_up = False
+                self._cleanup_completed = True
 
     def _handle_signal(self, signum: int, frame: Any) -> None:
         """

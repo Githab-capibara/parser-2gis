@@ -140,7 +140,14 @@ class CategorySelectorScreen(Screen):
         search_input.focus()
 
     def _load_categories(self) -> None:
-        """Загрузить список категорий."""
+        """Загрузить список категорий из приложения.
+
+        Получает категории через метод app.get_categories() и восстанавливает
+        ранее выбранные пользователем категории из app.selected_categories.
+
+        Raises:
+            AttributeError: Если метод get_categories недоступен в приложении.
+        """
         self._categories = self.app.get_categories()  # type: ignore
         self._filtered_categories = self._categories.copy()
 
@@ -151,7 +158,11 @@ class CategorySelectorScreen(Screen):
                 self._selected_indices.add(i)
 
     def _populate_categories(self) -> None:
-        """Заполнить список категорий."""
+        """Заполнить интерфейс списком категорий.
+
+        Очищает контейнер списка и создаёт Checkbox виджеты для каждой
+        категории из отфильтрованного списка.
+        """
         container = self.query_one("#category-list", ScrollableContainer)
         container.remove_children()
         self._checkboxes.clear()
@@ -166,7 +177,11 @@ class CategorySelectorScreen(Screen):
             container.mount(checkbox)
 
     def _update_counter(self) -> None:
-        """Обновить счётчик выбранных категорий."""
+        """Обновить счётчик выбранных категорий и состояние кнопки "Далее".
+
+        Вычисляет количество выбранных категорий и обновляет текст счётчика.
+        Кнопка "Далее" становится активной только если выбрана хотя бы одна категория.
+        """
         selected_count = len(self._selected_indices)
         total_count = len(self._categories)
 
@@ -183,7 +198,13 @@ class CategorySelectorScreen(Screen):
             next_button.disabled = True
 
     def on_input_changed(self, event: Input.Changed) -> None:
-        """Фильтрация категорий."""
+        """Обработать изменение текста в поле поиска.
+
+        Фильтрует список категорий по введённому запросу и обновляет интерфейс.
+
+        Args:
+            event: Событие изменения текста в Input виджете.
+        """
         if event.input.id == "category-search":
             query = event.value.lower().strip()
 
@@ -200,7 +221,13 @@ class CategorySelectorScreen(Screen):
             self._update_counter()
 
     def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
-        """Изменение выбора категории."""
+        """Обработать изменение состояния Checkbox категории.
+
+        Добавляет или удаляет индекс категории из множества выбранных.
+
+        Args:
+            event: Событие изменения состояния Checkbox.
+        """
         checkbox_id = event.checkbox.id
         if checkbox_id and checkbox_id.startswith("category-"):
             try:
@@ -216,7 +243,13 @@ class CategorySelectorScreen(Screen):
                 pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Обработка кнопок."""
+        """Обработать нажатие кнопки на экране.
+
+        Обрабатывает кнопки: "Выбрать все", "Снять все", "Далее", "Назад".
+
+        Args:
+            event: Событие нажатия кнопки.
+        """
         button_id = event.button.id
 
         if button_id == "select-all":
@@ -247,11 +280,17 @@ class CategorySelectorScreen(Screen):
             self.app.pop_screen()  # type: ignore
 
     def action_select_all(self) -> None:
-        """Выбрать все категории."""
+        """Выбрать все отображённые категории.
+
+        Устанавливает значение всех Checkbox в True.
+        """
         for checkbox in self._checkboxes:
             checkbox.value = True
 
     def action_deselect_all(self) -> None:
-        """Снять все категории."""
+        """Снять выбор со всех категорий.
+
+        Устанавливает значение всех Checkbox в False.
+        """
         for checkbox in self._checkboxes:
             checkbox.value = False

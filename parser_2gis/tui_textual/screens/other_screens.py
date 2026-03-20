@@ -74,7 +74,13 @@ class CacheViewerScreen(Screen):
     """
 
     def compose(self) -> ComposeResult:
-        """Создать интерфейс."""
+        """Создать интерфейс просмотра кэша.
+
+        Генерирует виджеты для заголовка, статистики, таблицы кэша и кнопок.
+
+        Returns:
+            ComposeResult: Результат композиции виджетов.
+        """
         with Container(id="cache-viewer-container"):
             yield Static("💾 Просмотр кэша", classes="header")
 
@@ -98,12 +104,19 @@ class CacheViewerScreen(Screen):
                 yield Button("⬅️ Назад", id="back", variant="default")
 
     def on_mount(self) -> None:
-        """Загрузка данных кэша."""
+        """Загрузить данные кэша при монтировании экрана.
+
+        Вызывает методы загрузки статистики и данных кэша.
+        """
         self._load_cache_stats()
         self._load_cache_data()
 
     def _load_cache_stats(self) -> None:
-        """Загрузить статистику кэша."""
+        """Загрузить статистику кэша.
+
+        Получает размер файла кэша и отображает информацию о нём.
+        Если файл кэша не существует, отображает сообщение "Кэш пуст".
+        """
         from parser_2gis.paths import cache_path
 
         cache_dir = cache_path()
@@ -119,7 +132,11 @@ class CacheViewerScreen(Screen):
         stats_label.update(stats_text)
 
     def _load_cache_data(self) -> None:
-        """Загрузить данные кэша в таблицу."""
+        """Загрузить данные кэша в таблицу.
+
+        Очищает таблицу и заполняет её данными из кэша.
+        В текущей реализации отображает заглушку "Нет данных".
+        """
         table = self.query_one("#cache-table", DataTable)
         table.clear()
 
@@ -128,7 +145,13 @@ class CacheViewerScreen(Screen):
         table.add_row("Нет данных", "-", "-")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Обработка кнопок."""
+        """Обработать нажатие кнопки на экране просмотра кэша.
+
+        Обрабатывает кнопки: "Очистить", "Обновить", "Назад".
+
+        Args:
+            event: Событие нажатия кнопки.
+        """
         button_id = event.button.id
 
         if button_id == "clear":
@@ -141,7 +164,12 @@ class CacheViewerScreen(Screen):
             self.app.pop_screen()  # type: ignore
 
     def action_clear_cache(self) -> None:
-        """Очистить кэш."""
+        """Очистить кэш.
+
+        Создаёт экземпляр CacheManager и вызывает метод clear()
+        для удаления всех данных из кэша. После очистки обновляет
+        отображение статистики и данных.
+        """
 
         from parser_2gis.cache import CacheManager
         from parser_2gis.paths import cache_path
@@ -223,7 +251,14 @@ class AboutScreen(Screen):
     """
 
     def compose(self) -> ComposeResult:
-        """Создать интерфейс."""
+        """Создать интерфейс экрана информации о программе.
+
+        Генерирует виджеты для заголовка, информационной секции,
+        списка возможностей и кнопок.
+
+        Returns:
+            ComposeResult: Результат композиции виджетов.
+        """
         with Container(id="about-container"):
             yield Static("👤 О программе", classes="title")
 
@@ -270,6 +305,12 @@ class AboutScreen(Screen):
                 yield Button("⬅️ Назад", id="back", variant="default")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Обработка кнопок."""
+        """Обработать нажатие кнопки на экране информации.
+
+        Обрабатывает кнопку "Назад" для возврата на предыдущий экран.
+
+        Args:
+            event: Событие нажатия кнопки.
+        """
         if event.button.id == "back":
             self.app.pop_screen()  # type: ignore

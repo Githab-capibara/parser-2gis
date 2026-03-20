@@ -91,7 +91,13 @@ class MainMenuScreen(Screen):
     """
 
     def compose(self) -> ComposeResult:
-        """Создать интерфейс меню."""
+        """Создать интерфейс главного меню.
+
+        Генерирует виджеты для логотипа, заголовка, кнопок меню и разделителей.
+
+        Returns:
+            ComposeResult: Результат композиции виджетов.
+        """
         with Container(id="main-menu"):
             # Логотип
             with Container(classes="logo-container"):
@@ -153,7 +159,14 @@ class MainMenuScreen(Screen):
                 )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Обработка нажатия кнопок."""
+        """Обработать нажатие кнопки в главном меню.
+
+        Перенаправляет пользователя на соответствующий экран в зависимости
+        от нажатой кнопки или завершает работу приложения.
+
+        Args:
+            event: Событие нажатия кнопки.
+        """
         button_id = event.button.id
 
         if button_id == "start-parsing":

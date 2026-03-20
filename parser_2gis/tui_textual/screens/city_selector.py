@@ -136,7 +136,14 @@ class CitySelectorScreen(Screen):
         search_input.focus()
 
     def _load_cities(self) -> None:
-        """Загрузить список городов."""
+        """Загрузить список городов из приложения.
+
+        Получает города через метод app.get_cities() и восстанавливает
+        ранее выбранные пользователем города из app.selected_cities.
+
+        Raises:
+            AttributeError: Если метод get_cities недоступен в приложении.
+        """
         self._cities = self.app.get_cities()  # type: ignore
         self._filtered_cities = self._cities.copy()
 
@@ -147,7 +154,11 @@ class CitySelectorScreen(Screen):
                 self._selected_indices.add(i)
 
     def _populate_cities(self) -> None:
-        """Заполнить список городов."""
+        """Заполнить интерфейс списком городов.
+
+        Очищает контейнер списка и создаёт Checkbox виджеты для каждого
+        города из отфильтрованного списка с указанием кода страны.
+        """
         container = self.query_one("#city-list", ScrollableContainer)
         container.remove_children()
         self._checkboxes.clear()
@@ -165,7 +176,11 @@ class CitySelectorScreen(Screen):
             container.mount(checkbox)
 
     def _update_counter(self) -> None:
-        """Обновить счётчик выбранных городов."""
+        """Обновить счётчик выбранных городов и состояние кнопки "Далее".
+
+        Вычисляет количество выбранных городов и обновляет текст счётчика.
+        Кнопка "Далее" становится активной только если выбран хотя бы один город.
+        """
         selected_count = len(self._selected_indices)
         total_count = len(self._cities)
 
@@ -182,7 +197,13 @@ class CitySelectorScreen(Screen):
             next_button.disabled = True
 
     def on_input_changed(self, event: Input.Changed) -> None:
-        """Фильтрация городов."""
+        """Обработать изменение текста в поле поиска.
+
+        Фильтрует список городов по введённому запросу и обновляет интерфейс.
+
+        Args:
+            event: Событие изменения текста в Input виджете.
+        """
         if event.input.id == "city-search":
             query = event.value.lower().strip()
 
@@ -199,7 +220,14 @@ class CitySelectorScreen(Screen):
             self._update_counter()
 
     def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
-        """Изменение выбора города."""
+        """Обработать изменение состояния Checkbox города.
+
+        Добавляет или удаляет индекс города из множества выбранных.
+        Корректно обрабатывает映射 между отфильтрованным и полным списком.
+
+        Args:
+            event: Событие изменения состояния Checkbox.
+        """
         checkbox_id = event.checkbox.id
         if checkbox_id and checkbox_id.startswith("city-"):
             try:
@@ -217,7 +245,13 @@ class CitySelectorScreen(Screen):
                 pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Обработка кнопок."""
+        """Обработать нажатие кнопки на экране.
+
+        Обрабатывает кнопки: "Выбрать все", "Снять все", "Далее", "Назад".
+
+        Args:
+            event: Событие нажатия кнопки.
+        """
         button_id = event.button.id
 
         if button_id == "select-all":
@@ -249,11 +283,17 @@ class CitySelectorScreen(Screen):
             self.app.pop_screen()  # type: ignore
 
     def action_select_all(self) -> None:
-        """Выбрать все города."""
+        """Выбрать все отображённые города.
+
+        Устанавливает значение всех Checkbox в True.
+        """
         for checkbox in self._checkboxes:
             checkbox.value = True
 
     def action_deselect_all(self) -> None:
-        """Снять все города."""
+        """Снять выбор со всех городов.
+
+        Устанавливает значение всех Checkbox в False.
+        """
         for checkbox in self._checkboxes:
             checkbox.value = False

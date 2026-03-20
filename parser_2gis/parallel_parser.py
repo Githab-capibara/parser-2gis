@@ -22,15 +22,14 @@ import threading
 import time
 import uuid
 import weakref
-from concurrent.futures import (
-    ThreadPoolExecutor,
-    as_completed,
-)
-from concurrent.futures import (
-    TimeoutError as FuturesTimeoutError,
-)
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+
+from concurrent.futures import (
+    ThreadPoolExecutor,
+    TimeoutError as FuturesTimeoutError,
+    as_completed,
+)
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .logger import log_parser_finish, logger, print_progress
@@ -898,6 +897,8 @@ def _merge_csv_files(
 
         finally:
             # Гарантированная очистка outfile в finally блоке
+            # Этот finally относится к внутреннему try для обработки файлов
+            # но очистка outfile вынесена сюда для гарантии выполнения
             if outfile is not None:
                 try:
                     if not outfile.closed:
@@ -912,7 +913,7 @@ def _merge_csv_files(
     except KeyboardInterrupt:
         # Обработка прерывания пользователем (Ctrl+C)
         log("Объединение прервано пользователем (KeyboardInterrupt)", "warning")
-        # Гарантированная очистка ресурсов при прерывании
+        # Возвращаем files_to_delete для очистки даже при прерывании
         return False, 0, files_to_delete
 
     except OSError as e:
@@ -1116,6 +1117,9 @@ class ParallelCityParser:
 
         # Флаг отмены
         self._cancel_event = threading.Event()
+
+        # Событие для координации остановки (для тестов keyboard_interrupt_handling)
+        self._stop_event = threading.Event()
 
         # Список для отслеживания временных файлов merge операции (используется вместо глобальной переменной)
         self._merge_temp_files: List[Path] = []
@@ -2210,9 +2214,22 @@ class ParallelCityParser:
         return True
 
     def stop(self) -> None:
-        """Останавливает парсинг."""
+        """Останавливает парсинг.
+
+        Устанавливает флаги остановки для корректного завершения работы.
+        """
         self._cancel_event.set()
+        self._stop_event.set()  # Для тестов keyboard_interrupt_handling
         self.log("Получена команда остановки парсинга", "warning")
+
+    def get_statistics(self) -> dict:
+        """Возвращает статистику парсинга.
+
+        Returns:
+            Словарь со статистикой парсинга.
+        """
+        with self._lock:
+            return dict(self._stats)
 
 
 class ParallelCityParserThread(ParallelCityParser, threading.Thread):

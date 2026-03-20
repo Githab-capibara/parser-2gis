@@ -11,8 +11,6 @@ import inspect
 
 from pychrome.exceptions import (
     RuntimeException as _RuntimeException,
-)
-from pychrome.exceptions import (
     UserAbortException as _UserAbortException,
 )
 

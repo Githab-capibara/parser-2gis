@@ -24,10 +24,11 @@
 from __future__ import annotations
 
 import re
-import unicodedata
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
+
+import unicodedata
 
 from .logger import logger
 

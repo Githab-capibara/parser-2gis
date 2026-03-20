@@ -113,7 +113,14 @@ class ParsingScreen(Screen):
         self._current_category = ""
 
     def compose(self) -> ComposeResult:
-        """Создать интерфейс."""
+        """Создать интерфейс экрана парсинга.
+
+        Генерирует виджеты для заголовка, прогресс-баров, статистики,
+        лога и кнопок управления.
+
+        Returns:
+            ComposeResult: Результат композиции виджетов.
+        """
         with Container(id="parsing-container"):
             # Заголовок
             yield Static("🚀 Парсинг данных", classes="header")
@@ -144,7 +151,12 @@ class ParsingScreen(Screen):
                 yield Button("🏠 В меню", id="home", variant="default")
 
     def on_mount(self) -> None:
-        """Запуск парсинга."""
+        """Запустить парсинг при монтировании экрана.
+
+        Инициализирует время начала, записывает сообщение о запуске в лог,
+        получает выбранные города и категории из приложения и запускает
+        процесс парсинга.
+        """
         self._start_time = datetime.now()
         self._add_log("[bold green]Запуск парсинга...[/]")
 
@@ -170,7 +182,11 @@ class ParsingScreen(Screen):
         self.app.start_parsing(selected_cities, selected_cats)  # type: ignore
 
     def _add_log(self, message: str) -> None:
-        """Добавить запись в лог."""
+        """Добавить запись в лог парсинга.
+
+        Args:
+            message: Сообщение для записи в лог с поддержкой markup.
+        """
         log_viewer = self.query_one("#log-viewer", RichLog)
         log_viewer.write(message)
 
@@ -183,7 +199,18 @@ class ParsingScreen(Screen):
         record_completed: int = 0,
         record_total: int | None = None,
     ) -> None:
-        """Обновить прогресс-бары."""
+        """Обновить прогресс-бары парсинга.
+
+        Обновляет состояние прогресс-баров для URL, страниц и записей.
+
+        Args:
+            url_completed: Количество обработанных URL.
+            url_total: Общее количество URL.
+            page_completed: Количество обработанных страниц.
+            page_total: Общее количество страниц.
+            record_completed: Количество обработанных записей.
+            record_total: Общее количество записей.
+        """
         if url_total is not None:
             url_progress = self.query_one("#url-progress", ProgressBar)
             url_progress.update(progress=url_completed, total=url_total)
@@ -203,7 +230,17 @@ class ParsingScreen(Screen):
         success_count: int | None = None,
         error_count: int | None = None,
     ) -> None:
-        """Обновить статистику."""
+        """Обновить статистику парсинга.
+
+        Обновляет текущий город, категорию, количество успешных и ошибочных
+        операций, а также отображает прошедшее время.
+
+        Args:
+            current_city: Текущий обрабатываемый город.
+            current_category: Текущая обрабатываемая категория.
+            success_count: Количество успешных операций.
+            error_count: Количество ошибок.
+        """
         if current_city is not None:
             self._current_city = current_city
         if current_category is not None:
@@ -230,7 +267,13 @@ class ParsingScreen(Screen):
         )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Обработка кнопок."""
+        """Обработать нажатие кнопки на экране парсинга.
+
+        Обрабатывает кнопки: "Пауза", "Стоп", "В меню".
+
+        Args:
+            event: Событие нажатия кнопки.
+        """
         button_id = event.button.id
 
         if button_id == "pause":
@@ -241,7 +284,11 @@ class ParsingScreen(Screen):
             self.app.pop_screen()  # type: ignore
 
     def action_toggle_pause(self) -> None:
-        """Переключить паузу."""
+        """Переключить состояние паузы парсинга.
+
+        Изменяет флаг паузы и обновляет label кнопки.
+        При паузе запись в лог о приостановке, при продолжении - о возобновлении.
+        """
         self._paused = not self._paused
 
         pause_button = self.query_one("#pause", Button)
@@ -253,18 +300,30 @@ class ParsingScreen(Screen):
             self._add_log("[green]Парсинг продолжен[/]")
 
     def action_stop_parsing(self) -> None:
-        """Остановить парсинг."""
+        """Остановить парсинг по команде пользователя.
+
+        Записывает сообщение об остановке в лог, устанавливает флаг
+        остановки приложения и возвращает на предыдущий экран.
+        """
         self._add_log("[bold red]Остановка парсинга пользователем...[/]")
         self.app.running = False  # type: ignore
         self.app.pop_screen()  # type: ignore
 
     def on_parsing_complete(self, success: bool) -> None:
-        """Обработка завершения парсинга."""
+        """Обработать завершение парсинга.
+
+        Args:
+            success: True если парсинг завершён успешно, False если с ошибками.
+        """
         if success:
             self._add_log("[bold green]Парсинг успешно завершён![/]")
         else:
             self._add_log("[bold red]Парсинг завершён с ошибками[/]")
 
     def on_parsing_error(self, error: str) -> None:
-        """Обработка ошибки парсинга."""
+        """Обработать ошибку парсинга.
+
+        Args:
+            error: Текст ошибки для отображения в логе.
+        """
         self._add_log(f"[bold red]Ошибка: {error}[/]")

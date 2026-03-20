@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import sqlite3
 import sys
 from datetime import datetime
 from functools import lru_cache
@@ -100,8 +101,7 @@ def _tui_stub() -> None:
 
 
 try:
-    from .tui_textual import Parser2GISTUI
-    from .tui_textual import run_tui as run_new_tui_omsk
+    from .tui_textual import Parser2GISTUI, run_tui as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функции
     run_new_tui_omsk = _tui_omsk_stub
@@ -424,12 +424,33 @@ def cleanup_resources() -> None:
                     exc_info=True,
                 )
                 error_count += 1
-            except Exception as cache_error:
-                # Любая другая ошибка при закрытии кэша
+            except sqlite3.Error as db_error:
+                # Ошибка базы данных при закрытии
                 logger.error(
-                    "Ошибка при закрытии кэша базы данных: %s (тип: %s)",
-                    cache_error,
-                    type(cache_error).__name__,
+                    "Ошибка SQLite при закрытии кэша базы данных: %s",
+                    db_error,
+                    exc_info=True,
+                )
+                error_count += 1
+            except OSError as os_error:
+                # Ошибка файловой системы при закрытии
+                logger.error(
+                    "OSError при закрытии кэша базы данных: %s", os_error, exc_info=True
+                )
+                error_count += 1
+            except ValueError as value_error:
+                # Ошибка значения при закрытии
+                logger.error(
+                    "ValueError при закрытии кэша базы данных: %s",
+                    value_error,
+                    exc_info=True,
+                )
+                error_count += 1
+            except TypeError as type_error:
+                # Ошибка типа при закрытии
+                logger.error(
+                    "TypeError при закрытии кэша базы данных: %s",
+                    type_error,
                     exc_info=True,
                 )
                 error_count += 1
@@ -598,11 +619,6 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
             # Обычное чтение для малых файлов
             with open(cities_path, "r", encoding="utf-8") as f:
                 all_cities = json.load(f)
-
-        # ИСПРАВЛЕНИЕ 1: Проверка что all_cities был успешно инициализирован
-        if all_cities is None:
-            logger.error("Файл городов не был загружен (all_cities остался None)")
-            raise ValueError("Файл городов не был загружен корректно")
 
         # Валидация структуры данных
         if not isinstance(all_cities, list):

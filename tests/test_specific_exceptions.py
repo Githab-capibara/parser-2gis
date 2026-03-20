@@ -458,7 +458,7 @@ class TestSpecificExceptionComprehensive:
                 mock_cursor = MagicMock()
 
                 # Создаем цепочку исключений
-                original_error = sqlite3.Error("Original error")
+                sqlite3.Error("Original error")
                 wrapped_error = RuntimeError("Wrapped error")
 
                 mock_cursor.fetchone.side_effect = wrapped_error

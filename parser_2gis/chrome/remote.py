@@ -17,12 +17,12 @@ import re
 import socket
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pychrome
 import requests  # type: ignore[import-untyped]
+from concurrent.futures import ThreadPoolExecutor
 from ratelimit import limits, sleep_and_retry  # type: ignore[import-untyped]
 from requests.exceptions import RequestException  # type: ignore[import-untyped]
 from websocket import WebSocketException, WebSocketTimeoutException
@@ -30,13 +30,13 @@ from websocket import WebSocketException, WebSocketTimeoutException
 from ..common import wait_until_finished
 from ..logger.logger import logger as app_logger
 from .browser import ChromeBrowser
+from .constants import CHROME_STARTUP_DELAY  # L4: магические числа вынесены в константы
+from .constants import MAX_JS_CODE_LENGTH  # L4: магические числа вынесены в константы
+from .constants import MAX_RESPONSE_SIZE  # L9: лимит размера загружаемых файлов
+from .constants import MAX_TOTAL_JS_SIZE  # L4: магические числа вынесены в константы
 from .constants import (  # L6: rate limiting для внешних запросов
-    CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
     EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
-    MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
-    MAX_RESPONSE_SIZE,  # L9: лимит размера загружаемых файлов
-    MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
 )
 from .dom import DOMNode
 from .exceptions import ChromeException
