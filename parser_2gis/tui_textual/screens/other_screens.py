@@ -142,11 +142,12 @@ class CacheViewerScreen(Screen):
 
     def action_clear_cache(self) -> None:
         """Очистить кэш."""
+
         from parser_2gis.cache import CacheManager
         from parser_2gis.paths import cache_path
 
         cache_dir = cache_path()
-        cache_manager = CacheManager(cache_dir=str(cache_dir))
+        cache_manager = CacheManager(cache_dir=cache_dir)
         cache_manager.clear()
 
         self._load_cache_stats()

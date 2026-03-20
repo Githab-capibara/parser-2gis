@@ -11,7 +11,6 @@ import argparse
 import gc
 import json
 import sys
-import time
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -101,7 +100,8 @@ def _tui_stub() -> None:
 
 
 try:
-    from .tui_textual import Parser2GISTUI, run_tui as run_new_tui_omsk
+    from .tui_textual import Parser2GISTUI
+    from .tui_textual import run_tui as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функции
     run_new_tui_omsk = _tui_omsk_stub
@@ -1146,7 +1146,6 @@ def main() -> None:
         очистки ресурсов при KeyboardInterrupt и других исключениях.
     """
     # Запоминаем время старта
-    start_time = time.time()
     start_datetime = datetime.now()
 
     # ВАЖНО: Устанавливаем обработчики сигналов для безопасной очистки ресурсов

@@ -12,8 +12,6 @@
 
 import pathlib
 
-import pytest
-
 
 class TestPathsModuleFunctions:
     """Тесты для проверки наличия и работы функций в модуле paths."""
