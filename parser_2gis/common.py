@@ -16,7 +16,6 @@ import asyncio
 import functools
 import logging
 import re
-import sys
 import time
 import urllib.parse
 from functools import lru_cache
@@ -201,6 +200,47 @@ def _is_sensitive_key(key: str) -> bool:
     return bool(_SENSITIVE_KEY_PATTERN.search(key_lower))
 
 
+def _check_value_type_and_sensitivity(
+    current_value: Any,
+    current_key: Optional[str],
+    parent: Optional[Any],
+    parent_key: Optional[Any],
+    results: Dict[int, Any],
+) -> Tuple[bool, Any]:
+    """
+    Проверяет тип значения и обрабатывает простые случаи.
+
+    Выделена из _sanitize_value для снижения сложности основной функции.
+
+    Args:
+        current_value: Текущее значение для проверки.
+        current_key: Ключ текущего значения.
+        parent: Родительский контейнер.
+        parent_key: Ключ в родительском контейнере.
+        results: Словарь результатов.
+
+    Returns:
+        Кортеж (handled, result) где handled указывает, было ли значение обработано.
+    """
+    # Быстрая проверка для неизменяемых типов - не требуют обработки
+    if current_value is None or isinstance(current_value, (str, int, float, bool)):
+        result = (
+            "<REDACTED>"
+            if current_key and _is_sensitive_key(current_key)
+            else current_value
+        )
+        if parent is not None and parent_key is not None:
+            if isinstance(parent, dict):
+                parent[parent_key] = result
+            elif isinstance(parent, list):
+                parent[parent_key] = result
+        else:
+            results[id(current_value)] = result
+        return True, result
+
+    return False, None
+
+
 def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     """
     Очищает чувствительные данные из значения.
@@ -247,7 +287,8 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
             exc_info=True,
         )
         raise ValueError(
-            "Нехватка памяти при проверке размера данных. " "Данные слишком большие для обработки."
+            "Нехватка памяти при проверке размера данных. "
+            "Данные слишком большие для обработки."
         ) from size_check_error
 
     try:
@@ -263,20 +304,11 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                 current_value, current_key, parent, parent_key = stack.pop()
                 current_id = id(current_value)
 
-                # Быстрая проверка для неизменяемых типов - не требуют обработки
-                if current_value is None or isinstance(current_value, (str, int, float, bool)):
-                    result = (
-                        "<REDACTED>"
-                        if current_key and _is_sensitive_key(current_key)
-                        else current_value
-                    )
-                    if parent is not None and parent_key is not None:
-                        if isinstance(parent, dict):
-                            parent[parent_key] = result
-                        elif isinstance(parent, list):
-                            parent[parent_key] = result
-                    else:
-                        results[current_id] = result
+                # Используем выделенную функцию для проверки типа и чувствительности
+                handled, _ = _check_value_type_and_sensitivity(
+                    current_value, current_key, parent, parent_key, results
+                )
+                if handled:
                     continue
 
                 # Проверяем на циклические ссылки
@@ -480,18 +512,28 @@ def wait_until_finished(
                 override_finished
                 if override_finished is not None
                 else (
-                    finished if finished is not None else decorator_finished or _default_predicate
+                    finished
+                    if finished is not None
+                    else decorator_finished or _default_predicate
                 )
             )
             effective_throw = (
                 override_throw_exception
                 if override_throw_exception is not None
-                else (throw_exception if throw_exception is not None else decorator_throw_exception)
+                else (
+                    throw_exception
+                    if throw_exception is not None
+                    else decorator_throw_exception
+                )
             )
             effective_poll = (
                 override_poll_interval
                 if override_poll_interval is not None
-                else (poll_interval if poll_interval is not None else decorator_poll_interval)
+                else (
+                    poll_interval
+                    if poll_interval is not None
+                    else decorator_poll_interval
+                )
             )
 
             ret: Any = None
@@ -501,7 +543,10 @@ def wait_until_finished(
 
             while True:
                 # Проверка таймаута в начале цикла
-                if effective_timeout is not None and time.time() - start_time > effective_timeout:
+                if (
+                    effective_timeout is not None
+                    and time.time() - start_time > effective_timeout
+                ):
                     timeout_msg = f"Превышено время ожидания для {func.__name__}"
                     if effective_throw:
                         raise TimeoutError(timeout_msg)

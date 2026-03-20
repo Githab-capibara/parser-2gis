@@ -25,7 +25,6 @@ import json
 import os
 import queue
 import sqlite3
-import sys
 import threading
 import time
 from datetime import datetime, timedelta
@@ -460,8 +459,6 @@ class _ConnectionPool:
         Returns:
             SQLite соединение для текущего потока.
         """
-        import time
-
         # Проверяем, есть ли соединение для текущего потока
         if not hasattr(self._local, "connection") or self._local.connection is None:
             # Пытаемся получить соединение из queue
@@ -589,7 +586,9 @@ class _ConnectionPool:
                 try:
                     conn.close()
                 except Exception as e:
-                    logger.debug("Не удалось закрыть соединение SQLite: %s", e, exc_info=True)
+                    logger.debug(
+                        "Не удалось закрыть соединение SQLite: %s", e, exc_info=True
+                    )
             self._all_conns.clear()
             self._connection_age.clear()
 
@@ -892,8 +891,6 @@ class CacheManager:
                     db_error,
                 )
                 # Повторная попытка через небольшую задержку
-                import time
-
                 time.sleep(0.5)
                 try:
                     # Повторяем запрос
@@ -959,7 +956,9 @@ class CacheManager:
                 cursor.execute(self.SQL_DELETE, (url_hash,))
                 conn.commit()
             except sqlite3.Error as cleanup_error:
-                logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
+                logger.warning(
+                    "Ошибка при удалении повреждённой записи: %s", cleanup_error
+                )
             return None
         except Exception as general_error:
             logger.error(
@@ -1249,7 +1248,9 @@ class CacheManager:
 
             # Размер файла базы данных с обработкой ошибок
             try:
-                cache_size = self._cache_file.stat().st_size if self._cache_file.exists() else 0
+                cache_size = (
+                    self._cache_file.stat().st_size if self._cache_file.exists() else 0
+                )
             except OSError:
                 # Файл недоступен или ошибка файловой системы
                 cache_size = 0
@@ -1327,7 +1328,9 @@ class CacheManager:
         except Exception as e:
             # Логирование ошибки вместо игнорирования
             # В __del__ нельзя выбрасывать исключения
-            logger.error("Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True)
+            logger.error(
+                "Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True
+            )
 
     @staticmethod
     def _hash_url(url: str) -> str:
@@ -1468,7 +1471,8 @@ class CacheManager:
 
                     # Циклически удаляем записи пока размер не станет меньше лимита
                     while (
-                        cache_size_mb > MAX_CACHE_SIZE_MB and eviction_iterations < max_iterations
+                        cache_size_mb > MAX_CACHE_SIZE_MB
+                        and eviction_iterations < max_iterations
                     ):
                         eviction_iterations += 1
 
@@ -1479,7 +1483,9 @@ class CacheManager:
 
                         if deleted_count == 0:
                             # Нечего удалять - выходим из цикла
-                            logger.debug("LRU eviction: записей для удаления не осталось")
+                            logger.debug(
+                                "LRU eviction: записей для удаления не осталось"
+                            )
                             break
 
                         total_deleted += deleted_count
