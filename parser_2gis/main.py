@@ -24,7 +24,7 @@ from .chrome.remote import ChromeRemote
 from .common import generate_city_urls, report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
 from .data.categories_93 import CATEGORIES_93
-from .logger import log_parser_finish, log_parser_start, logger, setup_cli_logger
+from .logger import log_parser_start, logger, setup_cli_logger
 from .paths import data_path
 from .pydantic_compat import get_model_dump
 from .signal_handler import SignalHandler
@@ -1243,24 +1243,6 @@ def main() -> None:
                 "Параллельный парсинг с TUI через CLI временно недоступен. "
                 "Используйте --tui-new-omsk для запуска с предустановленными настройками."
             )
-
-            # Вычисляем длительность
-            duration = time.time() - start_time
-            duration_str = f"{duration:.2f} сек."
-
-            logger.info("Параллельный парсинг завершён!")
-            logger.info("Результаты сохранены в папку: %s", output_dir.absolute())
-            log_parser_finish(
-                success=True,
-                stats={
-                    "Городов": len(selected_cities),
-                    "Категорий": len(CATEGORIES_93),
-                    "Всего URL": len(selected_cities) * len(CATEGORIES_93),
-                },
-                duration=duration_str,
-            )
-
-            return
 
         # Обычный режим - генерируем URL по городам
         query = args.query or "Организации"
