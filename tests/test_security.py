@@ -10,17 +10,18 @@
 Всего тестов: 9 (по 3 на каждую проблему)
 """
 
+import sys
+from pathlib import Path
+
+import pytest
+
+from parser_2gis.cache import _validate_cached_data
+from parser_2gis.chrome.remote import _validate_js_code
 from parser_2gis.parser.parsers.firm import (
     MAX_INITIAL_STATE_DEPTH,
     _safe_extract_initial_state,
     _validate_initial_state,
 )
-from parser_2gis.chrome.remote import _validate_js_code
-from parser_2gis.cache import _validate_cached_data
-import sys
-from pathlib import Path
-
-import pytest
 
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))

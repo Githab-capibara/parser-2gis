@@ -9,14 +9,6 @@
 Всего тестов: 6 (по 3 на каждую проблему)
 """
 
-from parser_2gis.parallel_parser import (
-    MAX_TEMP_FILES,
-    _cleanup_all_temp_files,
-    _register_temp_file,
-    _temp_files_lock,
-    _temp_files_registry,
-    _unregister_temp_file,
-)
 import csv
 import os
 import sys
@@ -26,6 +18,15 @@ import time
 from pathlib import Path
 
 import pytest
+
+from parser_2gis.parallel_parser import (
+    MAX_TEMP_FILES,
+    _cleanup_all_temp_files,
+    _register_temp_file,
+    _temp_files_lock,
+    _temp_files_registry,
+    _unregister_temp_file,
+)
 
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
