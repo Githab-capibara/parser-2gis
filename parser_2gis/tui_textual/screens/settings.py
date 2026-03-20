@@ -253,7 +253,7 @@ class ParserSettingsScreen(Screen):
             config.parser.timeout = int(timeout) if timeout.isdigit() else 300
 
             workers = self.query_one("#workers-input", Input).value
-            config.parser.max_workers = int(workers) if workers.isdigit() else 10
+            config.parallel.max_workers = int(workers) if workers.isdigit() else 10
 
             self.app.save_config()  # type: ignore
             self.app.notify("Настройки сохранены", title="Успех")  # type: ignore
