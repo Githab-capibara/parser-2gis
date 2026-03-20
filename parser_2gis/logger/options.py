@@ -30,9 +30,7 @@ class LogOptions(BaseModel):
     """
 
     gui_format: str = "%(asctime)s.%(msecs)03d | %(message)s"
-    cli_format: str = (
-        "%(asctime)s.%(msecs)03d | %(levelname)-8s | %(name)s | %(message)s"
-    )
+    cli_format: str = "%(asctime)s.%(msecs)03d | %(levelname)-8s | %(name)s | %(message)s"
     gui_datefmt: str = "%H:%M:%S"
     cli_datefmt: str = "%d/%m/%Y %H:%M:%S"
     file_format: str = (

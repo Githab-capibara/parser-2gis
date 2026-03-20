@@ -119,9 +119,7 @@ class MainParser:
                 if not href:
                     return False
 
-                link_match = re.match(
-                    r".*/(firm|station)/.*\?stat=(?P<data>[a-zA-Z0-9%]+)", href
-                )
+                link_match = re.match(r".*/(firm|station)/.*\?stat=(?P<data>[a-zA-Z0-9%]+)", href)
                 if link_match:
                     try:
                         # Декодируем base64 данные для проверки корректности
@@ -190,9 +188,7 @@ class MainParser:
         """
         try:
             dom_tree = self._chrome_remote.get_document()
-            dom_links = dom_tree.search(
-                lambda x: x.local_name == "a" and "href" in x.attributes
-            )
+            dom_links = dom_tree.search(lambda x: x.local_name == "a" and "href" in x.attributes)
 
             available_pages: Dict[int, "DOMNode"] = {}
             for link in dom_links:
@@ -520,9 +516,7 @@ class MainParser:
                     default=current_page_number + 1,
                 )
             except Exception as pages_error:
-                logger.error(
-                    "Ошибка при вычислении следующей страницы: %s", pages_error
-                )
+                logger.error("Ошибка при вычислении следующей страницы: %s", pages_error)
                 next_page_number = current_page_number + 1
         else:
             next_page_number = current_page_number + 1
@@ -534,10 +528,7 @@ class MainParser:
             return next_page_number, False
 
         # Сбрасываем страницу назначения, если мы закончили переход к желаемой странице
-        if (
-            walk_page_number is not None
-            and walk_page_number <= current_page_number_result
-        ):
+        if walk_page_number is not None and walk_page_number <= current_page_number_result:
             walk_page_number = None
 
         return current_page_number_result, True
@@ -579,9 +570,7 @@ class MainParser:
             try:
                 _process_cache = psutil.Process()
             except Exception as process_error:
-                logger.debug(
-                    "Не удалось создать кэш процесса psutil: %s", process_error
-                )
+                logger.debug("Не удалось создать кэш процесса psutil: %s", process_error)
 
         # Счётчик подряд пустых страниц (для избежания бесконечного цикла при 404)
         consecutive_empty_pages = 0
@@ -644,9 +633,7 @@ class MainParser:
                     with visited_links_lock:
                         if len(visited_links) > max_visited_links:
                             # Вычисляем количество элементов для удаления (75%)
-                            target_remove = int(
-                                len(visited_links) * MEMORY_REMOVE_RATIO
-                            )
+                            target_remove = int(len(visited_links) * MEMORY_REMOVE_RATIO)
 
                             if target_remove > 0:
                                 # Удаляем старые элементы из начала OrderedDict
@@ -721,9 +708,7 @@ class MainParser:
                     return None
 
                 # Оптимизация: используем set comprehension для быстрого создания множества
-                link_addresses = {
-                    x.attributes["href"] for x in links if "href" in x.attributes
-                }
+                link_addresses = {x.attributes["href"] for x in links if "href" in x.attributes}
 
                 with visited_links_lock:
                     # Оптимизация: используем set.intersection для быстрой проверки
@@ -789,10 +774,7 @@ class MainParser:
 
                     # Если подряд слишком много пустых страниц - прерываем парсинг
                     # Это избегает бесконечного цикла при 404 ошибках
-                    if (
-                        consecutive_empty_pages
-                        >= self._options.max_consecutive_empty_pages
-                    ):
+                    if consecutive_empty_pages >= self._options.max_consecutive_empty_pages:
                         logger.error(
                             "Достигнут лимит подряд пустых страниц (%d). Прекращаем парсинг URL.",
                             self._options.max_consecutive_empty_pages,
@@ -848,13 +830,9 @@ class MainParser:
                     if self._options.use_gc:
                         logger.debug("Запуск сборщика мусора.")
                         try:
-                            self._chrome_remote.execute_script(
-                                '"gc" in window && window.gc()'
-                            )
+                            self._chrome_remote.execute_script('"gc" in window && window.gc()')
                         except Exception as gc_error:
-                            logger.debug(
-                                "Ошибка при запуске сборщика мусора: %s", gc_error
-                            )
+                            logger.debug("Ошибка при запуске сборщика мусора: %s", gc_error)
 
                 # Переходим к следующей странице
                 next_page, should_continue = self._handle_pagination(
@@ -964,9 +942,7 @@ class MainParser:
 
         # Парсинг результатов поиска
         # Передаём visited_links для управления памятью с eviction policy
-        self._parse_search_results(
-            writer, walk_page_number, visited_links, max_visited_links
-        )
+        self._parse_search_results(writer, walk_page_number, visited_links, max_visited_links)
 
     def close(self) -> None:
         self._chrome_remote.stop()

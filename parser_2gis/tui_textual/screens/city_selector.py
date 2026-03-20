@@ -192,9 +192,7 @@ class CitySelectorScreen(Screen):
                 self._filtered_cities = self._cities.copy()
             else:
                 self._filtered_cities = [
-                    city
-                    for city in self._cities
-                    if query in city.get("name", "").lower()
+                    city for city in self._cities if query in city.get("name", "").lower()
                 ]
 
             self._populate_cities()

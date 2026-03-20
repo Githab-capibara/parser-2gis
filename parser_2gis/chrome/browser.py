@@ -96,9 +96,7 @@ class ChromeBrowser:
             # ИСПОЛЬЗУЕМ TemporaryDirectory для автоматической очистки профиля
             # TemporaryDirectory гарантирует удаление профиля даже при ошибке или KeyboardInterrupt
             # Маркер для отложенной очистки при следующем запуске создаётся автоматически
-            self._profile_tempdir = tempfile.TemporaryDirectory(
-                prefix="chrome_profile_"
-            )
+            self._profile_tempdir = tempfile.TemporaryDirectory(prefix="chrome_profile_")
             self._profile_path = self._profile_tempdir.name
 
             # Устанавливаем restrictive права на директорию профиля (0o700 - только владелец)
@@ -118,9 +116,7 @@ class ChromeBrowser:
 
             # Валидация memory_limit перед формированием команды
             memory_limit = (
-                chrome_options.memory_limit
-                if chrome_options.memory_limit is not None
-                else 2048
+                chrome_options.memory_limit if chrome_options.memory_limit is not None else 2048
             )
 
             # Формирование команды запуска
@@ -308,9 +304,7 @@ class ChromeBrowser:
                 if not process_closed:
                     try:
                         self._proc.kill()
-                        logger.debug(
-                            "Отправлен сигнал SIGKILL процессу %d", process_pid
-                        )
+                        logger.debug("Отправлен сигнал SIGKILL процессу %d", process_pid)
 
                         # ИСПРАВЛЕНИЕ 8: Проверка poll() после kill()
                         poll_result = self._proc.poll()
@@ -346,14 +340,10 @@ class ChromeBrowser:
                         process_status = "already_killed"
                     except PermissionError as perm_error:
                         # Нет прав на завершение процесса
-                        logger.error(
-                            "Нет прав на принудительное завершение: %s", perm_error
-                        )
+                        logger.error("Нет прав на принудительное завершение: %s", perm_error)
                         process_status = "kill_permission_denied"
                     except Exception as kill_error:
-                        logger.error(
-                            "Ошибка при принудительном закрытии Chrome: %s", kill_error
-                        )
+                        logger.error("Ошибка при принудительном закрытии Chrome: %s", kill_error)
                         process_status = "kill_error"
 
             else:
@@ -376,9 +366,7 @@ class ChromeBrowser:
         try:
             if hasattr(self, "_profile_tempdir") and self._profile_tempdir is not None:
                 self._profile_tempdir.cleanup()
-                logger.debug(
-                    "Временный профиль Chrome удалён через TemporaryDirectory.cleanup()"
-                )
+                logger.debug("Временный профиль Chrome удалён через TemporaryDirectory.cleanup()")
         except (OSError, IOError) as profile_error:
             logger.error(
                 "Ошибка ОС/IO при удалении профиля через TemporaryDirectory: %s",
@@ -501,9 +489,7 @@ def cleanup_orphaned_profiles(
                             delete_marker.touch(exist_ok=False)
                         except FileExistsError:
                             # Другой процесс уже удаляет этот профиль - пропускаем
-                            logger.debug(
-                                "Профиль %s уже удаляется другим процессом", item.name
-                            )
+                            logger.debug("Профиль %s уже удаляется другим процессом", item.name)
                             continue
 
                         _safe_remove_profile(item)
@@ -537,9 +523,7 @@ def cleanup_orphaned_profiles(
                             delete_marker.touch(exist_ok=False)
                         except FileExistsError:
                             # Другой процесс уже удаляет этот профиль - пропускаем
-                            logger.debug(
-                                "Профиль %s уже удаляется другим процессом", item.name
-                            )
+                            logger.debug("Профиль %s уже удаляется другим процессом", item.name)
                             continue
 
                         _safe_remove_profile(item)
@@ -585,9 +569,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
         import subprocess
 
         # Получаем список всех процессов Chrome
-        result = subprocess.run(
-            ["ps", "aux"], capture_output=True, text=True, timeout=5
-        )
+        result = subprocess.run(["ps", "aux"], capture_output=True, text=True, timeout=5)
 
         # Проверяем, есть ли процессы с этим профилем
         profile_str = str(profile_path)

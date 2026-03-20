@@ -185,9 +185,7 @@ class DataValidator:
                 return ValidationResult(
                     False,
                     None,
-                    [
-                        f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"
-                    ],
+                    [f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"],
                 )
 
             return ValidationResult(
@@ -234,9 +232,7 @@ class DataValidator:
             <= len(digits_only)
             <= self.INTERNATIONAL_PHONE_MAX_LENGTH
         ):
-            return ValidationResult(
-                True, self._add_extension(f"+{digits_only}", extension), []
-            )
+            return ValidationResult(True, self._add_extension(f"+{digits_only}", extension), [])
 
         return ValidationResult(
             False,
@@ -318,9 +314,7 @@ class DataValidator:
         if check_mx:
             mx_valid = self._check_mx_records(email)
             if not mx_valid:
-                return ValidationResult(
-                    False, None, ["Домен email не имеет MX записей"]
-                )
+                return ValidationResult(False, None, ["Домен email не имеет MX записей"])
 
         return ValidationResult(True, email, [])
 
@@ -397,8 +391,7 @@ class DataValidator:
             # Проверяем что схема именно http или https
             if parsed.scheme not in ("http", "https"):
                 error_msg = (
-                    f"Неподдерживаемая схема URL: {parsed.scheme} "
-                    "(требуется http или https)"
+                    f"Неподдерживаемая схема URL: {parsed.scheme} " "(требуется http или https)"
                 )
                 return ValidationResult(False, None, [error_msg])
 

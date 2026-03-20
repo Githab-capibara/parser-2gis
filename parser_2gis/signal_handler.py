@@ -152,9 +152,7 @@ class SignalHandler:
             self._interrupted = True
             self._is_cleaning_up = True
 
-            logger.warning(
-                "Получен сигнал %d. Начинается безопасная очистка ресурсов...", signum
-            )
+            logger.warning("Получен сигнал %d. Начинается безопасная очистка ресурсов...", signum)
 
             # Игнорируем повторные сигналы во время cleanup
             original_sigint = signal.getsignal(signal.SIGINT)

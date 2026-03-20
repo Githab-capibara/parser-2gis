@@ -38,13 +38,9 @@ class EndOfResultsDetector:
     DOM_END_SELECTORS = [
         lambda node: (
             node.local_name == "div"
-            and any(
-                pattern in node.text.lower() for pattern in ["конец", "нет результатов"]
-            )
+            and any(pattern in node.text.lower() for pattern in ["конец", "нет результатов"])
         ),
-        lambda node: (
-            node.local_name == "p" and "ничего не найдено" in node.text.lower()
-        ),
+        lambda node: (node.local_name == "p" and "ничего не найдено" in node.text.lower()),
     ]
 
     def __init__(self, chrome_remote: "ChromeRemote") -> None:
@@ -78,9 +74,7 @@ class EndOfResultsDetector:
                     return True
 
             # Проверяем DOM-элементы
-            nodes = dom_tree.search(
-                lambda node: bool(node.text) and len(node.text) < 500
-            )
+            nodes = dom_tree.search(lambda node: bool(node.text) and len(node.text) < 500)
             for selector in self.DOM_END_SELECTORS:
                 for node in nodes:
                     try:

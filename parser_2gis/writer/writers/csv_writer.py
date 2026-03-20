@@ -262,9 +262,7 @@ def _calculate_optimal_buffer_size(
                 )
                 return custom_buffer
         except ValueError:
-            logger.warning(
-                "Некорректное значение PARSER_CSV_BUFFER_SIZE: %s", env_buffer_size
-            )
+            logger.warning("Некорректное значение PARSER_CSV_BUFFER_SIZE: %s", env_buffer_size)
 
     # Определяем размер файла если не предоставлен
     if file_size_bytes is None and file_path is not None:
@@ -283,9 +281,7 @@ def _calculate_optimal_buffer_size(
 
     if file_size_bytes > threshold_bytes:
         # Для больших файлов используем увеличенный буфер
-        optimal_size = min(
-            DEFAULT_BUFFER_SIZE * LARGE_FILE_BUFFER_MULTIPLIER, MAX_BUFFER_SIZE
-        )
+        optimal_size = min(DEFAULT_BUFFER_SIZE * LARGE_FILE_BUFFER_MULTIPLIER, MAX_BUFFER_SIZE)
         logger.debug(
             "Файл большой (%.2f MB), используется увеличенный буфер: %d байт",
             file_size_bytes / (1024 * 1024),
@@ -355,9 +351,7 @@ def _safe_move_file(src: str, dst: str) -> bool:
             if os.path.exists(dst):
                 # Удаляем оригинал
                 os.remove(src)
-                logger.info(
-                    "Файл перемещён через fallback copy+delete: %s -> %s", src, dst
-                )
+                logger.info("Файл перемещён через fallback copy+delete: %s -> %s", src, dst)
                 return True
             else:
                 logger.error("Fallback copy+delete не удался: файл %s не создан", dst)
@@ -478,9 +472,7 @@ class CSVWriter(FileWriter):
             row: Словарь с данными для записи.
         """
         if self._options.verbose:
-            logger.info(
-                "Парсинг [%d] > %s", self._wrote_count + 1, row.get("name", "N/A")
-            )
+            logger.info("Парсинг [%d] > %s", self._wrote_count + 1, row.get("name", "N/A"))
 
         try:
             self._writer.writerow(row)
@@ -540,9 +532,7 @@ class CSVWriter(FileWriter):
         complex_columns_pattern = None
         if complex_columns:
             # Группируем паттерны для корректной работы regex
-            pattern_str = (
-                r"^(?:" + "|".join(rf"{x}_\d+" for x in complex_columns) + r")$"
-            )
+            pattern_str = r"^(?:" + "|".join(rf"{x}_\d+" for x in complex_columns) + r")$"
             complex_columns_pattern = re.compile(pattern_str)
             for c in self._data_mapping.keys():
                 if complex_columns_pattern.match(c):
@@ -649,9 +639,7 @@ class CSVWriter(FileWriter):
             col_2 = f"{column}_2"
             if col_1 in new_data_mapping and col_2 not in new_data_mapping:
                 # Удаляем суффикс " 1" из названия колонки
-                new_data_mapping[col_1] = re.sub(
-                    r"\s+\d+$", "", new_data_mapping[col_1]
-                )
+                new_data_mapping[col_1] = re.sub(r"\s+\d+$", "", new_data_mapping[col_1])
 
         # Создание временного файла
         file_root, file_ext = os.path.splitext(self._file_path)
@@ -661,15 +649,11 @@ class CSVWriter(FileWriter):
         temp_created = False
 
         try:
-            optimal_read_buffer = _calculate_optimal_buffer_size(
-                file_path=self._file_path
-            )
+            optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
             # Обновляем размер файла для текущего файла
             if os.path.exists(self._file_path):
                 file_size = os.path.getsize(self._file_path)
-            optimal_write_buffer = _calculate_optimal_buffer_size(
-                file_size_bytes=file_size
-            )
+            optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
 
             # Определяем метод чтения на основе размера файла
             try:
@@ -689,9 +673,7 @@ class CSVWriter(FileWriter):
                 )
                 underlying_fp = None
             else:
-                f_csv = self._open_file(
-                    self._file_path, "r", buffering=optimal_read_buffer
-                )
+                f_csv = self._open_file(self._file_path, "r", buffering=optimal_read_buffer)
                 is_mmap = False
                 underlying_fp = None
 
@@ -726,9 +708,7 @@ class CSVWriter(FileWriter):
                 csv_writer.writerow(new_data_mapping)
 
                 batch = []
-                batch_size = (
-                    CSV_BATCH_SIZE  # Используем увеличенный размер пакета (1000 строк)
-                )
+                batch_size = CSV_BATCH_SIZE  # Используем увеличенный размер пакета (1000 строк)
                 total_batches = 0
 
                 for row in csv_reader:
@@ -782,9 +762,7 @@ class CSVWriter(FileWriter):
             if temp_created and os.path.exists(tmp_csv_name):
                 try:
                     os.remove(tmp_csv_name)
-                    logger.debug(
-                        "Временный файл удалён в блоке finally: %s", tmp_csv_name
-                    )
+                    logger.debug("Временный файл удалён в блоке finally: %s", tmp_csv_name)
                 except OSError as cleanup_error:
                     logger.warning(
                         "Не удалось удалить временный файл %s: %s",
@@ -825,17 +803,11 @@ class CSVWriter(FileWriter):
             return
 
         try:
-            optimal_read_buffer = _calculate_optimal_buffer_size(
-                file_path=self._file_path
-            )
+            optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
             file_size = (
-                os.path.getsize(self._file_path)
-                if os.path.exists(self._file_path)
-                else None
+                os.path.getsize(self._file_path) if os.path.exists(self._file_path) else None
             )
-            optimal_write_buffer = _calculate_optimal_buffer_size(
-                file_size_bytes=file_size
-            )
+            optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
 
             # Определяем метод чтения на основе размера файла
             try:
@@ -894,9 +866,7 @@ class CSVWriter(FileWriter):
 
                         # Вычисляем хеш с использованием SHA256 для большей безопасности
                         # Оптимизация: используем bytes напрямую для снижения конверсий
-                        line_hash = hashlib.sha256(
-                            normalized.encode("utf-8")
-                        ).hexdigest()
+                        line_hash = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
                         if line_hash in seen_hashes:
                             duplicates_count += 1
@@ -911,9 +881,7 @@ class CSVWriter(FileWriter):
                             batch.clear()
 
                     except Exception as line_error:
-                        logger.warning(
-                            "Ошибка обработки строки %d: %s", line_num, line_error
-                        )
+                        logger.warning("Ошибка обработки строки %d: %s", line_num, line_error)
                         # Пропускаем проблемную строку и продолжаем
 
                 # Записываем оставшиеся строки
@@ -964,9 +932,7 @@ class CSVWriter(FileWriter):
             if temp_created and os.path.exists(tmp_csv_name):
                 try:
                     os.remove(tmp_csv_name)
-                    logger.debug(
-                        "Временный файл удалён в блоке finally: %s", tmp_csv_name
-                    )
+                    logger.debug("Временный файл удалён в блоке finally: %s", tmp_csv_name)
                 except OSError as cleanup_error:
                     logger.warning(
                         "Не удалось удалить временный файл %s: %s",
@@ -1003,9 +969,7 @@ class CSVWriter(FileWriter):
         try:
             result = catalog_doc.get("result")
             if not result or "items" not in result:
-                logger.error(
-                    "Некорректная структура документа: отсутствует result.items"
-                )
+                logger.error("Некорректная структура документа: отсутствует result.items")
                 return {}
 
             items = result.get("items", [])
@@ -1120,9 +1084,7 @@ class CSVWriter(FileWriter):
 
                     data_name = f"{contact_type}_{i}"
                     if data_name in data:
-                        data[data_name] = (
-                            formatter(contact_value) if formatter else contact_value
-                        )
+                        data[data_name] = formatter(contact_value) if formatter else contact_value
 
                         # Добавляем комментарий к контакту при наличии
                         if self._options.csv.add_comments and contact.comment:
@@ -1169,8 +1131,6 @@ class CSVWriter(FileWriter):
 
         # Рубрики (категории) объекта
         if self._options.csv.add_rubrics:
-            data["rubrics"] = self._options.csv.join_char.join(
-                x.name for x in catalog_item.rubrics
-            )
+            data["rubrics"] = self._options.csv.join_char.join(x.name for x in catalog_item.rubrics)
 
         return data

@@ -104,9 +104,7 @@ class VisualLogger:
     - Прогресс-бары
     """
 
-    def __init__(
-        self, use_colors: Optional[bool] = None, use_emoji: bool = True
-    ) -> None:
+    def __init__(self, use_colors: Optional[bool] = None, use_emoji: bool = True) -> None:
         """
         Инициализация визуального логгера.
 
@@ -221,9 +219,7 @@ class VisualLogger:
             border = "═" * width
 
             if self.use_colors:
-                print(
-                    f"\n{ColorCodes.CYAN}{ColorCodes.BOLD}╔{border}╗{ColorCodes.RESET}"
-                )
+                print(f"\n{ColorCodes.CYAN}{ColorCodes.BOLD}╔{border}╗{ColorCodes.RESET}")
                 print(
                     f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET} "
                     f"{ColorCodes.BOLD}{title.center(width)}{ColorCodes.RESET} "
@@ -235,9 +231,7 @@ class VisualLogger:
                         f"{subtitle.center(width)} "
                         f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}"
                     )
-                print(
-                    f"{ColorCodes.CYAN}{ColorCodes.BOLD}╚{border}╝{ColorCodes.RESET}\n"
-                )
+                print(f"{ColorCodes.CYAN}{ColorCodes.BOLD}╚{border}╝{ColorCodes.RESET}\n")
             else:
                 print(f"\n{'=' * width}")
                 print(f"{title.center(width)}")
@@ -283,9 +277,7 @@ class VisualLogger:
         """
         try:
             if self.use_colors:
-                print(
-                    f"\n{ColorCodes.BOLD}{ColorCodes.BLUE}┌─ {title} {ColorCodes.RESET}"
-                )
+                print(f"\n{ColorCodes.BOLD}{ColorCodes.BLUE}┌─ {title} {ColorCodes.RESET}")
 
                 for key, value in items.items():
                     key_colored = f"{ColorCodes.CYAN}{key}:{ColorCodes.RESET}"
@@ -408,14 +400,10 @@ class VisualLogger:
         try:
             print(self.format_message(message, "SUCCESS", Emoji.SUCCESS))
         except (IOError, OSError) as e:
-            _logger.error(
-                f"Ошибка вывода сообщения об успехе: {e}. Сообщение: {message}"
-            )
+            _logger.error(f"Ошибка вывода сообщения об успехе: {e}. Сообщение: {message}")
             print(f"✅ {message}")
         except Exception as e:
-            _logger.exception(
-                f"Неожиданная ошибка при выводе успеха: {e}. Сообщение: {message}"
-            )
+            _logger.exception(f"Неожиданная ошибка при выводе успеха: {e}. Сообщение: {message}")
             raise
 
     def print_error(self, message: str) -> None:
@@ -423,14 +411,10 @@ class VisualLogger:
         try:
             print(self.format_message(message, "ERROR", Emoji.ERROR))
         except (IOError, OSError) as e:
-            _logger.error(
-                f"Ошибка вывода сообщения об ошибке: {e}. Сообщение: {message}"
-            )
+            _logger.error(f"Ошибка вывода сообщения об ошибке: {e}. Сообщение: {message}")
             print(f"❌ {message}")
         except Exception as e:
-            _logger.exception(
-                f"Неожиданная ошибка при выводе ошибки: {e}. Сообщение: {message}"
-            )
+            _logger.exception(f"Неожиданная ошибка при выводе ошибки: {e}. Сообщение: {message}")
             raise
 
     def print_warning(self, message: str) -> None:
@@ -451,9 +435,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "INFO", Emoji.INFO, bold))
         except (IOError, OSError) as e:
-            _logger.error(
-                f"Ошибка вывода информационного сообщения: {e}. Сообщение: {message}"
-            )
+            _logger.error(f"Ошибка вывода информационного сообщения: {e}. Сообщение: {message}")
             print(f"ℹ️ {message}")
         except Exception as e:
             _logger.exception(
@@ -466,14 +448,10 @@ class VisualLogger:
         try:
             print(self.format_message(message, "DEBUG", Emoji.DEBUG))
         except (IOError, OSError) as e:
-            _logger.error(
-                f"Ошибка вывода отладочного сообщения: {e}. Сообщение: {message}"
-            )
+            _logger.error(f"Ошибка вывода отладочного сообщения: {e}. Сообщение: {message}")
             print(f"🔍 {message}")
         except Exception as e:
-            _logger.exception(
-                f"Неожиданная ошибка при выводе отладки: {e}. Сообщение: {message}"
-            )
+            _logger.exception(f"Неожиданная ошибка при выводе отладки: {e}. Сообщение: {message}")
             raise
 
 
@@ -496,9 +474,7 @@ def print_config(title: str, items: dict[str, str]) -> None:
     try:
         visual_logger.print_config_section(title, items)
     except Exception as e:
-        _logger.exception(
-            f"Ошибка в глобальной функции print_config: {e}. Заголовок: {title}"
-        )
+        _logger.exception(f"Ошибка в глобальной функции print_config: {e}. Заголовок: {title}")
         raise
 
 
@@ -512,9 +488,7 @@ def print_success(message: str) -> None:
     try:
         visual_logger.print_success(message)
     except Exception as e:
-        _logger.exception(
-            f"Ошибка в глобальной функции print_success: {e}. Сообщение: {message}"
-        )
+        _logger.exception(f"Ошибка в глобальной функции print_success: {e}. Сообщение: {message}")
         raise
 
 
@@ -523,9 +497,7 @@ def print_error(message: str) -> None:
     try:
         visual_logger.print_error(message)
     except Exception as e:
-        _logger.exception(
-            f"Ошибка в глобальной функции print_error: {e}. Сообщение: {message}"
-        )
+        _logger.exception(f"Ошибка в глобальной функции print_error: {e}. Сообщение: {message}")
         raise
 
 
@@ -534,9 +506,7 @@ def print_warning(message: str) -> None:
     try:
         visual_logger.print_warning(message)
     except Exception as e:
-        _logger.exception(
-            f"Ошибка в глобальной функции print_warning: {e}. Сообщение: {message}"
-        )
+        _logger.exception(f"Ошибка в глобальной функции print_warning: {e}. Сообщение: {message}")
         raise
 
 
@@ -545,9 +515,7 @@ def print_info(message: str, bold: bool = False) -> None:
     try:
         visual_logger.print_info(message, bold)
     except Exception as e:
-        _logger.exception(
-            f"Ошибка в глобальной функции print_info: {e}. Сообщение: {message}"
-        )
+        _logger.exception(f"Ошибка в глобальной функции print_info: {e}. Сообщение: {message}")
         raise
 
 
@@ -556,9 +524,7 @@ def print_debug(message: str) -> None:
     try:
         visual_logger.print_debug(message)
     except Exception as e:
-        _logger.exception(
-            f"Ошибка в глобальной функции print_debug: {e}. Сообщение: {message}"
-        )
+        _logger.exception(f"Ошибка в глобальной функции print_debug: {e}. Сообщение: {message}")
         raise
 
 
@@ -567,7 +533,5 @@ def print_stats(stats: dict[str, int | str], title: str = "Статистика"
     try:
         visual_logger.print_stats(stats, title)
     except Exception as e:
-        _logger.exception(
-            f"Ошибка в глобальной функции print_stats: {e}. Заголовок: {title}"
-        )
+        _logger.exception(f"Ошибка в глобальной функции print_stats: {e}. Заголовок: {title}")
         raise
