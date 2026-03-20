@@ -1,3 +1,9 @@
+"""Фабричный модуль парсеров.
+
+Предоставляет фабричную функцию get_parser для получения экземпляра
+парсера в зависимости от URL (MainParser, FirmParser, InBuildingParser).
+"""
+
 from __future__ import annotations
 
 import re

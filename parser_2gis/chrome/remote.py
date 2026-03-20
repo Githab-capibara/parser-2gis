@@ -1,3 +1,14 @@
+"""Модуль удалённого управления Chrome через DevTools Protocol.
+
+Предоставляет класс ChromeRemote для взаимодействия с браузером Chrome:
+- Управление браузером через WebSocket
+- Выполнение JavaScript кода
+- Работа с DOM деревом
+- Перехват сетевых запросов
+- Кэширование HTTP запросов
+- Валидация JavaScript кода на безопасность
+"""
+
 from __future__ import annotations
 
 import base64
@@ -17,7 +28,7 @@ from requests.exceptions import RequestException  # type: ignore[import-untyped]
 from websocket import WebSocketException, WebSocketTimeoutException
 
 from ..common import wait_until_finished
-from ..logger import logger
+from ..logger.logger import logger as app_logger
 from .browser import ChromeBrowser
 from .constants import (  # L6: rate limiting для внешних запросов
     CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
@@ -143,7 +154,7 @@ def _cleanup_expired_cache() -> int:
             cleaned += 1
 
     if cleaned > 0:
-        logger.debug("Очищено %d истёкших записей из кэша HTTP", cleaned)
+        app_logger.debug("Очищено %d истёкших записей из кэша HTTP", cleaned)
 
     return cleaned
 
@@ -225,12 +236,12 @@ def _safe_external_request(
 
                 # Проверяем не истёк ли кэш
                 if not entry.is_expired():
-                    logger.debug("Кэшированный ответ для %s %s", method, url)
+                    app_logger.debug("Кэшированный ответ для %s %s", method, url)
                     return entry.response
                 else:
                     # Удаляем истёкшую запись
                     del _http_cache[cache_key]
-                    logger.debug("Истёкший кэш удалён для %s %s", method, url)
+                    app_logger.debug("Истёкший кэш удалён для %s %s", method, url)
 
             # Ограничиваем размер кэша (LRU eviction)
             if len(_http_cache) >= HTTP_CACHE_MAXSIZE:
@@ -238,7 +249,7 @@ def _safe_external_request(
                 keys_to_remove = list(_http_cache.keys())[: HTTP_CACHE_MAXSIZE // 10]
                 for key in keys_to_remove:
                     del _http_cache[key]
-                logger.debug(
+                app_logger.debug(
                     "Достигнут лимит кэша HTTP (%d записей), удалено %d старых записей",
                     len(_http_cache),
                     len(keys_to_remove),
@@ -255,7 +266,7 @@ def _safe_external_request(
     if use_cache:
         with _http_cache_lock:
             _http_cache[cache_key] = _HTTPCacheEntry(response, time.time())
-            logger.debug("Запрос закэширован для %s %s", method, url)
+            app_logger.debug("Запрос закэширован для %s %s", method, url)
 
     return response
 
@@ -329,7 +340,7 @@ def _check_port_available_internal(
             if attempt < retries - 1:
                 time.sleep(0.1)
         except Exception as e:
-            logger.debug("Ошибка при проверке порта %d: %s", port, e)
+            app_logger.debug("Ошибка при проверке порта %d: %s", port, e)
             result = False
             break
         finally:
@@ -528,7 +539,7 @@ def _validate_js_code(
     # Проверяем на попытки использования setTimeout/setInterval с функцией
     if re.search(r"setTimeout\s*\(\s*function\s*\(", code, re.IGNORECASE):
         # Это допустимо, но логируем для аудита
-        logger.debug("Обнаружен setTimeout с function - допустимо")
+        app_logger.debug("Обнаружен setTimeout с function - допустимо")
 
     # Проверяем на new Function()
     if re.search(r"new\s+Function\s*\(", code, re.IGNORECASE):
@@ -586,7 +597,7 @@ def _validate_js_code(
     if re.search(
         r"\(function\s*\([^)]*\)\s*\{[^}]*\}\s*\)\.call\s*\(", code, re.IGNORECASE
     ):
-        logger.debug("Обнаружена self-executing функция с .call() - допустимо")
+        app_logger.debug("Обнаружена self-executing функция с .call() - допустимо")
 
     # Проверка на Array.from с подозрительными аргументами
     if re.search(r'Array\s*\.\s*from\s*\(\s*["\'][^"\']*["\']', code, re.IGNORECASE):
@@ -743,13 +754,13 @@ class ChromeRemote:
                 # Извлекаем порт из dev_url для проверки
                 # Проверяем, что dev_url не None перед использованием
                 if self._dev_url is None:
-                    logger.error("dev_url не установлен при подключении")
+                    app_logger.error("dev_url не установлен при подключении")
                     return False
                 port = int(self._dev_url.split(":")[-1])
 
                 # Проверка доступности порта перед подключением
                 if not _check_port_available(port, timeout=1.0):
-                    logger.warning(
+                    app_logger.warning(
                         "Порт %d недоступен при подключении к DevTools (попытка %d/%d)",
                         port,
                         attempt + 1,
@@ -760,37 +771,39 @@ class ChromeRemote:
                         continue
                     return False
 
-                logger.debug(
+                app_logger.debug(
                     "Подключение к Chrome DevTools Protocol по адресу: %s",
                     self._dev_url,
                 )
                 self._chrome_interface = pychrome.Browser(url=self._dev_url)
 
-                logger.debug("Создание вкладки через _create_tab()...")
+                app_logger.debug("Создание вкладки через _create_tab()...")
                 self._chrome_tab = self._create_tab()
 
-                logger.debug("Запуск вкладки с timeout=30...")
+                app_logger.debug("Запуск вкладки с timeout=30...")
                 # ВАЖНО: Запуск вкладки с таймаутом 30 секунд для предотвращения зависаний
                 self._start_tab_with_timeout(self._chrome_tab, timeout=30)
 
                 # Проверка работоспособности соединения после подключения
                 if not self._verify_connection():
-                    logger.warning("Проверка соединения не пройдена, повторная попытка")
+                    app_logger.warning(
+                        "Проверка соединения не пройдена, повторная попытка"
+                    )
                     self._cleanup_interface()
                     if attempt < max_attempts - 1:
                         time.sleep(attempt_delay)
                         continue
-                    logger.error(
+                    app_logger.error(
                         "Все попытки подключения исчерпаны (проверка соединения не пройдена)"
                     )
                     return False
 
-                logger.info("Успешное подключение к Chrome DevTools Protocol")
+                app_logger.info("Успешное подключение к Chrome DevTools Protocol")
                 return True
 
             except RequestException as e:
                 # Ошибки HTTP/сети
-                logger.error(
+                app_logger.error(
                     "Ошибка сети при подключении к Chrome DevTools Protocol (%s): %s",
                     self._dev_url,
                     e,
@@ -803,7 +816,7 @@ class ChromeRemote:
 
             except WebSocketTimeoutException as e:
                 # ВАЖНО: Таймаут WebSocket соединения (timeout=30)
-                logger.error(
+                app_logger.error(
                     "Таймаут WebSocket соединения при подключении к Chrome DevTools Protocol (%s): %s",
                     self._dev_url,
                     e,
@@ -816,7 +829,7 @@ class ChromeRemote:
 
             except WebSocketException as e:
                 # Ошибки WebSocket соединения
-                logger.error(
+                app_logger.error(
                     "Ошибка WebSocket при подключении к Chrome DevTools Protocol (%s): %s",
                     self._dev_url,
                     e,
@@ -829,7 +842,7 @@ class ChromeRemote:
 
             except ChromeException as e:
                 # Специфичные ошибки Chrome
-                logger.error(
+                app_logger.error(
                     "Ошибка Chrome при подключению к DevTools Protocol (%s): %s",
                     self._dev_url,
                     e,
@@ -842,7 +855,7 @@ class ChromeRemote:
 
             except Exception as e:
                 # Любые другие непредвиденные ошибки
-                logger.error(
+                app_logger.error(
                     "Непредвиденная ошибка при подключении к Chrome DevTools Protocol (%s): %s",
                     self._dev_url,
                     e,
@@ -855,7 +868,7 @@ class ChromeRemote:
                 continue
 
         # Все попытки исчерпаны
-        logger.error("Все %d попыток подключения исчерпаны", max_attempts)
+        app_logger.error("Все %d попыток подключения исчерпаны", max_attempts)
         return False
 
     def _cleanup_interface(self) -> None:
@@ -880,7 +893,7 @@ class ChromeRemote:
                             verify=True,  # Явная валидация SSL сертификатов
                         )
                 except Exception as e:
-                    logger.debug("Ошибка при очистке вкладки: %s", e)
+                    app_logger.debug("Ошибка при очистке вкладки: %s", e)
                 finally:
                     self._chrome_tab = None
 
@@ -888,12 +901,12 @@ class ChromeRemote:
                 try:
                     self._chrome_interface.close()
                 except Exception as e:
-                    logger.debug("Ошибка при закрытии интерфейса: %s", e)
+                    app_logger.debug("Ошибка при закрытии интерфейса: %s", e)
                 finally:
                     self._chrome_interface = None
 
         except Exception as e:
-            logger.warning("Непредвиденная ошибка при очистке ресурсов: %s", e)
+            app_logger.warning("Непредвиденная ошибка при очистке ресурсов: %s", e)
 
     def _verify_connection(self) -> bool:
         """Проверяет работоспособность соединения с Chrome.
@@ -908,7 +921,9 @@ class ChromeRemote:
         try:
             # Проверяем, что вкладка существует
             if self._chrome_tab is None:
-                logger.error("Chrome tab не инициализирован при проверке соединения")
+                app_logger.error(
+                    "Chrome tab не инициализирован при проверке соединения"
+                )
                 return False
 
             # Выполняем простой JavaScript запрос
@@ -920,16 +935,16 @@ class ChromeRemote:
 
             # Проверяем результат
             if result and result.get("result", {}).get("value") == 2:
-                logger.debug("Проверка соединения пройдена")
+                app_logger.debug("Проверка соединения пройдена")
                 return True
             else:
-                logger.warning(
+                app_logger.warning(
                     "Проверка соединения вернула неожиданный результат: %s", result
                 )
                 return False
 
         except Exception as e:
-            logger.warning("Ошибка при проверке соединения: %s", e)
+            app_logger.warning("Ошибка при проверке соединения: %s", e)
             return False
 
     def start(self) -> None:
@@ -956,7 +971,7 @@ class ChromeRemote:
             max_startup_attempts = 3
 
             for attempt in range(max_startup_attempts):
-                logger.debug(
+                app_logger.debug(
                     "Ожидание запуска Chrome (%.1f сек, попытка %d)...",
                     startup_delay,
                     attempt + 1,
@@ -965,7 +980,7 @@ class ChromeRemote:
 
                 # Проверяем доступность порта
                 if _check_port_available(remote_port, timeout=1.0, retries=1):
-                    logger.debug("Порт %d доступен для подключения", remote_port)
+                    app_logger.debug("Порт %d доступен для подключения", remote_port)
                     break
 
                 # Увеличиваем задержку для следующей попытки
@@ -987,9 +1002,9 @@ class ChromeRemote:
 
         except Exception as e:
             # При любой ошибке закрываем браузер для предотвращения утечки ресурсов
-            logger.error("Ошибка запуска Chrome: %s", e)
+            app_logger.error("Ошибка запуска Chrome: %s", e)
             if self._chrome_browser:
-                logger.warning("Закрытие браузера из-за ошибки при запуске")
+                app_logger.warning("Закрытие браузера из-за ошибки при запуске")
                 self._chrome_browser.close()
             raise  # Пробрасываем исключение дальше
 
@@ -1023,14 +1038,14 @@ class ChromeRemote:
 
         if thread.is_alive():
             # Поток всё ещё активен - таймаут
-            logger.error("Таймаут при запуске вкладки (%d секунд)", timeout)
+            app_logger.error("Таймаут при запуске вкладки (%d секунд)", timeout)
             raise TimeoutError(f"Запуск вкладки превысил таймаут {timeout} секунд")
 
         if result["error"]:
-            logger.error("Ошибка при запуске вкладки: %s", result["error"])
+            app_logger.error("Ошибка при запуске вкладки: %s", result["error"])
             raise result["error"]
 
-        logger.debug("Вкладка успешно запущена")
+        app_logger.debug("Вкладка успешно запущена")
 
     def _create_tab(self) -> pychrome.Tab:
         """Создаёт Chrome-вкладку с повторными попытками.
@@ -1052,7 +1067,7 @@ class ChromeRemote:
 
         for attempt in range(max_attempts):
             try:
-                logger.debug(
+                app_logger.debug(
                     "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
                 )
                 # requests.put не принимает параметр json=True, используем данные запроса
@@ -1065,12 +1080,12 @@ class ChromeRemote:
                     verify=True,  # Явная валидация SSL сертификатов
                 )
                 resp.raise_for_status()
-                logger.debug("Вкладка успешно создана")
+                app_logger.debug("Вкладка успешно создана")
                 return pychrome.Tab(**resp.json())
 
             except (RequestException, ValueError, KeyError) as e:
                 if attempt < max_attempts - 1:
-                    logger.warning(
+                    app_logger.warning(
                         "Не удалось создать вкладку (попытка %d): %s. Повторная попытка через %.1f сек...",
                         attempt + 1,
                         e,
@@ -1110,7 +1125,7 @@ class ChromeRemote:
             error_msg = (
                 "Chrome tab не инициализирован в _setup_tab. Вкладка не была создана."
             )
-            logger.error(error_msg)
+            app_logger.error(error_msg)
             raise RuntimeError(error_msg)
 
         # Исправляем user agent для headless браузера
@@ -1125,7 +1140,7 @@ class ChromeRemote:
                 "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
                 "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
-            logger.warning(
+            app_logger.warning(
                 "Не удалось получить user agent, используется запасной вариант"
             )
 
@@ -1227,10 +1242,10 @@ class ChromeRemote:
         """
         # Проверяем, что вкладка существует
         if self._chrome_tab is None:
-            logger.error("Chrome tab не инициализирован в _init_tab_monitor")
+            app_logger.error("Chrome tab не инициализирован в _init_tab_monitor")
             return
         if self._dev_url is None:
-            logger.error("dev_url не установлен в _init_tab_monitor")
+            app_logger.error("dev_url не установлен в _init_tab_monitor")
             return
 
         # Используем threading.Event для потокобезопасного флага
@@ -1270,7 +1285,7 @@ class ChromeRemote:
                         break
                     except Exception as monitor_error:
                         # Ловим любые неожиданные исключения и логируем их
-                        logger.debug(
+                        app_logger.debug(
                             "Ошибка в мониторином цикле вкладки: %s", monitor_error
                         )
                         break
@@ -1291,10 +1306,10 @@ class ChromeRemote:
                 return original_send(*args, **kwargs)
             except pychrome.UserAbortException as e:
                 if tab_detached.is_set():
-                    logger.debug("Вкладка была остановлена: %s", e)
+                    app_logger.debug("Вкладка была остановлена: %s", e)
                     raise pychrome.RuntimeException("Вкладка была остановлена") from e
                 else:
-                    logger.debug("UserAbortException при отправке: %s", e)
+                    app_logger.debug("UserAbortException при отправке: %s", e)
                     raise
 
         self._chrome_tab._send = wrapped_send
@@ -1311,7 +1326,7 @@ class ChromeRemote:
             ChromeException: При ошибке навигации.
         """
         if self._chrome_tab is None:
-            logger.error("Chrome tab не инициализирован в navigate")
+            app_logger.error("Chrome tab не инициализирован в navigate")
             return
         try:
             ret = self._chrome_tab.Page.navigate(
@@ -1321,7 +1336,7 @@ class ChromeRemote:
             if error_message:
                 raise ChromeException(error_message)
         except Exception as e:
-            logger.error("Ошибка навигации по URL %s: %s", url, e)
+            app_logger.error("Ошибка навигации по URL %s: %s", url, e)
             raise
 
     @wait_until_finished(timeout=300, throw_exception=False)
@@ -1336,21 +1351,21 @@ class ChromeRemote:
         """
         try:
             if self._chrome_tab is None:
-                logger.warning("Chrome tab не инициализирован")
+                app_logger.warning("Chrome tab не инициализирован")
                 return None
 
             if self._chrome_tab._stopped.is_set():
-                logger.warning("Вкладка Chrome была остановлена")
+                app_logger.warning("Вкладка Chrome была остановлена")
                 return None
 
             return self._response_queues[response_pattern].get(block=False)
         except queue.Empty:
             return None
         except KeyError:
-            logger.warning("Неизвестный паттерн ответа: %s", response_pattern)
+            app_logger.warning("Неизвестный паттерн ответа: %s", response_pattern)
             return None
         except Exception as e:
-            logger.error("Ошибка при ожидании ответа: %s", e)
+            app_logger.error("Ошибка при ожидании ответа: %s", e)
             return None
 
     def clear_requests(self) -> None:
@@ -1380,7 +1395,7 @@ class ChromeRemote:
         """
         # Проверяем, что вкладка существует
         if self._chrome_tab is None:
-            logger.error("Chrome tab не инициализирован в get_response_body")
+            app_logger.error("Chrome tab не инициализирован в get_response_body")
             return ""
 
         response_data: Optional[Dict[str, Any]] = None
@@ -1389,11 +1404,11 @@ class ChromeRemote:
         try:
             # Проверяем наличие необходимых полей
             if "meta" not in response:
-                logger.warning("Отсутствует поле meta в response")
+                app_logger.warning("Отсутствует поле meta в response")
                 return ""
 
             if "requestId" not in response["meta"]:
-                logger.warning("Отсутствует поле requestId в response.meta")
+                app_logger.warning("Отсутствует поле requestId в response.meta")
                 return ""
 
             request_id = response["meta"]["requestId"]
@@ -1404,7 +1419,7 @@ class ChromeRemote:
             )
 
             if not response_data:
-                logger.debug("Тело ответа пустое для requestId: %s", request_id)
+                app_logger.debug("Тело ответа пустое для requestId: %s", request_id)
                 return ""
 
             # Декодируем base64 если необходимо
@@ -1417,7 +1432,7 @@ class ChromeRemote:
                     else:
                         response_body = ""
                 except (UnicodeDecodeError, ValueError) as decode_error:
-                    logger.warning(
+                    app_logger.warning(
                         "Ошибка декодирования тела ответа (requestId: %s): %s",
                         request_id,
                         decode_error,
@@ -1429,7 +1444,7 @@ class ChromeRemote:
             # Проверка размера ответа для предотвращения DoS атак
             # Проверяем размер полученного тела ответа
             if len(response_body) > MAX_RESPONSE_SIZE:
-                logger.warning(
+                app_logger.warning(
                     "Размер ответа превышает лимит (%d > %d байт) для requestId: %s. "
                     "Ответ отклонён.",
                     len(response_body),
@@ -1448,19 +1463,19 @@ class ChromeRemote:
 
         except pychrome.CallMethodException as e:
             # Ошибка вызова метода CDP
-            logger.debug("CallMethodException при получении тела ответа: %s", e)
+            app_logger.debug("CallMethodException при получении тела ответа: %s", e)
             return ""
 
         except KeyError as e:
             # Отсутствует необходимое поле
-            logger.warning(
+            app_logger.warning(
                 "Отсутствует поле в response при получении тела ответа: %s", e
             )
             return ""
 
         except Exception as e:
             # Любая другая ошибка
-            logger.warning("Непредвиденная ошибка при получении тела ответа: %s", e)
+            app_logger.warning("Непредвиденная ошибка при получении тела ответа: %s", e)
             return ""
 
         finally:
@@ -1500,7 +1515,7 @@ class ChromeRemote:
             Корневой DOM-узел.
         """
         if self._chrome_tab is None:
-            logger.error("Chrome tab не инициализирован в get_document")
+            app_logger.error("Chrome tab не инициализирован в get_document")
             # Возвращаем пустой DOMNode как fallback, используя алиасы полей pydantic
             return DOMNode(
                 nodeId=0,
@@ -1535,13 +1550,13 @@ class ChromeRemote:
         - Защита от DoS атак через множество маленьких скриптов
         """
         if self._chrome_tab is None:
-            logger.error("Chrome tab не инициализирован в add_start_script")
+            app_logger.error("Chrome tab не инициализирован в add_start_script")
             return
 
         # Валидация скрипта на безопасность
         is_valid, error_msg = _validate_js_code(source)
         if not is_valid:
-            logger.error("Валидация скрипта не пройдена: %s", error_msg)
+            app_logger.error("Валидация скрипта не пройдена: %s", error_msg)
             raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
 
         # Проверка общего размера всех JS скриптов
@@ -1567,7 +1582,7 @@ class ChromeRemote:
             `True` при успехе, `False` при неудаче.
         """
         if self._chrome_tab is None:
-            logger.error("Chrome tab не инициализирован в add_blocked_requests")
+            app_logger.error("Chrome tab не инициализирован в add_blocked_requests")
             return False
         try:
             self._chrome_tab.Network.setBlockedURLs(urls=urls)
@@ -1602,11 +1617,11 @@ class ChromeRemote:
         - Используется ThreadPoolExecutor для выполнения с таймаутом
         """
         if self._chrome_tab is None:
-            logger.error("Chrome tab не инициализирован в execute_script")
+            app_logger.error("Chrome tab не инициализирован в execute_script")
             return None
 
         # ВАЖНО: Логирование всех вызовов execute_script для аудита безопасности
-        logger.debug(
+        app_logger.debug(
             "Выполнение JavaScript: %s",
             expression[:100] + "..." if len(expression) > 100 else expression,
         )
@@ -1614,7 +1629,7 @@ class ChromeRemote:
         # Валидация выражения на безопасность
         is_valid, error_msg = _validate_js_code(expression)
         if not is_valid:
-            logger.error("Валидация выражения не пройдена: %s", error_msg)
+            app_logger.error("Валидация выражения не пройдена: %s", error_msg)
             raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
 
         return self._execute_script_internal(expression, timeout)
@@ -1648,7 +1663,7 @@ class ChromeRemote:
                 result["value"] = eval_result["result"].get("value", None)
             except Exception as e:
                 result["error"] = e
-                logger.warning("Ошибка при выполнении скрипта: %s", e)
+                app_logger.warning("Ошибка при выполнении скрипта: %s", e)
 
         try:
             # Используем ThreadPoolExecutor для выполнения с таймаутом
@@ -1657,7 +1672,7 @@ class ChromeRemote:
                 try:
                     future.result(timeout=timeout)
                 except TimeoutError as timeout_err:
-                    logger.error(
+                    app_logger.error(
                         "Превышено время выполнения JavaScript (%d секунд)", timeout
                     )
                     raise TimeoutError(
@@ -1674,7 +1689,7 @@ class ChromeRemote:
             # Пробрасываем TimeoutError дальше
             raise
         except Exception as e:
-            logger.warning("Непредвиденная ошибка при выполнении скрипта: %s", e)
+            app_logger.warning("Непредвиденная ошибка при выполнении скрипта: %s", e)
             return None
 
     def perform_click(self, dom_node: DOMNode, timeout: Optional[int] = None) -> None:
@@ -1685,7 +1700,7 @@ class ChromeRemote:
             timeout: Таймаут операции в секундах (опционально).
         """
         if self._chrome_tab is None:
-            logger.error("Chrome tab не инициализирован в perform_click")
+            app_logger.error("Chrome tab не инициализирован в perform_click")
             return
         try:
             resolved_node = self._chrome_tab.DOM.resolveNode(
@@ -1702,7 +1717,7 @@ class ChromeRemote:
                 """,
             )
         except Exception as e:
-            logger.error("Ошибка при выполнении клика: %s", e)
+            app_logger.error("Ошибка при выполнении клика: %s", e)
 
     def wait(self, timeout: Optional[float] = None) -> None:
         """Ожидает указанное время.
@@ -1711,7 +1726,7 @@ class ChromeRemote:
             timeout: Время ожидания в секундах.
         """
         if self._chrome_tab is None:
-            logger.error("Chrome tab не инициализирован в wait")
+            app_logger.error("Chrome tab не инициализирован в wait")
             return
         self._chrome_tab.wait(timeout)
 
@@ -1723,23 +1738,23 @@ class ChromeRemote:
             Включает очистку кэша портов для предотвращения утечек памяти.
             Использует блокировку finally для гарантии очистки ресурсов.
         """
-        logger.info("Начало остановки ChromeRemote...")
+        app_logger.info("Начало остановки ChromeRemote...")
 
         try:
             # Закрываем вкладку
             if self._chrome_tab is not None:
                 try:
-                    logger.debug("Закрытие Chrome вкладки...")
+                    app_logger.debug("Закрытие Chrome вкладки...")
                     self._close_tab(self._chrome_tab)
-                    logger.info("Chrome вкладка успешно закрыта")
+                    app_logger.info("Chrome вкладка успешно закрыта")
                 except (pychrome.RuntimeException, RequestException) as close_tab_error:
-                    logger.error(
+                    app_logger.error(
                         "Ошибка при закрытии вкладки: %s (тип: %s)",
                         close_tab_error,
                         type(close_tab_error).__name__,
                     )
                 except Exception as unexpected_close_error:
-                    logger.error(
+                    app_logger.error(
                         "Непредвиденная ошибка при закрытии вкладки: %s",
                         unexpected_close_error,
                         exc_info=True,
@@ -1747,16 +1762,16 @@ class ChromeRemote:
                 finally:
                     # Гарантированно обнуляем _chrome_tab
                     self._chrome_tab = None
-                    logger.debug("_chrome_tab обнулён")
+                    app_logger.debug("_chrome_tab обнулён")
 
             # Закрываем браузер
             if self._chrome_browser is not None:
                 try:
-                    logger.debug("Закрытие Chrome браузера...")
+                    app_logger.debug("Закрытие Chrome браузера...")
                     self._chrome_browser.close()
-                    logger.info("Chrome браузер успешно закрыт")
+                    app_logger.info("Chrome браузер успешно закрыт")
                 except Exception as close_browser_error:
-                    logger.error(
+                    app_logger.error(
                         "Ошибка при закрытии браузера: %s (тип: %s)",
                         close_browser_error,
                         type(close_browser_error).__name__,
@@ -1764,16 +1779,16 @@ class ChromeRemote:
                 finally:
                     # Гарантированно обнуляем _chrome_browser
                     self._chrome_browser = None
-                    logger.debug("_chrome_browser обнулён")
+                    app_logger.debug("_chrome_browser обнулён")
 
             # Отключаем интерфейс
             if self._chrome_interface is not None:
                 try:
-                    logger.debug("Отключение Chrome интерфейса...")
+                    app_logger.debug("Отключение Chrome интерфейса...")
                     self._chrome_interface.close()
-                    logger.info("Chrome интерфейс успешно отключён")
+                    app_logger.info("Chrome интерфейс успешно отключён")
                 except Exception as close_interface_error:
-                    logger.error(
+                    app_logger.error(
                         "Ошибка при отключении интерфейса: %s (тип: %s)",
                         close_interface_error,
                         type(close_interface_error).__name__,
@@ -1781,10 +1796,10 @@ class ChromeRemote:
                 finally:
                     # Гарантированно обнуляем _chrome_interface
                     self._chrome_interface = None
-                    logger.debug("_chrome_interface обнулён")
+                    app_logger.debug("_chrome_interface обнулён")
 
         except Exception as outer_error:
-            logger.critical(
+            app_logger.critical(
                 "Критическая ошибка при остановке ChromeRemote: %s (тип: %s)",
                 outer_error,
                 type(outer_error).__name__,
@@ -1792,7 +1807,7 @@ class ChromeRemote:
             )
         finally:
             # Блок finally для гарантии очистки ресурсов даже при критических ошибках
-            logger.debug("Выполнение финальной очистки ресурсов...")
+            app_logger.debug("Выполнение финальной очистки ресурсов...")
 
             # Гарантированно обнуляем все ресурсы
             self._chrome_tab = None
@@ -1802,24 +1817,26 @@ class ChromeRemote:
             # Очищаем запросы и очереди
             try:
                 self.clear_requests()
-                logger.debug("Очередь запросов очищена")
+                app_logger.debug("Очередь запросов очищена")
             except Exception as clear_requests_error:
-                logger.warning(
+                app_logger.warning(
                     "Ошибка при очистке очереди запросов: %s", clear_requests_error
                 )
 
             # Обнуляем очереди ответов
             self._response_queues = {}
-            logger.debug("Очереди ответов обнулены")
+            app_logger.debug("Очереди ответов обнулены")
 
             # Очищаем кэш портов
             try:
                 _clear_port_cache()
-                logger.debug("Кэш портов очищен")
+                app_logger.debug("Кэш портов очищен")
             except Exception as clear_cache_error:
-                logger.warning("Ошибка при очистке кэша портов: %s", clear_cache_error)
+                app_logger.warning(
+                    "Ошибка при очистке кэша портов: %s", clear_cache_error
+                )
 
-            logger.info("Завершение остановки ChromeRemote - все ресурсы очищены")
+            app_logger.info("Завершение остановки ChromeRemote - все ресурсы очищены")
 
     def __enter__(self) -> ChromeRemote:
         self.start()

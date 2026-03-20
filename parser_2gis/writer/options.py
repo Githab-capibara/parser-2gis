@@ -1,3 +1,10 @@
+"""Модуль опций writer.
+
+Предоставляет классы для настройки параметров записи:
+- CSVOptions - опции для CSV Writer
+- WriterOptions - общие опции для File Writer
+"""
+
 from __future__ import annotations
 
 import codecs

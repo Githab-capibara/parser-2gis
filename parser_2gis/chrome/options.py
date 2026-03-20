@@ -1,3 +1,12 @@
+"""Модуль опций Chrome.
+
+Предоставляет класс ChromeOptions для настройки параметров браузера:
+- Путь к бинарному файлу
+- Режимы запуска (headless, maximized)
+- Лимиты памяти
+- Задержки запуска
+"""
+
 from __future__ import annotations
 
 import pathlib

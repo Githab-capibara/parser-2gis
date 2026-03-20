@@ -1,3 +1,11 @@
+"""Писатель (пост-процесс конвертер) в XLSX таблицу.
+
+Предоставляет класс XLSXWriter для конвертации CSV в XLSX формат:
+- Наследуется от CSVWriter
+- Конвертирует CSV в XLSX через xlsxwriter
+- Использует constant_memory для работы с большими файлами
+"""
+
 from __future__ import annotations
 
 import csv

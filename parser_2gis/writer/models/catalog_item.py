@@ -1,3 +1,13 @@
+"""Модель элемента каталога (филиала организации).
+
+Предоставляет класс CatalogItem для представления филиала организации:
+- Основная информация (name, address, point)
+- Контакты (contact_groups)
+- Рубрики (rubrics)
+- Расписание (schedule)
+- Отзывы (reviews)
+"""
+
 from __future__ import annotations
 
 from typing import List, Optional

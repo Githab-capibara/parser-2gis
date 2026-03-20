@@ -1,3 +1,9 @@
+"""Фабричный модуль writer.
+
+Предоставляет фабричную функцию get_writer для создания экземпляра
+файлового писателя в зависимости от формата (JSONWriter, CSVWriter, XLSXWriter).
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

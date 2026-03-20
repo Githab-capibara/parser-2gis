@@ -1,3 +1,13 @@
+"""Модуль опций парсера.
+
+Предоставляет класс ParserOptions для настройки параметров парсинга:
+- Задержки между кликами
+- Лимиты записей
+- Настройки сборщика мусора
+- Повторные попытки при ошибках
+- Таймауты и пороги памяти
+"""
+
 from __future__ import annotations
 
 from pydantic import BaseModel, NonNegativeInt, PositiveInt

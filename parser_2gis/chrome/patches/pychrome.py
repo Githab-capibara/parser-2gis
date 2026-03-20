@@ -1,3 +1,9 @@
+"""Патч для pychrome.
+
+Исправляет обработку пустых сообщений Chrome DevTools Protocol
+в библиотеке pychrome.
+"""
+
 # Патч для pychrome - исправляет обработку пустых сообщений Chrome DevTools Protocol
 
 import json

@@ -1,3 +1,11 @@
+"""Писатель в CSV-таблицу.
+
+Предоставляет класс CSVWriter для записи данных парсинга в CSV формат:
+- Поддержка постобработки (удаление пустых колонок и дубликатов)
+- Оптимизированное чтение/запись с mmap для больших файлов
+- Пакетная обработка для снижения накладных расходов
+"""
+
 from __future__ import annotations
 
 import csv
@@ -7,9 +15,9 @@ import mmap
 import os
 import re
 import shutil
+import unicodedata
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
-import unicodedata
 from pydantic import ValidationError
 
 from ...common import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, report_from_validation_error

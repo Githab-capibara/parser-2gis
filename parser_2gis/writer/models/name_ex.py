@@ -1,3 +1,12 @@
+"""Модель расширенного названия организации.
+
+Предоставляет класс NameEx для представления полного названия филиала:
+- primary - собственное имя
+- extension - расширение имени
+- legal_name - юридическое название
+- description - описание
+"""
+
 from __future__ import annotations
 
 from typing import Optional

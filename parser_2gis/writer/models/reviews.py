@@ -1,3 +1,10 @@
+"""Модель отзывов об организации.
+
+Предоставляет класс Reviews для представления отзывов:
+- general_rating - общий рейтинг (0-5)
+- general_review_count - общее количество отзывов
+"""
+
 from __future__ import annotations
 
 from typing import Optional

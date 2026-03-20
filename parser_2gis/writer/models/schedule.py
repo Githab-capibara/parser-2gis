@@ -1,3 +1,11 @@
+"""Модель расписания работы организации.
+
+Предоставляет классы для представления расписания:
+- WorkingHour - интервал работы (from/to)
+- ScheduleDay - расписание на один день
+- Schedule - недельное расписание с комментариями
+"""
+
 from __future__ import annotations
 
 from typing import List, Optional

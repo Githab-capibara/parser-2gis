@@ -1,3 +1,10 @@
+"""Модель контактной информации организации.
+
+Предоставляет классы для представления контактов:
+- Contact - отдельный контакт (email, website, phone и т.д.)
+- ContactGroup - группа контактов с расписанием и комментарием
+"""
+
 from __future__ import annotations
 
 from typing import List, Optional

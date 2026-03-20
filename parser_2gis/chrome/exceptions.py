@@ -1,3 +1,12 @@
+"""Модуль исключений Chrome.
+
+Предоставляет иерархию исключений для обработки ошибок Chrome:
+- ChromeException - базовое исключение
+- ChromeRuntimeException - исключение времени выполнения
+- ChromeUserAbortException - исключение прерывания пользователем
+- ChromePathNotFound - исключение ненайденного браузера
+"""
+
 import inspect
 
 from pychrome.exceptions import (
@@ -42,13 +51,13 @@ class ChromeException(Exception):
 class ChromeRuntimeException(_RuntimeException, ChromeException):
     """Исключение времени выполнения Chrome."""
 
-    ...
+    pass
 
 
 class ChromeUserAbortException(_UserAbortException, ChromeException):
     """Исключение прерывания пользователем Chrome."""
 
-    ...
+    pass
 
 
 class ChromePathNotFound(ChromeException):

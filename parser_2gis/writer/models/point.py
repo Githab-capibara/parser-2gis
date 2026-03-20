@@ -1,3 +1,10 @@
+"""Модель точки на карте (координаты).
+
+Предоставляет класс Point для представления географических координат:
+- lat - широта в системе WGS84
+- lon - долгота в системе WGS84
+"""
+
 from __future__ import annotations
 
 from pydantic import BaseModel

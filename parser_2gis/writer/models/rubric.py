@@ -1,3 +1,12 @@
+"""Модель рубрики организации.
+
+Предоставляет класс Rubric для представления рубрики:
+- id - уникальный идентификатор
+- kind - тип (primary/additional)
+- name - собственное имя
+- short_id - короткий идентификатор
+"""
+
 from __future__ import annotations
 
 from typing import Optional

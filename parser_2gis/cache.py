@@ -31,7 +31,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from .logger import logger
+from .logger.logger import logger as app_logger
 
 # =============================================================================
 # ОПТИМИЗАЦИЯ 3.6: orjson wrapper для сериализации
@@ -47,11 +47,25 @@ except ImportError:
     _USE_ORJSON = False
     orjson = None  # type: ignore
 
+# =============================================================================
+# ОПТИМИЗАЦИЯ: psutil для мониторинга памяти
+# =============================================================================
+
+# Попытка импортировать psutil для мониторинга памяти
+# psutil используется для динамического расчёта размера пула соединений
+try:
+    import psutil
+
+    _PSUTIL_AVAILABLE = True
+except ImportError:
+    _PSUTIL_AVAILABLE = False
+    psutil = None  # type: ignore
+
 
 def _serialize_json(data: Dict[str, Any]) -> str:
     """
     Сериализует данные в JSON формат.
-    - Выбрасываем явные исключения с контекстом вместо logger.warning
+    - Выбрасываем явные исключения с контекстом вместо app_logger.warning
     - Используем orjson если установлен (в 2-3 раза быстрее)
     - Fallback на стандартный json если orjson недоступен
 
@@ -89,7 +103,7 @@ def _serialize_json(data: Dict[str, Any]) -> str:
 def _deserialize_json(data: str) -> Dict[str, Any]:
     """
     Десериализует JSON строку в данные с валидацией структуры.
-    - Выбрасываем явные исключения с контекстом вместо logger.warning
+    - Выбрасываем явные исключения с контекстом вместо app_logger.warning
     - Используем orjson если установлен
     - Fallback на стандартный json если orjson недоступен
     - ВАЛИДАЦИЯ СТРУКТУРЫ ДАННЫХ после десериализации
@@ -112,9 +126,10 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
             deserialized = orjson.loads(data)  # type: ignore
         else:
             deserialized = json.loads(data)
+
         # Проверяем что данные являются словарём
         if not isinstance(deserialized, dict):
-            logger.error(
+            app_logger.error(
                 "Некорректный тип данных кэша после десериализации. Ожидался dict, получен %s. Размер данных: %d байт",
                 type(deserialized).__name__,
                 len(str(deserialized)),
@@ -126,7 +141,7 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
 
         # Проверяем данные на наличие потенциально опасных конструкций
         if not _validate_cached_data(deserialized):
-            logger.error(
+            app_logger.error(
                 "Данные кэша содержат небезопасные конструкции. Тип: %s, Размер: %d байт",
                 type(deserialized).__name__,
                 len(str(deserialized)),
@@ -139,22 +154,30 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
 
         return deserialized
 
-    except orjson.JSONDecodeError as orjson_error:
+    except TypeError:
+        # Пробрасываем TypeError как есть (некорректный тип данных)
+        raise
+    except ValueError:
+        # Пробрасываем ValueError как есть (небезопасные данные)
+        raise
+    except Exception as json_error:
+        # Обрабатываем все остальные исключения десериализации с сохранением цепочки
+        if orjson is not None:
+            try:
+                # Проверяем, это orjson.JSONDecodeError
+                if isinstance(json_error, orjson.JSONDecodeError):  # type: ignore
+                    raise ValueError(
+                        f"Критическая ошибка десериализации orjson: {json_error}. "
+                        f"Длина данных: {len(data)}, "
+                        f"Содержимое: {data[:200]}..."
+                    ) from json_error
+            except (AttributeError, TypeError):
+                pass
+        # Стандартная обработка JSON ошибок
         raise ValueError(
-            f"Критическая ошибка десериализации orjson: {orjson_error}. "
-            f"Длина данных: {len(data)}, "
-            f"Содержимое: {data[:200]}..."
-        ) from orjson_error
-    except (json.JSONDecodeError, UnicodeDecodeError) as json_error:
-        error_type = "Unicode" if isinstance(json_error, UnicodeDecodeError) else "JSON"
-        raise ValueError(
-            f"Критическая ошибка десериализации ({error_type}): {json_error}. "
+            f"Критическая ошибка десериализации: {json_error}. "
             f"Длина данных: {len(data)}"
         ) from json_error
-    except TypeError as type_error:
-        raise TypeError(
-            f"Некорректный тип данных кэша: {type_error}. Длина данных: {len(data)}"
-        ) from type_error
 
 
 # =============================================================================
@@ -184,7 +207,7 @@ def _validate_numeric_data(data: float | int) -> bool:
     import math
 
     if isinstance(data, float) and (math.isnan(data) or math.isinf(data)):
-        logger.warning("Обнаружено NaN/Infinity в данных кэша")
+        app_logger.warning("Обнаружено NaN/Infinity в данных кэша")
         return False
     return True
 
@@ -199,7 +222,7 @@ def _validate_string_data(data: str) -> bool:
         True если строка корректна, False если превышает лимит длины.
     """
     if len(data) > MAX_STRING_LENGTH:
-        logger.warning(
+        app_logger.warning(
             "Длина строки превышает максимальный лимит: %d (максимум: %d)",
             len(data),
             MAX_STRING_LENGTH,
@@ -222,13 +245,15 @@ def _validate_dict_data(data: dict, depth: int) -> bool:
     dangerous_keys: Set[str] = {"__proto__", "constructor", "prototype"}
     for key in data.keys():
         if isinstance(key, str) and key.lower() in dangerous_keys:
-            logger.warning("Обнаружена потенциальная __proto__ атака: ключ '%s'", key)
+            app_logger.warning(
+                "Обнаружена потенциальная __proto__ атака: ключ '%s'", key
+            )
             return False
 
     # Рекурсивно проверяем все значения словаря
     for key, value in data.items():
         if not isinstance(key, str):
-            logger.warning("Некорректный тип ключа в данных кэша")
+            app_logger.warning("Некорректный тип ключа в данных кэша")
             return False
         if not _validate_cached_data(value, depth + 1):
             return False
@@ -270,7 +295,7 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     """
     # Проверяем глубину вложенности
     if depth > MAX_DATA_DEPTH:
-        logger.warning(
+        app_logger.warning(
             "Превышена максимальная глубина вложенности данных кэша (%d)",
             MAX_DATA_DEPTH,
         )
@@ -296,7 +321,7 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
         return _validate_list_data(data, depth)
 
     # Недопустимый тип
-    logger.warning("Недопустимый тип данных в кэше: %s", type(data).__name__)
+    app_logger.warning("Недопустимый тип данных в кэше: %s", type(data).__name__)
     return False
 
 
@@ -359,7 +384,7 @@ def _validate_pool_env_int(
 
         # Проверяем минимальное значение
         if min_value is not None and value < min_value:
-            logger.warning(
+            app_logger.warning(
                 "ENV переменная %s=%d меньше минимального значения %d. Используется %d",
                 env_name,
                 value,
@@ -370,7 +395,7 @@ def _validate_pool_env_int(
 
         # Проверяем максимальное значение
         if max_value is not None and value > max_value:
-            logger.warning(
+            app_logger.warning(
                 "ENV переменная %s=%d больше максимального значения %d. Используется %d",
                 env_name,
                 value,
@@ -382,7 +407,7 @@ def _validate_pool_env_int(
         return value
 
     except ValueError:
-        logger.warning(
+        app_logger.warning(
             "ENV переменная %s=%s не является целым числом. Используется значение по умолчанию %d",
             env_name,
             value_str,
@@ -414,6 +439,56 @@ MIN_POOL_SIZE: int = _validate_pool_env_int(
 CONNECTION_MAX_AGE: int = _validate_pool_env_int(
     "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
 )
+
+
+def _calculate_dynamic_pool_size() -> int:
+    """
+    Рассчитывает оптимальный размер пула соединений на основе доступной памяти.
+
+    Алгоритм расчёта:
+    - Получаем доступную память системы (если возможно)
+    - Каждое соединение SQLite занимает ~1-5MB памяти
+    - Выделяем до 10% доступной памяти под пул соединений
+    - Ограничиваем результат пределами [MIN_POOL_SIZE, MAX_POOL_SIZE]
+
+    Returns:
+        Оптимальный размер пула соединений.
+
+    Example:
+        >>> pool_size = _calculate_dynamic_pool_size()
+        >>> print(f"Рекомендуемый размер пула: {pool_size}")
+    """
+    try:
+        # Пытаемся получить информацию о памяти через psutil
+        if not _PSUTIL_AVAILABLE or psutil is None:
+            raise ImportError("psutil не установлен")
+
+        available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)
+
+        # Выделяем до 10% доступной памяти под пул соединений
+        # Каждое соединение занимает ~2MB в среднем
+        memory_for_pool_mb = available_memory_mb * 0.10
+        connections_by_memory = int(memory_for_pool_mb / 2.0)
+
+        # Ограничиваем разумными пределами
+        dynamic_size = max(MIN_POOL_SIZE, min(connections_by_memory, MAX_POOL_SIZE))
+
+        app_logger.debug(
+            "Динамический размер пула: %d (доступно памяти: %.2f MB)",
+            dynamic_size,
+            available_memory_mb,
+        )
+
+        return dynamic_size
+
+    except ImportError:
+        # psutil не установлен, используем значение по умолчанию
+        app_logger.debug("psutil не установлен, используем размер пула по умолчанию")
+        return MIN_POOL_SIZE
+    except Exception as e:
+        # Любая другая ошибка - используем минимальный размер
+        app_logger.debug("Ошибка при расчёте размера пула: %s, используем минимум", e)
+        return MIN_POOL_SIZE
 
 
 class _ConnectionPool:
@@ -449,25 +524,47 @@ class _ConnectionPool:
         sqlite3.Error: При ошибке создания соединения с базой данных.
     """
 
-    def __init__(self, cache_file: Path, pool_size: int = 5) -> None:
+    def __init__(
+        self,
+        cache_file: Path,
+        pool_size: Optional[int] = None,
+        use_dynamic: bool = True,
+    ) -> None:
         """
         Инициализация пула соединений.
 
         Args:
             cache_file: Путь к файлу базы данных SQLite.
-            pool_size: Размер пула соединений (по умолчанию 5).
+            pool_size: Размер пула соединений (по умолчанию вычисляется динамически).
                       Для thread-local реализации не используется напрямую.
+            use_dynamic: Если True, использует динамический расчёт размера пула
+                        на основе доступной памяти (игнорирует pool_size).
 
         Raises:
             OSError: Если файл базы данных недоступен для записи.
             sqlite3.Error: При ошибке инициализации базы данных.
 
         Example:
-            >>> pool = _ConnectionPool(Path("/tmp/cache.db"), pool_size=10)
+            >>> pool = _ConnectionPool(Path("/tmp/cache.db"))
+            >>> # Или с явным размером:
+            >>> pool = _ConnectionPool(Path("/tmp/cache.db"), pool_size=10, use_dynamic=False)
         """
         self._cache_file = cache_file
-        # Ограничиваем размер пула разумными пределами
-        self._pool_size = max(MIN_POOL_SIZE, min(pool_size, MAX_POOL_SIZE))
+        # Используем динамический расчёт размера пула или заданный вручную
+        if use_dynamic:
+            calculated_size = _calculate_dynamic_pool_size()
+            self._pool_size = calculated_size
+            app_logger.info(
+                "Используется динамический размер пула соединений: %d", calculated_size
+            )
+        else:
+            # Ограничиваем размер пула разумными пределами
+            self._pool_size = max(
+                MIN_POOL_SIZE, min(pool_size or MIN_POOL_SIZE, MAX_POOL_SIZE)
+            )
+            app_logger.debug(
+                "Используется заданный размер пула соединений: %d", self._pool_size
+            )
         self._local = threading.local()
         self._all_conns: List[sqlite3.Connection] = []
         # ИСПРАВЛЕНИЕ 8: Используем RLock для реентерабельности
@@ -506,19 +603,19 @@ class _ConnectionPool:
                     age = time.time() - self._connection_age[conn_id]
                     if age > CONNECTION_MAX_AGE:
                         # Соединение устарело, пересоздаём
-                        logger.debug(
+                        app_logger.debug(
                             "Соединение устарело (возраст: %.0f сек), пересоздаём", age
                         )
                         try:
                             conn.close()
                         except sqlite3.Error as db_error:
-                            logger.warning(
+                            app_logger.warning(
                                 "Ошибка БД при закрытии устаревшего соединения: %s",
                                 db_error,
                                 exc_info=True,
                             )
                         except OSError as os_error:
-                            logger.warning(
+                            app_logger.warning(
                                 "Ошибка ОС при закрытии устаревшего соединения: %s",
                                 os_error,
                                 exc_info=True,
@@ -530,14 +627,14 @@ class _ConnectionPool:
                         conn = self._create_connection()
 
                 self._local.connection = conn
-                logger.debug("Получено соединение из queue (reuse)")
+                app_logger.debug("Получено соединение из queue (reuse)")
             except queue.Empty:
                 # Queue пуста, создаём новое соединение
                 self._local.connection = self._create_connection()
                 with self._lock:
                     # Проверяем лимит соединений
                     if len(self._all_conns) >= self._pool_size:
-                        logger.warning(
+                        app_logger.warning(
                             "Достигнут лимит соединений (%d), новое соединение не добавляется в pool",
                             self._pool_size,
                         )
@@ -561,20 +658,20 @@ class _ConnectionPool:
         try:
             # Пытаемся вернуть соединение в queue
             self._connection_queue.put_nowait(conn)
-            logger.debug("Соединение возвращено в queue для reuse")
+            app_logger.debug("Соединение возвращено в queue для reuse")
         except queue.Full:
             # Queue заполнена, закрываем соединение
-            logger.debug("Queue заполнена, закрываем соединение")
+            app_logger.debug("Queue заполнена, закрываем соединение")
             try:
                 conn.close()
             except sqlite3.Error as db_error:
-                logger.warning(
+                app_logger.warning(
                     "Ошибка БД при закрытии соединения (queue заполнена): %s",
                     db_error,
                     exc_info=True,
                 )
             except OSError as os_error:
-                logger.warning(
+                app_logger.warning(
                     "Ошибка ОС при закрытии соединения (queue заполнена): %s",
                     os_error,
                     exc_info=True,
@@ -621,7 +718,7 @@ class _ConnectionPool:
                 try:
                     conn.close()
                 except Exception as e:
-                    logger.debug(
+                    app_logger.debug(
                         "Не удалось закрыть соединение SQLite: %s", e, exc_info=True
                     )
             self._all_conns.clear()
@@ -634,13 +731,13 @@ class _ConnectionPool:
                 try:
                     conn.close()
                 except sqlite3.Error as db_error:
-                    logger.warning(
+                    app_logger.warning(
                         "Ошибка БД при закрытии соединения (очистка queue): %s",
                         db_error,
                         exc_info=True,
                     )
                 except OSError as os_error:
-                    logger.warning(
+                    app_logger.warning(
                         "Ошибка ОС при закрытии соединения (очистка queue): %s",
                         os_error,
                         exc_info=True,
@@ -661,7 +758,7 @@ class _ConnectionPool:
         """
         # Проверяем есть ли незакрытые соединения
         if hasattr(self, "_all_conns") and self._all_conns:
-            logger.warning(
+            app_logger.warning(
                 "_ConnectionPool уничтожается сборщиком мусора с %d незакрытыми соединениями. "
                 "Всегда вызывайте close_all() явно или используйте контекстный менеджер.",
                 len(self._all_conns),
@@ -673,7 +770,7 @@ class _ConnectionPool:
                 self.close_all()
         except Exception as del_error:
             # В __del__ нельзя выбрасывать исключения - только логируем
-            logger.error(
+            app_logger.error(
                 "Ошибка при закрытии соединений в __del__ (_ConnectionPool): %s",
                 del_error,
                 exc_info=True,
@@ -848,7 +945,7 @@ class CacheManager:
             # Примечание: SQLite3 в Python не поддерживает prepare() для курсоров,
             # поэтому используем прямое выполнение с параметрами для защиты от SQL injection
         except Exception as e:
-            logger.warning("Ошибка при инициализации кэша: %s", e)
+            app_logger.warning("Ошибка при инициализации кэша: %s", e)
             raise
 
     def get(self, url: str) -> Optional[Dict[str, Any]]:
@@ -875,7 +972,12 @@ class CacheManager:
             return None
 
         # Вычисляем хеш URL для поиска
-        url_hash = self._hash_url(url)
+        # Обработка None и некорректных URL
+        try:
+            url_hash = self._hash_url(url)
+        except (ValueError, TypeError):
+            # Некорректный URL, возвращаем None как при промахе кэша
+            return None
 
         conn = self._pool.get_connection()
         cursor = conn.cursor()
@@ -901,7 +1003,7 @@ class CacheManager:
                 expires_at = datetime.fromisoformat(expires_at_str)
             except ValueError:
                 # Некорректный формат даты, считаем кэш истёкшим
-                logger.debug("Некорректный формат даты в кэше: %s", expires_at_str)
+                app_logger.debug("Некорректный формат даты в кэше: %s", expires_at_str)
                 conn.rollback()  # Отменяем транзакцию
                 return None
 
@@ -924,13 +1026,13 @@ class CacheManager:
             try:
                 conn.rollback()
             except Exception as rollback_error:
-                logger.debug("Ошибка при откате транзакции: %s", rollback_error)
+                app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
 
             error_str = str(db_error).lower()
 
             # Временные ошибки - можно повторить попытку
             if "database is locked" in error_str or "busy" in error_str:
-                logger.warning(
+                app_logger.warning(
                     "База данных заблокирована (временная ошибка): %s. Повторная попытка...",
                     db_error,
                 )
@@ -946,28 +1048,28 @@ class CacheManager:
                         if datetime.now() <= expires_at:
                             return _deserialize_json(data)
                 except sqlite3.Error as retry_error:
-                    logger.warning("Повторная попытка не удалась: %s", retry_error)
+                    app_logger.warning("Повторная попытка не удалась: %s", retry_error)
                 return None  # Можно повторить попытку позже
 
             # Критическая ошибка диска - пробрасываем исключение
             if "disk i/o error" in error_str:
-                logger.critical(
+                app_logger.critical(
                     "Критическая ошибка диска при получении кэша: %s", db_error
                 )
                 raise  # Пробрасываем исключение для обработки на верхнем уровне
 
             # Критическая ошибка - таблица не существует
             if "no such table" in error_str:
-                logger.critical("Таблица кэша не существует: %s", db_error)
+                app_logger.critical("Таблица кэша не существует: %s", db_error)
                 raise  # Пробрасываем исключение для обработки на верхнем уровне
 
             # Повреждение базы данных
             if "corrupt" in error_str or "malformed" in error_str:
-                logger.critical("База данных повреждена: %s", db_error)
+                app_logger.critical("База данных повреждена: %s", db_error)
                 raise  # Пробрасываем исключение для обработки на верхнем уровне
 
             # Остальные ошибки БД - логируем и возвращаем None
-            logger.error(
+            app_logger.error(
                 "Неизвестная ошибка БД при получении кэша: %s (тип: %s)",
                 db_error,
                 type(db_error).__name__,
@@ -982,7 +1084,7 @@ class CacheManager:
         ) as decode_error:
             # Обрабатываем ошибки десериализации - удаляем повреждённую запись
             error_type = type(decode_error).__name__
-            logger.warning(
+            app_logger.warning(
                 "Ошибка %s при чтении кэша для URL %s: %s. Повреждённая запись будет удалена.",
                 error_type,
                 url,
@@ -993,12 +1095,12 @@ class CacheManager:
                 cursor.execute(self.SQL_DELETE, (url_hash,))
                 conn.commit()
             except sqlite3.Error as cleanup_error:
-                logger.warning(
+                app_logger.warning(
                     "Ошибка при удалении повреждённой записи: %s", cleanup_error
                 )
             return None
         except Exception as general_error:
-            logger.error(
+            app_logger.error(
                 "Непредвиденная ошибка при чтении кэша для URL %s: %s (тип: %s)",
                 url,
                 general_error,
@@ -1010,12 +1112,12 @@ class CacheManager:
             try:
                 cursor.close()
             except Exception as cursor_error:
-                logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
+                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
     def set(self, url: str, data: Dict[str, Any]) -> None:
         """Сохранение данных в кэш.
 
-        Сохраняет указанные данные в кэш для указанного URL.
+        Проверяет корректность данных и сохраняет их в кэш для указанного URL.
         Если кэш для этого URL уже существует, он будет перезаписан.
 
         Оптимизация 18:
@@ -1026,9 +1128,17 @@ class CacheManager:
         Args:
             url: URL для кэширования
             data: Данные для сохранения (должны быть сериализуемы в JSON)
+
+        Raises:
+            TypeError: Если data является None или не является словарём.
+            ValueError: Если URL некорректен.
         """
         if not self._pool:
             return
+
+        # ВАЛИДАЦИЯ: проверка data на None
+        if data is None:
+            raise TypeError("Данные кэша не могут быть None")
 
         # Вычисляем хеш URL и время истечения
         url_hash = self._hash_url(url)
@@ -1042,7 +1152,7 @@ class CacheManager:
         try:
             data_json = _serialize_json(data)
         except (TypeError, ValueError) as e:
-            logger.error("Ошибка сериализации данных для кэша: %s", e)
+            app_logger.error("Ошибка сериализации данных для кэша: %s", e)
             return
 
         conn = self._pool.get_connection()
@@ -1060,7 +1170,7 @@ class CacheManager:
             )
             conn.commit()
         except sqlite3.Error as db_error:
-            logger.error("Ошибка БД при сохранении кэша: %s", db_error)
+            app_logger.error("Ошибка БД при сохранении кэша: %s", db_error)
         finally:
             cursor.close()
 
@@ -1112,7 +1222,7 @@ class CacheManager:
                     )
                     saved_count += 1
                 except (TypeError, ValueError) as serialize_error:
-                    logger.warning(
+                    app_logger.warning(
                         "Ошибка сериализации данных для кэша (%s): %s",
                         url,
                         serialize_error,
@@ -1127,14 +1237,14 @@ class CacheManager:
             conn.commit()
 
             if skipped_count > 0:
-                logger.warning(
+                app_logger.warning(
                     "Пакетное сохранение кэша завершено: сохранено %d записей, пропущено %d записей",
                     saved_count,
                     skipped_count,
                 )
 
         except sqlite3.Error as db_error:
-            logger.error("Ошибка БД при пакетном сохранении кэша: %s", db_error)
+            app_logger.error("Ошибка БД при пакетном сохранении кэша: %s", db_error)
         finally:
             cursor.close()
 
@@ -1154,9 +1264,9 @@ class CacheManager:
             # Простое удаление всех данных быстрее чем DELETE FROM
             conn.execute("DELETE FROM cache")
             conn.commit()
-            logger.debug("Кэш полностью очищен")
+            app_logger.debug("Кэш полностью очищен")
         except sqlite3.Error as db_error:
-            logger.error("Ошибка БД при очистке кэша: %s", db_error)
+            app_logger.error("Ошибка БД при очистке кэша: %s", db_error)
 
     def clear_expired(self) -> int:
         """Очистка истекшего кэша.
@@ -1185,12 +1295,12 @@ class CacheManager:
             conn.commit()
 
             if deleted_count > 0:
-                logger.debug("Очищено %d истекших записей кэша", deleted_count)
+                app_logger.debug("Очищено %d истекших записей кэша", deleted_count)
 
             return deleted_count
 
         except sqlite3.Error as db_error:
-            logger.warning("Ошибка БД при очистке истекшего кэша: %s", db_error)
+            app_logger.warning("Ошибка БД при очистке истекшего кэша: %s", db_error)
             return 0
         finally:
             cursor.close()
@@ -1246,7 +1356,7 @@ class CacheManager:
             return deleted_count
 
         except sqlite3.Error as db_error:
-            logger.warning("Ошибка БД при пакетном удалении: %s", db_error)
+            app_logger.warning("Ошибка БД при пакетном удалении: %s", db_error)
             return 0
         finally:
             cursor.close()
@@ -1300,7 +1410,7 @@ class CacheManager:
 
         except sqlite3.Error as db_error:
             # Ошибка базы данных
-            logger.warning("Ошибка при получении статистики кэша: %s", db_error)
+            app_logger.warning("Ошибка при получении статистики кэша: %s", db_error)
             return {"total_records": 0, "expired_records": 0, "cache_size": 0}
         finally:
             cursor.close()
@@ -1314,7 +1424,7 @@ class CacheManager:
         if hasattr(self, "_pool") and self._pool is not None:
             self._pool.close_all()
             self._pool = None
-            logger.debug("Менеджер кэша закрыт")
+            app_logger.debug("Менеджер кэша закрыт")
 
     def __enter__(self) -> "CacheManager":
         """
@@ -1365,7 +1475,7 @@ class CacheManager:
         except Exception as e:
             # Логирование ошибки вместо игнорирования
             # В __del__ нельзя выбрасывать исключения
-            logger.error(
+            app_logger.error(
                 "Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True
             )
 
@@ -1463,12 +1573,12 @@ class CacheManager:
                     cursor.close()
                 except sqlite3.Error:
                     # Если БД повреждена, логируем предупреждение
-                    logger.warning("База данных кэша может быть повреждена")
+                    app_logger.warning("База данных кэша может быть повреждена")
 
             return cache_size_mb
 
         except OSError as os_error:
-            logger.warning("Ошибка при получении размера кэша: %s", os_error)
+            app_logger.warning("Ошибка при получении размера кэша: %s", os_error)
             return 0.0
 
     def _enforce_cache_size_limit(self, conn: sqlite3.Connection) -> None:
@@ -1494,7 +1604,7 @@ class CacheManager:
 
             # Проверяем превышение лимита
             if cache_size_mb > MAX_CACHE_SIZE_MB:
-                logger.warning(
+                app_logger.warning(
                     "Размер кэша %.2f MB превышает лимит %d MB. Запуск LRU eviction...",
                     cache_size_mb,
                     MAX_CACHE_SIZE_MB,
@@ -1520,13 +1630,13 @@ class CacheManager:
 
                         if deleted_count == 0:
                             # Нечего удалять - выходим из цикла
-                            logger.debug(
+                            app_logger.debug(
                                 "LRU eviction: записей для удаления не осталось"
                             )
                             break
 
                         total_deleted += deleted_count
-                        logger.debug(
+                        app_logger.debug(
                             "LRU eviction (итерация %d): удалено %d записей (всего: %d)",
                             eviction_iterations,
                             deleted_count,
@@ -1537,7 +1647,7 @@ class CacheManager:
                         cache_size_mb = self._get_cache_size_mb(conn)
 
                     if eviction_iterations >= max_iterations:
-                        logger.warning(
+                        app_logger.warning(
                             "LRU eviction: достигнут лимит итераций (%d), "
                             "текущий размер %.2f MB",
                             max_iterations,
@@ -1545,7 +1655,7 @@ class CacheManager:
                         )
 
                     if total_deleted > 0:
-                        logger.info(
+                        app_logger.info(
                             "LRU eviction завершена: удалено %d записей за %d итераций, "
                             "новый размер %.2f MB",
                             total_deleted,
@@ -1557,10 +1667,14 @@ class CacheManager:
                     cursor.close()
 
         except OSError as os_error:
-            logger.warning("Ошибка при проверке размера кэша: %s", os_error)
+            app_logger.warning("Ошибка при проверке размера кэша: %s", os_error)
         except sqlite3.Error as db_error:
-            logger.warning("Ошибка БД при LRU eviction: %s", db_error)
+            app_logger.warning("Ошибка БД при LRU eviction: %s", db_error)
 
 
 # Алиас для обратной совместимости
 Cache = CacheManager
+
+# =============================================================================
+# RE-EXPORT ДЛЯ ТЕСТОВ
+# =============================================================================

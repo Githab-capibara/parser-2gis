@@ -1,3 +1,11 @@
+"""Парсер для фирм 2GIS.
+
+Предоставляет класс FirmParser для парсинга страниц организаций:
+- URL-паттерн: /firm/<firm_id>
+- Извлечение данных из window.initialState
+- Валидация структуры initialState на безопасность
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Optional

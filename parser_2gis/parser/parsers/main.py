@@ -1,15 +1,24 @@
+"""Основной парсер для поисковой выдачи 2GIS.
+
+Предоставляет класс MainParser для парсинга поисковых результатов:
+- Переход по страницам выдачи
+- Извлечение ссылок на организации
+- Парсинг данных через API Catalog Item
+- Поддержка пагинации
+- Оптимизация памяти и GC
+"""
+
 from __future__ import annotations
 
 import gc
 import json
+import random
 import re
 import threading
 import time
 import urllib.parse
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-
-import random
 
 try:
     import psutil

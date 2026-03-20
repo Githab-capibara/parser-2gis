@@ -1,3 +1,12 @@
+"""Модель адреса организации.
+
+Предоставляет класс Address для представления адреса филиала:
+- building_id - уникальный идентификатор дома
+- building_name - название здания
+- postcode - почтовый индекс
+- makani - Makani адрес (Ближний Восток)
+"""
+
 from __future__ import annotations
 
 from typing import Optional

@@ -1,3 +1,10 @@
+"""Модуль CLI приложения.
+
+Предоставляет функцию cli_app для запуска парсера в режиме командной строки:
+- Настройка CLI логгера
+- Запуск CLIRunner для обработки URL
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

@@ -1,3 +1,10 @@
+"""Модуль базового runner.
+
+Предоставляет абстрактный класс AbstractRunner и реализацию GUIRunner:
+- AbstractRunner - базовый класс для всех runner
+- GUIRunner - заглушка для GUI режима парсинга
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

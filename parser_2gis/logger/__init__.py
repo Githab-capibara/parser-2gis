@@ -1,3 +1,14 @@
+"""Модуль логирования для парсера.
+
+Предоставляет компоненты для логирования:
+- Logger, logger - основной логгер
+- QueueHandler - обработчик очереди
+- FileLogger - файловый логгер
+- VisualLogger - визуальный логгер с emoji и цветами
+- LogOptions - опции логирования
+- Функции настройки: setup_logger, setup_cli_logger, setup_gui_logger
+"""
+
 from ..chrome.file_handler import FileLogger
 from .logger import (
     Logger,

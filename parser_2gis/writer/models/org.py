@@ -1,3 +1,11 @@
+"""Модель организации.
+
+Предоставляет класс Org для представления организации:
+- id - уникальный идентификатор
+- name - собственное имя
+- branch_count - количество филиалов
+"""
+
 from __future__ import annotations
 
 from pydantic import BaseModel

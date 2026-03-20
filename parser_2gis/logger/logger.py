@@ -1,10 +1,18 @@
+"""Модуль логирования.
+
+Предоставляет функции для настройки логгера:
+- setup_logger - базовая настройка
+- setup_cli_logger - настройка для CLI
+- setup_gui_logger - настройка для GUI с очередью
+- QueueHandler - обработчик очереди логирования
+"""
+
 from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING
-
 import warnings
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import queue
