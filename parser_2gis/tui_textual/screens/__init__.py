@@ -9,7 +9,6 @@ from .other_screens import AboutScreen, CacheViewerScreen
 from .parsing_screen import ParsingScreen
 from .settings import BrowserSettingsScreen, OutputSettingsScreen, ParserSettingsScreen
 
-
 __all__ = [
     "MainMenuScreen",
     "CitySelectorScreen",

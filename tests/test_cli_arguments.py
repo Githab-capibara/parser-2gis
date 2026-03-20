@@ -158,9 +158,7 @@ class TestAllParserOptionsArguments:
             )
             field_info = model_fields[field]
             field_type = (
-                field_info.annotation
-                if hasattr(field_info, "annotation")
-                else field_info.type_
+                field_info.annotation if hasattr(field_info, "annotation") else field_info.type_
             )
 
             # Проверяем тип поля с учётом специальных типов Pydantic

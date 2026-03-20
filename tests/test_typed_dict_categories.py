@@ -26,8 +26,8 @@ class TestCategoryTypedDict:
         Проверяет что возвращается CategoryDict со всеми полями.
         """
         from parser_2gis.data.categories_93 import (
-            CategoryDict,
             CATEGORIES_93,
+            CategoryDict,
             get_category_by_name,
         )
 
@@ -103,9 +103,7 @@ class TestCategoryTypedDict:
             ), f"Категория {i}: поле 'rubric_code' должно быть строкой или None"
 
         # Проверяем что всего 93 категории
-        assert (
-            len(CATEGORIES_93) == 93
-        ), f"Ожидалось 93 категории, найдено: {len(CATEGORIES_93)}"
+        assert len(CATEGORIES_93) == 93, f"Ожидалось 93 категории, найдено: {len(CATEGORIES_93)}"
 
 
 class TestCategoryFunctions:
@@ -129,8 +127,9 @@ class TestCategoryFunctions:
         """
         Проверка генерации URL для города.
         """
-        from parser_2gis.data.categories_93 import generate_urls_for_city
         from urllib.parse import unquote
+
+        from parser_2gis.data.categories_93 import generate_urls_for_city
 
         # Тестовый город
         city = {
@@ -160,8 +159,9 @@ class TestCategoryFunctions:
         """
         Проверка генерации URL для категории без rubric_code.
         """
-        from parser_2gis.data.categories_93 import generate_urls_for_city
         from urllib.parse import unquote
+
+        from parser_2gis.data.categories_93 import generate_urls_for_city
 
         city = {
             "code": "132",

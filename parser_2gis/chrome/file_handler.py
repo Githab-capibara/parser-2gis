@@ -146,9 +146,7 @@ class FileLogger:
             session_logger = logging.getLogger("parser-2gis")
             session_logger.info("=" * 80)
             session_logger.info("НАЧАЛО НОВОЙ СЕССИИ")
-            session_logger.info(
-                f"Время запуска: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            )
+            session_logger.info(f"Время запуска: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             # Проверяем, что файл лога существует перед вызовом absolute()
             if self._log_file:
                 session_logger.info(f"Файл лога: {self._log_file.absolute()}")
@@ -226,8 +224,7 @@ class FileLogger:
             import sys
 
             sys.stderr.write(
-                f"Ошибка при закрытии файлового логгера: {e}. "
-                f"Функция: {self.close.__name__}\n"
+                f"Ошибка при закрытии файлового логгера: {e}. " f"Функция: {self.close.__name__}\n"
             )
             # Не пробрасываем ошибку, чтобы не нарушить завершение работы
 

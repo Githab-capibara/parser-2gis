@@ -15,10 +15,10 @@ from __future__ import annotations
 import queue
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import psutil
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .logger import logger
 
@@ -26,9 +26,7 @@ from .logger import logger
 class ParallelTask:
     """Задача для параллельного парсинга."""
 
-    def __init__(
-        self, url: str, category_name: str, city_name: str, priority: int = 0
-    ) -> None:
+    def __init__(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
         """
         Инициализирует задачу.
 
@@ -131,9 +129,7 @@ class ParallelOptimizer:
             max_memory_mb,
         )
 
-    def add_task(
-        self, url: str, category_name: str, city_name: str, priority: int = 0
-    ) -> None:
+    def add_task(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
         """
         Добавляет задачу в очередь.
 
@@ -362,10 +358,7 @@ class ParallelOptimizer:
 
                 # Запускаем новые задачи если есть ресурсы
                 # Оптимизация 3.5: Queue.empty() для проверки наличия задач
-                while (
-                    len(self._active_tasks) < self._max_workers
-                    and not self._tasks.empty()
-                ):
+                while len(self._active_tasks) < self._max_workers and not self._tasks.empty():
                     task = self.get_next_task()
                     if task:
                         future = executor.submit(parse_func, task)

@@ -6,13 +6,14 @@
 - Добавлен logger для предупреждений о переполнении счётчиков
 """
 
-import html as html_module
 import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+import html as html_module
 
 # Получаем логгер модуля
 logger = logging.getLogger(__name__)
@@ -313,13 +314,9 @@ class StatisticsExporter:
                 else "Не запущено"
             ),
             "Время завершения": (
-                stats.end_time.strftime("%Y-%m-%d %H:%M:%S")
-                if stats.end_time
-                else "Не завершено"
+                stats.end_time.strftime("%Y-%m-%d %H:%M:%S") if stats.end_time else "Не завершено"
             ),
-            "Время работы": (
-                str(stats.elapsed_time) if stats.elapsed_time else "Не завершено"
-            ),
+            "Время работы": (str(stats.elapsed_time) if stats.elapsed_time else "Не завершено"),
             "Всего URL": str(stats.total_urls),
             "Всего страниц": str(stats.total_pages),
             "Всего записей": str(stats.total_records),

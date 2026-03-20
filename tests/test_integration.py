@@ -13,17 +13,17 @@ from pathlib import Path
 
 import pytest
 
+from parser_2gis.chrome import ChromeOptions
 from parser_2gis.config import Configuration
+from parser_2gis.logger import LogOptions
+from parser_2gis.parser import ParserOptions
 from parser_2gis.writer import (
     CSVWriter,
     JSONWriter,
-    XLSXWriter,
     WriterOptions,
+    XLSXWriter,
     get_writer,
 )
-from parser_2gis.chrome import ChromeOptions
-from parser_2gis.logger import LogOptions
-from parser_2gis.parser import ParserOptions
 
 
 class TestConfigWithParser:

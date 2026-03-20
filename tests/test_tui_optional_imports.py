@@ -11,11 +11,12 @@
     когда модуль textual НЕ установлен.
 """
 
-import pytest
+import inspect
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-import inspect
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Добавляем проект в path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -65,8 +66,9 @@ class TestOptionalTUIImports:
         Этот тест выявляет ошибку, когда main() не проверяет,
         является ли функция stub функцией, и пытается её вызвать напрямую.
         """
-        from parser_2gis.main import _tui_omsk_stub, _tui_stub
         import argparse
+
+        from parser_2gis.main import _tui_omsk_stub, _tui_stub
 
         # Создаём мок args с установленным флагом tui_new_omsk
         mock_args = MagicMock()
@@ -92,10 +94,10 @@ class TestTUIImportHandling:
         не работает корректно.
         """
         from parser_2gis.main import (
+            Parser2GISTUI,
             _tui_omsk_stub,
             _tui_stub,
             run_new_tui_omsk,
-            Parser2GISTUI,
         )
 
         # Проверяем, что мы можем сравнить функции
@@ -115,6 +117,7 @@ class TestTUIImportHandling:
         не логируется перед вызовом RuntimeError.
         """
         import logging
+
         from parser_2gis.main import _tui_omsk_stub, _tui_stub
 
         # Проверяем, что stub функции определены и вызывают RuntimeError
@@ -141,7 +144,7 @@ class TestTUIModuleStructure:
         не соответствует ожидаемой.
         """
         try:
-            from parser_2gis.tui_textual import TUIApp, Parser2GISTUI, run_tui
+            from parser_2gis.tui_textual import Parser2GISTUI, TUIApp, run_tui
 
             # Проверяем, что все компоненты существуют
             assert TUIApp is not None
@@ -166,9 +169,9 @@ class TestTUIModuleStructure:
         """
         try:
             from parser_2gis.tui_textual.screens import (
-                MainMenuScreen,
-                CitySelectorScreen,
                 CategorySelectorScreen,
+                CitySelectorScreen,
+                MainMenuScreen,
                 ParsingScreen,
             )
 
@@ -193,8 +196,9 @@ class TestTUICommandLineFlags:
         Этот тест выявляет ошибку, когда флаг --tui-new не добавлен
         в парсер аргументов.
         """
-        from parser_2gis.main import parse_arguments
         import sys
+
+        from parser_2gis.main import parse_arguments
 
         # Сохраняем оригинальные argv
         original_argv = sys.argv
@@ -227,6 +231,7 @@ class TestTUICommandLineFlags:
         """
         # Проверяем, что в main.py есть обработка этого флага
         import inspect
+
         from parser_2gis.main import main
 
         # Получаем исходный код функции main
@@ -242,10 +247,10 @@ class TestTUICommandLineFlags:
         Этот тест выявляет ошибку, когда оба флага TUI установлены одновременно.
         """
         from parser_2gis.main import (
+            Parser2GISTUI,
             _tui_omsk_stub,
             _tui_stub,
             run_new_tui_omsk,
-            Parser2GISTUI,
         )
 
         # Проверяем, что stub функции существуют

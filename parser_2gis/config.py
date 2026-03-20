@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import pathlib
 import shutil
-from copy import deepcopy
 from typing import Any, Dict, List, Optional, Set
 
+from copy import deepcopy
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from .chrome import ChromeOptions
@@ -95,9 +95,7 @@ class Configuration(BaseModel):
             При достижении 80% от max_depth выводится предупреждение в лог.
         """
         # Инициализируем константы для контроля глубины
-        warning_threshold: int = int(
-            max_depth * 0.8
-        )  # 80% от лимита для предупреждения
+        warning_threshold: int = int(max_depth * 0.8)  # 80% от лимита для предупреждения
         warning_shown: bool = False
 
         # Стек содержит кортежи: (source_model, target_model, current_depth)
@@ -113,9 +111,7 @@ class Configuration(BaseModel):
 
             # Проверка на циклические ссылки
             if Configuration._is_cyclic_reference(current_source, visited):
-                logger.warning(
-                    "Обнаружена циклическая ссылка при объединении конфигурации"
-                )
+                logger.warning("Обнаружена циклическая ссылка при объединении конфигурации")
                 continue
 
             # Проверка и обновление порога предупреждения о глубине
@@ -243,9 +239,7 @@ class Configuration(BaseModel):
                 logger.warning("Ошибка при объединении поля %s: %s", field, e)
                 raise
             except Exception as e:
-                logger.error(
-                    "Непредвиденная ошибка при объединении поля %s: %s", field, e
-                )
+                logger.error("Непредвиденная ошибка при объединении поля %s: %s", field, e)
                 raise
 
     @staticmethod
@@ -369,9 +363,7 @@ class Configuration(BaseModel):
                 config.save_config()
                 logger.debug("Создан файл конфигурации: %s", config_path)
             else:
-                logger.info(
-                    "Файл конфигурации не найден, используется конфигурация по умолчанию"
-                )
+                logger.info("Файл конфигурации не найден, используется конфигурация по умолчанию")
                 config = cls()
             return config
 
@@ -399,9 +391,7 @@ class Configuration(BaseModel):
             return cls()
 
         except Exception as e:
-            logger.error(
-                "Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=e
-            )
+            logger.error("Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=e)
             return cls()
 
         # Возвращаем конфигурацию по умолчанию при любой ошибке
@@ -417,12 +407,8 @@ class Configuration(BaseModel):
         try:
             shutil.copy2(config_path, backup_path)
             if backup_path.exists():
-                logger.warning(
-                    "Создана резервная копия повреждённой конфигурации: %s", backup_path
-                )
-                renamed_path = config_path.with_suffix(
-                    config_path.suffix + ".corrupted"
-                )
+                logger.warning("Создана резервная копия повреждённой конфигурации: %s", backup_path)
+                renamed_path = config_path.with_suffix(config_path.suffix + ".corrupted")
                 config_path.rename(renamed_path)
                 logger.warning(
                     "Оригинальный файл переименован: %s -> %s",
@@ -432,9 +418,7 @@ class Configuration(BaseModel):
             else:
                 logger.warning("Не удалось создать резервную копию: %s", backup_path)
         except OSError as copy_err:
-            logger.warning(
-                "Ошибка при создании резервной копии конфигурации: %s", copy_err
-            )
+            logger.warning("Ошибка при создании резервной копии конфигурации: %s", copy_err)
 
     @staticmethod
     def _log_validation_errors(ex: ValidationError) -> None:

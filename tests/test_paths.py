@@ -10,6 +10,7 @@
 
 import os
 import pathlib
+
 import pytest
 
 from parser_2gis.paths import data_path, image_data, image_path, user_path

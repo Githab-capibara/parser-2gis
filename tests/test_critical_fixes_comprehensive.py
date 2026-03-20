@@ -236,9 +236,7 @@ class TestBrowserCloseImprovements:
             caplog: pytest caplog fixture для проверки логов.
         """
         # Мокируем terminate для выброса ProcessLookupError
-        mock_chrome_process.terminate.side_effect = ProcessLookupError(
-            "Process already finished"
-        )
+        mock_chrome_process.terminate.side_effect = ProcessLookupError("Process already finished")
 
         # Создаём mock browser с необходимыми атрибутами
         browser = object.__new__(ChromeBrowser)
@@ -314,9 +312,7 @@ class TestBrowserCloseImprovements:
             caplog: pytest caplog fixture для проверки логов.
         """
         # Мокируем cleanup для выброса OSError
-        mock_profile_tempdir.cleanup.side_effect = OSError(
-            "Disk I/O error - cannot delete files"
-        )
+        mock_profile_tempdir.cleanup.side_effect = OSError("Disk I/O error - cannot delete files")
 
         # Настраиваем mock процесса для успешного завершения
         mock_chrome_process.terminate.return_value = None
@@ -462,9 +458,7 @@ class TestParallelParserTempFileCleanup:
         protected_file.write_text("test data")
 
         # Делаем файл недоступным для удаления (мокируем unlink)
-        with patch.object(
-            Path, "unlink", side_effect=PermissionError("Permission denied")
-        ):
+        with patch.object(Path, "unlink", side_effect=PermissionError("Permission denied")):
             _temp_files_registry.add(protected_file)
 
             # Вызываем очистку - не должно быть исключений
@@ -523,8 +517,7 @@ class TestJSCodeValidation:
 
             assert is_valid is False, f"Код должен быть отклонён: {js_code}"
             assert (
-                "квадратные скобки" in error_message.lower()
-                or "eval" in error_message.lower()
+                "квадратные скобки" in error_message.lower() or "eval" in error_message.lower()
             ), f"Сообщение должно упоминать eval или квадратные скобки: {error_message}"
 
     def test_object_prototype_constructor_detection(self) -> None:
@@ -576,9 +569,9 @@ class TestJSCodeValidation:
             is_valid, error_message = _validate_js_code(js_code)
 
             assert is_valid is False, f"Код должен быть отклонён: {js_code}"
-            assert "Reflect.construct" in error_message or "Reflect" in error_message, (
-                f"Сообщение должно упоминать Reflect.construct: {error_message}"
-            )
+            assert (
+                "Reflect.construct" in error_message or "Reflect" in error_message
+            ), f"Сообщение должно упоминать Reflect.construct: {error_message}"
 
 
 # =============================================================================
@@ -820,9 +813,7 @@ class TestENVValidation:
         # Тестируем _validate_env_int с минимальным значением
         os.environ["TEST_MIN_VALUE"] = "0"  # Ниже минимума 1
 
-        result = _validate_env_int(
-            "TEST_MIN_VALUE", default=5, min_value=1, max_value=100
-        )
+        result = _validate_env_int("TEST_MIN_VALUE", default=5, min_value=1, max_value=100)
 
         # Проверяем что значение скорректировано до минимума
         assert result == 1, f"Ожидалось минимальное значение 1, получено {result}"
@@ -861,9 +852,7 @@ class TestENVValidation:
         # Тестируем _validate_env_int с максимальным значением
         os.environ["TEST_MAX_VALUE"] = "1000"  # Выше максимума 100
 
-        result = _validate_env_int(
-            "TEST_MAX_VALUE", default=5, min_value=1, max_value=100
-        )
+        result = _validate_env_int("TEST_MAX_VALUE", default=5, min_value=1, max_value=100)
 
         # Проверяем что значение скорректировано до максимума
         assert result == 100, f"Ожидалось максимальное значение 100, получено {result}"
@@ -904,9 +893,7 @@ class TestENVValidation:
 
         # Проверяем что _validate_env_int выбрасывает ValueError
         with pytest.raises(ValueError, match="invalid literal for int"):
-            _validate_env_int(
-                "TEST_INVALID_VALUE", default=5, min_value=1, max_value=100
-            )
+            _validate_env_int("TEST_INVALID_VALUE", default=5, min_value=1, max_value=100)
 
         # Тестируем _validate_pool_env_int с некорректным значением
         # Эта функция возвращает значение по умолчанию (совместимость)
@@ -992,9 +979,7 @@ class TestIntegrationFixes:
         os.environ["PARSER_ORPHANED_TEMP_FILE_AGE"] = "120"
 
         # Создаём таймер
-        timer = _TempFileTimer(
-            temp_dir=tmp_path, interval=30, max_files=500, orphan_age=120
-        )
+        timer = _TempFileTimer(temp_dir=tmp_path, interval=30, max_files=500, orphan_age=120)
 
         # Проверяем что таймер создан с корректными параметрами
         assert timer._interval == 30

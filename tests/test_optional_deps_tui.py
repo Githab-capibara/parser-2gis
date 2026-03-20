@@ -28,7 +28,7 @@ def test_textual_widgets_importable():
     """Проверяет что основные виджеты textual доступны."""
     try:
         from textual.app import App, ComposeResult
-        from textual.widgets import Button, Label, Header, Footer, Input, Static
         from textual.containers import Container, VerticalScroll
+        from textual.widgets import Button, Footer, Header, Input, Label, Static
     except ImportError as e:
         pytest.fail(f"Не удалось импортировать виджет textual: {e}")

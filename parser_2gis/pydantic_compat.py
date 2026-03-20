@@ -67,9 +67,7 @@ def model_validate_json(json_str: str) -> pydantic.BaseModel:
         return pydantic.BaseModel.parse_raw(json_str)
 
 
-def model_validate_json_class(
-    cls: type[pydantic.BaseModel], json_str: str
-) -> pydantic.BaseModel:
+def model_validate_json_class(cls: type[pydantic.BaseModel], json_str: str) -> pydantic.BaseModel:
     """
     Создаёт модель из JSON строки для указанного класса.
 

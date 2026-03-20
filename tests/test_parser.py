@@ -11,6 +11,7 @@ import sys
 from tempfile import TemporaryDirectory
 
 import pytest
+
 from parser_2gis import main as parser_main
 
 

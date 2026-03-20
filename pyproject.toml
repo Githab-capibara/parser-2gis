@@ -43,22 +43,6 @@ skip-magic-trailing-comma = false
 profile = "black"
 # Максимальная длина строки
 line_length = 100
-# Длина отступа
-indent = 4
-# Сортировка импортов по типу
-force_sort_within_sections = true
-# Группировка импортов
-force_grid_wrap = 0
-# Использовать скобки для длинных импортов
-multi_line_output = 3
-# Включаем скобки для импортов
-include_trailing_comma = true
-# Длина строки для обёртывания
-lines_after_imports = 2
-# Разделитель импортов первого лица
-known_first_party = ["parser_2gis", "tests"]
-# Секции импортов
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 # Автоматическое определение стандартной библиотеки
 known_standard_library = [
     "abc",

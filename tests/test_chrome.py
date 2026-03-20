@@ -8,6 +8,7 @@
 """
 
 import pathlib
+
 import pytest
 
 from parser_2gis.chrome import ChromeOptions, ChromeRemote

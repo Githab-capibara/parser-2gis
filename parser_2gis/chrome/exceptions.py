@@ -1,7 +1,9 @@
 import inspect
 
-from pychrome.exceptions import RuntimeException as _RuntimeException
-from pychrome.exceptions import UserAbortException as _UserAbortException
+from pychrome.exceptions import (
+    RuntimeException as _RuntimeException,
+    UserAbortException as _UserAbortException,
+)
 
 
 class ChromeException(Exception):

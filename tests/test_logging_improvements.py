@@ -171,9 +171,7 @@ class TestLoggingContext:
         category = "Кафе"
         url = "https://2gis.ru/moscow/search/Кафе"
 
-        logger.info(
-            "Парсинг города %s, категория %s, URL: %s", city_name, category, url
-        )
+        logger.info("Парсинг города %s, категория %s, URL: %s", city_name, category, url)
 
         # Проверяем что все переменные в сообщении
         assert city_name in caplog.text
@@ -210,6 +208,7 @@ class TestLoggingContext:
         Проверка что исключения логируются с traceback.
         """
         import traceback
+
         from parser_2gis.logger import logger
 
         logger.setLevel(logging.ERROR)

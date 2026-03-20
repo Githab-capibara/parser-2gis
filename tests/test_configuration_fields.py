@@ -103,9 +103,7 @@ class TestParserOptionsFields:
 
         # Проверяем наличие основных полей
         assert hasattr(options, "max_records"), "Поле max_records отсутствует"
-        assert hasattr(options, "delay_between_clicks"), (
-            "Поле delay_between_clicks отсутствует"
-        )
+        assert hasattr(options, "delay_between_clicks"), "Поле delay_between_clicks отсутствует"
         assert hasattr(options, "max_retries"), "Поле max_retries отсутствует"
 
         # Проверяем возможность присваивания
@@ -142,9 +140,7 @@ class TestWriterOptionsFields:
         # Проверяем вложенные поля csv
         assert hasattr(options.csv, "add_rubrics"), "Поле csv.add_rubrics отсутствует"
         assert hasattr(options.csv, "add_comments"), "Поле csv.add_comments отсутствует"
-        assert hasattr(options.csv, "remove_duplicates"), (
-            "Поле csv.remove_duplicates отсутствует"
-        )
+        assert hasattr(options.csv, "remove_duplicates"), "Поле csv.remove_duplicates отсутствует"
 
         # Проверяем возможность присваивания
         options.encoding = "utf-8"
@@ -290,15 +286,9 @@ class TestTUIFieldCompatibility:
         max_retries_value = "3"
 
         # Эмуляция кода из settings.py
-        config.parser.max_records = (
-            int(max_records_value) if max_records_value.isdigit() else 1000
-        )
-        config.parser.delay_between_clicks = (
-            int(delay_value) if delay_value.isdigit() else 500
-        )
-        config.parser.max_retries = (
-            int(max_retries_value) if max_retries_value.isdigit() else 3
-        )
+        config.parser.max_records = int(max_records_value) if max_records_value.isdigit() else 1000
+        config.parser.delay_between_clicks = int(delay_value) if delay_value.isdigit() else 500
+        config.parser.max_retries = int(max_retries_value) if max_retries_value.isdigit() else 3
 
         # Проверяем значения
         assert config.parser.max_records == 1000

@@ -28,10 +28,10 @@ class TestTempFilesRegistryThreadSafety:
         Проверяет что нет race condition и все файлы добавлены.
         """
         from parser_2gis.parallel_parser import (
-            _temp_files_registry,
-            _temp_files_lock,
-            _register_temp_file,
             _cleanup_all_temp_files,
+            _register_temp_file,
+            _temp_files_lock,
+            _temp_files_registry,
         )
 
         # Очищаем реестр перед тестом
@@ -62,8 +62,7 @@ class TestTempFilesRegistryThreadSafety:
         # Проверяем что все файлы добавлены в реестр
         with _temp_files_lock:
             assert len(_temp_files_registry) == num_threads, (
-                f"Ожидалось {num_threads} файлов в реестре, "
-                f"но найдено {_temp_files_registry}"
+                f"Ожидалось {num_threads} файлов в реестре, " f"но найдено {_temp_files_registry}"
             )
 
             for f in temp_files:
@@ -81,8 +80,8 @@ class TestTempFilesRegistryThreadSafety:
         Проверяет что timeout работает (5 секунд) и нет deadlock.
         """
         from parser_2gis.parallel_parser import (
-            _temp_files_lock,
             _register_temp_file,
+            _temp_files_lock,
         )
 
         lock_acquired = threading.Event()
@@ -130,9 +129,7 @@ class TestTempFilesRegistryThreadSafety:
         holder_thread.join(timeout=5)
 
         # Проверяем что timeout сработал
-        assert (
-            timeout_occurred.is_set()
-        ), "Timeout не сработал - возможна проблема с блокировкой"
+        assert timeout_occurred.is_set(), "Timeout не сработал - возможна проблема с блокировкой"
 
     def test_cleanup_removes_all_files(self, tmp_path):
         """
@@ -143,10 +140,10 @@ class TestTempFilesRegistryThreadSafety:
         Проверяет что все файлы удалены и реестр очищен.
         """
         from parser_2gis.parallel_parser import (
-            _temp_files_registry,
-            _temp_files_lock,
-            _register_temp_file,
             _cleanup_all_temp_files,
+            _register_temp_file,
+            _temp_files_lock,
+            _temp_files_registry,
         )
 
         # Очищаем реестр перед тестом
@@ -225,11 +222,11 @@ class TestRegistryConcurrentModification:
         Проверяет что нет race condition и ошибок.
         """
         from parser_2gis.parallel_parser import (
-            _temp_files_registry,
-            _temp_files_lock,
-            _register_temp_file,
-            _unregister_temp_file,
             _cleanup_all_temp_files,
+            _register_temp_file,
+            _temp_files_lock,
+            _temp_files_registry,
+            _unregister_temp_file,
         )
 
         # Очищаем реестр перед тестом

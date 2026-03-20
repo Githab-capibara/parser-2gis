@@ -16,11 +16,11 @@ import tempfile
 import pytest
 
 from parser_2gis.writer import (
+    CSVOptions,
     CSVWriter,
     JSONWriter,
-    XLSXWriter,
-    CSVOptions,
     WriterOptions,
+    XLSXWriter,
     get_writer,
 )
 
@@ -82,9 +82,7 @@ class TestWriterOptions:
 
     def test_writer_options_custom(self):
         """Проверка кастомных значений."""
-        options = WriterOptions(
-            encoding="utf-8", verbose=False, csv=CSVOptions(add_rubrics=False)
-        )
+        options = WriterOptions(encoding="utf-8", verbose=False, csv=CSVOptions(add_rubrics=False))
         assert options.encoding == "utf-8"
         assert options.verbose is False
         assert options.csv.add_rubrics is False
@@ -152,8 +150,8 @@ class TestFileWriter:
 
     def test_file_writer_is_base_class(self):
         """Проверка, что FileWriter - базовый класс."""
-        from parser_2gis.writer.writers.file_writer import FileWriter
         from parser_2gis.writer.writers.csv_writer import CSVWriter
+        from parser_2gis.writer.writers.file_writer import FileWriter
 
         assert issubclass(CSVWriter, FileWriter)
         assert issubclass(JSONWriter, FileWriter)

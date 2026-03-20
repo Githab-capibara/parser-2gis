@@ -13,9 +13,10 @@
     Если textual не установлен, тесты будут пропущены.
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Добавляем проект в path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -157,8 +158,8 @@ class TestTUIScreens:
         """Проверка импорта экранов настроек."""
         from parser_2gis.tui_textual.screens import (
             BrowserSettingsScreen,
-            ParserSettingsScreen,
             OutputSettingsScreen,
+            ParserSettingsScreen,
         )
 
         assert BrowserSettingsScreen is not None
@@ -168,7 +169,7 @@ class TestTUIScreens:
     @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
     def test_other_screens_import(self):
         """Проверка импорта дополнительных экранов."""
-        from parser_2gis.tui_textual.screens import CacheViewerScreen, AboutScreen
+        from parser_2gis.tui_textual.screens import AboutScreen, CacheViewerScreen
 
         assert CacheViewerScreen is not None
         assert AboutScreen is not None

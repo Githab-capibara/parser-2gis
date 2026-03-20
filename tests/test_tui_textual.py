@@ -8,20 +8,20 @@ import pytest
 
 try:
     from textual.app import App
-    from textual.widgets import Button, Input, Checkbox, Static, Label
     from textual.containers import Container
+    from textual.widgets import Button, Checkbox, Input, Label, Static
 
-    from parser_2gis.tui_textual.app import TUIApp, Parser2GISTUI
+    from parser_2gis.tui_textual.app import Parser2GISTUI, TUIApp
     from parser_2gis.tui_textual.screens import (
-        MainMenuScreen,
-        CitySelectorScreen,
-        CategorySelectorScreen,
-        ParsingScreen,
-        BrowserSettingsScreen,
-        ParserSettingsScreen,
-        OutputSettingsScreen,
-        CacheViewerScreen,
         AboutScreen,
+        BrowserSettingsScreen,
+        CacheViewerScreen,
+        CategorySelectorScreen,
+        CitySelectorScreen,
+        MainMenuScreen,
+        OutputSettingsScreen,
+        ParserSettingsScreen,
+        ParsingScreen,
     )
 
     TEXTUAL_AVAILABLE = True

@@ -432,9 +432,7 @@ class TestImportantIssues:
             assert not result.is_valid
             # Проверяем что ошибка содержит упоминание localhost или internal
             error_lower = (result.error or "").lower()
-            assert any(
-                x in error_lower for x in ["localhost", "внутренних", "internal", "127"]
-            )
+            assert any(x in error_lower for x in ["localhost", "внутренних", "internal", "127"])
 
         def test_validate_url_checks_private_ranges(self):
             """Тест 10.3: validate_url проверяет private диапазоны."""
@@ -685,8 +683,9 @@ class TestIntegration:
 
     def test_no_syntax_errors(self):
         """Тест: Отсутствуют синтаксические ошибки."""
-        import py_compile
         import tempfile
+
+        import py_compile
 
         modules = [
             "parser_2gis.main",

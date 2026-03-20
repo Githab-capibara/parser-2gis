@@ -20,17 +20,19 @@ def create_test_csv_files(output_dir: Path):
 
     for filename, category in test_files:
         filepath = output_dir / filename
-        with open(filepath, 'w', encoding='utf-8-sig', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=['Наименование', 'Адрес', 'Телефон'])
+        with open(filepath, "w", encoding="utf-8-sig", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["Наименование", "Адрес", "Телефон"])
             writer.writeheader()
 
             # Пишем тестовые данные
             for i in range(3):
-                writer.writerow({
-                    'Наименование': f'{category} #{i + 1}',
-                    'Адрес': f'Тестовый адрес {i + 1}',
-                    'Телефон': f'+7900000000{i}'
-                })
+                writer.writerow(
+                    {
+                        "Наименование": f"{category} #{i + 1}",
+                        "Адрес": f"Тестовый адрес {i + 1}",
+                        "Телефон": f"+7900000000{i}",
+                    }
+                )
 
         print(f"✓ Создан файл: {filename} (категория: {category})")
 
@@ -40,7 +42,7 @@ def create_test_csv_files(output_dir: Path):
 def merge_csv_files(input_dir: Path, output_file: str):
     """Объединяет CSV файлы с добавлением колонки 'Категория'."""
     # Находим все CSV файлы
-    csv_files = list(input_dir.glob('*.csv'))
+    csv_files = list(input_dir.glob("*.csv"))
     print(f"\n📁 Найдено {len(csv_files)} CSV файлов")
 
     # Исключаем объединенный файл если он уже существует
@@ -49,17 +51,17 @@ def merge_csv_files(input_dir: Path, output_file: str):
     # Сортируем файлы по имени
     csv_files.sort(key=lambda x: x.name)
 
-    with open(output_file, 'w', encoding='utf-8-sig', newline='') as outfile:
+    with open(output_file, "w", encoding="utf-8-sig", newline="") as outfile:
         writer = None
         total_rows = 0
 
         for csv_file in csv_files:
             # Извлекаем название категории из имени файла
-            parts = csv_file.stem.split('_', 1)
+            parts = csv_file.stem.split("_", 1)
             category_name = parts[1] if len(parts) > 1 else parts[0]
             print(f"📄 Обработка: {csv_file.name} -> Категория: {category_name}")
 
-            with open(csv_file, 'r', encoding='utf-8-sig', newline='') as infile:
+            with open(csv_file, "r", encoding="utf-8-sig", newline="") as infile:
                 reader = csv.DictReader(infile)
 
                 if not reader.fieldnames:
@@ -67,8 +69,8 @@ def merge_csv_files(input_dir: Path, output_file: str):
 
                 # Добавляем колонку "Категория" если её нет
                 fieldnames = list(reader.fieldnames)
-                if 'Категория' not in fieldnames:
-                    fieldnames.insert(0, 'Категория')
+                if "Категория" not in fieldnames:
+                    fieldnames.insert(0, "Категория")
 
                 # Создаем writer если ещё не создан
                 if writer is None:
@@ -77,8 +79,8 @@ def merge_csv_files(input_dir: Path, output_file: str):
 
                 # Записываем строки с добавлением категории
                 for row in reader:
-                    if 'Категория' not in row:
-                        row['Категория'] = category_name
+                    if "Категория" not in row:
+                        row["Категория"] = category_name
                     writer.writerow(row)
                     total_rows += 1
 
@@ -92,7 +94,7 @@ def verify_results(input_dir: Path, output_file: str):
     print("=" * 60)
 
     # 1. Проверяем что исходные файлы остались
-    csv_files = list(input_dir.glob('*.csv'))
+    csv_files = list(input_dir.glob("*.csv"))
     original_files = [f for f in csv_files if f.name != Path(output_file).name]
 
     print(f"\n✅ Исходные файлы сохранены: {len(original_files)} шт.")
@@ -105,7 +107,7 @@ def verify_results(input_dir: Path, output_file: str):
         print(f"\n✅ Объединенный файл создан: {merged_file.name}")
 
         # Читаем и показываем первые несколько строк
-        with open(merged_file, 'r', encoding='utf-8-sig', newline='') as f:
+        with open(merged_file, "r", encoding="utf-8-sig", newline="") as f:
             reader = csv.DictReader(f)
             rows = list(reader)
 
@@ -114,8 +116,10 @@ def verify_results(input_dir: Path, output_file: str):
 
             print("\n   Пример данных:")
             for i, row in enumerate(rows[:5], 1):
-                print(f"   {i}. Категория: {row.get('Категория', 'N/A')}, "
-                      f"Наименование: {row.get('Наименование', 'N/A')}")
+                print(
+                    f"   {i}. Категория: {row.get('Категория', 'N/A')}, "
+                    f"Наименование: {row.get('Наименование', 'N/A')}"
+                )
     else:
         print(f"\n❌ Объединенный файл НЕ найден: {merged_file.name}")
 
@@ -135,7 +139,7 @@ def main():
 
     with TemporaryDirectory() as temp_dir:
         output_dir = Path(temp_dir)
-        merged_file = output_dir / 'merged_result.csv'
+        merged_file = output_dir / "merged_result.csv"
 
         # 1. Создаем тестовые CSV файлы
         print("\n1️⃣ Создание тестовых CSV файлов...")
@@ -158,5 +162,5 @@ def main():
         print("\n✅ ВСЕ ТРЕБОВАНИЯ ВЫПОЛНЕНЫ!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -15,9 +15,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Импортируем напрямую без использования parser_2gis.__init__
 from parser_2gis.data.categories_93 import (  # noqa: E402
     CATEGORIES_93,
+    generate_urls_for_city,
     get_categories_list,
     get_category_by_name,
-    generate_urls_for_city,
 )
 
 
@@ -37,9 +37,7 @@ class TestCategories93:
             assert required_keys.issubset(
                 cat.keys()
             ), f"Категория {i} должна иметь ключи {required_keys}"
-            assert (
-                "name" in cat and len(cat["name"]) > 0
-            ), f"Категория {i} должна иметь название"
+            assert "name" in cat and len(cat["name"]) > 0, f"Категория {i} должна иметь название"
             assert (
                 "query" in cat and len(cat["query"]) > 0
             ), f"Категория {i} должна иметь поисковый запрос"

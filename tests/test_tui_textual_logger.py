@@ -10,7 +10,7 @@ import pytest
 try:
     from textual.app import App
 
-    from parser_2gis.tui_textual.app import TUIApp, Parser2GISTUI
+    from parser_2gis.tui_textual.app import Parser2GISTUI, TUIApp
 
     TEXTUAL_AVAILABLE = True
 except ImportError:

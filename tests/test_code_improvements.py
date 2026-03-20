@@ -7,16 +7,17 @@
 - Корректность конфигурации и валидации
 """
 
-import pytest
-import threading
 import tempfile
+import threading
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from concurrent.futures import ThreadPoolExecutor
 
+from parser_2gis.common import unwrap_dot_dict, wait_until_finished
 from parser_2gis.config import Configuration, ParserOptions, WriterOptions
 from parser_2gis.parallel_parser import ParallelCityParser
-from parser_2gis.common import wait_until_finished, unwrap_dot_dict
 
 
 class TestConfigurationRobustness:
@@ -223,9 +224,7 @@ class TestBoundaryConditions:
         """Проверка декоратора wait_until_finished с таймаутом."""
         call_count = 0
 
-        @wait_until_finished(
-            timeout=0.5, finished=lambda x: False, throw_exception=False
-        )
+        @wait_until_finished(timeout=0.5, finished=lambda x: False, throw_exception=False)
         def slow_func():
             nonlocal call_count
             call_count += 1

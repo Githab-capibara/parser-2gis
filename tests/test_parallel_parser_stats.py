@@ -76,12 +76,10 @@ class TestParallelParserStatsThreadSafety:
 
         # Проверяем что статистика корректна
         assert parser._stats["success"] == expected_total, (
-            f"Ожидалось {expected_total} успешных операций, "
-            f"получено {parser._stats['success']}"
+            f"Ожидалось {expected_total} успешных операций, " f"получено {parser._stats['success']}"
         )
         assert parser._stats["total"] == expected_total, (
-            f"Ожидалось {expected_total} всего операций, "
-            f"получено {parser._stats['total']}"
+            f"Ожидалось {expected_total} всего операций, " f"получено {parser._stats['total']}"
         )
 
     def test_stats_accuracy_after_multiple_operations(self, tmp_path: Any) -> None:
@@ -156,11 +154,7 @@ class TestParallelParserStatsThreadSafety:
         assert parser._stats["total"] == expected_total
 
         # Проверяем что сумма отдельных счетчиков равна total
-        sum_parts = (
-            parser._stats["success"]
-            + parser._stats["failed"]
-            + parser._stats["skipped"]
-        )
+        sum_parts = parser._stats["success"] + parser._stats["failed"] + parser._stats["skipped"]
         assert (
             sum_parts == parser._stats["total"]
         ), f"Сумма частей ({sum_parts}) не равна total ({parser._stats['total']})"
@@ -303,9 +297,7 @@ class TestStatsInitialization:
         assert parser._lock is not None
 
         # Проверяем что это Lock или RLock (потокобезопасная блокировка)
-        assert isinstance(
-            parser._lock, (type(threading.Lock()), type(threading.RLock()))
-        )
+        assert isinstance(parser._lock, (type(threading.Lock()), type(threading.RLock())))
 
 
 # Запуск тестов через pytest

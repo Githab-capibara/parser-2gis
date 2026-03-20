@@ -9,27 +9,28 @@
 Всего тестов: 6 (по 3 на каждую проблему)
 """
 
-import pytest
-import sys
+import csv
 import os
+import sys
 import tempfile
 import threading
 import time
-import csv
 from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import MagicMock, mock_open, patch
+
+import pytest
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from parser_2gis.parallel_parser import (
-    _register_temp_file,
-    _unregister_temp_file,
-    _cleanup_all_temp_files,
-    _temp_files_registry,
-    _temp_files_lock,
     MAX_TEMP_FILES,
+    _cleanup_all_temp_files,
+    _register_temp_file,
+    _temp_files_lock,
+    _temp_files_registry,
+    _unregister_temp_file,
 )
 
 # =============================================================================
@@ -108,9 +109,7 @@ class TestRaceConditionTempFiles:
 
             # Проверяем что файлы удалены
             for temp_path in temp_files:
-                assert (
-                    not temp_path.exists()
-                ), f"Временный файл {temp_path} должен быть удалён"
+                assert not temp_path.exists(), f"Временный файл {temp_path} должен быть удалён"
 
         finally:
             # Гарантированная очистка
@@ -284,9 +283,7 @@ class TestCSVFileDescriptorLeak:
             file_descriptors_after = self._count_open_fds()
 
             # Проверяем что все строки прочитаны
-            assert (
-                rows_read == 100
-            ), f"Должно быть прочитано 100 строк, прочитано {rows_read}"
+            assert rows_read == 100, f"Должно быть прочитано 100 строк, прочитано {rows_read}"
 
             # Проверяем что файловые дескрипторы освобождены
             assert file_descriptors_after <= file_descriptors_before + 1, (
@@ -309,9 +306,7 @@ class TestCSVFileDescriptorLeak:
         temp_files = []
         try:
             for i in range(10):
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".csv", delete=False
-                ) as tmp:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
                     writer = csv.writer(tmp)
                     writer.writerow(["col1", "col2", "col3"])
                     for j in range(50):
@@ -333,9 +328,7 @@ class TestCSVFileDescriptorLeak:
                     with open(temp_path, "r", encoding="utf-8-sig") as f:
                         reader = csv.DictReader(f)
                         rows = list(reader)
-                        assert (
-                            len(rows) == 50
-                        ), f"Должно быть 50 строк, прочитано {len(rows)}"
+                        assert len(rows) == 50, f"Должно быть 50 строк, прочитано {len(rows)}"
 
             # Измеряем количество открытых дескрипторов после
             fds_after = self._count_open_fds()
