@@ -17,12 +17,12 @@ import re
 import socket
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 import pychrome
 import requests  # type: ignore[import-untyped]
-from concurrent.futures import ThreadPoolExecutor
 from ratelimit import limits, sleep_and_retry  # type: ignore[import-untyped]
 from requests.exceptions import RequestException  # type: ignore[import-untyped]
 from websocket import WebSocketException, WebSocketTimeoutException
@@ -30,13 +30,13 @@ from websocket import WebSocketException, WebSocketTimeoutException
 from ..common import wait_until_finished
 from ..logger.logger import logger as app_logger
 from .browser import ChromeBrowser
-from .constants import CHROME_STARTUP_DELAY  # L4: магические числа вынесены в константы
-from .constants import MAX_JS_CODE_LENGTH  # L4: магические числа вынесены в константы
-from .constants import MAX_RESPONSE_SIZE  # L9: лимит размера загружаемых файлов
-from .constants import MAX_TOTAL_JS_SIZE  # L4: магические числа вынесены в константы
 from .constants import (  # L6: rate limiting для внешних запросов
+    CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
     EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
+    MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
+    MAX_RESPONSE_SIZE,  # L9: лимит размера загружаемых файлов
+    MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
 )
 from .dom import DOMNode
 from .exceptions import ChromeException
@@ -731,42 +731,53 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         - Проверка типа данных
         - Таблица проверок безопасности (10 функций)
         - Проверка на опасные паттерны из _DANGEROUS_JS_PATTERNS
+        - Нормализация Unicode (NFKC) для предотвращения обходов через Unicode эскейпы
     """
+    # ИСПРАВЛЕНИЕ 5: Нормализуем Unicode для предотвращения обходов через Unicode эскейпы
+    import unicodedata
+
+    normalized_code = unicodedata.normalize("NFKC", code)
+
     # Проверка на None
-    if code is None:
+    if normalized_code is None:
         return False, "JavaScript код не может быть None"
 
     # Проверка типа
-    if not isinstance(code, str):
-        return (False, f"JavaScript код должен быть строкой, получен {type(code).__name__}")
+    if not isinstance(normalized_code, str):
+        return (
+            False,
+            f"JavaScript код должен быть строкой, получен {type(normalized_code).__name__}",
+        )
 
     # Проверка на пустую строку
-    if not code.strip():
+    if not normalized_code.strip():
         return False, "JavaScript код не может быть пустым"
 
     # Проверка максимальной длины
-    is_length_valid, length_error = _check_js_length(code, max_length)
+    is_length_valid, length_error = _check_js_length(normalized_code, max_length)
     if not is_length_valid:
         return False, length_error or ""
 
     # Выполняем все проверки безопасности из таблицы
     for check_func, error_prefix in _JS_SECURITY_CHECKS:
-        is_valid, error = check_func(code)
+        is_valid, error = check_func(normalized_code)
         if not is_valid:
             return False, error or error_prefix
 
     # Проверка на опасные паттерны с использованием скомпилированных regex
     for pattern, description in _DANGEROUS_JS_PATTERNS:
-        if pattern.search(code):
+        if pattern.search(normalized_code):
             return False, f"Обнаружен опасный паттерн в JavaScript коде: {description}"
 
     # Проверяем на попытки использования setTimeout/setInterval с функцией
-    if re.search(r"setTimeout\s*\(\s*function\s*\(", code, re.IGNORECASE):
+    if re.search(r"setTimeout\s*\(\s*function\s*\(", normalized_code, re.IGNORECASE):
         # Это допустимо, но логируем для аудита
         app_logger.debug("Обнаружен setTimeout с function - допустимо")
 
     # Проверка на self-executing функции с обфускацией
-    if re.search(r"\(function\s*\([^)]*\)\s*\{[^}]*\}\s*\)\.call\s*\(", code, re.IGNORECASE):
+    if re.search(
+        r"\(function\s*\([^)]*\)\s*\{[^}]*\}\s*\)\.call\s*\(", normalized_code, re.IGNORECASE
+    ):
         app_logger.debug("Обнаружена self-executing функция с .call() - допустимо")
 
     return True, ""

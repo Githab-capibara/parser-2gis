@@ -22,10 +22,10 @@ import threading
 import time
 import uuid
 import weakref
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
-
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .logger import log_parser_finish, logger, print_progress
@@ -335,38 +335,44 @@ class _TempFileTimer:
         # Устанавливаем событие остановки
         self._stop_event.set()
 
-        # ИСПРАВЛЕНИЕ 7: Используем try/finally для гарантии освобождения блокировки
+        # ИСПРАВЛЕНИЕ 3: Сохраняем ссылку на timer перед отменой для предотвращения гонки
+        # Используем try/finally для гарантии освобождения блокировки
         # Добавлен timeout к acquire() для предотвращения deadlock
         lock_acquired = False
+        timer_to_cancel: Optional[threading.Timer] = None
         try:
             # pylint: disable=consider-using-with
             lock_acquired = self._lock.acquire(timeout=5.0)
             if not lock_acquired:
                 logger.warning(
                     "Не удалось получить блокировку в stop() (таймаут 5 сек). "
-                    "Возможна конкуренция за ресурсы."
+                    "Возможна конкуренция за ресурсами."
                 )
                 return
 
             self._is_running = False
 
+            # Сохраняем ссылку на timer перед тем как обнулить
             if self._timer is not None:
-                try:
-                    self._timer.cancel()
-                except Exception as cancel_error:
-                    logger.debug("Ошибка при отмене таймера: %s", cancel_error)
-                finally:
-                    self._timer = None
+                timer_to_cancel = self._timer
+                self._timer = None
         finally:
             # Гарантированно освобождаем блокировку
             if lock_acquired:
                 self._lock.release()
 
+        # Отменяем timer вне блокировки для предотвращения deadlock
+        if timer_to_cancel is not None:
+            try:
+                timer_to_cancel.cancel()
+            except Exception as cancel_error:
+                logger.debug("Ошибка при отмене таймера: %s", cancel_error)
+
         # Ожидаем завершения таймера с таймаутом
-        if self._timer is not None:
+        if timer_to_cancel is not None:
             try:
                 # Ждём завершения таймера не более 2 интервалов
-                self._timer.join(timeout=self._interval * 2)
+                timer_to_cancel.join(timeout=self._interval * 2)
             except Exception as join_error:
                 logger.debug("Ошибка при ожидании таймера: %s", join_error)
 
@@ -412,7 +418,7 @@ MERGE_BATCH_SIZE_LOCAL: int = MERGE_BATCH_SIZE
 # - 10 попыток - защита от крайне редких случаев генерации дубликатов
 # - Достаточно для защиты от бесконечного цикла при сбоях ФС
 # - Баланс между надёжностью и производительностью
-MAX_UNIQUE_NAME_ATTEMPTS: int = 3
+MAX_UNIQUE_NAME_ATTEMPTS: int = 10
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ БЛОКИРОВОК И ЗАЩИТЫ ОТ CONCURRENT OPERATIONS (ОБОСНОВАНИЕ)

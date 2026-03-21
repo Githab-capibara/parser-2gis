@@ -6,14 +6,13 @@
 - Добавлен logger для предупреждений о переполнении счётчиков
 """
 
+import html as html_module
 import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
-
-import html as html_module
 
 # Получаем логгер модуля
 logger = logging.getLogger(__name__)
@@ -141,8 +140,14 @@ class ParserStatistics:
         if self.total_records == 0:
             return 0.0
         # Защита от деления на ноль и отрицательных значений
+        # ИСПРАВЛЕНИЕ 9: Добавлена проверка корректности данных с warning
         if self.successful_records < 0 or self.successful_records > self.total_records:
-            return 0.0
+            logger.warning(
+                "Некорректные данные: successful=%d, total=%d. Возвращаем 100%%",
+                self.successful_records,
+                self.total_records,
+            )
+            return 100.0
         return (self.successful_records / self.total_records) * 100
 
     @property

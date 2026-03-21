@@ -180,8 +180,6 @@ def clear_url_cache() -> None:
 def validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str) -> int:
     """Валидирует положительное целое число в заданном диапазоне.
 
-    ЛИМИТЫ ОТКЛЮЧЕНЫ - если max_val = float('inf'), проверка максимума отключена.
-
     Args:
         value: Значение для валидации.
         min_val: Минимально допустимое значение (включительно).
@@ -202,16 +200,13 @@ def validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str)
     """
     if value < min_val:
         raise ValueError(f"{arg_name} должен быть не менее {min_val} (получено {value})")
-    # ЛИМИТЫ ОТКЛЮЧЕНЫ - проверка максимума только если он не inf
-    if max_val != float("inf") and value > max_val:
+    if value > max_val:
         raise ValueError(f"{arg_name} должен быть не более {max_val} (получено {value})")
     return value
 
 
 def validate_positive_float(value: float, min_val: float, max_val: float, arg_name: str) -> float:
     """Валидирует положительное число с плавающей точкой в заданном диапазоне.
-
-    ЛИМИТЫ ОТКЛЮЧЕНЫ - если max_val = float('inf'), проверка максимума отключена.
 
     Args:
         value: Значение для валидации.
@@ -231,8 +226,7 @@ def validate_positive_float(value: float, min_val: float, max_val: float, arg_na
     """
     if value < min_val:
         raise ValueError(f"{arg_name} должен быть не менее {min_val} (получено {value})")
-    # ЛИМИТЫ ОТКЛЮЧЕНЫ - проверка максимума только если он не inf
-    if max_val != float("inf") and value > max_val:
+    if value > max_val:
         raise ValueError(f"{arg_name} должен быть не более {max_val} (получено {value})")
     return value
 

@@ -67,7 +67,8 @@ def _serialize_json(data: Dict[str, Any]) -> str:
     Сериализует данные в JSON формат.
     - Выбрасываем явные исключения с контекстом вместо app_logger.warning
     - Используем orjson если установлен (в 2-3 раза быстрее)
-    - Fallback на стандартный json если orjson недоступен
+    - Fallback на стандартный json если orjson недоступен или возникла TypeError
+    - ИСПРАВЛЕНИЕ 7: Добавлена обработка TypeError от orjson
 
     Args:
         data: Данные для сериализации.
@@ -83,21 +84,22 @@ def _serialize_json(data: Dict[str, Any]) -> str:
         # orjson возвращает bytes, декодируем в строку
         try:
             return orjson.dumps(data).decode("utf-8")
-        except orjson.EncodeError as encode_error:
-            raise TypeError(
-                f"Критическая ошибка сериализации orjson: {encode_error}. "
-                f"Тип данных: {type(data).__name__}, "
-                f"Содержимое: {repr(data)[:200]}..."
-            ) from encode_error
-    else:
-        # Стандартный json с оптимизированными параметрами
-        try:
-            return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-        except (TypeError, ValueError) as json_error:
-            raise TypeError(
-                f"Критическая ошибка сериализации json: {json_error}. "
-                f"Тип данных: {type(data).__name__}"
-            ) from json_error
+        except (orjson.EncodeError, TypeError) as orjson_error:
+            # ИСПРАВЛЕНИЕ 7: Fallback на стандартный json при TypeError от orjson
+            # TypeError может возникнуть при сериализации неподдерживаемых типов
+            app_logger.debug("orjson ошибка, fallback на json: %s", orjson_error)
+            # Продолжаем выполнение и используем стандартный json
+        except Exception as unexpected_error:
+            # Любая другая неожиданная ошибка - логируем и используем fallback
+            app_logger.debug("Неожиданная ошибка orjson, fallback на json: %s", unexpected_error)
+
+    # Стандартный json с оптимизированными параметрами
+    try:
+        return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    except (TypeError, ValueError) as json_error:
+        raise TypeError(
+            f"Критическая ошибка сериализации json: {json_error}. Тип данных: {type(data).__name__}"
+        ) from json_error
 
 
 def _deserialize_json(data: str) -> Dict[str, Any]:
@@ -583,7 +585,7 @@ class _ConnectionPool:
         - Reuse соединений вместо создания новых
         - Проверка возраста соединения и пересоздание при необходимости
         - queue.Queue для потокобезопасного управления
-        - Double-checked locking для предотвращения race condition
+        - Единая блокировка вместо double-checked locking для предотвращения race condition
 
         SQLite требует создания соединения в том же потоке, где оно будет использоваться.
         Метод использует thread-local хранилище для каждого потока.
@@ -592,38 +594,25 @@ class _ConnectionPool:
             SQLite соединение для текущего потока.
 
         Примечание:
-            Используется double-checked locking для предотвращения race condition:
-            1. Первая проверка без блокировки (быстрый путь)
-            2. Блокировка RLock
-            3. Вторая проверка с блокировкой (гарантия безопасности)
-            4. Создание/получение соединения
+            Используется единая блокировка (single-checked locking) для предотвращения race condition:
+            1. Блокировка RLock
+            2. Проверка и получение/создание соединения внутри блокировки
+            Это упрощает логику и устраняет гонки данных.
         """
-        # ПЕРВАЯ ПРОВЕРКА (быстрый путь без блокировки)
-        # Если соединение уже есть и не устарело, возвращаем его
-        if hasattr(self._local, "connection") and self._local.connection is not None:
-            # Проверяем возраст соединения без блокировки
-            conn_id = id(self._local.connection)
-            if conn_id in self._connection_age:
-                age = time.time() - self._connection_age[conn_id]
-                if age <= CONNECTION_MAX_AGE:
-                    return self._local.connection
-                # Соединение устарело, потребуется пересоздание
-                app_logger.debug(
-                    "Соединение устарело (возраст: %.0f сек), требуется пересоздание", age
-                )
-
-        # БЛОКИРОВКА для создания/получения соединения
+        # ЕДИНАЯ БЛОКИРОВКА для всех операций
         with self._lock:
-            # ВТОРАЯ ПРОВЕРКА (с блокировкой для безопасности)
-            # Проверяем ещё раз, так как другой поток мог создать соединение
+            # Проверяем есть ли соединение в thread-local
             if hasattr(self._local, "connection") and self._local.connection is not None:
+                # Проверяем возраст
                 conn_id = id(self._local.connection)
                 if conn_id in self._connection_age:
                     age = time.time() - self._connection_age[conn_id]
                     if age <= CONNECTION_MAX_AGE:
                         return self._local.connection
-                # Соединение устарело, закрываем его
-                if age > CONNECTION_MAX_AGE:
+                    # Соединение устарело - закрываем
+                    app_logger.debug(
+                        "Соединение устарело (возраст: %.0f сек), требуется пересоздание", age
+                    )
                     try:
                         self._local.connection.close()
                     except sqlite3.Error as db_error:
@@ -851,22 +840,22 @@ class _ConnectionPool:
         - Вызывает close_all() с обработкой исключений
         - Добавляет warning в лог если соединения не закрыты явно
         - В __del__ нельзя выбрасывать исключения - все ошибки логируются
-        - ИСПРАВЛЕНИЕ 2: Улучшена обработка ошибок для надёжной очистки
+        - ИСПРАВЛЕНИЕ 4: Обернут весь код в try/except Exception для максимальной защиты
 
         Важно:
             Не следует полагаться на этот метод для гарантированной очистки.
             Всегда вызывайте close_all() явно или используйте контекстный менеджер.
         """
-        # Проверяем есть ли незакрытые соединения
-        if hasattr(self, "_all_conns") and self._all_conns:
-            app_logger.warning(
-                "_ConnectionPool уничтожается сборщиком мусора с %d незакрытыми соединениями. "
-                "Всегда вызывайте close_all() явно или используйте контекстный менеджер.",
-                len(self._all_conns),
-            )
-
-        # Пытаемся закрыть соединения с максимальной защитой от исключений
         try:
+            # Проверяем есть ли незакрытые соединения
+            if hasattr(self, "_all_conns") and self._all_conns:
+                app_logger.warning(
+                    "_ConnectionPool уничтожается сборщиком мусора с %d незакрытыми соединениями. "
+                    "Всегда вызывайте close_all() явно или используйте контекстный менеджер.",
+                    len(self._all_conns),
+                )
+
+            # Пытаемся закрыть соединения с максимальной защитой от исключений
             if hasattr(self, "_all_conns") and self._all_conns:
                 # Используем RLock для защиты от гонок
                 lock_acquired = False
@@ -887,9 +876,11 @@ class _ConnectionPool:
             )
         except Exception as del_error:
             # В __del__ нельзя выбрасывать исключения - только логируем
+            # Ловим ВСЕ исключения для предотвращения сбоев при сборке мусора
             app_logger.error(
-                "Ошибка при закрытии соединений в __del__ (_ConnectionPool): %s",
+                "Ошибка при закрытии соединений в __del__ (_ConnectionPool): %s (тип: %s)",
                 del_error,
+                type(del_error).__name__,
                 exc_info=True,
             )
 
@@ -1553,6 +1544,7 @@ class CacheManager:
         - В __del__ нельзя выбрасывать исключения - все ошибки логируются
         - Не следует полагаться на этот метод для гарантированной очистки
         - Всегда вызывайте close() явно или используйте контекстный менеджер
+        - ИСПРАВЛЕНИЕ 4: Обернут весь код в try/except Exception для максимальной защиты
 
         Пример правильного использования:
             with CacheManager(...) as cache:
@@ -1566,10 +1558,20 @@ class CacheManager:
         """
         try:
             self.close()
-        except (sqlite3.Error, OSError, MemoryError, RuntimeError) as e:
-            # Логирование ошибки вместо игнорирования
-            # В __del__ нельзя выбрасывать исключения
-            app_logger.error("Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True)
+        except MemoryError:
+            # Критическая ошибка - нехватка памяти
+            app_logger.critical(
+                "Нехватка памяти при закрытии CacheManager в __del__", exc_info=True
+            )
+        except Exception as e:
+            # В __del__ нельзя выбрасывать исключения - только логируем
+            # Ловим ВСЕ исключения для предотвращения сбоев при сборке мусора
+            app_logger.error(
+                "Ошибка при закрытии CacheManager в __del__: %s (тип: %s)",
+                e,
+                type(e).__name__,
+                exc_info=True,
+            )
 
     @staticmethod
     def _hash_url(url: str) -> str:
