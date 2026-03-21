@@ -406,7 +406,7 @@ class TUIApp(App):
             config.parser.max_retries = 3
             config.parser.retry_on_network_errors = True
 
-            max_workers = getattr(config.parser, "max_workers", 10)
+            max_workers = getattr(config.parallel, "max_workers", 10)
 
             parser = ParallelCityParser(
                 cities=cities,

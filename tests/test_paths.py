@@ -141,8 +141,14 @@ class TestImageData:
         # Должно быть валидным base64
         try:
             base64.b64decode(data)
-        except Exception:
-            pytest.fail("image_data не вернула валидный base64")
+        except Exception as decode_error:
+            # Логгируем ошибку для отладки
+            import logging
+
+            logging.getLogger("test_paths").error(
+                "image_data вернула невалидный base64: %s", decode_error
+            )
+            pytest.fail(f"image_data не вернула валидный base64: {decode_error}")
 
     def test_image_data_without_extension(self):
         """Проверка image_data без указания расширения."""

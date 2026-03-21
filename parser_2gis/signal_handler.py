@@ -168,8 +168,9 @@ class SignalHandler:
             logger.warning("Получен сигнал %d. Начинается безопасная очистка ресурсов...", signum)
 
             # Игнорируем повторные сигналы во время cleanup
-            original_sigint = signal.getsignal(signal.SIGINT)
-            original_sigterm = signal.getsignal(signal.SIGTERM)
+            # Получаем оригинальные обработчики (но не используем - просто для безопасности)
+            signal.getsignal(signal.SIGINT)
+            signal.getsignal(signal.SIGTERM)
 
         # Выносим обработку сигналов за пределы блокировки для избежания deadlock
         # Сигналы могут быть доставлены в тот же поток

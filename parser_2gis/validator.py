@@ -4,9 +4,9 @@
 Предоставляет функциональность для проверки и очистки данных
 перед записью в файлы для повышения качества выходных данных.
 
-ИСПРАВЛЕНИЕ 2: Этот модуль теперь импортирует функции из validation.py
-для устранения дублирования кода. DataValidator использует функции
-из validation.py как методы класса для обратной совместимости.
+ИСПРАВЛЕНИЕ 6: Этот модуль теперь использует функции из validation.py
+как единственный источник истины для валидации URL, email и телефона.
+DataValidator выступает как wrapper для обратной совместимости.
 
 Пример использования модуля:
     >>> from .validator import DataValidator, ValidationResult
@@ -26,13 +26,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlparse
-
-import unicodedata
 
 from .logger import logger
-
-# ИСПРАВЛЕНИЕ 2: Импортируем функции из validation.py для устранения дублирования
+from .validation import ValidationResult as BaseValidationResult
+from .validation import validate_email as _validate_email_from_validation
+from .validation import validate_phone as _validate_phone_from_validation
+from .validation import validate_url as _validate_url_from_validation
 
 
 @dataclass
@@ -70,6 +69,27 @@ class ValidationResult:
     errors: List[str]
 
 
+def _convert_base_result_to_local(base_result: BaseValidationResult) -> ValidationResult:
+    """
+    Конвертирует ValidationResult из validation.py в локальный формат.
+
+    Args:
+        base_result: Результат из validation.py.
+
+    Returns:
+        Локальный ValidationResult с полями is_valid, value, errors.
+
+    Примечание:
+        BaseValidationResult имеет поля: is_valid, value, error (одна ошибка)
+        Локальный ValidationResult имеет поля: is_valid, value, errors (список ошибок)
+    """
+    errors = []
+    if base_result.error:
+        errors.append(base_result.error)
+
+    return ValidationResult(is_valid=base_result.is_valid, value=base_result.value, errors=errors)
+
+
 class DataValidator:
     """Валидатор и очиститель данных.
 
@@ -97,6 +117,11 @@ class DataValidator:
         >>> url_result = validator.validate_url('https://example.com')
         >>> print(url_result.is_valid)
         True
+
+    Примечание:
+        Для валидации URL, email и телефона используются функции из
+        validation.py как единственный источник истины. Это устраняет
+        дублирование кода и обеспечивает консистентность валидации.
     """
 
     # Константы для валидации телефонных номеров
@@ -117,9 +142,8 @@ class DataValidator:
     def validate_phone(self, phone: str) -> ValidationResult:
         """Валидация и форматирование телефонного номера.
 
-        Проверяет корректность телефонного номера и форматирует его
-        в единый формат: '8 (XXX) XXX-XX-XX' для российских номеров
-        или международный формат для других стран.
+        Использует функцию validate_phone из validation.py как единственный
+        источник истины для валидации телефонов.
 
         Поддерживает номера с добавочными (extension):
         - Форматы: "доб. 1234", "ext. 1234", "ext 1234", "доб.1234"
@@ -140,138 +164,15 @@ class DataValidator:
             Российские номера должны содержать 11 цифр.
             Международные номера должны содержать 10-15 цифр.
         """
-
-        # Извлекаем extension (добавочный номер) перед обработкой
-        extension = None
-        # Паттерны должны содержать явное ключевое слово "доб" или "ext"
-        ext_patterns = [r"\s*(?:доб\.?\s*|ext\.?\s*)(\d+)"]  # доб. 1234, ext 1234, доб1234
-        for pattern in ext_patterns:
-            ext_match = re.search(pattern, phone, re.IGNORECASE)
-            if ext_match:
-                extension = ext_match.group(1)
-                # Удаляем extension из строки для основной валидации
-                phone = re.sub(pattern, "", phone, flags=re.IGNORECASE).strip()
-                break
-
-        # Нормализация Unicode (NFKC для совместимости цифр)
-        phone = unicodedata.normalize("NFKC", phone)
-
-        # Замена арабских/персидских цифр на латинские
-        # ٠١٢٣٤٥٦٧٨٩ -> 0123456789
-        arabic_to_latin = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
-        phone = phone.translate(arabic_to_latin)
-
-        # Проверяем на None и пустую строку
-        if not phone or not phone.strip():
-            return ValidationResult(False, None, ["Номер должен содержать цифры"])
-
-        # Удаляем все кроме цифр и +
-        cleaned = re.sub(r"[^\d+]", "", phone)
-        digits_only = re.sub(r"\D", "", cleaned)
-
-        if not digits_only:
-            return ValidationResult(False, None, ["Номер должен содержать цифры"])
-
-        # Обработка российских номеров (+7 или 8)
-        if cleaned.startswith("+8"):
-            return ValidationResult(
-                False, None, ["Некорректный международный префикс: +8 (должен быть +7 для России)"]
-            )
-
-        if cleaned.startswith("+7") or cleaned.startswith("8"):
-            # Конвертируем +7 в 8 для внутреннего представления
-            if cleaned.startswith("+7"):
-                cleaned = "8" + cleaned[2:]
-
-            if len(cleaned) != 11:
-                return ValidationResult(
-                    False,
-                    None,
-                    [f"Некорректная длина номера: {len(cleaned)} (ожидалось 11 для России)"],
-                )
-
-            return ValidationResult(
-                True, self._add_extension(self._format_phone(cleaned), extension), []
-            )
-
-        # Обработка международных номеров
-        if cleaned.startswith("+"):
-            international_digits = cleaned[1:]
-
-            min_len = self.INTERNATIONAL_PHONE_MIN_LENGTH
-            max_len = self.INTERNATIONAL_PHONE_MAX_LENGTH
-            if not (min_len <= len(international_digits) <= max_len):
-                return ValidationResult(
-                    False,
-                    None,
-                    [
-                        f"Некорректная длина международного номера: {len(international_digits)} "
-                        f"(ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH})"
-                    ],
-                )
-
-            return ValidationResult(
-                True, self._add_extension(f"+{international_digits}", extension), []
-            )
-
-        # Номер без префикса - пробуем определить
-        if len(digits_only) == 11:
-            if digits_only[0] == "8":
-                return ValidationResult(
-                    True, self._add_extension(self._format_phone(digits_only), extension), []
-                )
-            # Предполагаем российский номер без префикса
-            return ValidationResult(
-                True, self._add_extension(self._format_phone("8" + digits_only), extension), []
-            )
-
-        if (
-            self.INTERNATIONAL_PHONE_MIN_LENGTH
-            <= len(digits_only)
-            <= self.INTERNATIONAL_PHONE_MAX_LENGTH
-        ):
-            return ValidationResult(True, self._add_extension(f"+{digits_only}", extension), [])
-
-        return ValidationResult(
-            False,
-            None,
-            [
-                f"Некорректная длина номера: {len(digits_only)} "
-                f"(ожидалось {self.INTERNATIONAL_PHONE_MIN_LENGTH}-{self.INTERNATIONAL_PHONE_MAX_LENGTH} цифр)"
-            ],
-        )
-
-    def _format_phone(self, phone: str) -> str:
-        """Форматирование телефонного номера.
-
-        Форматирует номер из 11 цифр в формат '8 (XXX) XXX-XX-XX'.
-
-        Args:
-            phone: Телефонный номер (11 цифр)
-
-        Returns:
-            Отформатированный телефонный номер
-        """
-        return f"{phone[0]} ({phone[1:4]}) {phone[4:7]}-{phone[7:9]}-{phone[9:11]}"
-
-    def _add_extension(self, phone: str, extension: Optional[str]) -> str:
-        """Добавить extension к отформатированному номеру.
-
-        Args:
-            phone: Отформатированный телефонный номер
-            extension: Добавочный номер (или None)
-
-        Returns:
-            Номер с extension если есть, иначе просто номер
-        """
-        if extension:
-            return f"{phone} доб. {extension}"
-        return phone
+        # Используем функцию из validation.py
+        base_result = _validate_phone_from_validation(phone)
+        return _convert_base_result_to_local(base_result)
 
     def validate_email(self, email: str, check_mx: bool = False) -> ValidationResult:
         """Валидация email-адреса.
 
-        Проверяет корректность email-адреса по стандартному паттерну.
+        Использует функцию validate_email из validation.py как основной
+        источник валидации формата email.
 
         Args:
             email: Email-адрес для валидации.
@@ -286,6 +187,7 @@ class DataValidator:
             Проверка на пустую строку выполняется до обработки для оптимизации.
             Максимальная длина email: 254 символа (RFC 5321).
             Поддерживаются IDN домены (например: почта@пример.рф).
+            Проверка MX записей выполняется локально если check_mx=True.
         """
         # Быстрая проверка на None и пустую строку
         if not email or not email.strip():
@@ -300,13 +202,12 @@ class DataValidator:
                 False, None, ["Email превышает максимальную длину (254 символа)"]
             )
 
-        # Проверка наличия @ - быстрая предварительная проверка
-        if "@" not in email:
-            return ValidationResult(False, None, ["Email должен содержать символ @"])
+        # Используем функцию из validation.py для проверки формата
+        base_result = _validate_email_from_validation(email)
 
-        # Проверка формата email с улучшенным regex (поддержка IDN)
-        if not self.EMAIL_PATTERN.match(email):
-            return ValidationResult(False, None, ["Некорректный формат email"])
+        # Если базовая валидация не прошла - возвращаем ошибку
+        if not base_result.is_valid:
+            return _convert_base_result_to_local(base_result)
 
         # Опциональная проверка MX записей домена
         if check_mx:
@@ -316,52 +217,11 @@ class DataValidator:
 
         return ValidationResult(True, email, [])
 
-    def _check_mx_records(self, email: str) -> bool:
-        """
-        Проверяет наличие MX записей для домена email.
-
-        Args:
-            email: Email для проверки.
-
-        Returns:
-            True если MX записи существуют, False иначе.
-
-        Примечание:
-            Метод требует установленную библиотеку dnspython.
-            При отсутствии библиотеки возвращает False (проверка не проходит).
-            Это предотвращает ложную валидацию email без реальной проверки DNS.
-        """
-        try:
-            import dns.resolver
-        except ImportError:
-            # dnspython не установлен - возвращаем False для безопасности
-            # Это предотвращает валидацию email без реальной проверки MX записей
-            logger.debug("dnspython не установлен, проверка MX записей невозможна")
-            return False
-
-        try:
-            # Извлекаем домен из email
-            domain = email.split("@")[1]
-
-            # Пытаемся получить MX записи
-            answers = dns.resolver.resolve(domain, "MX")
-
-            # Проверяем, что есть хотя бы одна запись
-            return len(answers) > 0
-
-        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
-            # Домен не существует или нет MX записей
-            logger.debug("Домен %s не имеет MX записей", domain)
-            return False
-        except Exception as e:
-            # Любая другая ошибка - возвращаем False для безопасности
-            logger.debug("Ошибка при проверке MX записей для %s: %s", domain, e)
-            return False
-
     def validate_url(self, url: str) -> ValidationResult:
         """Валидация URL.
 
-        Проверяет корректность URL (http или https).
+        Использует функцию validate_url из validation.py как единственный
+        источник истины для валидации URL.
 
         Args:
             url: URL для валидации
@@ -371,28 +231,11 @@ class DataValidator:
 
         Примечание:
             URL должен начинаться с http:// или https://
+            validation.py также проверяет на localhost и private IP адреса
         """
-        url = url.strip()
-
-        if not url:
-            return ValidationResult(False, None, ["URL пустой"])
-
-        try:
-            parsed = urlparse(url)
-            if not parsed.scheme or not parsed.netloc:
-                return ValidationResult(False, None, ["Некорректный формат URL"])
-
-            # Проверяем что схема именно http или https
-            if parsed.scheme not in ("http", "https"):
-                error_msg = (
-                    f"Неподдерживаемая схема URL: {parsed.scheme} (требуется http или https)"
-                )
-                return ValidationResult(False, None, [error_msg])
-
-            return ValidationResult(True, url, [])
-        except (ValueError, TypeError) as e:
-            # Ловим только ожидаемые исключения парсинга URL
-            return ValidationResult(False, None, [str(e)])
+        # Используем функцию из validation.py
+        base_result = _validate_url_from_validation(url)
+        return _convert_base_result_to_local(base_result)
 
     def clean_text(self, text: str) -> str:
         """Очистка текста от лишних символов.
@@ -466,3 +309,49 @@ class DataValidator:
                 validated[field] = self.clean_text(value)
 
         return validated
+
+    # =========================================================================
+    # ПРИВАТНЫЕ МЕТОДЫ (СОХРАНЕНЫ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ)
+    # =========================================================================
+
+    def _check_mx_records(self, email: str) -> bool:
+        """
+        Проверяет наличие MX записей для домена email.
+
+        Args:
+            email: Email для проверки.
+
+        Returns:
+            True если MX записи существуют, False иначе.
+
+        Примечание:
+            Метод требует установленную библиотеку dnspython.
+            При отсутствии библиотеки возвращает False (проверка не проходит).
+            Это предотвращает ложную валидацию email без реальной проверки DNS.
+        """
+        try:
+            import dns.resolver
+        except ImportError:
+            # dnspython не установлен - возвращаем False для безопасности
+            # Это предотвращает валидацию email без реальной проверки MX записей
+            logger.debug("dnspython не установлен, проверка MX записей невозможна")
+            return False
+
+        try:
+            # Извлекаем домен из email
+            domain = email.split("@")[1]
+
+            # Пытаемся получить MX записи
+            answers = dns.resolver.resolve(domain, "MX")
+
+            # Проверяем, что есть хотя бы одна запись
+            return len(answers) > 0
+
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers):
+            # Домен не существует или нет MX записей
+            logger.debug("Домен %s не имеет MX записей", domain)
+            return False
+        except Exception as e:
+            # Любая другая ошибка - возвращаем False для безопасности
+            logger.debug("Ошибка при проверке MX записей для %s: %s", domain, e)
+            return False

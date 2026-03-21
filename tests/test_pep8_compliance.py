@@ -262,9 +262,14 @@ class TestPEP8ComplianceDetailed:
                         # Проверяем на пробелы в конце строки (перед newline)
                         if line.rstrip("\n\r") != line.rstrip():
                             violations.append(f"{py_file}:{line_num}: trailing whitespace")
-            except Exception:
+            except Exception as read_error:
+                # Логгируем ошибку чтения файла и пропускаем его
+                import logging
+
+                logging.getLogger("test_pep8_compliance").debug(
+                    "Не удалось прочитать файл %s: %s", py_file, read_error
+                )
                 # Пропускаем файлы которые не удалось прочитать
-                pass
 
         assert len(violations) == 0, "Обнаружены пробелы в конце строк:\n" + "\n".join(
             violations[:10]
@@ -324,8 +329,14 @@ class TestPEP8ComplianceDetailed:
                 if result.returncode != 0:
                     for line in result.stdout.splitlines():
                         violations.append(f"{py_file}: {line}")
-            except Exception:
-                pass
+            except Exception as flake8_error:
+                # Логгируем ошибку flake8 и пропускаем файл
+                import logging
+
+                logging.getLogger("test_pep8_compliance").debug(
+                    "Ошибка flake8 при проверке %s: %s", py_file, flake8_error
+                )
+                # Пропускаем файл
 
         assert len(violations) == 0, (
             "Обнаружены смешанные табуляции и пробелы:\n"

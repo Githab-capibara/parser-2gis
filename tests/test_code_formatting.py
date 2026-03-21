@@ -237,7 +237,13 @@ class TestCodeStyle:
         for py_file in parser_dir.rglob("*.py"):
             try:
                 content = py_file.read_text(encoding="utf-8")
-            except Exception:
+            except Exception as read_error:
+                # Логгируем ошибку чтения файла и пропускаем его
+                import logging
+
+                logging.getLogger("test_code_formatting").debug(
+                    "Не удалось прочитать файл %s: %s", py_file, read_error
+                )
                 continue
 
             for i, line in enumerate(content.split("\n"), 1):
@@ -266,7 +272,13 @@ class TestCodeStyle:
         for py_file in parser_dir.rglob("*.py"):
             try:
                 content = py_file.read_text(encoding="utf-8")
-            except Exception:
+            except Exception as read_error:
+                # Логгируем ошибку чтения файла и пропускаем его
+                import logging
+
+                logging.getLogger("test_code_formatting").debug(
+                    "Не удалось прочитать файл %s: %s", py_file, read_error
+                )
                 continue
 
             if "\t" in content:

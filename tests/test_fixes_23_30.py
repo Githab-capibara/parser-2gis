@@ -12,11 +12,11 @@
 - Исправление 30: Утечки ресурсов
 """
 
+import ast
 import re
 from pathlib import Path
 from typing import List, Tuple
 
-import ast
 import pytest
 
 # =============================================================================
@@ -184,8 +184,14 @@ class TestLineLength:
                             long_lines.append(
                                 (str(py_file.relative_to(parser_2gis_dir)), i, len(line), line[:60])
                             )
-            except Exception:
-                pass
+            except Exception as read_error:
+                # Логгируем ошибку чтения файла и пропускаем его
+                import logging
+
+                logging.getLogger("test_fixes_23_30").debug(
+                    "Не удалось прочитать файл %s: %s", py_file, read_error
+                )
+                # Пропускаем файл
 
         # Разрешаем до 70 длинных строк (для сложных случаев в документации, сообщениях об ошибках, f-strings)
         # Это число может уменьшаться по мере рефакторинга
@@ -262,8 +268,14 @@ class TestUnusedImports:
                     if not re.search(pattern, code_text):
                         unused_imports.append((str(py_file.name), imp))
 
-            except Exception:
-                pass
+            except Exception as analysis_error:
+                # Логгируем ошибку анализа и пропускаем файл
+                import logging
+
+                logging.getLogger("test_fixes_23_30").debug(
+                    "Ошибка анализа импортов в файле %s: %s", py_file, analysis_error
+                )
+                # Пропускаем файл
 
         # Разрешаем до 5 потенциально неиспользуемых импортов
         # (статический анализ не всегда точен)
@@ -316,8 +328,14 @@ class TestResourceLeaks:
                                             line.strip()[:60],
                                         )
                                     )
-            except Exception:
-                pass
+            except Exception as read_error:
+                # Логгируем ошибку чтения файла и пропускаем его
+                import logging
+
+                logging.getLogger("test_fixes_23_30").debug(
+                    "Не удалось прочитать файл %s: %s", py_file, read_error
+                )
+                # Пропускаем файл
 
         # Разрешаем до 10 исключений (специальные случаи где open() возвращается из функции или используется в try/finally)
         # Эти случаи документированы и безопасны

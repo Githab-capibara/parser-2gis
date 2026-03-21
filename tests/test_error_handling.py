@@ -462,7 +462,13 @@ class TestErrorHandlingIntegration:
                         try:
                             cleanup_resources()
                             errors_handled.append(True)
-                        except Exception:
+                        except Exception as cleanup_error:
+                            # Логгируем ошибку для отладки
+                            import logging
+
+                            logging.getLogger("test_error_handling").error(
+                                "cleanup_resources не обработал ошибку: %s", cleanup_error
+                            )
                             errors_handled.append(False)
 
                     # Проверяем что все вызовы прошли без исключений

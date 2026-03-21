@@ -333,11 +333,16 @@ def validate_list_length(value: list, min_length: int, max_length: int, field_na
 # =============================================================================
 
 # Скомпилированный regex паттерн для валидации email
+# Поддерживает IDN (Internationalized Domain Names) через Unicode символы
 _EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+# Паттерн для IDN email (с поддержкой Unicode)
+_IDN_EMAIL_PATTERN = re.compile(r"^[^@]+@[^@]+\.[^@]+$")
 
 
 def validate_email(email: str) -> ValidationResult:
     """Валидирует email адрес.
+
+    Поддерживает как стандартные email, так и IDN (Internationalized Domain Names).
 
     Args:
         email: Email для валидации.
@@ -349,14 +354,25 @@ def validate_email(email: str) -> ValidationResult:
         >>> result = validate_email("test@example.com")
         >>> print(result.is_valid)
         True
+        >>> result = validate_email("test@пример.рф")
+        >>> print(result.is_valid)
+        True
     """
     if not email:
         return ValidationResult(is_valid=False, error="Email не может быть пустым")
 
-    if not _EMAIL_PATTERN.match(email):
-        return ValidationResult(is_valid=False, error=f"Некорректный формат email: {email}")
+    # Сначала пробуем стандартный ASCII email
+    if _EMAIL_PATTERN.match(email):
+        return ValidationResult(is_valid=True, value=email, error=None)
 
-    return ValidationResult(is_valid=True, value=email, error=None)
+    # Если не подошло, пробуем IDN email (с Unicode символами)
+    if _IDN_EMAIL_PATTERN.match(email):
+        # Дополнительная проверка на наличие @ и домена
+        parts = email.split("@")
+        if len(parts) == 2 and len(parts[0]) > 0 and "." in parts[1]:
+            return ValidationResult(is_valid=True, value=email, error=None)
+
+    return ValidationResult(is_valid=False, error=f"Некорректный формат email: {email}")
 
 
 # =============================================================================

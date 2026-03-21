@@ -360,7 +360,13 @@ class TestCSVFileDescriptorLeak:
                     ["lsof", "-p", str(os.getpid())], capture_output=True, text=True, timeout=5
                 )
                 return len(result.stdout.strip().split("\n")) - 1  # Минус заголовок
-            except Exception:
+            except Exception as count_error:
+                # Логгируем ошибку подсчёта и возвращаем 0
+                import logging
+
+                logging.getLogger("test_file_handling").debug(
+                    "Не удалось подсчитать открытые файлы: %s", count_error
+                )
                 # Если ничего не работает, возвращаем 0
                 return 0
 

@@ -106,7 +106,13 @@ class TestImportCleanliness:
 
             try:
                 content = py_file.read_text(encoding="utf-8")
-            except Exception:
+            except Exception as read_error:
+                # Логгируем ошибку чтения файла и пропускаем его
+                import logging
+
+                logging.getLogger("test_no_unused_imports").debug(
+                    "Не удалось прочитать файл %s: %s", py_file, read_error
+                )
                 continue
 
             imports = []
@@ -156,7 +162,13 @@ class TestImportCleanliness:
 
             try:
                 content = py_file.read_text(encoding="utf-8")
-            except Exception:
+            except Exception as read_error:
+                # Логгируем ошибку чтения файла и пропускаем его
+                import logging
+
+                logging.getLogger("test_no_unused_imports").debug(
+                    "Не удалось прочитать файл %s: %s", py_file, read_error
+                )
                 continue
 
             for i, line in enumerate(content.split("\n"), 1):

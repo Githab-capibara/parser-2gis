@@ -27,11 +27,7 @@
 - Тест 3: Проверка регрессии (regression - старая проблема не вернулась)
 """
 
-import gc
-import html
-import io
 import json
-import mmap
 import os
 import re
 import signal
@@ -42,20 +38,18 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from parser_2gis.cache import MAX_DATA_DEPTH, _validate_cached_data, _validate_dict_data
+from parser_2gis.cache import MAX_DATA_DEPTH, _validate_cached_data
 from parser_2gis.chrome.browser import ChromeBrowser
 from parser_2gis.main import _validate_cli_argument, _validate_positive_int
 from parser_2gis.signal_handler import SignalHandler
 from parser_2gis.statistics import ParserStatistics, StatisticsExporter
-from parser_2gis.validation import validate_url
 from parser_2gis.validator import DataValidator
 from parser_2gis.writer.writers.csv_writer import mmap_file_context
 
@@ -696,7 +690,6 @@ class TestValidationDuplicationElimination:
         Проверяет что DataValidator использует функции из validation.py.
         """
         # Arrange
-        validator = DataValidator()
 
         # Act - проверяем импорты в модуле validator
         validator_module = sys.modules.get("parser_2gis.validator")
@@ -1115,7 +1108,7 @@ class TestParseArgumentsDecomposition:
         # Act & Assert
         for value, min_val, max_val, arg_name, should_pass in test_cases:
             try:
-                result = _validate_positive_int(value, min_val, max_val, arg_name)
+                _validate_positive_int(value, min_val, max_val, arg_name)
                 passed = True
             except ValueError:
                 passed = False

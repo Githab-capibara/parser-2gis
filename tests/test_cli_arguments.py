@@ -288,7 +288,7 @@ class TestRunShArguments:
             "--cities",
             "omsk",
             "--categories-mode",
-            "--parallel-workers",
+            "--parallel.max-workers",
             "10",
             "--chrome.headless",
             "yes",
@@ -309,7 +309,7 @@ class TestRunShArguments:
             # Проверяем, что все аргументы распарсены корректно
             assert args.cities == ["omsk"]
             assert args.categories_mode is True
-            assert args.parallel_workers == 10
+            assert getattr(args, "parallel.max_workers") == 10
             assert config.chrome.headless is True
             assert config.chrome.disable_images is True
             assert config.parser.stop_on_first_404 is True
@@ -325,7 +325,7 @@ class TestRunShArguments:
             "moscow",
             "spb",
             "--categories-mode",
-            "--parallel-workers",
+            "--parallel.max-workers",
             "5",
             "--parser.max-retries",
             "5",
@@ -340,7 +340,7 @@ class TestRunShArguments:
             args, config = parse_arguments()
 
             assert args.cities == ["moscow", "spb"]
-            assert args.parallel_workers == 5
+            assert getattr(args, "parallel.max_workers") == 5
             assert config.parser.max_retries == 5
             assert config.parser.retry_on_network_errors is True
             assert config.parser.retry_delay_base == 2

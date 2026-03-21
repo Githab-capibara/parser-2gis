@@ -168,7 +168,7 @@ class TestParallelWorkersValidation:
                 ):
                     args, config = parse_arguments()
 
-                assert args.parallel_workers == 10  # По умолчанию
+                assert getattr(args, "parallel.max_workers") == 10  # По умолчанию
             finally:
                 if cities_file.exists():
                     cities_file.unlink()
@@ -195,7 +195,7 @@ class TestParallelWorkersValidation:
                         "--cities",
                         "omsk",
                         "--categories-mode",
-                        "--parallel-workers",
+                        "--parallel.max-workers",
                         "5",
                         "-o",
                         "output/",
@@ -205,7 +205,7 @@ class TestParallelWorkersValidation:
                 ):
                     args, config = parse_arguments()
 
-                assert args.parallel_workers == 5
+                assert getattr(args, "parallel.max_workers") == 5
             finally:
                 if cities_file.exists():
                     cities_file.unlink()

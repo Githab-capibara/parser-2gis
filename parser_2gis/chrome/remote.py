@@ -714,7 +714,10 @@ class ChromeRemote:
                 if self._dev_url is None:
                     app_logger.error("dev_url не установлен при подключении")
                     return False
-                port = int(self._dev_url.split(":")[-1])
+                from urllib.parse import urlparse
+
+                parsed_url = urlparse(self._dev_url)
+                port = int(parsed_url.port)
 
                 # Проверка доступности порта перед подключением
                 if not _check_port_available(port, timeout=1.0):

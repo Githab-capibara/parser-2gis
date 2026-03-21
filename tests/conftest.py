@@ -102,8 +102,12 @@ def mock_executor() -> Generator[MagicMock, None, None]:
     # Гарантированная очистка ресурсов executor
     try:
         executor.shutdown(wait=True)
-    except Exception:
-        pass
+    except Exception as shutdown_error:
+        # Логгируем ошибку shutdown для отладки
+        import logging
+
+        logging.getLogger("conftest").debug("Ошибка при shutdown executor: %s", shutdown_error)
+        # Продолжаем выполнение - ошибка shutdown не критична для тестов
 
 
 @pytest.fixture

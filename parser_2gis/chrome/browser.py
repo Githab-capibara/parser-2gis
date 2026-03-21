@@ -508,6 +508,94 @@ class ChromeBrowser:
         """Закрывает браузер при выходе из контекста."""
         self.close()
 
+    def __del__(self) -> None:
+        """
+        Деструктор объекта ChromeBrowser.
+
+        Гарантирует закрытие процесса Chrome и очистку ресурсов при уничтожении объекта.
+        Используется как fallback на случай если close() не был вызван явно.
+
+        Важно:
+            - Не полагаться только на __del__ для закрытия ресурсов
+            - Всегда вызывать close() явно или использовать контекстный менеджер
+            - __del__ может не вызваться при циклических ссылках
+
+        Примечание:
+            - Обработаны все возможные исключения чтобы не прерывать сборку мусора
+            - Детальное логирование для отладки утечек ресурсов
+        """
+        try:
+            # Проверяем есть ли активный процесс
+            if hasattr(self, "_proc") and self._proc is not None:
+                process_pid = self._proc.pid
+                app_logger.warning(
+                    "ChromeBrowser.__del__: обнаружен активный процесс Chrome (PID: %d). "
+                    "Выполняется принудительное закрытие. "
+                    "Рекомендуется явно вызывать close() или использовать контекстный менеджер.",
+                    process_pid,
+                )
+
+                # Проверяем активен ли процесс
+                if self._proc.poll() is None:
+                    # Процесс ещё активен - пытаемся закрыть
+                    try:
+                        # Пробуем корректное завершение
+                        self._proc.terminate()
+                        try:
+                            self._proc.wait(timeout=3)
+                            app_logger.info(
+                                "ChromeBrowser.__del__: процесс %d завершён через terminate()",
+                                process_pid,
+                            )
+                        except subprocess.TimeoutExpired:
+                            # Таймаут - используем kill
+                            self._proc.kill()
+                            self._proc.wait(timeout=5)
+                            app_logger.info(
+                                "ChromeBrowser.__del__: процесс %d завершён через kill()",
+                                process_pid,
+                            )
+                    except (ProcessLookupError, PermissionError) as proc_error:
+                        # Процесс уже завершён или нет прав
+                        app_logger.debug(
+                            "ChromeBrowser.__del__: процесс %d уже завершён или недоступен: %s",
+                            process_pid,
+                            proc_error,
+                        )
+                    except Exception as close_error:
+                        app_logger.error(
+                            "ChromeBrowser.__del__: ошибка при закрытии процесса %d: %s",
+                            process_pid,
+                            close_error,
+                            exc_info=True,
+                        )
+                else:
+                    app_logger.debug(
+                        "ChromeBrowser.__del__: процесс %d уже завершён (poll=%s)",
+                        process_pid,
+                        self._proc.poll(),
+                    )
+
+            # Очистка профиля
+            if hasattr(self, "_profile_tempdir") and self._profile_tempdir is not None:
+                try:
+                    self._profile_tempdir.cleanup()
+                    app_logger.debug(
+                        "ChromeBrowser.__del__: профиль очищен через TemporaryDirectory"
+                    )
+                except Exception as cleanup_error:
+                    app_logger.error(
+                        "ChromeBrowser.__del__: ошибка при очистке профиля: %s",
+                        cleanup_error,
+                        exc_info=True,
+                    )
+
+        except Exception as del_error:
+            # Ловим все исключения чтобы не прерывать сборку мусора
+            app_logger.error(
+                "ChromeBrowser.__del__: непредвиденная ошибка: %s", del_error, exc_info=True
+            )
+
 
 # Константы для очистки профилей
 ORPHANED_PROFILE_MARKER = ".chrome_profile_marker"

@@ -15,9 +15,10 @@ import mmap
 import os
 import re
 import shutil
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
-
 import unicodedata
+from contextlib import contextmanager
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Union
+
 from pydantic import ValidationError
 
 from ...common import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, report_from_validation_error
@@ -220,6 +221,123 @@ def _close_file_with_mmap_support(
                 file_obj.close()
     except Exception as close_error:
         logger.warning("Ошибка при закрытии файла: %s", close_error)
+
+
+@contextmanager
+def mmap_file_context(
+    file_path: str, mode: str = "r", encoding: str = "utf-8"
+) -> Generator[Tuple[Union[io.TextIOWrapper, object], bool, Optional[object]], None, None]:
+    """
+    Контекстный менеджер для безопасной работы с файлами через mmap.
+
+    Гарантирует закрытие всех ресурсов (mmap, файловый дескриптор, TextIOWrapper)
+    даже при возникновении исключений.
+
+    Args:
+        file_path: Путь к файлу.
+        mode: Режим открытия файла ('r' для чтения, 'w' для записи).
+        encoding: Кодировка файла (только для текстового режима).
+
+    Yields:
+        Кортеж (file_object, is_mmap, underlying_fp):
+        - file_object: объект файла или TextIOWrapper обёрнутый mmap
+        - is_mmap: True если используется mmap
+        - underlying_fp: исходный файловый дескриптор (для закрытия)
+
+    Example:
+        >>> with mmap_file_context("large_file.csv") as (f, is_mmap, underlying_fp):
+        ...     content = f.read()
+        ... # Все ресурсы автоматически закрыты
+
+    Примечание:
+        - Для файлов >10MB используется mmap.mmap()
+        - Для файлов <=10MB используется обычная буферизация
+        - Все ресурсы закрываются в finally блоке
+        - При ошибке mmap используется fallback на обычную буферизацию
+    """
+    underlying_fp: Optional[object] = None
+    mmapped_file: Optional[mmap.mmap] = None  # type: ignore[mmap.mmap]
+    text_file: Optional[io.TextIOWrapper] = None
+    is_mmap_mode = False
+    fallback_file: Optional[object] = None
+
+    try:
+        # Получаем размер файла
+        file_size = os.path.getsize(file_path)
+        use_mmap = file_size > (10 * 1024 * 1024) and mode == "r"  # 10MB threshold
+
+        if use_mmap:
+            logger.info(
+                "Файл большой (%.2f MB > 10 MB), используется mmap для чтения",
+                file_size / (1024 * 1024),
+            )
+            # Открываем файл в бинарном режиме
+            underlying_fp = open(file_path, "rb")
+            # Создаём mmap объект
+            mmapped_file = mmap.mmap(underlying_fp.fileno(), 0, access=mmap.ACCESS_READ)  # type: ignore[mmap.mmap]
+            # Оборачиваем в TextIOWrapper для текстового чтения
+            text_file = io.TextIOWrapper(
+                mmapped_file,  # type: ignore[arg-type]
+                encoding=encoding,
+                errors="replace",
+            )
+            is_mmap_mode = True
+            yield text_file, True, underlying_fp
+        else:
+            logger.debug(
+                "Файл стандартного размера (%.2f MB <= 10 MB), используется обычная буферизация",
+                file_size / (1024 * 1024),
+            )
+            fallback_file = open(file_path, mode, encoding=encoding)
+            yield fallback_file, False, None
+
+    except OSError as mmap_error:
+        logger.warning(
+            "Не удалось открыть mmap для файла %s: %s. Используется обычная буферизация.",
+            file_path,
+            mmap_error,
+        )
+        # Fallback на обычную буферизацию
+        if underlying_fp is not None and hasattr(underlying_fp, "close"):
+            underlying_fp.close()
+        if mmapped_file is not None:
+            mmapped_file.close()
+        fallback_file = open(file_path, mode, encoding=encoding)
+        try:
+            yield fallback_file, False, None
+        finally:
+            if hasattr(fallback_file, "close"):
+                fallback_file.close()
+    except Exception as unexpected_error:
+        logger.error(
+            "Непредвиденная ошибка при открытии mmap для файла %s: %s. "
+            "Используется обычная буферизация.",
+            file_path,
+            unexpected_error,
+        )
+        # Fallback на обычную буферизацию
+        if underlying_fp is not None and hasattr(underlying_fp, "close"):
+            underlying_fp.close()
+        if mmapped_file is not None:
+            mmapped_file.close()
+        fallback_file = open(file_path, mode, encoding=encoding)
+        try:
+            yield fallback_file, False, None
+        finally:
+            if hasattr(fallback_file, "close"):
+                fallback_file.close()
+    finally:
+        # Закрываем все ресурсы если не было fallback
+        if is_mmap_mode:
+            if text_file is not None and hasattr(text_file, "close"):
+                text_file.close()
+            if mmapped_file is not None:
+                mmapped_file.close()
+            if underlying_fp is not None and hasattr(underlying_fp, "close"):
+                underlying_fp.close()
+        elif fallback_file is None and hasattr(text_file, "close"):
+            # Если не было fallback и text_file ещё открыт
+            text_file.close()
 
 
 def _calculate_optimal_buffer_size(
@@ -544,22 +662,12 @@ class CSVWriter(FileWriter):
                 )
                 use_mmap = False
 
-            if use_mmap:
-                # Используем mmap для больших файлов
-                f_csv, is_mmap = _open_file_with_mmap_support(
-                    self._file_path, "r", encoding="utf-8-sig"
-                )
-                # Сохраняем ссылку на underlying файловый дескриптор
-                underlying_fp = None  # Будет извлечён из f_csv если нужно
-            else:
-                # Используем обычную буферизацию
-                f_csv = self._open_file(
-                    self._file_path, "r", encoding="utf-8-sig", buffering=optimal_buffer
-                )
-                is_mmap = False
-                underlying_fp = None
-
-            try:
+            # Используем контекстный менеджер для безопасной работы с mmap
+            with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
+                f_csv,
+                is_mmap,
+                underlying_fp,
+            ):
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
 
                 # ИСПРАВЛЕНИЕ 9: Проверка reader.fieldnames на None/пустоту
@@ -597,12 +705,6 @@ class CSVWriter(FileWriter):
                     optimal_buffer,
                     use_mmap,
                 )
-            finally:
-                # Гарантированно закрываем файл
-                if is_mmap:
-                    _close_file_with_mmap_support(f_csv, is_mmap, underlying_fp)
-                else:
-                    f_csv.close()
 
         except Exception as e:
             logger.error("Ошибка при чтении CSV для анализа колонок: %s", e)
@@ -652,81 +754,73 @@ class CSVWriter(FileWriter):
                 use_mmap = False
 
             # Открываем файлы с mmap или обычной буферизацией
-            if use_mmap:
-                f_csv, is_mmap = _open_file_with_mmap_support(
-                    self._file_path, "r", encoding="utf-8-sig"
+            # Используем контекстный менеджер для безопасной работы с mmap
+            with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
+                f_csv,
+                is_mmap,
+                underlying_fp,
+            ):
+                f_tmp_csv = self._open_file(
+                    tmp_csv_name, "w", newline="", buffering=optimal_write_buffer
                 )
-                underlying_fp = None
-            else:
-                f_csv = self._open_file(self._file_path, "r", buffering=optimal_read_buffer)
-                is_mmap = False
-                underlying_fp = None
 
-            f_tmp_csv = self._open_file(
-                tmp_csv_name, "w", newline="", buffering=optimal_write_buffer
-            )
+                try:
+                    # ВАЖНО: Помечаем что временный файл создан
+                    temp_created = True
 
-            try:
-                # ВАЖНО: Помечаем что временный файл создан
-                temp_created = True
+                    csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
+                    csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
 
-                csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
-                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
+                    # ИСПРАВЛЕНИЕ 9: Проверка reader.fieldnames на None/пустоту
+                    # Это предотвращает ошибки при обработке пустых файлов
+                    if csv_reader.fieldnames is None:
+                        logger.warning(
+                            "Файл %s пуст или не имеет заголовков (fieldnames=None). Пропускаем обработку.",
+                            self._file_path,
+                        )
+                        return
 
-                # ИСПРАВЛЕНИЕ 9: Проверка reader.fieldnames на None/пустоту
-                # Это предотвращает ошибки при обработке пустых файлов
-                if csv_reader.fieldnames is None:
-                    logger.warning(
-                        "Файл %s пуст или не имеет заголовков (fieldnames=None). Пропускаем обработку.",
-                        self._file_path,
-                    )
-                    return
+                    if len(csv_reader.fieldnames) == 0:
+                        logger.warning(
+                            "Файл %s имеет пустой список заголовков. Пропускаем обработку.",
+                            self._file_path,
+                        )
+                        return
 
-                if len(csv_reader.fieldnames) == 0:
-                    logger.warning(
-                        "Файл %s имеет пустой список заголовков. Пропускаем обработку.",
-                        self._file_path,
-                    )
-                    return
+                    # Запись нового заголовка
+                    csv_writer.writerow(new_data_mapping)
 
-                # Запись нового заголовка
-                csv_writer.writerow(new_data_mapping)
+                    batch = []
+                    batch_size = CSV_BATCH_SIZE  # Используем увеличенный размер пакета (1000 строк)
+                    total_batches = 0
 
-                batch = []
-                batch_size = CSV_BATCH_SIZE  # Используем увеличенный размер пакета (1000 строк)
-                total_batches = 0
+                    for row in csv_reader:
+                        # Создаём новую строку только с нужными колонками
+                        new_row = {k: v for k, v in row.items() if k in new_data_mapping}
+                        batch.append(new_row)
 
-                for row in csv_reader:
-                    # Создаём новую строку только с нужными колонками
-                    new_row = {k: v for k, v in row.items() if k in new_data_mapping}
-                    batch.append(new_row)
+                        # Записываем пакет при достижении размера
+                        if len(batch) >= batch_size:
+                            csv_writer.writerows(batch)
+                            total_batches += 1
+                            batch.clear()
 
-                    # Записываем пакет при достижении размера
-                    if len(batch) >= batch_size:
+                    # Записываем оставшиеся строки (неполный пакет)
+                    if batch:
                         csv_writer.writerows(batch)
                         total_batches += 1
-                        batch.clear()
 
-                # Записываем оставшиеся строки (неполный пакет)
-                if batch:
-                    csv_writer.writerows(batch)
-                    total_batches += 1
-
-                logger.debug(
-                    "Запись CSV завершена (всего пакетов: %d, размер пакета: %d, буфер чтения: %d, буфер записи: %d, mmap: %s)",
-                    total_batches,
-                    batch_size,
-                    optimal_read_buffer,
-                    optimal_write_buffer,
-                    use_mmap,
-                )
-            finally:
-                # Гарантированно закрываем файлы
-                if is_mmap:
-                    _close_file_with_mmap_support(f_csv, is_mmap, underlying_fp)
-                else:
-                    f_csv.close()
-                f_tmp_csv.close()
+                    logger.debug(
+                        "Запись CSV завершена (всего пакетов: %d, размер пакета: %d, буфер чтения: %d, буфер записи: %d, mmap: %s)",
+                        total_batches,
+                        batch_size,
+                        optimal_read_buffer,
+                        optimal_write_buffer,
+                        use_mmap,
+                    )
+                finally:
+                    # Гарантированно закрываем файл записи
+                    f_tmp_csv.close()
 
             # Замена оригинального файла новым с безопасной обработкой
             move_success = _safe_move_file(tmp_csv_name, self._file_path)
@@ -804,84 +898,74 @@ class CSVWriter(FileWriter):
                 use_mmap = False
 
             # Открываем файлы с mmap или обычной буферизацией
-            if use_mmap:
-                f_csv, is_mmap = _open_file_with_mmap_support(
-                    self._file_path, "r", encoding="utf-8-sig"
+            # Используем контекстный менеджер для безопасной работы с mmap
+            with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
+                f_csv,
+                is_mmap,
+                underlying_fp,
+            ):
+                f_tmp_csv = self._open_file(
+                    tmp_csv_name,
+                    "w",
+                    encoding=self._options.encoding,
+                    newline="",
+                    buffering=optimal_write_buffer,
                 )
-                underlying_fp = None
-            else:
-                f_csv = self._open_file(
-                    self._file_path, "r", encoding="utf-8-sig", buffering=optimal_read_buffer
-                )
-                is_mmap = False
-                underlying_fp = None
 
-            f_tmp_csv = self._open_file(
-                tmp_csv_name,
-                "w",
-                encoding=self._options.encoding,
-                newline="",
-                buffering=optimal_write_buffer,
-            )
+                try:
+                    # ВАЖНО: Помечаем что временный файл создан
+                    temp_created = True
 
-            try:
-                # ВАЖНО: Помечаем что временный файл создан
-                temp_created = True
+                    # Оптимизация: читаем и записываем пакетно
+                    batch: List[str] = []
+                    batch_size = HASH_BATCH_SIZE
 
-                # Оптимизация: читаем и записываем пакетно
-                batch: List[str] = []
-                batch_size = HASH_BATCH_SIZE
+                    for line_num, line in enumerate(f_csv, 1):  # type: ignore[arg-type]
+                        line_str: str = line  # type: ignore[assignment]
+                        try:
+                            # Нормализуем строку: удаляем завершающие пробелы и newlines
+                            normalized_line = line_str.rstrip("\r\n")
 
-                for line_num, line in enumerate(f_csv, 1):  # type: ignore[arg-type]
-                    line_str: str = line  # type: ignore[assignment]
-                    try:
-                        # Нормализуем строку: удаляем завершающие пробелы и newlines
-                        normalized_line = line_str.rstrip("\r\n")
+                            # Unicode-нормализация для корректного сравнения
+                            # NFKD разлагает символы на базовые символы + диакритические знаки
+                            normalized = unicodedata.normalize("NFKD", normalized_line)
 
-                        # Unicode-нормализация для корректного сравнения
-                        # NFKD разлагает символы на базовые символы + диакритические знаки
-                        normalized = unicodedata.normalize("NFKD", normalized_line)
+                            # Вычисляем хеш с использованием SHA256 для большей безопасности
+                            # Оптимизация: используем bytes напрямую для снижения конверсий
+                            line_hash = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
-                        # Вычисляем хеш с использованием SHA256 для большей безопасности
-                        # Оптимизация: используем bytes напрямую для снижения конверсий
-                        line_hash = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+                            if line_hash in seen_hashes:
+                                duplicates_count += 1
+                                continue
 
-                        if line_hash in seen_hashes:
-                            duplicates_count += 1
-                            continue
+                            seen_hashes.add(line_hash)
+                            batch.append(line)
 
-                        seen_hashes.add(line_hash)
-                        batch.append(line)
+                            # Пакетная запись для снижения накладных расходов
+                            if len(batch) >= batch_size:
+                                f_tmp_csv.writelines(batch)
+                                batch.clear()
 
-                        # Пакетная запись для снижения накладных расходов
-                        if len(batch) >= batch_size:
-                            f_tmp_csv.writelines(batch)
-                            batch.clear()
+                        except Exception as line_error:
+                            logger.warning("Ошибка обработки строки %d: %s", line_num, line_error)
+                            # Пропускаем проблемную строку и продолжаем
 
-                    except Exception as line_error:
-                        logger.warning("Ошибка обработки строки %d: %s", line_num, line_error)
-                        # Пропускаем проблемную строку и продолжаем
+                    # Записываем оставшиеся строки
+                    if batch:
+                        f_tmp_csv.writelines(batch)
 
-                # Записываем оставшиеся строки
-                if batch:
-                    f_tmp_csv.writelines(batch)
-
-                if duplicates_count > 0:
-                    logger.info("Удалено дубликатов: %d", duplicates_count)
-                else:
-                    logger.debug(
-                        "Дубликаты не найдены (буфер чтения: %d, буфер записи: %d, mmap: %s)",
-                        optimal_read_buffer,
-                        optimal_write_buffer,
-                        use_mmap,
-                    )
-            finally:
-                # Гарантированно закрываем файлы
-                if is_mmap:
-                    _close_file_with_mmap_support(f_csv, is_mmap, underlying_fp)
-                else:
-                    f_csv.close()
-                f_tmp_csv.close()
+                    if duplicates_count > 0:
+                        logger.info("Удалено дубликатов: %d", duplicates_count)
+                    else:
+                        logger.debug(
+                            "Дубликаты не найдены (буфер чтения: %d, буфер записи: %d, mmap: %s)",
+                            optimal_read_buffer,
+                            optimal_write_buffer,
+                            use_mmap,
+                        )
+                finally:
+                    # Гарантированно закрываем файл записи
+                    f_tmp_csv.close()
 
             # Замена оригинального файла новым с безопасной обработкой
             move_success = _safe_move_file(tmp_csv_name, self._file_path)
