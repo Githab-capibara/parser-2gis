@@ -140,6 +140,8 @@ class SignalHandler:
     def _handle_signal(self, signum: int, frame: Any) -> None:
         """
         Внутренний обработчик сигналов.
+        - ИСПРАВЛЕНИЕ: Используется threading.Lock для атомарной проверки и установки флагов
+        - Устранена гонка условий между проверкой _is_cleaning_up и установкой
 
         Args:
             signum: Номер полученного сигнала.
@@ -148,7 +150,9 @@ class SignalHandler:
         Примечание:
             Метод использует флаг _is_cleaning_up для предотвращения
             рекурсивных вызовов во время очистки ресурсов.
+            Блокировка обеспечивается через self._lock для атомарности операций.
         """
+        # ИСПРАВЛЕНИЕ: Атомарная проверка и установка флагов под блокировкой
         with self._lock:
             # Проверяем флаг перед обработкой сигнала
             if self._is_cleaning_up:
@@ -157,6 +161,7 @@ class SignalHandler:
                 )
                 return
 
+            # Атомарно устанавливаем флаги - гонка условий устранена
             self._interrupted = True
             self._is_cleaning_up = True
 
@@ -166,32 +171,27 @@ class SignalHandler:
             original_sigint = signal.getsignal(signal.SIGINT)
             original_sigterm = signal.getsignal(signal.SIGTERM)
 
-            try:
-                signal.signal(signal.SIGINT, signal.SIG_IGN)
-                signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        # Выносим обработку сигналов за пределы блокировки для избежания deadlock
+        # Сигналы могут быть доставлены в тот же поток
+        try:
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
 
-                # Немедленная очистка ресурсов
-                if self._cleanup_callback:
-                    try:
-                        self._cleanup_callback()
-                    except Exception as cleanup_error:
-                        logger.error(
-                            "Ошибка при очистке ресурсов в signal handler: %s", cleanup_error
-                        )
-
-                logger.info("Очистка ресурсов завершена. Выход из приложения...")
-                sys.exit(128 + signum)
-
-            finally:
-                # Восстанавливаем оригинальные обработчики
+            # Немедленная очистка ресурсов
+            if self._cleanup_callback:
                 try:
-                    signal.signal(signal.SIGINT, original_sigint)
-                    signal.signal(signal.SIGTERM, original_sigterm)
-                except Exception as restore_error:
-                    logger.error(
-                        "Ошибка при восстановлении обработчиков сигналов: %s", restore_error
-                    )
-                # Сбрасываем флаг только если очистка завершена
+                    self._cleanup_callback()
+                except Exception as cleanup_error:
+                    logger.error("Ошибка при очистке ресурсов в signal handler: %s", cleanup_error)
+
+            logger.info("Очистка ресурсов завершена. Выход из приложения...")
+            sys.exit(128 + signum)
+
+        except Exception as restore_error:
+            logger.error("Ошибка при восстановлении обработчиков сигналов: %s", restore_error)
+        finally:
+            # Сбрасываем флаг только если очистка завершена
+            with self._lock:
                 self._is_cleaning_up = False
 
     def is_interrupted(self) -> bool:

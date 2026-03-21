@@ -6,14 +6,13 @@
 - Добавлен logger для предупреждений о переполнении счётчиков
 """
 
+import html as html_module
 import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
-
-import html as html_module
 
 # Получаем логгер модуля
 logger = logging.getLogger(__name__)
@@ -348,6 +347,7 @@ class StatisticsExporter:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';">
     <title>Статистика работы Parser2GIS</title>
     <style>
         body {{
@@ -443,10 +443,14 @@ class StatisticsExporter:
             </tr>""")
 
         # Добавляем закрывающую часть HTML документа
+        # Экранируем дату для предотвращения XSS через манипуляцию времени
+        safe_timestamp = html_module.escape(
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"), quote=True
+        )
         html_parts.append(f"""        </tbody>
     </table>
     <div class="footer">
-        Сгенерировано: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        Сгенерировано: {safe_timestamp}
     </div>
 </body>
 </html>""")

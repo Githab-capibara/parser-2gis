@@ -101,7 +101,8 @@ def _tui_stub() -> None:
 
 
 try:
-    from .tui_textual import Parser2GISTUI, run_tui as run_new_tui_omsk
+    from .tui_textual import Parser2GISTUI
+    from .tui_textual import run_tui as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функции
     run_new_tui_omsk = _tui_omsk_stub
@@ -504,7 +505,8 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
     """Загружает JSON файл с городами с оптимизированной загрузкой.
 
     Оптимизации:
-    - lru_cache для кэширования часто вызываемых загрузок (maxsize=16) (ИСПРАВЛЕНИЕ 7: увеличено с 8)
+    - lru_cache для кэширования часто вызываемых загрузок (maxsize=16)
+      (ИСПРАВЛЕНИЕ 7: увеличено с 8)
     - mmap для больших файлов >1MB для экономии памяти
     - Streaming парсинг для файлов >10MB
     - Проверка размера файла перед загрузкой через stat()
@@ -556,13 +558,14 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
         logger.error("Ошибка получения информации о файле: %s", stat_error)
         raise OSError(f"Не удалось получить информацию о файле: {stat_error}") from stat_error
 
+    # ИСПРАВЛЕНИЕ 4: Инициализируем all_cities ПЕРЕД try блоком
+    # Это предотвращает ошибку UnboundLocalError при использовании переменной до присваивания
+    # в случае исключения в любом месте try блока
+    all_cities: Optional[List[Dict[str, Any]]] = None
+
     try:
         # Оптимизация: используем mmap для больших файлов >1MB
         use_mmap = file_size > MMAP_CITIES_THRESHOLD
-
-        # ИСПРАВЛЕНИЕ 1: Инициализируем all_cities перед try-finally блоком
-        # Это предотвращает ошибку UnboundLocalError при использовании переменной до присваивания
-        all_cities: Optional[List[Dict[str, Any]]] = None
 
         if use_mmap:
             logger.info(
@@ -669,7 +672,9 @@ def patch_argparse_translations() -> None:
         "unrecognized arguments: %s": "нераспознанные аргументы: %s",
         "the following arguments are required: %s": "следующие аргументы обязательны: %s",
         "%(prog)s: error: %(message)s\n": "%(prog)s: ошибка: %(message)s\n",
-        "invalid choice: %(value)r (choose from %(choices)s)": "неверная опция: %(value)r (выберите одну из %(choices)s)",
+        "invalid choice: %(value)r (choose from %(choices)s)": (
+            "неверная опция: %(value)r (выберите одну из %(choices)s)"
+        ),
     }
 
     orig_gettext = argparse._  # type: ignore[attr-defined]
@@ -824,7 +829,8 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
     csv_parser.add_argument(
         "--writer.csv.columns-per-entity",
         metavar="{1,2,3,...}",
-        help="Количество колонок для результата с несколькими возможными значениями: Телефон_1, Телефон_2, и т.д.",
+        help="Количество колонок для результата с несколькими возможными значениями: "
+        "Телефон_1, Телефон_2, и т.д.",
     )
     csv_parser.add_argument(
         "--writer.csv.remove-empty-columns",
@@ -846,7 +852,8 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
     p_parser.add_argument(
         "--parser.use-gc",
         metavar="{yes/no}",
-        help="Включить сборщик мусора - сдерживает быстрое заполнение RAM, уменьшает скорость парсинга",
+        help="Включить сборщик мусора - сдерживает быстрое заполнение RAM, "
+        "уменьшает скорость парсинга",
     )
     p_parser.add_argument(
         "--parser.gc-pages-interval",
@@ -891,7 +898,8 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
     p_parser.add_argument(
         "--parser.retry-on-network-errors",
         metavar="{yes/no}",
-        help="Выполнять повторные попытки при ошибках сети: 502, 503, 504, TimeoutError (по умолчанию: yes)",
+        help="Выполнять повторные попытки при ошибках сети: 502, 503, 504, TimeoutError "
+        "(по умолчанию: yes)",
     )
     p_parser.add_argument(
         "--parser.retry-delay-base",
@@ -918,7 +926,7 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         help="Максимальное количество одновременных работников (по умолчанию: 10)",
     )
     p_parser.add_argument(
-        "--parallel-workers",
+        "--parallel.max-workers",
         type=int,
         default=10,
         help="Количество одновременных потоков для параллельного парсинга (по умолчанию: 10)",
@@ -945,7 +953,8 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         "--tui-new-omsk",
         action="store_true",
         default=False,
-        help="Запустить новый TUI интерфейс с автоматическим парсингом Омска (10 потоков, 93 категории)",
+        help="Запустить новый TUI интерфейс с автоматическим парсингом Омска "
+        "(10 потоков, 93 категории)",
     )
 
     rest_parser = arg_parser.add_argument_group("Служебные аргументы")
@@ -1156,7 +1165,7 @@ def main() -> None:
 
             logger.info("Запуск параллельного парсинга по %d категориям", len(CATEGORIES_93))
             logger.info("Города: %s", [c["name"] for c in selected_cities])
-            logger.info("Количество потоков: %d", getattr(args, "parallel_workers", 3))
+            logger.info("Количество потоков: %d", command_line_config.parallel.max_workers)
 
             # Создаём и запускаем параллельный парсер с TUI
             # Приводим тип categories к list[dict] для совместимости с ParallelCityParser
