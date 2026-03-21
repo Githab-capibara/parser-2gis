@@ -15,10 +15,10 @@ import mmap
 import os
 import re
 import shutil
-import unicodedata
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Union
 
+import unicodedata
 from pydantic import ValidationError
 
 from ...common import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, report_from_validation_error

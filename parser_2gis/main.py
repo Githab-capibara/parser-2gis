@@ -359,7 +359,7 @@ def cleanup_resources() -> None:
                             exc_info=True,
                         )
                         chrome_errors += 1
-                    except Exception as instance_error:
+                    except (ValueError, TypeError) as instance_error:
                         # Любая другая ошибка при закрытии экземпляра
                         logger.error(
                             "Ошибка при закрытии экземпляра ChromeRemote: %s (тип: %s)",
@@ -435,7 +435,7 @@ def cleanup_resources() -> None:
             gc.collect()
             logger.debug("Сборщик мусора завершён")
             success_count += 1
-        except Exception as gc_error:
+        except (MemoryError, RuntimeError) as gc_error:
             logger.error(
                 "Ошибка при вызове gc.collect(): %s (тип: %s)",
                 gc_error,
@@ -470,7 +470,7 @@ def cleanup_resources() -> None:
     except SystemExit as e:
         # Выход из системы - логируем код выхода
         logger.error("Выход из системы при очистке ресурсов (код: %s)", e.code)
-    except Exception as e:
+    except (OSError, sqlite3.Error, ValueError, TypeError) as e:
         # Ловим все исключения чтобы не прерывать очистку
         logger.error(
             "Непредвиденная ошибка при очистке ресурсов: %s (тип: %s)",
@@ -1237,7 +1237,7 @@ def main() -> None:
         except OSError as e:
             logger.error("Ошибка операционной системы: %s", e)
             sys.exit(1)
-        except Exception as e:
+        except (sqlite3.Error, TypeError, RuntimeError) as e:
             logger.error("Критическая ошибка приложения: %s", e, exc_info=True)
             sys.exit(1)
         finally:
@@ -1247,7 +1247,7 @@ def main() -> None:
             logger.debug("Выполнение блока finally для очистки ресурсов...")
             try:
                 cleanup_resources()
-            except Exception as cleanup_error:
+            except (sqlite3.Error, TypeError, RuntimeError) as cleanup_error:
                 logger.error("Ошибка при очистке ресурсов в finally: %s", cleanup_error)
             logger.debug("Очистка ресурсов в блоке finally завершена")
 

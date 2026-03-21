@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import codecs
-
 from pydantic import BaseModel, Field
 
 try:

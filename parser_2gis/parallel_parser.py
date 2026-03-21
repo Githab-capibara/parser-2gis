@@ -22,10 +22,10 @@ import threading
 import time
 import uuid
 import weakref
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .logger import log_parser_finish, logger, print_progress
@@ -184,7 +184,9 @@ class _TempFileTimer:
         self._timer: Optional[threading.Timer] = None
         self._is_running = False
         self._stop_event = threading.Event()  # Событие для координации остановки
-        self._lock = threading.Lock()  # Блокировка для защиты общих данных
+        # ИСПРАВЛЕНИЕ 3: Заменяем Lock на RLock для предотвращения гонок данных
+        # RLock позволяет одному и тому же потоку получать блокировку несколько раз
+        self._lock = threading.RLock()  # Блокировка для защиты общих данных
         self._cleanup_count = 0
         self._weak_ref = weakref.ref(self)
 

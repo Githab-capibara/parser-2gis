@@ -27,6 +27,13 @@
 - Тест 3: Проверка регрессии (regression - старая проблема не вернулась)
 """
 
+from parser_2gis.writer.writers.csv_writer import mmap_file_context
+from parser_2gis.validator import DataValidator
+from parser_2gis.statistics import ParserStatistics, StatisticsExporter
+from parser_2gis.signal_handler import SignalHandler
+from parser_2gis.main import _validate_cli_argument, _validate_positive_int
+from parser_2gis.chrome.browser import ChromeBrowser
+from parser_2gis.cache import MAX_DATA_DEPTH, _validate_cached_data
 import json
 import os
 import re
@@ -45,13 +52,6 @@ import pytest
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from parser_2gis.cache import MAX_DATA_DEPTH, _validate_cached_data
-from parser_2gis.chrome.browser import ChromeBrowser
-from parser_2gis.main import _validate_cli_argument, _validate_positive_int
-from parser_2gis.signal_handler import SignalHandler
-from parser_2gis.statistics import ParserStatistics, StatisticsExporter
-from parser_2gis.validator import DataValidator
-from parser_2gis.writer.writers.csv_writer import mmap_file_context
 
 # =============================================================================
 # КРИТИЧЕСКАЯ ПРОБЛЕМА 1: XSS УЯЗВИМОСТЬ В statistics.py

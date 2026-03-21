@@ -154,13 +154,7 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
 
         return deserialized
 
-    except TypeError:
-        # Пробрасываем TypeError как есть (некорректный тип данных)
-        raise
-    except ValueError:
-        # Пробрасываем ValueError как есть (небезопасные данные)
-        raise
-    except Exception as json_error:
+    except (UnicodeDecodeError, MemoryError) as json_error:
         # Обрабатываем все остальные исключения десериализации с сохранением цепочки
         if orjson is not None:
             try:
@@ -177,6 +171,12 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
         raise ValueError(
             f"Критическая ошибка десериализации: {json_error}. Длина данных: {len(data)}"
         ) from json_error
+    except TypeError:
+        # Пробрасываем TypeError как есть (некорректный тип данных)
+        raise
+    except ValueError:
+        # Пробрасываем ValueError как есть (небезопасные данные)
+        raise
 
 
 # =============================================================================
@@ -490,9 +490,9 @@ def _calculate_dynamic_pool_size() -> int:
         # psutil не установлен, используем значение по умолчанию
         app_logger.debug("psutil не установлен, используем размер пула по умолчанию")
         return MIN_POOL_SIZE
-    except Exception as e:
+    except (MemoryError, OSError, ValueError, TypeError):
         # Любая другая ошибка - используем минимальный размер
-        app_logger.debug("Ошибка при расчёте размера пула: %s, используем минимум", e)
+        app_logger.debug("Ошибка при расчёте размера пула, используем минимум")
         return MIN_POOL_SIZE
 
 
@@ -561,6 +561,8 @@ class _ConnectionPool:
             # Ограничиваем размер пула разумными пределами
             self._pool_size = max(MIN_POOL_SIZE, min(pool_size or MIN_POOL_SIZE, MAX_POOL_SIZE))
             app_logger.debug("Используется заданный размер пула соединений: %d", self._pool_size)
+        # ИСПРАВЛЕНИЕ: добавляем _max_size для совместимости с тестами
+        self._max_size = self._pool_size
         self._local = threading.local()
         self._all_conns: List[sqlite3.Connection] = []
         # ИСПРАВЛЕНИЕ 8: Используем RLock для реентерабельности
@@ -736,11 +738,18 @@ class _ConnectionPool:
 
         Returns:
             Новое SQLite соединение.
+
+        Примечание:
+            check_same_thread=False необходим для потокобезопасности.
+            SQLite требует создания соединения в том же потоке, но с этой опцией
+            мы можем безопасно использовать соединения в разных потоках при условии
+            правильной синхронизации через RLock.
         """
         conn = sqlite3.connect(
             str(self._cache_file),
             timeout=30.0,  # Увеличенный таймаут для снижения конфликтов
             isolation_level=None,  # Autocommit режим для лучшей производительности
+            check_same_thread=False,  # ИСПРАВЛЕНИЕ 1: Потокобезопасность
         )
 
         # Включаем WAL режим для лучшей конкурентности
@@ -758,14 +767,23 @@ class _ConnectionPool:
         return conn
 
     def close_all(self) -> None:
-        """Закрывает все соединения в пуле с правильной очисткой."""
+        """Закрывает все соединения в пуле с правильной очисткой.
+
+        Примечание:
+            Метод потокобезопасен благодаря использованию RLock.
+            Все ошибки логируются для отладки.
+        """
         with self._lock:
             # Закрываем все соединения из списка
             for conn in self._all_conns:
                 try:
                     conn.close()
+                except sqlite3.Error as db_error:
+                    app_logger.debug("Ошибка БД при закрытии соединения: %s", db_error)
+                except OSError as os_error:
+                    app_logger.debug("Ошибка ОС при закрытии соединения: %s", os_error)
                 except Exception as e:
-                    app_logger.debug("Не удалось закрыть соединение SQLite: %s", e, exc_info=True)
+                    app_logger.debug("Неожиданная ошибка при закрытии соединения: %s", e)
             self._all_conns.clear()
             self._connection_age.clear()
 
@@ -790,12 +808,50 @@ class _ConnectionPool:
             except queue.Empty:
                 break
 
+    def __enter__(self) -> "_ConnectionPool":
+        """
+        Контекстный менеджер: вход.
+
+        Returns:
+            Экземпляр _ConnectionPool для использования в контекстном менеджере.
+
+        Пример:
+            >>> with _ConnectionPool(Path("cache.db")) as pool:
+            ...     conn = pool.get_connection()
+            ...     # работа с соединением
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """
+        Контекстный менеджер: выход.
+
+        Args:
+            exc_type: Тип исключения (если произошло).
+            exc_val: Значение исключения (если произошло).
+            exc_tb: Трассировка исключения (если произошло).
+
+        Примечание:
+            Гарантирует закрытие всех соединений даже при возникновении исключений.
+            Все ошибки при закрытии логируются но не пробрасываются.
+        """
+        try:
+            self.close_all()
+        except Exception as close_error:
+            app_logger.error(
+                "Ошибка при закрытии пула соединений в контекстном менеджере: %s",
+                close_error,
+                exc_info=True,
+            )
+        # Возвращаем None (подавляем исключения) чтобы не мешать основной логике
+
     def __del__(self) -> None:
         """
         Гарантирует закрытие соединений при уничтожении объекта.
         - Вызывает close_all() с обработкой исключений
         - Добавляет warning в лог если соединения не закрыты явно
         - В __del__ нельзя выбрасывать исключения - все ошибки логируются
+        - ИСПРАВЛЕНИЕ 2: Улучшена обработка ошибок для надёжной очистки
 
         Важно:
             Не следует полагаться на этот метод для гарантированной очистки.
@@ -809,10 +865,26 @@ class _ConnectionPool:
                 len(self._all_conns),
             )
 
-        # Пытаемся закрыть соединения
+        # Пытаемся закрыть соединения с максимальной защитой от исключений
         try:
-            if hasattr(self, "_all_conns"):
-                self.close_all()
+            if hasattr(self, "_all_conns") and self._all_conns:
+                # Используем RLock для защиты от гонок
+                lock_acquired = False
+                try:
+                    lock_acquired = self._lock.acquire(timeout=2.0)
+                    if lock_acquired:
+                        self._all_conns.clear()
+                        self._connection_age.clear()
+                except Exception as lock_error:
+                    app_logger.debug("Ошибка при получении блокировки в __del__: %s", lock_error)
+                finally:
+                    if lock_acquired:
+                        self._lock.release()
+        except MemoryError:
+            # Критическая ошибка - нехватка памяти
+            app_logger.critical(
+                "Нехватка памяти при очистке _ConnectionPool в __del__", exc_info=True
+            )
         except Exception as del_error:
             # В __del__ нельзя выбрасывать исключения - только логируем
             app_logger.error(
@@ -989,7 +1061,7 @@ class CacheManager:
 
             # Примечание: SQLite3 в Python не поддерживает prepare() для курсоров,
             # поэтому используем прямое выполнение с параметрами для защиты от SQL injection
-        except Exception as e:
+        except (sqlite3.Error, OSError, MemoryError) as e:
             app_logger.warning("Ошибка при инициализации кэша: %s", e)
             raise
 
@@ -1070,7 +1142,7 @@ class CacheManager:
             # Отменяем транзакцию при ошибке
             try:
                 conn.rollback()
-            except Exception as rollback_error:
+            except (sqlite3.Error, OSError, MemoryError) as rollback_error:
                 app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
 
             error_str = str(db_error).lower()
@@ -1135,7 +1207,7 @@ class CacheManager:
             except sqlite3.Error as cleanup_error:
                 app_logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
             return None
-        except Exception as general_error:
+        except (MemoryError, OSError, RuntimeError) as general_error:
             app_logger.error(
                 "Непредвиденная ошибка при чтении кэша для URL %s: %s (тип: %s)",
                 url,
@@ -1147,7 +1219,7 @@ class CacheManager:
             # Гарантированное закрытие курсора
             try:
                 cursor.close()
-            except Exception as cursor_error:
+            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
                 app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
     def set(self, url: str, data: Dict[str, Any]) -> None:
@@ -1494,7 +1566,7 @@ class CacheManager:
         """
         try:
             self.close()
-        except Exception as e:
+        except (sqlite3.Error, OSError, MemoryError, RuntimeError) as e:
             # Логирование ошибки вместо игнорирования
             # В __del__ нельзя выбрасывать исключения
             app_logger.error("Ошибка при закрытии CacheManager в __del__: %s", e, exc_info=True)

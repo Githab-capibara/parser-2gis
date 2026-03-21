@@ -81,13 +81,13 @@ class EndOfResultsDetector:
                         if selector(node):
                             logger.debug("Обнаружен DOM-элемент окончания")
                             return True
-                    except Exception as e:
+                    except (ValueError, TypeError, AttributeError, RuntimeError) as e:
                         logger.debug("Ошибка при проверке DOM-элемента: %s", e)
                         continue
 
             return False
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, RuntimeError, MemoryError) as e:
             logger.warning("Ошибка при проверке окончания результатов: %s", e)
             return False
 
@@ -120,6 +120,6 @@ class EndOfResultsDetector:
 
             return has_pages
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, RuntimeError, MemoryError) as e:
             logger.warning("Ошибка при проверке пагинации: %s", e)
             return False

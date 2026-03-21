@@ -453,7 +453,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
             except ValueError:
                 # Пробрасываем ValueError без изменений
                 raise
-            except Exception as step_error:
+            except (OSError, RuntimeError) as step_error:
                 logger.error(
                     "Ошибка при обработке шага (тип: %s, ключ: %s, глубина: %s): %s",
                     type(current_value).__name__,
@@ -481,7 +481,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     except ValueError:
         # Пробрасываем ValueError без изменений
         raise
-    except Exception as processing_error:
+    except (OSError, RuntimeError) as processing_error:
         logger.error(
             "Критическая ошибка при очистке данных (тип: %s): %s",
             type(value).__name__,
@@ -492,7 +492,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     finally:
         try:
             _visited.clear()
-        except Exception as cleanup_error:
+        except (OSError, RuntimeError) as cleanup_error:
             logger.warning("Ошибка при очистке _visited: %s", cleanup_error)
 
 
@@ -614,7 +614,7 @@ def wait_until_finished(
                 except TimeoutError:
                     # Пробрасываем TimeoutError немедленно
                     raise
-                except Exception as e:
+                except (MemoryError, OSError, RuntimeError, ValueError, TypeError) as e:
                     # Логирование ошибок выполнения функции
                     local_logger = _get_logger()
                     local_logger.debug(
@@ -998,7 +998,7 @@ def generate_city_urls(
             rest_url += "/filters/sort=name"
             urls.append(base_url + rest_url)
 
-        except Exception as e:
+        except (ValueError, TypeError, MemoryError, OSError) as e:
             logger.error("Ошибка при генерации URL для города %s: %s", city, e)
             continue
 

@@ -17,12 +17,12 @@ import re
 import socket
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 import pychrome
 import requests  # type: ignore[import-untyped]
+from concurrent.futures import ThreadPoolExecutor
 from ratelimit import limits, sleep_and_retry  # type: ignore[import-untyped]
 from requests.exceptions import RequestException  # type: ignore[import-untyped]
 from websocket import WebSocketException, WebSocketTimeoutException
@@ -30,13 +30,13 @@ from websocket import WebSocketException, WebSocketTimeoutException
 from ..common import wait_until_finished
 from ..logger.logger import logger as app_logger
 from .browser import ChromeBrowser
+from .constants import CHROME_STARTUP_DELAY  # L4: магические числа вынесены в константы
+from .constants import MAX_JS_CODE_LENGTH  # L4: магические числа вынесены в константы
+from .constants import MAX_RESPONSE_SIZE  # L9: лимит размера загружаемых файлов
+from .constants import MAX_TOTAL_JS_SIZE  # L4: магические числа вынесены в константы
 from .constants import (  # L6: rate limiting для внешних запросов
-    CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
     EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
-    MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
-    MAX_RESPONSE_SIZE,  # L9: лимит размера загружаемых файлов
-    MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
 )
 from .dom import DOMNode
 from .exceptions import ChromeException
@@ -45,6 +45,9 @@ from .patches import patch_all
 # =============================================================================
 # ЛОКАЛЬНЫЕ КОНСТАНТЫ И ПАТТЕРНЫ
 # =============================================================================
+
+# Задержка между проверками порта в секундах
+PORT_CHECK_RETRY_DELAY: float = 0.1
 
 # Оптимизация: скомпилированные regex паттерны для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
@@ -324,8 +327,8 @@ def _check_port_available_internal(port: int, timeout: float = 0.5, retries: int
                 break
             # Небольшая задержка между проверками
             if attempt < retries - 1:
-                time.sleep(0.1)
-        except Exception as e:
+                time.sleep(PORT_CHECK_RETRY_DELAY)
+        except (socket.error, OSError, MemoryError) as e:
             app_logger.debug("Ошибка при проверке порта %d: %s", port, e)
             result = False
             break

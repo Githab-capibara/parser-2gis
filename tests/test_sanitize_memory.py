@@ -11,6 +11,7 @@
 - Итеративный подход вместо рекурсии
 """
 
+from parser_2gis.common import MAX_COLLECTION_SIZE, MAX_DATA_DEPTH, _sanitize_value
 import os
 import sys
 from typing import Any, Dict, List
@@ -20,8 +21,6 @@ import pytest
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from parser_2gis.common import MAX_COLLECTION_SIZE, MAX_DATA_DEPTH, _sanitize_value
 
 
 class TestSanitizeValueDepthLimit:
@@ -51,10 +50,9 @@ class TestSanitizeValueDepthLimit:
         for i in range(150):
             data = {"nested": data}
 
-        # Должна вернуться None или оригинальное значение из-за лимита глубины
-        result = _sanitize_value(data)
-        # Функция должна обработать только до лимита глубины
-        assert result is not None
+        # Должна выбрасываться ValueError при превышении лимита глубины
+        with pytest.raises(ValueError, match="Глубина вложенности"):
+            _sanitize_value(data)
 
     def test_sanitize_deep_list_within_limit(self) -> None:
         """Тест обработки глубокого списка в пределах лимита."""
@@ -73,8 +71,9 @@ class TestSanitizeValueDepthLimit:
         for i in range(150):
             data = [data]
 
-        result = _sanitize_value(data)
-        assert result is not None
+        # Должна выбрасываться ValueError при превышении лимита глубины
+        with pytest.raises(ValueError, match="Глубина вложенности"):
+            _sanitize_value(data)
 
 
 class TestSanitizeValueMemoryError:
@@ -82,7 +81,8 @@ class TestSanitizeValueMemoryError:
 
     def test_sanitize_normal_data(self) -> None:
         """Тест обработки нормальных данных."""
-        data = {"name": "test", "values": [1, 2, 3], "nested": {"key": "value"}}
+        # Используем ключи которые не являются чувствительными
+        data = {"name": "test", "values": [1, 2, 3], "nested": {"title": "value"}}
         result = _sanitize_value(data)
         assert result == data
 
@@ -90,11 +90,12 @@ class TestSanitizeValueMemoryError:
         """Тест обработки с mock MemoryError."""
         data = {"key": "value"}
 
-        with patch(
-            "parser_2gis.common._sanitize_value", side_effect=MemoryError("Mock MemoryError")
-        ):
-            # Функция должна обработать MemoryError gracefully
-            with pytest.raises(MemoryError):
+        # Mock repr для вызова MemoryError при проверке размера
+        with patch("parser_2gis.common.repr") as mock_repr:
+            mock_repr.side_effect = MemoryError("Mock MemoryError")
+
+            # Функция должна обработать MemoryError и выбросить ValueError
+            with pytest.raises(ValueError, match="Нехватка памяти"):
                 _sanitize_value(data)
 
     def test_sanitize_large_string(self) -> None:
@@ -134,9 +135,9 @@ class TestSanitizeValueLargeCollection:
         for i in range(150000):
             data[f"key_{i}"] = f"value_{i}"
 
-        # Функция должна обработать только до лимита
-        result = _sanitize_value(data)
-        assert result is not None
+        # Функция должна выбрасывать ValueError при превышении лимита
+        with pytest.raises(ValueError, match="Размер словаря"):
+            _sanitize_value(data)
 
     def test_sanitize_large_list(self) -> None:
         """Тест обработки большого списка."""
