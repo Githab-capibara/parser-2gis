@@ -173,7 +173,8 @@ _SENSITIVE_KEYS: Set[str] = {
 
 # Компилированный regex паттерн для проверки чувствительных ключей
 _SENSITIVE_KEY_PATTERN = re.compile(
-    r"(^|[_\-])(pass|secret|token|key|auth|cred|bearer|jwt|oauth|sign|encrypt|master|admin|db|database|conn)([_\-]|$)",
+    r"(^|[_\-])(pass|secret|token|key|auth|cred|bearer|jwt|oauth|"
+    r"sign|encrypt|master|admin|db|database|conn)([_\-]|$)",
     re.IGNORECASE,
 )
 
@@ -1070,7 +1071,8 @@ def async_wait_until_finished(
                     if elapsed > effective_timeout:
                         if effective_throw_exception:
                             raise TimeoutError(
-                                f"Функция {func.__name__} не завершилась за {effective_timeout} секунд"
+                                f"Функция {func.__name__} не завершилась за "
+                                f"{effective_timeout} секунд"
                             )
                         return None
 

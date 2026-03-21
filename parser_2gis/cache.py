@@ -171,8 +171,8 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
                         f"Длина данных: {len(data)}, "
                         f"Содержимое: {data[:200]}..."
                     ) from json_error
-            except (AttributeError, TypeError):
-                pass
+            except (AttributeError, TypeError) as e:
+                app_logger.warning("Ошибка проверки orjson: %s", e)
         # Стандартная обработка JSON ошибок
         raise ValueError(
             f"Критическая ошибка десериализации: {json_error}. "

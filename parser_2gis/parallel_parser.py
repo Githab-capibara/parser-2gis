@@ -22,14 +22,15 @@ import threading
 import time
 import uuid
 import weakref
-from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
-
 from concurrent.futures import (
     ThreadPoolExecutor,
-    TimeoutError as FuturesTimeoutError,
     as_completed,
 )
+from concurrent.futures import (
+    TimeoutError as FuturesTimeoutError,
+)
+from pathlib import Path
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .logger import log_parser_finish, logger, print_progress
@@ -142,7 +143,8 @@ MAX_TEMP_FILES_MONITORING = _validate_env_int(
     "PARSER_MAX_TEMP_FILES_MONITORING", default=1000, min_value=100, max_value=10000
 )
 
-# Возраст временного файла в секундах, после которого он считается осиротевшим (300 секунд = 5 минут)
+# Возраст временного файла в секундах, после которого он считается
+# осиротевшим (300 секунд = 5 минут)
 # Допустимый диапазон: 60-86400 секунд (1 день)
 ORPHANED_TEMP_FILE_AGE = _validate_env_int(
     "PARSER_ORPHANED_TEMP_FILE_AGE", default=300, min_value=60, max_value=86400
@@ -195,7 +197,7 @@ class _TempFileTimer:
         self._weak_ref = weakref.ref(self)
 
         logger.debug(
-            "Инициализирован таймер очистки временных файлов: интервал=%d сек, макс. файлов=%d, возраст=%d сек",
+            "Инициализирован таймер очистки: интервал=%d сек, макс. файлов=%d, возраст=%d сек",
             interval,
             max_files,
             orphan_age,
@@ -637,8 +639,8 @@ def _acquire_merge_lock(
                     f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...",
                     "warning",
                 )
-        except OSError:
-            pass
+        except OSError as e:
+            log(f"Ошибка проверки lock файла: {e}", "debug")
 
     # Пытаемся получить блокировку с таймаутом
     start_time = time.time()
@@ -1037,7 +1039,8 @@ class ParallelCityParser:
         if max_workers > MAX_WORKERS:
             raise ValueError(
                 f"max_workers слишком большой: {max_workers} (максимум: {MAX_WORKERS}). "
-                f"Превышение лимита может привести к чрезмерному потреблению памяти и снижению производительности."
+                f"Превышение лимита может привести к чрезмерному потреблению "
+                f"памяти и снижению производительности."
             )
 
         # Валидация timeout_per_url: проверка на разумные пределы
@@ -1121,7 +1124,8 @@ class ParallelCityParser:
         # Событие для координации остановки (для тестов keyboard_interrupt_handling)
         self._stop_event = threading.Event()
 
-        # Список для отслеживания временных файлов merge операции (используется вместо глобальной переменной)
+        # Список для отслеживания временных файлов merge операции
+        # (используется вместо глобальной переменной)
         self._merge_temp_files: List[Path] = []
         # Блокировка для потокобезопасного доступа к временным файлам
         self._merge_lock = threading.Lock()
@@ -1146,7 +1150,8 @@ class ParallelCityParser:
 
         # Логирование успешной инициализации
         self.log(
-            f"Инициализирован парсер: {len(cities)} городов, {len(categories)} категорий, max_workers={max_workers}",
+            f"Инициализирован парсер: {len(cities)} городов, {len(categories)} "
+            f"категорий, max_workers={max_workers}",
             "info",
         )
 
@@ -1262,11 +1267,15 @@ class ParallelCityParser:
                         "Коллизия имён (попытка %d): генерация нового имени",
                         attempt + 1,
                     )
-                    temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+                    temp_filename = (
+                        f"{safe_city}_{safe_category}_{os.getpid()}_"
+                        f"{uuid.uuid4().hex}.tmp"
+                    )
                     temp_filepath = self.output_dir / temp_filename
                 else:
                     logger.error(
-                        "Не удалось создать уникальный временный файл после %d попыток: %s",
+                        "Не удалось создать уникальный временный файл "
+                        "после %d попыток: %s",
                         MAX_UNIQUE_NAME_ATTEMPTS,
                         temp_filename,
                     )
@@ -1276,8 +1285,10 @@ class ParallelCityParser:
                 if temp_fd is not None:
                     try:
                         os.close(temp_fd)
-                    except OSError:
-                        pass
+                    except OSError as close_error:
+                        logger.log(
+                            5, "Ошибка закрытия дескриптора файла: %s", close_error
+                        )
                     temp_fd = None
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(
@@ -1285,7 +1296,10 @@ class ParallelCityParser:
                         "Ошибка создания файла (попытка %d): повторная попытка",
                         attempt + 1,
                     )
-                    temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+                    temp_filename = (
+                        f"{safe_city}_{safe_category}_{os.getpid()}_"
+                        f"{uuid.uuid4().hex}.tmp"
+                    )
                     temp_filepath = self.output_dir / temp_filename
                 else:
                     logger.error(
@@ -1353,7 +1367,7 @@ class ParallelCityParser:
                     finally:
                         # Гарантируем очистку даже при исключении
                         # контекстные менеджеры вызовут __exit__, но явно указываем на важность
-                        pass
+                        logger.debug("Завершена очистка ресурсов парсера")
 
             # После успешного парсинга переименовываем временный файл в целевой
 
@@ -1370,7 +1384,8 @@ class ParallelCityParser:
                 # Fallback для перемещения между разными файловыми системами
                 # shutil.move не атомарен, но работает跨 файловых систем
                 self.log(
-                    f"Не удалось переименовать файл (OSError): {replace_error}. Используем shutil.move",
+                    f"Не удалось переименовать файл (OSError): {replace_error}. "
+                    f"Используем shutil.move",
                     "debug",
                 )
                 try:
@@ -1419,7 +1434,8 @@ class ParallelCityParser:
 
         except TimeoutError as timeout_error:
             self.log(
-                f"Таймаут парсинга {city_name} - {category_name} ({self.timeout_per_url} сек): {timeout_error}",
+                f"Таймаут парсинга {city_name} - {category_name} "
+                f"({self.timeout_per_url} сек): {timeout_error}",
                 "error",
             )
 
@@ -1566,8 +1582,8 @@ class ParallelCityParser:
                             f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...",
                             "warning",
                         )
-                except OSError:
-                    pass
+                except OSError as e:
+                    self.log(f"Ошибка проверки lock файла: {e}", "debug")
 
             # Пытаемся получить блокировку с таймаутом
             start_time = time.time()
@@ -1664,8 +1680,6 @@ class ParallelCityParser:
         category_name = self._extract_category_from_filename(csv_file)
 
         # Читаем исходный файл с увеличенной буферизацией
-        import csv
-
         with open(
             csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size
         ) as infile:
@@ -1912,7 +1926,8 @@ class ParallelCityParser:
                 # Fallback для перемещения между разными файловыми системами
                 # shutil.move не атомарен, но работает跨 файловых систем
                 self.log(
-                    f"Не удалось переименовать файл (OSError): {replace_error}. Используем shutil.move",
+                    f"Не удалось переименовать файл (OSError): {replace_error}. "
+                    f"Используем shutil.move",
                     "debug",
                 )
                 try:
@@ -2106,7 +2121,8 @@ class ParallelCityParser:
                 except FuturesTimeoutError:
                     failed_count += 1
                     self.log(
-                        f"❌ Таймаут при парсинге {city_name} - {category_name} ({self.timeout_per_url} сек)",
+                        f"❌ Таймаут при парсинге {city_name} - {category_name} "
+                        f"({self.timeout_per_url} сек)",
                         "error",
                     )
 

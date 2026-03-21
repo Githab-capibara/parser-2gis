@@ -740,34 +740,66 @@ def _is_profile_in_use(profile_path: Path) -> bool:
         True если профиль используется активным процессом, False иначе.
     """
     try:
-        # Пытаемся получить список процессов Chrome
-        import subprocess
+        # Пытаемся использовать psutil для кроссплатформенной проверки
+        try:
+            import psutil
 
-        # Получаем список всех процессов Chrome
-        result = subprocess.run(
-            ["ps", "aux"], capture_output=True, text=True, timeout=5
-        )
+            profile_str = str(profile_path)
+            for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+                try:
+                    cmdline = proc.info.get("cmdline") or []
+                    name = proc.info.get("name") or ""
+                    if "chrome" in name.lower():
+                        cmdline_str = " ".join(cmdline)
+                        if profile_str in cmdline_str:
+                            app_logger.debug(
+                                "Профиль используется процессом Chrome PID %d",
+                                proc.info["pid"],
+                            )
+                            return True
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            return False
+        except ImportError:
+            # Fallback для систем без psutil: используем subprocess (Unix)
+            import subprocess
+            import sys
 
-        # Проверяем, есть ли процессы с этим профилем
-        profile_str = str(profile_path)
-        for line in result.stdout.splitlines():
-            if profile_str in line and "chrome" in line.lower():
-                # Проверяем, что это не наш процесс
-                parts = line.split()
-                if len(parts) >= 2:
-                    try:
-                        pid = int(parts[1])
-                        # Проверяем, существует ли процесс
-                        os.kill(pid, 0)  # Сигнал 0 проверяет существование процесса
-                        app_logger.debug(
-                            "Профиль используется процессом Chrome PID %d", pid
-                        )
+            # Проверяем платформу
+            if sys.platform == "win32":
+                # Windows: используем tasklist
+                result = subprocess.run(
+                    ["tasklist", "/V", "/FO", "CSV"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                profile_str = str(profile_path)
+                for line in result.stdout.splitlines():
+                    if profile_str in line and "chrome" in line.lower():
+                        app_logger.debug("Профиль используется процессом Chrome")
                         return True
-                    except (ValueError, ProcessLookupError, PermissionError):
-                        # Процесс не существует или нет прав
-                        continue
+            else:
+                # Unix-like: используем ps aux
+                result = subprocess.run(
+                    ["ps", "aux"], capture_output=True, text=True, timeout=5
+                )
+                profile_str = str(profile_path)
+                for line in result.stdout.splitlines():
+                    if profile_str in line and "chrome" in line.lower():
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            try:
+                                pid = int(parts[1])
+                                os.kill(pid, 0)
+                                app_logger.debug(
+                                    "Профиль используется процессом Chrome PID %d", pid
+                                )
+                                return True
+                            except (ValueError, ProcessLookupError, PermissionError):
+                                continue
 
-        return False
+            return False
 
     except Exception as e:
         # При ошибке проверки считаем что профиль не используется
