@@ -15,10 +15,10 @@ from __future__ import annotations
 import queue
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import psutil
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .logger import logger
 

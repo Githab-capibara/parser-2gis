@@ -12,14 +12,13 @@ from __future__ import annotations
 
 import gc
 import json
+import random
 import re
 import threading
 import time
 import urllib.parse
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-
-import random
 
 try:
     import psutil

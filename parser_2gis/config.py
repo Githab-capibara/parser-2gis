@@ -10,9 +10,9 @@ from __future__ import annotations
 import json
 import pathlib
 import shutil
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Set
 
-from copy import deepcopy
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from .chrome import ChromeOptions

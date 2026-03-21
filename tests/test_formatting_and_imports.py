@@ -11,12 +11,12 @@
 Все тесты помечены маркером @pytest.mark.formatting
 """
 
+import ast
 import subprocess
 import sys
 from pathlib import Path
 from typing import List, Tuple
 
-import ast
 import pytest
 
 # =============================================================================

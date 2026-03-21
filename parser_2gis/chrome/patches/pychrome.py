@@ -8,9 +8,9 @@
 
 import json
 import logging
+import warnings
 
 import pychrome.tab
-import warnings
 import websocket
 
 pychrome_logger = logging.getLogger("pychrome")

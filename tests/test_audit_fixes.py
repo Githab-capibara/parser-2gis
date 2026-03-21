@@ -31,8 +31,8 @@ class TestTuiAppMaxWorkers:
 
         Ошибка: max_workers брался из config.parser, должен из config.parallel.max_workers.
         """
-        from parser_2gis.tui_textual.app import TUIApp
         from parser_2gis.config import Configuration
+        from parser_2gis.tui_textual.app import TUIApp
 
         # Создаем мок конфигурации
         mock_config = MagicMock(spec=Configuration)
@@ -58,8 +58,8 @@ class TestTuiAppMaxWorkers:
 
         Должно использоваться значение по умолчанию 10, если атрибут отсутствует.
         """
-        from parser_2gis.tui_textual.app import TUIApp
         from parser_2gis.config import Configuration
+        from parser_2gis.tui_textual.app import TUIApp
 
         # Создаем мок конфигурации без parallel.max_workers
         mock_config = MagicMock(spec=Configuration)
@@ -77,8 +77,8 @@ class TestTuiAppMaxWorkers:
         """
         Тест 1.3: Проверка, что max_workers не берется из config.parser.
         """
-        from parser_2gis.tui_textual.app import TUIApp
         from parser_2gis.config import Configuration
+        from parser_2gis.tui_textual.app import TUIApp
 
         # Создаем мок конфигурации
         mock_config = MagicMock(spec=Configuration)

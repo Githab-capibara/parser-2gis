@@ -15,7 +15,6 @@ import sys
 import time
 from typing import List
 
-
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 

@@ -12,6 +12,7 @@
 7. Тесты на type: ignore комментарии
 """
 
+import ast
 import re
 import subprocess
 import sys
@@ -20,7 +21,6 @@ from pathlib import Path
 from typing import List, Tuple
 from unittest.mock import MagicMock, patch
 
-import ast
 import pytest
 
 # Добавляем путь к пакету

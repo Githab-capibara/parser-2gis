@@ -10,11 +10,11 @@
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-import ast
 import pytest
 
 # Пути к файлам проекта

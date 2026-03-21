@@ -7,8 +7,9 @@
 - Корректность конфигурации и валидации
 """
 
-import pytest
 from concurrent.futures import ThreadPoolExecutor
+
+import pytest
 
 from parser_2gis.common import unwrap_dot_dict, wait_until_finished
 from parser_2gis.config import Configuration, ParserOptions, WriterOptions
