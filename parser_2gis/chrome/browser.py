@@ -214,6 +214,26 @@ class ChromeBrowser:
             raise
 
     def __init__(self, chrome_options: ChromeOptions) -> None:
+        """Инициализирует браузер Chrome с заданными опциями.
+
+        Создаёт временный профиль, получает свободный порт и запускает браузер.
+        Использует гарантированную очистку ресурсов через finally блок.
+
+        Args:
+            chrome_options: Опции для настройки браузера Chrome.
+
+        Raises:
+            ChromeException: При ошибке инициализации браузера.
+            FileNotFoundError: Если браузер не найден.
+            PermissionError: Если браузер не имеет прав на выполнение.
+
+        Пример:
+            >>> options = ChromeOptions()
+            >>> options.headless = True
+            >>> browser = ChromeBrowser(options)
+            >>> print(browser.remote_port)
+            9222
+        """
         # Инициализируем переменные для гарантии очистки в finally
         self._profile_tempdir: Optional[tempfile.TemporaryDirectory] = None
         self._profile_path: Optional[str] = None

@@ -20,6 +20,7 @@ from __future__ import annotations
 import ipaddress
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -44,6 +45,7 @@ class ValidationResult:
 # =============================================================================
 
 
+@lru_cache(maxsize=1024)
 def validate_url(url: str) -> ValidationResult:
     """Валидирует URL на корректность формата и безопасность.
 
@@ -66,6 +68,10 @@ def validate_url(url: str) -> ValidationResult:
         ...     print(f"URL валиден: {result.value}")
         ... else:
         ...     print(f"Ошибка: {result.error}")
+
+    Примечание:
+        Результаты валидации кэшируются с помощью lru_cache (maxsize=1024)
+        для ускорения повторных проверок тех же URL.
     """
     # Проверка максимальной длины URL (2048 символов - стандартный лимит)
     if len(url) > 2048:
@@ -151,6 +157,19 @@ def is_valid_url(url: str) -> bool:
     """
     result = validate_url(url)
     return result.is_valid
+
+
+def clear_url_cache() -> None:
+    """Очищает кэш валидации URL.
+
+    Используется для сброса кэша lru_cache при необходимости
+    повторной валидации ранее проверенных URL.
+
+    Example:
+        >>> validate_url("https://2gis.ru/moscow")
+        >>> clear_url_cache()  # Очищает кэш
+    """
+    validate_url.cache_clear()
 
 
 # =============================================================================

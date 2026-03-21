@@ -65,6 +65,16 @@ EXPONENTIAL_BACKOFF_MULTIPLIER: float = 2
 # Превышение может указывать на DoS атаку или некорректные данные
 MAX_DATA_SIZE: int = 10 * 1024 * 1024  # 10 MB
 
+# Максимальная глубина вложенности структур данных
+# ОБОСНОВАНИЕ: 100 уровней достаточно для любых реальных данных
+# Превышение может указывать на циклические ссылки или атаку
+MAX_DATA_DEPTH: int = 100
+
+# Максимальное количество элементов в коллекциях
+# ОБОСНОВАНИЕ: 100,000 элементов достаточно для обработки
+# Превышение может привести к MemoryError
+MAX_COLLECTION_SIZE: int = 100000
+
 # =============================================================================
 # ГЛОБАЛЬНЫЕ КОНСТАНТЫ БУФЕРИЗАЦИИ
 # =============================================================================
@@ -245,7 +255,10 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     - Переписано на итеративный подход с явным стеком вместо рекурсии
     - Предотвращает RecursionError при обработке глубоко вложенных структур
     - Добавлена проверка максимального размера данных перед обработкой (MAX_DATA_SIZE = 10MB)
-    - Выбрасывает ValueError с понятным сообщением при превышении лимита
+    - Добавлена проверка максимальной глубины вложенности (MAX_DATA_DEPTH = 100)
+    - Добавлена проверка максимального размера коллекций (MAX_COLLECTION_SIZE = 100,000)
+    - Выбрасывает ValueError с понятным сообщением при превышении лимитов
+    - Обработка MemoryError добавлена во все критические секции
 
     Args:
         value: Значение для очистки.
@@ -255,7 +268,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
         Очищенное значение или '<REDACTED>' для чувствительных данных.
 
     Raises:
-        ValueError: Если размер данных превышает MAX_DATA_SIZE.
+        ValueError: Если размер данных превышает MAX_DATA_SIZE или глубина превышает MAX_DATA_DEPTH.
         MemoryError: При критической нехватке памяти.
     """
     # _visited теперь локальная переменная, а не параметр функции
@@ -287,16 +300,45 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
 
     try:
         # Используем явный стек для итеративной обработки вместо рекурсии
-        # Формат: (значение, ключ, родитель, ключ_в_родителе)
-        stack: List[tuple] = [(value, key, None, None)]
+        # Формат: (значение, ключ, родитель, ключ_в_родителе, глубина)
+        # Добавлена глубина для контроля вложенности
+        stack: List[tuple] = [(value, key, None, None, 0)]
 
         # Словарь для хранения результатов обработки
         results: Dict[int, Any] = {}
 
+        # Счётчик обработанных элементов для защиты от чрезмерной обработки
+        processed_count = 0
+
         while stack:
             try:
-                current_value, current_key, parent, parent_key = stack.pop()
+                current_value, current_key, parent, parent_key, current_depth = stack.pop()
                 current_id = id(current_value)
+
+                # Проверка максимальной глубины вложенности
+                if current_depth > MAX_DATA_DEPTH:
+                    logger.error(
+                        "Глубина вложенности превышает максимальную: %d (максимум: %d)",
+                        current_depth,
+                        MAX_DATA_DEPTH,
+                    )
+                    raise ValueError(
+                        f"Глубина вложенности данных ({current_depth}) превышает максимальную "
+                        f"({MAX_DATA_DEPTH}). Это может указывать на циклические ссылки или атаку."
+                    )
+
+                # Проверка количества обработанных элементов
+                processed_count += 1
+                if processed_count > MAX_COLLECTION_SIZE:
+                    logger.error(
+                        "Количество обработанных элементов превышает максимальное: %d (максимум: %d)",
+                        processed_count,
+                        MAX_COLLECTION_SIZE,
+                    )
+                    raise ValueError(
+                        f"Количество обработанных элементов ({processed_count}) превышает "
+                        f"максимальное ({MAX_COLLECTION_SIZE}). Это может указывать на атаку."
+                    )
 
                 # Используем выделенную функцию для проверки типа и чувствительности
                 handled, _ = _check_value_type_and_sensitivity(
@@ -343,6 +385,18 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                     continue
 
                 if isinstance(current_value, dict):
+                    # Проверка размера словаря
+                    if len(current_value) > MAX_COLLECTION_SIZE:
+                        logger.error(
+                            "Размер словаря превышает максимальный: %d (максимум: %d)",
+                            len(current_value),
+                            MAX_COLLECTION_SIZE,
+                        )
+                        raise ValueError(
+                            f"Размер словаря ({len(current_value)}) превышает максимальный "
+                            f"({MAX_COLLECTION_SIZE})."
+                        )
+
                     # Создаём новый словарь для результата
                     new_dict: Dict[str, Any] = {}
                     if parent is not None and parent_key is not None:
@@ -354,10 +408,24 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                         results[current_id] = new_dict
 
                     # Добавляем элементы в стек в обратном порядке для сохранения порядка
+                    # Увеличиваем глубину на 1
+                    next_depth = current_depth + 1
                     for k, v in reversed(list(current_value.items())):
-                        stack.append((v, k, new_dict, k))
+                        stack.append((v, k, new_dict, k, next_depth))
 
                 elif isinstance(current_value, list):
+                    # Проверка размера списка
+                    if len(current_value) > MAX_COLLECTION_SIZE:
+                        logger.error(
+                            "Размер списка превышает максимальный: %d (максимум: %d)",
+                            len(current_value),
+                            MAX_COLLECTION_SIZE,
+                        )
+                        raise ValueError(
+                            f"Размер списка ({len(current_value)}) превышает максимальный "
+                            f"({MAX_COLLECTION_SIZE})."
+                        )
+
                     # Создаём новый список нужного размера
                     new_list: List[Any] = [None] * len(current_value)
                     if parent is not None and parent_key is not None:
@@ -369,8 +437,10 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                         results[current_id] = new_list
 
                     # Добавляем элементы в стек в обратном порядке для сохранения порядка
+                    # Увеличиваем глубину на 1
+                    next_depth = current_depth + 1
                     for i in reversed(range(len(current_value))):
-                        stack.append((current_value[i], None, new_list, i))
+                        stack.append((current_value[i], None, new_list, i, next_depth))
 
             except MemoryError as mem_error:
                 logger.critical(
@@ -380,11 +450,15 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                     "Нехватка памяти при очистке данных. "
                     "Данные слишком большие для обработки в памяти."
                 ) from mem_error
+            except ValueError:
+                # Пробрасываем ValueError без изменений
+                raise
             except Exception as step_error:
                 logger.error(
-                    "Ошибка при обработке шага (тип: %s, ключ: %s): %s",
+                    "Ошибка при обработке шага (тип: %s, ключ: %s, глубина: %s): %s",
                     type(current_value).__name__,
                     current_key,
+                    current_depth,
                     step_error,
                     exc_info=True,
                 )
@@ -405,6 +479,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
             "Рекомендуется уменьшить размер входных данных."
         ) from memory_error
     except ValueError:
+        # Пробрасываем ValueError без изменений
         raise
     except Exception as processing_error:
         logger.error(
