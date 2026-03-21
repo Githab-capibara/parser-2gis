@@ -13,6 +13,35 @@
 - @pytest.mark.unit для юнит-тестов
 """
 
+import os
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+
+from parser_2gis.cache import (
+    CONNECTION_MAX_AGE,
+    DEFAULT_BATCH_SIZE,
+    LRU_EVICT_BATCH,
+    MAX_BATCH_SIZE,
+    MAX_CACHE_SIZE_MB,
+    MAX_POOL_SIZE,
+    MAX_STRING_LENGTH,
+    MIN_POOL_SIZE,
+    SHA256_HASH_LENGTH,
+)
+from parser_2gis.common import (
+    CSV_BATCH_SIZE,
+    DEFAULT_BUFFER_SIZE,
+    DEFAULT_POLL_INTERVAL,
+    EXPONENTIAL_BACKOFF_MULTIPLIER,
+    MAX_COLLECTION_SIZE,
+    MAX_DATA_DEPTH as COMMON_MAX_DATA_DEPTH,
+    MAX_DATA_SIZE,
+    MAX_POLL_INTERVAL,
+    MERGE_BATCH_SIZE,
+)
 from parser_2gis.parallel_parser import (
     DEFAULT_TIMEOUT,
     MAX_LOCK_FILE_AGE,
@@ -25,34 +54,6 @@ from parser_2gis.parallel_parser import (
     ORPHANED_TEMP_FILE_AGE,
     TEMP_FILE_CLEANUP_INTERVAL,
 )
-from parser_2gis.common import MAX_DATA_DEPTH as COMMON_MAX_DATA_DEPTH
-from parser_2gis.common import (
-    CSV_BATCH_SIZE,
-    DEFAULT_BUFFER_SIZE,
-    DEFAULT_POLL_INTERVAL,
-    EXPONENTIAL_BACKOFF_MULTIPLIER,
-    MAX_COLLECTION_SIZE,
-    MAX_DATA_SIZE,
-    MAX_POLL_INTERVAL,
-    MERGE_BATCH_SIZE,
-)
-from parser_2gis.cache import (
-    CONNECTION_MAX_AGE,
-    DEFAULT_BATCH_SIZE,
-    LRU_EVICT_BATCH,
-    MAX_BATCH_SIZE,
-    MAX_CACHE_SIZE_MB,
-    MAX_POOL_SIZE,
-    MAX_STRING_LENGTH,
-    MIN_POOL_SIZE,
-    SHA256_HASH_LENGTH,
-)
-import os
-import sys
-from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

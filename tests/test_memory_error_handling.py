@@ -14,14 +14,15 @@
 - @pytest.mark.integration для интеграционных тестов
 """
 
-from parser_2gis.common import _sanitize_value
-from parser_2gis.cache import CacheManager, _ConnectionPool, _deserialize_json, _serialize_json
 import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+from parser_2gis.cache import CacheManager, _ConnectionPool, _deserialize_json, _serialize_json
+from parser_2gis.common import _sanitize_value
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

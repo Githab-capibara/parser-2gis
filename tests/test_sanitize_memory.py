@@ -11,13 +11,14 @@
 - Итеративный подход вместо рекурсии
 """
 
-from parser_2gis.common import MAX_COLLECTION_SIZE, MAX_DATA_DEPTH, _sanitize_value
 import os
 import sys
 from typing import Any, Dict, List
 from unittest.mock import patch
 
 import pytest
+
+from parser_2gis.common import MAX_COLLECTION_SIZE, MAX_DATA_DEPTH, _sanitize_value
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

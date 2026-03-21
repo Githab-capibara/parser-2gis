@@ -10,7 +10,6 @@
 - Конкурентный доступ к соединениям
 """
 
-from parser_2gis.cache import _ConnectionPool
 import os
 import sqlite3
 import sys
@@ -22,6 +21,8 @@ from unittest.mock import patch
 
 import pytest
 from concurrent.futures import ThreadPoolExecutor
+
+from parser_2gis.cache import _ConnectionPool
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

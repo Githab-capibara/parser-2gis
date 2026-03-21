@@ -7,6 +7,9 @@
 Файлы: parser_2gis/chrome/remote.py
 """
 
+import os
+import sys
+
 from parser_2gis.chrome.remote import (
     _check_array_and_regexp,
     _check_base64_functions,
@@ -21,8 +24,6 @@ from parser_2gis.chrome.remote import (
     _check_string_conversion_functions,
     _validate_js_code,
 )
-import os
-import sys
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

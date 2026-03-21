@@ -14,15 +14,12 @@ import csv
 import json
 import os
 import sys
-import tempfile
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from typing import List
-from unittest.mock import MagicMock, patch
 
 import pytest
+from concurrent.futures import ThreadPoolExecutor
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

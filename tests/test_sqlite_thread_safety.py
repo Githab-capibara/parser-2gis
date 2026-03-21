@@ -14,17 +14,18 @@
 - @pytest.mark.integration для интеграционных тестов
 """
 
-from parser_2gis.cache import CacheManager
 import os
 import sqlite3
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Dict, List
 
 import pytest
+from concurrent.futures import ThreadPoolExecutor
+
+from parser_2gis.cache import CacheManager
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

@@ -14,14 +14,6 @@
 - @pytest.mark.integration для интеграционных тестов
 """
 
-from parser_2gis.parallel_parser import (
-    _cleanup_all_temp_files,
-    _register_temp_file,
-    _temp_files_lock,
-    _temp_files_registry,
-    _TempFileTimer,
-    _unregister_temp_file,
-)
 import os
 import sys
 import threading
@@ -30,6 +22,15 @@ from pathlib import Path
 from typing import List
 
 import pytest
+
+from parser_2gis.parallel_parser import (
+    _cleanup_all_temp_files,
+    _register_temp_file,
+    _temp_files_lock,
+    _temp_files_registry,
+    _TempFileTimer,
+    _unregister_temp_file,
+)
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

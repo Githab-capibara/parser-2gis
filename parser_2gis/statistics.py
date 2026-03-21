@@ -6,13 +6,14 @@
 - Добавлен logger для предупреждений о переполнении счётчиков
 """
 
-import html as html_module
 import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+import html as html_module
 
 # Получаем логгер модуля
 logger = logging.getLogger(__name__)

@@ -736,7 +736,18 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
     # ИСПРАВЛЕНИЕ 5: Нормализуем Unicode для предотвращения обходов через Unicode эскейпы
     import unicodedata
 
+    # Сначала нормализуем Unicode (NFKC)
     normalized_code = unicodedata.normalize("NFKC", code)
+
+    # Затем декодируем Unicode эскейпы (\u0065 -> e)
+    try:
+        # Декодируем \uXXXX и \xXX эскейпы
+        normalized_code = (
+            normalized_code.encode("utf-8").decode("unicode_escape").encode("utf-8").decode("utf-8")
+        )
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        # Если декодирование не удалось, используем нормализованный код
+        pass
 
     # Проверка на None
     if normalized_code is None:
