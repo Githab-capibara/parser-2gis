@@ -698,43 +698,45 @@ def patch_argparse_translations() -> None:
     argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore
 
 
-def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespace, Configuration]:
-    """Парсит аргументы командной строки.
+def _normalize_argv(argv: list[str]) -> list[str]:
+    """Нормализует аргументы командной строки: приводит флаги к нижнему регистру.
 
     Args:
-        argv: Список аргументов для парсинга (по умолчанию sys.argv[1:]).
-              Используется для тестирования.
+        argv: Исходный список аргументов.
 
     Returns:
-        Кортеж из аргументов командной строки и конфигурации.
+        Нормализованный список аргументов.
 
-    Raises:
-        SystemExit: При отсутствии обязательных аргументов.
+    Примечание:
+        - Флаги (начинающиеся с -) приводятся к нижнему регистру
+        - Значения флагов yes/no/true/false приводятся к нижнему регистру
+        - URL, пути и другие значения не изменяются
     """
-    # Преобразуем флаги в нижний регистр для поддержки верхнего регистра
-    # Создаём копию argv вместо модификации оригинального списка
-    # Приводим к нижнему регистру только флаги (начинающиеся с -), не значения
-    if argv is None:
-        argv = sys.argv[1:]
-        # Для sys.argv используем [1:] так как первый элемент это имя программы
-
     argv_copy = []
     for i, arg in enumerate(argv):
         if arg.startswith("-"):
-            # Это флаг - приводим к нижнему регистру
             argv_copy.append(arg.lower())
         elif i > 0 and argv[i - 1].startswith("-"):
-            # Это значение флага - приводим к нижнему регистру только если это похоже на yes/no
-            # Не трогаем URL, пути и другие значения
             if arg.lower() in ("yes", "no", "true", "false"):
                 argv_copy.append(arg.lower())
             else:
                 argv_copy.append(arg)
         else:
-            # Это позиционный аргумент или значение - не трогаем
             argv_copy.append(arg)
+    return argv_copy
 
-    patch_argparse_translations()  # Патчим переводы
+
+def _create_argument_parser() -> argparse.ArgumentParser:
+    """Создаёт и настраивает парсер аргументов командной строки.
+
+    Returns:
+        Настроенный экземпляр ArgumentParser со всеми группами аргументов.
+
+    Примечание:
+        Функция выделяет логику создания парсера из parse_arguments
+        для уменьшения цикломатической сложности и улучшения читаемости.
+    """
+    patch_argparse_translations()
     arg_parser = argparse.ArgumentParser(
         prog="Parser2GIS",
         description="Парсер данных сайта 2GIS",
@@ -743,10 +745,8 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         argument_default=argparse.SUPPRESS,
     )
 
-    main_parser_name = "Обязательные аргументы"
-
-    main_parser = arg_parser.add_argument_group(main_parser_name)
-    # URL не обязателен, если указаны --cities с --categories-mode
+    # Группа: Обязательные аргументы
+    main_parser = arg_parser.add_argument_group("Обязательные аргументы")
     main_parser.add_argument(
         "-i", "--url", nargs="+", default=None, required=False, help="URL с выдачей"
     )
@@ -787,14 +787,13 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         help="Формат результирующего файла",
     )
 
+    # Группа: Аргументы браузера
     browser_parser = arg_parser.add_argument_group("Аргументы браузера")
     browser_parser.add_argument(
-        "--chrome.binary_path",
-        metavar="PATH",
-        help="Путь до исполняемого файла браузера. Если не указан, то определяется автоматически",
+        "--chrome.binary_path", metavar="PATH", help="Путь до исполняемого файла браузера"
     )
     browser_parser.add_argument(
-        "--chrome.disable-images", metavar="{yes,no}", help="Отключить изображения в браузере"
+        "--chrome.disable-images", metavar="{yes,no}", help="Отключить изображения"
     )
     browser_parser.add_argument("--chrome.headless", metavar="{yes/no}", help="Скрыть браузер")
     browser_parser.add_argument(
@@ -803,175 +802,142 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         help="Отключить отладочную информацию браузера",
     )
     browser_parser.add_argument(
-        "--chrome.start-maximized", metavar="{yes/no}", help="Запустить окно браузера развёрнутым"
+        "--chrome.start-maximized", metavar="{yes/no}", help="Запустить развёрнутым"
     )
     browser_parser.add_argument(
-        "--chrome.memory-limit",
-        metavar="{4096,5120,...}",
-        help="Лимит оперативной памяти браузера (мегабайт)",
+        "--chrome.memory-limit", metavar="{4096,5120,...}", help="Лимит памяти браузера (МБ)"
     )
     browser_parser.add_argument(
         "--chrome.startup-delay",
         type=float,
         metavar="{0,1,2,...}",
-        help="Задержка запуска браузера в секундах (по умолчанию: 0)",
+        help="Задержка запуска браузера (секунды)",
     )
 
+    # Группа: Аргументы CSV/XLSX
     csv_parser = arg_parser.add_argument_group("Аргументы CSV/XLSX")
     csv_parser.add_argument(
         "--writer.csv.add-rubrics", metavar="{yes/no}", help='Добавить колонку "Рубрики"'
     )
     csv_parser.add_argument(
-        "--writer.csv.add-comments",
-        metavar="{yes/no}",
-        help="Добавлять комментарии к ячейкам Телефон, E-Mail, и т.д.",
+        "--writer.csv.add-comments", metavar="{yes/no}", help="Добавлять комментарии к ячейкам"
     )
     csv_parser.add_argument(
         "--writer.csv.columns-per-entity",
         metavar="{1,2,3,...}",
-        help="Количество колонок для результата с несколькими возможными значениями: "
-        "Телефон_1, Телефон_2, и т.д.",
+        help="Количество колонок для множественных значений",
     )
     csv_parser.add_argument(
-        "--writer.csv.remove-empty-columns",
-        metavar="{yes/no}",
-        help="Удалить пустые колонки по завершению работы парсера",
+        "--writer.csv.remove-empty-columns", metavar="{yes/no}", help="Удалить пустые колонки"
     )
     csv_parser.add_argument(
-        "--writer.csv.remove-duplicates",
-        metavar="{yes/no}",
-        help="Удалить повторяющиеся записи по завершению работы парсера",
+        "--writer.csv.remove-duplicates", metavar="{yes/no}", help="Удалить дубликаты записей"
     )
     csv_parser.add_argument(
-        "--writer.csv.join_char",
-        metavar="{; ,% ,...}",
-        help="Разделитель для комплексных значений ячеек Рубрики, Часы работы",
+        "--writer.csv.join_char", metavar="{; ,% ,...}", help="Разделитель для комплексных значений"
     )
 
+    # Группа: Аргументы парсера
     p_parser = arg_parser.add_argument_group("Аргументы парсера")
-    p_parser.add_argument(
-        "--parser.use-gc",
-        metavar="{yes/no}",
-        help="Включить сборщик мусора - сдерживает быстрое заполнение RAM, "
-        "уменьшает скорость парсинга",
-    )
+    p_parser.add_argument("--parser.use-gc", metavar="{yes/no}", help="Включить сборщик мусора")
     p_parser.add_argument(
         "--parser.gc-pages-interval",
         type=int,
         metavar="{5,10,...}",
-        help="Запуск сборщика мусора каждую N-ую страницу результатов (если сборщик включен)",
+        help="Запуск GC каждую N-ую страницу",
     )
     p_parser.add_argument(
-        "--parser.max-records",
-        type=int,
-        metavar="{1000,2000,...}",
-        help="Максимальное количество спарсенных записей с одного URL",
+        "--parser.max-records", type=int, metavar="{1000,2000,...}", help="Максимум записей с URL"
     )
     p_parser.add_argument(
-        "--parser.skip-404-response",
-        metavar="{yes/no}",
-        help='Пропускать ссылки вернувшие сообщение "Точных совпадений нет / Не найдено"',
+        "--parser.skip-404-response", metavar="{yes/no}", help="Пропускать 404 ответы"
     )
     p_parser.add_argument(
-        "--parser.stop-on-first-404",
-        metavar="{yes/no}",
-        help="Останавливать парсинг немедленно при первом 404 ответе (по умолчанию: no)",
+        "--parser.stop-on-first-404", metavar="{yes/no}", help="Останавливать при первом 404"
     )
     p_parser.add_argument(
         "--parser.max-consecutive-empty-pages",
         type=int,
         metavar="{2,3,5,...}",
-        help="Максимальное количество подряд пустых страниц перед остановкой (по умолчанию: 3)",
+        help="Максимум пустых страниц подряд",
     )
     p_parser.add_argument(
         "--parser.delay-between-clicks",
         type=int,
         metavar="{0,100,...}",
-        help="Задержка между кликами по записям (миллисекунд)",
+        help="Задержка между кликами (мс)",
     )
     p_parser.add_argument(
-        "--parser.max-retries",
-        type=int,
-        metavar="{1,2,3,...}",
-        help="Максимальное количество повторных попыток при ошибках сети (по умолчанию: 3)",
+        "--parser.max-retries", type=int, metavar="{1,2,3,...}", help="Максимум повторных попыток"
     )
     p_parser.add_argument(
-        "--parser.retry-on-network-errors",
-        metavar="{yes/no}",
-        help="Выполнять повторные попытки при ошибках сети: 502, 503, 504, TimeoutError "
-        "(по умолчанию: yes)",
+        "--parser.retry-on-network-errors", metavar="{yes/no}", help="Повтор при ошибках сети"
     )
     p_parser.add_argument(
         "--parser.retry-delay-base",
         type=int,
         metavar="{1,2,3,...}",
-        help="Базовая задержка между повторными попытками в секундах (по умолчанию: 1)",
+        help="Базовая задержка повтора (сек)",
     )
     p_parser.add_argument(
         "--parser.memory-threshold",
         type=int,
         metavar="{512,1024,2048,...}",
-        help="Порог использования памяти в МБ для автоматической очистки (по умолчанию: 2048)",
+        help="Порог памяти (МБ)",
     )
     p_parser.add_argument(
-        "--parser.timeout",
-        type=int,
-        metavar="{1,2,3,...}",
-        help="Таймаут на один URL в секундах (по умолчанию: 300)",
+        "--parser.timeout", type=int, metavar="{1,2,3,...}", help="Таймаут на URL (сек)"
     )
     p_parser.add_argument(
-        "--parser.max-workers",
-        type=int,
-        metavar="{1,2,3,...}",
-        help="Максимальное количество одновременных работников (по умолчанию: 10)",
+        "--parser.max-workers", type=int, metavar="{1,2,3,...}", help="Максимум работников"
     )
     p_parser.add_argument(
-        "--parallel.max-workers",
-        type=int,
-        default=10,
-        help="Количество одновременных потоков для параллельного парсинга (по умолчанию: 10)",
+        "--parallel.max-workers", type=int, default=10, help="Потоков для параллельного парсинга"
     )
 
+    # Группа: Прочие аргументы
     other_parser = arg_parser.add_argument_group("Прочие аргументы")
     other_parser.add_argument(
-        "--writer.verbose",
-        metavar="{yes/no}",
-        help="Отображать наименования позиций во время парсинга",
+        "--writer.verbose", metavar="{yes/no}", help="Отображать позиции при парсинге"
     )
     other_parser.add_argument(
-        "--writer.encoding", metavar="{utf8,1251,...}", help="Кодировка результирующего файла"
+        "--writer.encoding", metavar="{utf8,1251,...}", help="Кодировка файла"
     )
     other_parser.add_argument(
         "--tui-new",
-        "--tui",  # Алиас для совместимости
+        "--tui",
         action="store_true",
         dest="tui_new",
         default=False,
-        help="Запустить новый TUI интерфейс на Textual (алиас: --tui)",
+        help="Запустить TUI интерфейс",
     )
     other_parser.add_argument(
-        "--tui-new-omsk",
-        action="store_true",
-        default=False,
-        help="Запустить новый TUI интерфейс с автоматическим парсингом Омска "
-        "(10 потоков, 93 категории)",
+        "--tui-new-omsk", action="store_true", default=False, help="TUI с парсингом Омска"
     )
 
+    # Группа: Служебные аргументы
     rest_parser = arg_parser.add_argument_group("Служебные аргументы")
     rest_parser.add_argument(
-        "-v",
-        "--version",
-        action="version",
-        version=f"%(prog)s {version}",
-        help="Показать версию программы и выйти",
+        "-v", "--version", action="version", version=f"%(prog)s {version}", help="Показать версию"
     )
-    rest_parser.add_argument("-h", "--help", action="help", help="Показать эту справку и выйти")
+    rest_parser.add_argument("-h", "--help", action="help", help="Показать справку")
 
-    args = arg_parser.parse_args(argv_copy)
-    config_args = unwrap_dot_dict(vars(args))
+    return arg_parser
 
-    # Валидация числовых CLI аргументов перед инициализацией конфигурации
-    # ЛИМИТЫ ОТКЛЮЧЕНЫ - устанавливаем максимально возможные значения
+
+def _validate_cli_numeric_arguments(
+    args: argparse.Namespace, arg_parser: argparse.ArgumentParser
+) -> None:
+    """Валидирует числовые CLI аргументы.
+
+    Args:
+        args: Аргументы командной строки.
+        arg_parser: Парсер для вывода ошибок.
+
+    Примечание:
+        Валидирует: parser.max_retries, timeout, max_workers,
+        chrome.startup_delay, memory_limit, и другие числовые параметры.
+    """
     _validate_cli_argument(
         args, arg_parser, "parser.max_retries", 1, float("inf"), "--parser.max-retries"
     )
@@ -979,8 +945,6 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
     _validate_cli_argument(
         args, arg_parser, "parser.max_workers", 1, float("inf"), "--parser.max-workers"
     )
-
-    # ПРИОРИТЕТ 2: Валидация аргументов Chrome
     _validate_cli_argument(
         args,
         arg_parser,
@@ -990,8 +954,6 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         "--chrome.startup-delay",
         convert_to_int=True,
     )
-
-    # ПРИОРИТЕТ 3: Валидация других числовых аргументов
     _validate_cli_argument(
         args, arg_parser, "parser.gc_pages_interval", 1, float("inf"), "--parser.gc-pages-interval"
     )
@@ -1032,25 +994,65 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         "--writer.csv.columns-per-entity",
     )
 
-    # Пропускаем валидацию URL для TUI режимов - там выбор происходит в интерфейсе
+
+def _validate_url_sources(args: argparse.Namespace, arg_parser: argparse.ArgumentParser) -> None:
+    """Валидирует источники URL (URL, cities, categories-mode).
+
+    Args:
+        args: Аргументы командной строки.
+        arg_parser: Парсер для вывода ошибок.
+
+    Примечание:
+        - Проверяет наличие хотя бы одного источника URL (кроме TUI)
+        - Проверяет что --categories-mode требует --cities
+        - Валидирует формат URL
+    """
     is_tui_mode = getattr(args, "tui_new", False) or getattr(args, "tui_new_omsk", False)
 
-    # Ручная валидация: требуется хотя бы один источник URL (кроме TUI режимов)
     if not is_tui_mode:
         has_cities = hasattr(args, "cities") and args.cities is not None
         has_url_source = args.url is not None or has_cities
-        if not has_url_source:
-            arg_parser.error("Требуется указать хотя бы один источник URL: -i/--url или --cities")
 
-        # Валидация: --categories-mode требует --cities
+        if not has_url_source:
+            arg_parser.error("Требуется указать источник URL: -i/--url или --cities")
+
         categories_mode = getattr(args, "categories_mode", False)
         if categories_mode and not has_cities:
             arg_parser.error("--categories-mode требует указания --cities")
 
-    # Валидация URL если они указаны
     _validate_urls(args, arg_parser)
 
-    # Инициализируем конфигурацию аргументами командной строки
+
+def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespace, Configuration]:
+    """Парсит аргументы командной строки.
+
+    Args:
+        argv: Список аргументов (по умолчанию sys.argv[1:]).
+
+    Returns:
+        Кортеж из аргументов и конфигурации.
+
+    Raises:
+        SystemExit: При отсутствии обязательных аргументов.
+
+    Примечание:
+        Функция координирует этапы:
+        1. _normalize_argv() - нормализация аргументов
+        2. _create_argument_parser() - создание парсера
+        3. _validate_cli_numeric_arguments() - валидация чисел
+        4. _validate_url_sources() - валидация URL
+        5. _handle_configuration_validation() - конфигурация
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+
+    argv_copy = _normalize_argv(argv)
+    arg_parser = _create_argument_parser()
+    args = arg_parser.parse_args(argv_copy)
+    config_args = unwrap_dot_dict(vars(args))
+
+    _validate_cli_numeric_arguments(args, arg_parser)
+    _validate_url_sources(args, arg_parser)
     config = _handle_configuration_validation(config_args, arg_parser)
 
     return args, config
