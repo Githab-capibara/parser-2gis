@@ -60,8 +60,7 @@ class TestTempFilesRegistryThreadSafety:
         # Проверяем что все файлы добавлены в реестр
         with _temp_files_lock:
             assert len(_temp_files_registry) == num_threads, (
-                f"Ожидалось {num_threads} файлов в реестре, "
-                f"но найдено {_temp_files_registry}"
+                f"Ожидалось {num_threads} файлов в реестре, но найдено {_temp_files_registry}"
             )
 
             for f in temp_files:
@@ -125,9 +124,7 @@ class TestTempFilesRegistryThreadSafety:
         holder_thread.join(timeout=5)
 
         # Проверяем что timeout сработал
-        assert timeout_occurred.is_set(), (
-            "Timeout не сработал - возможна проблема с блокировкой"
-        )
+        assert timeout_occurred.is_set(), "Timeout не сработал - возможна проблема с блокировкой"
 
     def test_cleanup_removes_all_files(self, tmp_path):
         """

@@ -15,9 +15,7 @@ if TYPE_CHECKING:
 
 
 class AbstractRunner(ABC):
-    def __init__(
-        self, urls: list[str], output_path: str, format: str, config: Configuration
-    ):
+    def __init__(self, urls: list[str], output_path: str, format: str, config: Configuration):
         self._urls = urls
         self._output_path = output_path
         self._format = format

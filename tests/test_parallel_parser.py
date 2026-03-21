@@ -37,9 +37,7 @@ class TestCategories93:
             assert required_keys.issubset(cat.keys()), (
                 f"Категория {i} должна иметь ключи {required_keys}"
             )
-            assert "name" in cat and len(cat["name"]) > 0, (
-                f"Категория {i} должна иметь название"
-            )
+            assert "name" in cat and len(cat["name"]) > 0, f"Категория {i} должна иметь название"
             assert "query" in cat and len(cat["query"]) > 0, (
                 f"Категория {i} должна иметь поисковый запрос"
             )
@@ -90,12 +88,7 @@ class TestGenerateUrlsForCity:
 
     def test_generate_urls_single_category(self):
         """Проверка генерации URL для одной категории."""
-        city = {
-            "code": "moscow",
-            "domain": "ru",
-            "name": "Москва",
-            "country_code": "ru",
-        }
+        city = {"code": "moscow", "domain": "ru", "name": "Москва", "country_code": "ru"}
 
         categories = [{"name": "Кафе", "query": "Кафе", "rubric_code": "161"}]
 
@@ -110,12 +103,7 @@ class TestGenerateUrlsForCity:
 
     def test_generate_urls_multiple_categories(self):
         """Проверка генерации URL для нескольких категорий."""
-        city = {
-            "code": "spb",
-            "domain": "ru",
-            "name": "Санкт-Петербург",
-            "country_code": "ru",
-        }
+        city = {"code": "spb", "domain": "ru", "name": "Санкт-Петербург", "country_code": "ru"}
 
         categories = [
             {"name": "Кафе", "query": "Кафе", "rubric_code": "161"},
@@ -143,12 +131,7 @@ class TestGenerateUrlsForCity:
 
     def test_generate_urls_all_93_categories(self):
         """Проверка генерации URL для всех 93 категорий."""
-        city = {
-            "code": "moscow",
-            "domain": "ru",
-            "name": "Москва",
-            "country_code": "ru",
-        }
+        city = {"code": "moscow", "domain": "ru", "name": "Москва", "country_code": "ru"}
 
         urls = generate_urls_for_city(city, CATEGORIES_93)
 

@@ -53,9 +53,7 @@ class TestCleanupResourcesExceptionHandling:
             side_effect=AttributeError("Mocked AttributeError")
         )
 
-        mock_cache.close_all = MagicMock(
-            side_effect=AttributeError("Mocked Cache AttributeError")
-        )
+        mock_cache.close_all = MagicMock(side_effect=AttributeError("Mocked Cache AttributeError"))
 
         # Вызываем cleanup_resources - не должно выбросить исключение
         try:
@@ -132,9 +130,7 @@ class TestCleanupResourcesExceptionHandling:
                     try:
                         cleanup_resources()
                     except (AttributeError, TypeError):
-                        pytest.fail(
-                            "cleanup_resources должен обрабатывать None значения"
-                        )
+                        pytest.fail("cleanup_resources должен обрабатывать None значения")
 
 
 # =============================================================================
@@ -175,9 +171,7 @@ class TestKeyboardInterruptHandling:
         parser._cancel_event.set()
 
         # Проверяем что флаг установлен
-        assert parser._cancel_event.is_set() is True, (
-            "Флаг отмены должен быть установлен"
-        )
+        assert parser._cancel_event.is_set() is True, "Флаг отмены должен быть установлен"
 
     def test_cancel_pending_tasks(self):
         """
@@ -204,9 +198,7 @@ class TestKeyboardInterruptHandling:
 
         # Проверяем что parse_single_url возвращает False при отмене
         success, message = parser.parse_single_url(
-            url="https://2gis.ru/moscow/search/Кафе",
-            category_name="Кафе",
-            city_name="Москва",
+            url="https://2gis.ru/moscow/search/Кафе", category_name="Кафе", city_name="Москва"
         )
 
         assert success is False, "При отмене задача должна возвращать False"
@@ -239,9 +231,7 @@ class TestKeyboardInterruptHandling:
 
         # URLs должны быть сгенерированы но статистика должна показать 0
         with parser._lock:
-            assert parser._stats["total"] == len(urls), (
-                "Статистика должна быть обновлена"
-            )
+            assert parser._stats["total"] == len(urls), "Статистика должна быть обновлена"
 
     def test_keyboard_interrupt_in_thread_pool(self):
         """
@@ -265,9 +255,7 @@ class TestKeyboardInterruptHandling:
         )
 
         # Мокаем parse_single_url чтобы выбросить KeyboardInterrupt
-        with patch.object(
-            parser, "parse_single_url", side_effect=KeyboardInterrupt("Mocked")
-        ):
+        with patch.object(parser, "parse_single_url", side_effect=KeyboardInterrupt("Mocked")):
             # Проверяем что исключение пробрасывается
             with pytest.raises(KeyboardInterrupt):
                 parser.parse_single_url(
@@ -465,9 +453,7 @@ class TestErrorHandlingIntegration:
                         side_effect=[AttributeError("Test"), TypeError("Test"), []]
                     )
 
-                    mock_cache.close_all = MagicMock(
-                        side_effect=[RuntimeError("Test"), None]
-                    )
+                    mock_cache.close_all = MagicMock(side_effect=[RuntimeError("Test"), None])
 
                     mock_gc.side_effect = [MemoryError("Test"), None]
 
@@ -480,9 +466,7 @@ class TestErrorHandlingIntegration:
                             errors_handled.append(False)
 
                     # Проверяем что все вызовы прошли без исключений
-                    assert all(errors_handled), (
-                        "cleanup_resources должен обрабатывать все ошибки"
-                    )
+                    assert all(errors_handled), "cleanup_resources должен обрабатывать все ошибки"
 
     def test_cache_manager_concurrent_access(self):
         """

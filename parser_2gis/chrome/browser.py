@@ -96,14 +96,10 @@ class ChromeBrowser:
 
         if original_binary_path != binary_path:
             app_logger.debug(
-                "Путь к браузеру нормализован: %s → %s",
-                original_binary_path,
-                binary_path,
+                "Путь к браузеру нормализован: %s → %s", original_binary_path, binary_path
             )
 
-        app_logger.debug(
-            "Повторная валидация пути к браузеру после нормализации: %s", binary_path
-        )
+        app_logger.debug("Повторная валидация пути к браузеру после нормализации: %s", binary_path)
         self._validate_binary_path(binary_path)
         app_logger.debug("Запуск Chrome браузера по пути: %s", binary_path)
 
@@ -132,11 +128,7 @@ class ChromeBrowser:
         return profile_tempdir, profile_path
 
     def _build_chrome_cmd(
-        self,
-        binary_path: str,
-        profile_path: str,
-        remote_port: int,
-        chrome_options: ChromeOptions,
+        self, binary_path: str, profile_path: str, remote_port: int, chrome_options: ChromeOptions
     ) -> list[str]:
         """Формирует команду запуска Chrome.
 
@@ -151,9 +143,7 @@ class ChromeBrowser:
         """
         # Валидация memory_limit перед формированием команды
         memory_limit = (
-            chrome_options.memory_limit
-            if chrome_options.memory_limit is not None
-            else 2048
+            chrome_options.memory_limit if chrome_options.memory_limit is not None else 2048
         )
 
         # Формирование команды запуска
@@ -206,10 +196,7 @@ class ChromeBrowser:
             if chrome_options.silent_browser:
                 app_logger.debug("В Chrome отключён вывод отладочной информации.")
                 proc = subprocess.Popen(
-                    chrome_cmd,
-                    shell=False,
-                    stderr=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL,
+                    chrome_cmd, shell=False, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL
                 )
             else:
                 proc = subprocess.Popen(chrome_cmd, shell=False)
@@ -223,9 +210,7 @@ class ChromeBrowser:
             try:
                 shutil.rmtree(profile_path, ignore_errors=True)
             except Exception as cleanup_error:
-                app_logger.debug(
-                    "Не удалось удалить профиль при ошибке запуска: %s", cleanup_error
-                )
+                app_logger.debug("Не удалось удалить профиль при ошибке запуска: %s", cleanup_error)
             raise
 
     def __init__(self, chrome_options: ChromeOptions) -> None:
@@ -343,9 +328,7 @@ class ChromeBrowser:
                 # Процесс ещё работает, ждём завершения с timeout
                 try:
                     self._proc.wait(timeout=5)
-                    app_logger.debug(
-                        "Chrome браузер корректно завершён (PID: %d)", process_pid
-                    )
+                    app_logger.debug("Chrome браузер корректно завершён (PID: %d)", process_pid)
                     return True, "terminated"
                 except subprocess.TimeoutExpired:
                     app_logger.warning(
@@ -399,14 +382,10 @@ class ChromeBrowser:
                 # Процесс всё ещё работает после kill(), ждём с большим timeout
                 try:
                     self._proc.wait(timeout=10)
-                    app_logger.debug(
-                        "Chrome браузер принудительно завершён (PID: %d)", process_pid
-                    )
+                    app_logger.debug("Chrome браузер принудительно завершён (PID: %d)", process_pid)
                     return True, "killed"
                 except subprocess.TimeoutExpired:
-                    app_logger.error(
-                        "Таймаут (10 сек) после SIGKILL для PID %d", process_pid
-                    )
+                    app_logger.error("Таймаут (10 сек) после SIGKILL для PID %d", process_pid)
                     return False, "kill_timeout"
 
         except ProcessLookupError as proc_error:
@@ -418,9 +397,7 @@ class ChromeBrowser:
             app_logger.error("Нет прав на принудительное завершение: %s", perm_error)
             return False, "kill_permission_denied"
         except Exception as kill_error:
-            app_logger.error(
-                "Ошибка при принудительном закрытии Chrome: %s", kill_error
-            )
+            app_logger.error("Ошибка при принудительном закрытии Chrome: %s", kill_error)
             return False, "kill_error"
 
     def _cleanup_profile(self) -> None:
@@ -455,9 +432,7 @@ class ChromeBrowser:
                 try:
                     if hasattr(self, "_profile_path") and self._profile_path:
                         shutil.rmtree(self._profile_path, ignore_errors=True)
-                        app_logger.debug(
-                            "Профиль удалён через fallback shutil.rmtree()"
-                        )
+                        app_logger.debug("Профиль удалён через fallback shutil.rmtree()")
                 except (OSError, IOError) as fallback_error:
                     app_logger.error(
                         "Ошибка ОС/IO при fallback очистке профиля: %s",
@@ -499,15 +474,11 @@ class ChromeBrowser:
                 app_logger.debug("Завершение процесса Chrome с PID: %d", process_pid)
 
                 # Попытка 1: Корректное завершение через terminate()
-                process_closed, process_status = self._terminate_process_graceful(
-                    process_pid
-                )
+                process_closed, process_status = self._terminate_process_graceful(process_pid)
 
                 # Попытка 2: Принудительное завершение через kill()
                 if not process_closed:
-                    process_closed, process_status = self._terminate_process_forceful(
-                        process_pid
-                    )
+                    process_closed, process_status = self._terminate_process_forceful(process_pid)
 
             else:
                 app_logger.warning("Процесс Chrome не инициализирован")
@@ -519,9 +490,7 @@ class ChromeBrowser:
         # Логируем финальный статус процесса
         if hasattr(self, "_proc") and self._proc is not None:
             app_logger.debug(
-                "Финальный статус процесса Chrome: %s (PID: %d)",
-                process_status,
-                self._proc.pid,
+                "Финальный статус процесса Chrome: %s (PID: %d)", process_status, self._proc.pid
             )
 
         # Очистка профиля
@@ -576,15 +545,11 @@ def _check_profile_age_and_delete(
 
             _safe_remove_profile(item)
             app_logger.debug(
-                "Удалён осиротевший профиль: %s (возраст: %.1f ч)",
-                item.name,
-                age_seconds / 3600,
+                "Удалён осиротевший профиль: %s (возраст: %.1f ч)", item.name, age_seconds / 3600
             )
             return True
     except OSError as stat_error:
-        app_logger.debug(
-            "Ошибка получения информации о файле %s: %s", marker_file, stat_error
-        )
+        app_logger.debug("Ошибка получения информации о файле %s: %s", marker_file, stat_error)
         # Если не можем получить информацию - удаляем профиль
         _safe_remove_profile(item)
         return True
@@ -592,9 +557,7 @@ def _check_profile_age_and_delete(
     return False
 
 
-def _check_profile_age_by_dir(
-    item: Path, current_time: float, max_age_seconds: float
-) -> bool:
+def _check_profile_age_by_dir(item: Path, current_time: float, max_age_seconds: float) -> bool:
     """Проверяет возраст профиля по директории и удаляет если старый.
 
     Args:
@@ -628,16 +591,12 @@ def _check_profile_age_by_dir(
             )
             return True
     except OSError as stat_error:
-        app_logger.debug(
-            "Ошибка получения информации о директории %s: %s", item, stat_error
-        )
+        app_logger.debug("Ошибка получения информации о директории %s: %s", item, stat_error)
 
     return False
 
 
-def _process_orphaned_profile(
-    item: Path, current_time: float, max_age_seconds: float
-) -> bool:
+def _process_orphaned_profile(item: Path, current_time: float, max_age_seconds: float) -> bool:
     """Обрабатывает один осиротевший профиль.
 
     Args:
@@ -652,16 +611,13 @@ def _process_orphaned_profile(
     marker_file = item / ORPHANED_PROFILE_MARKER
 
     if marker_file.exists():
-        return _check_profile_age_and_delete(
-            item, marker_file, current_time, max_age_seconds
-        )
+        return _check_profile_age_and_delete(item, marker_file, current_time, max_age_seconds)
     else:
         return _check_profile_age_by_dir(item, current_time, max_age_seconds)
 
 
 def cleanup_orphaned_profiles(
-    profiles_dir: Optional[Path] = None,
-    max_age_hours: int = ORPHANED_PROFILE_MAX_AGE_HOURS,
+    profiles_dir: Optional[Path] = None, max_age_hours: int = ORPHANED_PROFILE_MAX_AGE_HOURS
 ) -> int:
     """
     Очищает осиротевшие профили Chrome от предыдущих запусков.
@@ -753,8 +709,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
                         cmdline_str = " ".join(cmdline)
                         if profile_str in cmdline_str:
                             app_logger.debug(
-                                "Профиль используется процессом Chrome PID %d",
-                                proc.info["pid"],
+                                "Профиль используется процессом Chrome PID %d", proc.info["pid"]
                             )
                             return True
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -769,10 +724,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
             if sys.platform == "win32":
                 # Windows: используем tasklist
                 result = subprocess.run(
-                    ["tasklist", "/V", "/FO", "CSV"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
+                    ["tasklist", "/V", "/FO", "CSV"], capture_output=True, text=True, timeout=5
                 )
                 profile_str = str(profile_path)
                 for line in result.stdout.splitlines():
@@ -781,9 +733,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
                         return True
             else:
                 # Unix-like: используем ps aux
-                result = subprocess.run(
-                    ["ps", "aux"], capture_output=True, text=True, timeout=5
-                )
+                result = subprocess.run(["ps", "aux"], capture_output=True, text=True, timeout=5)
                 profile_str = str(profile_path)
                 for line in result.stdout.splitlines():
                     if profile_str in line and "chrome" in line.lower():

@@ -49,10 +49,7 @@ class TestTypeHints:
         if hasattr(main_module, "CityDict"):
             _CityDict = main_module.CityDict
             # TypedDict должен быть dict-like
-            test_city: Dict[str, Any] = {
-                "name": "Москва",
-                "url": "https://2gis.ru/moscow",
-            }
+            test_city: Dict[str, Any] = {"name": "Москва", "url": "https://2gis.ru/moscow"}
             assert "name" in test_city, "CityDict должен иметь поле 'name'"
             assert "url" in test_city, "CityDict должен иметь поле 'url'"
 
@@ -82,9 +79,7 @@ class TestTypeHints:
         type_aliases = ["CitiesList", "CategoriesList", "UrlValidationResult"]
 
         for alias in type_aliases:
-            assert alias in source, (
-                f"Type alias '{alias}' должен быть определён в main.py"
-            )
+            assert alias in source, f"Type alias '{alias}' должен быть определён в main.py"
 
         # Проверка что используется современный синтаксис (Python 3.10+)
         # type alias = SomeType
@@ -140,10 +135,7 @@ class TestDocumentation:
     def test_docstring_raises(self):
         """Тест наличия Raises секции в docstrings."""
         # Arrange
-        functions_that_raise = [
-            config.Configuration.merge_with,
-            cache.CacheManager.clear_batch,
-        ]
+        functions_that_raise = [config.Configuration.merge_with, cache.CacheManager.clear_batch]
 
         # Act & Assert
         for func in functions_that_raise:
@@ -184,9 +176,7 @@ class TestConstants:
 
         # Assert
         for const in cache_constants:
-            assert hasattr(cache, const), (
-                f"Константа '{const}' должна быть определена в cache.py"
-            )
+            assert hasattr(cache, const), f"Константа '{const}' должна быть определена в cache.py"
 
         # Проверка констант в parallel_parser.py
         parser_constants = [
@@ -226,9 +216,7 @@ class TestConstants:
                         constant_usages += 1
                         break
 
-            assert constant_usages > 0, (
-                f"Константы должны использоваться в {module_name}"
-            )
+            assert constant_usages > 0, f"Константы должны использоваться в {module_name}"
 
     def test_constants_values(self):
         """Тест правильных значений констант."""
@@ -238,9 +226,7 @@ class TestConstants:
             "MAX_BATCH_SIZE должен быть больше DEFAULT_BATCH_SIZE"
         )
 
-        assert cache.MAX_CACHE_SIZE_MB > 0, (
-            "MAX_CACHE_SIZE_MB должен быть положительным"
-        )
+        assert cache.MAX_CACHE_SIZE_MB > 0, "MAX_CACHE_SIZE_MB должен быть положительным"
 
         assert parallel_parser.MIN_WORKERS >= 1, "MIN_WORKERS должен быть >= 1"
 
@@ -318,9 +304,7 @@ class TestConfigSimplification:
 
         # Act
         # Проверка что метод merge_with существует
-        assert hasattr(config1, "merge_with"), (
-            "Configuration должен иметь метод merge_with"
-        )
+        assert hasattr(config1, "merge_with"), "Configuration должен иметь метод merge_with"
 
         # Проверка что есть вспомогательные методы
         helper_methods = [
@@ -343,9 +327,7 @@ class TestConfigSimplification:
 
         # Act & Assert
         # Проверка что используется итеративный подход вместо рекурсии
-        assert "_merge_models_iterative" in source, (
-            "Должен использоваться итеративный подход"
-        )
+        assert "_merge_models_iterative" in source, "Должен использоваться итеративный подход"
 
         # Проверка что есть защита от циклических ссылок
         assert "visited" in source.lower() or "циклическ" in source.lower(), (
@@ -402,18 +384,12 @@ class TestCodeQualityIntegration:
             doc = inspect.getdoc(module)
             # Не все модули обязаны иметь docstring, но большинство должно
             if doc is not None:
-                assert len(doc) > 20, (
-                    f"Docstring {module.__name__} должен быть содержательным"
-                )
+                assert len(doc) > 20, f"Docstring {module.__name__} должен быть содержательным"
 
     def test_type_hints_in_functions(self):
         """Тест что функции имеют type hints."""
         # Arrange
-        classes_to_check = [
-            validator.DataValidator,
-            cache.CacheManager,
-            config.Configuration,
-        ]
+        classes_to_check = [validator.DataValidator, cache.CacheManager, config.Configuration]
 
         # Act & Assert
         for cls in classes_to_check:
@@ -422,8 +398,7 @@ class TestCodeQualityIntegration:
                     # Проверяем что есть type hints
                     sig = inspect.signature(method)
                     _has_hints = any(
-                        p.annotation != inspect.Parameter.empty
-                        for p in sig.parameters.values()
+                        p.annotation != inspect.Parameter.empty for p in sig.parameters.values()
                     )
                     # Не все функции обязаны иметь hints, но большинство должно
                     # Это мягкая проверка
@@ -439,6 +414,4 @@ class TestCodeQualityIntegration:
                 if name.isupper():
                     # Это константа - проверяем что значение не меняется
                     value = getattr(module, name)
-                    assert not callable(value), (
-                        f"Константа {name} не должна быть вызываемой"
-                    )
+                    assert not callable(value), f"Константа {name} не должна быть вызываемой"

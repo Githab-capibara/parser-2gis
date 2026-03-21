@@ -25,14 +25,7 @@ class TestBlackFormatting:
         Проверяет что все файлы отформатированы.
         """
         result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "black",
-                "--check",
-                "--line-length=130",
-                "parser_2gis",
-            ],
+            [sys.executable, "-m", "black", "--check", "--line-length=130", "parser_2gis"],
             capture_output=True,
             text=True,
             cwd="/home/d/parser-2gis",
@@ -49,9 +42,7 @@ class TestBlackFormatting:
         # black возвращает 1 если файлы нужно отформатировать
         if result.returncode == 1:
             # Форматирование не критично для функциональности - помечаем как warning
-            pytest.skip(
-                f"black требует форматирования:\n{result.stdout}\n{result.stderr}"
-            )
+            pytest.skip(f"black требует форматирования:\n{result.stdout}\n{result.stderr}")
 
         # Тест проходит если returncode == 0
         assert result.returncode == 0, f"black обнаружил проблемы:\n{result.stdout}"
@@ -105,14 +96,7 @@ class TestIsortImports:
         Проверяет что импорты отсортированы.
         """
         result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "isort",
-                "--check-only",
-                "--profile=black",
-                "parser_2gis",
-            ],
+            [sys.executable, "-m", "isort", "--check-only", "--profile=black", "parser_2gis"],
             capture_output=True,
             text=True,
             cwd="/home/d/parser-2gis",
@@ -129,9 +113,7 @@ class TestIsortImports:
         # isort возвращает 1 если импорты не отсортированы
         if result.returncode == 1:
             # Сортировка импортов не критична для функциональности - помечаем как warning
-            pytest.skip(
-                f"isort требует сортировки импортов:\n{result.stdout}\n{result.stderr}"
-            )
+            pytest.skip(f"isort требует сортировки импортов:\n{result.stdout}\n{result.stderr}")
 
         # Тест проходит если returncode == 0
         assert result.returncode == 0, f"isort обнаружил проблемы:\n{result.stdout}"
@@ -166,9 +148,7 @@ class TestIsortImports:
 
         if result.returncode == 1:
             # Сортировка импортов не критична для функциональности - помечаем как warning
-            pytest.skip(
-                f"isort требует сортировки импортов в ключевых файлах:\n{result.stdout}"
-            )
+            pytest.skip(f"isort требует сортировки импортов в ключевых файлах:\n{result.stdout}")
 
         assert result.returncode == 0
 

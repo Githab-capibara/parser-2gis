@@ -12,16 +12,15 @@
 7. Тесты на type: ignore комментарии
 """
 
-import ast
-import os
 import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
-from unittest.mock import MagicMock, Mock, patch
+from typing import List, Tuple
+from unittest.mock import MagicMock, patch
 
+import ast
 import pytest
 
 # Добавляем путь к пакету
@@ -42,9 +41,7 @@ class TestDuplicateImports:
 
         Импортировать csv внутри функций - плохая практика.
         """
-        parallel_parser_path = (
-            Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
-        )
+        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             source_code = f.read()
@@ -58,9 +55,7 @@ class TestDuplicateImports:
                     if isinstance(child, ast.Import):
                         for alias in child.names:
                             if alias.name == "csv":
-                                csv_imports_in_functions.append(
-                                    (child.lineno, node.name)
-                                )
+                                csv_imports_in_functions.append((child.lineno, node.name))
 
         # Разрешаем "import csv as csv_module"
         problematic = []
@@ -110,9 +105,7 @@ class TestDuplicateImports:
         """
         Тест 1.3: Проверка отсутствия переопределений имен.
         """
-        parallel_parser_path = (
-            Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
-        )
+        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             source_code = f.read()
@@ -124,9 +117,7 @@ class TestDuplicateImports:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     global_names.add(alias.asname or alias.name)
-            elif isinstance(
-                node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-            ):
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 global_names.add(node.name)
 
         shadowing_issues = []
@@ -136,19 +127,12 @@ class TestDuplicateImports:
                     if isinstance(child, ast.Assign):
                         for target in child.targets:
                             if isinstance(target, ast.Name):
-                                if target.id in global_names and target.id not in (
-                                    "self",
-                                    "cls",
-                                ):
-                                    shadowing_issues.append(
-                                        (node.name, child.lineno, target.id)
-                                    )
+                                if target.id in global_names and target.id not in ("self", "cls"):
+                                    shadowing_issues.append((node.name, child.lineno, target.id))
 
         allowed = {"csv_module"}
         problematic = [
-            s
-            for s in shadowing_issues
-            if s[2] not in allowed and not s[2].startswith("_")
+            s for s in shadowing_issues if s[2] not in allowed and not s[2].startswith("_")
         ]
         assert len(problematic) <= 3, f"Найдены переопределения: {problematic[:5]}"
 
@@ -222,9 +206,7 @@ class TestLoggingInsteadOfPass:
 
     def test_file_descriptor_close_error_logging(self):
         """Тест 3.2: Проверка логирования ошибок закрытия дескриптора."""
-        parallel_parser_path = (
-            Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
-        )
+        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             source_code = f.read()
@@ -235,16 +217,14 @@ class TestLoggingInsteadOfPass:
 
     def test_finally_block_logging(self):
         """Тест 3.3: Проверка логирования в finally блоке."""
-        parallel_parser_path = (
-            Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
-        )
+        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             source_code = f.read()
 
         # Ищем finally с logger
         finally_pattern = re.compile(r"finally:.*?logger\.", re.DOTALL)
-        matches = finally_pattern.findall(source_code)
+        assert finally_pattern.search(source_code), "Должны быть finally блоки с logger"
 
         # Проверяем наличие finally блоков с очисткой
         finally_blocks = re.findall(r"finally:", source_code)
@@ -261,9 +241,7 @@ class TestE203Formatting:
 
     def test_no_space_before_colon_in_slices(self):
         """Тест 4.1: Проверка отсутствия пробелов перед ':' в срезах."""
-        parallel_parser_path = (
-            Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
-        )
+        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -330,7 +308,7 @@ class TestE203Formatting:
             pytest.skip("flake8 не установлен")
 
         output_lines = [
-            l for l in result.stdout.strip().split("\n") if l and "E203" in l
+            line for line in result.stdout.strip().split("\n") if line and "E203" in line
         ]
         assert len(output_lines) <= 2, f"flake8 E203 нарушения: {output_lines}"
 
@@ -421,9 +399,7 @@ class TestLineLengthE501:
 
     def test_all_lines_under_100_chars_parallel_parser(self):
         """Тест 6.2: Проверка длины строк в parallel_parser.py."""
-        parallel_parser_path = (
-            Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
-        )
+        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             lines = f.readlines()

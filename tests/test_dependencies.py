@@ -62,8 +62,7 @@ class TestTextualDependency:
     """Тесты для проверки зависимости Textual."""
 
     @pytest.mark.skipif(
-        not TEXTUAL_AVAILABLE,
-        reason="textual не установлен. Установите: pip install textual",
+        not TEXTUAL_AVAILABLE, reason="textual не установлен. Установите: pip install textual"
     )
     def test_textual_import(self):
         """Проверка импорта textual."""

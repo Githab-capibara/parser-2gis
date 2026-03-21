@@ -14,10 +14,7 @@ try:
     from parser_2gis.tui_textual.screens.category_selector import CategorySelectorScreen
     from parser_2gis.tui_textual.screens.city_selector import CitySelectorScreen
     from parser_2gis.tui_textual.screens.main_menu import MainMenuScreen
-    from parser_2gis.tui_textual.screens.other_screens import (
-        AboutScreen,
-        CacheViewerScreen,
-    )
+    from parser_2gis.tui_textual.screens.other_screens import AboutScreen, CacheViewerScreen
     from parser_2gis.tui_textual.screens.parsing_screen import ParsingScreen
     from parser_2gis.tui_textual.screens.settings import (
         BrowserSettingsScreen,
@@ -160,9 +157,7 @@ class TestTUIContainerResponsiveWidth:
 
         # Проверка .logo-container
         logo_container_styles = self._extract_css_block(css, ".logo-container")
-        assert "width: 100%" in logo_container_styles, (
-            ".logo-container должен иметь width: 100%"
-        )
+        assert "width: 100%" in logo_container_styles, ".logo-container должен иметь width: 100%"
         assert "max-width:" in logo_container_styles, (
             ".logo-container должен иметь max-width для адаптивности"
         )
@@ -172,9 +167,7 @@ class TestTUIContainerResponsiveWidth:
 
         # Проверка .menu-container
         menu_container_styles = self._extract_css_block(css, ".menu-container")
-        assert "width: 100%" in menu_container_styles, (
-            ".menu-container должен иметь width: 100%"
-        )
+        assert "width: 100%" in menu_container_styles, ".menu-container должен иметь width: 100%"
         assert "max-width:" in menu_container_styles, (
             ".menu-container должен иметь max-width для адаптивности"
         )
@@ -228,15 +221,9 @@ class TestTUIContainerResponsiveWidth:
 
         # Проверка .logo-container
         logo_container_styles = self._extract_css_block(css, ".logo-container")
-        assert "width: 100%" in logo_container_styles, (
-            ".logo-container должен иметь width: 100%"
-        )
-        assert "max-width:" in logo_container_styles, (
-            ".logo-container должен иметь max-width"
-        )
-        assert "min-width:" in logo_container_styles, (
-            ".logo-container должен иметь min-width"
-        )
+        assert "width: 100%" in logo_container_styles, ".logo-container должен иметь width: 100%"
+        assert "max-width:" in logo_container_styles, ".logo-container должен иметь max-width"
+        assert "min-width:" in logo_container_styles, ".logo-container должен иметь min-width"
 
         # Проверка .title (должна иметь width: 100%)
         title_styles = self._extract_css_block(css, ".title")
@@ -262,19 +249,15 @@ class TestTUIContainerResponsiveWidth:
             screen = screen_class()
             css = screen.CSS
 
-            container_id = f"#{screen_name.replace('Screen', '').lower().replace('_', '-')}-container"
+            container_id = (
+                f"#{screen_name.replace('Screen', '').lower().replace('_', '-')}-container"
+            )
             container_styles = self._extract_css_block(css, container_id)
 
             if container_styles:
-                assert "width: 100%" in container_styles, (
-                    f"{container_id} должен иметь width: 100%"
-                )
-                assert "max-width:" in container_styles, (
-                    f"{container_id} должен иметь max-width"
-                )
-                assert "min-width:" in container_styles, (
-                    f"{container_id} должен иметь min-width"
-                )
+                assert "width: 100%" in container_styles, f"{container_id} должен иметь width: 100%"
+                assert "max-width:" in container_styles, f"{container_id} должен иметь max-width"
+                assert "min-width:" in container_styles, f"{container_id} должен иметь min-width"
 
     def _extract_css_block(self, css: str, selector: str) -> str:
         """
@@ -316,9 +299,7 @@ class TestTUIButtonAlignment:
 
         # Проверка стилей кнопки меню
         menu_button_styles = self._extract_css_block(css, ".menu-button")
-        assert "width: 100%" in menu_button_styles, (
-            ".menu-button должен иметь width: 100%"
-        )
+        assert "width: 100%" in menu_button_styles, ".menu-button должен иметь width: 100%"
         assert "margin:" in menu_button_styles, ".menu-button должен иметь margin"
         assert "align: center middle" in menu_button_styles, (
             ".menu-button должен иметь центрирование 'align: center middle'"
@@ -363,9 +344,7 @@ class TestTUIButtonAlignment:
             css = screen.CSS
 
             # Проверка стилей кнопок в button-row
-            button_row_button_styles = self._extract_css_block(
-                css, ".button-row Button"
-            )
+            button_row_button_styles = self._extract_css_block(css, ".button-row Button")
             if button_row_button_styles:
                 assert "margin:" in button_row_button_styles, (
                     f"Кнопки в .button-row в {screen.__class__.__name__} должны иметь margin"
@@ -404,11 +383,7 @@ class TestTUIButtonAlignment:
 
         Тест проверяет, что кнопки в экранах настроек выровнены правильно.
         """
-        screens = [
-            BrowserSettingsScreen(),
-            ParserSettingsScreen(),
-            OutputSettingsScreen(),
-        ]
+        screens = [BrowserSettingsScreen(), ParserSettingsScreen(), OutputSettingsScreen()]
 
         for screen in screens:
             css = screen.CSS
@@ -465,9 +440,7 @@ class TestTUILayoutIntegration:
         ]
 
         for screen in screens:
-            assert hasattr(screen, "CSS"), (
-                f"{screen.__class__.__name__} должен иметь CSS атрибут"
-            )
+            assert hasattr(screen, "CSS"), f"{screen.__class__.__name__} должен иметь CSS атрибут"
             assert len(screen.CSS) > 0, (
                 f"{screen.__class__.__name__} должен иметь непустые CSS стили"
             )
@@ -548,9 +521,7 @@ class TestTUIResponsivePatterns:
 
         for screen in screens:
             css = screen.CSS
-            assert "max-width:" in css, (
-                f"{screen.__class__.__name__} должен использовать max-width"
-            )
+            assert "max-width:" in css, f"{screen.__class__.__name__} должен использовать max-width"
 
     def test_tui_min_width_constraints(self):
         """
@@ -567,9 +538,7 @@ class TestTUIResponsivePatterns:
 
         for screen in screens:
             css = screen.CSS
-            assert "min-width:" in css, (
-                f"{screen.__class__.__name__} должен использовать min-width"
-            )
+            assert "min-width:" in css, f"{screen.__class__.__name__} должен использовать min-width"
 
     def test_tui_height_constraints(self):
         """
@@ -582,16 +551,10 @@ class TestTUIResponsivePatterns:
         main_menu_css = main_menu_screen.CSS
 
         # Проверка наличия height: auto
-        assert "height: auto" in main_menu_css, (
-            "MainMenuScreen должен использовать height: auto"
-        )
+        assert "height: auto" in main_menu_css, "MainMenuScreen должен использовать height: auto"
 
         # Другие экраны используют height: 1fr для гибких контейнеров
-        other_screens = [
-            CitySelectorScreen(),
-            CategorySelectorScreen(),
-            ParsingScreen(),
-        ]
+        other_screens = [CitySelectorScreen(), CategorySelectorScreen(), ParsingScreen()]
 
         for screen in other_screens:
             css = screen.CSS

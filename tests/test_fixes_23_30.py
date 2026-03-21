@@ -88,9 +88,7 @@ class TestCoverageThreshold:
         assert match, "pytest.ini должен содержать --cov-fail-under"
 
         threshold = int(match.group(1))
-        assert threshold >= 85, (
-            f"Coverage threshold должен быть >= 85%, текущий: {threshold}%"
-        )
+        assert threshold >= 85, f"Coverage threshold должен быть >= 85%, текущий: {threshold}%"
 
     def test_coveragerc_exists(self, coveragerc_path: Path) -> None:
         """Проверяет что .coveragerc существует."""
@@ -106,9 +104,7 @@ class TestCoverageThreshold:
         assert match, ".coveragerc должен содержать fail_under"
 
         threshold = int(match.group(1))
-        assert threshold >= 85, (
-            f"Coverage threshold должен быть >= 85%, текущий: {threshold}%"
-        )
+        assert threshold >= 85, f"Coverage threshold должен быть >= 85%, текущий: {threshold}%"
 
 
 # =============================================================================
@@ -186,12 +182,7 @@ class TestLineLength:
                             continue
                         if len(line) > 100:
                             long_lines.append(
-                                (
-                                    str(py_file.relative_to(parser_2gis_dir)),
-                                    i,
-                                    len(line),
-                                    line[:60],
-                                )
+                                (str(py_file.relative_to(parser_2gis_dir)), i, len(line), line[:60])
                             )
             except Exception:
                 pass
@@ -262,9 +253,7 @@ class TestUnusedImports:
                     # Считаем вхождения в коде (не в импортах)
                     lines = content.split("\n")
                     code_lines = [
-                        line
-                        for line in lines
-                        if not line.strip().startswith(("import", "from"))
+                        line for line in lines if not line.strip().startswith(("import", "from"))
                     ]
                     code_text = "\n".join(code_lines)
 
@@ -315,10 +304,7 @@ class TestResourceLeaks:
                         if "with " in line and "open(" in line:
                             continue
                         # Ищем open() не в with
-                        if (
-                            re.search(r"\bopen\s*\([^)]+\)", line)
-                            and "with " not in line
-                        ):
+                        if re.search(r"\bopen\s*\([^)]+\)", line) and "with " not in line:
                             # Пропускаем строки с документацией
                             if '"""' not in line and "'''" not in line:
                                 # Пропускаем lock файлы (это специальный случай)
@@ -337,9 +323,7 @@ class TestResourceLeaks:
         # Эти случаи документированы и безопасны
         assert len(issues) <= 10, (
             f"Найдено {len(issues)} потенциальных утечек ресурсов:\n"
-            + "\n".join(
-                f"{path}:{line} - {content}" for path, line, content in issues[:10]
-            )
+            + "\n".join(f"{path}:{line} - {content}" for path, line, content in issues[:10])
         )
 
 
@@ -355,18 +339,11 @@ class TestIntegration:
         """Проверяет что все конфигурационные файлы существуют."""
         root_dir = Path(__file__).parent.parent
 
-        config_files = [
-            "pytest.ini",
-            ".coveragerc",
-            "pyproject.toml",
-            ".pre-commit-config.yaml",
-        ]
+        config_files = ["pytest.ini", ".coveragerc", "pyproject.toml", ".pre-commit-config.yaml"]
 
         for config_file in config_files:
             config_path = root_dir / config_file
-            assert config_path.exists(), (
-                f"Конфигурационный файл {config_file} должен существовать"
-            )
+            assert config_path.exists(), f"Конфигурационный файл {config_file} должен существовать"
 
     def test_pre_commit_hooks_configured(self) -> None:
         """Проверяет что pre-commit хуки настроены."""
@@ -380,9 +357,7 @@ class TestIntegration:
         assert "isort" in content, ".pre-commit-config.yaml должен содержать isort"
 
         # Проверяем что есть autoflake
-        assert "autoflake" in content, (
-            ".pre-commit-config.yaml должен содержать autoflake"
-        )
+        assert "autoflake" in content, ".pre-commit-config.yaml должен содержать autoflake"
 
 
 if __name__ == "__main__":

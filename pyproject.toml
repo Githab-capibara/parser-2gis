@@ -1,3 +1,37 @@
+[tool.ruff]
+# Конфигурация ruff для линтинга и форматирования
+# Синхронизировано с black и isort
+
+# Максимальная длина строки (синхронизировано с black)
+line-length = 100
+# Целевая версия Python
+target-version = "py312"
+# Исключаемые директории
+exclude = [
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".tox",
+    ".venv",
+    ".venv_opt",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "venv",
+    "htmlcov",
+    ".pytest_cache",
+    ".benchmarks",
+]
+
+[tool.ruff.format]
+# Настройки форматирования ruff
+# Синхронизировано с black
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = true
+line-ending = "auto"
+
 [tool.black]
 # Конфигурация black для форматирования кода
 # ИСПРАВЛЕНИЕ 27: Black форматирование для всех Python файлов

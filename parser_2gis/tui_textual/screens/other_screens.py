@@ -12,10 +12,7 @@ from textual.widgets import Button, DataTable, Static
 class CacheViewerScreen(Screen):
     """Просмотр кэша."""
 
-    BINDINGS = [
-        Binding("escape", "go_back", "Назад"),
-        Binding("c", "clear_cache", "Очистить кэш"),
-    ]
+    BINDINGS = [Binding("escape", "go_back", "Назад"), Binding("c", "clear_cache", "Очистить кэш")]
 
     CSS = """
     /* Центрирование экрана просмотра кэша */
@@ -85,9 +82,7 @@ class CacheViewerScreen(Screen):
             yield Static("💾 Просмотр кэша", classes="header")
 
             # Статистика кэша
-            yield Static(
-                "Загрузка статистики...", id="cache-stats", classes="stats-panel"
-            )
+            yield Static("Загрузка статистики...", id="cache-stats", classes="stats-panel")
 
             # Таблица кэша
             with ScrollableContainer():

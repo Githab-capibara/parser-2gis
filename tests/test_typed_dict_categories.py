@@ -44,9 +44,9 @@ class TestCategoryTypedDict:
         assert isinstance(result["name"], str), "Поле 'name' должно быть строкой"
         assert isinstance(result["query"], str), "Поле 'query' должно быть строкой"
         # rubric_code может быть str или None
-        assert result["rubric_code"] is None or isinstance(
-            result["rubric_code"], str
-        ), "Поле 'rubric_code' должно быть строкой или None"
+        assert result["rubric_code"] is None or isinstance(result["rubric_code"], str), (
+            "Поле 'rubric_code' должно быть строкой или None"
+        )
 
         # Проверяем конкретные значения
         assert result["name"] == "Кафе"
@@ -93,14 +93,12 @@ class TestCategoryTypedDict:
             )
 
             # Проверяем что rubric_code - строка или None
-            assert category["rubric_code"] is None or isinstance(
-                category["rubric_code"], str
-            ), f"Категория {i}: поле 'rubric_code' должно быть строкой или None"
+            assert category["rubric_code"] is None or isinstance(category["rubric_code"], str), (
+                f"Категория {i}: поле 'rubric_code' должно быть строкой или None"
+            )
 
         # Проверяем что всего 93 категории
-        assert len(CATEGORIES_93) == 93, (
-            f"Ожидалось 93 категории, найдено: {len(CATEGORIES_93)}"
-        )
+        assert len(CATEGORIES_93) == 93, f"Ожидалось 93 категории, найдено: {len(CATEGORIES_93)}"
 
 
 class TestCategoryFunctions:
@@ -157,9 +155,7 @@ class TestCategoryFunctions:
         city = {"code": "132", "domain": "msk"}
 
         # Категория без rubric_code
-        test_categories = [
-            {"name": "Бургерные", "query": "Бургерные", "rubric_code": None}
-        ]
+        test_categories = [{"name": "Бургерные", "query": "Бургерные", "rubric_code": None}]
 
         urls = generate_urls_for_city(city, test_categories)
 

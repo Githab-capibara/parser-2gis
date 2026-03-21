@@ -153,17 +153,14 @@ class SignalHandler:
             # Проверяем флаг перед обработкой сигнала
             if self._is_cleaning_up:
                 logger.warning(
-                    "Получен повторный сигнал %d во время очистки ресурсов. Игнорируется.",
-                    signum,
+                    "Получен повторный сигнал %d во время очистки ресурсов. Игнорируется.", signum
                 )
                 return
 
             self._interrupted = True
             self._is_cleaning_up = True
 
-            logger.warning(
-                "Получен сигнал %d. Начинается безопасная очистка ресурсов...", signum
-            )
+            logger.warning("Получен сигнал %d. Начинается безопасная очистка ресурсов...", signum)
 
             # Игнорируем повторные сигналы во время cleanup
             original_sigint = signal.getsignal(signal.SIGINT)
@@ -179,8 +176,7 @@ class SignalHandler:
                         self._cleanup_callback()
                     except Exception as cleanup_error:
                         logger.error(
-                            "Ошибка при очистке ресурсов в signal handler: %s",
-                            cleanup_error,
+                            "Ошибка при очистке ресурсов в signal handler: %s", cleanup_error
                         )
 
                 logger.info("Очистка ресурсов завершена. Выход из приложения...")
@@ -193,8 +189,7 @@ class SignalHandler:
                     signal.signal(signal.SIGTERM, original_sigterm)
                 except Exception as restore_error:
                     logger.error(
-                        "Ошибка при восстановлении обработчиков сигналов: %s",
-                        restore_error,
+                        "Ошибка при восстановлении обработчиков сигналов: %s", restore_error
                     )
                 # Сбрасываем флаг только если очистка завершена
                 self._is_cleaning_up = False

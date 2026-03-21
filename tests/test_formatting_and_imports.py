@@ -157,14 +157,7 @@ def run_autoflake_check(files: List[Path]) -> Tuple[int, str, str]:
     """
     file_paths = [str(f) for f in files]
     result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "autoflake",
-            "--check",
-            "--remove-all-unused-imports",
-            *file_paths,
-        ],
+        [sys.executable, "-m", "autoflake", "--check", "--remove-all-unused-imports", *file_paths],
         capture_output=True,
         text=True,
         timeout=300,  # 5 минут таймаут
@@ -247,11 +240,7 @@ class TestRuffFormatting:
         returncode, stdout, stderr = run_ruff_format_check(python_files)
 
         # Проверяем что ruff установлен
-        if (
-            returncode == 127
-            or "not found" in stderr
-            or "No module named ruff" in stderr
-        ):
+        if returncode == 127 or "not found" in stderr or "No module named ruff" in stderr:
             pytest.skip("ruff не установлен. Установите: pip install ruff")
 
         # Если ruff обнаружил проблемы
@@ -265,9 +254,7 @@ class TestRuffFormatting:
             pytest.fail(error_message)
 
         # Тест проходит
-        assert returncode == 0, (
-            f"ruff format завершил работу с кодом {returncode}: {stderr}"
-        )
+        assert returncode == 0, f"ruff format завершил работу с кодом {returncode}: {stderr}"
 
     @pytest.mark.formatting
     def test_ruff_formatting_detailed_report(self):
@@ -319,11 +306,7 @@ class TestIsortImports:
         returncode, stdout, stderr = run_isort_check(python_files)
 
         # Проверяем что isort установлен
-        if (
-            returncode == 127
-            or "not found" in stderr
-            or "No module named isort" in stderr
-        ):
+        if returncode == 127 or "not found" in stderr or "No module named isort" in stderr:
             pytest.skip("isort не установлен. Установите: pip install isort")
 
         # Если isort обнаружил проблемы
@@ -409,11 +392,7 @@ class TestAutoflakeUnusedImports:
         returncode, stdout, stderr = run_autoflake_check(python_files)
 
         # Проверяем что autoflake установлен
-        if (
-            returncode == 127
-            or "not found" in stderr
-            or "No module named autoflake" in stderr
-        ):
+        if returncode == 127 or "not found" in stderr or "No module named autoflake" in stderr:
             pytest.skip("autoflake не установлен. Установите: pip install autoflake")
 
         # Если autoflake обнаружил проблемы
@@ -436,9 +415,7 @@ class TestAutoflakeUnusedImports:
             pytest.fail(error_message)
 
         # Тест проходит
-        assert returncode == 0, (
-            f"autoflake завершил работу с кодом {returncode}: {stderr}"
-        )
+        assert returncode == 0, f"autoflake завершил работу с кодом {returncode}: {stderr}"
 
 
 class TestSyntaxErrors:

@@ -135,9 +135,7 @@ class TestParallelParserInitErrors:
             )
 
             # Проверяем что инициализация залогирована
-            assert any(
-                "Инициализирован парсер" in record.message for record in caplog.records
-            )
+            assert any("Инициализирован парсер" in record.message for record in caplog.records)
 
         # Проверяем что парсер создан успешно
         assert parser is not None

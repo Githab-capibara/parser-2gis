@@ -43,8 +43,7 @@ class TestSignalHandlerExceptionLogging:
             # Проверяем что logger.error был вызван
             assert "Ошибка при восстановлении обработчика сигнала" in caplog.text
             assert (
-                "RuntimeError" in caplog.text
-                or "Ошибка восстановления обработчика" in caplog.text
+                "RuntimeError" in caplog.text or "Ошибка восстановления обработчика" in caplog.text
             )
 
     def test_signal_handler_logs_cleanup_error(self, caplog):
@@ -119,9 +118,7 @@ class TestParallelParserExceptionLogging:
 
         # Проверяем что было логирование
         assert result is False
-        assert (
-            "Не найдено CSV файлов" in caplog.text or "warning" in caplog.text.lower()
-        )
+        assert "Не найдено CSV файлов" in caplog.text or "warning" in caplog.text.lower()
 
     def test_merge_temp_file_registration(self, tmp_path):
         """

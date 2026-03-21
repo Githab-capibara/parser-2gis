@@ -190,13 +190,7 @@ class TestTUIPathImports:
         from parser_2gis import paths
 
         # Список функций, которые должны быть доступны
-        required_functions = [
-            "data_path",
-            "user_path",
-            "image_path",
-            "image_data",
-            "cache_path",
-        ]
+        required_functions = ["data_path", "user_path", "image_path", "image_data", "cache_path"]
 
         for func_name in required_functions:
             assert hasattr(paths, func_name), (

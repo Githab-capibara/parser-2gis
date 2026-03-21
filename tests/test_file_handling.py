@@ -108,9 +108,7 @@ class TestRaceConditionTempFiles:
 
             # Проверяем что файлы удалены
             for temp_path in temp_files:
-                assert not temp_path.exists(), (
-                    f"Временный файл {temp_path} должен быть удалён"
-                )
+                assert not temp_path.exists(), f"Временный файл {temp_path} должен быть удалён"
 
         finally:
             # Гарантированная очистка
@@ -284,9 +282,7 @@ class TestCSVFileDescriptorLeak:
             file_descriptors_after = self._count_open_fds()
 
             # Проверяем что все строки прочитаны
-            assert rows_read == 100, (
-                f"Должно быть прочитано 100 строк, прочитано {rows_read}"
-            )
+            assert rows_read == 100, f"Должно быть прочитано 100 строк, прочитано {rows_read}"
 
             # Проверяем что файловые дескрипторы освобождены
             assert file_descriptors_after <= file_descriptors_before + 1, (
@@ -309,18 +305,12 @@ class TestCSVFileDescriptorLeak:
         temp_files = []
         try:
             for i in range(10):
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".csv", delete=False
-                ) as tmp:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
                     writer = csv.writer(tmp)
                     writer.writerow(["col1", "col2", "col3"])
                     for j in range(50):
                         writer.writerow(
-                            [
-                                f"file{i}_row{j}_1",
-                                f"file{i}_row{j}_2",
-                                f"file{i}_row{j}_3",
-                            ]
+                            [f"file{i}_row{j}_1", f"file{i}_row{j}_2", f"file{i}_row{j}_3"]
                         )
                     temp_files.append(tmp.name)
 
@@ -333,9 +323,7 @@ class TestCSVFileDescriptorLeak:
                     with open(temp_path, "r", encoding="utf-8-sig") as f:
                         reader = csv.DictReader(f)
                         rows = list(reader)
-                        assert len(rows) == 50, (
-                            f"Должно быть 50 строк, прочитано {len(rows)}"
-                        )
+                        assert len(rows) == 50, f"Должно быть 50 строк, прочитано {len(rows)}"
 
             # Измеряем количество открытых дескрипторов после
             fds_after = self._count_open_fds()
@@ -369,10 +357,7 @@ class TestCSVFileDescriptorLeak:
                 import subprocess
 
                 result = subprocess.run(
-                    ["lsof", "-p", str(os.getpid())],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
+                    ["lsof", "-p", str(os.getpid())], capture_output=True, text=True, timeout=5
                 )
                 return len(result.stdout.strip().split("\n")) - 1  # Минус заголовок
             except Exception:

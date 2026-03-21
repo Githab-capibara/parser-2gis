@@ -57,9 +57,7 @@ class TestChromeResourceLeak:
         mock_popen.side_effect = PermissionError("Mocked permission error")
 
         # Создаём mock для TemporaryDirectory
-        with patch(
-            "parser_2gis.chrome.browser.tempfile.TemporaryDirectory"
-        ) as mock_tempdir_class:
+        with patch("parser_2gis.chrome.browser.tempfile.TemporaryDirectory") as mock_tempdir_class:
             mock_tempdir = MagicMock()
             mock_tempdir.name = "/tmp/mock_chrome_profile"
             mock_tempdir_class.return_value = mock_tempdir
@@ -88,9 +86,7 @@ class TestChromeResourceLeak:
     @patch("parser_2gis.chrome.browser.subprocess.Popen")
     @patch("parser_2gis.chrome.browser.free_port")
     @patch("parser_2gis.chrome.browser.locate_chrome_path")
-    def test_cleanup_on_normal_exit(
-        self, mock_locate, mock_port, mock_popen, mock_logger
-    ):
+    def test_cleanup_on_normal_exit(self, mock_locate, mock_port, mock_popen, mock_logger):
         """
         Тест 2: Очистка профиля при нормальном завершении.
 
@@ -108,9 +104,7 @@ class TestChromeResourceLeak:
         mock_popen.return_value = mock_process
 
         # Создаём mock для TemporaryDirectory
-        with patch(
-            "parser_2gis.chrome.browser.tempfile.TemporaryDirectory"
-        ) as mock_tempdir_class:
+        with patch("parser_2gis.chrome.browser.tempfile.TemporaryDirectory") as mock_tempdir_class:
             mock_tempdir = MagicMock()
             mock_tempdir.name = "/tmp/mock_chrome_profile"
             mock_tempdir_class.return_value = mock_tempdir
@@ -208,9 +202,7 @@ class TestIncompleteChromeProfileCleanup:
             os.utime(str(marker_file), (old_time, old_time))
 
             # Мокаем _is_profile_in_use чтобы вернуть True (профиль активен)
-            with patch(
-                "parser_2gis.chrome.browser._is_profile_in_use", return_value=True
-            ):
+            with patch("parser_2gis.chrome.browser._is_profile_in_use", return_value=True):
                 # Пытаемся удалить профиль
                 _safe_remove_profile(profile_path)
 
@@ -244,16 +236,12 @@ class TestIncompleteChromeProfileCleanup:
             os.utime(str(marker_file), (old_time, old_time))
 
             # Мокаем _is_profile_in_use чтобы вернуть False (профиль не активен)
-            with patch(
-                "parser_2gis.chrome.browser._is_profile_in_use", return_value=False
-            ):
+            with patch("parser_2gis.chrome.browser._is_profile_in_use", return_value=False):
                 # Удаляем профиль
                 _safe_remove_profile(profile_path)
 
                 # Проверяем что профиль удалён
-                assert not profile_path.exists(), (
-                    "Неактивный профиль должен быть удалён"
-                )
+                assert not profile_path.exists(), "Неактивный профиль должен быть удалён"
 
     @patch("parser_2gis.chrome.browser.app_logger")
     def test_chrome_process_check(self, mock_logger):
@@ -276,9 +264,7 @@ user 67890 0.0 0.1 123456 7890 ? S 10:00 0:00 /usr/bin/firefox
 """
             mock_result.stderr = ""
 
-            with patch(
-                "parser_2gis.chrome.browser.subprocess.run", return_value=mock_result
-            ):
+            with patch("parser_2gis.chrome.browser.subprocess.run", return_value=mock_result):
                 with patch("parser_2gis.chrome.browser.os.kill", return_value=None):
                     # Проверяем что профиль считается активным
                     # (поскольку в выводе ps есть процесс с этим профилем)
@@ -287,9 +273,7 @@ user 67890 0.0 0.1 123456 7890 ? S 10:00 0:00 /usr/bin/firefox
                     # Примечание: реальная реализация может возвращать False
                     # если os.kill не выбрасывает исключение
                     # Этот тест проверяет что функция вообще работает
-                    assert isinstance(is_active, bool), (
-                        "_is_profile_in_use должен возвращать bool"
-                    )
+                    assert isinstance(is_active, bool), "_is_profile_in_use должен возвращать bool"
 
     @patch("parser_2gis.chrome.browser.app_logger")
     def test_cleanup_orphaned_profiles_function(self, mock_logger):
@@ -319,18 +303,14 @@ user 67890 0.0 0.1 123456 7890 ? S 10:00 0:00 /usr/bin/firefox
             os.utime(str(new_marker), (new_time, new_time))
 
             # Мокаем _is_profile_in_use чтобы вернуть False
-            with patch(
-                "parser_2gis.chrome.browser._is_profile_in_use", return_value=False
-            ):
+            with patch("parser_2gis.chrome.browser._is_profile_in_use", return_value=False):
                 # Запускаем очистку
                 deleted_count = cleanup_orphaned_profiles(
                     profiles_dir=profiles_dir, max_age_hours=24
                 )
 
                 # Проверяем что удалён только старый профиль
-                assert deleted_count >= 1, (
-                    "Должен быть удалён хотя бы один старый профиль"
-                )
+                assert deleted_count >= 1, "Должен быть удалён хотя бы один старый профиль"
                 assert not old_profile.exists(), "Старый профиль должен быть удалён"
                 assert new_profile.exists(), "Новый профиль не должен быть удалён"
 
@@ -347,9 +327,7 @@ class TestResourceManagementIntegration:
     @patch("parser_2gis.chrome.browser.subprocess.Popen")
     @patch("parser_2gis.chrome.browser.free_port")
     @patch("parser_2gis.chrome.browser.locate_chrome_path")
-    def test_context_manager_cleanup(
-        self, mock_locate, mock_port, mock_popen, mock_logger
-    ):
+    def test_context_manager_cleanup(self, mock_locate, mock_port, mock_popen, mock_logger):
         """
         Интеграционный тест: Очистка через контекстный менеджер.
 
@@ -366,9 +344,7 @@ class TestResourceManagementIntegration:
         mock_process.wait = MagicMock()
         mock_popen.return_value = mock_process
 
-        with patch(
-            "parser_2gis.chrome.browser.tempfile.TemporaryDirectory"
-        ) as mock_tempdir_class:
+        with patch("parser_2gis.chrome.browser.tempfile.TemporaryDirectory") as mock_tempdir_class:
             mock_tempdir = MagicMock()
             mock_tempdir.name = "/tmp/mock_chrome_profile"
             mock_tempdir_class.return_value = mock_tempdir

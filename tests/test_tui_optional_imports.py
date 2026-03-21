@@ -126,8 +126,7 @@ class TestTUIModuleStructure:
     """Тесты для проверки структуры TUI модуля."""
 
     @pytest.mark.skipif(
-        sys.version_info >= (3, 13),
-        reason="textual может быть несовместим с Python 3.13",
+        sys.version_info >= (3, 13), reason="textual может быть несовместим с Python 3.13"
     )
     def test_tui_textual_package_structure(self):
         """
@@ -235,12 +234,7 @@ class TestTUICommandLineFlags:
 
         Этот тест выявляет ошибку, когда оба флага TUI установлены одновременно.
         """
-        from parser_2gis.main import (
-            Parser2GISTUI,
-            _tui_omsk_stub,
-            _tui_stub,
-            run_new_tui_omsk,
-        )
+        from parser_2gis.main import Parser2GISTUI, _tui_omsk_stub, _tui_stub, run_new_tui_omsk
 
         # Проверяем, что stub функции существуют
         assert _tui_omsk_stub is not None

@@ -71,45 +71,17 @@ class TestXSSVulnerabilityInitialState:
         # Данные с XSS атаками
         dangerous_data = [
             # <script> теги
-            {
-                "data": {
-                    "entity": {"profile": {"name": '<script>alert("XSS")</script>'}}
-                }
-            },
+            {"data": {"entity": {"profile": {"name": '<script>alert("XSS")</script>'}}}},
             # javascript: протокол
-            {
-                "data": {
-                    "entity": {
-                        "profile": {"website": "javascript:alert(document.cookie)"}
-                    }
-                }
-            },
+            {"data": {"entity": {"profile": {"website": "javascript:alert(document.cookie)"}}}},
             # onerror обработчик
-            {
-                "data": {
-                    "entity": {
-                        "profile": {"description": '<img src="x" onerror="alert(1)">'}
-                    }
-                }
-            },
+            {"data": {"entity": {"profile": {"description": '<img src="x" onerror="alert(1)">'}}}},
             # eval() функция
-            {
-                "data": {
-                    "entity": {"profile": {"name": 'test"; eval("malicious code"); //'}}
-                }
-            },
+            {"data": {"entity": {"profile": {"name": 'test"; eval("malicious code"); //'}}}},
             # document.cookie
-            {
-                "data": {
-                    "entity": {"profile": {"comment": "Посмотрите document.cookie"}}
-                }
-            },
+            {"data": {"entity": {"profile": {"comment": "Посмотрите document.cookie"}}}},
             # localStorage
-            {
-                "data": {
-                    "entity": {"profile": {"data": 'localStorage.getItem("token")'}}
-                }
-            },
+            {"data": {"entity": {"profile": {"data": 'localStorage.getItem("token")'}}}},
             # fetch() для утечки данных
             {
                 "data": {
@@ -225,9 +197,7 @@ class TestSQLInjectionInCache:
         cache_source = inspect.getsource(CacheManager)
 
         # Параметризованные запросы используют ? для параметров
-        assert "?" in cache_source, (
-            "CacheManager должен использовать параметризованные запросы"
-        )
+        assert "?" in cache_source, "CacheManager должен использовать параметризованные запросы"
 
         # Проверяем отсутствие опасной конкатенации
         assert 'f"SELECT' not in cache_source or "%" not in cache_source, (
@@ -298,9 +268,9 @@ class TestUnsafeEvalUsage:
         for code in dangerous_codes:
             is_valid, error_message = _validate_js_code(code)
             assert is_valid is False, f"Код с eval() должен быть отклонён: {code}"
-            assert (
-                "eval" in error_message.lower() or "опасный" in error_message.lower()
-            ), f"Сообщение об ошибке должно упоминать eval: {error_message}"
+            assert "eval" in error_message.lower() or "опасный" in error_message.lower(), (
+                f"Сообщение об ошибке должно упоминать eval: {error_message}"
+            )
 
     def test_validate_js_code_rejects_unicode_encoding(self):
         """
@@ -432,14 +402,10 @@ class TestSecurityIntegration:
         """
         # Валидные данные
         valid_initial_state = {
-            "data": {
-                "entity": {"profile": {"name": "ООО Ромашка", "address": "г. Москва"}}
-            }
+            "data": {"entity": {"profile": {"name": "ООО Ромашка", "address": "г. Москва"}}}
         }
 
-        result = _safe_extract_initial_state(
-            valid_initial_state, ["data", "entity", "profile"]
-        )
+        result = _safe_extract_initial_state(valid_initial_state, ["data", "entity", "profile"])
 
         assert result is not None, "Валидные данные должны быть извлечены"
         assert result["name"] == "ООО Ромашка", "Данные должны быть корректно извлечены"
@@ -449,9 +415,7 @@ class TestSecurityIntegration:
             "data": {"entity": {"profile": {"name": '<script>alert("XSS")</script>'}}}
         }
 
-        result = _safe_extract_initial_state(
-            invalid_initial_state, ["data", "entity", "profile"]
-        )
+        result = _safe_extract_initial_state(invalid_initial_state, ["data", "entity", "profile"])
 
         assert result is None, "Данные с XSS должны быть отклонены"
 
