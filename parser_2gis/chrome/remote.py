@@ -17,26 +17,39 @@ import re
 import socket
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 import pychrome
-import requests  # type: ignore[import-untyped]
-from ratelimit import limits, sleep_and_retry  # type: ignore[import-untyped]
-from requests.exceptions import RequestException  # type: ignore[import-untyped]
-from websocket import WebSocketException, WebSocketTimeoutException
+from concurrent.futures import ThreadPoolExecutor
+
+try:
+    import requests
+except ImportError:
+    requests = None  # type: ignore[assignment]
+
+try:
+    from ratelimit import limits, sleep_and_retry
+except ImportError:
+    limits = None  # type: ignore[assignment, misc]
+    sleep_and_retry = None  # type: ignore[assignment, misc]
+
+try:
+    from requests.exceptions import RequestException
+except ImportError:
+    RequestException = Exception  # type: ignore[misc, assignment]
+from websocket import WebSocketException
 
 from ..common import wait_until_finished
 from ..logger.logger import logger as app_logger
 from .browser import ChromeBrowser
+from .constants import CHROME_STARTUP_DELAY  # L4: магические числа вынесены в константы
+from .constants import MAX_JS_CODE_LENGTH  # L4: магические числа вынесены в константы
+from .constants import MAX_RESPONSE_SIZE  # L9: лимит размера загружаемых файлов
+from .constants import MAX_TOTAL_JS_SIZE  # L4: магические числа вынесены в константы
 from .constants import (  # L6: rate limiting для внешних запросов
-    CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
     EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
-    MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
-    MAX_RESPONSE_SIZE,  # L9: лимит размера загружаемых файлов
-    MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
 )
 from .dom import DOMNode
 from .exceptions import ChromeException
@@ -97,7 +110,6 @@ HTTP_CACHE_TTL_SECONDS = 300
 HTTP_CACHE_MAXSIZE = 1024
 
 
-# Класс для хранения кэшированных результатов с TTL
 class _HTTPCacheEntry:
     """Запись кэша HTTP запроса с TTL."""
 
@@ -110,9 +122,75 @@ class _HTTPCacheEntry:
         return (time.time() - self.timestamp) > HTTP_CACHE_TTL_SECONDS
 
 
-# Глобальный кэш для HTTP запросов
-_http_cache: Dict[tuple, _HTTPCacheEntry] = {}
+class _HTTPCache:
+    """Инкапсулированный кэш для HTTP запросов с потокобезопасностью."""
+
+    def __init__(self, maxsize: int = HTTP_CACHE_MAXSIZE) -> None:
+        self._cache: Dict[tuple, _HTTPCacheEntry] = {}
+        self._lock = threading.Lock()
+        self._maxsize = maxsize
+
+    def get(self, key: tuple) -> Optional[requests.Response]:
+        """Получает закэшированный ответ.
+
+        Args:
+            key: Ключ кэша.
+
+        Returns:
+            Response объект или None если не найден или истёк.
+        """
+        with self._lock:
+            if key in self._cache:
+                entry = self._cache[key]
+                if not entry.is_expired():
+                    return entry.response
+                del self._cache[key]
+            return None
+
+    def set(self, key: tuple, response: requests.Response) -> None:
+        """Сохраняет ответ в кэш.
+
+        Args:
+            key: Ключ кэша.
+            response: Response объект для кэширования.
+        """
+        with self._lock:
+            if len(self._cache) >= self._maxsize:
+                keys_to_remove = list(self._cache.keys())[: self._maxsize // 10]
+                for k in keys_to_remove:
+                    del self._cache[k]
+
+            self._cache[key] = _HTTPCacheEntry(response, time.time())
+
+    def cleanup_expired(self) -> int:
+        """Очищает истёкшие записи.
+
+        Returns:
+            Количество удалённых записей.
+        """
+        with self._lock:
+            expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
+            for key in expired_keys:
+                del self._cache[key]
+            return len(expired_keys)
+
+    def size(self) -> int:
+        """Возвращает текущий размер кэша."""
+        with self._lock:
+            return len(self._cache)
+
+
+_http_cache_instance: Optional[_HTTPCache] = None
 _http_cache_lock = threading.Lock()
+
+
+def _get_http_cache() -> _HTTPCache:
+    """Получает синглтон экземпляр HTTP кэша."""
+    global _http_cache_instance
+    with _http_cache_lock:
+        if _http_cache_instance is None:
+            _http_cache_instance = _HTTPCache()
+        return _http_cache_instance
 
 
 def _get_cache_key(method: str, url: str, verify_ssl: bool) -> tuple:
@@ -131,18 +209,13 @@ def _get_cache_key(method: str, url: str, verify_ssl: bool) -> tuple:
 
 
 def _cleanup_expired_cache() -> int:
-    """
-    Очищает истёкшие записи из кэша.
+    """Очищает истёкшие записи из кэша.
 
     Returns:
         Количество удалённых записей.
     """
-    cleaned = 0
-    with _http_cache_lock:
-        expired_keys = [key for key, entry in _http_cache.items() if entry.is_expired()]
-        for key in expired_keys:
-            del _http_cache[key]
-            cleaned += 1
+    cache = _get_http_cache()
+    cleaned = cache.cleanup_expired()
 
     if cleaned > 0:
         app_logger.debug("Очищено %d истёкших записей из кэша HTTP", cleaned)
@@ -216,48 +289,26 @@ def _safe_external_request(
     kwargs.setdefault("verify", verify_ssl)
     kwargs.setdefault("timeout", timeout)
 
-    # Проверяем кэш если включено
+    cache_key = None
+
     if use_cache:
         cache_key = _get_cache_key(method, url, verify_ssl)
+        cache = _get_http_cache()
 
-        with _http_cache_lock:
-            # Проверяем наличие в кэше
-            if cache_key in _http_cache:
-                entry = _http_cache[cache_key]
+        cached_response = cache.get(cache_key)
+        if cached_response is not None:
+            app_logger.debug("Кэшированный ответ для %s %s", method, url)
+            return cached_response
 
-                # Проверяем не истёк ли кэш
-                if not entry.is_expired():
-                    app_logger.debug("Кэшированный ответ для %s %s", method, url)
-                    return entry.response
-                else:
-                    # Удаляем истёкшую запись
-                    del _http_cache[cache_key]
-                    app_logger.debug("Истёкший кэш удалён для %s %s", method, url)
-
-            # Ограничиваем размер кэша (LRU eviction)
-            if len(_http_cache) >= HTTP_CACHE_MAXSIZE:
-                # Удаляем oldest 10% записей
-                keys_to_remove = list(_http_cache.keys())[: HTTP_CACHE_MAXSIZE // 10]
-                for key in keys_to_remove:
-                    del _http_cache[key]
-                app_logger.debug(
-                    "Достигнут лимит кэша HTTP (%d записей), удалено %d старых записей",
-                    len(_http_cache),
-                    len(keys_to_remove),
-                )
-
-        # Периодическая очистка истёкших записей (каждый 10-й запрос)
-        if len(_http_cache) % 10 == 0:
+        if cache.size() % 10 == 0:
             _cleanup_expired_cache()
 
-    # Выполняем запрос с rate limiting
     response = _rate_limited_request(method, url, **kwargs)
 
-    # Кэшируем ответ если включено
-    if use_cache:
-        with _http_cache_lock:
-            _http_cache[cache_key] = _HTTPCacheEntry(response, time.time())
-            app_logger.debug("Запрос закэширован для %s %s", method, url)
+    if use_cache and cache_key is not None:
+        cache = _get_http_cache()
+        cache.set(cache_key, response)
+        app_logger.debug("Запрос закэширован для %s %s", method, url)
 
     return response
 
@@ -613,6 +664,10 @@ def _check_dangerous_constructors(code: str) -> tuple[bool, Optional[str]]:
         - is_valid: True если конструкторы безопасны, False иначе
         - error_message: Сообщение об ошибке или None
     """
+    # Проверяем на eval()
+    if re.search(r"\beval\s*\(", code, re.IGNORECASE):
+        return False, "Функция eval() запрещена"
+
     # Проверяем на new Function()
     if re.search(r"new\s+Function\s*\(", code, re.IGNORECASE):
         return False, "Конструктор 'new Function()' запрещён"
@@ -647,6 +702,10 @@ def _check_bracket_access(code: str) -> tuple[bool, Optional[str]]:
     if re.search(r'\bFunction\s*\[\s*["\'][a-zA-Z]+["\']\s*\]', code):
         return False, "Доступ к Function через квадратные скобки запрещён"
 
+    # Проверка на window['eval'] и window['Function']
+    if re.search(r"window\s*\[\s*['\"](?:eval|Function)['\"]\s*\]", code, re.IGNORECASE):
+        return False, "Доступ window['eval'] или window['Function'] запрещён"
+
     return True, None
 
 
@@ -661,13 +720,13 @@ def _check_reflect_and_apply(code: str) -> tuple[bool, Optional[str]]:
         - is_valid: True если функции отсутствуют, False иначе
         - error_message: Сообщение об ошибке или None
     """
-    # Проверка на использование Reflect.construct
-    if re.search(r"Reflect\s*\.\s*construct", code, re.IGNORECASE):
-        return False, "Reflect.construct запрещён (может использоваться для обхода)"
+    # Проверка на использование Reflect
+    if re.search(r"Reflect\s*\.", code, re.IGNORECASE):
+        return False, "Reflect запрещён (может использоваться для обхода)"
 
-    # Проверка на использование apply/call для Function
-    if re.search(r"Function\s*\.\s*(?:apply|call)\s*\(", code, re.IGNORECASE):
-        return False, "Function.apply/call запрещён (попытка обхода)"
+    # Проверка на использование apply/call
+    if re.search(r"\.\s*(?:apply|call)\s*\(", code, re.IGNORECASE):
+        return False, "apply/call запрещён (попытка обхода)"
 
     return True, None
 
@@ -733,6 +792,13 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         - Проверка на опасные паттерны из _DANGEROUS_JS_PATTERNS
         - Нормализация Unicode (NFKC) для предотвращения обходов через Unicode эскейпы
     """
+    if code is None:
+        return False, "JavaScript код не может быть None"
+
+    # Проверка типа
+    if not isinstance(code, str):
+        return (False, f"JavaScript код должен быть строкой, получен {type(code).__name__}")
+
     # ИСПРАВЛЕНИЕ 5: Нормализуем Unicode для предотвращения обходов через Unicode эскейпы
     import unicodedata
 
@@ -749,11 +815,11 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         # Если декодирование не удалось, используем нормализованный код
         pass
 
-    # Проверка на None
+    # Проверка на None после нормализации
     if normalized_code is None:
         return False, "JavaScript код не может быть None"
 
-    # Проверка типа
+    # Проверка типа после нормализации
     if not isinstance(normalized_code, str):
         return (
             False,
@@ -969,63 +1035,10 @@ class ChromeRemote:
                 app_logger.info("Успешное подключение к Chrome DevTools Protocol")
                 return True
 
-            except RequestException as e:
-                # Ошибки HTTP/сети
+            except (RequestException, WebSocketException, ChromeException) as e:
+                # Обработка всех связанных с подключением ошибок
                 app_logger.error(
-                    "Ошибка сети при подключении к Chrome DevTools Protocol (%s): %s",
-                    self._dev_url,
-                    e,
-                )
-                # Очистка ресурсов при ошибке
-                self._cleanup_interface()
-                if attempt < max_attempts - 1:
-                    time.sleep(attempt_delay)
-                continue
-
-            except WebSocketTimeoutException as e:
-                # ВАЖНО: Таймаут WebSocket соединения (timeout=30)
-                app_logger.error(
-                    "Таймаут WebSocket соединения при подключении к Chrome DevTools Protocol (%s): %s",
-                    self._dev_url,
-                    e,
-                )
-                # Очистка ресурсов при ошибке
-                self._cleanup_interface()
-                if attempt < max_attempts - 1:
-                    time.sleep(attempt_delay)
-                continue
-
-            except WebSocketException as e:
-                # Ошибки WebSocket соединения
-                app_logger.error(
-                    "Ошибка WebSocket при подключении к Chrome DevTools Protocol (%s): %s",
-                    self._dev_url,
-                    e,
-                )
-                # Очистка ресурсов при ошибке
-                self._cleanup_interface()
-                if attempt < max_attempts - 1:
-                    time.sleep(attempt_delay)
-                continue
-
-            except ChromeException as e:
-                # Специфичные ошибки Chrome
-                app_logger.error(
-                    "Ошибка Chrome при подключению к DevTools Protocol (%s): %s", self._dev_url, e
-                )
-                # Очистка ресурсов при ошибке
-                self._cleanup_interface()
-                if attempt < max_attempts - 1:
-                    time.sleep(attempt_delay)
-                continue
-
-            except Exception as e:
-                # Любые другие непредвиденные ошибки
-                app_logger.error(
-                    "Непредвиденная ошибка при подключении к Chrome DevTools Protocol (%s): %s",
-                    self._dev_url,
-                    e,
-                    exc_info=True,
+                    "Ошибка подключения к Chrome DevTools Protocol (%s): %s", self._dev_url, e
                 )
                 # Очистка ресурсов при ошибке
                 self._cleanup_interface()
@@ -1432,10 +1445,6 @@ class ChromeRemote:
                             self._chrome_tab._stopped.set()
                         last_check_time = current_time
                     except (ConnectionError, RequestException, TimeoutError):
-                        break
-                    except Exception as monitor_error:
-                        # Ловим любые неожиданные исключения и логируем их
-                        app_logger.debug("Ошибка в мониторином цикле вкладки: %s", monitor_error)
                         break
 
                 # Ждём следующего интервала
@@ -1889,12 +1898,6 @@ class ChromeRemote:
                         "Ошибка при закрытии вкладки: %s (тип: %s)",
                         close_tab_error,
                         type(close_tab_error).__name__,
-                    )
-                except Exception as unexpected_close_error:
-                    app_logger.error(
-                        "Непредвиденная ошибка при закрытии вкладки: %s",
-                        unexpected_close_error,
-                        exc_info=True,
                     )
                 finally:
                     # Гарантированно обнуляем _chrome_tab

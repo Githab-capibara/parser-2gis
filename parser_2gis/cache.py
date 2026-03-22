@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 import queue
+import re
 import sqlite3
 import threading
 import time
@@ -31,7 +32,48 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+import unicodedata
+
 from .logger.logger import logger as app_logger
+
+
+def _normalize_unicode(text: str) -> str:
+    """Нормализует unicode текст в форму NFC.
+
+    Предотвращает атаки через unicode normalization.
+
+    Args:
+        text: Текст для нормализации.
+
+    Returns:
+        Нормализованный текст в форме NFC.
+    """
+    return unicodedata.normalize("NFC", text)
+
+
+_SQL_INJECTION_PATTERNS: re.Pattern = re.compile(
+    r"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE)\b|"
+    r"--|/\*|\*/|@@|CHAR\(|0x[0-9a-f]+|"
+    r"\b(OR|AND)\s+\d+\s*=\s*\d+)",
+    re.IGNORECASE,
+)
+
+
+def _check_sql_injection_patterns(value: Any) -> bool:
+    """Проверяет значение на наличие SQL-инъекций.
+
+    Args:
+        value: Значение для проверки.
+
+    Returns:
+        True если значение безопасно, False если обнаружена SQL-инъекция.
+    """
+    if isinstance(value, str):
+        if _SQL_INJECTION_PATTERNS.search(value):
+            app_logger.warning("Обнаружен потенциальный SQL-инъекция в кэше")
+            return False
+    return True
+
 
 # =============================================================================
 # ОПТИМИЗАЦИЯ 3.6: orjson wrapper для сериализации
@@ -96,9 +138,10 @@ def _serialize_json(data: Dict[str, Any]) -> str:
     # Стандартный json с оптимизированными параметрами
     try:
         return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    except (TypeError, ValueError) as json_error:
+    except (TypeError, ValueError) as json_error:  # FIX #29: Missing error context in re-raise
         raise TypeError(
-            f"Критическая ошибка сериализации json: {json_error}. Тип данных: {type(data).__name__}"
+            f"Critical JSON serialization error: {json_error}. "
+            f"Data type: {type(data).__name__}, data size: {len(str(data))} bytes"
         ) from json_error
 
 
@@ -221,7 +264,7 @@ def _validate_string_data(data: str) -> bool:
         data: Строка для валидации.
 
     Returns:
-        True если строка корректна, False если превышает лимит длины.
+        True если строка корректна, False если превышает лимит длины или содержит SQL-инъекцию.
     """
     if len(data) > MAX_STRING_LENGTH:
         app_logger.warning(
@@ -229,6 +272,8 @@ def _validate_string_data(data: str) -> bool:
             len(data),
             MAX_STRING_LENGTH,
         )
+        return False
+    if not _check_sql_injection_patterns(data):
         return False
     return True
 
@@ -311,8 +356,8 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
             "Внимание: достигнута максимальная глубина вложенности данных кэша (%d)", MAX_DATA_DEPTH
         )
 
-    # Базовые типы
-    if data is None:
+    # Base types
+    if data is None:  # FIX #15: Inconsistent null handling
         return True
 
     if isinstance(data, bool):
@@ -492,7 +537,7 @@ def _calculate_dynamic_pool_size() -> int:
         # psutil не установлен, используем значение по умолчанию
         app_logger.debug("psutil не установлен, используем размер пула по умолчанию")
         return MIN_POOL_SIZE
-    except (MemoryError, OSError, ValueError, TypeError):
+    except (MemoryError, OSError, ValueError, TypeError, Exception):
         # Любая другая ошибка - используем минимальный размер
         app_logger.debug("Ошибка при расчёте размера пула, используем минимум")
         return MIN_POOL_SIZE

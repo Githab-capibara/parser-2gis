@@ -709,17 +709,19 @@ class MainParser:
                 if links is None:
                     return None
 
-                # Оптимизация: используем set comprehension для быстрого создания множества
-                link_addresses = {x.attributes["href"] for x in links if "href" in x.attributes}
+                # Optimization: use set comprehension for fast set creation
+                link_hrefs = {  # FIX #10: Unclear variable naming
+                    link.attributes["href"] for link in links if "href" in link.attributes
+                }
 
                 with visited_links_lock:
-                    # Оптимизация: используем set.intersection для быстрой проверки
-                    if link_addresses.intersection(visited_links.keys()):
+                    # Optimization: use set.intersection for fast checking
+                    if link_hrefs.intersection(visited_links.keys()):
                         # Возвращаем None вместо пустого списка для явного указания на повтор
                         return None
 
-                    # Оптимизация 3.1: пакетное добавление ссылок в OrderedDict
-                    for url in link_addresses:
+                    # Optimization 3.1: batch add links to OrderedDict
+                    for url in link_hrefs:
                         visited_links[url] = None
 
                     # Немедленное удаление старых ссылок при превышении лимита

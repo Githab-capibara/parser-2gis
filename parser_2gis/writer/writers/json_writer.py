@@ -40,7 +40,23 @@ class JSONWriter(FileWriter):
         Args:
             catalog_doc: JSON-документ Catalog Item API.
         """
-        item = catalog_doc["result"]["items"][0]
+        if not isinstance(catalog_doc, dict):
+            logger.warning("catalog_doc не является словарём, пропускаем")
+            return
+
+        result = catalog_doc.get("result")
+        if not isinstance(result, dict):
+            logger.warning("catalog_doc['result'] отсутствует или не является словарём, пропускаем")
+            return
+
+        items = result.get("items")
+        if not isinstance(items, list) or len(items) == 0:
+            logger.warning(
+                "catalog_doc['result']['items'] пуст или не является списком, пропускаем"
+            )
+            return
+
+        item = items[0]
 
         if self._options.verbose:
             try:

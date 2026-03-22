@@ -337,11 +337,38 @@ class TestResourceLeaks:
                 )
                 # Пропускаем файл
 
-        # Разрешаем до 10 исключений (специальные случаи где open() возвращается из функции или используется в try/finally)
-        # Эти случаи документированы и безопасны
-        assert len(issues) <= 10, (
-            f"Найдено {len(issues)} потенциальных утечек ресурсов:\n"
-            + "\n".join(f"{path}:{line} - {content}" for path, line, content in issues[:10])
+        # Фильтруем известные легитимные случаи (open() возвращается из функции или используется с try/finally)
+        legitimate_patterns = [
+            ("parallel_parser.py", 749),  # outfile возвращается из функции
+            (
+                "writer/writers/csv_writer.py",
+                [143, 156, 174, 184, 191, 275, 291, 305, 323],
+            ),  # writer файлы
+            ("writer/writers/file_writer.py", 108),  # return open(...) из функции
+        ]
+
+        filtered_issues = []
+        for issue in issues:
+            path, line, content = issue
+            is_legitimate = False
+            for pattern_path, pattern_lines in legitimate_patterns:
+                if path.endswith(pattern_path):
+                    if isinstance(pattern_lines, list):
+                        if line in pattern_lines:
+                            is_legitimate = True
+                            break
+                    else:
+                        if line == pattern_lines:
+                            is_legitimate = True
+                            break
+            if not is_legitimate:
+                filtered_issues.append(issue)
+
+        assert len(filtered_issues) == 0, (
+            f"Найдено {len(filtered_issues)} потенциальных утечек ресурсов:\n"
+            + "\n".join(
+                f"{path}:{line} - {content}" for path, line, content in filtered_issues[:20]
+            )
         )
 
 

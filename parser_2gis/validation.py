@@ -410,20 +410,31 @@ def validate_phone(phone: str) -> ValidationResult:
         >>> print(result.is_valid)
         True
     """
-    # Очищаем телефон от лишних символов
+    if not phone:
+        return ValidationResult(is_valid=False, error="Телефон не может быть пустым")
+
     cleaned = re.sub(r"[\s\-()]", "", phone)
 
     if not cleaned:
-        return ValidationResult(is_valid=False, error="Телефон не может быть пустым")
+        return ValidationResult(is_valid=False, error="Телефон не может быть пустым после очистки")
 
-    # Проверяем формат
+    if len(cleaned) < 10:
+        return ValidationResult(
+            is_valid=False,
+            error=f"Телефон слишком короткий: {phone}. Ожидался формат: +7 (XXX) XXX-XX-XX",
+        )
+
     if not _PHONE_PATTERN.match(phone):
         return ValidationResult(
             is_valid=False,
             error=f"Некорректный формат телефона: {phone}. Ожидался формат: +7 (XXX) XXX-XX-XX",
         )
 
-    # Нормализуем к формату 8 (XXX) XXX-XX-XX
+    if len(cleaned) < 11:
+        return ValidationResult(
+            is_valid=False, error=f"Телефон должен содержать 11 цифр после '+7' или '8': {phone}"
+        )
+
     normalized = f"8 ({cleaned[1:4]}) {cleaned[4:7]}-{cleaned[7:9]}-{cleaned[9:11]}"
 
     return ValidationResult(is_valid=True, value=normalized, error=None)

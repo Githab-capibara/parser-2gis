@@ -407,10 +407,12 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                     else:
                         results[current_id] = new_dict
 
-                    # Добавляем элементы в стек в обратном порядке для сохранения порядка
-                    # Увеличиваем глубину на 1
+                    # Add items to stack in reverse order to preserve order
+                    # Increment depth by 1
                     next_depth = current_depth + 1
-                    for k, v in reversed(list(current_value.items())):
+                    for k, v in reversed(
+                        current_value.items()
+                    ):  # FIX #18: Inefficient list comprehension
                         stack.append((v, k, new_dict, k, next_depth))
 
                 elif isinstance(current_value, list):
@@ -492,7 +494,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     finally:
         try:
             _visited.clear()
-        except (OSError, RuntimeError) as cleanup_error:
+        except (OSError, RuntimeError, MemoryError) as cleanup_error:
             logger.warning("Ошибка при очистке _visited: %s", cleanup_error)
 
 

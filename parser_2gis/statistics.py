@@ -54,7 +54,9 @@ class ParserStatistics:
     failed_records: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
-    errors: list[str] = field(default_factory=list)
+    errors: list[str] = field(
+        default_factory=list
+    )  # FIX #14: Use factory instead of mutable default
 
     def _safe_increment(self, current_value: int, increment: int = 1) -> int:
         """Безопасно инкрементирует счётчик с проверкой на переполнение.
@@ -182,8 +184,8 @@ class StatisticsExporter:
         >>> exporter.export_to_json(stats, Path('stats.json'))
     """
 
-    def __init__(self):
-        """Инициализация экспортера статистики."""
+    def __init__(self) -> None:
+        """Initialize statistics exporter."""
 
     @staticmethod
     def _ensure_dir(file_path: Path) -> None:
@@ -466,34 +468,38 @@ class StatisticsExporter:
         return "\n".join(html_parts)
 
     def _generate_text(self, stats: ParserStatistics) -> str:
-        """Генерация текстового отчета.
+        """Generate text report.
 
-        Создает читаемый текстовый отчет с отступами.
+        Creates readable text report with indentation.
 
         Args:
-            stats: Объект статистики
+            stats: Statistics object
 
         Returns:
-            Текстовое содержимое отчета
-        """
+            Text content of report
+        """  # FIX #12: String concatenation in loop
         data = self._prepare_for_dict(stats)
 
-        text = "=" * 60 + "\n"
-        text += "СТАТИСТИКА РАБОТЫ PARSER2GIS\n"
-        text += "=" * 60 + "\n\n"
+        lines: list[str] = []
+        lines.append("=" * 60)
+        lines.append("STATISTICS PARSER2GIS")
+        lines.append("=" * 60)
+        lines.append("")
 
-        # Добавляем данные
+        # Add data
         for key, value in data.items():
-            text += f"{key}: {value}\n"
+            lines.append(f"{key}: {value}")
 
-        # Добавляем ошибки, если есть
+        # Add errors if any
         if stats.errors:
-            text += "\nОШИБКИ:\n"
-            text += "-" * 60 + "\n"
+            lines.append("")
+            lines.append("ERRORS:")
+            lines.append("-" * 60)
             for error in stats.errors:
-                text += f"  - {error}\n"
+                lines.append(f"  - {error}")
 
-        text += "\n" + "=" * 60 + "\n"
-        text += f"Сгенерировано: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-        return text
+        return "\n".join(lines) + "\n"

@@ -27,6 +27,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import weakref
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -262,8 +263,6 @@ class ChromeBrowser:
             )
 
         except Exception as e:
-            # Если ошибка произошла после создания TemporaryDirectory,
-            # гарантируем его очистку
             app_logger.error("Ошибка инициализации Chrome: %s", e)
             if self._profile_tempdir is not None:
                 try:
@@ -271,8 +270,43 @@ class ChromeBrowser:
                     app_logger.debug("Профиль Chrome очищен при ошибке инициализации")
                 except Exception as cleanup_error:
                     app_logger.debug("Ошибка при очистке профиля: %s", cleanup_error)
-            # Пробрасываем исключение дальше
             raise
+
+        self._finalizer = weakref.finalize(
+            self,
+            self._cleanup_from_finalizer,
+            self._proc,
+            self._profile_tempdir,
+            self._profile_path,
+        )
+        self._finalizer.atexit = False
+
+    @staticmethod
+    def _cleanup_from_finalizer(
+        proc: Optional[subprocess.Popen],
+        profile_tempdir: Optional[tempfile.TemporaryDirectory],
+        profile_path: Optional[str],
+    ) -> None:
+        """Гарантированная очистка ресурсов через weakref.finalize().
+
+        Args:
+            proc: Процесс браузера.
+            profile_tempdir: Временная директория профиля.
+            profile_path: Путь к профилю.
+        """
+        try:
+            if proc is not None and proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait(timeout=5)
+
+            if profile_tempdir is not None:
+                profile_tempdir.cleanup()
+        except Exception as finalizer_error:
+            app_logger.debug("Ошибка в weakref.finalize(): %s", finalizer_error)
 
     def _validate_binary_path(self, binary_path: str) -> None:
         """
@@ -529,92 +563,52 @@ class ChromeBrowser:
         self.close()
 
     def __del__(self) -> None:
-        """
-        Деструктор объекта ChromeBrowser.
+        """Деструктор объекта ChromeBrowser.
 
-        Гарантирует закрытие процесса Chrome и очистку ресурсов при уничтожении объекта.
-        Используется как fallback на случай если close() не был вызван явно.
+        Использует weakref.finalize() для гарантированной очистки ресурсов.
+        weakref.finalize() вызывается даже при циклических ссылках.
 
         Важно:
-            - Не полагаться только на __del__ для закрытия ресурсов
-            - Всегда вызывать close() явно или использовать контекстный менеджер
-            - __del__ может не вызваться при циклических ссылках
-
-        Примечание:
-            - Обработаны все возможные исключения чтобы не прерывать сборку мусора
-            - Детальное логирование для отладки утечек ресурсов
+            - weakref.finalize() регистрируется в __init__ для гарантированной очистки
+            - __del__ используется для логирования и как fallback
+            - Всегда вызывайте close() явно или используйте контекстный менеджер
         """
         try:
-            # Проверяем есть ли активный процесс
+            if hasattr(self, "_finalizer") and self._finalizer is not None:
+                if self._finalizer.detach():
+                    self._cleanup_from_finalizer(
+                        self._proc, self._profile_tempdir, self._profile_path
+                    )
+                return
+
             if hasattr(self, "_proc") and self._proc is not None:
                 process_pid = self._proc.pid
-                app_logger.warning(
-                    "ChromeBrowser.__del__: обнаружен активный процесс Chrome (PID: %d). "
-                    "Выполняется принудительное закрытие. "
-                    "Рекомендуется явно вызывать close() или использовать контекстный менеджер.",
-                    process_pid,
-                )
-
-                # Проверяем активен ли процесс
                 if self._proc.poll() is None:
-                    # Процесс ещё активен - пытаемся закрыть
                     try:
-                        # Пробуем корректное завершение
                         self._proc.terminate()
-                        try:
-                            self._proc.wait(timeout=3)
-                            app_logger.info(
-                                "ChromeBrowser.__del__: процесс %d завершён через terminate()",
-                                process_pid,
-                            )
-                        except subprocess.TimeoutExpired:
-                            # Таймаут - используем kill
-                            self._proc.kill()
-                            self._proc.wait(timeout=5)
-                            app_logger.info(
-                                "ChromeBrowser.__del__: процесс %d завершён через kill()",
-                                process_pid,
-                            )
-                    except (ProcessLookupError, PermissionError) as proc_error:
-                        # Процесс уже завершён или нет прав
-                        app_logger.debug(
-                            "ChromeBrowser.__del__: процесс %d уже завершён или недоступен: %s",
-                            process_pid,
-                            proc_error,
-                        )
+                        self._proc.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        self._proc.kill()
+                        self._proc.wait(timeout=5)
+                    except (ProcessLookupError, PermissionError):
+                        pass
                     except Exception as close_error:
-                        app_logger.error(
+                        app_logger.debug(
                             "ChromeBrowser.__del__: ошибка при закрытии процесса %d: %s",
                             process_pid,
                             close_error,
-                            exc_info=True,
                         )
-                else:
-                    app_logger.debug(
-                        "ChromeBrowser.__del__: процесс %d уже завершён (poll=%s)",
-                        process_pid,
-                        self._proc.poll(),
-                    )
 
-            # Очистка профиля
             if hasattr(self, "_profile_tempdir") and self._profile_tempdir is not None:
                 try:
                     self._profile_tempdir.cleanup()
-                    app_logger.debug(
-                        "ChromeBrowser.__del__: профиль очищен через TemporaryDirectory"
-                    )
                 except Exception as cleanup_error:
-                    app_logger.error(
-                        "ChromeBrowser.__del__: ошибка при очистке профиля: %s",
-                        cleanup_error,
-                        exc_info=True,
+                    app_logger.debug(
+                        "ChromeBrowser.__del__: ошибка при очистке профиля: %s", cleanup_error
                     )
 
         except Exception as del_error:
-            # Ловим все исключения чтобы не прерывать сборку мусора
-            app_logger.error(
-                "ChromeBrowser.__del__: непредвиденная ошибка: %s", del_error, exc_info=True
-            )
+            app_logger.debug("ChromeBrowser.__del__: непредвиденная ошибка: %s", del_error)
 
 
 # Константы для очистки профилей

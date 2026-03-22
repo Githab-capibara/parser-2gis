@@ -15,6 +15,12 @@ if TYPE_CHECKING:
     from ..chrome.options import ChromeOptions
     from ..parser.options import ParserOptions
 
+_PARSER_PATTERNS: list[tuple[type, re.Pattern]] = [
+    (FirmParser, re.compile(FirmParser.url_pattern())),
+    (InBuildingParser, re.compile(InBuildingParser.url_pattern())),
+    (MainParser, re.compile(MainParser.url_pattern())),
+]
+
 
 def get_parser(
     url: str, chrome_options: ChromeOptions, parser_options: ParserOptions
@@ -29,9 +35,8 @@ def get_parser(
     Returns:
         Экземпляр парсера.
     """
-    for parser in (FirmParser, InBuildingParser, MainParser):
-        if re.match(parser.url_pattern(), url):
-            return parser(url, chrome_options, parser_options)
+    for parser_cls, pattern in _PARSER_PATTERNS:
+        if pattern.match(url):
+            return parser_cls(url, chrome_options, parser_options)
 
-    # Резервный вариант по умолчанию
     return MainParser(url, chrome_options, parser_options)

@@ -229,7 +229,7 @@ class TestValidateUrlCachedFunction:
 
         # Вызываем снова
         result2 = validate_url(url)
-        assert result2 is True
+        assert result2.is_valid is True
 
         # Проверяем, что hits увеличился
         info2 = validate_url.cache_info()
@@ -241,6 +241,9 @@ class TestValidateUrlIntegration:
 
     def test_validate_url_integration_real_urls(self) -> None:
         """Интеграционный тест с реальными URL."""
+        # Очищаем кэш перед тестом
+        validate_url.cache_clear()
+
         real_urls = [
             "https://2gis.ru/moscow/search/Аптеки",
             "https://2gis.ru/spb/search/Рестораны",

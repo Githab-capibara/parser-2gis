@@ -1014,10 +1014,14 @@ class TestUrlValidationDuplication:
         validator_source = validator_path.read_text(encoding="utf-8")
 
         # Act - проверяем что validator.py делегирует validation.py
-        assert (
-            "from .validation import validate_url" in validator_source
-            or "from parser_2gis.validation import validate_url" in validator_source
-        ), "validator.py должен импортировать validate_url из validation.py"
+        # Проверяем что validate_url импортируется из validation
+        has_validate_url_import = "validate_url" in validator_source and (
+            "from .validation import" in validator_source
+            or "from parser_2gis.validation import" in validator_source
+        )
+        assert has_validate_url_import, (
+            "validator.py должен импортировать validate_url из validation.py"
+        )
 
         # Проверяем что нет дублирования логики
         # validator.py не должен содержать собственной реализации urlparse

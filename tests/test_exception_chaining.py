@@ -180,7 +180,7 @@ class TestCacheExceptionChaining:
         # Проверяем что исключение имеет правильный тип
         assert isinstance(exc_info.value, TypeError)
         # Проверяем что сообщение содержит информацию об ошибке
-        assert "Критическая ошибка сериализации" in str(exc_info.value)
+        assert "Critical JSON serialization error" in str(exc_info.value)
         # Проверяем что есть контекст исключения
         assert exc_info.value.__cause__ is not None
 

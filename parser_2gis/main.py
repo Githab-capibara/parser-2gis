@@ -234,6 +234,108 @@ def _handle_configuration_validation(
 # Функция _validate_url удалена - используется validate_url из validation.py
 # Это устраняет дублирование кода валидации и обеспечивает единую точку валидации URL
 
+# =============================================================================
+# ВАЛИДАЦИЯ CLI АРГУМЕНТОВ И БЕЗОПАСНОСТЬ
+# =============================================================================
+
+# Запрещённые символы в путях для предотвращения path traversal атак
+_FORBIDDEN_PATH_CHARS = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
+
+# Максимальная длина пути для предотвращения переполнения буфера
+_MAX_PATH_LENGTH = 4096
+
+# Разрешённые базовые директории для записи
+_ALLOWED_BASE_DIRS = [Path.cwd(), Path.home() / "parser-2gis", Path("/tmp")]
+
+
+def _validate_path_safety(path: str, path_name: str = "Путь") -> None:
+    """Валидирует путь на безопасность для предотвращения path traversal атак.
+
+    ИСПРАВЛЕНИЕ 7: Добавлена комплексная валидация путей:
+    1. Проверка на запрещённые символы
+    2. Проверка максимальной длины
+    3. Разрешение символьных ссылок через realpath
+    4. Проверка нахождения в разрешённых директориях
+
+    Args:
+        path: Путь для валидации.
+        path_name: Имя параметра для сообщений об ошибках.
+
+    Raises:
+        ValueError: При обнаружении небезопасного пути.
+        OSError: При ошибке работы с файловой системой.
+    """
+    if not path:
+        return
+
+    # Проверка длины пути
+    if len(path) > _MAX_PATH_LENGTH:
+        raise ValueError(
+            f"{path_name} превышает максимальную длину ({len(path)} > {_MAX_PATH_LENGTH})"
+        )
+
+    # Проверка на запрещённые символы
+    for forbidden_char in _FORBIDDEN_PATH_CHARS:
+        if forbidden_char in path:
+            raise ValueError(
+                f"{path_name} содержит запрещённый символ: {forbidden_char!r}. "
+                "Path traversal атаки запрещены."
+            )
+
+    # Разрешаем путь через realpath для предотвращения symlink атак
+    try:
+        resolved_path = Path(path).resolve()
+    except (OSError, RuntimeError) as fs_error:
+        raise OSError(f"Ошибка разрешения {path_name}: {fs_error}") from fs_error
+
+    # Проверка что путь находится в разрешённой директории
+    # Это предотвращает запись в системные директории
+    is_allowed = any(
+        str(resolved_path).startswith(str(allowed_dir)) for allowed_dir in _ALLOWED_BASE_DIRS
+    )
+
+    if not is_allowed:
+        # Разрешаем запись в текущую рабочую директорию и её поддиректории
+        if str(resolved_path).startswith(str(Path.cwd())):
+            return
+
+        raise ValueError(
+            f"{path_name} должен находиться в одной из разрешённых директорий: "
+            f"{[str(d) for d in _ALLOWED_BASE_DIRS]}"
+        )
+
+
+def _validate_cli_paths(args: argparse.Namespace) -> None:
+    """Валидирует все пути из CLI аргументов на безопасность.
+
+    ИСПРАВЛЕНИЕ 7: Комплексная валидация всех путей перед использованием:
+    1. output_path - путь к выходному файлу
+    2. chrome.binary_path - путь к браузеру
+    3. log.file_path - путь к файлу логов
+
+    Args:
+        args: Аргументы командной строки.
+
+    Raises:
+        ValueError: При обнаружении небезопасного пути.
+        OSError: При ошибке работы с файловой системой.
+    """
+    # Валидируем output_path
+    output_path = getattr(args, "output_path", None)
+    if output_path:
+        _validate_path_safety(str(output_path), "Путь к выходному файлу")
+
+    # Валидируем chrome.binary_path если указан
+    chrome_binary = getattr(args, "chrome.binary_path", None)
+    if chrome_binary:
+        _validate_path_safety(str(chrome_binary), "Путь к браузеру")
+
+    # Валидируем log.file_path если указан
+    log_config = getattr(args, "log", None)
+    if log_config and hasattr(log_config, "file_path") and log_config.file_path:
+        _validate_path_safety(str(log_config.file_path), "Путь к файлу логов")
+
+
 # Глобальный экземпляр обработчика сигналов
 _SIGNAL_HANDLER_INSTANCE: Optional[SignalHandler] = None
 
@@ -462,6 +564,10 @@ def cleanup_resources() -> None:
         logger.critical(
             "Критическая ошибка: нехватка памяти при очистке ресурсов: %s", e, exc_info=True
         )
+        error_count += 1
+    except RuntimeError as e:
+        # Критическая ошибка - RuntimeError
+        logger.error("RuntimeError при очистке ресурсов: %s", e, exc_info=True)
         error_count += 1
     except KeyboardInterrupt:
         # Прерывание пользователем - логируем и продолжаем
@@ -1052,6 +1158,7 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
 
     _validate_cli_numeric_arguments(args, arg_parser)
     _validate_url_sources(args, arg_parser)
+    _validate_cli_paths(args)  # ИСПРАВЛЕНИЕ 7: Валидация путей на безопасность
     config = _handle_configuration_validation(config_args, arg_parser)
 
     return args, config

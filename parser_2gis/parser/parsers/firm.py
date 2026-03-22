@@ -8,7 +8,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Optional
+import sys
+from typing import TYPE_CHECKING, Any, Dict, Optional, Set
 
 from ...logger import logger
 from .main import MainParser
@@ -16,46 +17,88 @@ from .main import MainParser
 if TYPE_CHECKING:
     from ...writer import FileWriter
 
-# Константы для валидации initialState
-MAX_INITIAL_STATE_DEPTH = 10  # Максимальная глубина вложенности данных
+MAX_INITIAL_STATE_DEPTH = 10
+MAX_INITIAL_STATE_SIZE = 5 * 1024 * 1024
+MAX_ITEMS_IN_COLLECTION = 10000
+
+_ALLOWED_KEYS: Set[str] = {
+    "data",
+    "entity",
+    "profile",
+    "id",
+    "name",
+    "name_ex",
+    "address",
+    "phone",
+    "phone_unformatted",
+    "url",
+    "email",
+    "lat",
+    "lon",
+    "city_id",
+    "rubric_id",
+    "rubric_ids",
+    "adm_div",
+    "city",
+    "building_id",
+    "warehouse_id",
+    "is_chain",
+    "chain_id",
+    "schedules",
+    "links",
+    "attributes",
+    "files",
+    "specifications",
+    "ads",
+    "antiad",
+    "reviews",
+    "statistics",
+    "meta",
+    "type",
+    "type_id",
+    "source",
+    "import_ver",
+    "import_hash",
+    "mod_revision",
+    "created_at",
+    "updated_at",
+}
 
 
-def _validate_initial_state(data: Any, depth: int = 0) -> bool:
+def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> tuple[bool, int]:
     """Рекурсивно валидирует структуру initialState на безопасность.
     - Проверяет тип данных (только dict, list, str, int, float, bool, None)
     - Ограничивает глубину вложенности для предотвращения DoS
     - Проверяет строки на наличие опасных JS-конструкций
+    - Ограничивает размер данных для предотвращения атак
 
     Args:
         data: Данные для валидации.
         depth: Текущая глубина вложенности.
+        item_count: Счётчик обработанных элементов.
 
     Returns:
-        True если данные безопасны, False иначе.
+        Кортеж (is_valid, item_count) - валидны ли данные и общее количество элементов.
     """
-    # Проверяем глубину вложенности
     if depth > MAX_INITIAL_STATE_DEPTH:
-        logger.warning("Превышена максимальная глубина вложенности initialState")
-        return False
+        logger.warning("Превышена максимальная глубина вложенности initialState: %d", depth)
+        return False, item_count
 
-    # Базовые типы
     if data is None:
-        return True
+        return True, item_count
 
     if isinstance(data, bool):
-        return True
+        return True, item_count
 
     if isinstance(data, (int, float)):
-        # Проверяем на NaN и Infinity
         import math
 
         if isinstance(data, float) and (math.isnan(data) or math.isinf(data)):
             logger.warning("Обнаружено NaN/Infinity в initialState")
-            return False
-        return True
+            return False, item_count
+        return True, item_count
 
     if isinstance(data, str):
-        # Проверяем строку на опасные JS-конструкции
         dangerous_patterns = [
             "<script",
             "javascript:",
@@ -73,29 +116,44 @@ def _validate_initial_state(data: Any, depth: int = 0) -> bool:
         for pattern in dangerous_patterns:
             if pattern.lower() in data_lower:
                 logger.warning("Обнаружена опасная конструкция в initialState: %s", pattern)
-                return False
-        return True
+                return False, item_count
+
+        if len(data) > MAX_INITIAL_STATE_SIZE:
+            logger.warning("Строка в initialState превышает максимальный размер: %d", len(data))
+            return False, item_count
+        return True, item_count
 
     if isinstance(data, dict):
-        # Рекурсивно проверяем все значения словаря
+        if len(data) > MAX_ITEMS_IN_COLLECTION:
+            logger.warning(
+                "Словарь в initialState превышает максимальное количество элементов: %d", len(data)
+            )
+            return False, item_count
+
         for key, value in data.items():
             if not isinstance(key, str):
                 logger.warning("Некорректный тип ключа в initialState")
-                return False
-            if not _validate_initial_state(value, depth + 1):
-                return False
-        return True
+                return False, item_count
+            valid, item_count = _validate_initial_state(value, depth + 1, item_count + 1)
+            if not valid:
+                return False, item_count
+        return True, item_count
 
     if isinstance(data, list):
-        # Рекурсивно проверяем все элементы списка
-        for item in data:
-            if not _validate_initial_state(item, depth + 1):
-                return False
-        return True
+        if len(data) > MAX_ITEMS_IN_COLLECTION:
+            logger.warning(
+                "Список в initialState превышает максимальное количество элементов: %d", len(data)
+            )
+            return False, item_count
 
-    # Недопустимый тип
+        for item in data:
+            valid, item_count = _validate_initial_state(item, depth + 1, item_count + 1)
+            if not valid:
+                return False, item_count
+        return True, item_count
+
     logger.warning("Недопустимый тип данных в initialState: %s", type(data).__name__)
-    return False
+    return False, item_count
 
 
 def _safe_extract_initial_state(
@@ -114,12 +172,16 @@ def _safe_extract_initial_state(
         logger.warning("initialState не является словарём")
         return None
 
-    # Проверяем всю структуру на безопасность
-    if not _validate_initial_state(raw_data):
+    data_size = sys.getsizeof(str(raw_data))
+    if data_size > MAX_INITIAL_STATE_SIZE:
+        logger.error("initialState превышает максимальный размер: %d байт", data_size)
+        return None
+
+    valid, _ = _validate_initial_state(raw_data)
+    if not valid:
         logger.error("initialState содержит небезопасные данные")
         return None
 
-    # Последовательно извлекаем ключи
     result = raw_data
     for key in required_keys:
         if not isinstance(result, dict):
@@ -130,7 +192,6 @@ def _safe_extract_initial_state(
             logger.warning("Ключ %s отсутствует в initialState", key)
             return None
 
-    # Финальная проверка типа
     if not isinstance(result, dict):
         logger.warning("Итоговые данные не являются словарём")
         return None

@@ -186,7 +186,7 @@ class TestMemoryErrorCache:
             for conn in connections:
                 try:
                     conn.close()
-                except Exception:
+                except (OSError, RuntimeError):
                     pass
 
 
@@ -231,12 +231,11 @@ class TestMemoryErrorCommon:
             tmp_path: pytest tmp_path fixture.
         """
 
-        # Mock list для вызова MemoryError - используем правильный способ
-        # Патчим list в контексте common.py для создания нового списка
-        def mock_list_iterable(iterable=None):
+        # Mock repr для вызова MemoryError - используем правильный способ
+        def mock_repr(obj):
             raise MemoryError("Out of memory during stack operation")
 
-        with patch("parser_2gis.common.list", mock_list_iterable):
+        with patch("parser_2gis.common.repr", mock_repr):
             data = {"key": "value"}
 
             # Пытаемся обработать - MemoryError обрабатывается и выбрасывается ValueError

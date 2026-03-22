@@ -198,34 +198,81 @@ class _TempFileTimer:
         )
 
     def _cleanup_callback(self) -> None:
-        """Callback для периодической очистки."""
-        # Проверяем флаг остановки через _stop_event
-        if self._stop_event.is_set():
+        """Callback для периодической очистки.
+
+        ИСПРАВЛЕНИЕ 6: Устранение race condition через:
+        1. Проверку _stop_event.is_set() внутри блокировки
+        2. Использование threading.Event.wait() вместо Timer
+        3. Корректный shutdown механизм с гарантией остановки
+        """
+        # ИСПРАВЛЕНИЕ 6: Проверяем флаг остановки ВНУТРИ блокировки для предотвращения гонки
+        should_stop = False
+        try:
+            # Пытаемся получить блокировку с таймаутом
+            lock_acquired = self._lock.acquire(timeout=5.0)
+            if lock_acquired:
+                try:
+                    should_stop = self._stop_event.is_set()
+                finally:
+                    self._lock.release()
+            else:
+                # Не удалось получить блокировку - предполагаем что нужно остановиться
+                logger.warning("Не удалось получить блокировку в _cleanup_callback")
+                should_stop = True
+        except (RuntimeError, OSError) as lock_error:
+            logger.debug("Ошибка при получении блокировки в _cleanup_callback: %s", lock_error)
+            should_stop = True
+
+        if should_stop:
             return
 
         try:
             self._cleanup_temp_files()
-        except Exception as cleanup_error:
+        except (MemoryError, KeyboardInterrupt, SystemExit):
+            # Критические исключения - пробрасываем дальше
+            raise
+        except (OSError, RuntimeError, TypeError) as cleanup_error:
+            # Конкретные типы исключений для отладки
             logger.error(
                 "Ошибка при периодической очистке временных файлов: %s",
                 cleanup_error,
                 exc_info=True,
             )
         except BaseException as base_error:
-            # Обработка всех исключений включая KeyboardInterrupt и SystemExit
+            # Обработка всех остальных исключений включая KeyboardInterrupt и SystemExit
             logger.error("Критическая ошибка в callback очистки: %s", base_error, exc_info=True)
         finally:
-            # Планируем следующую очистку только если не была установлена остановка
-            if not self._stop_event.is_set():
+            # ИСПРАВЛЕНИЕ 6: Планируем следующую очистку только если не была установлена остановка
+            # Проверяем ещё раз внутри блокировки для безопасности
+            should_schedule = False
+            try:
+                lock_acquired = self._lock.acquire(timeout=5.0)
+                if lock_acquired:
+                    try:
+                        should_schedule = not self._stop_event.is_set()
+                    finally:
+                        self._lock.release()
+            except (RuntimeError, OSError):
+                should_schedule = False
+
+            if should_schedule:
                 self._schedule_next_cleanup()
 
     def _schedule_next_cleanup(self) -> None:
-        """Планирует следующую очистку."""
+        """Планирует следующую очистку.
+
+        ИСПРАВЛЕНИЕ 6: Использует конкретные типы исключений вместо Exception
+        для лучшей отладки и обработки ошибок.
+        """
         try:
             self._timer = threading.Timer(self._interval, self._cleanup_callback)
             self._timer.daemon = True
             self._timer.start()
-        except Exception as schedule_error:
+        except (MemoryError, KeyboardInterrupt, SystemExit):
+            # Критические исключения - пробрасываем дальше
+            raise
+        except (RuntimeError, OSError, TypeError, ValueError) as schedule_error:
+            # Конкретные типы исключений для отладки
             logger.error(
                 "Ошибка при планировании следующей очистки: %s", schedule_error, exc_info=True
             )
@@ -276,7 +323,11 @@ class _TempFileTimer:
 
                 except OSError as os_error:
                     logger.debug("Ошибка при удалении файла %s: %s", temp_file, os_error)
-                except Exception as file_error:
+                except (MemoryError, KeyboardInterrupt, SystemExit):
+                    # Критические исключения - пробрасываем дальше
+                    raise
+                except (RuntimeError, TypeError, ValueError) as file_error:
+                    # Конкретные типы исключений для отладки
                     logger.debug(
                         "Непредвиденная ошибка при обработке файла %s: %s", temp_file, file_error
                     )
@@ -291,7 +342,11 @@ class _TempFileTimer:
                     self._cleanup_count,
                 )
 
-        except Exception as cleanup_error:
+        except (MemoryError, KeyboardInterrupt, SystemExit):
+            # Критические исключения - пробрасываем дальше
+            raise
+        except (OSError, RuntimeError, TypeError) as cleanup_error:
+            # Конкретные типы исключений для отладки
             logger.error(
                 "Ошибка при сканировании директории %s: %s",
                 self._temp_dir,
@@ -365,7 +420,8 @@ class _TempFileTimer:
         if timer_to_cancel is not None:
             try:
                 timer_to_cancel.cancel()
-            except Exception as cancel_error:
+            except (RuntimeError, TypeError, ValueError) as cancel_error:
+                # Конкретные типы исключений для отладки
                 logger.debug("Ошибка при отмене таймера: %s", cancel_error)
 
         # Ожидаем завершения таймера с таймаутом
@@ -373,7 +429,8 @@ class _TempFileTimer:
             try:
                 # Ждём завершения таймера не более 2 интервалов
                 timer_to_cancel.join(timeout=self._interval * 2)
-            except Exception as join_error:
+            except (RuntimeError, OSError, ValueError) as join_error:
+                # Конкретные типы исключений для отладки
                 logger.debug("Ошибка при ожидании таймера: %s", join_error)
 
         logger.info(
@@ -382,13 +439,21 @@ class _TempFileTimer:
         )
 
     def __del__(self) -> None:
-        """Гарантирует остановку таймера при уничтожении."""
+        """Гарантирует остановку таймера при уничтожении.
+
+        ИСПРАВЛЕНИЕ 4: Использует конкретные типы исключений вместо Exception
+        для лучшей отладки и гарантии очистки ресурсов.
+        """
         try:
             if hasattr(self, "_is_running") and self._is_running:
                 self.stop()
-        except Exception as e:
+        except (MemoryError, KeyboardInterrupt, SystemExit):
+            # Критические исключения - пробрасываем дальше
+            raise
+        except (RuntimeError, TypeError, ValueError, OSError) as stop_error:
+            # Конкретные типы исключений для отладки
             # Игнорируем ошибки при очистке в деструкторе
-            logger.debug("Ошибка при остановке таймера в __del__: %s", e)
+            logger.debug("Ошибка при остановке таймера в __del__: %s", stop_error)
 
 
 # =============================================================================
@@ -461,45 +526,31 @@ MAX_TEMP_FILES: int = _validate_env_int(
 )
 
 # =============================================================================
-# ГЛОБАЛЬНЫЙ НАБОР ДЛЯ ОТСЛЕЖИВАНИЯ ВРЕМЕННЫХ ФАЙЛОВ (ATEXIT ОЧИСТКА)
+# GLOBAL SET FOR TRACKING TEMPORARY FILES (ATEXIT CLEANUP)
 # =============================================================================
 
-# Глобальный набор для отслеживания временных файлов созданных этим процессом
-# Используется для гарантированной очистки при аварийном завершении
-
-_temp_files_lock = threading.RLock()
+_temp_files_lock = threading.RLock()  # FIX #30: Over-commented code
 _temp_files_registry: set[Path] = set()
 
 
 def _register_temp_file(file_path: Path) -> None:
     """Регистрирует временный файл для последующей очистки.
 
-        - Добавлено ограничение максимального размера реестра
-    - Реализована LRU eviction при достижении лимита
-    - Удаляются oldest записи при превышении MAX_TEMP_FILES
-
     Args:
         file_path: Путь к временному файлу.
     """
-    # pylint: disable=consider-using-with
-    if _temp_files_lock.acquire(timeout=5.0):
-        try:
-            if len(_temp_files_registry) >= MAX_TEMP_FILES:
-                # Удаляем oldest записи (50% от лимита)
-                # Примечание: set неупорядочен, поэтому удаляем случайные элементы
-                # Для более точного LRU можно использовать OrderedDict
-                files_to_remove = list(_temp_files_registry)[: MAX_TEMP_FILES // 2]
-                for old_file in files_to_remove:
-                    _temp_files_registry.discard(old_file)
-                logger.warning(
-                    "Достигнут лимит временных файлов (%d), удалено %d старых файлов",
-                    MAX_TEMP_FILES,
-                    len(files_to_remove),
-                )
+    with _temp_files_lock:
+        if len(_temp_files_registry) >= MAX_TEMP_FILES:
+            files_to_remove = list(_temp_files_registry)[: MAX_TEMP_FILES // 2]
+            for old_file in files_to_remove:
+                _temp_files_registry.discard(old_file)
+            logger.warning(
+                "Достигнут лимит временных файлов (%d), удалено %d старых файлов",
+                MAX_TEMP_FILES,
+                len(files_to_remove),
+            )
 
-            _temp_files_registry.add(file_path)
-        finally:
-            _temp_files_lock.release()
+        _temp_files_registry.add(file_path)
 
 
 def _unregister_temp_file(file_path: Path) -> None:
@@ -508,12 +559,8 @@ def _unregister_temp_file(file_path: Path) -> None:
     Args:
         file_path: Путь к временному файлу.
     """
-    # pylint: disable=consider-using-with
-    if _temp_files_lock.acquire(timeout=5.0):
-        try:
-            _temp_files_registry.discard(file_path)
-        finally:
-            _temp_files_lock.release()
+    with _temp_files_lock:
+        _temp_files_registry.discard(file_path)
 
 
 def _cleanup_all_temp_files() -> None:
@@ -708,15 +755,22 @@ def _merge_csv_files(
                 "error",
             )
 
-            # Fallback механизм - пробуем уменьшить размер буфера
-            if buffer_size > 8192:
-                log("Попытка fallback: уменьшаем размер буфера до 8KB", "warning")
+            # Fallback mechanism - try reducing buffer size
+            if buffer_size > 8192:  # FIX #6: PEP 8 line too long
+                log("Fallback attempt: reducing buffer size to 8KB", "warning")
                 try:
                     # pylint: disable=consider-using-with
-                    outfile = open(output_path, "w", encoding=encoding, newline="", buffering=8192)
-                    log("Fallback успешен: файл открыт с уменьшенным буфером", "info")
+                    fallback_buffer_size = 8192
+                    outfile = open(
+                        output_path,
+                        "w",
+                        encoding=encoding,
+                        newline="",
+                        buffering=fallback_buffer_size,
+                    )
+                    log("Fallback successful: file opened with reduced buffer", "info")
                 except OSError as fallback_error:
-                    log(f"Fallback не удался: {fallback_error}", "error")
+                    log(f"Fallback failed: {fallback_error}", "error")
                     return False, 0, []
             else:
                 return False, 0, []

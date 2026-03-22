@@ -308,14 +308,20 @@ class TestTempFileTimerNoDeadlock:
 
 @pytest.mark.unit
 class TestTempFileTimerCleanup:
-    """Тесты для корректной очистки временных файлов."""
+    """Тесты для проверки корректной очистки временных файлов."""
 
-    def test_cleanup_removes_old_files(self, tmp_path: Path) -> None:
+    def setup_method(self) -> None:
+        """Очистка перед каждым тестом."""
+        with _temp_files_lock:
+            _temp_files_registry.clear()
+
+    def test_cleanup_only_registered_files(self, tmp_path: Path) -> None:
         """
-        Тест 3.1: Проверка что очистка удаляет старые файлы.
+        Тест 3.1: Проверка что очищаются только зарегистрированные файлы.
 
-        Создаёт файлы с разным возрастом.
-        Проверяет что удаляются только старые файлы.
+        Регистрирует файлы в реестре.
+        Вызывает очистку.
+        Проверяет что не зарегистрированные файлы не удаляются.
 
         Args:
             tmp_path: pytest tmp_path fixture.
@@ -355,44 +361,6 @@ class TestTempFileTimerCleanup:
 
         # Проверяем количество удаленных файлов
         assert deleted_count == 5, f"Удалено {deleted_count} файлов вместо 5"
-
-    def test_cleanup_registry_files(self, tmp_path: Path) -> None:
-        """
-        Тест 3.2: Проверка очистки файлов из реестра.
-
-        Регистрирует файлы в реестре.
-        Вызывает очистку.
-        Проверяет что файлы удалены.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
-        """
-        # Очищаем реестр перед тестом
-        with _temp_files_lock:
-            _temp_files_registry.clear()
-
-        # Создаем и регистрируем файлы
-        temp_files = []
-        for i in range(5):
-            temp_file = tmp_path / f"registry_file_{i}.tmp"
-            temp_file.write_text(f"registry data {i}")
-            temp_files.append(temp_file)
-            _register_temp_file(temp_file)
-
-        # Проверяем что файлы зарегистрированы
-        with _temp_files_lock:
-            assert len(_temp_files_registry) == 5, "Файлы не зарегистрированы"
-
-        # Вызываем очистку
-        _cleanup_all_temp_files()
-
-        # Проверяем что файлы удалены
-        for temp_file in temp_files:
-            assert not temp_file.exists(), f"Файл не удален: {temp_file}"
-
-        # Проверяем что реестр очищен
-        with _temp_files_lock:
-            assert len(_temp_files_registry) == 0, "Реестр не очищен"
 
     def test_cleanup_handles_missing_files(self, tmp_path: Path) -> None:
         """

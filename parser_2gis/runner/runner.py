@@ -22,12 +22,10 @@ class AbstractRunner(ABC):
         self._config = config
 
     @abstractmethod
-    def start(self):
-        pass
+    def start(self) -> None: ...  # FIX #24: Removed unnecessary pass
 
     @abstractmethod
-    def stop(self):
-        pass
+    def stop(self) -> None: ...  # FIX #24: Removed unnecessary pass
 
 
 class GUIRunner(AbstractRunner):

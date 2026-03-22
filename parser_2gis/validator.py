@@ -126,20 +126,12 @@ class DataValidator:
         дублирование кода и обеспечивает консистентность валидации.
     """
 
-    # Константы для валидации телефонных номеров
-    INTERNATIONAL_PHONE_MIN_LENGTH = 10
+    # Constants for phone number validation
+    INTERNATIONAL_PHONE_MIN_LENGTH = 10  # FIX #1: Remove duplicate validation patterns
     INTERNATIONAL_PHONE_MAX_LENGTH = 15
 
-    # Паттерн для валидации email-адресов
-    # Улучшенный паттерн с поддержкой IDN (Internationalized Domain Names)
-    # Поддерживает Unicode символы в доменной части (например: почта@пример.рф)
-    EMAIL_PATTERN = re.compile(
-        r"^[a-zA-Z0-9._%+-]+@"  # Локальная часть
-        r"[a-zA-Z0-9\u0080-\uFFFF.-]+\.[a-zA-Z\u0080-\uFFFF]{2,}$"  # Домен с поддержкой IDN
-    )
-
-    # Паттерн для валидации URL
-    URL_PATTERN = re.compile(r"^https?://[^\s/$.?#].[^\s]*$")
+    # Note: EMAIL_PATTERN and URL_PATTERN are removed as validation
+    # is delegated to validation.py for consistency
 
     def validate_phone(self, phone: str) -> ValidationResult:
         """Валидация и форматирование телефонного номера.

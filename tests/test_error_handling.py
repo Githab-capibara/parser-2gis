@@ -450,12 +450,16 @@ class TestErrorHandlingIntegration:
                     # Настраиваем моки с различными ошибками
                     mock_chrome._active_instances = MagicMock()
                     type(mock_chrome._active_instances).__iter__ = MagicMock(
-                        side_effect=[AttributeError("Test"), TypeError("Test"), []]
+                        side_effect=[
+                            AttributeError("Test"),
+                            TypeError("Test"),
+                            RuntimeError("Test"),
+                        ]
                     )
 
-                    mock_cache.close_all = MagicMock(side_effect=[RuntimeError("Test"), None])
+                    mock_cache.close_all = MagicMock(side_effect=[RuntimeError("Test"), None, None])
 
-                    mock_gc.side_effect = [MemoryError("Test"), None]
+                    mock_gc.side_effect = [MemoryError("Test"), None, None]
 
                     # Вызываем несколько раз для проверки разных сценариев
                     for i in range(3):
