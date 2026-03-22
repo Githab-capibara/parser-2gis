@@ -10,9 +10,9 @@ from __future__ import annotations
 import json
 import pathlib
 import shutil
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Set
 
-from copy import deepcopy
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from .chrome import ChromeOptions
@@ -230,7 +230,7 @@ class Configuration(BaseModel):
             except (AttributeError, TypeError) as e:
                 logger.warning("Ошибка при объединении поля %s: %s", field, e)
                 raise
-            except Exception as e:
+            except (ValueError, RuntimeError, OSError) as e:
                 logger.error("Непредвиденная ошибка при объединении поля %s: %s", field, e)
                 raise
 
@@ -309,7 +309,7 @@ class Configuration(BaseModel):
         except (TypeError, ValueError) as e:
             logger.error("Ошибка при сериализации конфигурации в JSON: %s", e)
             raise
-        except Exception as e:
+        except (RuntimeError, MemoryError, KeyboardInterrupt, SystemExit) as e:
             logger.error("Непредвиденная ошибка при сохранении конфигурации: %s", e)
             raise
 
@@ -381,8 +381,7 @@ class Configuration(BaseModel):
         except (json.JSONDecodeError, ValueError) as json_error:
             logger.error("Повреждённый JSON в конфигурации: %s", json_error)
             return cls()
-
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError) as e:
             logger.error("Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=e)
             return cls()
 

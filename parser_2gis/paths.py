@@ -12,8 +12,7 @@ import functools
 import os
 import pathlib
 
-# Константа для максимальной длины пути
-MAX_PATH_LENGTH = 1024
+from .constants import FORBIDDEN_PATH_CHARS
 
 
 def data_path() -> pathlib.Path:
@@ -63,28 +62,61 @@ def image_path(basename: str, ext: str | None = None) -> str:
         Абсолютный путь к изображению.
 
     Raises:
-        ValueError: Если basename содержит недопустимые символы.
+        ValueError: Если basename содержит недопустимые символы или path traversal.
         FileNotFoundError: Если изображение не найдено.
     """
-    # Валидация basename для предотвращения directory traversal
-    if "/" in basename or "\\" in basename or ".." in basename:
+    # Проверка на пустое имя
+    if not basename or basename.strip() == "":
+        raise ValueError("Имя файла не может быть пустым")
+
+    # Проверка на запрещённые символы для предотвращения path traversal атак
+    for forbidden in FORBIDDEN_PATH_CHARS:
+        if forbidden in basename:
+            raise ValueError(f"Недопустимое имя файла: {basename}")
+
+    # Дополнительная проверка на специальные символы
+    if any(c in basename for c in ["..", "/", "\\", "~", "$", "`", "|", ";", "&", ">", "<"]):
         raise ValueError(f"Недопустимое имя файла: {basename}")
 
     images_dir = data_path() / "images"
+
+    # Проверка что images_dir существует
+    if not images_dir.exists():
+        raise FileNotFoundError(f"Директория изображений не найдена: {images_dir}")
 
     # Оптимизированный поиск: сразу формируем ожидаемое имя файла
     if ext is not None:
         img_name = f"{basename}.{ext}"
         img_path = images_dir / img_name
-        if img_path.exists():
-            return os.path.abspath(img_path)
+
+        # Используем resolve() для получения абсолютного канонического пути
+        try:
+            resolved_img_path = img_path.resolve(strict=False)
+            resolved_images_dir = images_dir.resolve()
+
+            # Проверяем что путь находится внутри директории изображений
+            if not resolved_img_path.is_relative_to(resolved_images_dir):
+                raise ValueError(f"Path traversal detected: {basename}")
+        except (OSError, ValueError) as e:
+            raise ValueError(f"Недопустимый путь к изображению: {e}") from e
+
+        if resolved_img_path.exists():
+            return str(resolved_img_path)
         raise FileNotFoundError(f"Изображение {basename}.{ext} не найдено")
 
     # Если расширение не указано, ищем любой файл с таким basename
     for img_name in os.listdir(images_dir):
         img_basename, _ = os.path.splitext(img_name)
         if img_basename == basename:
-            return os.path.abspath(images_dir / img_name)
+            img_path = images_dir / img_name
+            resolved_img_path = img_path.resolve()
+            resolved_images_dir = images_dir.resolve()
+
+            # Проверяем что путь находится внутри директории изображений
+            if not resolved_img_path.is_relative_to(resolved_images_dir):
+                raise ValueError(f"Path traversal detected: {img_name}")
+
+            return str(resolved_img_path)
     raise FileNotFoundError(f"Изображение {basename} не найдено")
 
 

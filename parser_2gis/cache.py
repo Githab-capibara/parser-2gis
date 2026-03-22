@@ -28,12 +28,11 @@ import re
 import sqlite3
 import threading
 import time
+import unicodedata
 import weakref
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
-
-import unicodedata
 
 from .logger.logger import logger as app_logger
 
@@ -132,7 +131,7 @@ def _serialize_json(data: Dict[str, Any]) -> str:
             # TypeError может возникнуть при сериализации неподдерживаемых типов
             app_logger.debug("orjson ошибка, fallback на json: %s", orjson_error)
             # Продолжаем выполнение и используем стандартный json
-        except Exception as unexpected_error:
+        except (RuntimeError, OSError, MemoryError) as unexpected_error:
             # Любая другая неожиданная ошибка - логируем и используем fallback
             app_logger.debug("Неожиданная ошибка orjson, fallback на json: %s", unexpected_error)
 
@@ -820,7 +819,7 @@ class _ConnectionPool:
                     app_logger.debug("Ошибка БД при закрытии соединения: %s", db_error)
                 except OSError as os_error:
                     app_logger.debug("Ошибка ОС при закрытии соединения: %s", os_error)
-                except Exception as e:
+                except (RuntimeError, TypeError, ValueError) as e:
                     app_logger.debug("Неожиданная ошибка при закрытии соединения: %s", e)
             self._all_conns.clear()
             self._connection_age.clear()
@@ -901,7 +900,7 @@ class _ConnectionPool:
         """
         try:
             self.close_all()
-        except Exception as close_error:
+        except (RuntimeError, TypeError, ValueError, OSError, sqlite3.Error) as close_error:
             app_logger.error(
                 "Ошибка при закрытии пула соединений в контекстном менеджере: %s",
                 close_error,
@@ -942,7 +941,7 @@ class _ConnectionPool:
         except (MemoryError, KeyboardInterrupt, SystemExit):
             # Критические исключения - пробрасываем дальше
             raise
-        except Exception as del_error:
+        except (RuntimeError, TypeError, ValueError, OSError) as del_error:
             # В __del__ нельзя выбрасывать исключения - только логируем
             app_logger.debug("Ошибка в __del__ _ConnectionPool: %s", del_error)
 
@@ -1660,7 +1659,7 @@ class CacheManager:
         except (MemoryError, KeyboardInterrupt, SystemExit):
             # Критические исключения - пробрасываем дальше
             raise
-        except Exception as del_error:
+        except (RuntimeError, TypeError, ValueError, OSError) as del_error:
             # В __del__ нельзя выбрасывать исключения - только логируем
             app_logger.debug("Ошибка в __del__ CacheManager: %s", del_error)
 

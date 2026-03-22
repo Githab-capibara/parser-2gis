@@ -28,12 +28,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from .logger import logger
-from .validation import (
-    ValidationResult as BaseValidationResult,
-    validate_email as _validate_email_from_validation,
-    validate_phone as _validate_phone_from_validation,
-    validate_url as _validate_url_from_validation,
-)
+from .validation import ValidationResult as BaseValidationResult
+from .validation import validate_email as _validate_email_from_validation
+from .validation import validate_phone as _validate_phone_from_validation
+from .validation import validate_url as _validate_url_from_validation
 
 
 @dataclass

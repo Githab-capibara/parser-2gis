@@ -101,7 +101,8 @@ def _tui_stub() -> None:
 
 
 try:
-    from .tui_textual import Parser2GISTUI, run_tui as run_new_tui_omsk
+    from .tui_textual import Parser2GISTUI
+    from .tui_textual import run_tui as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функции
     run_new_tui_omsk = _tui_omsk_stub
