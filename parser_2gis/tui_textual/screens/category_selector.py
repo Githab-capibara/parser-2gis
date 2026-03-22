@@ -95,6 +95,7 @@ class CategorySelectorScreen(Screen):
         self._filtered_categories: list[dict] = []
         self._selected_indices: set[int] = set()
         self._checkboxes: list[Checkbox] = []
+        self._id_to_index: dict[str, int] = {}  # Маппинг ID категории -> индекс в _categories
 
     def compose(self) -> ComposeResult:
         """Создать интерфейс."""
@@ -147,6 +148,11 @@ class CategorySelectorScreen(Screen):
         self._categories = self.app.get_categories()  # type: ignore
         self._filtered_categories = self._categories.copy()
 
+        # Создать маппинг ID категории -> индекс
+        for i, cat in enumerate(self._categories):
+            rubric_code = cat.get("rubric_code", str(i))
+            self._id_to_index[rubric_code] = i
+
         # Восстановить ранее выбранные категории
         selected_names = set(self.app.selected_categories)  # type: ignore
         for i, cat in enumerate(self._categories):
@@ -165,10 +171,12 @@ class CategorySelectorScreen(Screen):
 
         for i, cat in enumerate(self._filtered_categories):
             cat_name = cat.get("name", "Неизвестно")
+            rubric_code = cat.get("rubric_code", str(i))
 
-            is_selected = i in self._selected_indices
+            is_selected = self._id_to_index.get(rubric_code, i) in self._selected_indices
 
-            checkbox = Checkbox(f"{cat_name}", value=is_selected, id=f"category-{i}")
+            # Используем rubric_code для уникального ID вместо индекса в отфильтрованном списке
+            checkbox = Checkbox(f"{cat_name}", value=is_selected, id=f"category-{rubric_code}")
             self._checkboxes.append(checkbox)
             container.mount(checkbox)
 
@@ -224,17 +232,18 @@ class CategorySelectorScreen(Screen):
         """
         checkbox_id = event.checkbox.id
         if checkbox_id and checkbox_id.startswith("category-"):
-            try:
-                index = int(checkbox_id.split("-")[1])
+            # Извлекаем rubric_code из ID (формат: "category-{rubric_code}")
+            rubric_code = checkbox_id.split("-", 1)[1]
 
+            # Получаем оригинальный индекс категории по rubric_code
+            index = self._id_to_index.get(rubric_code)
+            if index is not None:
                 if event.value:
                     self._selected_indices.add(index)
                 else:
                     self._selected_indices.discard(index)
 
                 self._update_counter()
-            except (ValueError, IndexError):
-                pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Обработать нажатие кнопки на экране.
@@ -247,14 +256,20 @@ class CategorySelectorScreen(Screen):
         button_id = event.button.id
 
         if button_id == "select-all":
-            for i in range(len(self._filtered_categories)):
-                self._selected_indices.add(i)
+            # Выбрать все категории из отфильтрованного списка
+            for cat in self._filtered_categories:
+                rubric_code = cat.get("rubric_code")
+                if rubric_code:
+                    index = self._id_to_index.get(rubric_code)
+                    if index is not None:
+                        self._selected_indices.add(index)
 
             for checkbox in self._checkboxes:
                 checkbox.value = True
             self._update_counter()
 
         elif button_id == "deselect-all":
+            # Снять все выбранные категории
             self._selected_indices.clear()
 
             for checkbox in self._checkboxes:
