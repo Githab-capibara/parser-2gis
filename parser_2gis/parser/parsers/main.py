@@ -12,14 +12,13 @@ from __future__ import annotations
 
 import gc
 import json
+import random
 import re
 import threading
 import time
 import urllib.parse
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-
-import random
 
 try:
     import psutil
@@ -565,7 +564,7 @@ class MainParser:
         # OrderedDict автоматически удаляет старые записи при превышении maxlen
         if visited_links is None:
             visited_links = OrderedDict()
-        visited_links_lock = threading.Lock()  # Блокировка для потокобезопасности
+        visited_links_lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
 
         # Оптимизация: кэшируем psutil.Process объект для снижения накладных расходов
         _process_cache = None

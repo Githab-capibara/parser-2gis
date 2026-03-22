@@ -65,7 +65,7 @@ class SignalHandler:
         self._is_cleaning_up = False
         self._cleanup_completed = False  # Флаг завершения очистки
         self._cleanup_callback = cleanup_callback
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
         self._original_handlers: dict[int, Any] = {}
         # Для совместимости с тестами
         self._original_handler_sigint: Any = None

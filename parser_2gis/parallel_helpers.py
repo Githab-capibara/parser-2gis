@@ -71,7 +71,7 @@ class FileMerger:
         self.config = config
         self._cancel_event = cancel_event or threading.Event()
         self._temp_files: List[Path] = []
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
         self._lock_file_handle: Optional[Any] = None
         self._lock_acquired = False
 
@@ -350,7 +350,7 @@ class ProgressTracker:
         self.completed_tasks = 0
         self.current_city = ""
         self.current_category = ""
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
 
     def update(self, city_name: str, category_name: str) -> None:
         """
@@ -418,7 +418,7 @@ class StatsCollector:
         self.errors: List[Dict[str, Any]] = []
         self.start_time: Optional[float] = None
         self.end_time: Optional[float] = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
 
     def start(self) -> None:
         """Начинает сбор статистики."""

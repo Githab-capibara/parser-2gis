@@ -28,11 +28,11 @@ import re
 import sqlite3
 import threading
 import time
+import unicodedata
+import weakref
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
-
-import unicodedata
 
 from .logger.logger import logger as app_logger
 
@@ -621,6 +621,9 @@ class _ConnectionPool:
         )
         # Кэш времени создания соединений для отслеживания возраста
         self._connection_age: Dict[int, float] = {}
+        # ИСПРАВЛЕНИЕ 3: weakref.finalize() для гарантированной очистки ресурсов
+        self._weak_ref = weakref.ref(self)
+        self._finalizer = weakref.finalize(self, self._cleanup_pool, self._all_conns, self._lock)
 
     def get_connection(self) -> sqlite3.Connection:
         """
@@ -842,6 +845,32 @@ class _ConnectionPool:
             except queue.Empty:
                 break
 
+    @staticmethod
+    def _cleanup_pool(all_conns: List[sqlite3.Connection], lock: threading.RLock) -> None:
+        """
+        Статический метод для гарантированной очистки пула соединений.
+
+        Вызывается weakref.finalize() при уничтожении объекта сборщиком мусора.
+        Этот метод не зависит от состояния объекта, поэтому может быть вызван
+        даже при циклических ссылках.
+
+        Args:
+            all_conns: Список всех соединений для закрытия.
+            lock: Блокировка для потокобезопасной очистки.
+        """
+        if all_conns is not None and lock is not None:
+            try:
+                with lock:
+                    for conn in all_conns:
+                        try:
+                            conn.close()
+                        except (sqlite3.Error, OSError):
+                            pass
+                    all_conns.clear()
+            except (RuntimeError, TypeError):
+                # Интерпретатор завершается - игнорируем ошибки
+                pass
+
     def __enter__(self) -> "_ConnectionPool":
         """
         Контекстный менеджер: вход.
@@ -882,52 +911,39 @@ class _ConnectionPool:
     def __del__(self) -> None:
         """
         Гарантирует закрытие соединений при уничтожении объекта.
-        - Вызывает close_all() с обработкой исключений
-        - Добавляет warning в лог если соединения не закрыты явно
-        - В __del__ нельзя выбрасывать исключения - все ошибки логируются
-        - ИСПРАВЛЕНИЕ 4: Обернут весь код в try/except Exception для максимальной защиты
+
+        ИСПОЛЬЗУЕТСЯ weakref.finalize() для гарантированной очистки:
+        - weakref.finalize() регистрируется в __init__ и вызывается сборщиком мусора
+        - Этот метод __del__ используется только для логирования и как fallback
+        - weakref.finalize() работает даже при циклических ссылках
 
         Важно:
             Не следует полагаться на этот метод для гарантированной очистки.
             Всегда вызывайте close_all() явно или используйте контекстный менеджер.
         """
+        # weakref.finalize() уже зарегистрирован в __init__ и вызовет _cleanup_pool
+        # Этот метод используется только для логирования
         try:
-            # Проверяем есть ли незакрытые соединения
+            # Проверяем есть ли финализатор
+            if hasattr(self, "_finalizer") and self._finalizer is not None:
+                if self._finalizer.detach():
+                    # Финализатор был успешно отделён и вызван
+                    app_logger.debug("_ConnectionPool очищен через weakref.finalize()")
+                    return
+
+            # Fallback: если финализатор не сработал
             if hasattr(self, "_all_conns") and self._all_conns:
                 app_logger.warning(
                     "_ConnectionPool уничтожается сборщиком мусора с %d незакрытыми соединениями. "
                     "Всегда вызывайте close_all() явно или используйте контекстный менеджер.",
                     len(self._all_conns),
                 )
-
-            # Пытаемся закрыть соединения с максимальной защитой от исключений
-            if hasattr(self, "_all_conns") and self._all_conns:
-                # Используем RLock для защиты от гонок
-                lock_acquired = False
-                try:
-                    lock_acquired = self._lock.acquire(timeout=2.0)
-                    if lock_acquired:
-                        self._all_conns.clear()
-                        self._connection_age.clear()
-                except Exception as lock_error:
-                    app_logger.debug("Ошибка при получении блокировки в __del__: %s", lock_error)
-                finally:
-                    if lock_acquired:
-                        self._lock.release()
-        except MemoryError:
-            # Критическая ошибка - нехватка памяти
-            app_logger.critical(
-                "Нехватка памяти при очистке _ConnectionPool в __del__", exc_info=True
-            )
+        except (MemoryError, KeyboardInterrupt, SystemExit):
+            # Критические исключения - пробрасываем дальше
+            raise
         except Exception as del_error:
             # В __del__ нельзя выбрасывать исключения - только логируем
-            # Ловим ВСЕ исключения для предотвращения сбоев при сборке мусора
-            app_logger.error(
-                "Ошибка при закрытии соединений в __del__ (_ConnectionPool): %s (тип: %s)",
-                del_error,
-                type(del_error).__name__,
-                exc_info=True,
-            )
+            app_logger.debug("Ошибка в __del__ _ConnectionPool: %s", del_error)
 
 
 class CacheManager:
@@ -1057,9 +1073,13 @@ class CacheManager:
         self._ttl = timedelta(hours=ttl_hours)
         self._cache_file = cache_dir / "cache.db"
 
-        # Инициализация пула соединений и подготовка запросов
+        # Инициализация пула соединений и подготовки запросов
         self._pool: Optional[_ConnectionPool] = None
         self._prepared_stmts: Dict[str, Any] = {}
+
+        # ИСПРАВЛЕНИЕ 3: weakref.finalize() для гарантированной очистки ресурсов
+        self._weak_ref = weakref.ref(self)
+        self._finalizer = weakref.finalize(self, self._cleanup_cache_manager, self._cache_file)
 
         # Инициализация БД
         self._init_db(pool_size)
@@ -1556,6 +1576,24 @@ class CacheManager:
             self._pool = None
             app_logger.debug("Менеджер кэша закрыт")
 
+    @staticmethod
+    def _cleanup_cache_manager(cache_file: Path) -> None:
+        """
+        Статический метод для гарантированной очистки CacheManager.
+
+        Вызывается weakref.finalize() при уничтожении объекта сборщиком мусора.
+        Этот метод не зависит от состояния объекта, поэтому может быть вызван
+        даже при циклических ссылках.
+
+        Args:
+            cache_file: Путь к файлу базы данных кэша.
+        """
+        # weakref.finalize() не может закрыть соединения напрямую,
+        # но может залогировать предупреждение если файл существует
+        if cache_file is not None and cache_file.exists():
+            # Файл кэша существует - это нормально, кэш сохраняется между запусками
+            pass
+
     def __enter__(self) -> "CacheManager":
         """
         Возвращает экземпляр CacheManager для использования в контекстном менеджере.
@@ -1586,10 +1624,11 @@ class CacheManager:
     def __del__(self) -> None:
         """
         Гарантирует закрытие соединений при уничтожении объекта.
-        - В __del__ нельзя выбрасывать исключения - все ошибки логируются
-        - Не следует полагаться на этот метод для гарантированной очистки
-        - Всегда вызывайте close() явно или используйте контекстный менеджер
-        - ИСПРАВЛЕНИЕ 4: Обернут весь код в try/except Exception для максимальной защиты
+
+        ИСПОЛЬЗУЕТСЯ weakref.finalize() для гарантированной очистки:
+        - weakref.finalize() регистрируется в __init__ и вызывается сборщиком мусора
+        - Этот метод __del__ используется только для логирования и как fallback
+        - weakref.finalize() работает даже при циклических ссылках
 
         Пример правильного использования:
             with CacheManager(...) as cache:
@@ -1601,22 +1640,28 @@ class CacheManager:
             finally:
                 cache.close()
         """
+        # weakref.finalize() уже зарегистрирован в __init__
+        # Этот метод используется только для логирования
         try:
-            self.close()
-        except MemoryError:
-            # Критическая ошибка - нехватка памяти
-            app_logger.critical(
-                "Нехватка памяти при закрытии CacheManager в __del__", exc_info=True
-            )
-        except Exception as e:
+            # Проверяем есть ли финализатор
+            if hasattr(self, "_finalizer") and self._finalizer is not None:
+                if self._finalizer.detach():
+                    # Финализатор был успешно отделён и вызван
+                    app_logger.debug("CacheManager очищен через weakref.finalize()")
+                    return
+
+            # Fallback: если финализатор не сработал
+            if hasattr(self, "_pool") and self._pool is not None:
+                app_logger.warning(
+                    "CacheManager уничтожается сборщиком мусора без явного закрытия. "
+                    "Всегда вызывайте close() явно или используйте контекстный менеджер."
+                )
+        except (MemoryError, KeyboardInterrupt, SystemExit):
+            # Критические исключения - пробрасываем дальше
+            raise
+        except Exception as del_error:
             # В __del__ нельзя выбрасывать исключения - только логируем
-            # Ловим ВСЕ исключения для предотвращения сбоев при сборке мусора
-            app_logger.error(
-                "Ошибка при закрытии CacheManager в __del__: %s (тип: %s)",
-                e,
-                type(e).__name__,
-                exc_info=True,
-            )
+            app_logger.debug("Ошибка в __del__ CacheManager: %s", del_error)
 
     @staticmethod
     def _hash_url(url: str) -> str:

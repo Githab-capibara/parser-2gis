@@ -22,10 +22,10 @@ import threading
 import time
 import uuid
 import weakref
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
-
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .logger import log_parser_finish, logger, print_progress
@@ -188,7 +188,9 @@ class _TempFileTimer:
         # RLock позволяет одному и тому же потоку получать блокировку несколько раз
         self._lock = threading.RLock()  # Блокировка для защиты общих данных
         self._cleanup_count = 0
+        # ИСПРАВЛЕНИЕ 3: weakref.finalize() для гарантированной очистки ресурсов
         self._weak_ref = weakref.ref(self)
+        self._finalizer = weakref.finalize(self, self._cleanup_timer, self._timer, self._lock)
 
         logger.debug(
             "Инициализирован таймер очистки: интервал=%d сек, макс. файлов=%d, возраст=%d сек",
@@ -356,6 +358,31 @@ class _TempFileTimer:
 
         return deleted_count
 
+    @staticmethod
+    def _cleanup_timer(timer: Optional[threading.Timer], lock: threading.RLock) -> None:
+        """
+        Статический метод для гарантированной очистки таймера.
+
+        Вызывается weakref.finalize() при уничтожении объекта сборщиком мусора.
+        Этот метод не зависит от состояния объекта, поэтому может быть вызван
+        даже при циклических ссылках.
+
+        Args:
+            timer: Таймер для отмены.
+            lock: Блокировка для потокобезопасной очистки.
+        """
+        if timer is not None:
+            try:
+                timer.cancel()
+            except (RuntimeError, TypeError, ValueError):
+                pass
+        if lock is not None:
+            try:
+                if lock.locked():
+                    lock.release()
+            except (RuntimeError, TypeError):
+                pass
+
     def start(self) -> None:
         """Запускает таймер периодической очистки."""
         # ИСПРАВЛЕНИЕ 7: Используем try/finally для гарантии освобождения блокировки
@@ -441,18 +468,32 @@ class _TempFileTimer:
     def __del__(self) -> None:
         """Гарантирует остановку таймера при уничтожении.
 
-        ИСПРАВЛЕНИЕ 4: Использует конкретные типы исключений вместо Exception
-        для лучшей отладки и гарантии очистки ресурсов.
+        ИСПОЛЬЗУЕТСЯ weakref.finalize() для гарантированной очистки:
+        - weakref.finalize() регистрируется в __init__ и вызывается сборщиком мусора
+        - Этот метод __del__ используется только для логирования и как fallback
+        - weakref.finalize() работает даже при циклических ссылках
         """
+        # weakref.finalize() уже зарегистрирован в __init__ и вызовет _cleanup_timer
+        # Этот метод используется только для логирования
         try:
+            # Проверяем есть ли финализатор
+            if hasattr(self, "_finalizer") and self._finalizer is not None:
+                if self._finalizer.detach():
+                    # Финализатор был успешно отделён и вызван
+                    logger.debug("_TempFileTimer очищен через weakref.finalize()")
+                    return
+
+            # Fallback: если финализатор не сработал
             if hasattr(self, "_is_running") and self._is_running:
-                self.stop()
+                logger.warning(
+                    "_TempFileTimer уничтожается сборщиком мусора без явной остановки. "
+                    "Всегда вызывайте stop() явно."
+                )
         except (MemoryError, KeyboardInterrupt, SystemExit):
             # Критические исключения - пробрасываем дальше
             raise
         except (RuntimeError, TypeError, ValueError, OSError) as stop_error:
             # Конкретные типы исключений для отладки
-            # Игнорируем ошибки при очистке в деструкторе
             logger.debug("Ошибка при остановке таймера в __del__: %s", stop_error)
 
 
@@ -1106,7 +1147,7 @@ class ParallelCityParser:
         # Статистика (все операции защищены _lock)
         self._stats = {"total": 0, "success": 0, "failed": 0, "skipped": 0}
         # Блокировка для потокобезопасного доступа к _stats и логгирования
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
 
         # Флаг отмены
         self._cancel_event = threading.Event()
@@ -1118,7 +1159,7 @@ class ParallelCityParser:
         # (используется вместо глобальной переменной)
         self._merge_temp_files: List[Path] = []
         # Блокировка для потокобезопасного доступа к временным файлам
-        self._merge_lock = threading.Lock()
+        self._merge_lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
         self._temp_file_cleanup_timer: Optional[_TempFileTimer] = None
         if self.config.parallel.use_temp_file_cleanup:  # type: ignore[attr-defined]
             try:

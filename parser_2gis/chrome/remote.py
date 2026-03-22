@@ -17,11 +17,11 @@ import re
 import socket
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 import pychrome
-from concurrent.futures import ThreadPoolExecutor
 
 try:
     import requests
@@ -43,13 +43,13 @@ from websocket import WebSocketException
 from ..common import wait_until_finished
 from ..logger.logger import logger as app_logger
 from .browser import ChromeBrowser
-from .constants import CHROME_STARTUP_DELAY  # L4: магические числа вынесены в константы
-from .constants import MAX_JS_CODE_LENGTH  # L4: магические числа вынесены в константы
-from .constants import MAX_RESPONSE_SIZE  # L9: лимит размера загружаемых файлов
-from .constants import MAX_TOTAL_JS_SIZE  # L4: магические числа вынесены в константы
 from .constants import (  # L6: rate limiting для внешних запросов
+    CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
     EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
+    MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
+    MAX_RESPONSE_SIZE,  # L9: лимит размера загружаемых файлов
+    MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
 )
 from .dom import DOMNode
 from .exceptions import ChromeException
@@ -127,7 +127,7 @@ class _HTTPCache:
 
     def __init__(self, maxsize: int = HTTP_CACHE_MAXSIZE) -> None:
         self._cache: Dict[tuple, _HTTPCacheEntry] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
         self._maxsize = maxsize
 
     def get(self, key: tuple) -> Optional[requests.Response]:
@@ -181,7 +181,7 @@ class _HTTPCache:
 
 
 _http_cache_instance: Optional[_HTTPCache] = None
-_http_cache_lock = threading.Lock()
+_http_cache_lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
 
 
 def _get_http_cache() -> _HTTPCache:
@@ -961,11 +961,11 @@ class ChromeRemote:
             x: queue.Queue() for x in response_patterns
         }
         self._requests: dict[str, Request] = {}  # _requests[request_id] = <Request>
-        self._requests_lock = threading.Lock()
+        self._requests_lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
 
         # Счётчик общего размера всех JS скриптов для предотвращения DoS атак
         self._total_js_size: int = 0
-        self._js_size_lock = threading.Lock()
+        self._js_size_lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
 
     @wait_until_finished(timeout=300)
     def _connect_interface(self) -> bool:
