@@ -151,6 +151,8 @@ class CategorySelectorScreen(Screen):
         # Создать маппинг: индекс в оригинальном списке -> категория
         # Каждая категория получает уникальный индекс независимо от rubric_code
         for i, cat in enumerate(self._categories):
+            # Сохраняем оригинальный индекс в самой категории для последующего использования
+            cat["original_index"] = i
             self._id_to_index[str(i)] = i
 
         # Восстановить ранее выбранные категории
@@ -169,15 +171,11 @@ class CategorySelectorScreen(Screen):
         container.remove_children()
         self._checkboxes.clear()
 
-        for i, cat in enumerate(self._filtered_categories):
+        for cat in self._filtered_categories:
             cat_name = cat.get("name", "Неизвестно")
 
-            # Найти оригинальный индекс категории по имени
-            # Это гарантирует уникальность даже при дублирующихся rubric_code
-            original_index = next(
-                (idx for idx, c in enumerate(self._categories) if c.get("name") == cat_name),
-                i,  # fallback на текущий индекс
-            )
+            # Получить оригинальный индекс из категории (гарантирует уникальность)
+            original_index = cat.get("original_index", 0)
 
             is_selected = original_index in self._selected_indices
 
@@ -265,19 +263,10 @@ class CategorySelectorScreen(Screen):
         if button_id == "select-all":
             # Выбрать все категории из отфильтрованного списка
             for cat in self._filtered_categories:
-                cat_name = cat.get("name")
-                if cat_name:
-                    # Найти оригинальный индекс по имени
-                    original_index = next(
-                        (
-                            idx
-                            for idx, c in enumerate(self._categories)
-                            if c.get("name") == cat_name
-                        ),
-                        None,
-                    )
-                    if original_index is not None:
-                        self._selected_indices.add(original_index)
+                # Получить оригинальный индекс из категории (гарантирует уникальность)
+                original_index = cat.get("original_index")
+                if original_index is not None:
+                    self._selected_indices.add(original_index)
 
             for checkbox in self._checkboxes:
                 checkbox.value = True

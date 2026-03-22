@@ -29,77 +29,79 @@ class TestWidgetUniqueIDs:
             {"name": "Пиццерии", "query": "Пиццерии", "rubric_code": "165"},
         ]
 
-    def test_category_selector_id_mapping_creation(self, sample_categories: list[dict]) -> None:
-        """Тест 1: Проверка создания маппинга rubric_code -> индекс.
+    def test_category_selector_original_index_assignment(
+        self, sample_categories: list[dict]
+    ) -> None:
+        """Тест 1: Проверка назначения original_index при загрузке категорий.
 
-        Этот тест проверяет, что маппинг создаётся корректно
-        и использует rubric_code для уникальной идентификации.
+        Этот тест проверяет, что каждая категория получает уникальный
+        original_index при загрузке, который используется для создания ID.
         """
         screen = CategorySelectorScreen()
         screen._categories = sample_categories
 
-        # Создать маппинг (как в _load_categories)
+        # Имитация _load_categories
         for i, cat in enumerate(sample_categories):
-            rubric_code = cat.get("rubric_code", str(i))
-            screen._id_to_index[rubric_code] = i
+            cat["original_index"] = i
+            screen._id_to_index[str(i)] = i
 
-        # Проверить, что все rubric_code маппятся на правильные индексы
+        # Проверить, что все категории имеют original_index
         for i, cat in enumerate(sample_categories):
-            rubric_code = cat.get("rubric_code")
-            assert rubric_code in screen._id_to_index
-            assert screen._id_to_index[rubric_code] == i
+            assert "original_index" in cat
+            assert cat["original_index"] == i
 
-    def test_category_selector_checkbox_ids_unique(self, sample_categories: list[dict]) -> None:
-        """Тест 2: Проверка уникальности ID для checkbox.
+    def test_category_selector_checkbox_ids_from_original_index(
+        self, sample_categories: list[dict]
+    ) -> None:
+        """Тест 2: Проверка, что ID checkbox основаны на original_index.
 
-        Этот тест выявляет ошибку DuplicateIds, проверяя,
-        что ID checkbox основаны на rubric_code, а не на индексе.
+        Этот тест проверяет, что ID checkbox создаются на основе
+        original_index, а не индекса в отфильтрованном списке.
         """
         screen = CategorySelectorScreen()
         screen._categories = sample_categories
         screen._filtered_categories = sample_categories.copy()
 
-        # Создать маппинг
+        # Назначить original_index
         for i, cat in enumerate(sample_categories):
-            rubric_code = cat.get("rubric_code", str(i))
-            screen._id_to_index[rubric_code] = i
+            cat["original_index"] = i
 
         # Сгенерировать ожидаемые ID checkbox
-        expected_ids = {f"category-{cat['rubric_code']}" for cat in sample_categories}
+        expected_ids = {f"category-{cat['original_index']}" for cat in sample_categories}
 
         # Проверить уникальность ID
         assert len(expected_ids) == len(sample_categories), "ID должны быть уникальными"
 
-        # Проверить, что ID основаны на rubric_code, а не на индексе
-        assert "category-161" in expected_ids
-        assert "category-0" not in expected_ids
+        # Проверить, что ID основаны на original_index
+        assert "category-0" in expected_ids
+        assert "category-4" in expected_ids
 
-    def test_category_selector_filter_preserves_id_uniqueness(
+    def test_category_selector_filter_unique_ids_regression(
         self, sample_categories: list[dict]
     ) -> None:
-        """Тест 3: Проверка уникальности ID при фильтрации.
+        """Тест 3: Регрессионный тест на уникальность ID при фильтрации.
 
-        Этот тест выявляет ошибку DuplicateIds, которая возникает при:
-        1. Загрузке категорий
+        Этот тест выявляет ошибку DuplicateIds, которая возникала при:
+        1. Загрузке категорий и создании checkbox с ID category-0, category-1, ...
         2. Вводе поискового запроса (фильтрация)
-        3. Повторном создании checkbox
+        3. Повторном создании checkbox с теми же ID
 
         Ожидаемое поведение:
         - Все checkbox должны иметь уникальные ID независимо от фильтрации
-        - ID должны основываться на rubric_code
+        - ID должны основываться на original_index, сохранённом в категории
+        - При фильтрации не должно возникать конфликтов ID
         """
         screen = CategorySelectorScreen()
         screen._categories = sample_categories
         screen._filtered_categories = sample_categories.copy()
 
-        # Создать маппинг
+        # Назначить original_index (как в _load_categories)
         for i, cat in enumerate(sample_categories):
-            rubric_code = cat.get("rubric_code", str(i))
-            screen._id_to_index[rubric_code] = i
+            cat["original_index"] = i
 
         # Первая "популяция" (без фильтрации) - генерируем ID
         checkbox_ids_first = {
-            f"category-{cat['rubric_code']}" for cat in screen._filtered_categories
+            f"category-{cat['original_index']}" for cat in screen._filtered_categories
         }
 
         # Проверить уникальность ID
@@ -115,7 +117,7 @@ class TestWidgetUniqueIDs:
 
         # Вторая "популяция" (с фильтрацией) - генерируем ID
         checkbox_ids_second = {
-            f"category-{cat['rubric_code']}" for cat in screen._filtered_categories
+            f"category-{cat['original_index']}" for cat in screen._filtered_categories
         }
 
         # Проверить уникальность ID после фильтрации
@@ -123,39 +125,85 @@ class TestWidgetUniqueIDs:
             "ID должны оставаться уникальными после фильтрации"
         )
 
-        # Проверить, что нет дубликатов между итерациями
-        # (каждый ID должен быть уникальным независимо от контекста)
-        for checkbox_id in checkbox_ids_second:
-            assert checkbox_id.startswith("category-")
-            rubric_code = checkbox_id.split("-", 1)[1]
-            assert rubric_code in {cat["rubric_code"] for cat in sample_categories}
+        # Проверить, что все ID из второй популяции уникальны
+        all_ids = list(checkbox_ids_second)
+        assert len(all_ids) == len(set(all_ids)), "Все ID должны быть уникальными"
 
     def test_category_selector_selected_indices_mapping(
         self, sample_categories: list[dict]
     ) -> None:
-        """Тест 4: Проверка работы с выбранными категориями через маппинг.
+        """Тест 4: Проверка работы с выбранными категориями через original_index.
 
         Этот тест проверяет, что выбранные категории корректно
-        отслеживаются через маппинг rubric_code -> индекс.
+        отслеживаются через original_index.
         """
         screen = CategorySelectorScreen()
         screen._categories = sample_categories
 
-        # Создать маппинг
+        # Назначить original_index
         for i, cat in enumerate(sample_categories):
-            rubric_code = cat.get("rubric_code", str(i))
-            screen._id_to_index[rubric_code] = i
+            cat["original_index"] = i
 
         # Выбрать первые две категории по индексу
         screen._selected_indices = {0, 1}
 
-        # Проверить, что можно получить индекс по rubric_code
-        rubric_code_1 = sample_categories[0]["rubric_code"]
-        rubric_code_2 = sample_categories[1]["rubric_code"]
-
-        assert screen._id_to_index.get(rubric_code_1) == 0
-        assert screen._id_to_index.get(rubric_code_2) == 1
+        # Проверить, что original_index корректны
+        assert sample_categories[0]["original_index"] == 0
+        assert sample_categories[1]["original_index"] == 1
 
         # Проверить, что выбранные индексы корректны
         assert 0 in screen._selected_indices
         assert 1 in screen._selected_indices
+
+    def test_category_selector_no_duplicate_ids_after_multiple_filters(
+        self, sample_categories: list[dict]
+    ) -> None:
+        """Тест 5: Проверка отсутствия дубликатов ID после множественных фильтраций.
+
+        Этот тест имитирует сценарий пользователя:
+        1. Загрузка категорий
+        2. Поиск "а"
+        3. Поиск "о"
+        4. Очистка поиска
+
+        На каждом этапе ID должны оставаться уникальными.
+        """
+        screen = CategorySelectorScreen()
+        screen._categories = sample_categories
+        screen._filtered_categories = sample_categories.copy()
+
+        # Назначить original_index
+        for i, cat in enumerate(sample_categories):
+            cat["original_index"] = i
+
+        # Этап 1: Поиск "а"
+        screen._filtered_categories = [
+            cat for cat in sample_categories if "а" in cat.get("name", "").lower()
+        ]
+        ids_stage1 = {cat["original_index"] for cat in screen._filtered_categories}
+        assert len(ids_stage1) == len(screen._filtered_categories), (
+            f"Дубликаты ID на этапе 1 (поиск 'а'): {ids_stage1}"
+        )
+
+        # Этап 2: Поиск "о"
+        screen._filtered_categories = [
+            cat for cat in sample_categories if "о" in cat.get("name", "").lower()
+        ]
+        ids_stage2 = {cat["original_index"] for cat in screen._filtered_categories}
+        assert len(ids_stage2) == len(screen._filtered_categories), (
+            f"Дубликаты ID на этапе 2 (поиск 'о'): {ids_stage2}"
+        )
+
+        # Этап 3: Очистка поиска (все категории)
+        screen._filtered_categories = sample_categories.copy()
+        ids_stage3 = {cat["original_index"] for cat in screen._filtered_categories}
+        assert len(ids_stage3) == len(screen._filtered_categories), (
+            f"Дубликаты ID на этапе 3 (очистка): {ids_stage3}"
+        )
+
+        # Проверить, что все original_index в пределах допустимого диапазона
+        for ids, stage_name in [(ids_stage1, "1"), (ids_stage2, "2"), (ids_stage3, "3")]:
+            for idx in ids:
+                assert 0 <= idx < len(sample_categories), (
+                    f"Неверный original_index {idx} на этапе {stage_name}"
+                )
