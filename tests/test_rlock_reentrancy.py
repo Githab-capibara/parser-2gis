@@ -361,6 +361,8 @@ class TestRLockReentrancy:
         """Тест 18: RLock в ParallelCityParser."""
         import inspect
 
+        from parser_2gis.parallel_parser import ParallelCityParser
+
         # Проверяем что в коде используется RLock
         source = inspect.getsource(ParallelCityParser)
         assert "threading.RLock()" in source, "ParallelCityParser должен использовать RLock"
