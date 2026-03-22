@@ -272,14 +272,17 @@ class TestSignalHandlerRaceCondition:
         Тест 1: Проверка атомарности установки флагов под блокировкой.
 
         Проверяет что флаги _interrupted и _is_cleaning_up устанавливаются
-        атомарно под блокировкой threading.Lock.
+        атомарно под блокировкой threading.RLock.
         """
         # Arrange
         handler = SignalHandler()
 
         # Проверяем что lock существует
         assert hasattr(handler, "_lock"), "SignalHandler должен иметь _lock"
-        assert isinstance(handler._lock, type(threading.Lock())), "_lock должен быть threading.Lock"
+        # ИСПРАВЛЕНИЕ: Проверяем что используется RLock вместо Lock
+        assert isinstance(handler._lock, type(threading.RLock())), (
+            "_lock должен быть threading.RLock"
+        )
 
         # Act - симулируем получение сигнала (в изоляции от sys.exit)
         # Используем patch для предотвращения sys.exit
