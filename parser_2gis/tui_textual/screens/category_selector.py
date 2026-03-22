@@ -145,7 +145,10 @@ class CategorySelectorScreen(Screen):
         Raises:
             AttributeError: Если метод get_categories недоступен в приложении.
         """
-        self._categories = self.app.get_categories()  # type: ignore
+        # Получить категории из приложения и сделать глубокую копию
+        # Это предотвращает мутацию глобальной константы CATEGORIES_93
+        categories_from_app = self.app.get_categories()  # type: ignore
+        self._categories = [cat.copy() for cat in categories_from_app]
         self._filtered_categories = self._categories.copy()
 
         # Создать маппинг: индекс в оригинальном списке -> категория
@@ -166,6 +169,9 @@ class CategorySelectorScreen(Screen):
 
         Очищает контейнер списка и создаёт Checkbox виджеты для каждой
         категории из отфильтрованного списка.
+
+        Raises:
+            RuntimeError: Если категория не имеет original_index.
         """
         container = self.query_one("#category-list", ScrollableContainer)
         container.remove_children()
@@ -175,7 +181,11 @@ class CategorySelectorScreen(Screen):
             cat_name = cat.get("name", "Неизвестно")
 
             # Получить оригинальный индекс из категории (гарантирует уникальность)
-            original_index = cat.get("original_index", 0)
+            original_index = cat.get("original_index")
+            if original_index is None:
+                # Это не должно произойти, если _load_categories отработал корректно
+                msg = f"Категория '{cat_name}' не имеет original_index"
+                raise RuntimeError(msg)
 
             is_selected = original_index in self._selected_indices
 
