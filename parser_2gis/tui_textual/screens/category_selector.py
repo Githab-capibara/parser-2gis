@@ -148,10 +148,10 @@ class CategorySelectorScreen(Screen):
         self._categories = self.app.get_categories()  # type: ignore
         self._filtered_categories = self._categories.copy()
 
-        # Создать маппинг ID категории -> индекс
+        # Создать маппинг: индекс в оригинальном списке -> категория
+        # Каждая категория получает уникальный индекс независимо от rubric_code
         for i, cat in enumerate(self._categories):
-            rubric_code = cat.get("rubric_code", str(i))
-            self._id_to_index[rubric_code] = i
+            self._id_to_index[str(i)] = i
 
         # Восстановить ранее выбранные категории
         selected_names = set(self.app.selected_categories)  # type: ignore
@@ -171,12 +171,18 @@ class CategorySelectorScreen(Screen):
 
         for i, cat in enumerate(self._filtered_categories):
             cat_name = cat.get("name", "Неизвестно")
-            rubric_code = cat.get("rubric_code", str(i))
 
-            is_selected = self._id_to_index.get(rubric_code, i) in self._selected_indices
+            # Найти оригинальный индекс категории по имени
+            # Это гарантирует уникальность даже при дублирующихся rubric_code
+            original_index = next(
+                (idx for idx, c in enumerate(self._categories) if c.get("name") == cat_name),
+                i,  # fallback на текущий индекс
+            )
 
-            # Используем rubric_code для уникального ID вместо индекса в отфильтрованном списке
-            checkbox = Checkbox(f"{cat_name}", value=is_selected, id=f"category-{rubric_code}")
+            is_selected = original_index in self._selected_indices
+
+            # Используем оригинальный индекс для уникального ID
+            checkbox = Checkbox(f"{cat_name}", value=is_selected, id=f"category-{original_index}")
             self._checkboxes.append(checkbox)
             container.mount(checkbox)
 
@@ -232,18 +238,19 @@ class CategorySelectorScreen(Screen):
         """
         checkbox_id = event.checkbox.id
         if checkbox_id and checkbox_id.startswith("category-"):
-            # Извлекаем rubric_code из ID (формат: "category-{rubric_code}")
-            rubric_code = checkbox_id.split("-", 1)[1]
-
-            # Получаем оригинальный индекс категории по rubric_code
-            index = self._id_to_index.get(rubric_code)
-            if index is not None:
+            # Извлекаем оригинальный индекс из ID (формат: "category-{index}")
+            index_str = checkbox_id.split("-", 1)[1]
+            try:
+                index = int(index_str)
                 if event.value:
                     self._selected_indices.add(index)
                 else:
                     self._selected_indices.discard(index)
 
                 self._update_counter()
+            except ValueError:
+                # Если индекс не удалось преобразовать, игнорируем
+                pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Обработать нажатие кнопки на экране.
@@ -258,11 +265,19 @@ class CategorySelectorScreen(Screen):
         if button_id == "select-all":
             # Выбрать все категории из отфильтрованного списка
             for cat in self._filtered_categories:
-                rubric_code = cat.get("rubric_code")
-                if rubric_code:
-                    index = self._id_to_index.get(rubric_code)
-                    if index is not None:
-                        self._selected_indices.add(index)
+                cat_name = cat.get("name")
+                if cat_name:
+                    # Найти оригинальный индекс по имени
+                    original_index = next(
+                        (
+                            idx
+                            for idx, c in enumerate(self._categories)
+                            if c.get("name") == cat_name
+                        ),
+                        None,
+                    )
+                    if original_index is not None:
+                        self._selected_indices.add(original_index)
 
             for checkbox in self._checkboxes:
                 checkbox.value = True
