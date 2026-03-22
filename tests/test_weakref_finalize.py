@@ -7,9 +7,6 @@
 import gc
 import weakref
 from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 
 from parser_2gis.cache import CacheManager, _ConnectionPool
 from parser_2gis.parallel_parser import _TempFileTimer
@@ -107,7 +104,7 @@ class TestWeakrefFinalize:
             pass
 
         obj = TestObj()
-        weak_ref = weakref.ref(obj, callback)
+        _weak_ref = weakref.ref(obj, callback)
 
         # Удаляем объект
         del obj
@@ -180,7 +177,7 @@ class TestWeakrefFinalize:
             # weakref и finalizer должны быть разными объектами
             assert cache._weak_ref is not None, "weakref должен существовать"
             assert cache._finalizer is not None, "finalizer должен существовать"
-            assert type(cache._weak_ref) != type(cache._finalizer), (
+            assert type(cache._weak_ref) is not type(cache._finalizer), (
                 "weakref и finalizer должны быть разными типами"
             )
 
@@ -189,7 +186,7 @@ class TestWeakrefFinalize:
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            cache = CacheManager(cache_dir=Path(tmpdir))
+            _cache = CacheManager(cache_dir=Path(tmpdir))
 
             # Проверяем что метод очистки существует
             assert hasattr(CacheManager, "_cleanup_cache_manager"), (
@@ -201,7 +198,7 @@ class TestWeakrefFinalize:
         import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
-            pool = _ConnectionPool(Path(tmp.name))
+            _pool = _ConnectionPool(Path(tmp.name))
 
             # Проверяем что метод очистки существует
             assert hasattr(_ConnectionPool, "_cleanup_pool"), (

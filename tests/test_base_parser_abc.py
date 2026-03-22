@@ -403,6 +403,6 @@ class TestBaseParserABC:
         parser1 = TestParser1()
         parser2 = TestParser2()
 
-        assert type(parser1) == TestParser1
-        assert type(parser2) == TestParser2
-        assert type(parser1) != type(parser2)
+        assert type(parser1) is TestParser1
+        assert type(parser2) is TestParser2
+        assert type(parser1) is not type(parser2)
