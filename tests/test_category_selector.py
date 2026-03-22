@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import Mock, PropertyMock
+
+import pytest
 from textual.containers import ScrollableContainer
 
 from parser_2gis.tui_textual.screens.category_selector import CategorySelectorScreen

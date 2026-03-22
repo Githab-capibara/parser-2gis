@@ -22,10 +22,10 @@ import threading
 import time
 import uuid
 import weakref
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .logger import log_parser_finish, logger, print_progress
@@ -789,7 +789,8 @@ def _merge_csv_files(
 
     try:
         try:
-            outfile = open(output_path, "w", encoding=encoding, newline="", buffering=buffer_size)
+            outfile = open(output_path, "w", encoding=encoding, newline="",
+                           buffering=buffer_size)  # pylint: disable=consider-using-with  # nosec B228
         except OSError as output_error:
             # Детальное логирование ошибки с указанием типа ошибки
             error_type = type(output_error).__name__
@@ -831,7 +832,7 @@ def _merge_csv_files(
                 stem = csv_file.stem
                 last_underscore_idx = stem.rfind("_")
                 category_name = (
-                    stem[last_underscore_idx + 1 :].replace("_", " ")
+                    stem[last_underscore_idx + 1:].replace("_", " ")
                     if last_underscore_idx > 0
                     else stem.replace("_", " ")
                 )
@@ -1537,7 +1538,7 @@ class ParallelCityParser:
         last_underscore_idx = stem.rfind("_")
 
         if last_underscore_idx > 0:
-            return stem[last_underscore_idx + 1 :].replace("_", " ")
+            return stem[last_underscore_idx + 1:].replace("_", " ")
 
         category = stem.replace("_", " ")
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")

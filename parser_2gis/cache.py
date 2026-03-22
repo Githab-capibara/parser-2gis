@@ -28,11 +28,12 @@ import re
 import sqlite3
 import threading
 import time
-import unicodedata
 import weakref
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+import unicodedata
 
 from .logger.logger import logger as app_logger
 

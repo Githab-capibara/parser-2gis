@@ -1,6 +1,6 @@
 """Тесты для проверки валидации телефона в validation.py."""
 
-from parser_2gis.validation import validate_phone, ValidationResult
+from parser_2gis.validation import ValidationResult, validate_phone
 
 
 class TestValidatePhone:

@@ -7,8 +7,9 @@ positional arguments but N were given
 См. https://textual.textualize.io/api/widget/#textual.widget.Widget.remove_children
 """
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 
 class TestRemoveChildrenUsage:

@@ -2,7 +2,6 @@
 
 import re
 
-
 from parser_2gis.parser.factory import _PARSER_PATTERNS
 from parser_2gis.parser.parsers import FirmParser, InBuildingParser, MainParser
 

@@ -5,6 +5,7 @@
 """
 
 from unittest.mock import Mock, PropertyMock
+
 from textual.containers import ScrollableContainer
 
 # Import the screen class

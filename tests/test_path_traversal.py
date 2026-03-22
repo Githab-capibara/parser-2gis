@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from parser_2gis.writer.factory import _validate_path_traversal, get_writer
 from parser_2gis.writer.exceptions import WriterUnknownFileFormat
+from parser_2gis.writer.factory import _validate_path_traversal, get_writer
 
 
 class TestPathTraversalValidation:

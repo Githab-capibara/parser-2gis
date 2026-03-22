@@ -2,7 +2,6 @@
 
 import unicodedata
 
-
 from parser_2gis.cache import (
     _check_sql_injection_patterns,
     _normalize_unicode,

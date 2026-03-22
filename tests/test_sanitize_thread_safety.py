@@ -1,8 +1,8 @@
 """Тесты для проверки потокобезопасности _sanitize_value."""
 
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from parser_2gis.common import _sanitize_value
 

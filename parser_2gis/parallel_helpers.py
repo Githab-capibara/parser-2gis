@@ -260,7 +260,7 @@ class FileMerger:
                     stem = csv_file.stem
                     last_underscore_idx = stem.rfind("_")
                     category_name = (
-                        stem[last_underscore_idx + 1 :].replace("_", " ")
+                        stem[last_underscore_idx + 1:].replace("_", " ")
                         if last_underscore_idx > 0
                         else "Unknown"
                     )

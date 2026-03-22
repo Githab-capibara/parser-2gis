@@ -1,10 +1,10 @@
 """Тесты для проверки потокобезопасности HTTP кэша в remote.py."""
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from unittest.mock import MagicMock, patch
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from parser_2gis.chrome.remote import _HTTPCache, _get_http_cache
+from parser_2gis.chrome.remote import _get_http_cache, _HTTPCache
 
 
 class TestHTTPCache:
