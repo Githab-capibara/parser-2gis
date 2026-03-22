@@ -173,17 +173,10 @@ class CategorySelectorScreen(Screen):
         Raises:
             RuntimeError: Если категория не имеет original_index.
         """
-        # Сначала удаляем все существующие чекбоксы, если они есть
-        for checkbox in self._checkboxes:
-            try:
-                checkbox.remove()
-            except Exception:
-                # Если чекбокс уже удален или возникла другая ошибка, игнорируем
-                pass
-        self._checkboxes.clear()
-
+        # Очищаем контейнер полностью и сбрасываем ссылки на чекбоксы
         container = self.query_one("#category-list", ScrollableContainer)
-        container.remove_children()  # Дополнительная очистка для безопасности
+        container.remove_children()
+        self._checkboxes.clear()
 
         for cat in self._filtered_categories:
             cat_name = cat.get("name", "Неизвестно")
