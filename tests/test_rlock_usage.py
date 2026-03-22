@@ -11,7 +11,7 @@ import pytest
 
 from parser_2gis.chrome.remote import _HTTPCache
 from parser_2gis.parallel_helpers import FileMerger
-from parser_2gis.parallel_parser import ParallelParser
+from parser_2gis.parallel_parser import ParallelCityParser
 from parser_2gis.signal_handler import SignalHandler
 
 
@@ -26,35 +26,35 @@ class TestRLockUsage:
         )
 
     def test_parallel_parser_main_lock_uses_rlock(self):
-        """Тест 2: ParallelParser использует RLock для основной блокировки."""
+        """Тест 2: ParallelCityParser использует RLock для основной блокировки."""
         with patch("parser_2gis.parallel_parser.Path.exists", return_value=True):
             with patch("parser_2gis.parallel_parser.Path.is_dir", return_value=True):
                 with patch("parser_2gis.parallel_parser.Path.touch"):
                     with patch("parser_2gis.parallel_parser.Path.unlink"):
-                        parser = ParallelParser(
+                        parser = ParallelCityParser(
                             cities=["Москва"],
                             categories=["Кафе"],
                             output_dir="/tmp/test",
                             max_workers=1,
                         )
                         assert isinstance(parser._lock, type(threading.RLock())), (
-                            "ParallelParser._lock должен быть RLock"
+                            "ParallelCityParser._lock должен быть RLock"
                         )
 
     def test_parallel_parser_merge_lock_uses_rlock(self):
-        """Тест 3: ParallelParser использует RLock для merge блокировки."""
+        """Тест 3: ParallelCityParser использует RLock для merge блокировки."""
         with patch("parser_2gis.parallel_parser.Path.exists", return_value=True):
             with patch("parser_2gis.parallel_parser.Path.is_dir", return_value=True):
                 with patch("parser_2gis.parallel_parser.Path.touch"):
                     with patch("parser_2gis.parallel_parser.Path.unlink"):
-                        parser = ParallelParser(
+                        parser = ParallelCityParser(
                             cities=["Москва"],
                             categories=["Кафе"],
                             output_dir="/tmp/test",
                             max_workers=1,
                         )
                         assert isinstance(parser._merge_lock, type(threading.RLock())), (
-                            "ParallelParser._merge_lock должен быть RLock"
+                            "ParallelCityParser._merge_lock должен быть RLock"
                         )
 
     def test_http_cache_uses_rlock(self):
@@ -100,12 +100,12 @@ class TestRLockUsage:
         assert lock_acquired_count == 3, "RLock должен поддерживать реентрантность"
 
     def test_rlock_in_parallel_parser_stats(self):
-        """Тест 7: ParallelParser использует RLock для защиты статистики."""
+        """Тест 7: ParallelCityParser использует RLock для защиты статистики."""
         with patch("parser_2gis.parallel_parser.Path.exists", return_value=True):
             with patch("parser_2gis.parallel_parser.Path.is_dir", return_value=True):
                 with patch("parser_2gis.parallel_parser.Path.touch"):
                     with patch("parser_2gis.parallel_parser.Path.unlink"):
-                        parser = ParallelParser(
+                        parser = ParallelCityParser(
                             cities=["Москва"],
                             categories=["Кафе"],
                             output_dir="/tmp/test",

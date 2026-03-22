@@ -358,14 +358,14 @@ class TestRLockReentrancy:
                 assert result is not None, "Кэш должен работать"
 
     def test_rlock_reentrant_parallel_parser(self):
-        """Тест 18: RLock в ParallelParser."""
+        """Тест 18: RLock в ParallelCityParser."""
         with patch("parser_2gis.parallel_parser.Path.exists", return_value=True):
             with patch("parser_2gis.parallel_parser.Path.is_dir", return_value=True):
                 with patch("parser_2gis.parallel_parser.Path.touch"):
                     with patch("parser_2gis.parallel_parser.Path.unlink"):
-                        from parser_2gis.parallel_parser import ParallelParser
+                        from parser_2gis.parallel_parser import ParallelCityParser
 
-                        parser = ParallelParser(
+                        parser = ParallelCityParser(
                             cities=["Москва"],
                             categories=["Кафе"],
                             output_dir="/tmp/test",
