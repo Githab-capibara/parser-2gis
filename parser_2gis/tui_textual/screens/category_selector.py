@@ -96,6 +96,7 @@ class CategorySelectorScreen(Screen):
         self._selected_indices: set[int] = set()
         self._checkboxes: list[Checkbox] = []
         self._id_to_index: dict[str, int] = {}  # Маппинг ID категории -> индекс в _categories
+        self._population_counter: int = 0  # Счетчик для генерации уникальных ID
 
     def compose(self) -> ComposeResult:
         """Создать интерфейс."""
@@ -178,7 +179,7 @@ class CategorySelectorScreen(Screen):
         container.remove_children()
         self._checkboxes.clear()
 
-        for cat in self._filtered_categories:
+        for idx, cat in enumerate(self._filtered_categories):
             cat_name = cat.get("name", "Неизвестно")
 
             # Получить оригинальный индекс из категории (гарантирует уникальность)
@@ -190,8 +191,10 @@ class CategorySelectorScreen(Screen):
 
             is_selected = original_index in self._selected_indices
 
-            # Используем оригинальный индекс для уникального ID
-            checkbox = Checkbox(f"{cat_name}", value=is_selected, id=f"category-{original_index}")
+            # Используем комбинацию оригинального индекса и позиции в отфильтрованном списке для уникального ID
+            # Это предотвращает дублирование ID при фильтрации
+            unique_id = f"category-{original_index}-{idx}"
+            checkbox = Checkbox(f"{cat_name}", value=is_selected, id=unique_id)
             self._checkboxes.append(checkbox)
             container.mount(checkbox)
 
@@ -247,19 +250,20 @@ class CategorySelectorScreen(Screen):
         """
         checkbox_id = event.checkbox.id
         if checkbox_id and checkbox_id.startswith("category-"):
-            # Извлекаем оригинальный индекс из ID (формат: "category-{index}")
-            index_str = checkbox_id.split("-", 1)[1]
-            try:
-                index = int(index_str)
-                if event.value:
-                    self._selected_indices.add(index)
-                else:
-                    self._selected_indices.discard(index)
+            # Извлекаем оригинальный индекс из ID (формат: "category-{original_index}-{filter_index}")
+            parts = checkbox_id.split("-", 2)
+            if len(parts) >= 3:
+                try:
+                    index = int(parts[2])  # Второй индекс после разделения - это original_index
+                    if event.value:
+                        self._selected_indices.add(index)
+                    else:
+                        self._selected_indices.discard(index)
 
-                self._update_counter()
-            except ValueError:
-                # Если индекс не удалось преобразовать, игнорируем
-                pass
+                    self._update_counter()
+                except ValueError:
+                    # Если индекс не удалось преобразовать, игнорируем
+                    pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Обработать нажатие кнопки на экране.
