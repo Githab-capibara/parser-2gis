@@ -341,19 +341,32 @@ class TestBaseParserABC:
 
     def test_parser_abstractmethod_enforcement(self):
         """Тест 22: Принудительная реализация абстрактных методов."""
-        # Попытка создать класс без реализации parse()
-        with pytest.raises(TypeError):
 
+        # Попытка создать класс без реализации parse()
+        def define_incomplete_parser1():
             class IncompleteParser1(BaseParser):
                 def get_stats(self) -> Dict[str, Any]:
                     return {}
 
-        # Попытка создать класс без реализации get_stats()
-        with pytest.raises(TypeError):
+            return IncompleteParser1
 
+        # Класс можно определить, но экземпляр создать нельзя
+        IncompleteParser1 = define_incomplete_parser1()
+        with pytest.raises(TypeError):
+            IncompleteParser1()
+
+        # Попытка создать класс без реализации get_stats()
+        def define_incomplete_parser2():
             class IncompleteParser2(BaseParser):
                 def parse(self, writer: MockFileWriter) -> None:
                     pass
+
+            return IncompleteParser2
+
+        # Класс можно определить, но экземпляр создать нельзя
+        IncompleteParser2 = define_incomplete_parser2()
+        with pytest.raises(TypeError):
+            IncompleteParser2()
 
     def test_parser_isinstance_check(self):
         """Тест 23: Проверка isinstance для парсеров."""
