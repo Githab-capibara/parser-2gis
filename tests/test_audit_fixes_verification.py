@@ -409,7 +409,8 @@ class TestJsValidationUnicode:
         """
         Тест 5.1: Обнаружение Unicode эскейпов.
 
-        Проверяет что валидация обнаруживает Unicode эскейпы.
+        Проверяет что валидация обнаруживает обфусцированный код через Unicode эскейпы.
+        После нормализации Unicode эскейпы раскрываются и опасный код обнаруживается.
         """
         from parser_2gis.chrome.remote import _validate_js_code
 
@@ -419,9 +420,13 @@ class TestJsValidationUnicode:
         is_valid, error = _validate_js_code(malicious_js)
 
         # Проверяем что код распознан как невалидный
-        assert is_valid is False, "Unicode эскейпы должны быть обнаружены"
+        # После нормализации Unicode, \u0065\u0076\u0061\u006c -> eval
+        assert is_valid is False, "Обфусцированный код через Unicode должен быть обнаружен"
         assert error is not None, "Должно быть сообщение об ошибке"
-        assert "Unicode" in error or "кодировку" in error.lower(), "Ошибка должна упоминать Unicode"
+        # Ошибка может содержать информацию о eval или об опасном паттерне
+        assert "eval" in error.lower() or "опасный" in error.lower(), (
+            f"Ошибка должна содержать информацию об опасном паттерне: {error}"
+        )
 
     def test_valid_unicode_in_strings(self):
         """
