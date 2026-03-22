@@ -174,9 +174,7 @@ class CategorySelectorScreen(Screen):
             RuntimeError: Если категория не имеет original_index.
         """
         container = self.query_one("#category-list", ScrollableContainer)
-        children = list(container.children)
-        if children:
-            container.remove_children(*children)
+        container.remove_children()
         self._checkboxes.clear()
 
         for cat in self._filtered_categories:
