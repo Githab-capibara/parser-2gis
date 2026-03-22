@@ -376,11 +376,13 @@ class _TempFileTimer:
                 timer.cancel()
             except (RuntimeError, TypeError, ValueError):
                 pass
+        # ИСПРАВЛЕНИЕ: RLock не имеет метода locked(), поэтому убираем проверку
+        # и просто вызываем release() в try/except блоке
         if lock is not None:
             try:
-                if lock.locked():
-                    lock.release()
+                lock.release()
             except (RuntimeError, TypeError):
+                # Игнорируем ошибки если блокировка не была захвачена
                 pass
 
     def start(self) -> None:
