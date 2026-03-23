@@ -12,6 +12,7 @@ import gc
 import json
 import sqlite3
 import sys
+import tempfile
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -28,7 +29,7 @@ from .logger import log_parser_start, logger, setup_cli_logger
 from .paths import data_path
 from .pydantic_compat import get_model_dump
 from .signal_handler import SignalHandler
-from .validation import validate_url
+from .validation import validate_positive_int, validate_url
 from .version import version
 
 # =============================================================================
@@ -101,39 +102,12 @@ def _tui_stub() -> None:
 
 
 try:
-    from .tui_textual import Parser2GISTUI
-    from .tui_textual import run_tui as run_new_tui_omsk
+    from .tui_textual import Parser2GISTUI, run_tui as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функции
     run_new_tui_omsk = _tui_omsk_stub
     Parser2GISTUI = _tui_stub  # type: ignore[misc,assignment]
     logger.warning("TUI модуль (textual) недоступен. TUI функции будут недоступны")
-
-
-def _validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str) -> int:
-    """Валидирует положительное целое число в заданном диапазоне.
-
-    Args:
-        value: Значение для валидации.
-        min_val: Минимально допустимое значение (включительно).
-        max_val: Максимально допустимое значение (включительно).
-        arg_name: Имя аргумента для сообщения об ошибке.
-
-    Returns:
-        Валидированное значение.
-
-    Raises:
-        ValueError: Если значение выходит за пределы диапазона.
-
-    Пример:
-        >>> _validate_positive_int(5, 1, 100, "--parser.max-retries")
-        5
-        >>> _validate_positive_int(0, 1, 100, "--parser.max-retries")
-        ValueError: --parser.max-retries должен быть от 1 до 100 (получено 0)
-    """
-    if not (min_val <= value <= max_val):
-        raise ValueError(f"{arg_name} должен быть от {min_val} до {max_val} (получено {value})")
-    return value
 
 
 def _validate_cli_argument(
@@ -166,7 +140,7 @@ def _validate_cli_argument(
             value = getattr(args, attr_name)
             if convert_to_int:
                 value = int(value)
-            _validate_positive_int(value, min_val, max_val, error_name)
+            validate_positive_int(value, min_val, max_val, error_name)
         except ValueError as e:
             arg_parser.error(str(e))
 
@@ -246,7 +220,11 @@ _FORBIDDEN_PATH_CHARS = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n
 _MAX_PATH_LENGTH = 4096
 
 # Разрешённые базовые директории для записи
-_ALLOWED_BASE_DIRS = [Path.cwd(), Path.home() / "parser-2gis", Path("/tmp")]
+# ОБОСНОВАНИЕ: Используем tempfile.gettempdir() вместо hardcoded /tmp для кроссплатформенности
+# - Unix: /tmp
+# - macOS: /var/folders/...
+# - Windows: C:\Users\...\AppData\Local\Temp
+_ALLOWED_BASE_DIRS = [Path.cwd(), Path.home() / "parser-2gis", Path(tempfile.gettempdir())]
 
 
 def _validate_path_safety(path: str, path_name: str = "Путь") -> None:

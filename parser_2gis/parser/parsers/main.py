@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import gc
 import json
-import random
 import re
 import threading
 import time
 import urllib.parse
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+import random
 
 try:
     import psutil
@@ -134,7 +135,7 @@ class MainParser:
                         # Декодируем base64 данные для проверки корректности
                         urllib.parse.unquote(link_match.group("data"))
                         return True
-                    except Exception as e:
+                    except (OSError, RuntimeError, TypeError, ValueError) as e:
                         # Ошибка декодирования - ссылка невалидна
                         logger.debug("Ошибка декодирования ссылки: %s", e)
 
@@ -155,7 +156,7 @@ class MainParser:
             )
             return None
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             logger.error("Ошибка при получении ссылок: %s", e)
             return None
 
@@ -211,7 +212,7 @@ class MainParser:
                     available_pages[page_number] = link
 
             return available_pages
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             logger.error("Ошибка при получении доступных страниц: %s", e)
             return {}
 
@@ -236,7 +237,7 @@ class MainParser:
             else:
                 logger.warning("Страница %d недоступна для перехода", n_page)
                 return None
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             logger.error("Ошибка при переходе на страницу %d: %s", n_page, e)
             return None
 
@@ -296,7 +297,7 @@ class MainParser:
                     logger.error("Таймаут навигации по URL %s: %s", url, timeout_error)
                     return False
 
-            except Exception as navigate_error:
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as navigate_error:
                 error_msg = str(navigate_error).lower()
                 is_network_error = (
                     "502" in error_msg
@@ -344,7 +345,7 @@ class MainParser:
         # Получаем ответы
         try:
             responses = self._chrome_remote.get_responses()
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             logger.error("Ошибка при получении ответов: %s", e)
             return None
 
@@ -440,7 +441,7 @@ class MainParser:
                 if attempt < MAX_RESPONSE_ATTEMPTS - 1:
                     self._chrome_remote.wait(RESPONSE_RETRY_DELAY)
 
-            except Exception as click_error:
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as click_error:
                 logger.warning(
                     "Ошибка при клике на ссылку (попытка %d): %s", attempt + 1, click_error
                 )
@@ -458,7 +459,7 @@ class MainParser:
         # Получаем данные тела ответа
         try:
             data = self._chrome_remote.get_response_body(resp)
-        except Exception as body_error:
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as body_error:
             logger.error("Ошибка при получении тела ответа: %s", body_error)
             return False
 
@@ -479,7 +480,7 @@ class MainParser:
             try:
                 writer.write(doc)
                 return True
-            except Exception as write_error:
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as write_error:
                 logger.error("Ошибка записи данных: %s", write_error)
                 return False
         else:
@@ -517,7 +518,7 @@ class MainParser:
                     key=lambda n: abs(n - walk_page_number) if walk_page_number is not None else 0,
                     default=current_page_number + 1,
                 )
-            except Exception as pages_error:
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as pages_error:
                 logger.error("Ошибка при вычислении следующей страницы: %s", pages_error)
                 next_page_number = current_page_number + 1
         else:
@@ -571,7 +572,7 @@ class MainParser:
         if PSUTIL_AVAILABLE:
             try:
                 _process_cache = psutil.Process()
-            except Exception as process_error:
+            except (OSError, RuntimeError, TypeError, ValueError) as process_error:
                 logger.debug("Не удалось создать кэш процесса psutil: %s", process_error)
 
         # Счётчик подряд пустых страниц (для избежания бесконечного цикла при 404)
@@ -659,7 +660,7 @@ class MainParser:
                     try:
                         self._chrome_remote.clear_requests()
                         logger.debug("Очищен кэш запросов Chrome")
-                    except Exception as cache_error:
+                    except (OSError, RuntimeError, TypeError, ValueError) as cache_error:
                         logger.debug("Ошибка при очистке кэша: %s", cache_error)
 
                     # Проверяем, освободилась ли память (один вызов memory_info())
@@ -685,7 +686,7 @@ class MainParser:
                             new_memory_mb,
                         )
 
-            except Exception as memory_error:
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as memory_error:
                 logger.debug("Ошибка при проверке памяти: %s", memory_error)
 
         # Эта обёртка не необходима, но я хочу быть уверен,
@@ -740,7 +741,7 @@ class MainParser:
                         )
 
                 return links
-            except Exception as e:
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
                 logger.error("Ошибка при получении уникальных ссылок: %s", e)
                 return None
 
@@ -756,7 +757,7 @@ class MainParser:
                 try:
                     if not self._wait_requests_finished():
                         logger.warning("Таймаут ожидания завершения запросов")
-                except Exception as wait_error:
+                except (OSError, RuntimeError, TypeError, ValueError) as wait_error:
                     logger.warning("Ошибка при ожидании запросов: %s", wait_error)
 
                 # Собираем ссылки для клика
@@ -834,7 +835,7 @@ class MainParser:
                         logger.debug("Запуск сборщика мусора.")
                         try:
                             self._chrome_remote.execute_script('"gc" in window && window.gc()')
-                        except Exception as gc_error:
+                        except (OSError, RuntimeError, TypeError, ValueError) as gc_error:
                             logger.debug("Ошибка при запуске сборщика мусора: %s", gc_error)
 
                 # Переходим к следующей странице
@@ -849,10 +850,10 @@ class MainParser:
                 # Вызываем ПОСЛЕ перехода на следующую страницу, чтобы не удалить нужные запросы
                 try:
                     self._chrome_remote.clear_requests()
-                except Exception as clear_error:
+                except (OSError, RuntimeError, TypeError, ValueError) as clear_error:
                     logger.debug("Ошибка при очистке запросов: %s", clear_error)
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             # При любом исключении гарантируем закрытие chrome_remote
             logger.error("Критическая ошибка при парсинге: %s", e, exc_info=True)
             raise
@@ -860,7 +861,7 @@ class MainParser:
             # Гарантируем очистку ресурсов
             try:
                 self._chrome_remote.clear_requests()
-            except Exception as e:
+            except (OSError, RuntimeError, TypeError, ValueError) as e:
                 logger.debug("Ошибка при очистке запросов: %s", e)
 
     def parse(self, writer: FileWriter) -> None:
@@ -911,7 +912,7 @@ class MainParser:
                 navigate_success = True
                 break
 
-            except Exception as navigate_error:
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as navigate_error:
                 if attempt < max_retries and self._options.retry_on_network_errors:
                     # Добавляем jitter для предотвращения thundering herd эффекта
                     # Формула: base_delay * (2 ** attempt) + random.uniform(0, 1)

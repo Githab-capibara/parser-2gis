@@ -1,7 +1,7 @@
 # Виртуальные окружения (игнорируем все кроме venv/)
 .venv/
-.venv_opt/
 .venv_audit/
+venv/
 
 # Python
 __pycache__/

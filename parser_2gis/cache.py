@@ -28,11 +28,12 @@ import re
 import sqlite3
 import threading
 import time
-import unicodedata
 import weakref
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+import unicodedata
 
 from .logger.logger import logger as app_logger
 
@@ -1505,7 +1506,7 @@ class CacheManager:
             # Формирование запроса: DELETE FROM cache WHERE url_hash IN (?,?,?,...)
             placeholders = ",".join("?" * len(url_hashes))
             delete_query = f"DELETE FROM cache WHERE url_hash IN ({placeholders})"
-            cursor.execute(delete_query, url_hashes)
+            cursor.execute(delete_query, url_hashes)  # nosec B608
             deleted_count = cursor.rowcount
             conn.commit()
 

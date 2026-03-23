@@ -22,10 +22,10 @@ import threading
 import time
 import uuid
 import weakref
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .logger import log_parser_finish, logger, print_progress
@@ -655,8 +655,8 @@ def _cleanup_all_temp_files() -> None:
                     os_error,
                     exc_info=True,
                 )
-            except Exception as e:
-                # Любая другая ошибка
+            except (RuntimeError, TypeError, ValueError, MemoryError) as e:
+                # Любая другая ошибка (кроме KeyboardInterrupt и SystemExit)
                 logger.error(
                     "Не удалось удалить временный файл %s: %s (тип: %s)",
                     temp_file,
@@ -732,7 +732,7 @@ def _acquire_merge_lock(
             if lock_file_handle:
                 try:
                     lock_file_handle.close()
-                except Exception as close_error:
+                except (OSError, RuntimeError, ValueError) as close_error:
                     log(f"Ошибка при закрытии lock файла: {close_error}", "error")
                 lock_file_handle = None
 
@@ -931,7 +931,7 @@ def _merge_csv_files(
                         try:
                             infile.close()
                             log(f"Файл {csv_file.name} закрыт", "debug")
-                        except Exception as close_error:
+                        except (OSError, RuntimeError, ValueError) as close_error:
                             log(
                                 f"Ошибка при закрытии файла {csv_file.name}: {close_error}", "debug"
                             )
@@ -954,7 +954,7 @@ def _merge_csv_files(
                     if not outfile.closed:
                         outfile.close()
                         log("Выходной файл закрыт в finally блоке", "debug")
-                except Exception as close_error:
+                except (OSError, RuntimeError, ValueError) as close_error:
                     log(f"Ошибка при закрытии выходного файла в finally: {close_error}", "error")
 
     except KeyboardInterrupt:
@@ -970,8 +970,8 @@ def _merge_csv_files(
         # Возвращаем files_to_delete для очистки даже при ошибке
         return False, 0, files_to_delete
 
-    except Exception as e:
-        # Обработка всех остальных исключений
+    except (RuntimeError, TypeError, ValueError, MemoryError) as e:
+        # Обработка всех остальных исключений (кроме KeyboardInterrupt и SystemExit)
         error_type = type(e).__name__
         log(f"Непредвиденная ошибка при объединении CSV ({error_type}): {e}", "error")
         # Возвращаем files_to_delete для очистки даже при ошибке
@@ -1001,7 +1001,7 @@ def _cleanup_source_files(
             csv_file.unlink()
             log(f"Исходный файл удалён: {csv_file.name}")
             deleted_count += 1
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError) as e:
             log(f"Не удалось удалить файл {csv_file}: {e}", "warning")
     return deleted_count
 
@@ -1120,7 +1120,7 @@ class ParallelCityParser:
                 if test_file is not None and test_file.exists():
                     try:
                         test_file.unlink()
-                    except Exception as cleanup_error:
+                    except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         logger.warning(
                             "Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error
                         )
@@ -1141,7 +1141,7 @@ class ParallelCityParser:
                 if test_file is not None and test_file.exists():
                     try:
                         test_file.unlink()
-                    except Exception as cleanup_error:
+                    except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         logger.warning(
                             "Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error
                         )
@@ -1175,7 +1175,7 @@ class ParallelCityParser:
                     "Инициализирован таймер периодической очистки временных файлов для %s",
                     self.output_dir,
                 )
-            except Exception as timer_error:
+            except (OSError, RuntimeError, TypeError, ValueError) as timer_error:
                 logger.warning(
                     "Не удалось инициализировать таймер очистки временных файлов: %s", timer_error
                 )
@@ -1208,7 +1208,7 @@ class ParallelCityParser:
                     # Используем общую функцию генерации URL
                     url = generate_category_url(city, category)
                     all_urls.append((url, category["name"], city["name"]))
-                except Exception as e:
+                except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
                     self.log(
                         f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
                         "error",
@@ -1349,7 +1349,7 @@ class ParallelCityParser:
                 parser = get_parser(
                     url, chrome_options=self.config.chrome, parser_options=self.config.parser
                 )
-            except Exception as init_error:
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as init_error:
                 self.log(f"Ошибка инициализации для {url}: {init_error}", "error")
                 # Удаляем временный файл при ошибке инициализации
                 try:
@@ -1359,7 +1359,7 @@ class ParallelCityParser:
                             f"Временный файл удалён после ошибки инициализации: {temp_filename}",
                             "debug",
                         )
-                except Exception as cleanup_error:
+                except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                     self.log(
                         f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
                         "warning",
@@ -1404,7 +1404,7 @@ class ParallelCityParser:
                 try:
                     shutil.move(str(temp_filepath), str(filepath))
                     move_success = True
-                except Exception as move_error:
+                except (OSError, RuntimeError, TypeError, ValueError) as move_error:
                     # Очистка временного файла при ошибке перемещения
                     self.log(
                         f"Не удалось переместить временный файл {temp_filename}: {move_error}",
@@ -1417,7 +1417,7 @@ class ParallelCityParser:
                                 f"Временный файл удалён после ошибки перемещения: {temp_filename}",
                                 "debug",
                             )
-                    except Exception as cleanup_error:
+                    except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         self.log(
                             f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
                             "warning",
@@ -1452,7 +1452,7 @@ class ParallelCityParser:
                 if temp_filepath.exists():
                     temp_filepath.unlink()
                     self.log(f"Временный файл удалён после таймаута: {temp_filename}", "debug")
-            except Exception as cleanup_error:
+            except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                 self.log(
                     f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}", "warning"
                 )
@@ -1468,7 +1468,7 @@ class ParallelCityParser:
 
             return False, f"Таймаут: {timeout_error}"
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             self.log(f"Ошибка парсинга {city_name} - {category_name}: {e}", "error")
 
             # Удаляем временный файл при ошибке
@@ -1476,7 +1476,7 @@ class ParallelCityParser:
                 if temp_filepath.exists():
                     temp_filepath.unlink()
                     self.log(f"Временный файл удалён после ошибки: {temp_filename}", "debug")
-            except Exception as cleanup_error:
+            except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                 self.log(
                     f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}", "warning"
                 )
@@ -1594,7 +1594,7 @@ class ParallelCityParser:
                     if lock_file_handle:
                         try:
                             lock_file_handle.close()
-                        except Exception as close_error:
+                        except (OSError, RuntimeError, TypeError, ValueError) as close_error:
                             self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
                         lock_file_handle = None
 
@@ -1606,12 +1606,12 @@ class ParallelCityParser:
                     # Ждём перед следующей попыткой
                     time.sleep(1)
 
-        except Exception as lock_error:
+        except (OSError, RuntimeError, TypeError, ValueError) as lock_error:
             self.log(f"Ошибка при получении lock файла: {lock_error}", "error")
             if lock_file_handle:
                 try:
                     lock_file_handle.close()
-                except Exception as close_error:
+                except (OSError, RuntimeError, TypeError, ValueError) as close_error:
                     self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
             return None, False
 
@@ -1631,7 +1631,7 @@ class ParallelCityParser:
                 lock_file_handle.close()
                 lock_file_path.unlink()
                 self.log("Lock файл удалён", "debug")
-        except Exception as lock_error:
+        except (OSError, RuntimeError, TypeError, ValueError) as lock_error:
             self.log(f"Ошибка при удалении lock файла: {lock_error}", "debug")
 
     def _process_single_csv_file(
@@ -1795,7 +1795,7 @@ class ParallelCityParser:
                         if temp_file.exists():
                             temp_file.unlink()
                             self.log(f"Временный файл удалён при прерывании: {temp_file}", "debug")
-                    except Exception as cleanup_error:
+                    except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         self.log(
                             f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}",
                             "error",
@@ -1832,7 +1832,7 @@ class ParallelCityParser:
                         self.log("Объединение отменено пользователем", "warning")
                         try:
                             temp_output.unlink()
-                        except Exception as e:
+                        except (OSError, RuntimeError, TypeError, ValueError) as e:
                             self.log(f"Не удалось удалить временный файл при отмене: {e}", "debug")
                         return False
 
@@ -1869,7 +1869,7 @@ class ParallelCityParser:
                     try:
                         temp_output.unlink()
                         self.log("Временный файл удалён (все файлы пустые)", "debug")
-                    except Exception as e:
+                    except (OSError, RuntimeError, TypeError, ValueError) as e:
                         self.log(f"Не удалось удалить временный файл: {e}", "debug")
 
                     # Удаляем lock файл
@@ -1897,7 +1897,7 @@ class ParallelCityParser:
                 )
                 try:
                     shutil.move(str(temp_output), str(output_file_path))
-                except Exception as move_error:
+                except (OSError, RuntimeError, TypeError, ValueError) as move_error:
                     # Очистка временного файла при ошибке перемещения
                     self.log(
                         f"Не удалось переместить временный файл в {output_file}: {move_error}",
@@ -1907,7 +1907,7 @@ class ParallelCityParser:
                         if temp_output.exists():
                             temp_output.unlink()
                             self.log("Временный файл удалён после ошибки перемещения", "debug")
-                    except Exception as cleanup_error:
+                    except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         self.log(f"Не удалось удалить временный файл: {cleanup_error}", "debug")
                     raise move_error
 
@@ -1916,7 +1916,7 @@ class ParallelCityParser:
                 try:
                     csv_file.unlink()
                     self.log(f"Исходный файл удалён: {csv_file.name}", "debug")
-                except Exception as e:
+                except (OSError, RuntimeError, TypeError, ValueError) as e:
                     self.log(f"Не удалось удалить файл {csv_file}: {e}", "warning")
 
             self.log(f"Объединение завершено. Файлы удалены ({len(files_to_delete)} шт.)", "info")
@@ -1933,7 +1933,7 @@ class ParallelCityParser:
             cleanup_temp_files()
             return False
 
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             self.log(f"Ошибка при объединении CSV: {e}", "error")
             return False
 
@@ -1942,7 +1942,7 @@ class ParallelCityParser:
             try:
                 signal.signal(signal.SIGINT, old_sigint_handler)
                 signal.signal(signal.SIGTERM, old_sigterm_handler)
-            except Exception as restore_error:
+            except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
                 self.log(
                     f"Ошибка при восстановлении обработчиков сигналов: {restore_error}", "error"
                 )
@@ -1956,7 +1956,7 @@ class ParallelCityParser:
                 try:
                     temp_output.unlink()
                     self.log("Временный файл удалён в блоке finally (защита от утечек)", "debug")
-                except Exception as cleanup_error:
+                except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                     self.log(
                         f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning"
                     )
@@ -1992,7 +1992,7 @@ class ParallelCityParser:
             try:
                 self._temp_file_cleanup_timer.start()
                 self.log("Запущен таймер периодической очистки временных файлов", "info")
-            except Exception as timer_error:
+            except (OSError, RuntimeError, TypeError, ValueError) as timer_error:
                 self.log(f"Не удалось запустить таймер очистки: {timer_error}", "warning")
 
         self.log(f"🚀 Запуск параллельного парсинга ({self.max_workers} потока)", "info")
@@ -2069,7 +2069,7 @@ class ParallelCityParser:
                     # Возвращаем False для индикации прерывания
                     return False
 
-                except Exception as e:
+                except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
                     failed_count += 1
                     self.log(
                         f"❌ Исключение при парсинге {city_name} - {category_name}: {e}", "error"
@@ -2092,7 +2092,7 @@ class ParallelCityParser:
                     # cancel_futures=True отменяет ожидающие задачи
                     executor.shutdown(wait=True, cancel_futures=True)
                     self.log("ThreadPoolExecutor корректно завершён", "debug")
-                except Exception as shutdown_error:
+                except (OSError, RuntimeError, TypeError, ValueError) as shutdown_error:
                     self.log(f"Ошибка при shutdown ThreadPoolExecutor: {shutdown_error}", "error")
 
         # Вычисляем длительность
@@ -2146,7 +2146,7 @@ class ParallelCityParser:
             try:
                 self._temp_file_cleanup_timer.stop()
                 self.log("Таймер периодической очистки остановлен", "info")
-            except Exception as timer_error:
+            except (OSError, RuntimeError, TypeError, ValueError) as timer_error:
                 self.log(f"Ошибка при остановке таймера: {timer_error}", "debug")
 
         return True
@@ -2202,7 +2202,7 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
             output_file = self._output_file or str(self.output_dir / "merged_result.csv")
             # Вызываем метод родительского класса ParallelCityParser.run
             self._result = ParallelCityParser.run(self, output_file=output_file)
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             # Используем self.log() вместо прямого вызова logger для потокобезопасности
             self.log(f"Ошибка в потоке параллельного парсинга: {e}", "error")
             self._result = False

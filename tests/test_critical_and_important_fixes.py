@@ -44,9 +44,10 @@ import pytest
 
 from parser_2gis.cache import MAX_DATA_DEPTH, _validate_cached_data
 from parser_2gis.chrome.browser import ChromeBrowser
-from parser_2gis.main import _validate_cli_argument, _validate_positive_int
+from parser_2gis.main import _validate_cli_argument
 from parser_2gis.signal_handler import SignalHandler
 from parser_2gis.statistics import ParserStatistics, StatisticsExporter
+from parser_2gis.validation import validate_positive_int
 from parser_2gis.validator import DataValidator
 from parser_2gis.writer.writers.csv_writer import mmap_file_context
 
@@ -1044,31 +1045,33 @@ class TestParseArgumentsDecomposition:
     Тесты для проблемы 11: Разбиение parse_arguments на 4 функции.
 
     Исправление включает:
-    - Выделение _validate_positive_int для валидации чисел
+    - Выделение validate_positive_int для валидации чисел
     - Выделение _validate_cli_argument для валидации CLI аргументов
     - Улучшение читаемости и тестируемости кода
     """
 
     def test_validate_positive_int_function(self):
         """
-        Тест 1: Проверка функции _validate_positive_int.
+        Тест 1: Проверка функции validate_positive_int.
 
         Проверяет что функция корректно валидирует положительные целые числа.
         """
         # Arrange & Act & Assert - тестируем валидные значения
-        assert _validate_positive_int(5, 1, 100, "--test") == 5
-        assert _validate_positive_int(1, 1, 100, "--test") == 1
-        assert _validate_positive_int(100, 1, 100, "--test") == 100
+        assert validate_positive_int(5, 1, 100, "--test") == 5
+        assert validate_positive_int(1, 1, 100, "--test") == 1
+        assert validate_positive_int(100, 1, 100, "--test") == 100
 
         # Тестируем невалидные значения (ниже минимума)
         with pytest.raises(ValueError) as exc_info:
-            _validate_positive_int(0, 1, 100, "--test")
-        assert "не менее 1" in str(exc_info.value) or "от 1 до 100" in str(exc_info.value)
+            validate_positive_int(0, 1, 100, "--test")
+        assert "не менее 1" in str(exc_info.value)
+        assert "получено 0" in str(exc_info.value)
 
         # Тестируем невалидные значения (выше максимума)
         with pytest.raises(ValueError) as exc_info:
-            _validate_positive_int(101, 1, 100, "--test")
-        assert "не более 100" in str(exc_info.value) or "от 1 до 100" in str(exc_info.value)
+            validate_positive_int(101, 1, 100, "--test")
+        assert "не более 100" in str(exc_info.value)
+        assert "получено 101" in str(exc_info.value)
 
     def test_validate_cli_argument_function(self):
         """
@@ -1116,7 +1119,7 @@ class TestParseArgumentsDecomposition:
         # Act & Assert
         for value, min_val, max_val, arg_name, should_pass in test_cases:
             try:
-                _validate_positive_int(value, min_val, max_val, arg_name)
+                validate_positive_int(value, min_val, max_val, arg_name)
                 passed = True
             except ValueError:
                 passed = False
