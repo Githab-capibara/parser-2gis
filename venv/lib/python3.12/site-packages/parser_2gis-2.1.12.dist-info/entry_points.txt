@@ -1,0 +1,2 @@
+[console_scripts]
+parser-2gis = parser_2gis:main

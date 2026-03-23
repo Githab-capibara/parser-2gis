@@ -5,7 +5,7 @@
 # Поддерживает TUI и CLI режимы работы
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_DIR="$SCRIPT_DIR/.venv"
+VENV_DIR="$SCRIPT_DIR/venv"
 
 # Цвета для вывода
 GREEN='\033[0;32m'

@@ -1,0 +1,139 @@
+Metadata-Version: 2.4
+Name: PyTermGUI
+Version: 7.7.4
+Summary: Python TUI framework with mouse support, modular widget system, customizable and rapid terminal markup language and more!
+Project-URL: homepage, https://github.com/bczsalba/PyTermGUI
+Project-URL: repository, https://github.com/bczsalba/PyTermGUI
+Project-URL: documentation, https://ptg.bczsalba.com
+Author-email: Balázs Cene <bczsalba@gmail.com>
+License: MIT
+License-File: LICENSE
+Keywords: ANSI,TUI,UI,framework,markup,terminal,user-interface,xterm
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Framework :: IPython
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Terminals
+Classifier: Topic :: Text Processing :: Markup
+Classifier: Typing :: Typed
+Requires-Python: >=3.8
+Requires-Dist: typing-extensions
+Requires-Dist: wcwidth
+Provides-Extra: yaml
+Requires-Dist: pyyaml; extra == 'yaml'
+Description-Content-Type: text/markdown
+
+<!--![title](https://github.com/bczsalba/pytermgui/raw/master/assets/title.png)-->
+
+![title](https://github.com/bczsalba/pytermgui/raw/master/assets/readme/screenshot.png)
+
+> Python TUI framework with mouse support, modular widget system, customizable and rapid terminal markup language and more!
+
+```bash
+pip3 install pytermgui
+```
+
+<p align=center>
+   <a href="https://pypi.org/project/pytermgui">
+      <img alt="PyPi project" src="https://img.shields.io/pypi/v/pytermgui?color=brightgreen">
+   </a>
+    <a href="https://github.com/bczsalba/pytermgui/blob/master/utils/create_badge.py">
+      <img alt="Code quality" src="https://raw.githubusercontent.com/bczsalba/pytermgui/master/assets/badges/quality.svg">
+   </a>
+   <a href="http://ptg.bczsalba.com/">
+      <img src="https://img.shields.io/badge/documentation-up%20to%20date-brightgreen">
+   </a>
+   <a href="https://github.com/bczsalba/pytermgui/actions/workflows/pytest.yml">
+      <img src="https://github.com/bczsalba/pytermgui/actions/workflows/pytest.yml/badge.svg">
+   </a>
+ </p>
+ <p align=center>
+   <a href="https://discord.gg/g4bqMvpG4U">
+      <img src="https://img.shields.io/discord/999374285686706367?label=join%20our%20discord">
+   </a>
+</p>
+
+## Notice
+
+A much better, more complete version of PTG's core ideas now exists over at [Shade 40](https://github.com/shade40). While PTG is not yet fully obsolete,
+those libraries will be the primary focus of development going forward.
+
+<hr>
+
+## Why?
+
+Mostly because terminals are cool, but creating terminal apps has historically been difficult. PyTermGUI aims to provide a simple, readable and modular way to make the app of your dreams!
+
+Terminal apps are (often):
+
+- Easier to install
+- Faster & more resource efficient
+- Less prone to differences between environments (no IE7 here!)
+
+...than their web or native counterparts.
+
+## How?
+
+We provide a couple of things to make your life easier:
+
+- Sensible abstractions over most terminal standards
+- A fully fledged, desktop-inspired window manager system with modals and completely customizable windows
+- Mouse support out of the box with **0** configuration
+- YAML (or Python) based styling engines
+- TIM, our markup language for creating styled terminal text with expressive text, including systems for aliases & macros
+- A bunch of things I can't think of right now :slightly_smiling_face:
+
+Additionally, there are a couple of neat tools to make your general Python development easier:
+
+- An inspection utility
+- A pretty printer for both the REPL and IPython
+- A way to create SVG and HTML screenshots of your terminal
+
+## Latest release
+
+### [7.7.3] - 2024-12-29
+
+### Bugfixes
+
+- Fix getch mapping for Windows keys
+
+
+Read the full changelog [here](https://github.com/bczsalba/pytermgui/blob/master/CHANGELOG.md).
+
+
+
+[7.7.3]: https://github.com/bczsalba/pytermgui/compare/v7.7.2...v7.7.3
+[7.7.2]: https://github.com/bczsalba/pytermgui/compare/v7.7.1...v7.7.2
+[7.7.1]: https://github.com/bczsalba/pytermgui/compare/v7.7.0...v7.7.1
+[7.7.0]: https://github.com/bczsalba/pytermgui/compare/v7.6.0...v7.7.0
+[7.6.0]: https://github.com/bczsalba/pytermgui/compare/v7.5.0...v7.6.0
+[7.5.0]: https://github.com/bczsalba/pytermgui/compare/v7.4.0...v7.5.0
+[7.4.0]: https://github.com/bczsalba/pytermgui/compare/v7.3.0...v7.4.0
+[7.3.0]: https://github.com/bczsalba/pytermgui/compare/v7.2.0...v7.3.0
+[7.2.0]: https://github.com/bczsalba/pytermgui/compare/v7.1.0...v7.2.0
+[7.1.0]: https://github.com/bczsalba/pytermgui/compare/v7.0.0...v7.1.0
+[7.0.0]: https://github.com/bczsalba/pytermgui/compare/v6.4.0...v7.0.0
+[6.4.0]: https://github.com/bczsalba/pytermgui/compare/v6.0.0...v6.4.0
+[6.3.0]: https://github.com/bczsalba/pytermgui/compare/v6.2.2...v6.3.0
+[6.2.2]: https://github.com/bczsalba/pytermgui/compare/v6.2.1...v6.2.2
+[6.2.1]: https://github.com/bczsalba/pytermgui/compare/v6.2.0...v6.2.1
+[6.2.0]: https://github.com/bczsalba/pytermgui/compare/v6.1.0...v6.2.0
+[6.1.0]: https://github.com/bczsalba/pytermgui/compare/v6.0.0...v6.1.0
+[6.0.0]: https://github.com/bczsalba/pytermgui/compare/v5.0.0...v6.0.0
+[5.0.0]: https://github.com/bczsalba/pytermgui/compare/v4.3.2...v5.0.0
+[4.3.2]: https://github.com/bczsalba/pytermgui/compare/v4.3.1...v4.3.2
+[4.3.1]: https://github.com/bczsalba/pytermgui/compare/v4.3.0...v4.3.1
+[4.3.0]: https://github.com/bczsalba/pytermgui/compare/v4.2.0...v4.3.0
+[4.2.1]: https://github.com/bczsalba/pytermgui/compare/v4.2.0...v4.2.1
+[4.2.0]: https://github.com/bczsalba/pytermgui/compare/v4.1.0...v4.2.0
+[4.1.0]: https://github.com/bczsalba/pytermgui/compare/v4.0.0...v4.1.0
+[4.0.1]: https://github.com/bczsalba/pytermgui/compare/v4.0.0...v4.0.1
+[4.0.0]: https://github.com/bczsalba/pytermgui/compare/v3.2.1...v4.0.0
