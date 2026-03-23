@@ -809,8 +809,8 @@ class TestBareExceptInTests:
 
         # Assert - bare except не должен использоваться
         assert len(bare_except_found) == 0, (
-            f"Найдены bare except в тестах: {bare_except_found[:5]}"  # Показываем первые 5
-        )
+            f"Найдены bare except в тестах: {bare_except_found[:5]}"
+        )  # Показываем первые 5
 
     def test_specific_exception_types_in_tests(self):
         """

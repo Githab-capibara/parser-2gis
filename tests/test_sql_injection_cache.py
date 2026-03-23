@@ -109,9 +109,7 @@ class TestCacheDataValidation:
 
     def test_unicode_homoglyph_rejected(self):
         """Unicode омоглифы должны обрабатываться корректно."""
-        data = {
-            "key": "\u0410"  # Cyrillic A
-        }
+        data = {"key": "\u0410"}  # Cyrillic A
         result = _validate_cached_data(data)
         assert result
 

@@ -69,10 +69,7 @@ class TestValidateUrlCaching:
 
     def test_validate_url_cache_with_different_protocols(self) -> None:
         """Тест кэширования URL с разными протоколами."""
-        urls = [
-            "https://2gis.ru/moscow",
-            "http://2gis.ru/moscow",  # HTTP тоже допустим
-        ]
+        urls = ["https://2gis.ru/moscow", "http://2gis.ru/moscow"]  # HTTP тоже допустим
 
         results = [validate_url(url) for url in urls]
         # HTTP и HTTPS должны быть валидными

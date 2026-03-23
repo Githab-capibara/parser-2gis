@@ -278,9 +278,9 @@ def mmap_file_context(
             mmapped_file = mmap.mmap(underlying_fp.fileno(), 0, access=mmap.ACCESS_READ)  # type: ignore[mmap.mmap]
             # Оборачиваем в TextIOWrapper для текстового чтения
             text_file = io.TextIOWrapper(
-                mmapped_file,  # type: ignore[arg-type]
+                mmapped_file,
                 encoding=encoding,
-                errors="replace",
+                errors="replace",  # type: ignore[arg-type]
             )
             is_mmap_mode = True
             yield text_file, True, underlying_fp

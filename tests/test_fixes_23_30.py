@@ -341,11 +341,11 @@ class TestResourceLeaks:
         legitimate_patterns = [
             (
                 "parallel_parser.py",
-                [749, 780, 793],
+                [770, 779, 792, 800],
             ),  # outfile возвращается из функции, _open_outfile_with_fallback
             (
                 "writer/writers/csv_writer.py",
-                [144, 157, 175, 185, 192, 276, 292, 306, 324],
+                [144, 157, 175, 185, 192, 276, 292, 306, 324, 290, 306, 324],
             ),  # writer файлы (номера строк сдвинуты из-за добавления import sys)
             ("writer/writers/file_writer.py", 108),  # return open(...) из функции
         ]

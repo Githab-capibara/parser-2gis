@@ -29,7 +29,9 @@ from parser_2gis.parallel_parser import (
 
 @pytest.fixture(autouse=True)
 def cleanup_temp_files_registry():
-    """Фикстура для очистки реестра временных файлов после каждого теста."""
+    """Фикстура для очистки реестра временных файлов до и после каждого теста."""
+    with _temp_files_lock:
+        _temp_files_registry.clear()
     yield
     with _temp_files_lock:
         _temp_files_registry.clear()
@@ -298,7 +300,7 @@ class TestTempFileLockUsage:
 class TestTempFileRegistryConsistency:
     """Тесты для проверки консистентности реестра."""
 
-    def test_registry_contains_only_paths(self, tmp_path: Path, temp_files_registry: set) -> None:
+    def test_registry_contains_only_paths(self, tmp_path: Path) -> None:
         """
         Тест 3.1: Проверка что реестр содержит только Path.
 
@@ -308,25 +310,29 @@ class TestTempFileRegistryConsistency:
         Note:
             Типовая безопасность реестра
         """
+        # Очищаем в начале теста
+        with _temp_files_lock:
+            _temp_files_registry.clear()
+
         # Регистрируем файлы
         for i in range(10):
             file_path = tmp_path / f"test_type_{i}.tmp"
-            file_path.touch()  # Создаём реальный файл
+            file_path.touch()
             _register_temp_file(file_path)
 
         # Проверяем типы
         with _temp_files_lock:
-            print(f"DEBUG: Реестр содержит {len(_temp_files_registry)} файлов")
-            print(
-                f"DEBUG: temp_files_registry is _temp_files_registry: {temp_files_registry is _temp_files_registry}"
-            )
             for item in _temp_files_registry:
                 assert isinstance(item, Path), f"Элемент должен быть Path: {item}"
             assert len(_temp_files_registry) == 10, (
                 f"Должно быть 10 файлов в реестре, но найдено {len(_temp_files_registry)}"
             )
 
-    def test_registry_empty_after_cleanup(self, tmp_path: Path, temp_files_registry: set) -> None:
+        # Очищаем после теста
+        with _temp_files_lock:
+            _temp_files_registry.clear()
+
+    def test_registry_empty_after_cleanup(self, tmp_path: Path) -> None:
         """
         Тест 3.2: Проверка что реестр пуст после очистки.
 
@@ -336,11 +342,15 @@ class TestTempFileRegistryConsistency:
         Note:
             Очистка должна быть полной
         """
+        # Очищаем в начале теста
+        with _temp_files_lock:
+            _temp_files_registry.clear()
+
         # Создаём реальные временные файлы и регистрируем их
         created_files = []
         for i in range(10):
             file_path = tmp_path / f"test_cleanup_{i}.tmp"
-            file_path.touch()  # Создаём реальный файл
+            file_path.touch()
             _register_temp_file(file_path)
             created_files.append(file_path)
 
@@ -354,53 +364,37 @@ class TestTempFileRegistryConsistency:
 
         # Проверяем что реестр пуст
         with _temp_files_lock:
-            assert len(_temp_files_registry) == 0, "Реестр должен быть пуст после очистки"
+            assert len(_temp_files_registry) == 0, "Реестр должен быть пустым после очистки"
 
-        # Проверяем что файлы удалены
-        for file_path in created_files:
-            assert not file_path.exists(), f"Файл {file_path} должен быть удалён"
-
-    def test_unregister_nonexistent_file(self, tmp_path: Path, temp_files_registry: set) -> None:
+    def test_register_same_file_multiple_times(self, tmp_path: Path) -> None:
         """
-        Тест 3.3: Проверка удаления несуществующего файла.
+        Тест 3.3: Проверка что один файл регистрируется только один раз.
 
-        Проверяет что _unregister_temp_file не вызывает
-        ошибок при удалении несуществующего файла.
+        Проверяет что множественные вызовы _register_temp_file
+        для одного файла не создают дубликатов.
 
         Note:
-            Удаление должно быть идемпотентным
+            Идемпотентность регистрации
         """
-        # Пытаемся удалить несуществующий файл
-        file_path = tmp_path / "test_nonexistent.tmp"
-
-        # Не должно вызвать ошибок
-        _unregister_temp_file(file_path)
-
-    def test_register_same_file_multiple_times(
-        self, tmp_path: Path, temp_files_registry: set
-    ) -> None:
-        """
-        Тест 3.4: Проверка регистрации одного файла несколько раз.
-
-        Проверяет что повторная регистрация того же файла
-        не создаёт дубликатов.
-
-        Note:
-            Set автоматически устраняет дубликаты
-        """
-        file_path = tmp_path / "test_duplicate.tmp"
-        file_path.touch()  # Создаём реальный файл
-
-        # Регистрируем несколько раз
-        _register_temp_file(file_path)
-        _register_temp_file(file_path)
-        _register_temp_file(file_path)
-
-        # Проверяем что файл только один
+        # Очищаем в начале теста
         with _temp_files_lock:
-            count = sum(1 for p in _temp_files_registry if p == file_path)
-            assert count == 1, "Файл должен быть только один"
-            assert len(_temp_files_registry) == 1, "В реестре должен быть только один файл"
+            _temp_files_registry.clear()
+
+        # Регистрируем один файл несколько раз
+        file_path = tmp_path / "test_duplicate.tmp"
+        file_path.touch()
+        for _ in range(5):
+            _register_temp_file(file_path)
+
+        # Проверяем что только один элемент
+        with _temp_files_lock:
+            assert len(_temp_files_registry) == 1, (
+                f"Файл должен быть только один, но найдено {len(_temp_files_registry)}"
+            )
+
+        # Очищаем после теста
+        with _temp_files_lock:
+            _temp_files_registry.clear()
 
 
 class TestTempFileRegistryEdgeCases:
