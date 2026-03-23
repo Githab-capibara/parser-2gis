@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import time
 
-from ..exceptions import ChromeRuntimeException, ChromeUserAbortException
+from ..chrome.exceptions import ChromeRuntimeException, ChromeUserAbortException
 from ..logger import log_parser_finish, logger
 from ..parser import get_parser
 from ..writer import get_writer

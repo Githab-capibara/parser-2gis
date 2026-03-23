@@ -1,17 +1,24 @@
 """
 Модуль исключений парсера.
 
-Предоставляет базовые классы исключений для обработки ошибок
+Предоставляет базовый класс исключений BaseContextualException для обработки ошибок
 в различных компонентах парсера (Chrome, парсер, writer).
 
 Использует иерархию исключений с базовым классом BaseContextualException,
 который добавляет контекстную информацию об ошибках.
+
+Примечание:
+    Специфичные исключения (ChromeException, ParserException, WriterUnknownFileFormat)
+    находятся в соответствующих модулях:
+    - Chrome: parser_2gis.chrome.exceptions
+    - Parser: parser_2gis.parser.exceptions
+    - Writer: parser_2gis.writer.exceptions
 """
 
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 
 # Базовый класс исключений
@@ -54,60 +61,4 @@ class BaseContextualException(Exception):
         super().__init__(full_message, **kwargs)
 
 
-# =============================================================================
-# ЭКСПОРТ ИСКЛЮЧЕНИЙ ИЗ МОДУЛЕЙ (ленивый импорт для избежания циклических зависимостей)
-# =============================================================================
-
-if TYPE_CHECKING:
-    # Импорты только для type checking
-    pass
-
-__all__ = [
-    # Базовый класс
-    "BaseContextualException"
-]
-
-
-def __getattr__(name: str) -> Any:
-    """Ленивый импорт исключений для избежания циклических зависимостей.
-
-    Args:
-        name: Имя экспортируемого символа.
-
-    Returns:
-        Импортированный класс исключения.
-
-    Raises:
-        AttributeError: Если запрошен несуществующий символ.
-    """
-    if name in (
-        "ChromeException",
-        "ChromePathNotFound",
-        "ChromeRuntimeException",
-        "ChromeUserAbortException",
-    ):
-        from .chrome.exceptions import (
-            ChromeException,
-            ChromePathNotFound,
-            ChromeRuntimeException,
-            ChromeUserAbortException,
-        )
-
-        return {
-            "ChromeException": ChromeException,
-            "ChromePathNotFound": ChromePathNotFound,
-            "ChromeRuntimeException": ChromeRuntimeException,
-            "ChromeUserAbortException": ChromeUserAbortException,
-        }[name]
-
-    if name == "ParserException":
-        from .parser.exceptions import ParserException
-
-        return ParserException
-
-    if name == "WriterUnknownFileFormat":
-        from .writer.exceptions import WriterUnknownFileFormat
-
-        return WriterUnknownFileFormat
-
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+__all__ = ["BaseContextualException"]
