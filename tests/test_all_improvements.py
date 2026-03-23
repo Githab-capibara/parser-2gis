@@ -15,14 +15,11 @@
 Дата: 2026-03-23
 """
 
-import ast
 import os
-import re
 import sys
 import tempfile
-import time
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -375,7 +372,6 @@ class TestWeakrefFinalizeAtexit:
         предотвращения проблем при завершении интерпретатора.
         """
         from parser_2gis.cache import CacheManager, _ConnectionPool
-        from parser_2gis.chrome.browser import ChromeBrowser
         from parser_2gis.parallel_parser import _TempFileTimer
 
         # Тестируем CacheManager
@@ -462,7 +458,7 @@ class TestNetworkTimeoutConfigured:
 
         try:
             # Валидируем URL
-            result = validate_url("https://example.com")
+            validate_url("https://example.com")
 
             # Проверяем что timeout был установлен и восстановлен
             current_timeout = socket.getdefaulttimeout()
@@ -488,7 +484,6 @@ class TestNoExcessiveComments:
 
         Проверяет что комментарии не превышают 30% от общего количества строк кода.
         """
-        import os
 
         # Ключевые модули для проверки
         modules_to_check = [
@@ -643,12 +638,7 @@ class TestMemoryErrorHandlingComprehensive:
         - Операциях с кэшем
         - Операциях с данными
         """
-        from parser_2gis.cache import (
-            CacheManager,
-            _ConnectionPool,
-            _deserialize_json,
-            _serialize_json,
-        )
+        from parser_2gis.cache import CacheManager, _deserialize_json, _serialize_json
         from parser_2gis.common import _sanitize_value
 
         # Тест 1: MemoryError при сериализации

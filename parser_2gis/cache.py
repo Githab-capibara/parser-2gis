@@ -1191,17 +1191,17 @@ class CacheManager:
         # Критическая ошибка диска
         if "disk i/o error" in error_str:
             app_logger.critical("Критическая ошибка диска при получении кэша: %s", db_error)
-            raise
+            raise db_error
 
         # Таблица не существует
         if "no such table" in error_str:
             app_logger.critical("Таблица кэша не существует: %s", db_error)
-            raise
+            raise db_error
 
         # Повреждение базы данных
         if "corrupt" in error_str or "malformed" in error_str:
             app_logger.critical("База данных повреждена: %s", db_error)
-            raise
+            raise db_error
 
         # Остальные ошибки БД
         app_logger.error(
