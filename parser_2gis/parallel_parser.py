@@ -22,10 +22,10 @@ import threading
 import time
 import uuid
 import weakref
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
-
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .constants import DEFAULT_TIMEOUT, MAX_TIMEOUT, MAX_WORKERS, MIN_TIMEOUT, MIN_WORKERS
@@ -172,12 +172,11 @@ class _TempFileTimer:
     def _cleanup_callback(self) -> None:
         """Callback для периодической очистки.
 
-        ИСПРАВЛЕНИЕ 6: Устранение race condition через:
-        1. Проверку _stop_event.is_set() внутри блокировки
-        2. Использование threading.Event.wait() вместо Timer
-        3. Корректный shutdown механизм с гарантией остановки
+        ИСПРАВЛЕНИЕ C-001: Устранение гонки данных через:
+        1. Объединение проверки _stop_event.is_set() и планирования в единую атомарную операцию
+        2. Вызов _schedule_next_cleanup() внутри блокировки для предотвращения race condition
         """
-        # ИСПРАВЛЕНИЕ 6: Проверяем флаг остановки ВНУТРИ блокировки для предотвращения гонки
+        # ИСПРАВЛЕНИЕ C-001: Проверяем флаг остановки ВНУТРИ блокировки для предотвращения гонки
         should_stop = False
         try:
             # Пытаемся получить блокировку с таймаутом
@@ -214,21 +213,24 @@ class _TempFileTimer:
             # Обработка всех остальных исключений включая KeyboardInterrupt и SystemExit
             logger.error("Критическая ошибка в callback очистки: %s", base_error, exc_info=True)
         finally:
-            # ИСПРАВЛЕНИЕ 6: Планируем следующую очистку только если не была установлена остановка
-            # Проверяем ещё раз внутри блокировки для безопасности
+            # ИСПРАВЛЕНИЕ C-001: Планируем следующую очистку ВНУТРИ блокировки
+            # Это гарантирует атомарность проверки флага остановки и планирования
+            # Предотвращает гонку где stop() может быть вызван между проверкой и планированием
             should_schedule = False
             try:
                 lock_acquired = self._lock.acquire(timeout=5.0)
                 if lock_acquired:
                     try:
+                        # Проверяем флаг остановки и планируем только если не остановлено
                         should_schedule = not self._stop_event.is_set()
+                        if should_schedule:
+                            # ИСПРАВЛЕНИЕ C-001: Вызываем _schedule_next_cleanup() внутри блокировки
+                            # Это гарантирует что проверка и планирование атомарны
+                            self._schedule_next_cleanup()
                     finally:
                         self._lock.release()
             except (RuntimeError, OSError):
                 should_schedule = False
-
-            if should_schedule:
-                self._schedule_next_cleanup()
 
     def _schedule_next_cleanup(self) -> None:
         """Планирует следующую очистку.
@@ -754,41 +756,56 @@ def _merge_csv_files(
     total_rows = 0
     fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
     writer = None
-    outfile = None
     infile: Optional[object] = None
 
-    try:
+    # ИСПРАВЛЕНИЕ C-002: Используем контекстный менеджер для outfile
+    # Это гарантирует закрытие файла даже при ошибке или исключении
+    # Предыдущая реализация могла привести к утечке ресурсов если OSError
+    # происходил после открытия файла но до входа в основной блок обработки
+    outfile: Optional[object] = None
+
+    def _open_outfile_with_fallback(
+        path: Path, enc: str, buf_size: int, log_func: Callable[[str, str], None]
+    ) -> tuple[Optional[object], bool]:
+        """Открывает выходной файл с fallback механизмом.
+
+        Returns:
+            Кортеж (file_object, success):
+            - file_object: объект файла или None при ошибке
+            - success: True если файл успешно открыт
+        """
+        # Пытаемся открыть с основным размером буфера
         try:
-            outfile = open(output_path, "w", encoding=encoding, newline="", buffering=buffer_size)  # pylint: disable=consider-using-with  # nosec B228
+            file_obj = open(path, "w", encoding=enc, newline="", buffering=buf_size)  # nosec B228
+            log_func(f"Выходной файл открыт с буфером {buf_size} байт", "debug")
+            return file_obj, True
         except OSError as output_error:
-            # Детальное логирование ошибки с указанием типа ошибки
             error_type = type(output_error).__name__
-            log(
-                f"Ошибка записи в выходной файл {output_path} ({error_type}): {output_error}",
-                "error",
+            log_func(
+                f"Ошибка записи в выходной файл {path} ({error_type}): {output_error}", "error"
             )
 
-            # Fallback mechanism - try reducing buffer size
-            if buffer_size > 8192:  # FIX #6: PEP 8 line too long
-                log("Fallback attempt: reducing buffer size to 8KB", "warning")
+            # Fallback механизм - пробуем уменьшить размер буфера
+            if buf_size > 8192:
+                log_func("Fallback попытка: уменьшаем размер буфера до 8KB", "warning")
                 try:
-                    # pylint: disable=consider-using-with
-                    fallback_buffer_size = 8192
-                    outfile = open(
-                        output_path,
-                        "w",
-                        encoding=encoding,
-                        newline="",
-                        buffering=fallback_buffer_size,
-                    )
-                    log("Fallback successful: file opened with reduced buffer", "info")
+                    file_obj = open(path, "w", encoding=enc, newline="", buffering=8192)  # nosec B228
+                    log_func("Fallback успешен: файл открыт с уменьшенным буфером", "info")
+                    return file_obj, True
                 except OSError as fallback_error:
-                    log(f"Fallback failed: {fallback_error}", "error")
-                    return False, 0, []
-            else:
-                return False, 0, []
+                    log_func(f"Fallback не удался: {fallback_error}", "error")
+                    return None, False
+            return None, False
 
-        try:
+    # Открываем выходной файл перед основным try блоком
+    outfile, open_success = _open_outfile_with_fallback(output_path, encoding, buffer_size, log)
+    if not open_success or outfile is None:
+        return False, 0, []
+
+    try:
+        # ИСПРАВЛЕНИЕ C-002: Обёртываем outfile в контекстный менеджер
+        # для гарантии закрытия даже при исключении
+        with outfile:  # type: ignore[attr-defined]
             for csv_file in file_paths:
                 if cancel_event is not None and cancel_event.is_set():
                     log("Объединение отменено пользователем", "warning")
@@ -914,18 +931,6 @@ def _merge_csv_files(
 
             log(f"Объединение завершено. Всего записей: {total_rows}", "info")
             return True, total_rows, files_to_delete
-
-        finally:
-            # Гарантированная очистка outfile в finally блоке
-            # Этот finally относится к внутреннему try для обработки файлов
-            # но очистка outfile вынесена сюда для гарантии выполнения
-            if outfile is not None:
-                try:
-                    if not outfile.closed:
-                        outfile.close()
-                        log("Выходной файл закрыт в finally блоке", "debug")
-                except (OSError, RuntimeError, ValueError) as close_error:
-                    log(f"Ошибка при закрытии выходного файла в finally: {close_error}", "error")
 
     except KeyboardInterrupt:
         # Обработка прерывания пользователем (Ctrl+C)

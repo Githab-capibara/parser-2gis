@@ -15,6 +15,7 @@ import mmap
 import os
 import re
 import shutil
+import sys
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Union
 
@@ -989,6 +990,12 @@ class CSVWriter(FileWriter):
             raise
 
         finally:
+            # ИСПРАВЛЕНИЕ C-003: Сохраняем информацию об оригинальном исключении
+            # перед выполнением очистки чтобы перевыбросить его после
+            # Это гарантирует что KeyboardInterrupt и другие критические исключения
+            # не будут потеряны после очистки временного файла
+            exc_info = sys.exc_info()
+
             # ВАЖНО: Гарантированная очистка временного файла в любом случае
             # finally выполняется даже при KeyboardInterrupt и sys.exit()
             if temp_created and os.path.exists(tmp_csv_name):
@@ -999,6 +1006,12 @@ class CSVWriter(FileWriter):
                     logger.warning(
                         "Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error
                     )
+
+            # ИСПРАВЛЕНИЕ C-003: Перевыбрасываем оригинальное исключение после очистки
+            # Проверяем exc_info[0] != None чтобы избежать перевыбрасывания None
+            if exc_info[0] is not None:
+                # Восстанавливаем оригинальное исключение
+                raise exc_info[1].with_traceback(exc_info[2])
 
     def write(self, catalog_doc: Any) -> None:
         """Записывает JSON-документ Catalog Item API в CSV-таблицу.

@@ -12,11 +12,11 @@
 - Исправление 30: Утечки ресурсов
 """
 
+import ast
 import re
 from pathlib import Path
 from typing import List, Tuple
 
-import ast
 import pytest
 
 # =============================================================================
@@ -339,11 +339,14 @@ class TestResourceLeaks:
 
         # Фильтруем известные легитимные случаи (open() возвращается из функции или используется с try/finally)
         legitimate_patterns = [
-            ("parallel_parser.py", 749),  # outfile возвращается из функции
+            (
+                "parallel_parser.py",
+                [749, 780, 793],
+            ),  # outfile возвращается из функции, _open_outfile_with_fallback
             (
                 "writer/writers/csv_writer.py",
-                [143, 156, 174, 184, 191, 275, 291, 305, 323],
-            ),  # writer файлы
+                [144, 157, 175, 185, 192, 276, 292, 306, 324],
+            ),  # writer файлы (номера строк сдвинуты из-за добавления import sys)
             ("writer/writers/file_writer.py", 108),  # return open(...) из функции
         ]
 
