@@ -102,7 +102,8 @@ def _tui_stub() -> None:
 
 
 try:
-    from .tui_textual import Parser2GISTUI, run_tui as run_new_tui_omsk
+    from .tui_textual import Parser2GISTUI
+    from .tui_textual import run_tui as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функции
     run_new_tui_omsk = _tui_omsk_stub
@@ -385,184 +386,185 @@ def _setup_signal_handlers() -> None:
     logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через SignalHandler")
 
 
+def _cleanup_chrome_remote() -> tuple[int, int]:
+    """Очищает активные соединения ChromeRemote.
+
+    Returns:
+        Кортеж (success_count, error_count) - количество успешных/неуспешных очисток.
+    """
+    success_count = 0
+    error_count = 0
+
+    if not hasattr(ChromeRemote, "_active_instances"):
+        return success_count, error_count
+
+    try:
+        chrome_instances_closed = 0
+        chrome_errors = 0
+
+        for instance in ChromeRemote._active_instances:
+            try:
+                if instance is not None:
+                    instance.close()
+                    chrome_instances_closed += 1
+            except AttributeError as attr_error:
+                logger.error(
+                    "Атрибут экземпляра ChromeRemote недоступен при закрытии: %s",
+                    attr_error,
+                    exc_info=True,
+                )
+                chrome_errors += 1
+            except RuntimeError as runtime_error:
+                logger.error(
+                    "RuntimeError при закрытии ChromeRemote: %s", runtime_error, exc_info=True
+                )
+                chrome_errors += 1
+            except (ValueError, TypeError) as instance_error:
+                logger.error(
+                    "Ошибка при закрытии экземпляра ChromeRemote: %s (тип: %s)",
+                    instance_error,
+                    type(instance_error).__name__,
+                    exc_info=True,
+                )
+                chrome_errors += 1
+
+        logger.info(
+            "Закрыто экземпляров ChromeRemote: %d, ошибок: %d",
+            chrome_instances_closed,
+            chrome_errors,
+        )
+
+        if chrome_errors > 0:
+            error_count += chrome_errors
+        else:
+            success_count += 1
+
+    except TypeError as type_error:
+        logger.error("_active_instances не является итерируемым: %s", type_error, exc_info=True)
+        error_count += 1
+    except AttributeError as attr_error:
+        logger.error("_active_instances не существует: %s", attr_error, exc_info=True)
+        error_count += 1
+
+    return success_count, error_count
+
+
+def _cleanup_cache() -> tuple[int, int]:
+    """Очищает кэш базы данных Cache.
+
+    Returns:
+        Кортеж (success_count, error_count) - количество успешных/неуспешных очисток.
+    """
+    success_count = 0
+    error_count = 0
+
+    if not hasattr(Cache, "close_all"):
+        return success_count, error_count
+
+    try:
+        Cache.close_all()
+        logger.info("Кэш базы данных успешно закрыт")
+        success_count += 1
+    except AttributeError as attr_error:
+        logger.error("Метод Cache.close_all не существует: %s", attr_error, exc_info=True)
+        error_count += 1
+    except RuntimeError as runtime_error:
+        logger.error("RuntimeError при закрытии кэша базы данных: %s", runtime_error, exc_info=True)
+        error_count += 1
+    except sqlite3.Error as db_error:
+        logger.error("Ошибка SQLite при закрытии кэша базы данных: %s", db_error, exc_info=True)
+        error_count += 1
+    except OSError as os_error:
+        logger.error("OSError при закрытии кэша базы данных: %s", os_error, exc_info=True)
+        error_count += 1
+    except (ValueError, TypeError) as value_error:
+        logger.error(
+            "ValueError/TypeError при закрытии кэша базы данных: %s", value_error, exc_info=True
+        )
+        error_count += 1
+
+    return success_count, error_count
+
+
+def _cleanup_gc() -> tuple[int, int]:
+    """Выполняет принудительный сборщик мусора.
+
+    Returns:
+        Кортеж (success_count, error_count) - количество успешных/неуспешных очисток.
+    """
+    success_count = 0
+    error_count = 0
+
+    try:
+        gc.collect()
+        logger.debug("Сборщик мусора завершён")
+        success_count += 1
+    except (MemoryError, RuntimeError) as gc_error:
+        logger.error(
+            "Ошибка при вызове gc.collect(): %s (тип: %s)",
+            gc_error,
+            type(gc_error).__name__,
+            exc_info=True,
+        )
+        error_count += 1
+
+    return success_count, error_count
+
+
 def cleanup_resources() -> None:
     """Выполняет централизованную очистку ресурсов приложения.
 
-    - Добавлены специфичные except блоки для разных типов ошибок
-    - Гарантированная очистка всех ресурсов даже при частичных ошибках
-    - Детальное логирование для отладки с уровнем ERROR для всех исключений
-    - Разделение обработки по типам ресурсов (ChromeRemote, Cache, GC)
-    - Счётчик успешных/неуспешных очисток для мониторинга
-
-    Примечание:
-        - Закрывает активные соединения с браузером
-        - Освобождает файловые дескрипторы
-        - Очищает временные файлы
-        - Сбрасывает кэши и буферы
+    - Закрывает активные соединения с браузером
+    - Освобождает файловые дескрипторы
+    - Очищает временные файлы
+    - Сбрасывает кэши и буферы
 
     Важно:
         Функция безопасна - не вызывает исключений даже при частичных ошибках.
         Все ошибки логируются для последующего анализа.
     """
-    # Счётчики для мониторинга очистки ресурсов
     success_count = 0
     error_count = 0
 
     try:
-        # Очистка кэша Chrome
         logger.debug("Очистка кэша ресурсов...")
 
-        # Закрытие активных соединений ChromeRemote
-        if hasattr(ChromeRemote, "_active_instances"):
-            try:
-                chrome_instances_closed = 0
-                chrome_errors = 0
+        # Очистка ChromeRemote
+        chrome_success, chrome_errors = _cleanup_chrome_remote()
+        success_count += chrome_success
+        error_count += chrome_errors
 
-                for instance in ChromeRemote._active_instances:
-                    try:
-                        if instance is not None:
-                            instance.close()
-                            chrome_instances_closed += 1
-                    except AttributeError as attr_error:
-                        # Экземпляр уже был удалён
-                        logger.error(
-                            "Атрибут экземпляра ChromeRemote недоступен при закрытии: %s",
-                            attr_error,
-                            exc_info=True,
-                        )
-                        chrome_errors += 1
-                    except RuntimeError as runtime_error:
-                        # Экземпляр уже закрыт или некорректен
-                        logger.error(
-                            "RuntimeError при закрытии ChromeRemote: %s",
-                            runtime_error,
-                            exc_info=True,
-                        )
-                        chrome_errors += 1
-                    except (ValueError, TypeError) as instance_error:
-                        # Любая другая ошибка при закрытии экземпляра
-                        logger.error(
-                            "Ошибка при закрытии экземпляра ChromeRemote: %s (тип: %s)",
-                            instance_error,
-                            type(instance_error).__name__,
-                            exc_info=True,
-                        )
-                        chrome_errors += 1
+        # Очистка Cache
+        cache_success, cache_errors = _cleanup_cache()
+        success_count += cache_success
+        error_count += cache_errors
 
-                logger.info(
-                    "Закрыто экземпляров ChromeRemote: %d, ошибок: %d",
-                    chrome_instances_closed,
-                    chrome_errors,
-                )
+        # Очистка GC
+        gc_success, gc_errors = _cleanup_gc()
+        success_count += gc_success
+        error_count += gc_errors
 
-                if chrome_errors > 0:
-                    error_count += chrome_errors
-                else:
-                    success_count += 1
-
-            except TypeError as type_error:
-                # _active_instances не является итерируемым
-                logger.error(
-                    "_active_instances не является итерируемым: %s", type_error, exc_info=True
-                )
-                error_count += 1
-            except AttributeError as attr_error:
-                # _active_instances не существует
-                logger.error("_active_instances не существует: %s", attr_error, exc_info=True)
-                error_count += 1
-
-        # Очистка кэша базы данных Cache
-        if hasattr(Cache, "close_all"):
-            try:
-                Cache.close_all()
-                logger.info("Кэш базы данных успешно закрыт")
-                success_count += 1
-            except AttributeError as attr_error:
-                # Метод close_all не существует
-                logger.error("Метод Cache.close_all не существует: %s", attr_error, exc_info=True)
-                error_count += 1
-            except RuntimeError as runtime_error:
-                # Ошибка при закрытии кэша
-                logger.error(
-                    "RuntimeError при закрытии кэша базы данных: %s", runtime_error, exc_info=True
-                )
-                error_count += 1
-            except sqlite3.Error as db_error:
-                # Ошибка базы данных при закрытии
-                logger.error(
-                    "Ошибка SQLite при закрытии кэша базы данных: %s", db_error, exc_info=True
-                )
-                error_count += 1
-            except OSError as os_error:
-                # Ошибка файловой системы при закрытии
-                logger.error("OSError при закрытии кэша базы данных: %s", os_error, exc_info=True)
-                error_count += 1
-            except ValueError as value_error:
-                # Ошибка значения при закрытии
-                logger.error(
-                    "ValueError при закрытии кэша базы данных: %s", value_error, exc_info=True
-                )
-                error_count += 1
-            except TypeError as type_error:
-                # Ошибка типа при закрытии
-                logger.error(
-                    "TypeError при закрытии кэша базы данных: %s", type_error, exc_info=True
-                )
-                error_count += 1
-
-        # Принудительный сборщик мусора
-        try:
-            gc.collect()
-            logger.debug("Сборщик мусора завершён")
-            success_count += 1
-        except (MemoryError, RuntimeError) as gc_error:
-            logger.error(
-                "Ошибка при вызове gc.collect(): %s (тип: %s)",
-                gc_error,
-                type(gc_error).__name__,
-                exc_info=True,
-            )
-            error_count += 1
-
-        # Итоговая статистика очистки
         logger.info(
             "Очистка ресурсов завершена. Успешно: %d, Ошибок: %d", success_count, error_count
         )
 
-    except ImportError as e:
-        # Модули могут быть недоступны при раннем завершении
-        logger.error(
-            "Не удалось импортировать модули для очистки: %s (тип: %s)",
-            e,
-            type(e).__name__,
-            exc_info=True,
-        )
-        error_count += 1
     except MemoryError as e:
-        # Критическая ошибка - нехватка памяти
         logger.critical(
             "Критическая ошибка: нехватка памяти при очистке ресурсов: %s", e, exc_info=True
         )
-        error_count += 1
     except RuntimeError as e:
-        # Критическая ошибка - RuntimeError
         logger.error("RuntimeError при очистке ресурсов: %s", e, exc_info=True)
-        error_count += 1
     except KeyboardInterrupt:
-        # Прерывание пользователем - логируем и продолжаем
         logger.warning("Очистка ресурсов прервана пользователем")
     except SystemExit as e:
-        # Выход из системы - логируем код выхода
         logger.error("Выход из системы при очистке ресурсов (код: %s)", e.code)
-    except (OSError, sqlite3.Error, ValueError, TypeError) as e:
-        # Ловим все исключения чтобы не прерывать очистку
+    except (ImportError, OSError, sqlite3.Error, ValueError, TypeError) as e:
         logger.error(
             "Непредвиденная ошибка при очистке ресурсов: %s (тип: %s)",
             e,
             type(e).__name__,
             exc_info=True,
         )
-        error_count += 1
 
 
 # =============================================================================

@@ -28,12 +28,11 @@ import re
 import sqlite3
 import threading
 import time
+import unicodedata
 import weakref
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
-
-import unicodedata
 
 from .constants import MAX_DATA_DEPTH, MAX_STRING_LENGTH
 from .logger.logger import logger as app_logger
@@ -1106,16 +1105,142 @@ class CacheManager:
             app_logger.warning("Ошибка при инициализации кэша: %s", e)
             raise
 
+    def _get_cached_row(self, cursor: Any, url_hash: str) -> Optional[tuple[str, str]]:
+        """Извлекает строку кэша из базы данных.
+
+        Args:
+            cursor: Курсор базы данных.
+            url_hash: Хеш URL для поиска.
+
+        Returns:
+            Кортеж (data, expires_at_str) или None если не найдено.
+        """
+        cursor.execute(self.SQL_SELECT, (url_hash,))
+        row = cursor.fetchone()
+        return row  # type: ignore[return-value]
+
+    def _parse_expires_at(self, expires_at_str: str) -> Optional[datetime]:
+        """Парсит строку даты истечения кэша.
+
+        Args:
+            expires_at_str: Строка даты в формате ISO.
+
+        Returns:
+            datetime объект или None при ошибке парсинга.
+        """
+        try:
+            return datetime.fromisoformat(expires_at_str)
+        except ValueError:
+            app_logger.debug("Некорректный формат даты в кэше: %s", expires_at_str)
+            return None
+
+    def _is_cache_expired(self, expires_at: datetime) -> bool:
+        """Проверяет истёк ли кэш.
+
+        Args:
+            expires_at: Время истечения кэша.
+
+        Returns:
+            True если кэш истёк, False иначе.
+        """
+        return datetime.now() > expires_at
+
+    def _delete_cached_entry(self, cursor: Any, url_hash: str) -> None:
+        """Удаляет запись кэша из базы данных.
+
+        Args:
+            cursor: Курсор базы данных.
+            url_hash: Хеш URL для удаления.
+        """
+        cursor.execute(self.SQL_DELETE, (url_hash,))
+
+    def _handle_db_error(
+        self, db_error: sqlite3.Error, url: str, cursor: Any, url_hash: str
+    ) -> Optional[Dict[str, Any]]:
+        """Обрабатывает ошибки базы данных при получении кэша.
+
+        Args:
+            db_error: Исключение базы данных.
+            url: URL для логирования.
+            cursor: Курсор базы данных.
+            url_hash: Хеш URL для повторной попытки.
+
+        Returns:
+            Данные кэша или None.
+        """
+        error_str = str(db_error).lower()
+
+        # Временные ошибки - можно повторить попытку
+        if "database is locked" in error_str or "busy" in error_str:
+            app_logger.warning(
+                "База данных заблокирована (временная ошибка): %s. Повторная попытка...", db_error
+            )
+            time.sleep(0.5)
+            try:
+                cursor.execute(self.SQL_SELECT, (url_hash,))
+                row = cursor.fetchone()
+                if row:
+                    data, expires_at_str = row
+                    expires_at = self._parse_expires_at(expires_at_str)
+                    if expires_at and datetime.now() <= expires_at:
+                        return _deserialize_json(data)
+            except sqlite3.Error as retry_error:
+                app_logger.warning("Повторная попытка не удалась: %s", retry_error)
+            return None
+
+        # Критическая ошибка диска
+        if "disk i/o error" in error_str:
+            app_logger.critical("Критическая ошибка диска при получении кэша: %s", db_error)
+            raise
+
+        # Таблица не существует
+        if "no such table" in error_str:
+            app_logger.critical("Таблица кэша не существует: %s", db_error)
+            raise
+
+        # Повреждение базы данных
+        if "corrupt" in error_str or "malformed" in error_str:
+            app_logger.critical("База данных повреждена: %s", db_error)
+            raise
+
+        # Остальные ошибки БД
+        app_logger.error(
+            "Неизвестная ошибка БД при получении кэша: %s (тип: %s)",
+            db_error,
+            type(db_error).__name__,
+        )
+        return None
+
+    def _handle_deserialize_error(
+        self, decode_error: Exception, url: str, cursor: Any, url_hash: str, conn: Any
+    ) -> None:
+        """Обрабатывает ошибки десериализации кэша.
+
+        Args:
+            decode_error: Исключение десериализации.
+            url: URL для логирования.
+            cursor: Курсор базы данных.
+            url_hash: Хеш URL для удаления.
+            conn: Соединение базы данных.
+        """
+        error_type = type(decode_error).__name__
+        app_logger.warning(
+            "Ошибка %s при чтении кэша для URL %s: %s. Повреждённая запись будет удалена.",
+            error_type,
+            url,
+            decode_error,
+        )
+        try:
+            self._delete_cached_entry(cursor, url_hash)
+            conn.commit()
+        except sqlite3.Error as cleanup_error:
+            app_logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
+
     def get(self, url: str) -> Optional[Dict[str, Any]]:
         """Получение данных из кэша.
 
         Проверяет наличие кэша для указанного URL. Если кэш существует
         и не истек, возвращает кэшированные данные. Иначе возвращает None.
-        - Различение временных и критических ошибок БД
-        - Автоматическая повторная попытка при временных ошибках
-        - Детальное логирование для отладки
-        - ИСПРАВЛЕНИЕ 6: Использование транзакции с правильным isolation level
-          для предотвращения race condition между проверкой и удалением
 
         Args:
             url: URL для поиска в кэше
@@ -1129,125 +1254,49 @@ class CacheManager:
         if not self._pool:
             return None
 
-        # Вычисляем хеш URL для поиска
-        # Обработка None и некорректных URL
         try:
             url_hash = self._hash_url(url)
         except (ValueError, TypeError):
-            # Некорректный URL, возвращаем None как при промахе кэша
             return None
 
         conn = self._pool.get_connection()
         cursor = conn.cursor()
 
         try:
-            # ИСПРАВЛЕНИЕ 6: Начинаем транзакцию с правильным isolation level
-            # BEGIN IMMEDIATE гарантирует атомарность операции "проверить-и-удалить"
-            # Это предотвращает race condition когда другой поток может удалить
-            # запись между проверкой expires_at и удалением
             cursor.execute("BEGIN IMMEDIATE")
+            row = self._get_cached_row(cursor, url_hash)
 
-            # Ищем кэш по хешу URL с использованием подготовленного запроса
-            cursor.execute(self.SQL_SELECT, (url_hash,))
-            row = cursor.fetchone()
-
-            # Если кэш не найден
             if not row:
-                conn.rollback()  # Отменяем транзакцию
+                conn.rollback()
                 return None
 
             data, expires_at_str = row
-            try:
-                expires_at = datetime.fromisoformat(expires_at_str)
-            except ValueError:
-                # Некорректный формат даты, считаем кэш истёкшим
-                app_logger.debug("Некорректный формат даты в кэше: %s", expires_at_str)
-                conn.rollback()  # Отменяем транзакцию
+            expires_at = self._parse_expires_at(expires_at_str)
+
+            if expires_at is None:
+                conn.rollback()
                 return None
 
-            # Проверяем, истек ли кэш
-            # для избежания повторных вызовов в рамках одного метода
-            current_time = datetime.now()
-            if current_time > expires_at:
-                # Кэш истек, удаляем его (атомарная операция в рамках транзакции)
-                cursor.execute(self.SQL_DELETE, (url_hash,))
-                conn.commit()  # Фиксируем транзакцию
+            if self._is_cache_expired(expires_at):
+                self._delete_cached_entry(cursor, url_hash)
+                conn.commit()
                 return None
 
-            # Кэш найден и не истек, возвращаем данные
-            # Оптимизация 3.6: используем orjson wrapper для быстрой десериализации
-            conn.commit()  # Фиксируем транзакцию
+            conn.commit()
             return _deserialize_json(data)
 
         except sqlite3.Error as db_error:
-            # Отменяем транзакцию при ошибке
             try:
                 conn.rollback()
             except (sqlite3.Error, OSError, MemoryError) as rollback_error:
                 app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
 
-            error_str = str(db_error).lower()
-
-            # Временные ошибки - можно повторить попытку
-            if "database is locked" in error_str or "busy" in error_str:
-                app_logger.warning(
-                    "База данных заблокирована (временная ошибка): %s. Повторная попытка...",
-                    db_error,
-                )
-                # Повторная попытка через небольшую задержку
-                time.sleep(0.5)
-                try:
-                    # Повторяем запрос
-                    cursor.execute(self.SQL_SELECT, (url_hash,))
-                    row = cursor.fetchone()
-                    if row:
-                        data, expires_at_str = row
-                        expires_at = datetime.fromisoformat(expires_at_str)
-                        if datetime.now() <= expires_at:
-                            return _deserialize_json(data)
-                except sqlite3.Error as retry_error:
-                    app_logger.warning("Повторная попытка не удалась: %s", retry_error)
-                return None  # Можно повторить попытку позже
-
-            # Критическая ошибка диска - пробрасываем исключение
-            if "disk i/o error" in error_str:
-                app_logger.critical("Критическая ошибка диска при получении кэша: %s", db_error)
-                raise  # Пробрасываем исключение для обработки на верхнем уровне
-
-            # Критическая ошибка - таблица не существует
-            if "no such table" in error_str:
-                app_logger.critical("Таблица кэша не существует: %s", db_error)
-                raise  # Пробрасываем исключение для обработки на верхнем уровне
-
-            # Повреждение базы данных
-            if "corrupt" in error_str or "malformed" in error_str:
-                app_logger.critical("База данных повреждена: %s", db_error)
-                raise  # Пробрасываем исключение для обработки на верхнем уровне
-
-            # Остальные ошибки БД - логируем и возвращаем None
-            app_logger.error(
-                "Неизвестная ошибка БД при получении кэша: %s (тип: %s)",
-                db_error,
-                type(db_error).__name__,
-            )
-            return None
+            return self._handle_db_error(db_error, url, cursor, url_hash)
 
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as decode_error:
-            # Обрабатываем ошибки десериализации - удаляем повреждённую запись
-            error_type = type(decode_error).__name__
-            app_logger.warning(
-                "Ошибка %s при чтении кэша для URL %s: %s. Повреждённая запись будет удалена.",
-                error_type,
-                url,
-                decode_error,
-            )
-            # Удаляем повреждённую запись из кэша
-            try:
-                cursor.execute(self.SQL_DELETE, (url_hash,))
-                conn.commit()
-            except sqlite3.Error as cleanup_error:
-                app_logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
+            self._handle_deserialize_error(decode_error, url, cursor, url_hash, conn)
             return None
+
         except (MemoryError, OSError, RuntimeError) as general_error:
             app_logger.error(
                 "Непредвиденная ошибка при чтении кэша для URL %s: %s (тип: %s)",
@@ -1256,8 +1305,8 @@ class CacheManager:
                 type(general_error).__name__,
             )
             return None
+
         finally:
-            # Гарантированное закрытие курсора
             try:
                 cursor.close()
             except (sqlite3.Error, OSError, MemoryError) as cursor_error:

@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from typing import TYPE_CHECKING, Any, Dict, Optional, Set
 
@@ -64,13 +65,24 @@ _ALLOWED_KEYS: Set[str] = {
     "updated_at",
 }
 
+# Скомпилированные regex паттерны для JS валидации (Оптимизация: кэширование)
+_DANGEROUS_JS_PATTERNS = [
+    (re.compile(r"<script", re.IGNORECASE), "тег <script>"),
+    (re.compile(r"javascript:", re.IGNORECASE), "протокол javascript:"),
+    (re.compile(r"onerror\s*=", re.IGNORECASE), "обработчик onerror"),
+    (re.compile(r"onload\s*=", re.IGNORECASE), "обработчик onload"),
+    (re.compile(r"eval\s*\(", re.IGNORECASE), "функция eval()"),
+    (re.compile(r"Function\s*\(", re.IGNORECASE), "конструктор Function"),
+    (re.compile(r"document\.cookie", re.IGNORECASE), "доступ к document.cookie"),
+    (re.compile(r"localStorage", re.IGNORECASE), "доступ к localStorage"),
+    (re.compile(r"sessionStorage", re.IGNORECASE), "доступ к sessionStorage"),
+    (re.compile(r"XMLHttpRequest", re.IGNORECASE), "XMLHttpRequest"),
+    (re.compile(r"fetch\s*\(", re.IGNORECASE), "функция fetch()"),
+]
+
 
 def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> tuple[bool, int]:
     """Рекурсивно валидирует структуру initialState на безопасность.
-    - Проверяет тип данных (только dict, list, str, int, float, bool, None)
-    - Ограничивает глубину вложенности для предотвращения DoS
-    - Проверяет строки на наличие опасных JS-конструкций
-    - Ограничивает размер данных для предотвращения атак
 
     Args:
         data: Данные для валидации.
@@ -99,23 +111,10 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
         return True, item_count
 
     if isinstance(data, str):
-        dangerous_patterns = [
-            "<script",
-            "javascript:",
-            "onerror=",
-            "onload=",
-            "eval(",
-            "Function(",
-            "document.cookie",
-            "localStorage",
-            "sessionStorage",
-            "XMLHttpRequest",
-            "fetch(",
-        ]
-        data_lower = data.lower()
-        for pattern in dangerous_patterns:
-            if pattern.lower() in data_lower:
-                logger.warning("Обнаружена опасная конструкция в initialState: %s", pattern)
+        # Проверка на опасные JS конструкции с использованием скомпилированных паттернов
+        for pattern, description in _DANGEROUS_JS_PATTERNS:
+            if pattern.search(data):
+                logger.warning("Обнаружена опасная конструкция в initialState: %s", description)
                 return False, item_count
 
         if len(data) > MAX_INITIAL_STATE_SIZE:
