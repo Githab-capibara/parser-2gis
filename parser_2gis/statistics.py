@@ -6,14 +6,13 @@
 - Добавлен logger для предупреждений о переполнении счётчиков
 """
 
+import html as html_module
 import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
-
-import html as html_module
 
 # Получаем логгер модуля
 logger = logging.getLogger(__name__)
@@ -254,23 +253,6 @@ class StatisticsExporter:
         with output_path.open("w", encoding="utf-8") as f:
             f.write(html_content)
 
-    def export_to_text(self, stats: ParserStatistics, output_path: Path) -> None:
-        """Экспорт статистики в формат текста.
-
-        Сохраняет статистику в текстовый файл с читаемым форматом.
-
-        Args:
-            stats: Объект статистики для экспорта
-            output_path: Путь к файлу для сохранения
-
-        Raises:
-            IOError: Если не удалось записать файл
-        """
-        text_content = self._generate_text(stats)
-        self._ensure_dir(output_path)
-        with output_path.open("w", encoding="utf-8") as f:
-            f.write(text_content)
-
     def _prepare_for_json(self, stats: ParserStatistics) -> Dict[str, Any]:
         """Подготовка данных для JSON экспорта.
 
@@ -466,40 +448,3 @@ class StatisticsExporter:
 
         # Объединяем все части в одну строку
         return "\n".join(html_parts)
-
-    def _generate_text(self, stats: ParserStatistics) -> str:
-        """Generate text report.
-
-        Creates readable text report with indentation.
-
-        Args:
-            stats: Statistics object
-
-        Returns:
-            Text content of report
-        """  # FIX #12: String concatenation in loop
-        data = self._prepare_for_dict(stats)
-
-        lines: list[str] = []
-        lines.append("=" * 60)
-        lines.append("STATISTICS PARSER2GIS")
-        lines.append("=" * 60)
-        lines.append("")
-
-        # Add data
-        for key, value in data.items():
-            lines.append(f"{key}: {value}")
-
-        # Add errors if any
-        if stats.errors:
-            lines.append("")
-            lines.append("ERRORS:")
-            lines.append("-" * 60)
-            for error in stats.errors:
-                lines.append(f"  - {error}")
-
-        lines.append("")
-        lines.append("=" * 60)
-        lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-        return "\n".join(lines) + "\n"

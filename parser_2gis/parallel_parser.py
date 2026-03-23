@@ -22,15 +22,16 @@ import threading
 import time
 import uuid
 import weakref
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
-
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .constants import DEFAULT_TIMEOUT, MAX_TIMEOUT, MAX_WORKERS, MIN_TIMEOUT, MIN_WORKERS
 from .logger import log_parser_finish, logger, print_progress
 from .parser import get_parser
+from .temp_file_manager import cleanup_all_temp_files, register_temp_file, unregister_temp_file
 from .writer import get_writer
 
 
@@ -541,107 +542,11 @@ MAX_TEMP_FILES: int = _validate_env_int(
 )
 
 # =============================================================================
-# GLOBAL SET FOR TRACKING TEMPORARY FILES (ATEXIT CLEANUP)
+# TEMP FILE MANAGEMENT (using temp_file_manager module)
 # =============================================================================
 
-_temp_files_lock = threading.RLock()  # FIX #30: Over-commented code
-_temp_files_registry: set[Path] = set()
-
-
-def _register_temp_file(file_path: Path) -> None:
-    """Регистрирует временный файл для последующей очистки.
-
-    Args:
-        file_path: Путь к временному файлу.
-    """
-    with _temp_files_lock:
-        if len(_temp_files_registry) >= MAX_TEMP_FILES:
-            files_to_remove = list(_temp_files_registry)[: MAX_TEMP_FILES // 2]
-            for old_file in files_to_remove:
-                _temp_files_registry.discard(old_file)
-            logger.warning(
-                "Достигнут лимит временных файлов (%d), удалено %d старых файлов",
-                MAX_TEMP_FILES,
-                len(files_to_remove),
-            )
-
-        _temp_files_registry.add(file_path)
-
-
-def _unregister_temp_file(file_path: Path) -> None:
-    """Удаляет временный файл из реестра.
-
-    Args:
-        file_path: Путь к временному файлу.
-    """
-    with _temp_files_lock:
-        _temp_files_registry.discard(file_path)
-
-
-def _cleanup_all_temp_files() -> None:
-    """Очищает все зарегистрированные временные файлы.
-
-    Вызывается через atexit при завершении процесса для предотвращения утечек.
-
-    Использует контекстный менеджер для гарантии освобождения блокировки
-    и конкретные типы исключений для лучшего логирования.
-    """
-    from contextlib import contextmanager
-
-    @contextmanager
-    def temp_file_lock_context():
-        """Контекстный менеджер для безопасного управления блокировкой."""
-        lock_acquired = _temp_files_lock.acquire(timeout=5.0)
-        try:
-            yield lock_acquired
-        finally:
-            if lock_acquired:
-                _temp_files_lock.release()
-
-    with temp_file_lock_context() as lock_acquired:
-        if not lock_acquired:
-            logger.warning("Не удалось получить блокировку для очистки временных файлов")
-            return
-
-        for temp_file in list(_temp_files_registry):
-            try:
-                if temp_file.exists():
-                    temp_file.unlink()
-                    logger.debug("Временный файл удалён через atexit: %s", temp_file)
-            except FileNotFoundError:
-                # Файл уже удалён - это нормально
-                logger.debug("Временный файл уже удалён: %s", temp_file)
-            except PermissionError as perm_error:
-                # Нет прав на удаление
-                logger.error(
-                    "Нет прав на удаление временного файла %s: %s",
-                    temp_file,
-                    perm_error,
-                    exc_info=True,
-                )
-            except OSError as os_error:
-                # Ошибка ОС при удалении
-                logger.error(
-                    "Ошибка ОС при удалении временного файла %s: %s",
-                    temp_file,
-                    os_error,
-                    exc_info=True,
-                )
-            except (RuntimeError, TypeError, ValueError, MemoryError) as e:
-                # Любая другая ошибка (кроме KeyboardInterrupt и SystemExit)
-                logger.error(
-                    "Не удалось удалить временный файл %s: %s (тип: %s)",
-                    temp_file,
-                    e,
-                    type(e).__name__,
-                    exc_info=True,
-                )
-            finally:
-                _temp_files_registry.discard(temp_file)
-
-
 # Регистрируем очистку через atexit для гарантированной очистки при аварийном завершении
-atexit.register(_cleanup_all_temp_files)
+atexit.register(cleanup_all_temp_files)
 
 # =============================================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ РЕФАКТОРИНГА MERGE_CSV_FILES
@@ -1736,7 +1641,7 @@ class ParallelCityParser:
         temp_file_created = False
 
         # Регистрируем временный файл для очистки через atexit
-        _register_temp_file(temp_output)
+        register_temp_file(temp_output)
 
         # Lock file для защиты от concurrent merge операций
         lock_file_path = self.output_dir / ".merge.lock"
@@ -1923,7 +1828,7 @@ class ParallelCityParser:
                 )
 
             # Снимаем временный файл с регистрации в реестре atexit
-            _unregister_temp_file(temp_output)
+            unregister_temp_file(temp_output)
 
             # Гарантированная очистка временного файла если он ещё существует
             # Это защищает от утечек файлов при KeyboardInterrupt или других исключениях

@@ -1,9 +1,9 @@
 """Модуль runner для запуска парсера.
 
 Предоставляет классы для запуска парсинга:
-- AbstractRunner - базовый абстрактный класс
 - CLIRunner - запуск в режиме командной строки
-- GUIRunner - запуск в режиме GUI
+- GUIRunner - заглушка для GUI режима (тесты)
+- AbstractRunner - абстрактный базовый класс
 """
 
 from .cli import CLIRunner

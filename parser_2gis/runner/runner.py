@@ -2,7 +2,7 @@
 
 Предоставляет абстрактный класс AbstractRunner и реализацию GUIRunner:
 - AbstractRunner - базовый класс для всех runner
-- GUIRunner - заглушка для GUI режима парсинга
+- GUIRunner - заглушка для GUI режима парсинга (используется в тестах)
 """
 
 from __future__ import annotations
@@ -15,30 +15,62 @@ if TYPE_CHECKING:
 
 
 class AbstractRunner(ABC):
-    def __init__(self, urls: list[str], output_path: str, format: str, config: Configuration):
+    """Абстрактный базовый класс для всех runner.
+
+    Args:
+        urls: Список URL для парсинга.
+        output_path: Путь к выходному файлу.
+        format: Формат вывода (csv, xlsx, json).
+        config: Конфигурация парсера.
+    """
+
+    def __init__(
+        self, urls: list[str], output_path: str, format: str, config: Configuration
+    ) -> None:
         self._urls = urls
         self._output_path = output_path
         self._format = format
         self._config = config
 
     @abstractmethod
-    def start(self) -> None: ...  # FIX #24: Removed unnecessary pass
+    def start(self) -> None:
+        """Запускает процесс парсинга."""
+        ...
 
     @abstractmethod
-    def stop(self) -> None: ...  # FIX #24: Removed unnecessary pass
+    def stop(self) -> None:
+        """Останавливает процесс парсинга."""
+        ...
 
 
 class GUIRunner(AbstractRunner):
-    """Простейшая заглушка GUIRunner для тестов.
+    """Заглушка для GUI режима парсинга.
 
-    Наследуется от AbstractRunner и предоставляет методы start/stop.
-    В рамках тестов поведение не требуется; важна лишь корректная инициализация.
+    Используется в тестах и для будущей интеграции с GUI.
+    В текущей реализации методы start/stop не выполняют действий.
+
+    Note:
+        Этот класс существует для обратной совместимости тестов.
+        В реальном приложении GUI режим использует TUI (Textual).
     """
 
-    def start(self):  # type: ignore[override]
-        # В реальном приложении здесь запуск GUI и параллельного парсинга
-        return None
+    def start(self) -> None:
+        """Запускает процесс парсинга в GUI режиме.
 
-    def stop(self):  # type: ignore[override]
-        # Остановка GUI/процесса парсинга
-        return None
+        Note:
+            В текущей реализации метод не выполняет действий.
+            Для GUI режима используется TUI (Textual).
+        """
+        pass
+
+    def stop(self) -> None:
+        """Останавливает процесс парсинга в GUI режиме.
+
+        Note:
+            В текущей реализации метод не выполняет действий.
+            Для остановки GUI режима используется TUI (Textual).
+        """
+        pass
+
+
+__all__ = ["AbstractRunner", "GUIRunner"]
