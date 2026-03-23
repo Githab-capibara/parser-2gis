@@ -28,13 +28,13 @@ import re
 import sqlite3
 import threading
 import time
+import unicodedata
 import weakref
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import unicodedata
-
+from .constants import MAX_DATA_DEPTH, MAX_STRING_LENGTH
 from .logger.logger import logger as app_logger
 
 
@@ -223,22 +223,6 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
     except ValueError:
         # Пробрасываем ValueError как есть (небезопасные данные)
         raise
-
-
-# =============================================================================
-# КОНСТАНТЫ БЕЗОПАСНОСТИ ДЛЯ ВАЛИДАЦИИ ДАННЫХ КЭША
-# =============================================================================
-
-# Максимальная глубина вложенности данных кэша
-# ОБОСНОВАНИЕ: 15 уровней достаточно для любых реалистичных структур данных
-# Превышение может указывать на циклические ссылки или DoS атаку
-# ИСПРАВЛЕНИЕ VULN-003: уменьшено с 20 до 15 для усиления безопасности
-MAX_DATA_DEPTH: int = 15
-
-# Максимальная длина строки в байтах
-# ОБОСНОВАНИЕ: 10000 байт достаточно для хранения любых текстовых данных
-# Превышение может указывать на попытку хранения больших объёмов данных в кэше
-MAX_STRING_LENGTH: int = 10000
 
 
 def _validate_numeric_data(data: float | int) -> bool:

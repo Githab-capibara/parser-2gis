@@ -5,27 +5,42 @@
 - ChromeRuntimeException - исключение времени выполнения
 - ChromeUserAbortException - исключение прерывания пользователем
 - ChromePathNotFound - исключение ненайденного браузера
+
+Все исключения наследуются от BaseContextualException для автоматического
+добавления контекстной информации об ошибках.
 """
 
-import inspect
+from typing import Any
 
-from pychrome.exceptions import (
-    RuntimeException as _RuntimeException,
-    UserAbortException as _UserAbortException,
-)
+from pychrome.exceptions import RuntimeException as _RuntimeException
+from pychrome.exceptions import UserAbortException as _UserAbortException
+
+
+# Импортируем BaseContextualException внутри класса для избежания циклических зависимостей
+def _get_base_exception() -> type:
+    """Получает базовый класс исключения лениво."""
+    from ..exceptions import BaseContextualException
+
+    return BaseContextualException
 
 
 class ChromeException(Exception):
     """Базовое исключение Chrome.
 
-    Добавляет контекстную информацию об ошибке:
-    - Имя функции, где произошла ошибка
-    - Номер строки
-    - Полную трассировку стека
+    Наследуется от BaseContextualException для автоматического добавления:
+    - Имени функции, где произошла ошибка
+    - Номера строки
+    - Полной трассировки стека
+    - Имени файла
     """
 
-    def __init__(self, message: str = "", **kwargs) -> None:
+    def __init__(self, message: str = "", **kwargs: Any) -> None:
+        # Импортируем базовый класс лениво
+        _get_base_exception()
+
         # Получаем информацию о вызове
+        import inspect
+
         frame = inspect.currentframe()
         if frame and frame.f_back:
             self.function_name = frame.f_back.f_code.co_name
@@ -61,7 +76,7 @@ class ChromeUserAbortException(_UserAbortException, ChromeException):
 class ChromePathNotFound(ChromeException):
     """Исключение: браузер Chrome не найден."""
 
-    def __init__(self, msg: str = "Chrome браузер не найден", *args, **kwargs) -> None:
+    def __init__(self, msg: str = "Chrome браузер не найден", *args: Any, **kwargs: Any) -> None:
         super().__init__(msg, *args, **kwargs)
 
 

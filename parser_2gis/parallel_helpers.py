@@ -21,23 +21,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from .constants import MAX_LOCK_FILE_AGE, MERGE_BUFFER_SIZE, MERGE_LOCK_TIMEOUT
 from .logger import logger
-
-# =============================================================================
-# КОНСТАНТЫ ДЛЯ СЛИЯНИЯ ФАЙЛОВ И БУФЕРИЗАЦИИ
-# =============================================================================
-
-# Размер буфера для чтения/записи файлов в байтах (128 KB)
-MERGE_BUFFER_SIZE: int = 131072
-
-# Размер пакета строк для пакетной записи в CSV
-MERGE_BATCH_SIZE: int = 500
-
-# Таймаут ожидания блокировки merge операции в секундах
-MERGE_LOCK_TIMEOUT: int = 300
-
-# Максимальный возраст lock файла в секундах (5 минут)
-MAX_LOCK_FILE_AGE: int = 300
 
 
 class FileMerger:
