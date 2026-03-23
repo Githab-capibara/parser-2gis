@@ -2,40 +2,30 @@
 
 Предоставляет базовое исключение ParserException с контекстной информацией
 об ошибке (имя функции, номер строки, имя файла).
+
+Наследуется от BaseContextualException для автоматического добавления
+контекстной информации.
 """
 
+from __future__ import annotations
+
 import inspect
+from typing import Any
+
+# Импортируем базовый класс на верхнем уровне
+from parser_2gis.exceptions import BaseContextualException
 
 
-class ParserException(Exception):
+class ParserException(BaseContextualException):
     """Базовое исключение парсера.
 
-    Добавляет контекстную информацию об ошибке:
-    - Имя функции, где произошла ошибка
-    - Номер строки
-    - Имя файла
+    Наследуется от BaseContextualException для автоматического добавления:
+    - Имени функции, где произошла ошибка
+    - Номера строки
+    - Имени файла
     """
 
-    def __init__(self, message: str = "", **kwargs) -> None:
-        # Получаем информацию о вызове
-        frame = inspect.currentframe()
-        if frame and frame.f_back:
-            self.function_name = frame.f_back.f_code.co_name
-            self.line_number = frame.f_back.f_lineno
-            self.filename = frame.f_back.f_code.co_filename
-        else:
-            self.function_name = "unknown"
-            self.line_number = 0
-            self.filename = "unknown"
-
-        # Формируем полное сообщение с контекстом
-        full_message = (
-            f"{message}. "
-            f"Функция: {self.function_name}, "
-            f"Строка: {self.line_number}, "
-            f"Файл: {self.filename}"
-        )
-        super().__init__(full_message, **kwargs)
+    pass
 
 
 __all__ = ["ParserException"]
