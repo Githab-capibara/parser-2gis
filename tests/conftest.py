@@ -308,7 +308,7 @@ def mock_cache_with_serialization_error() -> Generator[MagicMock, None, None]:
 # =============================================================================
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def temp_files_registry() -> Generator[set, None, None]:
     """Фикстура для реестра временных файлов.
 
@@ -317,17 +317,19 @@ def temp_files_registry() -> Generator[set, None, None]:
     Yields:
         Пустой набор для реестра.
     """
-    from parser_2gis.parallel_parser import _temp_files_registry
+    from parser_2gis.parallel_parser import _temp_files_lock, _temp_files_registry
 
-    # Сохраняем оригинальное состояние
-    original_state = _temp_files_registry.copy()
-    _temp_files_registry.clear()
+    # Сохраняем оригинальное состояние с блокировкой
+    with _temp_files_lock:
+        original_state = _temp_files_registry.copy()
+        _temp_files_registry.clear()
 
     yield _temp_files_registry
 
-    # Восстанавливаем оригинальное состояние (teardown)
-    _temp_files_registry.clear()
-    _temp_files_registry.update(original_state)
+    # Восстанавливаем оригинальное состояние (teardown) с блокировкой
+    with _temp_files_lock:
+        _temp_files_registry.clear()
+        _temp_files_registry.update(original_state)
 
 
 @pytest.fixture

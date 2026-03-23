@@ -27,22 +27,11 @@ from parser_2gis.parallel_parser import (
 )
 
 
-@pytest.fixture
-def clean_registry():
-    """Фикстура для очистки реестра перед и после теста."""
-    with _temp_files_lock:
-        _temp_files_registry.clear()
-    yield
-    with _temp_files_lock:
-        _temp_files_registry.clear()
-        _cleanup_all_temp_files()
-
-
 class TestTempFileRegistryThreadSafety:
     """Тесты для проверки потокобезопасности реестра временных файлов."""
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_concurrent_registration_no_duplicates(self) -> None:
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_concurrent_registration_no_duplicates(self, tmp_path: Path) -> None:
         """
         Тест 1.1: Проверка отсутствия дубликатов при параллельной регистрации.
 
@@ -58,7 +47,8 @@ class TestTempFileRegistryThreadSafety:
             """Регистрирует файлы."""
             try:
                 for i in range(10):
-                    file_path = Path(f"/tmp/test_concurrent_{worker_id}_{i}.tmp")
+                    file_path = tmp_path / f"test_concurrent_{worker_id}_{i}.tmp"
+                    file_path.touch()  # Создаём реальный файл
                     _register_temp_file(file_path)
             except Exception as e:
                 errors.append(e)
@@ -77,8 +67,8 @@ class TestTempFileRegistryThreadSafety:
             # Все элементы должны быть уникальны
             assert len(_temp_files_registry) <= 100, "Не должно быть больше 100 файлов"
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_concurrent_register_unregister_no_race(self) -> None:
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_concurrent_register_unregister_no_race(self, tmp_path: Path) -> None:
         """
         Тест 1.2: Проверка отсутствия race condition при register/unregister.
 
@@ -96,7 +86,8 @@ class TestTempFileRegistryThreadSafety:
             """Регистрирует файлы."""
             try:
                 for i in range(5):
-                    file_path = Path(f"/tmp/test_reg_{worker_id}_{i}.tmp")
+                    file_path = tmp_path / f"test_reg_{worker_id}_{i}.tmp"
+                    file_path.touch()  # Создаём реальный файл
                     _register_temp_file(file_path)
                     with lock:
                         registered_files.add(file_path)
@@ -107,7 +98,8 @@ class TestTempFileRegistryThreadSafety:
             """Удаляет файлы."""
             try:
                 for i in range(5):
-                    file_path = Path(f"/tmp/test_unreg_{worker_id}_{i}.tmp")
+                    file_path = tmp_path / f"test_unreg_{worker_id}_{i}.tmp"
+                    file_path.touch()  # Создаём реальный файл
                     _register_temp_file(file_path)
                     _unregister_temp_file(file_path)
             except Exception as e:
@@ -126,8 +118,8 @@ class TestTempFileRegistryThreadSafety:
         # Проверяем отсутствие ошибок
         assert len(errors) == 0, f"Произошли ошибки: {errors}"
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_concurrent_access_no_deadlock(self) -> None:
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_concurrent_access_no_deadlock(self, tmp_path: Path) -> None:
         """
         Тест 1.3: Проверка отсутствия deadlock при конкурентном доступе.
 
@@ -143,7 +135,8 @@ class TestTempFileRegistryThreadSafety:
             """Обращается к реестру."""
             try:
                 for i in range(10):
-                    file_path = Path(f"/tmp/test_deadlock_{worker_id}_{i}.tmp")
+                    file_path = tmp_path / f"test_deadlock_{worker_id}_{i}.tmp"
+                    file_path.touch()  # Создаём реальный файл
                     _register_temp_file(file_path)
                     if i % 2 == 0:
                         _unregister_temp_file(file_path)
@@ -162,8 +155,8 @@ class TestTempFileRegistryThreadSafety:
         # Проверяем что все потоки завершились
         assert len(errors) == 0, f"Произошли ошибки: {errors}"
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_stress_test_concurrent_operations(self) -> None:
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_stress_test_concurrent_operations(self, tmp_path: Path) -> None:
         """
         Тест 1.4: Стресс-тест конкурентных операций.
 
@@ -181,7 +174,8 @@ class TestTempFileRegistryThreadSafety:
             """Выполняет стресс-операции."""
             try:
                 for i in range(50):
-                    file_path = Path(f"/tmp/test_stress_{worker_id}_{i}.tmp")
+                    file_path = tmp_path / f"test_stress_{worker_id}_{i}.tmp"
+                    file_path.touch()  # Создаём реальный файл
                     _register_temp_file(file_path)
                     with lock:
                         operation_count["value"] += 1
@@ -209,7 +203,7 @@ class TestTempFileRegistryThreadSafety:
 class TestTempFileLockUsage:
     """Тесты для проверки корректности использования блокировки."""
 
-    @pytest.mark.usefixtures("clean_registry")
+    @pytest.mark.usefixtures("temp_files_registry")
     def test_lock_is_rlock(self) -> None:
         """
         Тест 2.1: Проверка что используется RLock.
@@ -223,7 +217,7 @@ class TestTempFileLockUsage:
         # Проверяем тип блокировки
         assert isinstance(_temp_files_lock, type(threading.RLock())), "Должен использоваться RLock"
 
-    @pytest.mark.usefixtures("clean_registry")
+    @pytest.mark.usefixtures("temp_files_registry")
     def test_lock_reentrant(self) -> None:
         """
         Тест 2.2: Проверка реентрантности блокировки.
@@ -257,7 +251,7 @@ class TestTempFileLockUsage:
         # RLock должен позволить 2 захвата
         assert acquired_count["value"] == 2, "RLock должен позволить повторный захват"
 
-    @pytest.mark.usefixtures("clean_registry")
+    @pytest.mark.usefixtures("temp_files_registry")
     def test_lock_timeout_prevents_deadlock(self) -> None:
         """
         Тест 2.3: Проверка что timeout предотвращает deadlock.
@@ -296,8 +290,8 @@ class TestTempFileLockUsage:
 class TestTempFileRegistryConsistency:
     """Тесты для проверки консистентности реестра."""
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_registry_contains_only_paths(self) -> None:
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_registry_contains_only_paths(self, tmp_path: Path) -> None:
         """
         Тест 3.1: Проверка что реестр содержит только Path.
 
@@ -309,16 +303,20 @@ class TestTempFileRegistryConsistency:
         """
         # Регистрируем файлы
         for i in range(10):
-            file_path = Path(f"/tmp/test_type_{i}.tmp")
+            file_path = tmp_path / f"test_type_{i}.tmp"
+            file_path.touch()  # Создаём реальный файл
             _register_temp_file(file_path)
 
         # Проверяем типы
         with _temp_files_lock:
             for item in _temp_files_registry:
                 assert isinstance(item, Path), f"Элемент должен быть Path: {item}"
+            assert len(_temp_files_registry) == 10, (
+                f"Должно быть 10 файлов в реестре, но найдено {len(_temp_files_registry)}"
+            )
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_registry_empty_after_cleanup(self) -> None:
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_registry_empty_after_cleanup(self, tmp_path: Path) -> None:
         """
         Тест 3.2: Проверка что реестр пуст после очистки.
 
@@ -328,24 +326,32 @@ class TestTempFileRegistryConsistency:
         Note:
             Очистка должна быть полной
         """
-        # Регистрируем файлы
+        # Создаём реальные временные файлы и регистрируем их
+        created_files = []
         for i in range(10):
-            file_path = Path(f"/tmp/test_cleanup_{i}.tmp")
+            file_path = tmp_path / f"test_cleanup_{i}.tmp"
+            file_path.touch()  # Создаём реальный файл
             _register_temp_file(file_path)
+            created_files.append(file_path)
 
         # Проверяем что реестр не пуст
         with _temp_files_lock:
             assert len(_temp_files_registry) > 0, "Реестр должен содержать файлы"
+            assert len(_temp_files_registry) == 10, "Реестр должен содержать 10 файлов"
 
         # Очищаем
         _cleanup_all_temp_files()
 
         # Проверяем что реестр пуст
         with _temp_files_lock:
-            assert len(_temp_files_registry) == 0, "Реестр должен быть пуст"
+            assert len(_temp_files_registry) == 0, "Реестр должен быть пуст после очистки"
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_unregister_nonexistent_file(self) -> None:
+        # Проверяем что файлы удалены
+        for file_path in created_files:
+            assert not file_path.exists(), f"Файл {file_path} должен быть удалён"
+
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_unregister_nonexistent_file(self, tmp_path: Path) -> None:
         """
         Тест 3.3: Проверка удаления несуществующего файла.
 
@@ -356,13 +362,13 @@ class TestTempFileRegistryConsistency:
             Удаление должно быть идемпотентным
         """
         # Пытаемся удалить несуществующий файл
-        file_path = Path("/tmp/test_nonexistent.tmp")
+        file_path = tmp_path / "test_nonexistent.tmp"
 
         # Не должно вызвать ошибок
         _unregister_temp_file(file_path)
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_register_same_file_multiple_times(self) -> None:
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_register_same_file_multiple_times(self, tmp_path: Path) -> None:
         """
         Тест 3.4: Проверка регистрации одного файла несколько раз.
 
@@ -372,7 +378,8 @@ class TestTempFileRegistryConsistency:
         Note:
             Set автоматически устраняет дубликаты
         """
-        file_path = Path("/tmp/test_duplicate.tmp")
+        file_path = tmp_path / "test_duplicate.tmp"
+        file_path.touch()  # Создаём реальный файл
 
         # Регистрируем несколько раз
         _register_temp_file(file_path)
@@ -383,13 +390,14 @@ class TestTempFileRegistryConsistency:
         with _temp_files_lock:
             count = sum(1 for p in _temp_files_registry if p == file_path)
             assert count == 1, "Файл должен быть только один"
+            assert len(_temp_files_registry) == 1, "В реестре должен быть только один файл"
 
 
 class TestTempFileRegistryEdgeCases:
     """Тесты для проверки граничных случаев."""
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_max_files_limit(self) -> None:
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_max_files_limit(self, tmp_path: Path) -> None:
         """
         Тест 4.1: Проверка лимита MAX_TEMP_FILES.
 
@@ -401,7 +409,8 @@ class TestTempFileRegistryEdgeCases:
         try:
             # Регистрируем больше файлов чем лимит
             for i in range(MAX_TEMP_FILES + 100):
-                file_path = Path(f"/tmp/test_limit_{i}.tmp")
+                file_path = tmp_path / f"test_limit_{i}.tmp"
+                file_path.touch()  # Создаём реальный файл
                 _register_temp_file(file_path)
 
             # Проверяем что лимит соблюдён
@@ -413,8 +422,8 @@ class TestTempFileRegistryEdgeCases:
             with _temp_files_lock:
                 _temp_files_registry.clear()
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_concurrent_eviction_no_crash(self) -> None:
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_concurrent_eviction_no_crash(self, tmp_path: Path) -> None:
         """
         Тест 4.2: Проверка что eviction не вызывает краш.
 
@@ -430,7 +439,8 @@ class TestTempFileRegistryEdgeCases:
             """Выполняет eviction."""
             try:
                 for i in range(200):
-                    file_path = Path(f"/tmp/test_evict_{worker_id}_{i}.tmp")
+                    file_path = tmp_path / f"test_evict_{worker_id}_{i}.tmp"
+                    file_path.touch()  # Создаём реальный файл
                     _register_temp_file(file_path)
             except Exception as e:
                 errors.append(e)
@@ -448,8 +458,8 @@ class TestTempFileRegistryEdgeCases:
             with _temp_files_lock:
                 _temp_files_registry.clear()
 
-    @pytest.mark.usefixtures("clean_registry")
-    def test_registry_thread_count(self) -> None:
+    @pytest.mark.usefixtures("temp_files_registry")
+    def test_registry_thread_count(self, tmp_path: Path) -> None:
         """
         Тест 4.3: Проверка количества потоков.
 
@@ -463,7 +473,8 @@ class TestTempFileRegistryEdgeCases:
 
         # Выполняем операции
         for i in range(50):
-            file_path = Path(f"/tmp/test_thread_{i}.tmp")
+            file_path = tmp_path / f"test_thread_{i}.tmp"
+            file_path.touch()  # Создаём реальный файл
             _register_temp_file(file_path)
 
         final_threads = threading.active_count()
