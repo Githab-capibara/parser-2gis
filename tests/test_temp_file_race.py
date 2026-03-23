@@ -1,9 +1,10 @@
 """Тесты для проверки race condition в _register_temp_file."""
 
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import pytest
 
 from parser_2gis.parallel_parser import (
     MAX_TEMP_FILES,
@@ -12,6 +13,14 @@ from parser_2gis.parallel_parser import (
     _temp_files_registry,
     _unregister_temp_file,
 )
+
+
+@pytest.fixture(autouse=True)
+def cleanup_temp_files_registry():
+    """Фикстура для очистки реестра временных файлов после каждого теста."""
+    yield
+    with _temp_files_lock:
+        _temp_files_registry.clear()
 
 
 class TestTempFileRaceCondition:

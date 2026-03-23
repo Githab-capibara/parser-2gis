@@ -12,8 +12,10 @@
 
 from typing import Any
 
-from pychrome.exceptions import RuntimeException as _RuntimeException
-from pychrome.exceptions import UserAbortException as _UserAbortException
+from pychrome.exceptions import (
+    RuntimeException as _RuntimeException,
+    UserAbortException as _UserAbortException,
+)
 
 
 # Импортируем BaseContextualException внутри класса для избежания циклических зависимостей

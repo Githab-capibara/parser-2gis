@@ -16,7 +16,6 @@ from parser_2gis.chrome.exceptions import (
     ChromeRuntimeException,
     ChromeUserAbortException,
 )
-from parser_2gis.exceptions import BaseContextualException
 from parser_2gis.parser.exceptions import ParserException
 from parser_2gis.version import config_version, version
 from parser_2gis.writer.exceptions import WriterUnknownFileFormat

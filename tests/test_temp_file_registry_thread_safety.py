@@ -27,6 +27,14 @@ from parser_2gis.parallel_parser import (
 )
 
 
+@pytest.fixture(autouse=True)
+def cleanup_temp_files_registry():
+    """Фикстура для очистки реестра временных файлов после каждого теста."""
+    yield
+    with _temp_files_lock:
+        _temp_files_registry.clear()
+
+
 class TestTempFileRegistryThreadSafety:
     """Тесты для проверки потокобезопасности реестра временных файлов."""
 
@@ -264,34 +272,33 @@ class TestTempFileLockUsage:
         """
         # Захватываем блокировку
         _temp_files_lock.acquire()
+        try:
+            # Пытаемся захватить с timeout в другом потоке
+            timeout_occurred = threading.Event()
 
-        # Пытаемся захватить с timeout в другом потоке
-        timeout_occurred = threading.Event()
+            def try_acquire() -> None:
+                """Пытается захватить."""
+                acquired = _temp_files_lock.acquire(timeout=2.0)
+                if not acquired:
+                    timeout_occurred.set()
+                else:
+                    _temp_files_lock.release()
 
-        def try_acquire() -> None:
-            """Пытается захватить."""
-            acquired = _temp_files_lock.acquire(timeout=2.0)
-            if not acquired:
-                timeout_occurred.set()
-            else:
-                _temp_files_lock.release()
+            thread = threading.Thread(target=try_acquire)
+            thread.start()
+            thread.join(timeout=5)
 
-        thread = threading.Thread(target=try_acquire)
-        thread.start()
-        thread.join(timeout=5)
-
-        # Освобождаем блокировку
-        _temp_files_lock.release()
-
-        # Проверяем что timeout сработал
-        assert timeout_occurred.is_set(), "Timeout должен сработать"
+            # Проверяем что timeout сработал
+            assert timeout_occurred.is_set(), "Timeout должен сработать"
+        finally:
+            # Освобождаем блокировку
+            _temp_files_lock.release()
 
 
 class TestTempFileRegistryConsistency:
     """Тесты для проверки консистентности реестра."""
 
-    @pytest.mark.usefixtures("temp_files_registry")
-    def test_registry_contains_only_paths(self, tmp_path: Path) -> None:
+    def test_registry_contains_only_paths(self, tmp_path: Path, temp_files_registry: set) -> None:
         """
         Тест 3.1: Проверка что реестр содержит только Path.
 
@@ -309,14 +316,17 @@ class TestTempFileRegistryConsistency:
 
         # Проверяем типы
         with _temp_files_lock:
+            print(f"DEBUG: Реестр содержит {len(_temp_files_registry)} файлов")
+            print(
+                f"DEBUG: temp_files_registry is _temp_files_registry: {temp_files_registry is _temp_files_registry}"
+            )
             for item in _temp_files_registry:
                 assert isinstance(item, Path), f"Элемент должен быть Path: {item}"
             assert len(_temp_files_registry) == 10, (
                 f"Должно быть 10 файлов в реестре, но найдено {len(_temp_files_registry)}"
             )
 
-    @pytest.mark.usefixtures("temp_files_registry")
-    def test_registry_empty_after_cleanup(self, tmp_path: Path) -> None:
+    def test_registry_empty_after_cleanup(self, tmp_path: Path, temp_files_registry: set) -> None:
         """
         Тест 3.2: Проверка что реестр пуст после очистки.
 
@@ -350,8 +360,7 @@ class TestTempFileRegistryConsistency:
         for file_path in created_files:
             assert not file_path.exists(), f"Файл {file_path} должен быть удалён"
 
-    @pytest.mark.usefixtures("temp_files_registry")
-    def test_unregister_nonexistent_file(self, tmp_path: Path) -> None:
+    def test_unregister_nonexistent_file(self, tmp_path: Path, temp_files_registry: set) -> None:
         """
         Тест 3.3: Проверка удаления несуществующего файла.
 
@@ -367,8 +376,9 @@ class TestTempFileRegistryConsistency:
         # Не должно вызвать ошибок
         _unregister_temp_file(file_path)
 
-    @pytest.mark.usefixtures("temp_files_registry")
-    def test_register_same_file_multiple_times(self, tmp_path: Path) -> None:
+    def test_register_same_file_multiple_times(
+        self, tmp_path: Path, temp_files_registry: set
+    ) -> None:
         """
         Тест 3.4: Проверка регистрации одного файла несколько раз.
 

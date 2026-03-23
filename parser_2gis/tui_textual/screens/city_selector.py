@@ -158,24 +158,33 @@ class CitySelectorScreen(Screen):
 
         Очищает контейнер списка и создаёт Checkbox виджеты для каждого
         города из отфильтрованного списка с указанием кода страны.
+        Использует подход без ID для виджетов Checkbox, чтобы избежать
+        ошибки DuplicateIds при фильтрации.
         """
         container = self.query_one("#city-list", ScrollableContainer)
+
+        # Удаляем все дочерние виджеты из контейнера
         container.remove_children()
         self._checkboxes.clear()
 
+        # Создать новые Checkbox виджеты БЕЗ ID - это предотвращает DuplicateIds
+        # Для идентификации используем атрибут city_code
         for i, city in enumerate(self._filtered_cities):
             city_name = city.get("name", "Неизвестно")
             country = city.get("country_code", "").upper()
-            # Использовать уникальный код города для ID, чтобы избежать дублирования при фильтрации
             city_code = city.get("code", str(i))
 
             is_selected = i in self._selected_indices
 
-            checkbox = Checkbox(
-                f"{city_name} ({country})", value=is_selected, id=f"city-{city_code}"
-            )
+            # НЕ используем ID - это предотвращает ошибку DuplicateIds
+            # Сохраняем city_code как атрибут виджета
+            checkbox = Checkbox(f"{city_name} ({country})", value=is_selected)
+            checkbox.city_code = city_code  # type: ignore
             self._checkboxes.append(checkbox)
-            container.mount(checkbox)
+
+        # Смонтировать все виджеты за один раз
+        if self._checkboxes:
+            container.mount_all(self._checkboxes)
 
     def _update_counter(self) -> None:
         """Обновить счётчик выбранных городов и состояние кнопки "Далее".
@@ -228,11 +237,9 @@ class CitySelectorScreen(Screen):
         Args:
             event: Событие изменения состояния Checkbox.
         """
-        checkbox_id = event.checkbox.id
-        if checkbox_id and checkbox_id.startswith("city-"):
-            # Извлечь код города из ID (формат: "city-{code}")
-            city_code = checkbox_id[5:]  # Убрать префикс "city-"
-
+        # Получить city_code из атрибута виджета
+        city_code = getattr(event.checkbox, "city_code", None)
+        if city_code is not None:
             # Найти город по коду в отфильтрованном списке
             try:
                 filtered_city = next(

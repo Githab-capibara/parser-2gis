@@ -28,11 +28,12 @@ import re
 import sqlite3
 import threading
 import time
-import unicodedata
 import weakref
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+import unicodedata
 
 from .constants import MAX_DATA_DEPTH, MAX_STRING_LENGTH
 from .logger.logger import logger as app_logger
@@ -310,12 +311,11 @@ def _validate_list_data(data: list, depth: int) -> bool:
 def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     """Валидирует данные кэша на безопасность.
     - Проверяет тип данных (только dict, list, str, int, float, bool, None)
-    - Ограничивает глубину вложенности для предотвращения DoS (MAX_DATA_DEPTH = 15)
+    - Ограничивает глубину вложенности для предотвращения DoS (MAX_DATA_DEPTH = 100)
     - Проверяет строки на наличие потенциально опасных SQL/JS конструкций
     - Добавлена проверка на UNION SELECT
     - Добавлена проверка на OR 1=1 и подобные конструкции
     - Добавлена максимальная длина строки (MAX_STRING_LENGTH = 10000)
-    - ИСПРАВЛЕНИЕ VULN-003: усилена проверка глубины с немедленным возвратом
 
     Args:
         data: Данные для валидации.
@@ -324,7 +324,7 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
     Returns:
         True если данные безопасны, False иначе.
     """
-    # ИСПРАВЛЕНИЕ VULN-003: Проверяем глубину вложенности НЕМЕДЛЕННО
+    # Проверяем глубину вложенности НЕМЕДЛЕННО
     # Это предотвращает обход проверки при глубокой вложенности
     if depth > MAX_DATA_DEPTH:
         app_logger.error(

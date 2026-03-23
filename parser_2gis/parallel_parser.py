@@ -22,10 +22,10 @@ import threading
 import time
 import uuid
 import weakref
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .constants import DEFAULT_TIMEOUT, MAX_TIMEOUT, MAX_WORKERS, MIN_TIMEOUT, MIN_WORKERS
