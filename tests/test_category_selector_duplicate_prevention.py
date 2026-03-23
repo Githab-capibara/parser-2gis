@@ -51,7 +51,7 @@ class TestDuplicateIdPrevention:
 
         # Verify that remove_children was called on the container
         self.mock_container.remove_children.assert_called()
-        self.mock_container.mount.assert_called()
+        self.mock_container.mount_all.assert_called()
 
         # Second population with different data
         # Change the filtered categories to simulate a search
@@ -61,15 +61,15 @@ class TestDuplicateIdPrevention:
 
         # Reset mock call counts
         self.mock_container.remove_children.reset_mock()
-        self.mock_container.mount.reset_mock()
+        self.mock_container.mount_all.reset_mock()
 
         # Second population
         self.screen._populate_categories()
 
         # Verify that remove_children was called again (clearing previous widgets)
         self.mock_container.remove_children.assert_called()
-        # Verify that mount was called for new widgets
-        self.mock_container.mount.assert_called()
+        # Verify that mount_all was called for new widgets
+        self.mock_container.mount_all.assert_called()
 
         # Ensure _checkboxes list was cleared and repopulated
         assert len(self.screen._checkboxes) == 1
@@ -84,8 +84,8 @@ class TestDuplicateIdPrevention:
 
         # Verify container was cleared
         self.mock_container.remove_children.assert_called()
-        # Verify no widgets were mounted
-        self.mock_container.mount.assert_not_called()
+        # Verify no widgets were mounted (mount_all not called with empty list)
+        self.mock_container.mount_all.assert_not_called()
         # Verify _checkboxes is empty
         assert len(self.screen._checkboxes) == 0
 
@@ -94,18 +94,14 @@ class TestDuplicateIdPrevention:
         # Populate first time
         self.screen._populate_categories()
 
-        # Get the IDs of checkboxes after first population
-        first_call_args = self.mock_container.mount.call_args_list
-        first_ids = []
-        for call in first_call_args:
-            args, kwargs = call
-            # Widgets are passed as positional arguments to mount
-            for widget in args:
-                if hasattr(widget, "id"):
-                    first_ids.append(widget.id)
+        # Get the original_index values of checkboxes after first population
+        first_original_indices = [
+            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
+        ]
 
-        # Reset mount mock
-        self.mock_container.mount.reset_mock()
+        # Reset mock call counts
+        self.mock_container.remove_children.reset_mock()
+        self.mock_container.mount_all.reset_mock()
 
         # Change filtered categories to different set
         self.screen._filtered_categories = [
@@ -116,23 +112,18 @@ class TestDuplicateIdPrevention:
         # Populate second time
         self.screen._populate_categories()
 
-        # Get the IDs of checkboxes after second population
-        second_call_args = self.mock_container.mount.call_args_list
-        second_ids = []
-        for call in second_call_args:
-            args, kwargs = call
-            # Widgets are passed as positional arguments to mount
-            for widget in args:
-                if hasattr(widget, "id"):
-                    second_ids.append(widget.id)
+        # Get the original_index values of checkboxes after second population
+        second_original_indices = [
+            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
+        ]
 
         # Verify that remove_children was called (to clear previous widgets)
         self.mock_container.remove_children.assert_called()
 
         # Verify that _checkboxes was cleared and repopulated
-        assert len(self.screen._checkboxes) == len(second_ids)
+        assert len(self.screen._checkboxes) == len(second_original_indices)
         assert len(self.screen._checkboxes) == 2  # Should have 2 checkboxes now
 
-        # The key test: ensure that we're not trying to mount widgets with duplicate IDs
-        # Since we clear the container and _checkboxes list each time, this should work
-        # The actual prevention of DuplicateIds is handled by the cleanup in _populate_categories
+        # Verify all original_index values are unique within each population
+        assert len(first_original_indices) == len(set(first_original_indices))
+        assert len(second_original_indices) == len(set(second_original_indices))

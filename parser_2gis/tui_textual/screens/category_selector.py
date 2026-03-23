@@ -176,9 +176,14 @@ class CategorySelectorScreen(Screen):
         """
         # Очищаем контейнер полностью и сбрасываем ссылки на чекбоксы
         container = self.query_one("#category-list", ScrollableContainer)
+
+        # Удаляем все дочерние виджеты из контейнера
+        # Используем remove_children() для очистки контейнера
         container.remove_children()
         self._checkboxes.clear()
 
+        # Создать новые Checkbox виджеты БЕЗ ID - это предотвращает DuplicateIds
+        # Для идентификации будем использовать атрибуты и позицию в списке
         for idx, cat in enumerate(self._filtered_categories):
             cat_name = cat.get("name", "Неизвестно")
 
@@ -191,12 +196,15 @@ class CategorySelectorScreen(Screen):
 
             is_selected = original_index in self._selected_indices
 
-            # Используем ТОЛЬКО original_index для ID - это гарантирует уникальность
-            # независимо от фильтрации (idx меняется, original_index - постоянный)
-            unique_id = f"category-{original_index}"
-            checkbox = Checkbox(f"{cat_name}", value=is_selected, id=unique_id)
+            # НЕ используем ID - это предотвращает ошибку DuplicateIds
+            # Сохраняем original_index как атрибут виджета
+            checkbox = Checkbox(f"{cat_name}", value=is_selected)
+            checkbox.original_index = original_index  # type: ignore
             self._checkboxes.append(checkbox)
-            container.mount(checkbox)
+
+        # Смонтировать все виджеты за один раз
+        if self._checkboxes:
+            container.mount_all(self._checkboxes)
 
     def _update_counter(self) -> None:
         """Обновить счётчик выбранных категорий и состояние кнопки "Далее".
@@ -248,22 +256,15 @@ class CategorySelectorScreen(Screen):
         Args:
             event: Событие изменения состояния Checkbox.
         """
-        checkbox_id = event.checkbox.id
-        if checkbox_id and checkbox_id.startswith("category-"):
-            # Извлекаем оригинальный индекс из ID (формат: "category-{original_index}")
-            parts = checkbox_id.split("-", 1)
-            if len(parts) == 2:
-                try:
-                    index = int(parts[1])  # original_index после разделения
-                    if event.value:
-                        self._selected_indices.add(index)
-                    else:
-                        self._selected_indices.discard(index)
+        # Получить оригинальный индекс из атрибута виджета
+        original_index = getattr(event.checkbox, "original_index", None)
+        if original_index is not None:
+            if event.value:
+                self._selected_indices.add(original_index)
+            else:
+                self._selected_indices.discard(original_index)
 
-                    self._update_counter()
-                except ValueError:
-                    # Если индекс не удалось преобразовать, игнорируем
-                    pass
+            self._update_counter()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Обработать нажатие кнопки на экране.

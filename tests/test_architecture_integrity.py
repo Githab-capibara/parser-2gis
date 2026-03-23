@@ -68,9 +68,9 @@ class TestArchitectureIntegrity:
                     violations.append((str(py_file.relative_to(project_root)), const_name))
 
         assert not violations, (
-            f"Обнаружено дублирование констант в модулях:\n"
+            "Обнаружено дублирование констант в модулях:\n"
             + "\n".join(f"  {f}: {c}" for f, c in violations)
-            + f"\n\nКонстанты должны быть определены только в constants.py"
+            + "\n\nКонстанты должны быть определены только в constants.py"
         )
 
     def test_constants_imported_from_central_module(self) -> None:
@@ -114,7 +114,7 @@ class TestArchitectureIntegrity:
                 if re.search(pattern, content, re.MULTILINE):
                     violations.append(f"{module_name}: определяет константу {const_name} локально")
 
-        assert not violations, f"Нарушения импорта констант:\n" + "\n".join(
+        assert not violations, "Нарушения импорта констант:\n" + "\n".join(
             f"  {v}" for v in violations
         )
 
@@ -202,7 +202,7 @@ class TestArchitectureIntegrity:
                         if cycle not in cycles and f"{module_b} <-> {module_a}" not in cycles:
                             cycles.append(cycle)
 
-        assert not cycles, f"Обнаружены циклические зависимости между модулями:\n" + "\n".join(
+        assert not cycles, "Обнаружены циклические зависимости между модулями:\n" + "\n".join(
             f"  {c}" for c in cycles
         )
 

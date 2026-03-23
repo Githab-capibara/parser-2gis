@@ -39,9 +39,9 @@ def test_populate_categories_no_duplicate_ids():
     # Проверяем, что количество чекбоксов соответствует количеству категорий
     assert len(screen._checkboxes) == 3
 
-    # Проверяем, что все ID уникальны
-    checkbox_ids = [cb.id for cb in screen._checkboxes]
-    assert len(checkbox_ids) == len(set(checkbox_ids))
+    # Проверяем, что все original_index уникальны
+    checkbox_original_indices = [getattr(cb, "original_index", None) for cb in screen._checkboxes]
+    assert len(checkbox_original_indices) == len(set(checkbox_original_indices))
 
 
 def test_populate_categories_after_search_filter():
