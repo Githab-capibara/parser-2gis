@@ -166,10 +166,14 @@ class CitySelectorScreen(Screen):
         for i, city in enumerate(self._filtered_cities):
             city_name = city.get("name", "Неизвестно")
             country = city.get("country_code", "").upper()
+            # Использовать уникальный код города для ID, чтобы избежать дублирования при фильтрации
+            city_code = city.get("code", str(i))
 
             is_selected = i in self._selected_indices
 
-            checkbox = Checkbox(f"{city_name} ({country})", value=is_selected, id=f"city-{i}")
+            checkbox = Checkbox(
+                f"{city_name} ({country})", value=is_selected, id=f"city-{city_code}"
+            )
             self._checkboxes.append(checkbox)
             container.mount(checkbox)
 
@@ -226,10 +230,16 @@ class CitySelectorScreen(Screen):
         """
         checkbox_id = event.checkbox.id
         if checkbox_id and checkbox_id.startswith("city-"):
+            # Извлечь код города из ID (формат: "city-{code}")
+            city_code = checkbox_id[5:]  # Убрать префикс "city-"
+
+            # Найти город по коду в отфильтрованном списке
             try:
-                index = int(checkbox_id.split("-")[1])
-                original_city = self._filtered_cities[index]
-                original_index = self._cities.index(original_city)
+                filtered_city = next(
+                    city for city in self._filtered_cities if city.get("code") == city_code
+                )
+                # Найти оригинальный индекс города в полном списке
+                original_index = self._cities.index(filtered_city)
 
                 if event.value:
                     self._selected_indices.add(original_index)
@@ -237,7 +247,11 @@ class CitySelectorScreen(Screen):
                     self._selected_indices.discard(original_index)
 
                 self._update_counter()
-            except (ValueError, IndexError):
+            except StopIteration:
+                # Город не найден в отфильтрованном списке
+                pass
+            except ValueError:
+                # Город не найден в полном списке
                 pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -251,18 +265,21 @@ class CitySelectorScreen(Screen):
         button_id = event.button.id
 
         if button_id == "select-all":
-            for i in range(len(self._filtered_cities)):
-                original_city = self._filtered_cities[i]
-                original_index = self._cities.index(original_city)
+            # Выбрать все города из отфильтрованного списка
+            for city in self._filtered_cities:
+                original_index = self._cities.index(city)
                 self._selected_indices.add(original_index)
 
+            # Обновить состояние Checkbox
             for checkbox in self._checkboxes:
                 checkbox.value = True
             self._update_counter()
 
         elif button_id == "deselect-all":
+            # Снять выбор со всех городов
             self._selected_indices.clear()
 
+            # Обновить состояние Checkbox
             for checkbox in self._checkboxes:
                 checkbox.value = False
             self._update_counter()
