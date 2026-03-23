@@ -191,9 +191,9 @@ class CategorySelectorScreen(Screen):
 
             is_selected = original_index in self._selected_indices
 
-            # Используем комбинацию оригинального индекса и позиции в отфильтрованном списке для уникального ID
-            # Это предотвращает дублирование ID при фильтрации
-            unique_id = f"category-{original_index}-{idx}"
+            # Используем ТОЛЬКО original_index для ID - это гарантирует уникальность
+            # независимо от фильтрации (idx меняется, original_index - постоянный)
+            unique_id = f"category-{original_index}"
             checkbox = Checkbox(f"{cat_name}", value=is_selected, id=unique_id)
             self._checkboxes.append(checkbox)
             container.mount(checkbox)
@@ -250,11 +250,11 @@ class CategorySelectorScreen(Screen):
         """
         checkbox_id = event.checkbox.id
         if checkbox_id and checkbox_id.startswith("category-"):
-            # Извлекаем оригинальный индекс из ID (формат: "category-{original_index}-{filter_index}")
-            parts = checkbox_id.split("-", 2)
-            if len(parts) >= 3:
+            # Извлекаем оригинальный индекс из ID (формат: "category-{original_index}")
+            parts = checkbox_id.split("-", 1)
+            if len(parts) == 2:
                 try:
-                    index = int(parts[2])  # Второй индекс после разделения - это original_index
+                    index = int(parts[1])  # original_index после разделения
                     if event.value:
                         self._selected_indices.add(index)
                     else:
