@@ -193,7 +193,7 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
     """
     try:
         if _USE_ORJSON and orjson is not None:
-            deserialized = orjson.loads(data)  # type: ignore
+            deserialized = orjson.loads(data, option=orjson.OPT_NON_STR_KEYS)  # type: ignore
         else:
             deserialized = json.loads(data)
 
@@ -1087,7 +1087,7 @@ class CacheManager:
 
         # ИСПРАВЛЕНИЕ 3: weakref.finalize() для гарантированной очистки ресурсов
         self._weak_ref = weakref.ref(self)
-        self._finalizer = weakref.finalize(self, self._cleanup_cache_manager, self._cache_file)
+        self._finalizer = weakref.finalize(self, self._cleanup_cache_manager)
 
         # Инициализация БД
         self._init_db(pool_size)
@@ -1635,22 +1635,14 @@ class CacheManager:
             app_logger.debug("Менеджер кэша закрыт")
 
     @staticmethod
-    def _cleanup_cache_manager(cache_file: Path) -> None:
+    def _cleanup_cache_manager() -> None:
         """
         Статический метод для гарантированной очистки CacheManager.
 
         Вызывается weakref.finalize() при уничтожении объекта сборщиком мусора.
         Этот метод не зависит от состояния объекта, поэтому может быть вызван
         даже при циклических ссылках.
-
-        Args:
-            cache_file: Путь к файлу базы данных кэша.
         """
-        # weakref.finalize() не может закрыть соединения напрямую,
-        # но может залогировать предупреждение если файл существует
-        if cache_file is not None and cache_file.exists():
-            # Файл кэша существует - это нормально, кэш сохраняется между запусками
-            pass
 
     def __enter__(self) -> "CacheManager":
         """

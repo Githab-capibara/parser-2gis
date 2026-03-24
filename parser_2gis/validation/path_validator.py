@@ -13,9 +13,12 @@ path traversal атак.
 
 from __future__ import annotations
 
+import logging
 import tempfile
 from pathlib import Path
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class PathValidator:
@@ -70,6 +73,7 @@ class PathValidator:
             OSError: При ошибке работы с файловой системой.
         """
         if not path:
+            logger.warning("Получен пустой путь для валидации, параметр: %s", path_name)
             return
 
         # Проверка длины пути

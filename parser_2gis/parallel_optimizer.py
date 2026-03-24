@@ -226,9 +226,7 @@ class ParallelOptimizer:
             # Очередь пуста
             return None
 
-        # Отмечаем начало выполнения задачи
-        if task is not None:
-            task.start()
+        task.start()
 
         return task
 

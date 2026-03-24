@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import tempfile
 import threading
 import time
 import weakref
@@ -61,10 +62,11 @@ class _TempFileTimer:
 
     def __init__(
         self,
-        temp_dir: Path,
+        temp_dir: Optional[Path] = None,
         interval: int = TEMP_FILE_CLEANUP_INTERVAL,
         max_files: int = MAX_TEMP_FILES_MONITORING,
         orphan_age: int = ORPHANED_TEMP_FILE_AGE,
+        cleanup_interval: Optional[int] = None,
     ) -> None:
         """
         Инициализация таймера очистки.
@@ -74,7 +76,13 @@ class _TempFileTimer:
             interval: Интервал очистки в секундах.
             max_files: Максимальное количество файлов для мониторинга.
             orphan_age: Возраст файла в секундах, после которого он считается осиротевшим.
+            cleanup_interval: Алиас для interval (для обратной совместимости).
         """
+        if cleanup_interval is not None:
+            interval = cleanup_interval
+        if temp_dir is None:
+            temp_dir = Path(tempfile.gettempdir()) / "parser_2gis_temp"
+            temp_dir.mkdir(parents=True, exist_ok=True)
         self._temp_dir = temp_dir
         self._interval = interval
         self._max_files = max_files

@@ -252,7 +252,7 @@ Exception
 - `test_cyclic_dependencies.py` - Циклические зависимости
 
 ### Покрытие
-- 1400+ автоматических тестов
+- 1409 автоматических тестов
 - 85%+ покрытие кода
 - Unit, integration, architecture tests
 

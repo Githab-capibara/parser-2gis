@@ -64,7 +64,6 @@ class WriterOptions(BaseModel):
     if PYDANTIC_V2:
 
         @field_validator("encoding")
-        @classmethod
         def encoding_exists(cls, v: str) -> str:
             return cls._validate_encoding(v)
 

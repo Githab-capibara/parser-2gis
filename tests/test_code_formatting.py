@@ -61,7 +61,7 @@ class TestBlackFormatting:
                 "--check",
                 "--line-length=130",
                 "parser_2gis/signal_handler.py",
-                "parser_2gis/parallel_parser.py",
+                "parser_2gis/parallel/parallel_parser.py",
                 "parser_2gis/chrome/browser.py",
                 "parser_2gis/data/categories_93.py",
             ],

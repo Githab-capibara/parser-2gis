@@ -14,7 +14,7 @@ import os
 import threading
 import time
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, TextIO, Tuple
 
 from parser_2gis.constants import (
     DEFAULT_BUFFER_SIZE,
@@ -158,7 +158,7 @@ def _merge_csv_files(
 
     def _open_outfile_with_fallback(
         path: Path, enc: str, buf_size: int, log_func: Callable[[str, str], None]
-    ) -> Tuple[Optional[object], bool]:
+    ) -> Tuple[Optional[TextIO], bool]:
         """Открывает выходной файл с fallback механизмом.
 
         Returns:
@@ -192,7 +192,7 @@ def _merge_csv_files(
         return False, 0, []
 
     try:
-        with outfile:  # type: ignore[attr-defined]
+        with outfile:  # type: ignore[union-attr]
             for csv_file in file_paths:
                 if cancel_event is not None and cancel_event.is_set():
                     log("Объединение отменено пользователем", "warning")

@@ -13,12 +13,14 @@
 """
 
 from .file_merger import (
+    MAX_LOCK_FILE_AGE_LOCAL,
+    MERGE_LOCK_TIMEOUT_LOCAL,
     _acquire_merge_lock,
     _cleanup_source_files,
     _merge_csv_files,
     _validate_merged_file,
 )
-from .options import ParallelOptions
+from .options import MAX_TEMP_FILES, ParallelOptions
 from .parallel_parser import (
     ParallelCityParser,
     ParallelCityParserThread,
@@ -36,6 +38,19 @@ from .temp_file_timer import (
     _TempFileTimer,
 )
 
+# Ре-экспорт констант из constants.py для обратной совместимости
+from parser_2gis.constants import (
+    DEFAULT_TIMEOUT,
+    MAX_TIMEOUT,
+    MAX_WORKERS,
+    MIN_TIMEOUT,
+    MIN_WORKERS,
+)
+
+# Переименовываем для экспорта с ожидаемыми именами
+MERGE_LOCK_TIMEOUT = MERGE_LOCK_TIMEOUT_LOCAL
+MAX_LOCK_FILE_AGE = MAX_LOCK_FILE_AGE_LOCAL
+
 # Экспорт основного API для обратной совместимости
 __all__ = [
     # Основные классы
@@ -43,6 +58,7 @@ __all__ = [
     "ParallelCityParserThread",
     # Опции
     "ParallelOptions",
+    "MAX_TEMP_FILES",
     # Таймер очистки
     "_TempFileTimer",
     "TEMP_FILE_CLEANUP_INTERVAL",
@@ -53,6 +69,9 @@ __all__ = [
     "_acquire_merge_lock",
     "_cleanup_source_files",
     "_validate_merged_file",
+    # Константы из file_merger
+    "MERGE_LOCK_TIMEOUT",
+    "MAX_LOCK_FILE_AGE",
     # Прогресс
     "PROGRESS_UPDATE_INTERVAL",
     # Ре-экспорт для обратной совместимости с тестами
@@ -61,4 +80,10 @@ __all__ = [
     "_register_temp_file",
     "_unregister_temp_file",
     "_cleanup_all_temp_files",
+    # Константы
+    "MIN_WORKERS",
+    "MAX_WORKERS",
+    "MIN_TIMEOUT",
+    "MAX_TIMEOUT",
+    "DEFAULT_TIMEOUT",
 ]

@@ -23,7 +23,7 @@ from .csv_post_processor import CSVPostProcessor
 from .file_writer import FileWriter
 
 if TYPE_CHECKING:
-    pass
+    from parser_2gis.writer.models.contact_group import ContactGroup
 
 
 class CSVWriter(FileWriter):
@@ -280,6 +280,7 @@ class CSVWriter(FileWriter):
         for contact_group in catalog_item.contact_groups:
 
             def append_contact(
+                contact_group: "ContactGroup",
                 contact_type: str,
                 priority_fields: List[str],
                 formatter: Optional[Callable[[str], str]] = None,
@@ -287,6 +288,7 @@ class CSVWriter(FileWriter):
                 """Добавляет контакт в `data`.
 
                 Args:
+                    contact_group: Группа контактов.
                     contact_type: Тип контакта (см. `Contact` в `catalog_item.py`)
                     priority_fields: Поля контакта для добавления, сортированные по приоритету
                     formatter: Форматировщик значения поля
@@ -325,7 +327,7 @@ class CSVWriter(FileWriter):
                 "youtube",
                 "skype",
             ]:
-                append_contact(t, ["url"])
+                append_contact(contact_group, t, ["url"])
 
             # Удаляем параметры из URL WhatsApp
             for field in data:
@@ -334,12 +336,13 @@ class CSVWriter(FileWriter):
 
             # Текстовые значения (email, skype и т.д.)
             for t in ["email", "skype"]:
-                append_contact(t, ["value"])
+                append_contact(contact_group, t, ["value"])
 
             # Телефоны (поле `value` иногда содержит нерелевантные данные,
             # поэтому предпочитаем парсить поле `text`.
             # Если в контакте нет `text` - используем атрибут `value`)
             append_contact(
+                contact_group,
                 "phone",
                 ["text", "value"],
                 formatter=lambda x: re.sub(r"^\+7", "8", re.sub(r"[^0-9+]", "", x)),

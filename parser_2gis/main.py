@@ -13,6 +13,7 @@ import json
 import sqlite3
 import sys
 import tempfile
+import threading
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -20,18 +21,20 @@ from typing import Any, Callable, Dict, List, Optional, TypedDict
 
 import pydantic
 
-from .cache import Cache
+from .cache import CacheManager
 from .chrome.remote import ChromeRemote
 from .common import report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
 from .data.categories_93 import CATEGORIES_93
 from .logger import log_parser_start, logger, setup_cli_logger
-from .paths import data_path
+from .paths import cache_path, data_path
 from .pydantic_compat import get_model_dump
 from .signal_handler import SignalHandler
 from .utils.url_utils import generate_city_urls
 from .validation import validate_positive_int, validate_url
 from .version import version
+
+Cache = CacheManager
 
 # =============================================================================
 # TYPE ALIASES И TYPEDDICT ДЛЯ УЛУЧШЕНИЯ ЧИТАЕМОСТИ
@@ -103,8 +106,7 @@ def _tui_stub() -> None:
 
 
 try:
-    from .tui_textual import Parser2GISTUI
-    from .tui_textual import run_tui as run_new_tui_omsk
+    from .tui_textual import Parser2GISTUI, run_tui as run_new_tui_omsk
 except ImportError:
     # Модуль недоступен - используем stub функции
     run_new_tui_omsk = _tui_omsk_stub
@@ -142,7 +144,13 @@ def _validate_cli_argument(
             value = getattr(args, attr_name)
             if convert_to_int:
                 value = int(value)
-            validate_positive_int(value, min_val, max_val, error_name)
+            max_val_int = int(max_val) if max_val != float("inf") else None
+            if max_val_int is not None:
+                validate_positive_int(value, min_val, max_val_int, error_name)
+            else:
+                if value >= min_val:
+                    return
+                raise ValueError(f"{error_name} должен быть не менее {min_val} (получено {value})")
         except ValueError as e:
             arg_parser.error(str(e))
 
@@ -276,10 +284,6 @@ def _validate_path_safety(path: str, path_name: str = "Путь") -> None:
     )
 
     if not is_allowed:
-        # Разрешаем запись в текущую рабочую директорию и её поддиректории
-        if str(resolved_path).startswith(str(Path.cwd())):
-            return
-
         raise ValueError(
             f"{path_name} должен находиться в одной из разрешённых директорий: "
             f"{[str(d) for d in _ALLOWED_BASE_DIRS]}"
@@ -319,6 +323,7 @@ def _validate_cli_paths(args: argparse.Namespace) -> None:
 
 # Глобальный экземпляр обработчика сигналов
 _SIGNAL_HANDLER_INSTANCE: Optional[SignalHandler] = None
+_SIGNAL_HANDLER_LOCK: threading.Lock = threading.Lock()
 
 
 @lru_cache(maxsize=1)
@@ -340,9 +345,12 @@ def _get_signal_handler_cached() -> SignalHandler:
         lru_cache(maxsize=1) обеспечивает синглтон-поведение с автоматической
         потокобезопасностью. Это заменяет ручную реализацию double-checked locking.
     """
-    if _SIGNAL_HANDLER_INSTANCE is None:
-        raise RuntimeError("SignalHandler не инициализирован. Вызовите _setup_signal_handlers().")
-    return _SIGNAL_HANDLER_INSTANCE
+    with _SIGNAL_HANDLER_LOCK:
+        if _SIGNAL_HANDLER_INSTANCE is None:
+            raise RuntimeError(
+                "SignalHandler не инициализирован. Вызовите _setup_signal_handlers()."
+            )
+        return _SIGNAL_HANDLER_INSTANCE
 
 
 def _get_signal_handler() -> SignalHandler:
@@ -382,8 +390,9 @@ def _setup_signal_handlers() -> None:
         - Инициализация выполняется один раз при старте приложения
     """
     global _SIGNAL_HANDLER_INSTANCE
-    _SIGNAL_HANDLER_INSTANCE = SignalHandler(cleanup_callback=cleanup_resources)
-    _SIGNAL_HANDLER_INSTANCE.setup()
+    with _SIGNAL_HANDLER_LOCK:
+        _SIGNAL_HANDLER_INSTANCE = SignalHandler(cleanup_callback=cleanup_resources)
+        _SIGNAL_HANDLER_INSTANCE.setup()
     logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через SignalHandler")
 
 
@@ -406,7 +415,7 @@ def _cleanup_chrome_remote() -> tuple[int, int]:
         for instance in ChromeRemote._active_instances:
             try:
                 if instance is not None:
-                    instance.close()
+                    instance.stop()
                     chrome_instances_closed += 1
             except AttributeError as attr_error:
                 logger.error(
@@ -451,7 +460,7 @@ def _cleanup_chrome_remote() -> tuple[int, int]:
 
 
 def _cleanup_cache() -> tuple[int, int]:
-    """Очищает кэш базы данных Cache.
+    """Очищает кэш базы данных CacheManager.
 
     Returns:
         Кортеж (success_count, error_count) - количество успешных/неуспешных очисток.
@@ -459,15 +468,13 @@ def _cleanup_cache() -> tuple[int, int]:
     success_count = 0
     error_count = 0
 
-    if not hasattr(Cache, "close_all"):
-        return success_count, error_count
-
     try:
-        Cache.close_all()
+        cache = CacheManager(cache_path())
+        cache.close()
         logger.info("Кэш базы данных успешно закрыт")
         success_count += 1
     except AttributeError as attr_error:
-        logger.error("Метод Cache.close_all не существует: %s", attr_error, exc_info=True)
+        logger.error("Метод CacheManager.close_all не существует: %s", attr_error, exc_info=True)
         error_count += 1
     except RuntimeError as runtime_error:
         logger.error("RuntimeError при закрытии кэша базы данных: %s", runtime_error, exc_info=True)
@@ -482,7 +489,6 @@ def _cleanup_cache() -> tuple[int, int]:
         logger.error(
             "ValueError/TypeError при закрытии кэша базы данных: %s", value_error, exc_info=True
         )
-        error_count += 1
 
     return success_count, error_count
 
@@ -799,6 +805,11 @@ def _normalize_argv(argv: list[str]) -> list[str]:
         - Значения флагов yes/no/true/false приводятся к нижнему регистру
         - URL, пути и другие значения не изменяются
     """
+    if not isinstance(argv, (list, tuple)):
+        raise TypeError(f"argv must be list or tuple, got {type(argv).__name__}")
+    if not all(isinstance(arg, str) for arg in argv):
+        raise TypeError("All argv elements must be strings")
+
     argv_copy = []
     for i, arg in enumerate(argv):
         if arg.startswith("-"):

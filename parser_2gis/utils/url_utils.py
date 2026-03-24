@@ -15,8 +15,9 @@ from typing import Any, Dict, List, Optional
 # =============================================================================
 
 
-# url_query_encode=2048 - оптимально для часто используемых поисковых запросов
-@lru_cache(maxsize=2048)
+_url_query_encode = lru_cache(maxsize=2048)(lambda query: urllib.parse.quote(query, safe=""))
+
+
 def url_query_encode(query: str) -> str:
     """Кодирует строку запроса для URL.
 
@@ -29,11 +30,14 @@ def url_query_encode(query: str) -> str:
         query: Исходная строка запроса.
 
     Returns:
-        Закодированная строка для использования в URL.
+        Закодированная строка для URL.
     """
-    # safe="" означает, что кодируются ВСЕ символы, включая /
-    # Это необходимо для корректной работы с API 2GIS, где слэши в запросе могут быть частью данных
-    return urllib.parse.quote(query, safe="")
+    return _url_query_encode(query)
+
+
+def clear_url_query_cache() -> None:
+    """Очищает кэш закодированных URL запросов."""
+    _url_query_encode.cache_clear()
 
 
 # =============================================================================
@@ -186,6 +190,7 @@ def generate_city_urls(
 
 __all__ = [
     "url_query_encode",
+    "clear_url_query_cache",
     "generate_category_url",
     "generate_city_urls",
     "_generate_category_url_cached",

@@ -17,11 +17,11 @@ import re
 import socket
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 import pychrome
+from concurrent.futures import ThreadPoolExecutor
 
 try:
     import requests
@@ -44,13 +44,13 @@ from parser_2gis.logger.logger import logger as app_logger
 from parser_2gis.utils.decorators import wait_until_finished
 
 from .browser import ChromeBrowser
+from .constants import CHROME_STARTUP_DELAY  # L4: магические числа вынесены в константы
+from .constants import MAX_JS_CODE_LENGTH  # L4: магические числа вынесены в константы
+from .constants import MAX_RESPONSE_SIZE  # L9: лимит размера загружаемых файлов
+from .constants import MAX_TOTAL_JS_SIZE  # L4: магические числа вынесены в константы
 from .constants import (  # L6: rate limiting для внешних запросов
-    CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
     EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
-    MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
-    MAX_RESPONSE_SIZE,  # L9: лимит размера загружаемых файлов
-    MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
 )
 from .dom import DOMNode
 from .exceptions import ChromeException
@@ -380,7 +380,7 @@ def _check_port_available_internal(port: int, timeout: float = 0.5, retries: int
             # Небольшая задержка между проверками
             if attempt < retries - 1:
                 time.sleep(PORT_CHECK_RETRY_DELAY)
-        except (socket.error, OSError, MemoryError) as e:
+        except (socket.error, OSError) as e:
             app_logger.debug("Ошибка при проверке порта %d: %s", port, e)
             result = False
             break
@@ -402,15 +402,14 @@ def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> 
 
     Args:
         port: Номер порта для проверки.
-        timeout: Таймаут проверки в секундах (не используется для кэшированных проверок).
-        retries: Количество повторных проверок (не используется для кэшированных проверок).
+        timeout: Таймаут проверки в секундах.
+        retries: Количество повторных проверок.
 
     Returns:
         True если порт доступен для подключения, False иначе.
     """
 
-    # Игнорируем timeout и retries для кэшированных проверок
-    return _check_port_cached(port)
+    return _check_port_available_internal(port, timeout=timeout, retries=retries)
 
 
 def _clear_port_cache() -> None:
@@ -816,9 +815,9 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         # Если декодирование не удалось, используем нормализованный код
         pass
 
-    # Проверка на None после нормализации
-    if normalized_code is None:
-        return False, "JavaScript код не может быть None"
+    # Проверка на None и пустую строку после нормализации
+    if not normalized_code:
+        return False, "JavaScript код не может быть пустым"
 
     # Проверка типа после нормализации
     if not isinstance(normalized_code, str):
@@ -950,6 +949,8 @@ class ChromeRemote:
         Использует rate limiting из constants.py для ограничения
         количества вызовов API.
     """
+
+    _active_instances: list[Optional["ChromeRemote"]] = []
 
     def __init__(self, chrome_options: ChromeOptions, response_patterns: list[str]) -> None:
         self._chrome_options: ChromeOptions = chrome_options

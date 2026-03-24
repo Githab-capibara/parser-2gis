@@ -20,11 +20,12 @@ import shutil
 import signal
 import threading
 import time
+import typing
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from parser_2gis.common import MERGE_BATCH_SIZE
 from parser_2gis.constants import (
@@ -49,6 +50,7 @@ from parser_2gis.parser import get_parser
 from parser_2gis.temp_file_manager import (
     cleanup_all_temp_files,
     register_temp_file,
+    temp_file_manager,
     unregister_temp_file,
 )
 from parser_2gis.utils.url_utils import generate_category_url
@@ -532,7 +534,7 @@ class ParallelCityParser:
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
         return category
 
-    def _acquire_merge_lock(self, lock_file_path: Path) -> Tuple[Optional[object], bool]:
+    def _acquire_merge_lock(self, lock_file_path: Path) -> Tuple[Optional[typing.TextIO], bool]:
         """
         Получает блокировку merge операции.
 
@@ -596,9 +598,11 @@ class ParallelCityParser:
                     self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
             return None, False
 
-        return lock_file_handle, lock_acquired
+        return typing.cast(Tuple[Optional[typing.TextIO], bool], (lock_file_handle, lock_acquired))
 
-    def _cleanup_merge_lock(self, lock_file_handle: Optional[object], lock_file_path: Path) -> None:
+    def _cleanup_merge_lock(
+        self, lock_file_handle: Optional[typing.TextIO], lock_file_path: Path
+    ) -> None:
         """
         Очищает и удаляет lock файл.
 
@@ -619,7 +623,7 @@ class ParallelCityParser:
         self,
         csv_file: Path,
         writer: Optional["csv.DictWriter"],
-        outfile: object,
+        outfile: "typing.TextIO",
         buffer_size: int,
         batch_size: int,
         fieldnames_cache: Dict[Tuple[str, ...], List[str]],
@@ -862,6 +866,8 @@ class ParallelCityParser:
             return False
 
         finally:
+            self._cleanup_merge_lock(lock_file_handle, lock_file_path)
+
             try:
                 signal.signal(signal.SIGINT, old_sigint_handler)
                 signal.signal(signal.SIGTERM, old_sigterm_handler)
@@ -880,8 +886,6 @@ class ParallelCityParser:
                     self.log(
                         f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning"
                     )
-
-            self._cleanup_merge_lock(lock_file_handle, lock_file_path)
 
             with self._merge_lock:
                 if temp_output in self._merge_temp_files:
@@ -931,6 +935,7 @@ class ParallelCityParser:
         self.log(f"⏱️ Таймаут на один URL: {self.timeout_per_url} секунд", "info")
 
         executor = None
+        futures: dict = {}
         try:
             executor = ThreadPoolExecutor(max_workers=self.max_workers)
 
@@ -1110,8 +1115,6 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
 # =============================================================================
 # РЕ-ЭКСПОРТ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ С ТЕСТАМИ
 # =============================================================================
-
-from parser_2gis.temp_file_manager import temp_file_manager  # noqa: E402
 
 _temp_files_lock = temp_file_manager._lock
 _temp_files_registry = temp_file_manager._registry

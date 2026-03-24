@@ -471,7 +471,7 @@ class TestSpecificExceptionsCommon:
             tmp_path: pytest tmp_path fixture.
         """
         # Mock для имитации RuntimeError
-        with patch("parser_2gis.common._check_value_type_and_sensitivity") as mock_check:
+        with patch("parser_2gis.utils.sanitizers._check_value_type_and_sensitivity") as mock_check:
             mock_check.side_effect = RuntimeError("Test runtime error")
 
             data = {"key": "value"}

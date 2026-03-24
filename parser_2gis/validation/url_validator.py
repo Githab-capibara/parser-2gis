@@ -65,7 +65,7 @@ def validate_url(url: str) -> ValidationResult:
         result = urlparse(url)
 
         # Проверка схемы и netloc
-        if not all([result.scheme in ("http", "https"), result.netloc]):
+        if not all((result.scheme in ("http", "https"), result.netloc)):
             return ValidationResult(
                 is_valid=False,
                 error="URL должен начинаться с http:// или https:// и содержать домен",

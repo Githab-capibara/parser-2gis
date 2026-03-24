@@ -9,6 +9,12 @@ from __future__ import annotations
 
 from pydantic import BaseModel, PositiveInt
 
+from parser_2gis.constants import validate_env_int
+
+MAX_TEMP_FILES = validate_env_int(
+    "PARSER_MAX_TEMP_FILES", default=1000, min_value=100, max_value=10000
+)
+
 
 class ParallelOptions(BaseModel):
     """Опции для параллельного парсинга.

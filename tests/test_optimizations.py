@@ -150,7 +150,9 @@ class TestLongStringsFixed:
         Проверяет что строки в parallel_parser.py
         не превышают максимальную длину.
         """
-        parser_module_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
+        parser_module_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "parallel" / "parallel_parser.py"
+        )
 
         # Читаем файл
         with open(parser_module_path, "r", encoding="utf-8") as f:
@@ -279,7 +281,7 @@ class TestPassReplacedWithEllipsis:
         # Список файлов для проверки
         files_to_check = [
             "parser_2gis/cache.py",
-            "parser_2gis/parallel_parser.py",
+            "parser_2gis/parallel/parallel_parser.py",
             "parser_2gis/chrome/browser.py",
             "parser_2gis/chrome/file_handler.py",
         ]

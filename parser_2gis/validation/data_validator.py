@@ -242,6 +242,11 @@ def validate_email(email: str) -> ValidationResult:
     if not email:
         return ValidationResult(is_valid=False, error="Email не может быть пустым")
 
+    if len(email) > 254:
+        return ValidationResult(
+            is_valid=False, error=f"Email слишком длинный (максимум 254 символа): {email[:50]}..."
+        )
+
     # Сначала пробуем стандартный ASCII email
     if _EMAIL_PATTERN.match(email):
         return ValidationResult(is_valid=True, value=email, error=None)
@@ -296,11 +301,6 @@ def validate_phone(phone: str) -> ValidationResult:
         return ValidationResult(
             is_valid=False,
             error=f"Некорректный формат телефона: {phone}. Ожидался формат: +7 (XXX) XXX-XX-XX",
-        )
-
-    if len(cleaned) < 11:
-        return ValidationResult(
-            is_valid=False, error=f"Телефон должен содержать 11 цифр после '+7' или '8': {phone}"
         )
 
     normalized = f"8 ({cleaned[1:4]}) {cleaned[4:7]}-{cleaned[7:9]}-{cleaned[9:11]}"

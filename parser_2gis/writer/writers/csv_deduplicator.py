@@ -11,8 +11,9 @@ from __future__ import annotations
 import hashlib
 import os
 import sys
-import unicodedata
 from typing import Set
+
+import unicodedata
 
 from parser_2gis.logger import logger
 
