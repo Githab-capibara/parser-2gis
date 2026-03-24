@@ -264,11 +264,11 @@ class TestDependencyInjection:
         assert hasattr(protocols, "Writer")
         assert hasattr(protocols, "Parser")
 
-    def test_interfaces_module_exists(self) -> None:
-        """Проверяет что interfaces.py существует."""
-        from parser_2gis import interfaces
+    def test_logger_protocol_in_protocols(self) -> None:
+        """Проверяет что LoggerProtocol находится в protocols.py."""
+        from parser_2gis import protocols
 
-        assert hasattr(interfaces, "LoggerProtocol")
+        assert hasattr(protocols, "LoggerProtocol")
 
     def test_validators_module_exists(self) -> None:
         """Проверяет что validators.py существует."""

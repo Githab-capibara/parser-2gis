@@ -5,7 +5,7 @@ Protocol для callback и интерфейсов проекта parser-2gis.
 и других интерфейсов используемых в проекте.
 
 Пример использования:
-    >>> from parser_2gis.protocols import ProgressCallback, LogCallback
+    >>> from parser_2gis.protocols import ProgressCallback, LogCallback, LoggerProtocol
     >>> def my_progress(success: int, failed: int, filename: str) -> None:
     ...     print(f"Прогресс: {success}/{failed}")
     >>> callback: ProgressCallback = my_progress  # type: check
@@ -14,6 +14,35 @@ Protocol для callback и интерфейсов проекта parser-2gis.
 from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class LoggerProtocol(Protocol):
+    """Protocol для логгера.
+
+    Используется для разрыва циклической зависимости между
+    common.py и logger.py.
+    """
+
+    def debug(self, msg: str, *args, **kwargs) -> None:
+        """Логирование debug сообщения."""
+        ...
+
+    def info(self, msg: str, *args, **kwargs) -> None:
+        """Логирование info сообщения."""
+        ...
+
+    def warning(self, msg: str, *args, **kwargs) -> None:
+        """Логирование warning сообщения."""
+        ...
+
+    def error(self, msg: str, *args, **kwargs) -> None:
+        """Логирование error сообщения."""
+        ...
+
+    def critical(self, msg: str, *args, **kwargs) -> None:
+        """Логирование critical сообщения."""
+        ...
 
 
 @runtime_checkable
@@ -157,3 +186,14 @@ class Parser(Protocol):
             Словарь со статистикой.
         """
         ...
+
+
+__all__ = [
+    "LoggerProtocol",
+    "ProgressCallback",
+    "LogCallback",
+    "CleanupCallback",
+    "CancelCallback",
+    "Writer",
+    "Parser",
+]

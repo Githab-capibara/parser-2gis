@@ -20,18 +20,19 @@ from .cache import CacheManager
 from .cli.progress import ProgressManager
 from .logger import logger
 from .main import main
-from .parallel_parser import ParallelCityParser, ParallelCityParserThread
+from .parallel import ParallelCityParser, ParallelCityParserThread
 from .protocols import (
     CancelCallback,
     CleanupCallback,
     LogCallback,
+    LoggerProtocol,
     Parser,
     ProgressCallback,
     Writer,
 )
 from .statistics import ParserStatistics, StatisticsExporter
 from .temp_file_manager import TempFileManager, temp_file_manager
-from .validator import ValidationResult
+from .validation import ValidationResult
 from .version import version as __version__
 
 __all__ = [
@@ -53,4 +54,5 @@ __all__ = [
     "CancelCallback",
     "Writer",
     "Parser",
+    "LoggerProtocol",
 ]
