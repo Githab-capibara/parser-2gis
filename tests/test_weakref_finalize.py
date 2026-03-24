@@ -9,7 +9,7 @@ import weakref
 from pathlib import Path
 
 from parser_2gis.cache import CacheManager, _ConnectionPool
-from parser_2gis.parallel_parser import _TempFileTimer
+from parser_2gis.parallel import _TempFileTimer
 
 
 class TestWeakrefFinalize:

@@ -18,7 +18,11 @@ from unittest.mock import patch
 
 import pytest
 
-from parser_2gis.common import MAX_COLLECTION_SIZE, MAX_DATA_DEPTH, _sanitize_value
+# Импорт констант из модуля constants
+from parser_2gis.constants import MAX_COLLECTION_SIZE, MAX_DATA_DEPTH
+
+# Импорт функции _sanitize_value из модуля утилит санитизации
+from parser_2gis.utils.sanitizers import _sanitize_value
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -92,7 +96,8 @@ class TestSanitizeValueMemoryError:
         data = {"key": "value"}
 
         # Mock repr для вызова MemoryError при проверке размера
-        with patch("parser_2gis.common.repr") as mock_repr:
+        # Патчим в модуле sanitizers где находится функция _sanitize_value
+        with patch("parser_2gis.utils.sanitizers.repr") as mock_repr:
             mock_repr.side_effect = MemoryError("Mock MemoryError")
 
             # Функция должна обработать MemoryError и выбросить ValueError

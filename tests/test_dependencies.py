@@ -191,7 +191,7 @@ class TestCoreImports:
 
     def test_parallel_parser_import(self):
         """Проверка импорта параллельного парсера."""
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         assert ParallelCityParser is not None
 

@@ -198,7 +198,7 @@ class TestPublicMethodsDocumented:
 
         Проверяет что публичные методы ParallelCityParser имеют docstrings.
         """
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Получаем публичные методы
         public_methods = [
@@ -384,7 +384,7 @@ class TestModuleDocstrings:
 
         Проверяет что модуль parallel_parser имеет docstring.
         """
-        import parser_2gis.parallel_parser as parallel_parser_module
+        import parser_2gis.parallel as parallel_parser_module
 
         # Проверяем что модуль имеет docstring
         assert parallel_parser_module.__doc__ is not None

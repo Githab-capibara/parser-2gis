@@ -32,7 +32,7 @@ class TestParallelParserStatsThreadSafety:
             tmp_path: pytest фикстура для временной директории.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Создаем тестовые данные
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
@@ -92,7 +92,7 @@ class TestParallelParserStatsThreadSafety:
             tmp_path: pytest фикстура для временной директории.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Создаем тестовые данные
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
@@ -169,7 +169,7 @@ class TestParallelParserStatsThreadSafety:
             tmp_path: pytest фикстура для временной директории.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Создаем тестовые данные
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
@@ -245,7 +245,7 @@ class TestStatsInitialization:
             tmp_path: pytest фикстура для временной директории.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"name": "Кафе", "id": 1, "query": "Кафе"}]
@@ -276,7 +276,7 @@ class TestStatsInitialization:
         import threading
 
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"name": "Кафе", "id": 1, "query": "Кафе"}]

@@ -50,9 +50,9 @@ class TestGetWriterPathValidation:
     """Тесты для функции get_writer с валидацией пути."""
 
     def test_malicious_path_handled(self):
-        """Вредоносный путь должен обрабатываться безопасно."""
-        result = get_writer("../../../etc/passwd", "json", None)
-        assert result is not None
+        """Вредоносный путь должен отклоняться с ValueError."""
+        with pytest.raises(ValueError, match="Path traversal"):
+            get_writer("../../../etc/passwd", "json", None)
 
     def test_unknown_format_raises(self):
         """Неизвестный формат должен вызывать WriterUnknownFileFormat."""

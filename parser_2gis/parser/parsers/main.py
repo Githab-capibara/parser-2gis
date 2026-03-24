@@ -12,14 +12,13 @@ from __future__ import annotations
 
 import gc
 import json
+import random
 import re
 import threading
 import time
 import urllib.parse
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-
-import random
 
 try:
     import psutil
@@ -30,9 +29,9 @@ except ImportError:
     PSUTIL_AVAILABLE = False
 
 from parser_2gis.chrome import ChromeRemote
-from parser_2gis.common import wait_until_finished
 from parser_2gis.logger import logger
 from parser_2gis.parser.utils import blocked_requests
+from parser_2gis.utils.decorators import wait_until_finished
 
 if TYPE_CHECKING:
     from parser_2gis.chrome import ChromeOptions

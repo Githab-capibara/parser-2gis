@@ -19,7 +19,7 @@ from typing import List
 
 import pytest
 
-from parser_2gis.parallel_parser import _TempFileTimer
+from parser_2gis.parallel import _TempFileTimer
 from parser_2gis.temp_file_manager import (
     cleanup_all_temp_files,
     register_temp_file,

@@ -15,7 +15,7 @@ import pytest
 
 from parser_2gis.config import Configuration
 from parser_2gis.parallel_helpers import FileMerger
-from parser_2gis.parallel_parser import ParallelCityParser
+from parser_2gis.parallel import ParallelCityParser
 from parser_2gis.signal_handler import SignalHandler
 
 

@@ -12,6 +12,7 @@
 7. Тесты на type: ignore комментарии
 """
 
+import ast
 import re
 import subprocess
 import sys
@@ -20,12 +21,13 @@ from pathlib import Path
 from typing import List, Tuple
 from unittest.mock import MagicMock, patch
 
-import ast
 import pytest
 
 # Добавляем путь к пакету
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Импорт функции generate_category_url из модуля утилит URL
+from parser_2gis.utils.url_utils import generate_category_url
 
 # =============================================================================
 # ГРУППА 1: Тесты на отсутствие дублирующих импортов (parallel_parser.py)
@@ -41,7 +43,10 @@ class TestDuplicateImports:
 
         Импортировать csv внутри функций - плохая практика.
         """
-        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
+        # Файл parallel_parser.py находится в директории parallel/
+        parallel_parser_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "parallel" / "parallel_parser.py"
+        )
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             source_code = f.read()
@@ -73,7 +78,7 @@ class TestDuplicateImports:
         """
         import csv
 
-        from parser_2gis.parallel_parser import _merge_csv_files
+        from parser_2gis.parallel import _merge_csv_files
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
@@ -105,7 +110,9 @@ class TestDuplicateImports:
         """
         Тест 1.3: Проверка отсутствия переопределений имен.
         """
-        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
+        parallel_parser_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "parallel" / "parallel_parser.py"
+        )
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             source_code = f.read()
@@ -189,7 +196,7 @@ class TestLoggingInsteadOfPass:
 
     def test_lock_file_error_logging(self):
         """Тест 3.1: Проверка логирования ошибок lock файла."""
-        from parser_2gis.parallel_parser import _acquire_merge_lock
+        from parser_2gis.parallel import _acquire_merge_lock
 
         with tempfile.TemporaryDirectory() as tmpdir:
             lock_file = Path(tmpdir) / ".merge.lock"
@@ -206,7 +213,9 @@ class TestLoggingInsteadOfPass:
 
     def test_file_descriptor_close_error_logging(self):
         """Тест 3.2: Проверка логирования ошибок закрытия дескриптора."""
-        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
+        parallel_parser_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "parallel" / "parallel_parser.py"
+        )
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             source_code = f.read()
@@ -217,7 +226,9 @@ class TestLoggingInsteadOfPass:
 
     def test_finally_block_logging(self):
         """Тест 3.3: Проверка логирования в finally блоке."""
-        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
+        parallel_parser_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "parallel" / "parallel_parser.py"
+        )
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             source_code = f.read()
@@ -241,7 +252,9 @@ class TestE203Formatting:
 
     def test_no_space_before_colon_in_slices(self):
         """Тест 4.1: Проверка отсутствия пробелов перед ':' в срезах."""
-        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
+        parallel_parser_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "parallel" / "parallel_parser.py"
+        )
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -262,7 +275,7 @@ class TestE203Formatting:
         """Тест 4.2: Проверка работы функций со срезами."""
         import csv
 
-        from parser_2gis.parallel_parser import _merge_csv_files
+        from parser_2gis.parallel import _merge_csv_files
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)
@@ -296,7 +309,7 @@ class TestE203Formatting:
                 "flake8",
                 "--select=E203",
                 "--max-line-length=130",
-                "parser_2gis/parallel_parser.py",
+                "parser_2gis/parallel/parallel_parser.py",
             ],
             capture_output=True,
             text=True,
@@ -399,7 +412,9 @@ class TestLineLengthE501:
 
     def test_all_lines_under_100_chars_parallel_parser(self):
         """Тест 6.2: Проверка длины строк в parallel_parser.py."""
-        parallel_parser_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
+        parallel_parser_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "parallel" / "parallel_parser.py"
+        )
 
         with open(parallel_parser_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -416,7 +431,7 @@ class TestLineLengthE501:
 
     def test_functions_with_split_strings_work_correctly(self):
         """Тест 6.3: Проверка работы функций с разбитыми строками."""
-        from parser_2gis.common import generate_category_url
+        # Импорт функции generate_category_url из модуля утилит URL
 
         city = {"code": "test", "domain": "2gis.ru"}
         category = {"name": "тест", "query": "тестовая категория"}

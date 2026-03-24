@@ -38,7 +38,7 @@ def check_env_value(env_var: str, const_name: str, test_value: str, expected_val
     code = f"""
 import os
 os.environ['{env_var}'] = '{test_value}'
-from parser_2gis.parallel_parser import {const_name}
+from parser_2gis.parallel import {const_name}
 print({const_name})
 """
     # Получаем путь к Python из текущего окружения
@@ -155,7 +155,7 @@ class TestParallelParserEnvConfigInvalidValues:
         code = """
 import os
 os.environ['PARSER_MERGE_LOCK_TIMEOUT'] = 'invalid'
-from parser_2gis.parallel_parser import MERGE_LOCK_TIMEOUT
+from parser_2gis.parallel import MERGE_LOCK_TIMEOUT
 """
         result = subprocess.run(
             [sys.executable, "-c", code],
@@ -179,7 +179,7 @@ from parser_2gis.parallel_parser import MERGE_LOCK_TIMEOUT
         code = """
 import os
 os.environ['PARSER_MAX_LOCK_FILE_AGE'] = 'invalid'
-from parser_2gis.parallel_parser import MAX_LOCK_FILE_AGE
+from parser_2gis.parallel import MAX_LOCK_FILE_AGE
 """
         result = subprocess.run(
             [sys.executable, "-c", code],
@@ -203,7 +203,7 @@ from parser_2gis.parallel_parser import MAX_LOCK_FILE_AGE
         code = """
 import os
 os.environ['PARSER_MAX_TEMP_FILES'] = 'invalid'
-from parser_2gis.parallel_parser import MAX_TEMP_FILES
+from parser_2gis.parallel import MAX_TEMP_FILES
 """
         result = subprocess.run(
             [sys.executable, "-c", code],

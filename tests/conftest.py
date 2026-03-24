@@ -317,7 +317,7 @@ def temp_files_registry() -> Generator[set, None, None]:
     Yields:
         Пустой набор для реестра.
     """
-    from parser_2gis.parallel_parser import _temp_files_lock, _temp_files_registry
+    from parser_2gis.parallel import _temp_files_lock, _temp_files_registry
 
     # Сохраняем оригинальное состояние с блокировкой
     with _temp_files_lock:

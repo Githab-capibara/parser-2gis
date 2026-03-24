@@ -24,7 +24,7 @@ class TestParallelParserMock:
     def test_parallel_parser_initialization(self) -> None:
         """Тест инициализации ParallelCityParser с валидными параметрами."""
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Рестораны"}]
@@ -47,7 +47,7 @@ class TestParallelParserMock:
     def test_parallel_parser_invalid_workers(self) -> None:
         """Тест валидации max_workers."""
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Рестораны"}]
@@ -65,7 +65,7 @@ class TestParallelParserMock:
     def test_parallel_parser_invalid_timeout(self) -> None:
         """Тест валидации timeout_per_url."""
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Рестораны"}]
@@ -84,7 +84,7 @@ class TestParallelParserMock:
     def test_merge_csv_files_empty_dir(self, tmp_path: Path) -> None:
         """Тест объединения CSV файлов в пустой директории."""
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"id": 93, "name": "Рестораны"}]
@@ -104,7 +104,7 @@ class TestParallelParserMock:
         import csv
 
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Создаём тестовый CSV файл с правильным именем (с категорией)
         test_file = tmp_path / "test_Рестораны.csv"
@@ -133,7 +133,7 @@ class TestParallelParserMock:
         import csv
 
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Создаём несколько тестовых CSV файлов
         for i in range(3):
@@ -342,7 +342,7 @@ class TestHelperFunctions:
 
     def test_acquire_merge_lock_success(self, tmp_path: Path) -> None:
         """Тест успешного получения блокировки merge."""
-        from parser_2gis.parallel_parser import _acquire_merge_lock
+        from parser_2gis.parallel import _acquire_merge_lock
 
         lock_file = tmp_path / ".merge.lock"
         log_messages = []
@@ -365,7 +365,7 @@ class TestHelperFunctions:
 
     def test_validate_merged_file_valid(self, tmp_path: Path) -> None:
         """Тест валидации корректного объединённого файла."""
-        from parser_2gis.parallel_parser import _validate_merged_file
+        from parser_2gis.parallel import _validate_merged_file
 
         # Создаём тестовый файл
         test_file = tmp_path / "merged.csv"
@@ -383,7 +383,7 @@ class TestHelperFunctions:
 
     def test_validate_merged_file_missing(self, tmp_path: Path) -> None:
         """Тест валидации отсутствующего файла."""
-        from parser_2gis.parallel_parser import _validate_merged_file
+        from parser_2gis.parallel import _validate_merged_file
 
         missing_file = tmp_path / "nonexistent.csv"
         log_messages = []
@@ -398,7 +398,7 @@ class TestHelperFunctions:
 
     def test_validate_merged_file_empty(self, tmp_path: Path) -> None:
         """Тест валидации пустого файла."""
-        from parser_2gis.parallel_parser import _validate_merged_file
+        from parser_2gis.parallel import _validate_merged_file
 
         # Создаём пустой файл
         empty_file = tmp_path / "empty.csv"
@@ -415,7 +415,7 @@ class TestHelperFunctions:
 
     def test_cleanup_source_files(self, tmp_path: Path) -> None:
         """Тест очистки исходных файлов."""
-        from parser_2gis.parallel_parser import _cleanup_source_files
+        from parser_2gis.parallel import _cleanup_source_files
 
         # Создаём тестовые файлы
         files = []
@@ -443,7 +443,7 @@ class TestEdgeCases:
         import csv
 
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Создаём файл со специальными символами в правильной директории
         test_file = tmp_path / "test_Категория.csv"
@@ -474,7 +474,7 @@ class TestEdgeCases:
         import csv
 
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Создаём файл с Unicode именем
         test_file = tmp_path / "test_Рестораны_Москва.csv"
@@ -505,7 +505,7 @@ class TestEdgeCases:
         # Это сложно проверить напрямую, но можем проверить что функции работают
         from pathlib import Path
 
-        from parser_2gis.parallel_parser import _register_temp_file, _unregister_temp_file
+        from parser_2gis.parallel import _register_temp_file, _unregister_temp_file
 
         temp_file = Path("/tmp/test_atexit_cleanup.tmp")
         temp_file.touch()

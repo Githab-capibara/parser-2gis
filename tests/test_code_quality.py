@@ -21,10 +21,12 @@ from pathlib import Path
 from typing import Any, Dict
 
 # Импортируем модули для тестирования
-from parser_2gis import cache, config, parallel_parser, validation, validator
+from parser_2gis import cache, config, parallel, validation
 
 # Получаем модуль через sys.modules
 main_module = sys.modules["parser_2gis.main"]
+validator = validation  # Alias для обратной совместимости тестов
+parallel_parser = parallel  # Alias для обратной совместимости тестов
 
 
 # =============================================================================

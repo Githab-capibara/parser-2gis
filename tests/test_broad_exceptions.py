@@ -23,7 +23,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from parser_2gis.cache import CacheManager, _deserialize_json, _serialize_json
-from parser_2gis.common import MAX_DATA_DEPTH, MAX_DATA_SIZE, _sanitize_value
+from parser_2gis.constants import MAX_DATA_DEPTH, MAX_DATA_SIZE
+from parser_2gis.utils.sanitizers import _sanitize_value
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

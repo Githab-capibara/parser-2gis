@@ -7,12 +7,17 @@
 - Корректность конфигурации и валидации
 """
 
-import pytest
 from concurrent.futures import ThreadPoolExecutor
 
-from parser_2gis.common import unwrap_dot_dict, wait_until_finished
+import pytest
+
+# Импорт функции unwrap_dot_dict из общего модуля
+from parser_2gis.common import unwrap_dot_dict
 from parser_2gis.config import Configuration, ParserOptions, WriterOptions
-from parser_2gis.parallel_parser import ParallelCityParser
+from parser_2gis.parallel import ParallelCityParser
+
+# Импорт декоратора wait_until_finished из модуля декораторов
+from parser_2gis.utils.decorators import wait_until_finished
 
 
 class TestConfigurationRobustness:

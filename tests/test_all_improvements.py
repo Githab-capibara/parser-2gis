@@ -26,6 +26,9 @@ import pytest
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# Импорт функции _sanitize_value из модуля утилит санитизации
+from parser_2gis.utils.sanitizers import _sanitize_value
+
 # =============================================================================
 # CRITICAL: ТЕСТЫ НА РЕФАКТОРИНГ ФУНКЦИЙ
 # =============================================================================
@@ -372,7 +375,7 @@ class TestWeakrefFinalizeAtexit:
         предотвращения проблем при завершении интерпретатора.
         """
         from parser_2gis.cache import CacheManager, _ConnectionPool
-        from parser_2gis.parallel_parser import _TempFileTimer
+        from parser_2gis.parallel import _TempFileTimer
 
         # Тестируем CacheManager
         cache_dir = tmp_path / "cache"
@@ -639,7 +642,8 @@ class TestMemoryErrorHandlingComprehensive:
         - Операциях с данными
         """
         from parser_2gis.cache import CacheManager, _deserialize_json, _serialize_json
-        from parser_2gis.common import _sanitize_value
+
+        # Импорт функции _sanitize_value из модуля утилит санитизации
 
         # Тест 1: MemoryError при сериализации
         with patch("parser_2gis.cache.json.dumps") as mock_dumps:
@@ -678,7 +682,8 @@ class TestMemoryErrorHandlingComprehensive:
             cache.close()
 
         # Тест 4: MemoryError при sanitization
-        with patch("parser_2gis.common.repr") as mock_repr:
+        # Патчим в модуле sanitizers где находится функция _sanitize_value
+        with patch("parser_2gis.utils.sanitizers.repr") as mock_repr:
             mock_repr.side_effect = MemoryError("Out of memory during sanitization")
 
             data = {"key": "value"}

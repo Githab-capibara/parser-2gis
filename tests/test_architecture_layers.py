@@ -12,10 +12,8 @@
 
 from __future__ import annotations
 
-import ast
 import re
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
 
 import pytest
 
@@ -50,16 +48,18 @@ class TestModuleSizeLimits:
         )
 
     def test_parallel_parser_module_size_limit(self) -> None:
-        """Проверяет что parallel_parser.py не превышает разумный размер."""
-        parallel_path = Path(__file__).parent.parent / "parser_2gis" / "parallel_parser.py"
+        """Проверяет что parallel/parallel_parser.py не превышает разумный размер."""
+        parallel_path = (
+            Path(__file__).parent.parent / "parser_2gis" / "parallel" / "parallel_parser.py"
+        )
         content = parallel_path.read_text(encoding="utf-8")
         lines = content.splitlines()
 
-        # parallel_parser.py не должен превышать 2500 строк
-        # При превышении рекомендуется выделить merge логику в отдельный модуль
-        assert len(lines) < 2500, (
-            f"parallel_parser.py слишком большой: {len(lines)} строк (максимум: 2500). "
-            "Рекомендуется выделить merge логику в отдельный модуль."
+        # parallel/parallel_parser.py не должен превышать 1500 строк
+        # После разделения на подмодули
+        assert len(lines) < 1500, (
+            f"parallel/parallel_parser.py слишком большой: {len(lines)} строк (максимум: 1500). "
+            "Рекомендуется дальнейшее разделение."
         )
 
 
@@ -94,10 +94,8 @@ class TestCircularDependencies:
 
     def test_no_circular_imports_main_config(self) -> None:
         """Проверяет отсутствие цикла main.py ↔ config.py."""
-        main_path = Path(__file__).parent.parent / "parser_2gis" / "main.py"
         config_path = Path(__file__).parent.parent / "parser_2gis" / "config.py"
 
-        main_content = main_path.read_text(encoding="utf-8")
         config_content = config_path.read_text(encoding="utf-8")
 
         # config.py не должен импортировать main.py
@@ -270,12 +268,13 @@ class TestDependencyInjection:
 
         assert hasattr(protocols, "LoggerProtocol")
 
-    def test_validators_module_exists(self) -> None:
-        """Проверяет что validators.py существует."""
-        from parser_2gis import validators
+    def test_validation_package_exists(self) -> None:
+        """Проверяет что validation/ пакет существует."""
+        from parser_2gis import validation
 
-        assert hasattr(validators, "PathValidator")
-        assert hasattr(validators, "validate_path")
+        assert hasattr(validation, "PathValidator")
+        assert hasattr(validation, "validate_path")
+        assert hasattr(validation, "validate_url")
 
 
 class TestCodeQuality:

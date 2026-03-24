@@ -1,8 +1,14 @@
 """
-Централизованный модуль валидации.
+Модуль валидации путей.
 
-Этот модуль содержит классы для валидации данных и путей,
-устраняя дублирование кода валидации между модулями.
+Содержит класс PathValidator для валидации путей и предотвращения
+path traversal атак.
+
+Пример использования:
+    >>> from parser_2gis.validation.path_validator import PathValidator, validate_path
+    >>> validator = PathValidator()
+    >>> validator.validate("/safe/path/file.txt")
+    >>> validate_path("/safe/output.csv", "output_path")
 """
 
 from __future__ import annotations
@@ -10,7 +16,6 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 from typing import List, Optional
-
 
 
 class PathValidator:

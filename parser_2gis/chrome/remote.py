@@ -17,11 +17,11 @@ import re
 import socket
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 import pychrome
-from concurrent.futures import ThreadPoolExecutor
 
 try:
     import requests
@@ -40,17 +40,17 @@ except ImportError:
     RequestException = Exception  # type: ignore[misc, assignment]
 from websocket import WebSocketException
 
-from parser_2gis.common import wait_until_finished
 from parser_2gis.logger.logger import logger as app_logger
+from parser_2gis.utils.decorators import wait_until_finished
 
 from .browser import ChromeBrowser
-from .constants import CHROME_STARTUP_DELAY  # L4: магические числа вынесены в константы
-from .constants import MAX_JS_CODE_LENGTH  # L4: магические числа вынесены в константы
-from .constants import MAX_RESPONSE_SIZE  # L9: лимит размера загружаемых файлов
-from .constants import MAX_TOTAL_JS_SIZE  # L4: магические числа вынесены в константы
 from .constants import (  # L6: rate limiting для внешних запросов
+    CHROME_STARTUP_DELAY,  # L4: магические числа вынесены в константы
     EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
+    MAX_JS_CODE_LENGTH,  # L4: магические числа вынесены в константы
+    MAX_RESPONSE_SIZE,  # L9: лимит размера загружаемых файлов
+    MAX_TOTAL_JS_SIZE,  # L4: магические числа вынесены в константы
 )
 from .dom import DOMNode
 from .exceptions import ChromeException

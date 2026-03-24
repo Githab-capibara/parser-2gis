@@ -158,7 +158,7 @@ def generate_urls_for_city(
     Returns:
         Список URL для парсинга.
     """
-    from parser_2gis.common import url_query_encode
+    from parser_2gis.utils.url_utils import url_query_encode
 
     if categories is None:
         categories = CATEGORIES_93

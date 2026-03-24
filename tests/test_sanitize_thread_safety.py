@@ -1,10 +1,10 @@
 """Тесты для проверки потокобезопасности _sanitize_value."""
 
 import threading
-
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from parser_2gis.common import _sanitize_value
+# Импорт функции _sanitize_value из модуля утилит санитизации
+from parser_2gis.utils.sanitizers import _sanitize_value
 
 
 class TestSanitizeValueThreadSafety:

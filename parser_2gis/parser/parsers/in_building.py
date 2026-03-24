@@ -13,8 +13,8 @@ import json
 import re
 from typing import TYPE_CHECKING
 
-from parser_2gis.common import wait_until_finished
 from parser_2gis.logger import logger
+from parser_2gis.utils.decorators import wait_until_finished
 
 from .main import MainParser
 

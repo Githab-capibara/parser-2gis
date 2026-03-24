@@ -22,13 +22,14 @@ import pydantic
 
 from .cache import Cache
 from .chrome.remote import ChromeRemote
-from .common import generate_city_urls, report_from_validation_error, unwrap_dot_dict
+from .common import report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
 from .data.categories_93 import CATEGORIES_93
 from .logger import log_parser_start, logger, setup_cli_logger
 from .paths import data_path
 from .pydantic_compat import get_model_dump
 from .signal_handler import SignalHandler
+from .utils.url_utils import generate_city_urls
 from .validation import validate_positive_int, validate_url
 from .version import version
 

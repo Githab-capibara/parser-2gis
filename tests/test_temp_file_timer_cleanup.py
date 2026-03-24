@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from parser_2gis.parallel_parser import _TempFileTimer
+from parser_2gis.parallel import _TempFileTimer
 
 
 class TestTempFileTimerStop:

@@ -32,7 +32,7 @@ class TestParallelParserInitErrors:
             tmp_path: pytest фикстура для временной директории.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Создаем тестовые данные
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
@@ -42,7 +42,7 @@ class TestParallelParserInitErrors:
         config = Configuration()
 
         # Мокируем get_writer для выбрасывания исключения
-        with patch("parser_2gis.parallel_parser.get_writer") as mock_get_writer:
+        with patch("parser_2gis.parallel.parallel_parser.get_writer") as mock_get_writer:
             mock_get_writer.side_effect = RuntimeError("Mocked writer error")
 
             # Создаем парсер - инициализация должна пройти успешно
@@ -70,7 +70,7 @@ class TestParallelParserInitErrors:
             tmp_path: pytest фикстура для временной директории.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Создаем тестовые данные
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
@@ -87,7 +87,7 @@ class TestParallelParserInitErrors:
         )
 
         # Мокируем get_parser для выбрасывания исключения
-        with patch("parser_2gis.parallel_parser.get_parser") as mock_get_parser:
+        with patch("parser_2gis.parallel.parallel_parser.get_parser") as mock_get_parser:
             mock_get_parser.side_effect = RuntimeError("Mocked parser error")
 
             # Вызываем parse_single_url
@@ -114,7 +114,7 @@ class TestParallelParserInitErrors:
             caplog: pytest фикстура для захвата логов.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Создаем тестовые данные
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
@@ -154,7 +154,7 @@ class TestParallelParserValidationErrors:
             tmp_path: pytest фикстура для временной директории.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         cities = []
         categories = [{"name": "Кафе", "id": 1, "query": "Кафе"}]
@@ -180,7 +180,7 @@ class TestParallelParserValidationErrors:
             tmp_path: pytest фикстура для временной директории.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = []
@@ -206,7 +206,7 @@ class TestParallelParserValidationErrors:
             tmp_path: pytest фикстура для временной директории.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"name": "Кафе", "id": 1, "query": "Кафе"}]
@@ -269,7 +269,7 @@ class TestParallelParserOutputDirErrors:
             tmp_path: pytest фикстура для временной директории.
         """
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
         categories = [{"name": "Кафе", "id": 1, "query": "Кафе"}]

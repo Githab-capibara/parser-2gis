@@ -21,8 +21,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# Импорт функций кэша для тестирования обработки MemoryError
 from parser_2gis.cache import CacheManager, _ConnectionPool, _deserialize_json, _serialize_json
-from parser_2gis.common import _sanitize_value
+
+# Импорт функции _sanitize_value из модуля утилит санитизации
+from parser_2gis.utils.sanitizers import _sanitize_value
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -210,8 +213,8 @@ class TestMemoryErrorCommon:
             tmp_path: pytest tmp_path fixture.
         """
         # Создаем данные которые могут вызвать MemoryError при проверке
-        # Mock repr для вызова MemoryError
-        with patch("parser_2gis.common.repr") as mock_repr:
+        # Mock repr для вызова MemoryError - патчим в модуле sanitizers где находится функция
+        with patch("parser_2gis.utils.sanitizers.repr") as mock_repr:
             mock_repr.side_effect = MemoryError("Out of memory during size check")
 
             data = {"key": "value"}
@@ -235,7 +238,8 @@ class TestMemoryErrorCommon:
         def mock_repr(obj):
             raise MemoryError("Out of memory during stack operation")
 
-        with patch("parser_2gis.common.repr", mock_repr):
+        # Патчим в модуле sanitizers где находится функция _sanitize_value
+        with patch("parser_2gis.utils.sanitizers.repr", mock_repr):
             data = {"key": "value"}
 
             # Пытаемся обработать - MemoryError обрабатывается и выбрасывается ValueError
@@ -302,8 +306,8 @@ class TestMemoryErrorCommon:
             def clear(self):
                 raise MemoryError("Out of memory during cleanup")
 
-        # Патчим set в контексте common.py
-        with patch("parser_2gis.common.set", MockSet):
+        # Патчим set в модуле sanitizers где находится функция _sanitize_value
+        with patch("parser_2gis.utils.sanitizers.set", MockSet):
             data = {"key": "value"}
 
             # Пытаемся обработать - MemoryError обрабатывается внутри finally
@@ -370,8 +374,8 @@ class TestMemoryErrorRecovery:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        # Сначала вызываем MemoryError
-        with patch("parser_2gis.common.repr") as mock_repr:
+        # Сначала вызываем MemoryError - патчим в модуле sanitizers
+        with patch("parser_2gis.utils.sanitizers.repr") as mock_repr:
             mock_repr.side_effect = MemoryError("Out of memory")
 
             with pytest.raises(ValueError, match="Нехватка памяти"):

@@ -213,7 +213,7 @@ class TestCriticalModuleAvailability:
     def test_parallel_parser_module_accessible(self):
         """Проверка доступности модуля parallel_parser."""
         try:
-            from parser_2gis.parallel_parser import ParallelCityParser
+            from parser_2gis.parallel import ParallelCityParser
 
             assert ParallelCityParser is not None
         except ImportError as e:

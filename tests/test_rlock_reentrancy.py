@@ -360,7 +360,7 @@ class TestRLockReentrancy:
         """Тест 18: RLock в ParallelCityParser."""
         import inspect
 
-        from parser_2gis.parallel_parser import ParallelCityParser
+        from parser_2gis.parallel import ParallelCityParser
 
         # Проверяем что в коде используется RLock
         source = inspect.getsource(ParallelCityParser)
@@ -387,7 +387,7 @@ class TestRLockReentrancy:
         import tempfile
         from pathlib import Path
 
-        from parser_2gis.parallel_parser import _TempFileTimer
+        from parser_2gis.parallel import _TempFileTimer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             timer = _TempFileTimer(temp_dir=Path(tmpdir))
@@ -407,7 +407,7 @@ class TestRLockReentrancy:
 
         from parser_2gis.chrome.remote import _HTTPCache
         from parser_2gis.parallel_helpers import FileMerger
-        from parser_2gis.parallel_parser import _TempFileTimer
+        from parser_2gis.parallel import _TempFileTimer
         from parser_2gis.signal_handler import SignalHandler
 
         with tempfile.TemporaryDirectory() as tmpdir:

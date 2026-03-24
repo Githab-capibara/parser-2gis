@@ -11,11 +11,10 @@
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
-
-import ast
 
 
 class TestArchitectureIntegrity:
@@ -256,9 +255,12 @@ class TestArchitectureIntegrity:
 
         MAX_DATA_DEPTH должно быть одинаковым во всех модулях.
         """
+        # Импорт констант из различных модулей для проверки консистентности
         from parser_2gis import constants
         from parser_2gis.cache import MAX_DATA_DEPTH as cache_depth
-        from parser_2gis.common import MAX_DATA_DEPTH as common_depth
+
+        # Импорт MAX_DATA_DEPTH из модуля констант вместо common.py
+        from parser_2gis.constants import MAX_DATA_DEPTH as common_depth
 
         # Все константы должны быть равны значению из constants.py
         assert common_depth == constants.MAX_DATA_DEPTH, (
