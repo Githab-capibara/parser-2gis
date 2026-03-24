@@ -28,12 +28,12 @@ import re
 import sqlite3
 import threading
 import time
+import unicodedata
+import urllib.parse
 import weakref
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
-
-import unicodedata
 
 from .constants import MAX_DATA_DEPTH, MAX_STRING_LENGTH
 from .logger.logger import logger as app_logger
@@ -56,7 +56,17 @@ def _normalize_unicode(text: str) -> str:
 _SQL_INJECTION_PATTERNS: re.Pattern = re.compile(
     r"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE)\b|"
     r"--|/\*|\*/|@@|CHAR\(|0x[0-9a-f]+|"
-    r"\b(OR|AND)\s+\d+\s*=\s*\d+)",
+    r"\b(OR|AND)\s+\d+\s*=\s*\d+|"
+    r"\bUNION\s+(ALL\s+)?SELECT\b|"
+    r"\bWAITFOR\s+DELAY\b|"
+    r"\bBENCHMARK\s*\(|"
+    r"\bHAVING\s+\d+\s*=\s*\d+|"
+    r"\bGROUP\s+BY\s+\d+|"
+    r"\bORDER\s+BY\s+\d+|"
+    r"\bSLEEP\s*\(\s*\d+\s*\)|"
+    r"\bINFORMATION_SCHEMA\b|"
+    r"\bSYS\.\w+\b|"
+    r";\s*(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE)\b)",
     re.IGNORECASE,
 )
 
@@ -71,9 +81,21 @@ def _check_sql_injection_patterns(value: Any) -> bool:
         True если значение безопасно, False если обнаружена SQL-инъекция.
     """
     if isinstance(value, str):
+        # Проверяем оригинальное значение
         if _SQL_INJECTION_PATTERNS.search(value):
-            app_logger.warning("Обнаружен потенциальный SQL-инъекция в кэше")
+            app_logger.warning("Обнаружен потенциальный SQL-инъекция в кэше: %s", value[:100])
             return False
+        # Проверяем URL-decoded значение для обнаружения encoded атак
+        try:
+            decoded_value = urllib.parse.unquote(value)
+            if decoded_value != value and _SQL_INJECTION_PATTERNS.search(decoded_value):
+                app_logger.warning(
+                    "Обнаружен потенциальный SQL-инъекция в URL-encoded кэше: %s", value[:100]
+                )
+                return False
+        except (ValueError, TypeError, UnicodeDecodeError):
+            # Игнорируем ошибки декодирования
+            pass
     return True
 
 

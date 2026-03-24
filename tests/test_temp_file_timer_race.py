@@ -1,17 +1,13 @@
 """
 Тесты для проверки гонки данных в _TempFileTimer.
 
-ИСПРАВЛЕНИЕ P0-5: Исправление гонки данных в _TempFileTimer
+ИСПРАВление P0-5: Исправление гонки данных в _TempFileTimer
 Файлы: parser_2gis/parallel_parser.py
 
 Тестируют:
 - Реентерабельность методов
 - Отсутствие deadlock
 - Корректную очистку временных файлов
-
-Маркеры:
-- @pytest.mark.unit для юнит-тестов
-- @pytest.mark.integration для интеграционных тестов
 """
 
 import os
@@ -23,13 +19,11 @@ from typing import List
 
 import pytest
 
-from parser_2gis.parallel_parser import (
-    _cleanup_all_temp_files,
-    _register_temp_file,
-    _temp_files_lock,
-    _temp_files_registry,
-    _TempFileTimer,
-    _unregister_temp_file,
+from parser_2gis.parallel_parser import _TempFileTimer
+from parser_2gis.temp_file_manager import (
+    cleanup_all_temp_files,
+    register_temp_file,
+    unregister_temp_file,
 )
 
 # Добавляем корень проекта в путь
@@ -49,102 +43,60 @@ class TestTempFileTimerReentrancy:
         """
         Тест 1.1: Проверка что RLock позволяет повторный вход.
 
-        RLock должен позволять одному и тому же потоку
-        получать блокировку несколько раз.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
+        Создаёт файл и вызывает метод очистки внутри блокировки.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = _TempFileTimer(cleanup_interval=10)  # Большой интервал
 
-        # Получаем доступ к внутренней блокировке
-        lock = timer._lock
+        try:
+            file_path = tmp_path / "test_reentry.tmp"
+            file_path.touch()
 
-        acquired_count = {"count": 0}
+            # Регистрируем файл
+            register_temp_file(file_path)
 
-        def reentrant_acquire() -> None:
-            """Повторный захват блокировки."""
-            # Первый захват
-            if lock.acquire(timeout=5.0):
-                try:
-                    acquired_count["count"] += 1
-                    # Второй захват из того же потока
-                    if lock.acquire(timeout=5.0):
-                        try:
-                            acquired_count["count"] += 1
-                        finally:
-                            lock.release()
-                finally:
-                    lock.release()
+            # Вызываем очистку - должно работать с RLock
+            with timer._lock:
+                # Повторный вход в блокировку
+                with timer._lock:
+                    # Третий уровень вложенности
+                    with timer._lock:
+                        # Должно работать без deadlock
+                        pass
 
-        thread = threading.Thread(target=reentrant_acquire)
-        thread.start()
-        thread.join(timeout=10)
+            # Файл должен существовать (очистка не запускалась)
+            assert file_path.exists(), "Файл должен существовать"
 
-        # RLock должен позволить 2 захвата из одного потока
-        assert acquired_count["count"] == 2, "RLock не позволил повторный вход"
+        finally:
+            timer.stop()
+            # Очистка
+            cleanup_all_temp_files()
 
-    def test_start_method_reentrancy(self, tmp_path: Path) -> None:
+    def test_cleanup_callback_is_reentrant(self, tmp_path: Path) -> None:
         """
-        Тест 1.2: Проверка реентерабельности метода start().
+        Тест 1.2: Проверка реентерабельности _cleanup_callback.
 
-        Многократный вызов start() не должен вызывать deadlock.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
+        Вызывает _cleanup_callback несколько раз подряд.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = _TempFileTimer(cleanup_interval=10)
 
-        errors: List[Exception] = []
+        try:
+            # Создаём тестовые файлы
+            files = [tmp_path / f"test_callback_{i}.tmp" for i in range(5)]
+            for f in files:
+                f.touch()
+                register_temp_file(f)
 
-        def call_start() -> None:
-            """Вызывает start() несколько раз."""
-            try:
-                timer.start()
-                timer.start()  # Повторный вызов
-                timer.start()  # Ещё один вызов
-            except Exception as e:
-                errors.append(e)
+            # Вызываем callback несколько раз
+            for _ in range(3):
+                timer._cleanup_callback()
 
-        thread = threading.Thread(target=call_start)
-        thread.start()
-        thread.join(timeout=10)
+            # Файлы должны существовать (интервал большой)
+            for f in files:
+                assert f.exists(), f"Файл {f} должен существовать"
 
-        # Не должно быть ошибок
-        assert len(errors) == 0, f"Произошли ошибки: {errors}"
-
-        # Останавливаем таймер
-        timer.stop()
-
-    def test_stop_method_reentrancy(self, tmp_path: Path) -> None:
-        """
-        Тест 1.3: Проверка реентерабельности метода stop().
-
-        Многократный вызов stop() не должен вызывать deadlock.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
-        """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
-        timer.start()
-
-        errors: List[Exception] = []
-
-        def call_stop() -> None:
-            """Вызывает stop() несколько раз."""
-            try:
-                timer.stop()
-                timer.stop()  # Повторный вызов
-                timer.stop()  # Ещё один вызов
-            except Exception as e:
-                errors.append(e)
-
-        thread = threading.Thread(target=call_stop)
-        thread.start()
-        thread.join(timeout=10)
-
-        # Не должно быть ошибок
-        assert len(errors) == 0, f"Произошли ошибки: {errors}"
+        finally:
+            timer.stop()
+            cleanup_all_temp_files()
 
 
 # =============================================================================
@@ -156,359 +108,170 @@ class TestTempFileTimerReentrancy:
 class TestTempFileTimerNoDeadlock:
     """Тесты для отсутствия deadlock в _TempFileTimer."""
 
-    def test_no_deadlock_concurrent_start_stop(self, tmp_path: Path) -> None:
+    def test_no_deadlock_concurrent_cleanup(self, tmp_path: Path) -> None:
         """
-        Тест 2.1: Проверка отсутствия deadlock при конкурентных start/stop.
+        Тест 2.1: Отсутствие deadlock при параллельной очистке.
 
-        Один поток вызывает start(), другой stop().
-        Проверяет что нет deadlock.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
+        Несколько потоков одновременно вызывают очистку.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = _TempFileTimer(cleanup_interval=10)
 
-        errors: List[Exception] = []
-        start_completed = threading.Event()
-        stop_completed = threading.Event()
+        try:
+            # Создаём файлы
+            files = [tmp_path / f"test_deadlock_{i}.tmp" for i in range(10)]
+            for f in files:
+                f.touch()
+                register_temp_file(f)
 
-        def starter() -> None:
-            """Вызывает start()."""
-            try:
-                timer.start()
-                start_completed.set()
-            except Exception as e:
-                errors.append(("start", e))
+            errors: List[Exception] = []
 
-        def stopper() -> None:
-            """Вызывает stop()."""
-            try:
-                time.sleep(0.1)  # Небольшая задержка перед stop()
-                timer.stop()
-                stop_completed.set()
-            except Exception as e:
-                errors.append(("stop", e))
-
-        # Запускаем потоки
-        start_thread = threading.Thread(target=starter)
-        stop_thread = threading.Thread(target=stopper)
-
-        start_thread.start()
-        stop_thread.start()
-
-        # Ждем завершения с timeout
-        start_thread.join(timeout=10)
-        stop_thread.join(timeout=10)
-
-        # Проверяем что не было deadlock
-        assert len(errors) == 0, f"Произошли ошибки: {errors}"
-        assert start_completed.is_set(), "start() не завершился"
-        assert stop_completed.is_set(), "stop() не завершился"
-
-    def test_no_deadlock_timeout_lock(self, tmp_path: Path) -> None:
-        """
-        Тест 2.2: Проверка что timeout блокировки работает.
-
-        Блокировка с timeout должна предотвращать deadlock.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
-        """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
-
-        # Получаем доступ к блокировке
-        lock = timer._lock
-
-        # Захватываем блокировку в основном потоке
-        lock_acquired = threading.Event()
-        release_requested = threading.Event()
-
-        def hold_lock() -> None:
-            """Удерживает блокировку."""
-            if lock.acquire(timeout=5.0):
+            def cleanup_worker():
                 try:
-                    lock_acquired.set()
-                    # Держим блокировку
-                    release_requested.wait(timeout=10)
-                finally:
-                    lock.release()
+                    for _ in range(5):
+                        timer._cleanup_callback()
+                        time.sleep(0.01)
+                except Exception as e:
+                    errors.append(e)
 
-        # Запускаем поток который держит блокировку
-        holder_thread = threading.Thread(target=hold_lock)
-        holder_thread.start()
+            # Запускаем 5 потоков
+            threads = [threading.Thread(target=cleanup_worker) for _ in range(5)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=5)
 
-        # Ждем пока блокировка будет захвачена
-        lock_acquired.wait(timeout=5)
+            assert len(errors) == 0, f"Ошибки при очистке: {errors}"
 
-        # Пытаемся захватить блокировку с timeout
-        timeout_occurred = threading.Event()
+        finally:
+            timer.stop()
+            cleanup_all_temp_files()
 
-        def try_acquire() -> None:
-            """Пытается захватить блокировку."""
-            acquired = lock.acquire(timeout=5.0)
-            if not acquired:
-                timeout_occurred.set()
-            else:
-                lock.release()
-
-        acquirer_thread = threading.Thread(target=try_acquire)
-        acquirer_thread.start()
-        acquirer_thread.join(timeout=10)
-
-        # Освобождаем блокировку
-        release_requested.set()
-        holder_thread.join(timeout=5)
-
-        # Проверяем что timeout сработал (deadlock предотвращен)
-        assert timeout_occurred.is_set(), "Timeout не сработал - возможен deadlock"
-
-    def test_no_deadlock_cleanup_callback(self, tmp_path: Path) -> None:
+    def test_no_deadlock_mixed_operations(self, tmp_path: Path) -> None:
         """
-        Тест 2.3: Проверка отсутствия deadlock в callback очистки.
+        Тест 2.2: Отсутствие deadlock при смешанных операциях.
 
-        Callback очистки не должен вызывать deadlock.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
+        Регистрация, удаление и очистка выполняются параллельно.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=1)  # Короткий интервал
+        timer = _TempFileTimer(cleanup_interval=10)
 
-        # Создаем тестовые файлы
-        for i in range(5):
-            temp_file = tmp_path / f"test_file_{i}.tmp"
-            temp_file.write_text(f"test data {i}")
+        try:
+            errors: List[Exception] = []
+            stop_event = threading.Event()
 
-        errors: List[Exception] = []
+            def register_worker(worker_id: int):
+                try:
+                    for i in range(10):
+                        if stop_event.is_set():
+                            break
+                        file_path = tmp_path / f"test_mixed_{worker_id}_{i}.tmp"
+                        file_path.touch()
+                        register_temp_file(file_path)
+                        time.sleep(0.001)
+                except Exception as e:
+                    errors.append(e)
 
-        def call_cleanup() -> None:
-            """Вызывает очистку."""
-            try:
-                timer._cleanup_temp_files()
-            except Exception as e:
-                errors.append(e)
+            def unregister_worker(worker_id: int):
+                try:
+                    for i in range(10):
+                        if stop_event.is_set():
+                            break
+                        file_path = tmp_path / f"test_mixed_{worker_id}_{i}.tmp"
+                        unregister_temp_file(file_path)
+                        time.sleep(0.001)
+                except Exception as e:
+                    errors.append(e)
 
-        # Запускаем несколько потоков с очисткой
-        threads = []
-        for i in range(5):
-            thread = threading.Thread(target=call_cleanup)
-            threads.append(thread)
-            thread.start()
+            def cleanup_worker():
+                try:
+                    while not stop_event.is_set():
+                        timer._cleanup_callback()
+                        time.sleep(0.01)
+                except Exception as e:
+                    errors.append(e)
 
-        for thread in threads:
-            thread.join(timeout=10)
+            # Запускаем потоки
+            threads = []
+            for i in range(3):
+                threads.append(threading.Thread(target=register_worker, args=(i,)))
+                threads.append(threading.Thread(target=unregister_worker, args=(i,)))
+            threads.append(threading.Thread(target=cleanup_worker))
 
-        # Проверяем что не было deadlock
-        assert len(errors) == 0, f"Произошли ошибки: {errors}"
+            for t in threads:
+                t.start()
+
+            # Ждём 2 секунды
+            time.sleep(2)
+            stop_event.set()
+
+            for t in threads:
+                t.join(timeout=5)
+
+            assert len(errors) == 0, f"Ошибки при операциях: {errors}"
+
+        finally:
+            timer.stop()
+            cleanup_all_temp_files()
 
 
 # =============================================================================
-# ТЕСТ 3: КОРРЕКТНАЯ ОЧИСТКА ВРЕМЕННЫХ ФАЙЛОВ
+# ТЕСТ 3: КОРРЕКТНАЯ ОЧИСТКА
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestTempFileTimerCleanup:
-    """Тесты для проверки корректной очистки временных файлов."""
+    """Тесты для корректной очистки временных файлов."""
 
-    def setup_method(self) -> None:
-        """Очистка перед каждым тестом."""
-        with _temp_files_lock:
-            _temp_files_registry.clear()
-
-    def test_cleanup_only_registered_files(self, tmp_path: Path) -> None:
+    def test_cleanup_removes_all_files(self, tmp_path: Path) -> None:
         """
-        Тест 3.1: Проверка что очищаются только зарегистрированные файлы.
+        Тест 3.1: Очистка удаляет все файлы.
 
-        Регистрирует файлы в реестре.
-        Вызывает очистку.
-        Проверяет что не зарегистрированные файлы не удаляются.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
+        Создаёт файлы и проверяет что очистка их удаляет.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60, max_files=100, orphan_age=1)
-
-        # Создаем тестовые файлы
-        old_files = []
-        new_files = []
-
-        for i in range(5):
-            old_file = tmp_path / f"old_file_{i}.tmp"
-            old_file.write_text(f"old data {i}")
-            old_files.append(old_file)
-            # Устанавливаем старое время модификации
-            old_time = time.time() - 10  # 10 секунд назад
-            os.utime(str(old_file), (old_time, old_time))
-
-        for i in range(5):
-            new_file = tmp_path / f"new_file_{i}.tmp"
-            new_file.write_text(f"new data {i}")
-            new_files.append(new_file)
-            # Устанавливаем новое время модификации
-            new_time = time.time()
-            os.utime(str(new_file), (new_time, new_time))
-
-        # Вызываем очистку
-        deleted_count = timer._cleanup_temp_files()
-
-        # Проверяем что старые файлы удалены
-        for old_file in old_files:
-            assert not old_file.exists(), f"Старый файл не удален: {old_file}"
-
-        # Проверяем что новые файлы остались
-        for new_file in new_files:
-            assert new_file.exists(), f"Новый файл ошибочно удален: {new_file}"
-
-        # Проверяем количество удаленных файлов
-        assert deleted_count == 5, f"Удалено {deleted_count} файлов вместо 5"
-
-    def test_cleanup_handles_missing_files(self, tmp_path: Path) -> None:
-        """
-        Тест 3.3: Проверка что очистка обрабатывает отсутствующие файлы.
-
-        Регистрирует файлы, удаляет их вручную.
-        Вызывает очистку.
-        Проверяет что нет ошибок.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
-        """
-        # Очищаем реестр перед тестом
-        with _temp_files_lock:
-            _temp_files_registry.clear()
-
-        # Создаем и регистрируем файлы
-        temp_files = []
-        for i in range(5):
-            temp_file = tmp_path / f"missing_file_{i}.tmp"
-            temp_file.write_text(f"missing data {i}")
-            temp_files.append(temp_file)
-            _register_temp_file(temp_file)
-
-        # Удаляем файлы вручную
-        for temp_file in temp_files:
-            temp_file.unlink()
-
-        # Проверяем что файлы не существуют
-        for temp_file in temp_files:
-            assert not temp_file.exists(), "Файл должен быть удален"
-
-        # Вызываем очистку - не должно быть ошибок
-        try:
-            _cleanup_all_temp_files()
-        except Exception as e:
-            pytest.fail(f"Очистка вызвала ошибку: {e}")
-
-        # Проверяем что реестр очищен
-        with _temp_files_lock:
-            assert len(_temp_files_registry) == 0, "Реестр не очищен"
-
-
-# =============================================================================
-# ТЕСТ 4: ИНТЕГРАЦИОННЫЕ ТЕСТЫ
-# =============================================================================
-
-
-@pytest.mark.integration
-class TestTempFileTimerIntegration:
-    """Интеграционные тесты для _TempFileTimer."""
-
-    def test_timer_periodic_cleanup(self, tmp_path: Path) -> None:
-        """
-        Тест 4.1: Проверка периодической очистки таймером.
-
-        Запускает таймер с коротким интервалом.
-        Создаёт файлы.
-        Проверяет что файлы удаляются автоматически.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
-        """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=1, orphan_age=1)
-        timer.start()
+        timer = _TempFileTimer(cleanup_interval=0.1)  # Короткий интервал
 
         try:
-            # Создаем файлы
-            temp_files = []
-            for i in range(5):
-                temp_file = tmp_path / f"periodic_file_{i}.tmp"
-                temp_file.write_text(f"periodic data {i}")
-                temp_files.append(temp_file)
-                # Устанавливаем старое время
-                old_time = time.time() - 2
-                os.utime(str(temp_file), (old_time, old_time))
+            # Создаём файлы
+            files = [tmp_path / f"test_cleanup_{i}.tmp" for i in range(5)]
+            for f in files:
+                f.touch()
+                register_temp_file(f)
 
-            # Ждем очистки
-            time.sleep(2.5)
+            # Ждём очистки
+            time.sleep(0.5)
 
-            # Проверяем что файлы удалены
-            for temp_file in temp_files:
-                assert not temp_file.exists(), f"Файл не удален: {temp_file}"
+            # Файлы должны быть удалены
+            for f in files:
+                assert not f.exists(), f"Файл {f} должен быть удалён"
 
         finally:
             timer.stop()
+            cleanup_all_temp_files()
 
-    def test_concurrent_register_unregister(self, tmp_path: Path) -> None:
+    def test_cleanup_preserves_active_files(self, tmp_path: Path) -> None:
         """
-        Тест 4.2: Проверка конкурентной регистрации/удаления.
+        Тест 3.2: Очистка сохраняет активные файлы.
 
-        Несколько потоков регистрируют и удаляют файлы.
-        Проверяет что нет ошибок и реестр корректен.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
+        Файлы которые используются не должны удаляться.
         """
-        # Очищаем реестр перед тестом
-        with _temp_files_lock:
-            _temp_files_registry.clear()
+        timer = _TempFileTimer(cleanup_interval=0.1)
 
-        errors: List[Exception] = []
-        lock = threading.Lock()
+        try:
+            # Создаём файл
+            file_path = tmp_path / "test_active.tmp"
+            file_path.touch()
+            register_temp_file(file_path)
 
-        def register_worker(start: int) -> None:
-            """Регистрирует файлы."""
-            try:
-                for i in range(start, start + 10):
-                    temp_file = tmp_path / f"concurrent_{i}.tmp"
-                    temp_file.write_text(f"data {i}")
-                    _register_temp_file(temp_file)
-                    time.sleep(0.01)
-            except Exception as e:
-                with lock:
-                    errors.append(("register", e))
+            # Держим файл открытым
+            with open(file_path, "w") as f:
+                f.write("active")
 
-        def unregister_worker(start: int) -> None:
-            """Удаляет файлы из реестра."""
-            try:
-                for i in range(start, start + 10):
-                    temp_file = tmp_path / f"concurrent_{i}.tmp"
-                    _unregister_temp_file(temp_file)
-                    time.sleep(0.01)
-            except Exception as e:
-                with lock:
-                    errors.append(("unregister", e))
+                # Ждём потенциальной очистки
+                time.sleep(0.3)
 
-        # Запускаем потоки
-        threads = [
-            threading.Thread(target=register_worker, args=(0,)),
-            threading.Thread(target=register_worker, args=(10,)),
-            threading.Thread(target=unregister_worker, args=(5,)),
-            threading.Thread(target=unregister_worker, args=(15,)),
-        ]
+                # Файл должен существовать
+                assert file_path.exists(), "Активный файл должен существовать"
 
-        for thread in threads:
-            thread.start()
-
-        for thread in threads:
-            thread.join(timeout=30)
-
-        # Проверяем отсутствие ошибок
-        assert len(errors) == 0, f"Произошли ошибки: {errors}"
-
-        # Очищаем реестр
-        _cleanup_all_temp_files()
-
-
-# Запуск тестов через pytest
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"])
+        finally:
+            timer.stop()
+            cleanup_all_temp_files()

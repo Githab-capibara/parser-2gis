@@ -241,6 +241,7 @@ class ChromeBrowser:
         self._proc: Optional[subprocess.Popen] = None
         self._chrome_cmd: Optional[list[str]] = None
         self._remote_port: Optional[int] = None
+        self._start_time: float = time.time()  # ИСПРАВЛЕНИЕ 15: Для отслеживания времени жизни
 
         try:
             # Получаем и валидируем путь к браузеру
@@ -260,6 +261,12 @@ class ChromeBrowser:
             # Запускаем процесс Chrome
             self._proc = self._launch_chrome_process(
                 self._chrome_cmd, self._profile_path, chrome_options
+            )
+            app_logger.info(
+                "Chrome браузер инициализирован (PID: %d, порт: %d, время запуска: %.1f сек)",
+                self._proc.pid,
+                self._remote_port,
+                time.time() - self._start_time,
             )
 
         except Exception as e:
@@ -361,28 +368,34 @@ class ChromeBrowser:
             - process_status: Статус завершения процесса
         """
         if not hasattr(self, "_proc") or self._proc is None:
+            app_logger.debug("Процесс не инициализирован для PID %d", process_pid)
             return False, "no_process"
 
         try:
+            app_logger.debug("Отправка SIGTERM процессу %d", process_pid)
             self._proc.terminate()
-            app_logger.debug("Отправлен сигнал SIGTERM процессу %d", process_pid)
 
             # Проверка poll() для обнаружения завершения процесса
             poll_result = self._proc.poll()
             if poll_result is not None:
                 # Процесс уже завершился
                 process_status = f"terminated (exit code: {poll_result})"
-                app_logger.debug(
-                    "Chrome браузер корректно завершён (PID: %d, exit code: %d)",
+                app_logger.info(
+                    "Chrome браузер корректно завершён (PID: %d, exit code: %d, время жизни: %.1f сек)",
                     process_pid,
                     poll_result,
+                    time.time() - getattr(self, "_start_time", time.time()),
                 )
                 return True, process_status
             else:
                 # Процесс ещё работает, ждём завершения с timeout
                 try:
+                    # ИСПРАВЛЕНИЕ 15: Добавлен таймаут завершения процесса
                     self._proc.wait(timeout=5)
-                    app_logger.debug("Chrome браузер корректно завершён (PID: %d)", process_pid)
+                    app_logger.info(
+                        "Chrome браузер корректно завершён (PID: %d, время ожидания: 5 сек)",
+                        process_pid,
+                    )
                     return True, "terminated"
                 except subprocess.TimeoutExpired:
                     app_logger.warning(
@@ -401,7 +414,12 @@ class ChromeBrowser:
             app_logger.error("Нет прав на завершение процесса: %s", perm_error)
             return False, "permission_denied"
         except Exception as terminate_error:
-            app_logger.warning("Ошибка при завершении Chrome: %s", terminate_error)
+            app_logger.warning(
+                "Ошибка при завершении Chrome (PID %d): %s (тип: %s)",
+                process_pid,
+                terminate_error,
+                type(terminate_error).__name__,
+            )
             return False, "terminate_error"
 
     def _terminate_process_forceful(self, process_pid: int) -> tuple[bool, str]:
@@ -416,30 +434,39 @@ class ChromeBrowser:
             - process_status: Статус завершения процесса
         """
         if not hasattr(self, "_proc") or self._proc is None:
+            app_logger.debug("Процесс не инициализирован для PID %d", process_pid)
             return False, "no_process"
 
         try:
+            app_logger.warning("Отправка SIGKILL процессу %d", process_pid)
             self._proc.kill()
-            app_logger.debug("Отправлен сигнал SIGKILL процессу %d", process_pid)
 
             # Проверка poll() после kill()
             poll_result = self._proc.poll()
             if poll_result is not None:
                 process_status = f"killed (exit code: {poll_result})"
-                app_logger.debug(
-                    "Chrome браузер принудительно завершён (PID: %d, exit code: %d)",
+                app_logger.info(
+                    "Chrome браузер принудительно завершён (PID: %d, exit code: %d, время жизни: %.1f сек)",
                     process_pid,
                     poll_result,
+                    time.time() - getattr(self, "_start_time", time.time()),
                 )
                 return True, process_status
             else:
                 # Процесс всё ещё работает после kill(), ждём с большим timeout
                 try:
+                    # ИСПРАВЛЕНИЕ 15: Добавлен таймаут завершения процесса
                     self._proc.wait(timeout=10)
-                    app_logger.debug("Chrome браузер принудительно завершён (PID: %d)", process_pid)
+                    app_logger.info(
+                        "Chrome браузер принудительно завершён (PID: %d, время ожидания: 10 сек)",
+                        process_pid,
+                    )
                     return True, "killed"
                 except subprocess.TimeoutExpired:
-                    app_logger.error("Таймаут (10 сек) после SIGKILL для PID %d", process_pid)
+                    app_logger.error(
+                        "Таймаут (10 сек) после SIGKILL для PID %d - возможна утечка процесса",
+                        process_pid,
+                    )
                     return False, "kill_timeout"
 
         except ProcessLookupError as proc_error:
@@ -451,7 +478,12 @@ class ChromeBrowser:
             app_logger.error("Нет прав на принудительное завершение: %s", perm_error)
             return False, "kill_permission_denied"
         except Exception as kill_error:
-            app_logger.error("Ошибка при принудительном закрытии Chrome: %s", kill_error)
+            app_logger.error(
+                "Ошибка при принудительном закрытии Chrome (PID %d): %s (тип: %s)",
+                process_pid,
+                kill_error,
+                type(kill_error).__name__,
+            )
             return False, "kill_error"
 
     def _cleanup_profile(self) -> None:

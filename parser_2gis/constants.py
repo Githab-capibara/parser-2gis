@@ -12,6 +12,78 @@
 
 from __future__ import annotations
 
+import os
+from typing import Optional
+
+# =============================================================================
+# УТИЛИТЫ ДЛЯ ВАЛИДАЦИИ
+# =============================================================================
+
+
+def validate_env_int(
+    env_name: str, default: int, min_value: Optional[int] = None, max_value: Optional[int] = None
+) -> int:
+    """Валидирует ENV переменную как целое число в допустимом диапазоне.
+
+    ИСПРАВЛЕНИЕ 24: Общая функция для валидации ENV переменных.
+    Устраняет дублирование кода между cache.py и parallel_parser.py.
+
+    Args:
+        env_name: Имя ENV переменной.
+        default: Значение по умолчанию (используется если переменная не установлена).
+        min_value: Минимальное допустимое значение (None если нет ограничения).
+        max_value: Максимальное допустимое значение (None если нет ограничения).
+
+    Returns:
+        Валидированное целое число.
+
+    Raises:
+        ValueError: Если значение не является целым числом (нечисловая строка).
+
+    Примечание:
+        - Выбрасывает ValueError при некорректных значениях (нечисловые строки)
+        - Возвращает min/max значение при выходе за пределы диапазона (с предупреждением)
+        - Возвращает значение по умолчанию только если переменная не установлена
+
+    Пример:
+        >>> validate_env_int("PARSER_MAX_WORKERS", default=10, min_value=1, max_value=20)
+        10
+    """
+    from .logger.logger import logger as app_logger
+
+    value_str = os.getenv(env_name)
+
+    if value_str is None:
+        return default
+
+    # Преобразуем в целое число (выбросит ValueError при некорректном значении)
+    value = int(value_str)
+
+    # Проверяем минимальное значение
+    if min_value is not None and value < min_value:
+        app_logger.warning(
+            "ENV переменная %s=%d меньше минимального значения %d. Используется %d",
+            env_name,
+            value,
+            min_value,
+            min_value,
+        )
+        return min_value
+
+    # Проверяем максимальное значение
+    if max_value is not None and value > max_value:
+        app_logger.warning(
+            "ENV переменная %s=%d больше максимального значения %d. Используется %d",
+            env_name,
+            value,
+            max_value,
+            max_value,
+        )
+        return max_value
+
+    return value
+
+
 # =============================================================================
 # КОНСТАНТЫ БЕЗОПАСНОСТИ ДЛЯ ВАЛИДАЦИИ ДАННЫХ
 # =============================================================================

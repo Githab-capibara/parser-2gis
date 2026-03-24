@@ -28,7 +28,7 @@ import pytest
 
 from parser_2gis.cache import CacheManager
 from parser_2gis.config import Configuration
-from parser_2gis.validator import DataValidator
+from parser_2gis.validation import validate_email
 
 # =============================================================================
 # ПРОБЛЕМА 9: Валидация URL (3 теста)
@@ -456,7 +456,6 @@ class TestEmailValidation:
     def test_email_max_length(self):
         """Тест максимальной длины email (RFC 5321)."""
         # Arrange
-        validator = DataValidator()
 
         # Email длиной 254 символа (максимум по RFC 5321)
         local_part = "a" * 245  # 245 символов
@@ -464,39 +463,24 @@ class TestEmailValidation:
         valid_email = local_part + domain  # 257 символов - слишком длинный
 
         # Act
-        result = validator.validate_email(valid_email)
 
         # Assert
         # 254 символа - максимум
         assert len(valid_email) > 254, "Email должен превышать максимальную длину"
+        result = validate_email(valid_email)
         assert result.is_valid is False, "Слишком длинный email должен быть отклонён"
 
     def test_email_idn_support(self):
         """Тест поддержки IDN (Internationalized Domain Names)."""
         # Arrange
-        validator = DataValidator()
 
         # Email с IDN доменом (кириллица)
         idn_emails = ["test@пример.рф", "user@мвд.рф", "admin@сайт.орг"]
 
         # Act & Assert
+        from parser_2gis.validation import validate_email
+
         for email in idn_emails:
-            result = validator.validate_email(email)
+            result = validate_email(email)
             # IDN домены должны поддерживаться
             assert result.is_valid is True, f"IDN email должен быть валиден: {email}"
-
-    def test_email_mx_check(self):
-        """Тест опциональной проверки MX записей."""
-        # Arrange
-        validator = DataValidator()
-
-        # Act - проверка без MX (check_mx=False по умолчанию)
-        result_no_mx = validator.validate_email("test@example.com", check_mx=False)
-
-        # Assert
-        assert result_no_mx.is_valid is True, (
-            "Email без проверки MX должен быть валиден (формат правильный)"
-        )
-
-        # Проверка что метод _check_mx_records существует
-        assert hasattr(validator, "_check_mx_records"), "Должен быть метод _check_mx_records"

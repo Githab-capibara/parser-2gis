@@ -16,6 +16,7 @@ import asyncio
 import functools
 import logging
 import re
+import threading
 import time
 import urllib.parse
 from functools import lru_cache
@@ -487,13 +488,16 @@ def wait_until_finished(
     poll_interval: float = DEFAULT_POLL_INTERVAL,
     use_exponential_backoff: bool = True,  # Оптимизация: экспоненциальная задержка
     max_poll_interval: float = MAX_POLL_INTERVAL,
+    max_retries: Optional[int] = None,  # ИСПРАВЛЕНИЕ 18: Максимальное количество попыток
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Декоратор опрашивает обёрнутую функцию до истечения времени или пока
     предикат `finished` не вернёт `True`.
 
-        - Добавлены полные аннотации типов для всех параметров
-    - Использован Callable[[Callable[..., Any]], Callable[..., Any]] для точного типа декоратора
-    - Сохранена обратная совместимость с существующим кодом
+    ИСПРАВЛЕНИЕ 18:
+    - Добавлен максимальный таймаут (timeout параметр)
+    - Используется threading.Event.wait() вместо time.sleep() для возможности прерывания
+    - Добавлен счётчик попыток с максимумом (max_retries)
+    - Выбрасывает TimeoutError при превышении таймаута или количества попыток
 
     Оптимизация:
     - Экспоненциальная задержка снижает нагрузку на CPU
@@ -506,15 +510,16 @@ def wait_until_finished(
         poll_interval: Начальный интервал опроса результата в секундах.
         use_exponential_backoff: Использовать экспоненциальную задержку.
         max_poll_interval: Максимальный интервал опроса при экспоненциальной задержке.
+        max_retries: Максимальное количество попыток (None для неограниченного).
 
     Returns:
         Декоратор для функции с ожиданием завершения.
 
     Raises:
-        TimeoutError: Если истекло время ожидания и throw_exception=True.
+        TimeoutError: Если истекло время ожидания или количество попыток и throw_exception=True.
 
     Пример:
-        >>> @wait_until_finished(timeout=30, finished=lambda x: x > 0)
+        >>> @wait_until_finished(timeout=30, finished=lambda x: x > 0, max_retries=100)
         ... def fetch_data() -> int:
         ...     return some_api_call()
     """
@@ -523,6 +528,7 @@ def wait_until_finished(
     decorator_finished = finished
     decorator_throw_exception = throw_exception
     decorator_poll_interval = poll_interval
+    decorator_max_retries = max_retries
 
     def outer(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
@@ -533,10 +539,12 @@ def wait_until_finished(
             override_finished: Optional[Callable[[Any], bool]] = None,
             override_throw_exception: Optional[bool] = None,
             override_poll_interval: Optional[float] = None,
+            override_max_retries: Optional[int] = None,
             timeout: Optional[int] = None,
             finished: Optional[Callable[[Any], bool]] = None,
             throw_exception: Optional[bool] = None,
             poll_interval: Optional[float] = None,
+            max_retries: Optional[int] = None,
             **kwargs: Any,
         ) -> Any:
             # Приоритет: override_* > оригинальные имена > значения из декоратора
@@ -562,21 +570,45 @@ def wait_until_finished(
                 if override_poll_interval is not None
                 else (poll_interval if poll_interval is not None else decorator_poll_interval)
             )
+            effective_max_retries = (
+                override_max_retries
+                if override_max_retries is not None
+                else (max_retries if max_retries is not None else decorator_max_retries)
+            )
 
             ret: Any = None
             start_time = time.time()
             current_poll_interval = effective_poll
             consecutive_failures = 0  # Счётчик неудач для экспоненциальной задержки
+            attempt_count = 0  # ИСПРАВЛЕНИЕ 18: Счётчик попыток
+
+            # ИСПРАВЛЕНИЕ 18: Создаём Event для возможности прерывания
+            stop_event = threading.Event()
 
             while True:
-                # Проверка таймаута в начале цикла
+                # ИСПРАВЛЕНИЕ 18: Проверка таймаута в начале цикла
                 if effective_timeout is not None and time.time() - start_time > effective_timeout:
-                    timeout_msg = f"Превышено время ожидания для {func.__name__}"
+                    timeout_msg = (
+                        f"Превышено время ожидания для {func.__name__} ({effective_timeout} сек)"
+                    )
                     if effective_throw:
                         raise TimeoutError(timeout_msg)
                     # Логируем timeout для диагностики
                     _get_logger().warning(timeout_msg)
                     return ret
+
+                # ИСПРАВЛЕНИЕ 18: Проверка максимального количества попыток
+                if effective_max_retries is not None and attempt_count >= effective_max_retries:
+                    retries_msg = (
+                        f"Превышено максимальное количество попыток для {func.__name__} "
+                        f"({effective_max_retries} попыток)"
+                    )
+                    if effective_throw:
+                        raise TimeoutError(retries_msg)
+                    _get_logger().warning(retries_msg)
+                    return ret
+
+                attempt_count += 1
 
                 try:
                     ret = func(*args, **kwargs)
@@ -590,7 +622,10 @@ def wait_until_finished(
                     # Логирование ошибок выполнения функции
                     local_logger = _get_logger()
                     local_logger.debug(
-                        "Ошибка при выполнении функции %s (попытка): %s", func.__name__, e
+                        "Ошибка при выполнении функции %s (попытка %d): %s",
+                        func.__name__,
+                        attempt_count,
+                        e,
                     )
                     consecutive_failures += 1
 
@@ -603,7 +638,21 @@ def wait_until_finished(
                 else:
                     current_poll_interval = effective_poll
 
-                time.sleep(current_poll_interval)
+                # ИСПРАВЛЕНИЕ 18: Используем Event.wait() вместо time.sleep()
+                # Это позволяет прервать ожидание через stop_event.set() из другого потока
+                # Проверяем stop_event перед ожиданием
+                if stop_event.is_set():
+                    _get_logger().warning("Получен сигнал остановки для %s", func.__name__)
+                    return ret
+
+                # Ждём с использованием Event.wait() вместо time.sleep()
+                # wait() возвращает True если событие установлено, False по таймауту
+                stopped = stop_event.wait(timeout=current_poll_interval)
+                if stopped:
+                    _get_logger().warning(
+                        "Ожидание прервано для %s (попыток: %d)", func.__name__, attempt_count
+                    )
+                    return ret
 
         return inner
 

@@ -19,17 +19,18 @@ from pathlib import Path
 
 import pytest
 
-from parser_2gis.parallel_parser import (
-    MAX_TEMP_FILES,
-    _cleanup_all_temp_files,
-    _register_temp_file,
-    _temp_files_lock,
-    _temp_files_registry,
-    _unregister_temp_file,
+from parser_2gis.temp_file_manager import (
+    cleanup_all_temp_files,
+    register_temp_file,
+    temp_file_manager,
+    unregister_temp_file,
 )
 
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Константа для тестов
+MAX_TEMP_FILES = 1000  # Значение по умолчанию из TempFileManager
 
 
 # =============================================================================
@@ -42,13 +43,11 @@ class TestRaceConditionTempFiles:
 
     def setup_method(self):
         """Очистка реестра временных файлов перед каждым тестом."""
-        with _temp_files_lock:
-            _temp_files_registry.clear()
+        temp_file_manager._registry.clear()
 
     def teardown_method(self):
         """Очистка реестра временных файлов после каждого теста."""
-        with _temp_files_lock:
-            _temp_files_registry.clear()
+        temp_file_manager._registry.clear()
 
     def test_atomic_temp_file_creation(self):
         """
@@ -64,17 +63,17 @@ class TestRaceConditionTempFiles:
 
         try:
             # Регистрируем файл
-            _register_temp_file(temp_path)
+            register_temp_file(temp_path)
 
             # Проверяем что файл зарегистрирован
-            with _temp_files_lock:
-                assert temp_path in _temp_files_registry, (
+            with temp_file_manager._lock:
+                assert temp_path in temp_file_manager._registry, (
                     "Временный файл должен быть зарегистрирован"
                 )
-                assert len(_temp_files_registry) == 1, "В реестре должен быть один файл"
+                assert len(temp_file_manager._registry) == 1, "В реестре должен быть один файл"
         finally:
             # Очищаем
-            _temp_files_registry.clear()
+            temp_file_manager._registry.clear()
             if temp_path.exists():
                 temp_path.unlink()
 
@@ -93,18 +92,18 @@ class TestRaceConditionTempFiles:
                     temp_path = Path(tmp.name)
                     tmp.write(f"test data {i}".encode())
                     temp_files.append(temp_path)
-                    _register_temp_file(temp_path)
+                    register_temp_file(temp_path)
 
             # Проверяем что все файлы зарегистрированы
-            with _temp_files_lock:
-                assert len(_temp_files_registry) == 3, "В реестре должно быть 3 файла"
+            with temp_file_manager._lock:
+                assert len(temp_file_manager._registry) == 3, "В реестре должно быть 3 файла"
 
             # Очищаем все файлы
-            _cleanup_all_temp_files()
+            cleanup_all_temp_files()
 
             # Проверяем что реестр очищен
-            with _temp_files_lock:
-                assert len(_temp_files_registry) == 0, "Реестр должен быть очищен"
+            with temp_file_manager._lock:
+                assert len(temp_file_manager._registry) == 0, "Реестр должен быть очищен"
 
             # Проверяем что файлы удалены
             for temp_path in temp_files:
@@ -112,7 +111,7 @@ class TestRaceConditionTempFiles:
 
         finally:
             # Гарантированная очистка
-            _temp_files_registry.clear()
+            temp_file_manager._registry.clear()
             for temp_path in temp_files:
                 if temp_path.exists():
                     temp_path.unlink()
@@ -136,7 +135,7 @@ class TestRaceConditionTempFiles:
                 with tempfile.NamedTemporaryFile(delete=False) as tmp:
                     temp_path = Path(tmp.name)
                     tmp.write(f"thread {thread_id} file {i}".encode())
-                    _register_temp_file(temp_path)
+                    register_temp_file(temp_path)
                     thread_files.append(temp_path)
 
             with lock:
@@ -156,9 +155,9 @@ class TestRaceConditionTempFiles:
 
             # Проверяем что все файлы зарегистрированы
             _expected_count = num_threads * files_per_thread
-            with _temp_files_lock:
+            with temp_file_manager._lock:
                 # Из-за LRU eviction количество может быть меньше MAX_TEMP_FILES
-                actual_count = len(_temp_files_registry)
+                actual_count = len(temp_file_manager._registry)
                 # Проверяем что реестр не пуст и не превышает лимит
                 assert actual_count > 0, "Реестр не должен быть пустым"
                 assert actual_count <= MAX_TEMP_FILES, (
@@ -173,8 +172,8 @@ class TestRaceConditionTempFiles:
 
         finally:
             # Очищаем
-            _cleanup_all_temp_files()
-            _temp_files_registry.clear()
+            cleanup_all_temp_files()
+            temp_file_manager._registry.clear()
 
     def test_lru_eviction_on_limit(self):
         """
@@ -189,17 +188,17 @@ class TestRaceConditionTempFiles:
                 with tempfile.NamedTemporaryFile(delete=False) as tmp:
                     temp_path = Path(tmp.name)
                     temp_files.append(temp_path)
-                    _register_temp_file(temp_path)
+                    register_temp_file(temp_path)
 
             # Проверяем что реестр не превышает лимит
-            with _temp_files_lock:
-                assert len(_temp_files_registry) <= MAX_TEMP_FILES, (
+            with temp_file_manager._lock:
+                assert len(temp_file_manager._registry) <= MAX_TEMP_FILES, (
                     f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
                 )
 
         finally:
-            _cleanup_all_temp_files()
-            _temp_files_registry.clear()
+            cleanup_all_temp_files()
+            temp_file_manager._registry.clear()
             for f in temp_files:
                 if f.exists():
                     f.unlink()
@@ -395,7 +394,7 @@ class TestFileHandlingIntegration:
                 for i in range(10):
                     with tempfile.NamedTemporaryFile(delete=False) as tmp:
                         temp_path = Path(tmp.name)
-                        _register_temp_file(temp_path)
+                        register_temp_file(temp_path)
                         temp_files.append(temp_path)
 
                         with lock:
@@ -404,7 +403,7 @@ class TestFileHandlingIntegration:
                         time.sleep(0.001)  # Небольшая задержка
 
                     # Сразу unregister
-                    _unregister_temp_file(temp_path)
+                    unregister_temp_file(temp_path)
                     with lock:
                         operations.append(f"thread_{thread_id}_unregister_{i}")
             finally:
@@ -423,14 +422,14 @@ class TestFileHandlingIntegration:
                 t.join()
 
             # Проверяем что реестр пуст после завершения
-            with _temp_files_lock:
-                assert len(_temp_files_registry) == 0, (
+            with temp_file_manager._lock:
+                assert len(temp_file_manager._registry) == 0, (
                     "Реестр должен быть пуст после завершения всех потоков"
                 )
 
         finally:
-            _cleanup_all_temp_files()
-            _temp_files_registry.clear()
+            cleanup_all_temp_files()
+            temp_file_manager._registry.clear()
 
     def test_concurrent_csv_operations(self):
         """

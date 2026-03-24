@@ -6,6 +6,9 @@
 
 from __future__ import annotations
 
+import os
+import unicodedata
+import urllib.parse
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -32,23 +35,63 @@ def _validate_path_traversal(file_path: str) -> Path:
     if not file_path:
         raise ValueError("Путь к файлу не может быть пустым")
 
-    resolved_path = Path(file_path).resolve()
+    # Шаг 1: URL-decode проверка перед валидацией для обнаружения encoded атак
+    try:
+        decoded_path = urllib.parse.unquote(file_path)
+        # Проверяем на наличие %2e%2e и другие encoded символы
+        if decoded_path != file_path:
+            # Путь был encoded - проверяем его на опасные паттерны
+            dangerous_encoded_patterns = ["%2e%2e", "%2f", "%5c", "%00", "%25"]
+            for pattern in dangerous_encoded_patterns:
+                if pattern.lower() in file_path.lower():
+                    raise ValueError(
+                        f"Path traversal атака обнаружена: {file_path}. "
+                        f"Обнаружен encoded опасный паттерн: {pattern}"
+                    )
+    except (ValueError, TypeError, UnicodeDecodeError) as decode_error:
+        raise ValueError(f"Некорректный путь к файлу: {file_path}") from decode_error
 
+    # Шаг 2: Unicode normalization для предотвращения атак через unicode
+    try:
+        normalized_path = unicodedata.normalize("NFC", decoded_path)
+    except (ValueError, TypeError, UnicodeDecodeError) as unicode_error:
+        raise ValueError(f"Некорректный Unicode в пути к файлу: {file_path}") from unicode_error
+
+    # Шаг 3: Проверка на опасные паттерны в нормализованном пути
+    dangerous_patterns = {"..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"}
+    for pattern in dangerous_patterns:
+        if pattern in normalized_path:
+            if ".." in pattern:
+                raise ValueError(
+                    f"Path traversal атака обнаружена: {file_path}. "
+                    "Символы '..' не допускаются в пути к файлу."
+                )
+            raise ValueError(f"Path содержит запрещённый символ: {pattern!r} в пути {file_path}")
+
+    # Шаг 4: Резолвинг symlink через os.path.realpath
+    try:
+        resolved_path = Path(normalized_path).resolve()
+        # Используем realpath для резолвинга всех symlink
+        resolved_path = Path(os.path.realpath(str(resolved_path)))
+    except (OSError, RuntimeError) as resolve_error:
+        raise ValueError(f"Ошибка разрешения пути: {file_path}") from resolve_error
+
+    # Шаг 5: Проверка что путь абсолютный
     if not resolved_path.is_absolute():
         raise ValueError(
             f"Относительные пути не поддерживаются: {file_path}. Используйте абсолютные пути."
         )
 
+    # Шаг 6: Дополнительная проверка частей пути
     path_parts = resolved_path.parts
-    dangerous_patterns = {"..", "~", "$"}
     for part in path_parts:
-        if any(pattern in str(part) for pattern in dangerous_patterns):
-            if ".." in str(part):
-                raise ValueError(
-                    f"Path traversal атака обнаружена: {file_path}. "
-                    "Символы '..' не допускаются в пути к файлу."
-                )
+        if ".." in str(part):
+            raise ValueError(
+                f"Path traversal атака обнаружена: {file_path}. "
+                f"Символы '..' найдены в части пути: {part}"
+            )
 
+    # Шаг 7: Проверка возможности создания директории
     try:
         resolved_path.parent.mkdir(parents=True, exist_ok=True)
     except (PermissionError, OSError) as e:

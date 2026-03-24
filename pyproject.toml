@@ -24,6 +24,12 @@ exclude = [
     ".benchmarks",
 ]
 
+[tool.ruff.lint]
+# Игнорируемые правила
+ignore = [
+    "PLC2801",  # unnecessary-ellipsis - используется в Protocol классах
+]
+
 [tool.ruff.format]
 # Настройки форматирования ruff
 # Синхронизировано с black
