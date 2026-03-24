@@ -49,7 +49,9 @@ def validate_env_int(
         >>> validate_env_int("PARSER_MAX_WORKERS", default=10, min_value=1, max_value=20)
         10
     """
-    from .logger.logger import logger as app_logger
+    import logging
+
+    logger = logging.getLogger("parser_2gis.constants")
 
     value_str = os.getenv(env_name)
 
@@ -61,7 +63,7 @@ def validate_env_int(
 
     # Проверяем минимальное значение
     if min_value is not None and value < min_value:
-        app_logger.warning(
+        logger.warning(
             "ENV переменная %s=%d меньше минимального значения %d. Используется %d",
             env_name,
             value,
@@ -72,7 +74,7 @@ def validate_env_int(
 
     # Проверяем максимальное значение
     if max_value is not None and value > max_value:
-        app_logger.warning(
+        logger.warning(
             "ENV переменная %s=%d больше максимального значения %d. Используется %d",
             env_name,
             value,
@@ -218,7 +220,7 @@ MERGE_LOCK_TIMEOUT: int = 300
 # - 5 минут - 5x запас на случай медленных дисков/больших файлов
 # - Lock файлы старше считаются осиротевшими (процесс упал)
 # - Баланс между защитой от race condition и очисткой мусора
-MAX_LOCK_FILE_AGE: int = 300
+MAX_LOCK_FILE_AGE: int = validate_env_int("PARSER_MAX_LOCK_FILE_AGE", 300, 60, 3600)
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ БУФЕРИЗАЦИИ

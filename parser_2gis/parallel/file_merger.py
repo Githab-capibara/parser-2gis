@@ -41,11 +41,6 @@ MERGE_LOCK_TIMEOUT_LOCAL: int = validate_env_int(
     "PARSER_MERGE_LOCK_TIMEOUT", default=300, min_value=60, max_value=3600
 )
 
-# Максимальный возраст lock файла в секундах
-MAX_LOCK_FILE_AGE_LOCAL: int = validate_env_int(
-    "PARSER_MAX_LOCK_FILE_AGE", default=300, min_value=60, max_value=3600
-)
-
 
 def _acquire_merge_lock(
     lock_file_path: Path,
@@ -392,5 +387,4 @@ __all__ = [
     "MERGE_BUFFER_SIZE_LOCAL",
     "MERGE_BATCH_SIZE_LOCAL",
     "MERGE_LOCK_TIMEOUT_LOCAL",
-    "MAX_LOCK_FILE_AGE_LOCAL",
 ]

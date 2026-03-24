@@ -18,6 +18,8 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional
 
+from parser_2gis.constants import MAX_PATH_LENGTH
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,7 +42,7 @@ class PathValidator:
     _FORBIDDEN_CHARS: List[str] = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
 
     # Максимальная длина пути для предотвращения переполнения буфера
-    _MAX_PATH_LENGTH: int = 4096
+    _MAX_PATH_LENGTH: int = MAX_PATH_LENGTH
 
     # Разрешённые базовые директории для записи
     _ALLOWED_BASE_DIRS: List[Path] = [

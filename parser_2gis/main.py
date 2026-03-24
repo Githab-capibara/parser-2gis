@@ -25,6 +25,12 @@ from .cache import CacheManager
 from .chrome.remote import ChromeRemote
 from .common import report_from_validation_error, unwrap_dot_dict
 from .config import Configuration
+from .constants import (
+    MAX_CITIES_COUNT,
+    MAX_CITIES_FILE_SIZE,
+    MAX_PATH_LENGTH,
+    MMAP_CITIES_THRESHOLD,
+)
 from .data.categories_93 import CATEGORIES_93
 from .logger import log_parser_start, logger, setup_cli_logger
 from .paths import cache_path, data_path
@@ -226,9 +232,6 @@ def _handle_configuration_validation(
 # Запрещённые символы в путях для предотвращения path traversal атак
 _FORBIDDEN_PATH_CHARS = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
 
-# Максимальная длина пути для предотвращения переполнения буфера
-_MAX_PATH_LENGTH = 4096
-
 # Разрешённые базовые директории для записи
 # ОБОСНОВАНИЕ: Используем tempfile.gettempdir() вместо hardcoded /tmp для кроссплатформенности
 # - Unix: /tmp
@@ -258,9 +261,9 @@ def _validate_path_safety(path: str, path_name: str = "Путь") -> None:
         return
 
     # Проверка длины пути
-    if len(path) > _MAX_PATH_LENGTH:
+    if len(path) > MAX_PATH_LENGTH:
         raise ValueError(
-            f"{path_name} превышает максимальную длину ({len(path)} > {_MAX_PATH_LENGTH})"
+            f"{path_name} превышает максимальную длину ({len(path)} > {MAX_PATH_LENGTH})"
         )
 
     # Проверка на запрещённые символы
@@ -577,20 +580,6 @@ def cleanup_resources() -> None:
 # =============================================================================
 # КОНСТАНТЫ БЕЗОПАСНОСТИ ДЛЯ ЗАГРУЗКИ ГОРОДОВ
 # =============================================================================
-
-# Максимальный размер файла городов в байтах (10 MB)
-# ОБОСНОВАНИЕ: 10MB достаточно для хранения ~5000 городов с метаданными
-# Защита от DoS атак через загрузку чрезмерно больших файлов
-MAX_CITIES_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
-
-# Максимальное количество городов для парсинга
-# ОБОСНОВАНИЕ: 1000 городов - разумный предел для одного сеанса парсинга
-# Превышение может привести к чрезмерному времени выполнения и потреблению ресурсов
-MAX_CITIES_COUNT: int = 1000
-
-# Порог использования mmap для больших файлов (1 MB)
-# Файлы больше этого размера будут читаться через mmap для оптимизации памяти
-MMAP_CITIES_THRESHOLD: int = 1 * 1024 * 1024  # 1 MB
 
 
 @lru_cache(maxsize=16)

@@ -1073,11 +1073,11 @@ class ParallelCityParser:
             return dict(self._stats)
 
 
-class ParallelCityParserThread(ParallelCityParser, threading.Thread):
+class ParallelCityParserThread:
     """
     Поток для параллельного парсинга городов.
 
-    Наследуется от ParallelCityParser и threading.Thread для запуска в отдельном потоке.
+    Использует композицию вместо наследования для избежания проблем с MRO.
     """
 
     def __init__(
@@ -1090,19 +1090,28 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
         timeout_per_url: int = DEFAULT_TIMEOUT,
         output_file: Optional[str] = None,
     ) -> None:
-        ParallelCityParser.__init__(
-            self, cities, categories, output_dir, config, max_workers, timeout_per_url
+        self._parser = ParallelCityParser(
+            cities, categories, output_dir, config, max_workers, timeout_per_url
         )
         threading.Thread.__init__(self)
 
         self._result: Optional[bool] = None
         self._output_file = output_file
 
+    @property
+    def output_dir(self) -> Path:
+        """Проксирует доступ к output_dir парсера."""
+        return self._parser.output_dir
+
+    def log(self, message: str, level: str = "info") -> None:
+        """Проксирует доступ к методу log парсера."""
+        self._parser.log(message, level)
+
     def run(self) -> None:  # type: ignore[override]
         """Точка входа потока."""
         try:
             output_file = self._output_file or str(self.output_dir / "merged_result.csv")
-            self._result = ParallelCityParser.run(self, output_file=output_file)
+            self._result = self._parser.run(output_file=output_file)
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             self.log(f"Ошибка в потоке параллельного парсинга: {e}", "error")
             self._result = False

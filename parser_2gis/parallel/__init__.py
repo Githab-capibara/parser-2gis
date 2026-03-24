@@ -12,8 +12,17 @@
 - options.py: Опции параллельного парсинга
 """
 
+# Ре-экспорт констант из constants.py для обратной совместимости
+from parser_2gis.constants import (
+    DEFAULT_TIMEOUT,
+    MAX_LOCK_FILE_AGE,
+    MAX_TIMEOUT,
+    MAX_WORKERS,
+    MIN_TIMEOUT,
+    MIN_WORKERS,
+)
+
 from .file_merger import (
-    MAX_LOCK_FILE_AGE_LOCAL,
     MERGE_LOCK_TIMEOUT_LOCAL,
     _acquire_merge_lock,
     _cleanup_source_files,
@@ -38,18 +47,7 @@ from .temp_file_timer import (
     _TempFileTimer,
 )
 
-# Ре-экспорт констант из constants.py для обратной совместимости
-from parser_2gis.constants import (
-    DEFAULT_TIMEOUT,
-    MAX_TIMEOUT,
-    MAX_WORKERS,
-    MIN_TIMEOUT,
-    MIN_WORKERS,
-)
-
-# Переименовываем для экспорта с ожидаемыми именами
 MERGE_LOCK_TIMEOUT = MERGE_LOCK_TIMEOUT_LOCAL
-MAX_LOCK_FILE_AGE = MAX_LOCK_FILE_AGE_LOCAL
 
 # Экспорт основного API для обратной совместимости
 __all__ = [

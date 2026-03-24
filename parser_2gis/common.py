@@ -25,7 +25,7 @@ from pydantic import ValidationError
 # =============================================================================
 # ПЕРЕЭКСПОРТ КОНСТАНТ ИЗ constants.py ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ
 # =============================================================================
-from .constants import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE
+from .constants import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, MAX_COLLECTION_SIZE, MERGE_BATCH_SIZE
 
 # =============================================================================
 # ПЕРЕЭКСПОРТ ИЗ utils ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ
@@ -73,6 +73,7 @@ __all__ = [
     "DEFAULT_BUFFER_SIZE",
     "CSV_BATCH_SIZE",
     "MERGE_BATCH_SIZE",
+    "MAX_COLLECTION_SIZE",
     # Константы polling
     "DEFAULT_POLL_INTERVAL",
     "MAX_POLL_INTERVAL",

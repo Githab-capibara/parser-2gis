@@ -250,9 +250,10 @@ Exception
 - `test_architecture_integrity.py` - Целостность архитектуры (7 тестов)
 - `test_architecture_layers.py` - Слои архитектуры (19 тестов)
 - `test_cyclic_dependencies.py` - Циклические зависимости
+- `test_architecture_constraints.py` - Архитектурные ограничения (11 тестов)
 
 ### Покрытие
-- 1409 автоматических тестов
+- 1418 автоматических тестов
 - 85%+ покрытие кода
 - Unit, integration, architecture tests
 
