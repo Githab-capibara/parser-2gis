@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, NonNegativeInt, PositiveInt
 
-from ..chrome.options import default_memory_limit
-from ..common import floor_to_hundreds
+from parser_2gis.chrome.options import default_memory_limit
+from parser_2gis.common import floor_to_hundreds
 
 
 def default_max_records() -> int:

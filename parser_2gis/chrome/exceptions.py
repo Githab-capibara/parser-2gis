@@ -21,7 +21,7 @@ from pychrome.exceptions import (
 # Импортируем BaseContextualException внутри класса для избежания циклических зависимостей
 def _get_base_exception() -> type:
     """Получает базовый класс исключения лениво."""
-    from ..exceptions import BaseContextualException
+    from parser_2gis.exceptions import BaseContextualException
 
     return BaseContextualException
 

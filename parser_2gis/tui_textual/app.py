@@ -17,9 +17,10 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Footer, Header
 
-from ..config import Configuration
-from ..data.categories_93 import CATEGORIES_93
-from ..parallel_parser import ParallelCityParser
+from parser_2gis.config import Configuration
+from parser_2gis.data.categories_93 import CATEGORIES_93
+from parser_2gis.parallel_parser import ParallelCityParser
+
 from .screens import (
     AboutScreen,
     BrowserSettingsScreen,

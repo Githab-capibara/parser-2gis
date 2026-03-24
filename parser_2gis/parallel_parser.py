@@ -22,10 +22,10 @@ import threading
 import time
 import uuid
 import weakref
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from .common import DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE, generate_category_url
 from .constants import DEFAULT_TIMEOUT, MAX_TIMEOUT, MAX_WORKERS, MIN_TIMEOUT, MIN_WORKERS
@@ -2090,3 +2090,36 @@ class ParallelCityParserThread(ParallelCityParser, threading.Thread):
     def get_result(self) -> Optional[bool]:
         """Возвращает результат парсинга."""
         return self._result
+
+
+# Ре-экспорт для обратной совместимости с тестами
+from .temp_file_manager import temp_file_manager
+
+_temp_files_lock = temp_file_manager._lock
+_temp_files_registry = temp_file_manager._registry
+
+
+def _register_temp_file(file_path: Path) -> None:
+    """Регистрирует временный файл для отслеживания."""
+    temp_file_manager.register(file_path)
+
+
+def _unregister_temp_file(file_path: Path) -> None:
+    """Удаляет временный файл из реестра."""
+    temp_file_manager.unregister(file_path)
+
+
+def _cleanup_all_temp_files() -> None:
+    """Очищает все временные файлы."""
+    temp_file_manager.cleanup_all()
+
+
+__all__ = [
+    "ParallelCityParser",
+    "ParallelCityParserThread",
+    "_temp_files_lock",
+    "_temp_files_registry",
+    "_register_temp_file",
+    "_unregister_temp_file",
+    "_cleanup_all_temp_files",
+]

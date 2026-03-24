@@ -14,7 +14,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from ...logger import logger
+from parser_2gis.logger import logger
+
 from .address import Address
 from .adm_div_item import AdmDivItem
 from .contact_group import ContactGroup

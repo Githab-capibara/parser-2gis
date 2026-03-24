@@ -9,7 +9,8 @@
 - Функции настройки: setup_logger, setup_cli_logger, setup_gui_logger
 """
 
-from ..chrome.file_handler import FileLogger
+from parser_2gis.chrome.file_handler import FileLogger
+
 from .logger import (
     Logger,
     QueueHandler,

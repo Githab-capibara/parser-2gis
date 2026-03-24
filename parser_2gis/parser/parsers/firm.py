@@ -12,11 +12,12 @@ import re
 import sys
 from typing import TYPE_CHECKING, Any, Dict, Optional, Set
 
-from ...logger import logger
+from parser_2gis.logger import logger
+
 from .main import MainParser
 
 if TYPE_CHECKING:
-    from ...writer import FileWriter
+    from parser_2gis.writer import FileWriter
 
 MAX_INITIAL_STATE_DEPTH = 10
 MAX_INITIAL_STATE_SIZE = 5 * 1024 * 1024

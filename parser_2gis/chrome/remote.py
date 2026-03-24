@@ -40,8 +40,9 @@ except ImportError:
     RequestException = Exception  # type: ignore[misc, assignment]
 from websocket import WebSocketException
 
-from ..common import wait_until_finished
-from ..logger.logger import logger as app_logger
+from parser_2gis.common import wait_until_finished
+from parser_2gis.logger.logger import logger as app_logger
+
 from .browser import ChromeBrowser
 from .constants import CHROME_STARTUP_DELAY  # L4: магические числа вынесены в константы
 from .constants import MAX_JS_CODE_LENGTH  # L4: магические числа вынесены в константы

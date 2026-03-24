@@ -8,11 +8,11 @@
 - Блокировка temp_file_manager корректно работает
 """
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import List
 
 import pytest
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from parser_2gis.temp_file_manager import (
     cleanup_all_temp_files,

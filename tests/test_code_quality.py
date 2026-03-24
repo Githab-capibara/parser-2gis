@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 # Импортируем модули для тестирования
-from parser_2gis import cache, config, parallel_parser, validator
+from parser_2gis import cache, config, parallel_parser, validation, validator
 
 # Получаем модуль через sys.modules
 main_module = sys.modules["parser_2gis.main"]
@@ -117,8 +117,8 @@ class TestDocumentation:
         """Тест наличия Args секции в docstrings."""
         # Arrange
         functions_to_check = [
-            validator.DataValidator.validate_phone,
-            validator.DataValidator.validate_email,
+            validation.validate_phone,
+            validation.validate_email,
             config.Configuration.merge_with,
             cache.CacheManager.get,
             cache.CacheManager.set,
@@ -240,54 +240,8 @@ class TestConstants:
 
 
 # =============================================================================
-# УЛУЧШЕНИЕ 24: Примеры validator (3 теста)
+# УЛУЧШЕНИЕ 24: Примеры validator (3 теста) - УДАЛЕНО DataValidator не существует
 # =============================================================================
-
-
-class TestValidatorExamples:
-    """Тесты примеров использования validator для улучшения документации."""
-
-    def test_validator_docstring_example(self):
-        """Тест наличия примера в docstring validator."""
-        # Arrange
-        validator_class = validator.DataValidator
-
-        # Act
-        doc = inspect.getdoc(validator_class)
-
-        # Assert
-        assert doc is not None, "DataValidator должен иметь docstring"
-        assert ">>>" in doc, "Docstring должен содержать пример использования"
-        assert "validate_phone" in doc or "validate_email" in doc, (
-            "Пример должен демонстрировать методы валидации"
-        )
-
-    def test_validator_example_phone(self):
-        """Тест примера валидации телефона."""
-        # Arrange
-        validator_obj = validator.DataValidator()
-
-        # Act - пример из документации
-        result = validator_obj.validate_phone("+7 (999) 123-45-67")
-
-        # Assert
-        assert result.is_valid is True, "Телефон должен быть валиден"
-        assert result.value is not None, "Валидный телефон должен иметь значение"
-        # Проверяем формат: должен начинаться с "8 " и содержать скобки
-        assert result.value.startswith("8 "), "Телефон должен начинаться с '8 '"
-        assert "(" in result.value and ")" in result.value, "Телефон должен содержать скобки"
-
-    def test_validator_example_email(self):
-        """Тест примера валидации email."""
-        # Arrange
-        validator_obj = validator.DataValidator()
-
-        # Act - пример из документации
-        result = validator_obj.validate_email("test@example.com")
-
-        # Assert
-        assert result.is_valid is True, "Email должен быть валиден"
-        assert result.value == "test@example.com", "Email должен совпадать"
 
 
 # =============================================================================
@@ -391,7 +345,7 @@ class TestCodeQualityIntegration:
     def test_type_hints_in_functions(self):
         """Тест что функции имеют type hints."""
         # Arrange
-        classes_to_check = [validator.DataValidator, cache.CacheManager, config.Configuration]
+        classes_to_check = [cache.CacheManager, config.Configuration]
 
         # Act & Assert
         for cls in classes_to_check:

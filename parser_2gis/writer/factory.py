@@ -7,10 +7,11 @@
 from __future__ import annotations
 
 import os
-import unicodedata
 import urllib.parse
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import unicodedata
 
 from .exceptions import WriterUnknownFileFormat
 from .writers import CSVWriter, JSONWriter, XLSXWriter

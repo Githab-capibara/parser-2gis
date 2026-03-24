@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 # Импортируем базовый класс на верхнем уровне
-from ..exceptions import BaseContextualException
+from parser_2gis.exceptions import BaseContextualException
 
 
 class WriterUnknownFileFormat(BaseContextualException):

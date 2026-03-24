@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..config import Configuration
+    from parser_2gis.config import Configuration
 
 
 class AbstractRunner(ABC):

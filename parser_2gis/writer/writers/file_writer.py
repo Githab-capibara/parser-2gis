@@ -13,10 +13,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any, Dict, Optional
 
-from ...logger import logger
+from parser_2gis.logger import logger
 
 if TYPE_CHECKING:
-    from ..options import WriterOptions
+    from parser_2gis.writer.options import WriterOptions
 
 
 class FileWriter(ABC):

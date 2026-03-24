@@ -10,7 +10,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ...logger import logger
+from parser_2gis.logger import logger
+
 from .file_writer import FileWriter
 
 

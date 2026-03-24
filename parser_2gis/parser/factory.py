@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING
 from .parsers import FirmParser, InBuildingParser, MainParser
 
 if TYPE_CHECKING:
-    from ..chrome.options import ChromeOptions
-    from ..parser.options import ParserOptions
+    from parser_2gis.chrome.options import ChromeOptions
+    from parser_2gis.parser.options import ParserOptions
 
 _PARSER_PATTERNS: list[tuple[type, re.Pattern]] = [
     (FirmParser, re.compile(FirmParser.url_pattern())),

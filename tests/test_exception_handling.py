@@ -127,25 +127,20 @@ class TestParallelParserExceptionLogging:
         Проверяет что при merge операции временные файлы
         добавляются в реестр для последующей очистки.
         """
-        from parser_2gis.parallel_parser import _temp_files_lock, _temp_files_registry
+        from parser_2gis.temp_file_manager import temp_file_manager
 
         # Создаем тестовый файл
         temp_file = tmp_path / "temp_test.csv"
         temp_file.write_text("test")
 
-        # Регистрируем файл через внутреннюю функцию
-        from parser_2gis.parallel_parser import _register_temp_file
-
-        _register_temp_file(temp_file)
+        # Регистрируем файл через менеджер
+        temp_file_manager.register(temp_file)
 
         # Проверяем что файл в реестре
-        with _temp_files_lock:
-            assert temp_file in _temp_files_registry
+        assert temp_file in temp_file_manager._registry
 
         # Очищаем реестр
-        from parser_2gis.parallel_parser import _unregister_temp_file
-
-        _unregister_temp_file(temp_file)
+        temp_file_manager.unregister(temp_file)
 
     def test_merge_batch_write_error_handling(self, caplog, tmp_path):
         """

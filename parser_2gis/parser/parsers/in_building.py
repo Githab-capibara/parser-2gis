@@ -13,13 +13,14 @@ import json
 import re
 from typing import TYPE_CHECKING
 
-from ...common import wait_until_finished
-from ...logger import logger
+from parser_2gis.common import wait_until_finished
+from parser_2gis.logger import logger
+
 from .main import MainParser
 
 if TYPE_CHECKING:
-    from ...chrome.dom import DOMNode
-    from ...writer import FileWriter
+    from parser_2gis.chrome.dom import DOMNode
+    from parser_2gis.writer import FileWriter
 
 
 class InBuildingParser(MainParser):

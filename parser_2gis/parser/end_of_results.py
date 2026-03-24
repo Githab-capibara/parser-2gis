@@ -11,10 +11,10 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from ..logger import logger
+from parser_2gis.logger import logger
 
 if TYPE_CHECKING:
-    from ..chrome import ChromeRemote
+    from parser_2gis.chrome import ChromeRemote
 
 
 class EndOfResultsDetector:

@@ -22,9 +22,10 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, U
 import unicodedata
 from pydantic import ValidationError
 
-from ...common import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, report_from_validation_error
-from ...logger import logger
-from ..models import CatalogItem
+from parser_2gis.common import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, report_from_validation_error
+from parser_2gis.logger import logger
+from parser_2gis.writer.models import CatalogItem
+
 from .file_writer import FileWriter
 
 # =============================================================================

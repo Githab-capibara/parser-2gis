@@ -14,7 +14,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict
 
 if TYPE_CHECKING:
-    from ...writer import FileWriter
+    from parser_2gis.writer import FileWriter
 
 
 class BaseParser(ABC):

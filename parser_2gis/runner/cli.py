@@ -10,10 +10,11 @@ from __future__ import annotations
 
 import time
 
-from ..chrome.exceptions import ChromeRuntimeException, ChromeUserAbortException
-from ..logger import log_parser_finish, logger
-from ..parser import get_parser
-from ..writer import get_writer
+from parser_2gis.chrome.exceptions import ChromeRuntimeException, ChromeUserAbortException
+from parser_2gis.logger import log_parser_finish, logger
+from parser_2gis.parser import get_parser
+from parser_2gis.writer import get_writer
+
 from .runner import AbstractRunner
 
 

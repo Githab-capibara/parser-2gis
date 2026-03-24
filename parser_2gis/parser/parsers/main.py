@@ -29,16 +29,16 @@ except ImportError:
     psutil = None  # type: ignore
     PSUTIL_AVAILABLE = False
 
-from ...chrome import ChromeRemote
-from ...common import wait_until_finished
-from ...logger import logger
-from ..utils import blocked_requests
+from parser_2gis.chrome import ChromeRemote
+from parser_2gis.common import wait_until_finished
+from parser_2gis.logger import logger
+from parser_2gis.parser.utils import blocked_requests
 
 if TYPE_CHECKING:
-    from ...chrome import ChromeOptions
-    from ...chrome.dom import DOMNode
-    from ...writer import FileWriter
-    from ..options import ParserOptions
+    from parser_2gis.chrome import ChromeOptions
+    from parser_2gis.chrome.dom import DOMNode
+    from parser_2gis.parser.options import ParserOptions
+    from parser_2gis.writer import FileWriter
 
 # =============================================================================
 # КОНСТАНТЫ МОДУЛЯ ДЛЯ МАГИЧЕСКИХ ЧИСЕЛ

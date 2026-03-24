@@ -10,10 +10,10 @@
 Тесты покрывают исправления важной проблемы #8 из audit-report.md.
 """
 
-import ast
 import tempfile
 from pathlib import Path
 
+import ast
 import pytest
 
 

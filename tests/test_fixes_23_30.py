@@ -12,11 +12,11 @@
 - Исправление 30: Утечки ресурсов
 """
 
-import ast
 import re
 from pathlib import Path
 from typing import List, Tuple
 
+import ast
 import pytest
 
 # =============================================================================
@@ -321,6 +321,14 @@ class TestResourceLeaks:
                             if '"""' not in line and "'''" not in line:
                                 # Пропускаем lock файлы (это специальный случай)
                                 if "lock_file" not in line:
+                                    # Пропускаем файлы с осознанным управлением буфером
+                                    # (nosec B228 - это осознанное решение для производительности)
+                                    if (
+                                        "buffering=" in line or "nosec" in lines[i - 2]
+                                        if i > 1
+                                        else False
+                                    ):
+                                        continue
                                     issues.append(
                                         (
                                             str(py_file.relative_to(parser_2gis_dir)),

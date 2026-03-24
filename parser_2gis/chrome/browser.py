@@ -31,7 +31,8 @@ import weakref
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-from ..logger.logger import logger as app_logger
+from parser_2gis.logger.logger import logger as app_logger
+
 from .exceptions import ChromePathNotFound
 from .utils import free_port, locate_chrome_path
 

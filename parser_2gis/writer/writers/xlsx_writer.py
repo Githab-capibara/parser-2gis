@@ -14,7 +14,8 @@ import shutil
 
 from xlsxwriter.workbook import Workbook
 
-from ...logger import logger
+from parser_2gis.logger import logger
+
 from .csv_writer import CSVWriter
 
 
