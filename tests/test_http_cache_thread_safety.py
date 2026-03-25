@@ -1,8 +1,7 @@
 """Тесты для проверки потокобезопасности HTTP кэша в remote.py."""
 
-from unittest.mock import MagicMock, patch
-
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from unittest.mock import MagicMock, patch
 
 from parser_2gis.chrome.remote import _get_http_cache, _HTTPCache
 
@@ -33,7 +32,7 @@ class TestHTTPCache:
         mock_response = MagicMock()
         key = ("GET", "http://example.com", True)
 
-        with patch("parser_2gis.chrome.remote.HTTP_CACHE_TTL_SECONDS", -1):
+        with patch("parser_2gis.chrome.http_cache.HTTP_CACHE_TTL_SECONDS", -1):
             cache.set(key, mock_response)
             result = cache.get(key)
 
@@ -67,7 +66,7 @@ class TestHTTPCache:
         cache.set(("GET", "http://example1.com", True), MagicMock())
         cache.set(("GET", "http://example2.com", True), MagicMock())
 
-        with patch("parser_2gis.chrome.remote.HTTP_CACHE_TTL_SECONDS", -1):
+        with patch("parser_2gis.chrome.http_cache.HTTP_CACHE_TTL_SECONDS", -1):
             cleaned = cache.cleanup_expired()
 
         assert cleaned == 2
