@@ -19,7 +19,9 @@ from ..constants import (
     MAX_BATCH_SIZE,
     MAX_CACHE_SIZE_MB,
     MAX_CONNECTION_AGE,
+    MAX_DATA_DEPTH,
     MAX_POOL_SIZE,
+    MAX_STRING_LENGTH,
     MIN_POOL_SIZE,
     SHA256_HASH_LENGTH,
 )
@@ -30,8 +32,17 @@ from .pool import (
     _calculate_dynamic_pool_size,
     _validate_pool_env_int,
 )
-from .serializer import JsonSerializer
-from .validator import CacheDataValidator, _validate_cached_data
+from .serializer import JsonSerializer, _deserialize_json, _serialize_json
+from .validator import (
+    CacheDataValidator,
+    _check_sql_injection_patterns,
+    _normalize_unicode,
+    _validate_cached_data,
+    _validate_dict_data,
+    _validate_list_data,
+    _validate_numeric_data,
+    _validate_string_data,
+)
 
 # Для обратной совместимости с тестами
 _ConnectionPool = ConnectionPool
@@ -53,9 +64,14 @@ __all__ = [
     "_calculate_dynamic_pool_size",
     "_validate_pool_env_int",
     "_validate_cached_data",  # Для обратной совместимости с тестами
-    # Переменные
-    "_PSUTIL_AVAILABLE",
-    "psutil",  # Для тестов
+    "_check_sql_injection_patterns",  # Для обратной совместимости с тестами
+    "_normalize_unicode",  # Для обратной совместимости с тестами
+    "_deserialize_json",  # Для обратной совместимости с тестами
+    "_serialize_json",  # Для обратной совместимости с тестами
+    "_validate_dict_data",  # Для обратной совместимости с тестами
+    "_validate_list_data",  # Для обратной совместимости с тестами
+    "_validate_numeric_data",  # Для обратной совместимости с тестами
+    "_validate_string_data",  # Для обратной совместимости с тестами
     # Константы
     "DEFAULT_BATCH_SIZE",
     "MAX_CONNECTION_AGE",
@@ -66,4 +82,9 @@ __all__ = [
     "MAX_POOL_SIZE",
     "MIN_POOL_SIZE",
     "CONNECTION_MAX_AGE",
+    "MAX_DATA_DEPTH",  # Для обратной совместимости с тестами
+    "MAX_STRING_LENGTH",  # Для обратной совместимости с тестами
+    # Переменные
+    "_PSUTIL_AVAILABLE",
+    "psutil",  # Для тестов
 ]

@@ -167,3 +167,42 @@ class JsonSerializer:
         except ValueError:
             # Пробрасываем ValueError как есть (некорректная структура)
             raise
+
+
+# =============================================================================
+# ФУНКЦИИ-ОБЁРТКИ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ С ТЕСТАМИ
+# =============================================================================
+
+
+def _serialize_json(data: Dict[str, Any]) -> str:
+    """
+    Функция-обёртка для сериализации JSON (для обратной совместимости с тестами).
+
+    Args:
+        data: Данные для сериализации.
+
+    Returns:
+        JSON строка.
+
+    Raises:
+        TypeError: При ошибке сериализации данных.
+    """
+    serializer = JsonSerializer()
+    return serializer.serialize(data)
+
+
+def _deserialize_json(data: str) -> Dict[str, Any]:
+    """
+    Функция-обёртка для десериализации JSON (для обратной совместимости с тестами).
+
+    Args:
+        data: JSON строка для десериализации.
+
+    Returns:
+        Данные в виде словаря.
+
+    Raises:
+        ValueError: При ошибке десериализации.
+    """
+    serializer = JsonSerializer()
+    return serializer.deserialize(data)

@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Optional
 
 from parser_2gis.logger.logger import logger as app_logger
 
-from .constants import DEFAULT_REMOTE_DEBUGGING_PORT, SECONDS_PER_HOUR
+from .constants import SECONDS_PER_HOUR
 from .exceptions import ChromePathNotFound
 from .utils import free_port, locate_chrome_path
 

@@ -19,6 +19,8 @@ import socket
 from functools import lru_cache
 from urllib.parse import urlparse
 
+from parser_2gis.logger import logger as app_logger
+
 from .data_validator import ValidationResult
 
 # =============================================================================

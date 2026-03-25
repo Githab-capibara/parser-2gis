@@ -22,7 +22,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from parser_2gis.cache import CacheManager, _deserialize_json, _serialize_json
+from parser_2gis.cache import CacheManager
+from parser_2gis.cache.serializer import _deserialize_json, _serialize_json
 from parser_2gis.constants import MAX_DATA_DEPTH, MAX_DATA_SIZE
 from parser_2gis.utils.sanitizers import _sanitize_value
 

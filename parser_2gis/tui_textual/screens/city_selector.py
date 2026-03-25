@@ -8,6 +8,8 @@ from textual.containers import Container, Horizontal, ScrollableContainer
 from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Input, Static
 
+from parser_2gis.logger import logger as app_logger
+
 
 class CitySelectorScreen(Screen):
     """Экран выбора городов."""
