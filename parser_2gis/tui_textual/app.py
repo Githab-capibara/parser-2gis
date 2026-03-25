@@ -373,6 +373,16 @@ class TUIApp(App):
         """Показать экран парсинга."""
         self.push_screen("parsing")
 
+    def stop_parsing(self) -> None:
+        """Остановить парсинг.
+
+        Корректно останавливает фоновый процесс парсинга
+        без остановки всего приложения.
+        """
+        if self._running:
+            self._running = False
+            self.notify_user("Парсинг остановлен", level="warning")
+
     def start_parsing(self, cities: list[dict], categories: list[dict]) -> None:
         """
         Запустить парсинг.

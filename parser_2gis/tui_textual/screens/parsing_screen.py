@@ -155,7 +155,13 @@ class ParsingScreen(Screen):
         Инициализирует время начала, записывает сообщение о запуске в лог,
         получает выбранные города и категории из приложения и запускает
         процесс парсинга.
+
+        Также сбрасывает флаги для корректного повторного запуска.
         """
+        # Сбросить флаги при каждом входе на экран
+        self._stopping = False
+        self._parsing_started = False
+
         self._start_time = datetime.now()
         self._add_log("[bold green]Запуск парсинга...[/]")
 
@@ -340,8 +346,9 @@ class ParsingScreen(Screen):
         self._stopping = True
         self._add_log("[bold red]Остановка парсинга пользователем...[/]")
 
-        # Установить флаг остановки приложения
-        self.app.running = False  # type: ignore
+        # Корректная остановка парсинга через метод приложения
+        # НЕ используем self.app.running = False - это останавливает ВСЁ приложение!
+        self.app.stop_parsing()  # type: ignore
 
         # Безопасный возврат в меню после остановки
         # call_later() гарантирует что UI обновится корректно
