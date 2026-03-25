@@ -381,6 +381,15 @@ class TUIApp(App):
             cities: Список городов
             categories: Список категорий
         """
+        # Проверка что данные выбраны перед запуском
+        if not cities:
+            self.notify_user("Ошибка: не выбраны города для парсинга!", level="error")
+            return
+
+        if not categories:
+            self.notify_user("Ошибка: не выбраны категории для парсинга!", level="error")
+            return
+
         self.push_screen("parsing")
         # Запуск парсинга в фоновом режиме
         self._run_parsing(cities, categories)
@@ -397,6 +406,10 @@ class TUIApp(App):
         try:
             self._running = True
             self._started_at = datetime.now()
+
+            # Проверка флага остановки перед началом работы
+            if not self._running:
+                return
 
             config = self._config
             config.chrome.headless = True
@@ -422,6 +435,17 @@ class TUIApp(App):
             self.update_state(total_urls=total_urls)
 
             def progress_callback(success: int, failed: int, filename: str) -> None:
+                """Callback для обновления прогресса парсинга.
+
+                Args:
+                    success: Количество успешных операций
+                    failed: Количество неудачных операций
+                    filename: Имя файла вывода
+                """
+                # Проверка флага остановки во время парсинга
+                if not self._running:
+                    return
+
                 category = filename.replace(".csv", "").split("_")[-1] if "_" in filename else ""
                 self.update_state(
                     success_count=success,

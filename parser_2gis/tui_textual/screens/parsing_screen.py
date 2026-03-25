@@ -102,6 +102,8 @@ class ParsingScreen(Screen):
         """Инициализация экрана."""
         super().__init__()
         self._paused = False
+        self._stopping = False  # Флаг предотвращения повторной остановки
+        self._parsing_started = False  # Флаг запуска парсинга
         self._start_time: datetime | None = None
         self._success_count = 0
         self._error_count = 0
@@ -158,20 +160,34 @@ class ParsingScreen(Screen):
         self._add_log("[bold green]Запуск парсинга...[/]")
 
         # Получить выбранные города и категории
-        cities = self.app.get_cities()  # type: ignore
         selected_city_names = self.app.selected_cities  # type: ignore
         selected_categories = self.app.selected_categories  # type: ignore
 
+        # Отладочное логирование для диагностики
+        self._add_log(f"[dim]Выбрано городов: {len(selected_city_names)}[/]")
+        self._add_log(f"[dim]Выбрано категорий: {len(selected_categories)}[/]")
+
+        cities = self.app.get_cities()  # type: ignore
         selected_cities = [city for city in cities if city.get("name") in selected_city_names]
 
         all_categories = self.app.get_categories()  # type: ignore
         selected_cats = [cat for cat in all_categories if cat.get("name") in selected_categories]
 
-        if not selected_cities or not selected_cats:
-            self._add_log("[bold red]Ошибка: не выбраны города или категории[/]")
+        # Проверка с информативным сообщением об ошибке
+        if not selected_cities:
+            self._add_log("[bold red]Ошибка: не выбраны города для парсинга![/]")
+            self._add_log("[yellow]Выберите города в меню и попробуйте снова.[/]")
+            self.call_later(self._return_to_menu)
+            return
+
+        if not selected_cats:
+            self._add_log("[bold red]Ошибка: не выбраны категории для парсинга![/]")
+            self._add_log("[yellow]Выберите категории в меню и попробуйте снова.[/]")
+            self.call_later(self._return_to_menu)
             return
 
         # Запустить парсинг
+        self._parsing_started = True
         self.app.start_parsing(selected_cities, selected_cats)  # type: ignore
 
     def _add_log(self, message: str) -> None:
@@ -182,6 +198,14 @@ class ParsingScreen(Screen):
         """
         log_viewer = self.query_one("#log-viewer", RichLog)
         log_viewer.write(message)
+
+    def _return_to_menu(self) -> None:
+        """Вернуться в предыдущее меню.
+
+        Безопасный возврат через pop_screen() после остановки парсинга
+        или при ошибке запуска.
+        """
+        self.app.pop_screen()  # type: ignore
 
     def update_progress(
         self,
@@ -274,7 +298,11 @@ class ParsingScreen(Screen):
         elif button_id == "stop":
             self.action_stop_parsing()
         elif button_id == "home":
-            self.app.pop_screen()  # type: ignore
+            # Безопасный возврат в меню
+            if self._parsing_started and not self._stopping:
+                self._add_log("[yellow]Сначала остановите парсинг кнопкой 'Стоп'[/]")
+            else:
+                self.call_later(self._return_to_menu)
 
     def action_toggle_pause(self) -> None:
         """Переключить состояние паузы парсинга.
@@ -295,12 +323,27 @@ class ParsingScreen(Screen):
     def action_stop_parsing(self) -> None:
         """Остановить парсинг по команде пользователя.
 
-        Записывает сообщение об остановке в лог, устанавливает флаг
-        остановки приложения и возвращает на предыдущий экран.
+        Корректная остановка с защитой от повторного вызова.
+        Использует call_later() для безопасного переключения экранов.
         """
+        # Защита от повторного вызова
+        if self._stopping:
+            return
+
+        # Проверка что парсинг действительно запущен
+        if not self._parsing_started:
+            self._add_log("[yellow]Парсинг ещё не запущен[/]")
+            return
+
+        self._stopping = True
         self._add_log("[bold red]Остановка парсинга пользователем...[/]")
+
+        # Установить флаг остановки приложения
         self.app.running = False  # type: ignore
-        self.app.pop_screen()  # type: ignore
+
+        # Безопасный возврат в меню после остановки
+        # call_later() гарантирует что UI обновится корректно
+        self.call_later(self._return_to_menu)
 
     def on_parsing_complete(self, success: bool) -> None:
         """Обработать завершение парсинга.
