@@ -35,12 +35,12 @@ class AbstractRunner(ABC):
     @abstractmethod
     def start(self) -> None:
         """Запускает процесс парсинга."""
-        ...
+        pass
 
     @abstractmethod
     def stop(self) -> None:
         """Останавливает процесс парсинга."""
-        ...
+        pass
 
 
 class GUIRunner(AbstractRunner):

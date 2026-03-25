@@ -22,10 +22,10 @@ import threading
 import time
 import typing
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
-
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from parser_2gis.common import MERGE_BATCH_SIZE
 from parser_2gis.constants import (
@@ -1090,10 +1090,13 @@ class ParallelCityParserThread:
         timeout_per_url: int = DEFAULT_TIMEOUT,
         output_file: Optional[str] = None,
     ) -> None:
+        # Инициализация базового класса Thread
+        super().__init__()
+
+        # Инициализация парсера (композиция)
         self._parser = ParallelCityParser(
             cities, categories, output_dir, config, max_workers, timeout_per_url
         )
-        threading.Thread.__init__(self)
 
         self._result: Optional[bool] = None
         self._output_file = output_file
