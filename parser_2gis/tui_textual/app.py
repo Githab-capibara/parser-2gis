@@ -390,6 +390,7 @@ class TUIApp(App):
             self.notify_user("Ошибка: не выбраны категории для парсинга!", level="error")
             return
 
+        # Сначала открываем экран парсинга, потом запускаем процесс
         self.push_screen("parsing")
         # Запуск парсинга в фоновом режиме
         self._run_parsing(cities, categories)
@@ -454,8 +455,16 @@ class TUIApp(App):
                     current_record=success + failed,
                 )
 
+                # Дополнительная проверка флага остановки после обновления состояния
+                if not self._running:
+                    return
+
             output_file = f"Омск_парсинг_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
             result = parser.run(output_file=output_file, progress_callback=progress_callback)
+
+            # Проверка флага остановки после завершения парсинга
+            if not self._running:
+                return
 
             self._running = False
             self.call_from_thread(self._parsing_complete, result)

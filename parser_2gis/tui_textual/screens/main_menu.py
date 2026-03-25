@@ -152,6 +152,16 @@ class MainMenuScreen(Screen):
         button_id = event.button.id
 
         if button_id == "start-parsing":
+            # Проверка что выбраны города и категории
+            if not self.app.selected_cities:  # type: ignore
+                self.app.notify("❌ Сначала выберите города в меню '📁 Выбрать города'", timeout=5)  # type: ignore
+                return
+            if not self.app.selected_categories:  # type: ignore
+                self.app.notify(
+                    "❌ Сначала выберите категории в меню '📂 Выбрать категории'", timeout=5
+                )  # type: ignore
+                return
+            # Только если оба списка не пустые - открывать экран парсинга
             self.app.push_screen("parsing")
         elif button_id == "select-cities":
             self.app.push_screen("city_selector")

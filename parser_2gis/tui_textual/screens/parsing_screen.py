@@ -332,7 +332,9 @@ class ParsingScreen(Screen):
 
         # Проверка что парсинг действительно запущен
         if not self._parsing_started:
-            self._add_log("[yellow]Парсинг ещё не запущен[/]")
+            # Если парсинг ещё не начался - просто вернуться в меню без установки флага остановки
+            self._add_log("[dim]Парсинг ещё не запущен, возврат в меню[/]")
+            self.call_later(self._return_to_menu)
             return
 
         self._stopping = True
