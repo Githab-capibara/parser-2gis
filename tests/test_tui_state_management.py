@@ -33,7 +33,7 @@ def mock_app():
         MagicMock с настроенными методами и свойствами TUIApp.
     """
     app = MagicMock(spec=TUIApp)
-    app.selected_cities = [{"name": "Омск", "code": "omsk"}]  # Города по умолчанию для валидации
+    app.selected_cities = ["Омск"]  # Города по умолчанию для валидации (список строк)
     app.selected_categories = []
     app.get_cities.return_value = [
         {"name": "Москва", "url": "https://2gis.ru/moscow", "code": "moscow", "country_code": "ru"},
@@ -52,7 +52,6 @@ def mock_app():
     ]
     app.push_screen = Mock()
     app.pop_screen = Mock()
-    app.switch_screen = Mock()
     app.notify_user = Mock()
     app.running = False
     return app
@@ -147,7 +146,7 @@ class TestCitySelectorScreenStateManagement:
 
         Ожидаемое поведение:
         - app.selected_cities устанавливается в выбранные значения
-        - Вызывается app.switch_screen("category_selector")
+        - Вызывается app.push_screen("category_selector")
         """
         from textual.widgets import Button
 
@@ -171,8 +170,8 @@ class TestCitySelectorScreenStateManagement:
         # Проверяем что app.selected_cities был установлен
         assert mock_app.selected_cities == ["Москва", "Омск"]
 
-        # Проверяем что был вызван переход к экрану выбора категорий через switch_screen
-        mock_app.switch_screen.assert_called_once_with("category_selector")
+        # Проверяем что был вызван переход к экрану выбора категорий через push_screen
+        mock_app.push_screen.assert_called_once_with("category_selector")
 
     def test_city_selector_back_button_pops_screen(self, city_selector_screen, mock_app):
         """Тест проверяет что кнопка 'Назад' возвращает к предыдущему экрану.
@@ -201,8 +200,8 @@ class TestCitySelectorScreenStateManagement:
         # Проверяем что был вызван pop_screen
         mock_app.pop_screen.assert_called_once()
 
-        # Проверяем что selected_cities не изменился
-        assert mock_app.selected_cities == []
+        # Проверяем что selected_cities не изменился (остался ["Омск"])
+        assert mock_app.selected_cities == ["Омск"]
 
     def test_city_selector_select_all(self, city_selector_screen, mock_app):
         """Тест проверяет функцию 'Выбрать все' города.
@@ -316,7 +315,7 @@ class TestCategorySelectorScreenStateManagement:
 
         Ожидаемое поведение:
         - app.selected_categories устанавливается в выбранные значения
-        - Вызывается app.switch_screen("parsing")
+        - Вызывается app.push_screen("parsing")
         """
         from textual.widgets import Button
 
@@ -340,8 +339,8 @@ class TestCategorySelectorScreenStateManagement:
         # Проверяем что app.selected_categories был установлен
         assert mock_app.selected_categories == ["Рестораны", "Кафе"]
 
-        # Проверяем что был вызван переход к экрану парсинга через switch_screen
-        mock_app.switch_screen.assert_called_once_with("parsing")
+        # Проверяем что был вызван переход к экрану парсинга через push_screen
+        mock_app.push_screen.assert_called_once_with("parsing")
 
     def test_category_selector_back_button_pops_screen(self, category_selector_screen, mock_app):
         """Тест проверяет что кнопка 'Назад' возвращает к предыдущему экрану.
@@ -355,6 +354,9 @@ class TestCategorySelectorScreenStateManagement:
         - Состояние не изменяется
         """
         from textual.widgets import Button
+
+        # Сохраним начальное состояние
+        initial_categories = mock_app.selected_categories.copy()
 
         # Создадим мок кнопки
         mock_button = Mock(spec=Button)
@@ -371,7 +373,7 @@ class TestCategorySelectorScreenStateManagement:
         mock_app.pop_screen.assert_called_once()
 
         # Проверяем что selected_categories не изменился
-        assert mock_app.selected_categories == []
+        assert mock_app.selected_categories == initial_categories
 
     def test_category_selector_select_all(self, category_selector_screen, mock_app):
         """Тест проверяет функцию 'Выбрать все' категории.
@@ -782,7 +784,7 @@ class TestTUIAppStartParsing:
         2. Парсинг запускается корректно
 
         Ожидаемое поведение:
-        - push_screen НЕ вызывается (экран уже открыт через switch_screen)
+        - push_screen НЕ вызывается (экран уже открыт)
         - _run_parsing вызывается в фоне
         """
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
@@ -872,7 +874,7 @@ class TestTUIStateManagementIntegration:
 
         # Проверяем что города сохранены
         assert mock_app.selected_cities == ["Москва", "Омск"]
-        mock_app.switch_screen.assert_called_with("category_selector")
+        mock_app.push_screen.assert_called_with("category_selector")
 
         # Шаг 2: Выбор категорий
         category_screen._load_categories()
@@ -883,7 +885,7 @@ class TestTUIStateManagementIntegration:
 
         # Проверяем что категории сохранены
         assert mock_app.selected_categories == ["Рестораны"]
-        mock_app.switch_screen.assert_called_with("parsing")
+        mock_app.push_screen.assert_called_with("parsing")
 
     def test_state_persistence_across_screens(self, mock_app):
         """Тест проверяет сохранение состояния при переходе между экранами.

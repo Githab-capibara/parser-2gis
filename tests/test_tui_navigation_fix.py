@@ -32,7 +32,6 @@ def mock_app():
     app.get_categories.return_value = [{"name": "Рестораны", "id": 93}]
     app.push_screen = Mock()
     app.pop_screen = Mock()
-    app.switch_screen = Mock()
     app.notify_user = Mock()
     app.running = False
     app.stop_parsing = Mock()
@@ -289,19 +288,19 @@ class TestTUINavigationFix:
         assert True
 
 
-class TestSwitchScreenNavigation:
-    """Тесты для проверки навигации через switch_screen."""
+class TestPushScreenNavigation:
+    """Тесты для проверки навигации через push_screen."""
 
-    def test_city_selector_uses_switch_screen(self):
-        """Тест проверяет что city_selector использует switch_screen.
+    def test_city_selector_uses_push_screen(self):
+        """Тест проверяет что city_selector использует push_screen.
 
         Сценарий:
         1. Пользователь выбирает города
         2. Нажимает "Далее"
-        3. Должен переключиться на category_selector через switch_screen
+        3. Должен переключиться на category_selector через push_screen
 
         Ожидаемое поведение:
-        - switch_screen вызывается вместо push_screen
+        - push_screen вызывается для перехода к экрану выбора категорий
         - Навигация работает корректно
         """
         from parser_2gis.tui_textual.screens.city_selector import CitySelectorScreen
@@ -311,7 +310,7 @@ class TestSwitchScreenNavigation:
             {"name": "Москва", "code": "moscow", "country_code": "ru"}
         ]
         mock_app.selected_cities = []
-        mock_app.switch_screen = Mock()
+        mock_app.push_screen = Mock()
 
         screen = CitySelectorScreen()
         type(screen).app = PropertyMock(return_value=mock_app)
@@ -328,19 +327,19 @@ class TestSwitchScreenNavigation:
 
         screen.on_button_pressed(event)
 
-        # Проверяем что switch_screen был вызван
-        mock_app.switch_screen.assert_called_once_with("category_selector")
+        # Проверяем что push_screen был вызван
+        mock_app.push_screen.assert_called_once_with("category_selector")
 
-    def test_category_selector_uses_switch_screen(self):
-        """Тест проверяет что category_selector использует switch_screen.
+    def test_category_selector_uses_push_screen(self):
+        """Тест проверяет что category_selector использует push_screen.
 
         Сценарий:
         1. Пользователь выбирает категории
         2. Нажимает "Далее"
-        3. Должен переключиться на parsing через switch_screen
+        3. Должен переключиться на parsing через push_screen
 
         Ожидаемое поведение:
-        - switch_screen вызывается вместо push_screen
+        - push_screen вызывается для перехода к экрану парсинга
         - Навигация работает корректно
         """
         from parser_2gis.tui_textual.screens.category_selector import CategorySelectorScreen
@@ -348,7 +347,7 @@ class TestSwitchScreenNavigation:
         mock_app = MagicMock()
         mock_app.get_categories.return_value = [{"name": "Рестораны", "id": 93}]
         mock_app.selected_categories = []
-        mock_app.switch_screen = Mock()
+        mock_app.push_screen = Mock()
 
         screen = CategorySelectorScreen()
         type(screen).app = PropertyMock(return_value=mock_app)
@@ -366,8 +365,8 @@ class TestSwitchScreenNavigation:
 
         screen.on_button_pressed(event)
 
-        # Проверяем что switch_screen был вызван
-        mock_app.switch_screen.assert_called_once_with("parsing")
+        # Проверяем что push_screen был вызван
+        mock_app.push_screen.assert_called_once_with("parsing")
 
 
 class TestStateConsistency:
@@ -393,7 +392,7 @@ class TestStateConsistency:
             {"name": "Омск", "code": "omsk", "country_code": "ru"},
         ]
         mock_app.selected_cities = []
-        mock_app.switch_screen = Mock()
+        mock_app.push_screen = Mock()
 
         screen = CitySelectorScreen()
         type(screen).app = PropertyMock(return_value=mock_app)
@@ -433,7 +432,7 @@ class TestStateConsistency:
             {"name": "Кафе", "id": 161},
         ]
         mock_app.selected_categories = []
-        mock_app.switch_screen = Mock()
+        mock_app.push_screen = Mock()
 
         screen = CategorySelectorScreen()
         type(screen).app = PropertyMock(return_value=mock_app)

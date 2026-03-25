@@ -41,8 +41,12 @@ class MockAppForCategorySelector:
         """Mock метод notify_user."""
         self._notifications.append({"message": message, "level": level})
 
-    def switch_screen(self, screen_name: str) -> None:
-        """Mock метод switch_screen."""
+    def push_screen(self, screen_name: str) -> None:
+        """Mock метод push_screen."""
+        pass
+
+    def pop_screen(self) -> None:
+        """Mock метод pop_screen."""
         pass
 
 
@@ -135,8 +139,8 @@ def test_category_selector_next_button_with_cities():
     mock_event = Mock()
     mock_event.button = mock_button
 
-    # Mock switch_screen для отслеживания вызова
-    app.switch_screen = Mock()
+    # Mock push_screen для отслеживания вызова
+    app.push_screen = Mock()
 
     # Вызвать обработчик нажатия кнопки
     screen.on_button_pressed(mock_event)
@@ -145,7 +149,7 @@ def test_category_selector_next_button_with_cities():
     assert len(app.selected_categories) > 0, "Категории должны быть сохранены"
 
     # Проверить что был вызван переход на экран парсинга
-    app.switch_screen.assert_called_once_with("parsing")
+    app.push_screen.assert_called_once_with("parsing")
 
     # Проверить что уведомление об ошибке НЕ было показано
     error_notifications = [

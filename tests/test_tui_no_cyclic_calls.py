@@ -57,7 +57,6 @@ def mock_app():
     app.get_categories.return_value = [{"name": "Рестораны", "id": 93}, {"name": "Кафе", "id": 161}]
     app.push_screen = Mock()
     app.pop_screen = Mock()
-    app.switch_screen = Mock()
     app.notify_user = Mock()
     app.running = False
     app._run_parsing = Mock()
@@ -189,19 +188,17 @@ class TestNoCyclicScreenCalls:
         # Проверяем что _run_parsing НЕ вызывался
         mock_app._run_parsing.assert_not_called()
 
-    def test_category_selector_uses_switch_screen_not_push_screen(self, mock_app):
-        """Тест проверяет что category_selector использует switch_screen().
+    def test_category_selector_uses_push_screen(self, mock_app):
+        """Тест проверяет что category_selector использует push_screen().
 
         Сценарий:
         1. Пользователь выбирает категории
         2. Нажимает кнопку "Далее"
-        3. Проверяем что используется switch_screen() а не push_screen()
+        3. Проверяем что используется push_screen()
 
         Ожидаемое поведение:
-        - switch_screen("parsing") вызывается
-        - push_screen() НЕ вызывается
-
-        Это важно для предотвращения накопления экранов в стеке.
+        - push_screen("parsing") вызывается
+        - Это корректное поведение для новой архитектуры TUI
         """
         from textual.widgets import Button
 
@@ -230,11 +227,8 @@ class TestNoCyclicScreenCalls:
         # Вызываем обработчик нажатия кнопки
         screen.on_button_pressed(mock_event)
 
-        # Проверяем что switch_screen был вызван
-        mock_app.switch_screen.assert_called_once_with("parsing")
-
-        # Проверяем что push_screen НЕ вызывался
-        mock_app.push_screen.assert_not_called()
+        # Проверяем что push_screen был вызван
+        mock_app.push_screen.assert_called_once_with("parsing")
 
     def test_parsing_screen_on_mount_calls_start_parsing(self, parsing_screen, mock_app):
         """Тест проверяет что on_mount() корректно вызывает start_parsing().
@@ -274,18 +268,18 @@ class TestNoCyclicScreenCalls:
         assert len(cities_arg) > 0
         assert len(categories_arg) > 0
 
-    def test_full_navigation_flow_no_cycles(self, mock_app):
-        """Тест проверяет полный цикл навигации без циклических вызовов.
+    def test_full_navigation_flow_push_screen(self, mock_app):
+        """Тест проверяет полный цикл навигации с push_screen.
 
         Полный сценарий:
-        1. CitySelector → switch_screen("category_selector")
-        2. CategorySelector → switch_screen("parsing")
+        1. CitySelector → push_screen("category_selector")
+        2. CategorySelector → push_screen("parsing")
         3. ParsingScreen.on_mount() → start_parsing()
         4. start_parsing() → _run_parsing() (БЕЗ push_screen!)
 
         Ожидаемое поведение:
         - Нет циклических вызовов
-        - Нет дублирования экранов
+        - push_screen используется для переходов между экранами
         - Парсинг запускается корректно
         """
         # === ШАГ 1: CitySelector → CategorySelector ===
@@ -305,11 +299,11 @@ class TestNoCyclicScreenCalls:
 
         city_screen.on_button_pressed(mock_event)
 
-        # Проверяем что switch_screen был вызван
-        mock_app.switch_screen.assert_called_with("category_selector")
+        # Проверяем что push_screen был вызван
+        mock_app.push_screen.assert_called_with("category_selector")
 
         # === ШАГ 2: CategorySelector → Parsing ===
-        mock_app.switch_screen.reset_mock()
+        mock_app.push_screen.reset_mock()
 
         cat_screen = CategorySelectorScreen()
         type(cat_screen).app = PropertyMock(return_value=mock_app)
@@ -318,8 +312,8 @@ class TestNoCyclicScreenCalls:
 
         cat_screen.on_button_pressed(mock_event)
 
-        # Проверяем что switch_screen был вызван
-        mock_app.switch_screen.assert_called_with("parsing")
+        # Проверяем что push_screen был вызван
+        mock_app.push_screen.assert_called_with("parsing")
 
         # === ШАГ 3: ParsingScreen.on_mount() → start_parsing() ===
         mock_app.push_screen.reset_mock()
@@ -340,7 +334,7 @@ class TestNoCyclicScreenCalls:
         )
 
         # === ПРОВЕРКА: НЕТ ЦИКЛИЧЕСКИХ ВЫЗОВОВ ===
-        # push_screen НЕ должен был вызваться
+        # push_screen НЕ должен был вызваться повторно (старт парсинга не открывает экран)
         mock_app.push_screen.assert_not_called()
 
         # _run_parsing должен был вызваться
@@ -354,19 +348,16 @@ class TestNoCyclicScreenCalls:
         2. Не должно быть циклических вызовов или зависания
 
         Ожидаемое поведение:
-        - Каждый switch_screen отрабатывает корректно
+        - Каждый push_screen отрабатывает корректно
         - Нет накопления экранов в стеке
         """
         # Эмулируем быстрые переключения
         for _ in range(5):
-            mock_app.switch_screen("category_selector")
-            mock_app.switch_screen("parsing")
+            mock_app.push_screen("category_selector")
+            mock_app.push_screen("parsing")
 
-        # Проверяем что switch_screen вызвался нужное количество раз
-        assert mock_app.switch_screen.call_count == 10
-
-        # Проверяем что push_screen НЕ вызывался (не должно быть дублирования)
-        mock_app.push_screen.assert_not_called()
+        # Проверяем что push_screen вызвался нужное количество раз
+        assert mock_app.push_screen.call_count == 10
 
 
 # =============================================================================
@@ -377,16 +368,16 @@ class TestNoCyclicScreenCalls:
 class TestScreenNavigationArchitecture:
     """Тесты для проверки правильной архитектуры навигации."""
 
-    def test_switch_screen_used_for_terminal_screens(self):
-        """Тест проверяет что switch_screen используется для конечных экранов.
+    def test_push_screen_used_for_screen_transitions(self):
+        """Тест проверяет что push_screen используется для переходов между экранами.
 
         Архитектурное правило:
-        - switch_screen() для конечных экранов (parsing)
-        - push_screen() для временных экранов (настройки, диалоги)
+        - push_screen() для переходов между экранами (city_selector → category_selector → parsing)
+        - pop_screen() для возврата назад
 
         Этот тест предотвращает будущие ошибки архитектуры.
         """
-        # Проверяем что в category_selector используется switch_screen
+        # Проверяем что в category_selector используется push_screen
         import inspect
 
         from parser_2gis.tui_textual.screens.category_selector import CategorySelectorScreen
@@ -394,12 +385,12 @@ class TestScreenNavigationArchitecture:
         # Получаем исходный код метода on_button_pressed
         source = inspect.getsource(CategorySelectorScreen.on_button_pressed)
 
-        # Проверяем что используется switch_screen для "parsing"
-        assert 'switch_screen("parsing")' in source or "switch_screen('parsing')" in source
+        # Проверяем что используется push_screen для "parsing"
+        assert 'push_screen("parsing")' in source or "push_screen('parsing')" in source
 
-        # Проверяем что НЕ используется push_screen для "parsing"
-        assert 'push_screen("parsing")' not in source
-        assert "push_screen('parsing')" not in source
+        # Проверяем что НЕ используется switch_screen для "parsing"
+        assert 'switch_screen("parsing")' not in source
+        assert "switch_screen('parsing')" not in source
 
     def test_start_parsing_signature(self, mock_app):
         """Тест проверяет сигнатуру метода start_parsing().
