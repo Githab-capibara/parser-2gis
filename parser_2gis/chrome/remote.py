@@ -1081,12 +1081,8 @@ class ChromeRemote:
                     self._chrome_tab = None
 
             if self._chrome_interface is not None:
-                try:
-                    self._chrome_interface.close()
-                except Exception as e:
-                    app_logger.debug("Ошибка при закрытии интерфейса: %s", e)
-                finally:
-                    self._chrome_interface = None
+                # pychrome.Browser не имеет метода close() - это просто интерфейс управления
+                self._chrome_interface = None
 
         except Exception as e:
             app_logger.warning("Непредвиденная ошибка при очистке ресурсов: %s", e)
@@ -1109,10 +1105,8 @@ class ChromeRemote:
 
             # Выполняем простой JavaScript запрос
             result = self._chrome_tab.Runtime.evaluate(
-                expression="1+1",
-                returnByValue=True,
-                timeout=5000,  # 5 секунд таймаут
-            )
+                expression="1+1", returnByValue=True, timeout=5000
+            )  # 5 секунд таймаут
 
             # Проверяем результат
             if result and result.get("result", {}).get("value") == 2:
@@ -1222,7 +1216,7 @@ class ChromeRemote:
 
         if result["error"]:
             app_logger.error("Ошибка при запуске вкладки: %s", result["error"])
-            raise result["error"]
+            raise RuntimeError(f"Ошибка при запуске вкладки: {result['error']}")
 
         app_logger.debug("Вкладка успешно запущена")
 
@@ -1931,20 +1925,10 @@ class ChromeRemote:
 
             # Отключаем интерфейс
             if self._chrome_interface is not None:
-                try:
-                    app_logger.debug("Отключение Chrome интерфейса...")
-                    self._chrome_interface.close()
-                    app_logger.info("Chrome интерфейс успешно отключён")
-                except Exception as close_interface_error:
-                    app_logger.error(
-                        "Ошибка при отключении интерфейса: %s (тип: %s)",
-                        close_interface_error,
-                        type(close_interface_error).__name__,
-                    )
-                finally:
-                    # Гарантированно обнуляем _chrome_interface
-                    self._chrome_interface = None
-                    app_logger.debug("_chrome_interface обнулён")
+                app_logger.debug("Отключение Chrome интерфейса...")
+                # pychrome.Browser не имеет метода close() - это просто интерфейс управления
+                self._chrome_interface = None
+                app_logger.debug("_chrome_interface обнулён")
 
         except Exception as outer_error:
             app_logger.critical(

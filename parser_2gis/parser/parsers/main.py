@@ -30,13 +30,13 @@ except ImportError:
     PSUTIL_AVAILABLE = False
 
 from parser_2gis.chrome import ChromeRemote
+from parser_2gis.chrome.dom import DOMNode
 from parser_2gis.logger import logger
 from parser_2gis.parser.utils import blocked_requests
 from parser_2gis.utils.decorators import wait_until_finished
 
 if TYPE_CHECKING:
     from parser_2gis.chrome import ChromeOptions
-    from parser_2gis.chrome.dom import DOMNode
     from parser_2gis.parser.options import ParserOptions
     from parser_2gis.writer import FileWriter
 
@@ -761,7 +761,7 @@ class MainParser:
                     logger.warning("Ошибка при ожидании запросов: %s", wait_error)
 
                 # Собираем ссылки для клика
-                links = get_unique_links()
+                links: list[DOMNode] | None = get_unique_links()
 
                 # Проверяем, что ссылки успешно получены
                 if links is None:

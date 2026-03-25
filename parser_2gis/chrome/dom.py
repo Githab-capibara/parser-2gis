@@ -76,8 +76,8 @@ class DOMNode(BaseModel):
     else:
 
         @validator("attributes", pre=True)
-        def validate_attributes(cls, attributes_list: list[str]) -> dict[str, str]:
-            return cls._validate_attributes(attributes_list)
+        def validate_attributes(self, attributes_list: list[str]) -> dict[str, str]:
+            return self._validate_attributes(attributes_list)
 
     def search(self, predicate: Callable[[DOMNode], bool]) -> list[DOMNode]:
         """Ищет узлы в DOM дереве с помощью predicate."""

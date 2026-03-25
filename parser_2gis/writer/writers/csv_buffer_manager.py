@@ -144,10 +144,8 @@ def _open_file_with_mmap_support(
             # Оборачиваем в TextIOWrapper для текстового чтения
             # mmap.mmap совместим с RawIOBase, но mypy не может это вывести
             text_file = io.TextIOWrapper(
-                mmapped_file,  # type: ignore[arg-type]
-                encoding=encoding or "utf-8",
-                errors="replace",
-            )
+                mmapped_file, encoding=encoding or "utf-8", errors="replace"
+            )  # type: ignore[arg-type]
             return text_file, True
         except OSError as mmap_error:
             logger.warning(
@@ -261,11 +259,7 @@ def mmap_file_context(
             # Создаём mmap объект
             mmapped_file = mmap.mmap(underlying_fp.fileno(), 0, access=mmap.ACCESS_READ)  # type: ignore[mmap.mmap]
             # Оборачиваем в TextIOWrapper для текстового чтения
-            text_file = io.TextIOWrapper(
-                mmapped_file,
-                encoding=encoding,
-                errors="replace",  # type: ignore[arg-type]
-            )
+            text_file = io.TextIOWrapper(mmapped_file, encoding=encoding, errors="replace")  # type: ignore[arg-type]
             is_mmap_mode = True
             yield text_file, True, underlying_fp
         else:

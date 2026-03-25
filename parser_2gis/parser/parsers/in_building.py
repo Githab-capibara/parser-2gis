@@ -111,6 +111,8 @@ class InBuildingParser(MainParser):
 
             # Собираем ссылки для клика
             links = get_unique_links()
+            if links is None:
+                break
             if not links:
                 break
 

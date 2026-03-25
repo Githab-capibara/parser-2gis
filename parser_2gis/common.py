@@ -233,13 +233,13 @@ def get_cache_stats() -> Dict[str, Any]:
         >>> print(stats['_validate_city_cached'])
         CacheInfo(hits=100, misses=5, maxsize=256, currsize=5)
     """
-    from .utils import url_query_encode
+    from .utils.url_utils import _url_query_encode
 
     return {
         "_validate_city_cached": _validate_city_cached.cache_info(),
         "_validate_category_cached": _validate_category_cached.cache_info(),
         "_generate_category_url_cached": _generate_category_url_cached.cache_info(),
-        "url_query_encode": url_query_encode.cache_info(),
+        "url_query_encode": _url_query_encode.cache_info(),
     }
 
 

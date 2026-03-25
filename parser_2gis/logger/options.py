@@ -79,9 +79,9 @@ class LogOptions(BaseModel):
     else:
 
         @validator("level")
-        def level_validation(cls, v: str) -> str:
-            return cls._validate_level(v)
+        def level_validation(self, v: str) -> str:
+            return self._validate_level(v)
 
         @validator("gui_format", "cli_format")
-        def format_validation(cls, v: str) -> str:
-            return cls._validate_format(v)
+        def format_validation(self, v: str) -> str:
+            return self._validate_format(v)
