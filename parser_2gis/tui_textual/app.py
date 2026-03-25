@@ -404,9 +404,9 @@ class TUIApp(App):
             self.notify_user("Ошибка: не выбраны категории для парсинга!", level="error")
             return
 
-        # Сначала открываем экран парсинга, потом запускаем процесс
-        self.push_screen("parsing")
-        # Запуск парсинга в фоновом режиме
+        # Экран парсинга уже открыт через switch_screen из category_selector
+        # Запускаем только фоновый процесс парсинга
+        # Примечание: push_screen НЕ вызывается здесь, чтобы избежать дублирования экранов
         self._run_parsing(cities, categories)
 
     @work(exclusive=True, thread=True)

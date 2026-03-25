@@ -165,7 +165,9 @@ class MainMenuScreen(Screen):
                 )  # type: ignore
                 return
             # Только если оба списка не пустые - открывать экран парсинга
-            self.app.push_screen("parsing")
+            # Используем switch_screen для замены текущего экрана вместо push_screen
+            # Это предотвращает накопление экранов в стеке и циклические вызовы
+            self.app.switch_screen("parsing")  # type: ignore
         elif button_id == "select-cities":
             self.app.push_screen("city_selector")
         elif button_id == "select-categories":
