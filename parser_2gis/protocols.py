@@ -26,23 +26,23 @@ class LoggerProtocol(Protocol):
 
     def debug(self, msg: str, *args, **kwargs) -> None:
         """Логирование debug сообщения."""
-        ...
+        pass
 
     def info(self, msg: str, *args, **kwargs) -> None:
         """Логирование info сообщения."""
-        ...
+        pass
 
     def warning(self, msg: str, *args, **kwargs) -> None:
         """Логирование warning сообщения."""
-        ...
+        pass
 
     def error(self, msg: str, *args, **kwargs) -> None:
         """Логирование error сообщения."""
-        ...
+        pass
 
     def critical(self, msg: str, *args, **kwargs) -> None:
         """Логирование critical сообщения."""
-        ...
+        pass
 
 
 @runtime_checkable
@@ -65,7 +65,7 @@ class ProgressCallback(Protocol):
             failed: Количество операций с ошибками.
             filename: Имя текущего файла (если применимо).
         """
-        ...
+        pass
 
 
 @runtime_checkable
@@ -87,7 +87,7 @@ class LogCallback(Protocol):
             message: Текст сообщения.
             level: Уровень логирования (DEBUG, INFO, WARNING, ERROR).
         """
-        ...
+        pass
 
 
 @runtime_checkable
@@ -104,7 +104,7 @@ class CleanupCallback(Protocol):
 
     def __call__(self) -> None:
         """Вызывается для очистки ресурсов."""
-        ...
+        pass
 
 
 @runtime_checkable
@@ -125,7 +125,7 @@ class CancelCallback(Protocol):
         Returns:
             True если операция должна быть отменена.
         """
-        ...
+        pass
 
 
 @runtime_checkable
@@ -149,11 +149,11 @@ class Writer(Protocol):
         Args:
             records: Список записей для записи.
         """
-        ...
+        pass
 
     def close(self) -> None:
         """Закрывает writer и освобождает ресурсы."""
-        ...
+        pass
 
 
 @runtime_checkable
@@ -177,7 +177,7 @@ class Parser(Protocol):
         Returns:
             Список спарсенных записей.
         """
-        ...
+        pass
 
     def get_stats(self) -> dict:
         """Возвращает статистику парсинга.
@@ -185,7 +185,7 @@ class Parser(Protocol):
         Returns:
             Словарь со статистикой.
         """
-        ...
+        pass
 
 
 __all__ = [
