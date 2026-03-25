@@ -1,7 +1,7 @@
 """Писатель (пост-процесс конвертер) в XLSX таблицу.
 
 Предоставляет класс XLSXWriter для конвертации CSV в XLSX формат:
-- Наследуется от CSVWriter
+- Наследуется от FileWriter (базовый класс)
 - Конвертирует CSV в XLSX через xlsxwriter
 - Использует constant_memory для работы с большими файлами
 """
@@ -11,19 +11,34 @@ from __future__ import annotations
 import csv
 import os
 import shutil
+from typing import Any
 
 from xlsxwriter.workbook import Workbook
 
 from parser_2gis.logger import logger
 
-from .csv_writer import CSVWriter
+from .file_writer import FileWriter
 
 
-class XLSXWriter(CSVWriter):
-    """Писатель (пост-процесс конвертер) в XLSX таблицу."""
+class XLSXWriter(FileWriter):
+    """Писатель (пост-процесс конвертер) в XLSX таблицу.
+
+    Наследуется напрямую от FileWriter, а не от CSVWriter,
+    так как XLSX и CSV — разные форматы и не должны быть в иерархии наследования.
+    """
+
+    def write(self, catalog_doc: Any) -> None:
+        """Записывает данные в XLSX формат.
+
+        Примечание: XLSXWriter работает как пост-процесс конвертер,
+        поэтому метод write не используется напрямую.
+        """
+        pass  # XLSXWriter работает через конвертацию CSV файла
 
     def __exit__(self, *exc_info) -> None:
-        super().__exit__(*exc_info)
+        # Закрываем файл если он открыт
+        if hasattr(self, "_file") and not self._file.closed:
+            self._file.close()
 
         # Конвертируем CSV в XLSX таблицу
         tmp_xlsx_name = os.path.splitext(self._file_path)[0] + ".converted.xlsx"

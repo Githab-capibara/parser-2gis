@@ -1,7 +1,7 @@
 """
 Модуль общих утилит и функций.
 
-Содержит вспомогательные функции для всего проекта.
+Содержит базовые вспомогательные функции для всего проекта.
 
 Оптимизации:
 - lru_cache для часто вызываемых функций
@@ -10,9 +10,8 @@
 - Оптимизированная проверка чувствительных ключей
 
 Примечание:
-    Этот модуль предоставляет обратную совместимость, переэкспортируя
-    функции из пакета utils. Для нового кода рекомендуется импортировать
-    функции напрямую из parser_2gis.utils.<модуль>.
+    Для нового кода рекомендуется импортировать функции напрямую из
+    parser_2gis.utils.<модуль>. Этот модуль содержит только базовые утилиты.
 """
 
 from __future__ import annotations
@@ -23,61 +22,24 @@ from typing import Any, Dict, Optional
 from pydantic import ValidationError
 
 # =============================================================================
-# ПЕРЕЭКСПОРТ КОНСТАНТ ИЗ constants.py ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ
+# КОНСТАНТЫ ИЗ constants.py ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ
 # =============================================================================
 from .constants import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, MAX_COLLECTION_SIZE, MERGE_BATCH_SIZE
-
-# =============================================================================
-# ПЕРЕЭКСПОРТ ИЗ utils ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ
-# =============================================================================
-from .utils import (
-    DEFAULT_POLL_INTERVAL,
-    EXPONENTIAL_BACKOFF_MULTIPLIER,
-    MAX_POLL_INTERVAL,
-    _generate_category_url_cached,
-    _is_sensitive_key,
-    _sanitize_value,
-    _validate_category,
-    _validate_category_cached,
-    _validate_city,
-    _validate_city_cached,
-    async_wait_until_finished,
-    generate_category_url,
-    generate_city_urls,
-    url_query_encode,
-    wait_until_finished,
-)
 
 # =============================================================================
 # ЭКСПОРТИРУЕМЫЕ СИМВОЛЫ МОДУЛЯ
 # =============================================================================
 
 __all__ = [
-    # Базовые утилиты (остаются в этом модуле)
+    # Базовые утилиты
     "report_from_validation_error",
     "unwrap_dot_dict",
     "floor_to_hundreds",
-    "get_cache_stats",
-    "log_cache_stats",
-    # Переэкспорт из utils для обратной совместимости
-    "wait_until_finished",
-    "async_wait_until_finished",
-    "generate_city_urls",
-    "generate_category_url",
-    "url_query_encode",
-    "_validate_city",
-    "_validate_category",
-    "_sanitize_value",
-    "_is_sensitive_key",
     # Константы из constants.py
     "DEFAULT_BUFFER_SIZE",
     "CSV_BATCH_SIZE",
     "MERGE_BATCH_SIZE",
     "MAX_COLLECTION_SIZE",
-    # Константы polling
-    "DEFAULT_POLL_INTERVAL",
-    "MAX_POLL_INTERVAL",
-    "EXPONENTIAL_BACKOFF_MULTIPLIER",
 ]
 
 # =============================================================================
@@ -208,52 +170,17 @@ def floor_to_hundreds(arg: int | float) -> int:
 
 
 # =============================================================================
-# МОНИТОРИНГ КЭШЕЙ
+# ЭКСПОРТ
 # =============================================================================
 
-
-def get_cache_stats() -> Dict[str, Any]:
-    """Возвращает статистику по всем кэшам lru_cache.
-
-    - Мониторинг hit/miss ratio для оптимизации размеров кэшей
-    - Помогает выявить узкие места производительности
-    - Возвращает информацию о размере, попаданиях и промахах
-
-    Returns:
-        Словарь со статистикой по каждому кэшу:
-        {
-            '_validate_city_cached': CacheInfo(hits=..., misses=..., maxsize=..., currsize=...),
-            '_validate_category_cached': CacheInfo(...),
-            '_generate_category_url_cached': CacheInfo(...),
-            'url_query_encode': CacheInfo(...),
-        }
-
-    Example:
-        >>> stats = get_cache_stats()
-        >>> print(stats['_validate_city_cached'])
-        CacheInfo(hits=100, misses=5, maxsize=256, currsize=5)
-    """
-    from .utils.url_utils import _url_query_encode
-
-    return {
-        "_validate_city_cached": _validate_city_cached.cache_info(),
-        "_validate_category_cached": _validate_category_cached.cache_info(),
-        "_generate_category_url_cached": _generate_category_url_cached.cache_info(),
-        "url_query_encode": _url_query_encode.cache_info(),
-    }
-
-
-def log_cache_stats() -> None:
-    """Выводит статистику кэшей в лог.
-
-    - Автоматический вывод статистики кэшей при завершении парсинга
-    - Помогает оптимизировать размеры кэшей на основе реальных данных
-
-    Example:
-        >>> log_cache_stats()
-        # В лог будет записано:
-        # Статистика кэша %s: %s
-    """
-    stats = get_cache_stats()
-    for cache_name, info in stats.items():
-        logger.info("Статистика кэша %s: %s", cache_name, info)
+__all__ = [
+    # Базовые утилиты
+    "report_from_validation_error",
+    "unwrap_dot_dict",
+    "floor_to_hundreds",
+    # Константы из constants.py
+    "DEFAULT_BUFFER_SIZE",
+    "CSV_BATCH_SIZE",
+    "MERGE_BATCH_SIZE",
+    "MAX_COLLECTION_SIZE",
+]

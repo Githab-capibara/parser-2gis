@@ -6,8 +6,11 @@
 - url_utils: Генерация URL для парсинга
 - sanitizers: Санитаризация чувствительных данных
 - validation_utils: Валидация городов и категорий
+- cache_monitor: Мониторинг статистики кэшей
+- path_utils: Валидация безопасности путей
 """
 
+from .cache_monitor import get_cache_stats, log_cache_stats
 from .decorators import (
     DEFAULT_POLL_INTERVAL,
     EXPONENTIAL_BACKOFF_MULTIPLIER,
@@ -15,6 +18,7 @@ from .decorators import (
     async_wait_until_finished,
     wait_until_finished,
 )
+from .path_utils import FORBIDDEN_PATH_CHARS, validate_path_safety, validate_path_traversal
 from .sanitizers import _check_value_type_and_sensitivity, _is_sensitive_key, _sanitize_value
 from .url_utils import (
     _generate_category_url_cached,
@@ -55,4 +59,11 @@ __all__ = [
     "_validate_category",
     "_validate_city_cached",
     "_validate_category_cached",
+    # Мониторинг кэшей
+    "get_cache_stats",
+    "log_cache_stats",
+    # Валидация путей
+    "validate_path_safety",
+    "validate_path_traversal",
+    "FORBIDDEN_PATH_CHARS",
 ]

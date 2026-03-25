@@ -1,12 +1,18 @@
 # Архитектура проекта parser-2gis
 
-**Версия:** 2.0.0
-**Дата обновления:** 2026-03-24
+**Версия:** 2.1.0
+**Дата обновления:** 2026-03-25
 
 ## Общая схема проекта
 
 ```
 parser_2gis/
+├── cache/               # Пакет кэширования на SQLite (НОВЫЙ в v2.1.0)
+│   ├── __init__.py      # Экспорт API: CacheManager
+│   ├── manager.py       # CacheManager класс (кэширование)
+│   ├── pool.py          # ConnectionPool класс
+│   ├── serializer.py    # JsonSerializer класс
+│   └── validator.py     # CacheDataValidator класс
 ├── chrome/              # Модуль работы с браузером Chrome
 │   ├── browser.py       # Управление браузером
 │   ├── constants.py     # Константы Chrome
@@ -14,11 +20,19 @@ parser_2gis/
 │   ├── exceptions.py    # Исключения Chrome
 │   ├── file_handler.py  # Обработка файлов
 │   ├── health_monitor.py # Мониторинг здоровья
+│   ├── http_cache.py    # HTTP кэширование (НОВЫЙ в v2.1.0)
+│   ├── js_executor.py   # Валидация и выполнение JS (НОВЫЙ в v2.1.0)
 │   ├── options.py       # Опции Chrome
 │   ├── patches/         # Патчи pychrome
+│   ├── rate_limiter.py  # Rate limiting (НОВЫЙ в v2.1.0)
 │   ├── remote.py        # Chrome DevTools Protocol
 │   └── utils.py         # Утилиты Chrome
-├── cli/                 # CLI интерфейс
+├── cli/                 # CLI интерфейс (НОВЫЙ в v2.1.0)
+│   ├── __init__.py      # Экспорт API
+│   ├── arguments.py     # Парсинг аргументов
+│   ├── formatter.py     # Форматировщик справки
+│   ├── main.py          # Точка входа CLI
+│   └── validator.py     # Валидация аргументов
 ├── data/                # Данные (города, категории, рубрики)
 ├── logger/              # Модуль логирования
 ├── parallel/            # Модуль параллельной обработки
@@ -33,19 +47,21 @@ parser_2gis/
 │   ├── adaptive_limits.py
 │   ├── end_of_results.py
 │   ├── exceptions.py
-│   ├── factory.py
+│   ├── factory.py       # Registry pattern для парсеров
 │   ├── options.py
 │   ├── smart_retry.py
 │   └── utils.py
 ├── runner/              # Модуль запуска парсера
 ├── tui_textual/         # TUI интерфейс на Textual
-├── utils/               # Общие утилиты (НОВЫЙ в v2.0.0)
+├── utils/               # Общие утилиты
 │   ├── __init__.py      # Экспорт API
+│   ├── cache_monitor.py # Мониторинг кэшей (НОВЫЙ в v2.1.0)
 │   ├── decorators.py    # Декораторы ожидания
+│   ├── path_utils.py    # Валидация путей (НОВЫЙ в v2.1.0)
 │   ├── sanitizers.py    # Санитаризация данных
 │   ├── url_utils.py     # Генерация URL
 │   └── validation_utils.py # Валидация городов/категорий
-├── validation/          # Модуль валидации (НОВЫЙ в v2.0.0)
+├── validation/          # Модуль валидации
 │   ├── __init__.py      # Экспорт API
 │   ├── data_validator.py # Валидация данных
 │   ├── legacy.py        # Обратная совместимость
@@ -55,31 +71,81 @@ parser_2gis/
 │   ├── models/          # Модели данных
 │   ├── writers/         # Конкретные writers
 │   │   ├── csv_writer.py # Базовый CSV writer
-│   │   ├── csv_buffer_manager.py # Буферизация (НОВЫЙ)
-│   │   ├── csv_deduplicator.py # Дедупликация (НОВЫЙ)
-│   │   ├── csv_post_processor.py # Постобработка (НОВЫЙ)
+│   │   ├── csv_buffer_manager.py # Буферизация
+│   │   ├── csv_deduplicator.py # Дедупликация
+│   │   ├── csv_post_processor.py # Постобработка
 │   │   ├── file_writer.py # Базовый writer
 │   │   ├── json_writer.py # JSON writer
-│   │   └── xlsx_writer.py # XLSX writer
+│   │   └── xlsx_writer.py # XLSX writer (исправлена иерархия)
 │   ├── exceptions.py
-│   ├── factory.py
+│   ├── factory.py       # Registry pattern для writers
 │   └── options.py
-├── cache.py             # Кэширование на SQLite
-├── common.py            # Общие утилиты (обратная совместимость)
+├── common.py            # Базовые утилиты (обратная совместимость)
 ├── config.py            # Конфигурация через Pydantic
 ├── constants.py         # Централизованные константы
 ├── exceptions.py        # Иерархия исключений
-├── main.py              # CLI точка входа
+├── main.py              # CLI точка входа (обратная совместимость)
 ├── parallel_helpers.py  # Helpers для параллелизма
 ├── parallel_optimizer.py # Оптимизатор параллелизма
 ├── paths.py             # Управление путями
 ├── protocols.py         # Protocol для callback и интерфейсов
+│                        # BrowserService (НОВЫЙ в v2.1.0)
 ├── pydantic_compat.py   # Pydantic совместимость
 ├── signal_handler.py    # Обработчик сигналов
 ├── statistics.py        # Статистика работы
 ├── temp_file_manager.py # Менеджер временных файлов
 └── version.py           # Версия пакета
 ```
+
+## Основные изменения в версии 2.1.0
+
+### Рефакторинг cache.py в пакет
+Разделение крупного модуля cache.py (1910 строк) на пакет:
+- **manager.py** - CacheManager класс (880 строк)
+- **pool.py** - ConnectionPool класс (563 строки)
+- **serializer.py** - JsonSerializer класс (169 строк)
+- **validator.py** - CacheDataValidator класс (295 строк)
+
+### Рефакторинг chrome/remote.py
+Разделение крупного модуля remote.py (1978 строк) на компоненты:
+- **remote.py** - ChromeRemote класс (925 строк)
+- **js_executor.py** - Валидация и выполнение JS (515 строк)
+- **http_cache.py** - HTTP кэширование (163 строки)
+- **rate_limiter.py** - Rate limiting (133 строки)
+
+### Рефакторинг main.py в пакет cli/
+Разделение крупного модуля main.py (1397 строк) на пакет:
+- **main.py** - Точка входа CLI (558 строк)
+- **arguments.py** - Парсинг аргументов (296 строк)
+- **validator.py** - Валидация аргументов (281 строка)
+- **formatter.py** - Форматировщик справки (114 строк)
+
+### Registry pattern для writers и parsers
+Внедрение паттерна Registry для расширяемости:
+- **writer/factory.py** - WRITER_REGISTRY с декоратором @register_writer()
+- **parser/factory.py** - PARSER_REGISTRY с декоратором @register_parser(priority=N)
+
+### BrowserService Protocol
+Добавлен Protocol для разрыва зависимости между chrome/ и parser/:
+- **protocols.py** - BrowserService Protocol
+- ChromeRemote реализует BrowserService
+- Поддержка внедрения зависимостей через Protocol
+
+### Улучшения utils/
+Новые модули для централизации функциональности:
+- **path_utils.py** - Валидация путей (validate_path_safety, validate_path_traversal)
+- **cache_monitor.py** - Мониторинг кэшей (get_cache_stats, log_cache_stats)
+
+### Исправление иерархии XLSXWriter
+Исправлено наследование:
+- **XLSXWriter** теперь наследуется от FileWriter, а не от CSVWriter
+- Устранено нарушение LSP
+
+### Оптимизация common.py
+Удаление переэкспорта для устранения путаницы:
+- Удалён переэкспорт функций из utils/
+- Сохранены только базовые утилиты (report_from_validation_error, unwrap_dot_dict, floor_to_hundreds)
+- Константы переэкспортируются из constants.py
 
 ## Основные изменения в версии 2.0.0
 

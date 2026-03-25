@@ -2,21 +2,16 @@
 Тесты для модуля common.py.
 
 Проверяют следующие функции:
-- wait_until_finished()
 - report_from_validation_error()
 - unwrap_dot_dict()
 - floor_to_hundreds()
+
+Тесты для wait_until_finished() перенесены в test_utils_decorators.py
 """
 
-import pytest
 from pydantic import BaseModel, ValidationError
 
-from parser_2gis.common import (
-    floor_to_hundreds,
-    report_from_validation_error,
-    unwrap_dot_dict,
-    wait_until_finished,
-)
+from parser_2gis.common import floor_to_hundreds, report_from_validation_error, unwrap_dot_dict
 
 
 class TestFloorToHundreds:
@@ -140,55 +135,3 @@ class TestReportFromValidationError:
             report = report_from_validation_error(e, {"name": "test"})
             assert "age" in report
             assert report["age"]["invalid_value"] == "<No value>"
-
-
-class TestWaitUntilFinished:
-    """Тесты для декоратора wait_until_finished."""
-
-    def test_wait_until_finished_success(self):
-        """Проверка успешного завершения."""
-        counter = {"value": 0}
-
-        @wait_until_finished(timeout=5, finished=lambda x: x >= 3, poll_interval=0.1)
-        def increment():
-            counter["value"] += 1
-            return counter["value"]
-
-        result = increment()
-        assert result >= 3
-
-    def test_wait_until_finished_timeout(self):
-        """Проверка таймаута."""
-        counter = {"value": 0}
-
-        @wait_until_finished(timeout=0.5, finished=lambda x: x >= 100, poll_interval=0.1)
-        def increment():
-            counter["value"] += 1
-            return counter["value"]
-
-        with pytest.raises(TimeoutError):
-            increment()
-
-    def test_wait_until_finished_no_exception(self):
-        """Проверка без выбрасывания исключения."""
-        counter = {"value": 0}
-
-        @wait_until_finished(
-            timeout=0.5, finished=lambda x: x >= 100, poll_interval=0.1, throw_exception=False
-        )
-        def increment():
-            counter["value"] += 1
-            return counter["value"]
-
-        result = increment()
-        assert result < 100
-
-    def test_wait_until_finished_immediate_success(self):
-        """Проверка немедленного успеха."""
-
-        @wait_until_finished(timeout=5, finished=lambda x: x is True, poll_interval=0.1)
-        def return_true():
-            return True
-
-        result = return_true()
-        assert result is True

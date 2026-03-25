@@ -14,6 +14,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict
 
 if TYPE_CHECKING:
+    from parser_2gis.protocols import BrowserService
     from parser_2gis.writer import FileWriter
 
 
@@ -26,7 +27,11 @@ class BaseParser(ABC):
     - get_stats() — получение статистики работы парсера
 
     Пример использования:
+        >>> from parser_2gis.protocols import BrowserService
         >>> class MyParser(BaseParser):
+        ...     def __init__(self, browser: BrowserService):
+        ...         super().__init__(browser)
+        ...
         ...     def parse(self, writer: FileWriter) -> None:
         ...         # Реализация парсинга
         ...         pass
@@ -35,15 +40,14 @@ class BaseParser(ABC):
         ...         # Возврат статистики
         ...         return {"parsed": 100}
 
-    Attributes:
-        _stats: Словарь для хранения статистики парсера.
-
     Пример наследования:
         >>> from parser_2gis.parser.parsers.base import BaseParser
+        >>> from parser_2gis.protocols import BrowserService
         >>> from parser_2gis.writer import FileWriter
         >>>
         >>> class FirmParser(BaseParser):
-        ...     def __init__(self):
+        ...     def __init__(self, browser: BrowserService):
+        ...         super().__init__(browser)
         ...         self._stats = {"parsed": 0, "errors": 0}
         ...
         ...     def parse(self, writer: FileWriter) -> None:
@@ -52,14 +56,22 @@ class BaseParser(ABC):
         ...
         ...     def get_stats(self) -> Dict[str, Any]:
         ...         return self._stats
+
+    Attributes:
+        _browser: Объект BrowserService для работы с браузером.
+        _stats: Словарь для хранения статистики парсера.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, browser: BrowserService) -> None:
         """Инициализация базового парсера.
+
+        Args:
+            browser: Объект BrowserService для работы с браузером.
 
         Создаёт словарь для хранения статистики парсера.
         Дочерние классы должны расширять этот словарь своими полями.
         """
+        self._browser = browser
         self._stats: Dict[str, Any] = {"parsed": 0, "errors": 0, "skipped": 0}
 
     @abstractmethod

@@ -4,7 +4,7 @@
 абстрактных методов parse() и get_stats().
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import pytest
 
@@ -26,6 +26,40 @@ class MockFileWriter:
     def close(self) -> None:
         """Закрывает писатель."""
         self.closed = True
+
+
+# Моковый BrowserService для тестов
+class MockBrowserService:
+    """Mock BrowserService для тестов."""
+
+    def __init__(self):
+        self.navigate_called = False
+        self.get_html_called = False
+        self.execute_js_called = False
+        self.screenshot_called = False
+        self.close_called = False
+
+    def navigate(self, url: str) -> None:
+        """Перейти на URL."""
+        self.navigate_called = True
+
+    def get_html(self) -> str:
+        """Получить HTML страницы."""
+        self.get_html_called = True
+        return "<html></html>"
+
+    def execute_js(self, js_code: str, timeout: Optional[int] = None) -> Any:
+        """Выполнить JavaScript код."""
+        self.execute_js_called = True
+        return None
+
+    def screenshot(self, path: str) -> None:
+        """Сделать скриншот."""
+        self.screenshot_called = True
+
+    def close(self) -> None:
+        """Закрыть браузер."""
+        self.close_called = True
 
 
 class TestBaseParserABC:
@@ -54,7 +88,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = ConcreteParser()
+        mock_browser = MockBrowserService()
+        parser = ConcreteParser(browser=mock_browser)
         assert isinstance(parser, BaseParser)
 
     def test_parse_method_is_abstract(self):
@@ -77,7 +112,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         mock_writer = MockFileWriter()
         parser.parse(mock_writer)
 
@@ -94,7 +130,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return {"custom": "stats"}
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         stats = parser.get_stats()
 
         assert stats == {"custom": "stats"}
@@ -109,7 +146,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         assert hasattr(parser, "_stats")
         assert isinstance(parser._stats, dict)
 
@@ -123,7 +161,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         stats = parser.get_stats()
 
         assert "parsed" in stats
@@ -143,7 +182,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         assert issubclass(TestParser, BaseParser)
         assert isinstance(parser, BaseParser)
 
@@ -157,7 +197,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         # Проверяем что метод принимает writer
         mock_writer = MockFileWriter()
         parser.parse(mock_writer)
@@ -172,7 +213,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         stats = parser.get_stats()
 
         assert isinstance(stats, dict)
@@ -187,8 +229,9 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser1 = TestParser()
-        parser2 = TestParser()
+        mock_browser = MockBrowserService()
+        parser1 = TestParser(browser=mock_browser)
+        parser2 = TestParser(browser=mock_browser)
 
         parser1.parse(MockFileWriter())
         parser1.parse(MockFileWriter())
@@ -207,7 +250,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         parser.parse(MockFileWriter())
 
         assert parser._stats["parsed"] == 1
@@ -223,7 +267,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         repr_str = repr(parser)
 
         assert "TestParser" in repr_str
@@ -234,7 +279,7 @@ class TestBaseParserABC:
 
         class TestParser(BaseParser):
             def __init__(self, custom_param: str = "default"):
-                super().__init__()
+                super().__init__(browser=MockBrowserService())
                 self.custom_param = custom_param
 
             def parse(self, writer: MockFileWriter) -> None:
@@ -258,7 +303,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         mock_writer = MockFileWriter()
 
         with pytest.raises(ValueError):
@@ -276,7 +322,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return {"key": "value", "number": 42}
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         stats = parser.get_stats()
 
         assert isinstance(stats, dict)
@@ -295,7 +342,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         mock_writer = MockFileWriter()
         parser.parse(mock_writer)
 
@@ -312,7 +360,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
         parser.parse(MockFileWriter())
         parser.parse(MockFileWriter())
         parser.parse(MockFileWriter())
@@ -324,7 +373,7 @@ class TestBaseParserABC:
 
         class TestParser(BaseParser):
             def __init__(self):
-                super().__init__()
+                super().__init__(browser=MockBrowserService())
                 self._stats["custom_field"] = 0
 
             def parse(self, writer: MockFileWriter) -> None:
@@ -378,7 +427,8 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser = TestParser()
+        mock_browser = MockBrowserService()
+        parser = TestParser(browser=mock_browser)
 
         assert isinstance(parser, BaseParser)
         assert isinstance(parser, TestParser)
@@ -400,8 +450,9 @@ class TestBaseParserABC:
             def get_stats(self) -> Dict[str, Any]:
                 return self._stats
 
-        parser1 = TestParser1()
-        parser2 = TestParser2()
+        mock_browser = MockBrowserService()
+        parser1 = TestParser1(browser=mock_browser)
+        parser2 = TestParser2(browser=mock_browser)
 
         assert type(parser1) is TestParser1
         assert type(parser2) is TestParser2

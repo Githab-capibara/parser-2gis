@@ -7,11 +7,10 @@
 """
 
 import unittest
-from unittest.mock import patch
 
 from parser_2gis.chrome.dom import DOMNode
-from parser_2gis.common import get_cache_stats
 from parser_2gis.logger.options import LogOptions
+from parser_2gis.utils.cache_monitor import get_cache_stats
 from parser_2gis.writer.options import WriterOptions
 
 

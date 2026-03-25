@@ -22,7 +22,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pychrome
 
@@ -46,7 +46,6 @@ from .constants import (
     CHROME_STARTUP_DELAY,
     EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
-    MAX_JS_CODE_LENGTH,
     MAX_RESPONSE_SIZE,
     MAX_TOTAL_JS_SIZE,
 )
@@ -54,35 +53,9 @@ from .dom import DOMNode
 from .exceptions import ChromeException
 
 # Импорты для backward совместимости
-from .http_cache import (
-    HTTP_CACHE_MAXSIZE,
-    HTTP_CACHE_TTL_SECONDS,
-    _cleanup_expired_cache,
-    _get_cache_key,
-    _get_http_cache,
-    _HTTPCache,
-    _HTTPCacheEntry,
-)
-from .js_executor import (
-    _DANGEROUS_JS_PATTERNS,
-    _JS_SECURITY_CHECKS,
-    MAX_JS_CODE_LENGTH,
-    _check_array_and_regexp,
-    _check_base64_functions,
-    _check_bracket_access,
-    _check_concatenation_bypass,
-    _check_dangerous_constructors,
-    _check_dangerous_encoding,
-    _check_js_length,
-    _check_obfuscation_patterns,
-    _check_prototype_pollution,
-    _check_reflect_and_apply,
-    _check_string_conversion_functions,
-    _sanitize_js_string,
-    _validate_js_code,
-)
+from .js_executor import _validate_js_code
 from .patches import patch_all
-from .rate_limiter import _rate_limited_request, _safe_external_request
+from .rate_limiter import _safe_external_request
 
 if TYPE_CHECKING:
     from .options import ChromeOptions
@@ -918,6 +891,86 @@ class ChromeRemote:
         return self
 
     def __exit__(self, *exc_info: Any) -> None:
+        self.stop()
+
+    # =============================================================================
+    # МЕТОДЫ ДЛЯ BrowserService PROTOCOL
+    # =============================================================================
+    # Эти методы предоставляют совместимость с Protocol BrowserService
+    # для разрыва связи между chrome/ и parser/
+
+    def execute_js(self, js_code: str, timeout: Optional[int] = None) -> Any:
+        """Выполнить JavaScript код (алиас для execute_script).
+
+        Метод для совместимости с BrowserService Protocol.
+
+        Args:
+            js_code: JavaScript код для выполнения.
+            timeout: Таймаут выполнения в секундах (по умолчанию 30).
+
+        Returns:
+            Результат выполнения JavaScript.
+        """
+        if timeout is None:
+            timeout = 30
+        return self.execute_script(expression=js_code, timeout=timeout)
+
+    def get_html(self) -> str:
+        """Получить HTML страницы.
+
+        Returns:
+            HTML содержимое текущей страницы.
+        """
+        if self._chrome_tab is None:
+            app_logger.error("Chrome tab не инициализирован в get_html")
+            return ""
+
+        try:
+            # Получаем outerHTML документа
+            result = self._chrome_tab.Runtime.evaluate(
+                expression="document.documentElement.outerHTML", returnByValue=True, timeout=10000
+            )
+            if result and "result" in result:
+                return result["result"].get("value", "")
+            return ""
+        except Exception as e:
+            app_logger.error("Ошибка при получении HTML: %s", e)
+            return ""
+
+    def screenshot(self, path: str) -> None:
+        """Сделать скриншот страницы и сохранить в файл.
+
+        Args:
+            path: Путь для сохранения скриншота (PNG).
+        """
+        if self._chrome_tab is None:
+            app_logger.error("Chrome tab не инициализирован в screenshot")
+            return
+
+        try:
+            # Получаем скриншот в формате base64
+            result = self._chrome_tab.Page.captureScreenshot(format="png", fromSurface=True)
+
+            if result and "data" in result:
+                import base64
+
+                image_data = base64.b64decode(result["data"])
+
+                with open(path, "wb") as f:
+                    f.write(image_data)
+
+                app_logger.debug("Скриншот сохранён: %s", path)
+            else:
+                app_logger.error("Не удалось получить скриншот: пустой результат")
+        except Exception as e:
+            app_logger.error("Ошибка при создании скриншота: %s", e)
+            raise
+
+    def close(self) -> None:
+        """Закрыть браузер и освободить ресурсы (алиас для stop).
+
+        Метод для совместимости с BrowserService Protocol.
+        """
         self.stop()
 
     def __repr__(self) -> str:

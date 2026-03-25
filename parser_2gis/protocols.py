@@ -13,7 +13,7 @@ Protocol для callback и интерфейсов проекта parser-2gis.
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Any, Optional, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -188,6 +188,63 @@ class Parser(Protocol):
         pass
 
 
+@runtime_checkable
+class BrowserService(Protocol):
+    """Абстракция браузера для разрыва связи между chrome/ и parser/.
+
+    Определяет минимальный интерфейс для работы с браузером:
+    - Навигация по URL
+    - Получение HTML
+    - Выполнение JavaScript
+    - Создание скриншотов
+    - Закрытие браузера
+
+    Example:
+        >>> from parser_2gis.chrome import ChromeRemote
+        >>> browser: BrowserService = ChromeRemote(...)  # type: check
+    """
+
+    def navigate(self, url: str) -> None:
+        """Перейти на URL.
+
+        Args:
+            url: URL для навигации.
+        """
+        pass
+
+    def get_html(self) -> str:
+        """Получить HTML страницы.
+
+        Returns:
+            HTML содержимое текущей страницы.
+        """
+        pass
+
+    def execute_js(self, js_code: str, timeout: Optional[int] = None) -> Any:
+        """Выполнить JavaScript код.
+
+        Args:
+            js_code: JavaScript код для выполнения.
+            timeout: Таймаут выполнения в секундах (опционально).
+
+        Returns:
+            Результат выполнения JavaScript.
+        """
+        pass
+
+    def screenshot(self, path: str) -> None:
+        """Сделать скриншот.
+
+        Args:
+            path: Путь для сохранения скриншота.
+        """
+        pass
+
+    def close(self) -> None:
+        """Закрыть браузер и освободить ресурсы."""
+        pass
+
+
 __all__ = [
     "LoggerProtocol",
     "ProgressCallback",
@@ -196,4 +253,5 @@ __all__ = [
     "CancelCallback",
     "Writer",
     "Parser",
+    "BrowserService",
 ]

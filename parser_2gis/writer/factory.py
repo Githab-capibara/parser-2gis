@@ -2,107 +2,66 @@
 
 Предоставляет фабричную функцию get_writer для создания экземпляра
 файлового писателя в зависимости от формата (JSONWriter, CSVWriter, XLSXWriter).
+
+Использует Registry pattern для регистрации и получения writer классов.
+Это позволяет добавлять новые форматы без модификации фабричной функции.
+
+Пример регистрации нового writer:
+    >>> from parser_2gis.writer.factory import register_writer, get_writer
+    >>> @register_writer("xml")
+    ... class XMLWriter(FileWriter):
+    ...     pass
+    >>> writer = get_writer("output.xml", "xml", options)
 """
 
 from __future__ import annotations
 
-import os
-import urllib.parse
-from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Type
 
-import unicodedata
+from parser_2gis.utils.path_utils import validate_path_traversal
 
 from .exceptions import WriterUnknownFileFormat
 from .writers import CSVWriter, JSONWriter, XLSXWriter
+from .writers.file_writer import FileWriter
 
 if TYPE_CHECKING:
     from .options import WriterOptions
-    from .writers.file_writer import FileWriter
 
 
-def _validate_path_traversal(file_path: str) -> Path:
-    """Валидирует путь к файлу для предотвращения path traversal атак.
+# =============================================================================
+# REGISTRY PATTERN ДЛЯ WRITERS
+# =============================================================================
+
+WRITER_REGISTRY: Dict[str, Type[FileWriter]] = {}
+"""Реестр зарегистрированных writer классов по формату файла."""
+
+
+def register_writer(format_name: str) -> callable:
+    """Декоратор для регистрации writer класса в реестре.
 
     Args:
-        file_path: Путь к файлу для валидации.
+        format_name: Название формата (например, "json", "csv", "xlsx").
 
     Returns:
-        Нормализованный абсолютный путь.
+        Декоратор для регистрации класса.
 
-    Raises:
-        ValueError: Если путь небезопасен или содержит traversal последовательности.
+    Example:
+        >>> @register_writer("xml")
+        ... class XMLWriter(FileWriter):
+        ...     pass
     """
-    if not file_path:
-        raise ValueError("Путь к файлу не может быть пустым")
 
-    # Шаг 1: URL-decode проверка перед валидацией для обнаружения encoded атак
-    try:
-        decoded_path = urllib.parse.unquote(file_path)
-        # Проверяем на наличие %2e%2e и другие encoded символы
-        if decoded_path != file_path:
-            # Путь был encoded - проверяем его на опасные паттерны
-            dangerous_encoded_patterns = ["%2e%2e", "%2f", "%5c", "%00", "%25"]
-            for pattern in dangerous_encoded_patterns:
-                if pattern.lower() in file_path.lower():
-                    raise ValueError(
-                        f"Path traversal атака обнаружена: {file_path}. "
-                        f"Обнаружен encoded опасный паттерн: {pattern}"
-                    )
-    except (ValueError, TypeError, UnicodeDecodeError) as decode_error:
-        raise ValueError(f"Некорректный путь к файлу: {file_path}") from decode_error
+    def decorator(cls: Type[FileWriter]) -> Type[FileWriter]:
+        WRITER_REGISTRY[format_name.lower()] = cls
+        return cls
 
-    # Шаг 2: Unicode normalization для предотвращения атак через unicode
-    try:
-        normalized_path = unicodedata.normalize("NFC", decoded_path)
-    except (ValueError, TypeError, UnicodeDecodeError) as unicode_error:
-        raise ValueError(f"Некорректный Unicode в пути к файлу: {file_path}") from unicode_error
-
-    # Шаг 3: Проверка на опасные паттерны в нормализованном пути
-    dangerous_patterns = {"..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"}
-    for pattern in dangerous_patterns:
-        if pattern in normalized_path:
-            if ".." in pattern:
-                raise ValueError(
-                    f"Path traversal атака обнаружена: {file_path}. "
-                    "Символы '..' не допускаются в пути к файлу."
-                )
-            raise ValueError(f"Path содержит запрещённый символ: {pattern!r} в пути {file_path}")
-
-    # Шаг 4: Резолвинг symlink через os.path.realpath
-    try:
-        resolved_path = Path(normalized_path).resolve()
-        # Используем realpath для резолвинга всех symlink
-        resolved_path = Path(os.path.realpath(str(resolved_path)))
-    except (OSError, RuntimeError) as resolve_error:
-        raise ValueError(f"Ошибка разрешения пути: {file_path}") from resolve_error
-
-    # Шаг 5: Проверка что путь абсолютный
-    if not resolved_path.is_absolute():
-        raise ValueError(
-            f"Относительные пути не поддерживаются: {file_path}. Используйте абсолютные пути."
-        )
-
-    # Шаг 6: Дополнительная проверка частей пути
-    path_parts = resolved_path.parts
-    for part in path_parts:
-        if ".." in str(part):
-            raise ValueError(
-                f"Path traversal атака обнаружена: {file_path}. "
-                f"Символы '..' найдены в части пути: {part}"
-            )
-
-    # Шаг 7: Проверка возможности создания директории
-    try:
-        resolved_path.parent.mkdir(parents=True, exist_ok=True)
-    except (PermissionError, OSError) as e:
-        raise ValueError(f"Невозможно создать директорию для пути: {file_path}") from e
-
-    return resolved_path
+    return decorator
 
 
 def get_writer(file_path: str, file_format: str, writer_options: WriterOptions) -> FileWriter:
     """Фабричная функция для создания писателя файлов.
+
+    Использует реестр для получения класса writer по формату файла.
 
     Args:
         file_path: Путь к результирующему файлу.
@@ -114,14 +73,37 @@ def get_writer(file_path: str, file_format: str, writer_options: WriterOptions) 
 
     Raises:
         ValueError: Если путь небезопасен или обнаружена path traversal атака.
+        WriterUnknownFileFormat: Если формат файла не зарегистрирован в реестре.
+
+    Example:
+        >>> writer = get_writer("output.json", "json", options)
+        >>> writer = get_writer("output.csv", "csv", options)
     """
-    validated_path = _validate_path_traversal(file_path)
+    validated_path = validate_path_traversal(file_path)
 
-    if file_format == "json":
-        return JSONWriter(str(validated_path), writer_options)
-    elif file_format == "csv":
-        return CSVWriter(str(validated_path), writer_options)
-    elif file_format == "xlsx":
-        return XLSXWriter(str(validated_path), writer_options)
+    # Получаем writer класс из реестра
+    writer_cls = WRITER_REGISTRY.get(file_format.lower())
+    if not writer_cls:
+        raise WriterUnknownFileFormat(
+            f"Неизвестный формат: {file_format}. "
+            f"Зарегистрированные форматы: {', '.join(WRITER_REGISTRY.keys())}"
+        )
 
-    raise WriterUnknownFileFormat(f"Неизвестный формат файла: {file_format}")
+    return writer_cls(str(validated_path), writer_options)
+
+
+# =============================================================================
+# РЕГИСТРАЦИЯ ВСТРОЕННЫХ WRITERS
+# =============================================================================
+
+# Регистрируем встроенные writer классы
+register_writer("json")(JSONWriter)
+register_writer("csv")(CSVWriter)
+register_writer("xlsx")(XLSXWriter)
+
+
+# =============================================================================
+# ЭКСПОРТ
+# =============================================================================
+
+__all__ = ["get_writer", "register_writer", "WRITER_REGISTRY"]

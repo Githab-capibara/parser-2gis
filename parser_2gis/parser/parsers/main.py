@@ -12,14 +12,13 @@ from __future__ import annotations
 
 import gc
 import json
+import random
 import re
 import threading
 import time
 import urllib.parse
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-
-import random
 
 try:
     import psutil
@@ -33,6 +32,7 @@ from parser_2gis.chrome import ChromeRemote
 from parser_2gis.chrome.dom import DOMNode
 from parser_2gis.logger import logger
 from parser_2gis.parser.utils import blocked_requests
+from parser_2gis.protocols import BrowserService
 from parser_2gis.utils.decorators import wait_until_finished
 
 if TYPE_CHECKING:
@@ -76,10 +76,16 @@ class MainParser:
         url: 2GIS URLs с элементами для сбора.
         chrome_options: Опции Chrome.
         parser_options: Опции парсера.
+        browser: Опциональный объект BrowserService. Если не передан,
+                 создаётся внутренний ChromeRemote (для backward совместимости).
     """
 
     def __init__(
-        self, url: str, chrome_options: ChromeOptions, parser_options: ParserOptions
+        self,
+        url: str,
+        chrome_options: ChromeOptions,
+        parser_options: ParserOptions,
+        browser: Optional[BrowserService] = None,
     ) -> None:
         self._options = parser_options
         self._url = url
@@ -87,12 +93,21 @@ class MainParser:
         # Паттерн ответа "Catalog Item Document"
         self._item_response_pattern = r"https://catalog\.api\.2gis.[^/]+/.*/items/byid"
 
-        # Открываем браузер, запускаем remote
-        response_patterns = [self._item_response_pattern]
-        self._chrome_remote = ChromeRemote(
-            chrome_options=chrome_options, response_patterns=response_patterns
-        )
-        self._chrome_remote.start()
+        # Используем переданный браузер или создаём новый ChromeRemote
+        if browser is not None:
+            # Используем внешнюю абстракцию BrowserService
+            self._browser = browser
+            self._chrome_remote = browser  # Для backward совместимости
+            self._owns_browser = False
+        else:
+            # Создаём внутренний ChromeRemote (старое поведение)
+            response_patterns = [self._item_response_pattern]
+            self._chrome_remote = ChromeRemote(
+                chrome_options=chrome_options, response_patterns=response_patterns
+            )
+            self._chrome_remote.start()
+            self._browser = self._chrome_remote
+            self._owns_browser = True
 
         # Добавляем счётчик для 2GIS запросов
         self._add_xhr_counter()
@@ -946,7 +961,13 @@ class MainParser:
         self._parse_search_results(writer, walk_page_number, visited_links, max_visited_links)
 
     def close(self) -> None:
-        self._chrome_remote.stop()
+        """Закрывает браузер и освобождает ресурсы.
+
+        Закрывает только если браузер был создан внутри парсера
+        (не был передан извне через browser параметр).
+        """
+        if self._owns_browser:
+            self._chrome_remote.stop()
 
     def __enter__(self) -> MainParser:
         return self
