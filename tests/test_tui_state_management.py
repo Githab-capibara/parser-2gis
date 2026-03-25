@@ -52,6 +52,7 @@ def mock_app():
     ]
     app.push_screen = Mock()
     app.pop_screen = Mock()
+    app.switch_screen = Mock()
     app.notify_user = Mock()
     app.running = False
     return app
@@ -146,7 +147,7 @@ class TestCitySelectorScreenStateManagement:
 
         Ожидаемое поведение:
         - app.selected_cities устанавливается в выбранные значения
-        - Вызывается app.push_screen("category_selector")
+        - Вызывается app.switch_screen("category_selector")
         """
         from textual.widgets import Button
 
@@ -170,8 +171,8 @@ class TestCitySelectorScreenStateManagement:
         # Проверяем что app.selected_cities был установлен
         assert mock_app.selected_cities == ["Москва", "Омск"]
 
-        # Проверяем что был вызван переход к экрану выбора категорий
-        mock_app.push_screen.assert_called_once_with("category_selector")
+        # Проверяем что был вызван переход к экрану выбора категорий через switch_screen
+        mock_app.switch_screen.assert_called_once_with("category_selector")
 
     def test_city_selector_back_button_pops_screen(self, city_selector_screen, mock_app):
         """Тест проверяет что кнопка 'Назад' возвращает к предыдущему экрану.
@@ -315,7 +316,7 @@ class TestCategorySelectorScreenStateManagement:
 
         Ожидаемое поведение:
         - app.selected_categories устанавливается в выбранные значения
-        - Вызывается app.push_screen("parsing")
+        - Вызывается app.switch_screen("parsing")
         """
         from textual.widgets import Button
 
@@ -339,8 +340,8 @@ class TestCategorySelectorScreenStateManagement:
         # Проверяем что app.selected_categories был установлен
         assert mock_app.selected_categories == ["Рестораны", "Кафе"]
 
-        # Проверяем что был вызван переход к экрану парсинга
-        mock_app.push_screen.assert_called_once_with("parsing")
+        # Проверяем что был вызван переход к экрану парсинга через switch_screen
+        mock_app.switch_screen.assert_called_once_with("parsing")
 
     def test_category_selector_back_button_pops_screen(self, category_selector_screen, mock_app):
         """Тест проверяет что кнопка 'Назад' возвращает к предыдущему экрану.
@@ -460,7 +461,7 @@ class TestParsingScreenOnMount:
 
         Ожидаемое поведение:
         - Запись в лог об ошибке
-        - Вызывается call_later с _return_to_menu для возврата в меню
+        - Вызывается _return_to_menu напрямую для возврата в меню
         - start_parsing() не вызывается
         """
         # Установим пустые списки
@@ -471,8 +472,8 @@ class TestParsingScreenOnMount:
         mock_log = Mock()
         parsing_screen.query_one = Mock(return_value=mock_log)
 
-        # Mock call_later для безопасного вызова
-        parsing_screen.call_later = Mock()
+        # Mock _return_to_menu
+        parsing_screen._return_to_menu = Mock()
 
         # Вызовем on_mount
         parsing_screen.on_mount()
@@ -483,7 +484,7 @@ class TestParsingScreenOnMount:
         assert any("Ошибка: не выбраны города для парсинга!" in call for call in write_calls)
 
         # Проверяем что был вызван возврат в меню
-        parsing_screen.call_later.assert_called()
+        parsing_screen._return_to_menu.assert_called_once()
 
     def test_on_mount_with_no_selected_categories(self, parsing_screen, mock_app):
         """Тест проверяет обработку ситуации когда категории не выбраны.
@@ -495,7 +496,7 @@ class TestParsingScreenOnMount:
 
         Ожидаемое поведение:
         - Запись в лог об ошибке
-        - Вызывается call_later с _return_to_menu для возврата в меню
+        - Вызывается _return_to_menu напрямую для возврата в меню
         - start_parsing() не вызывается
         """
         # Установим города но пустые категории
@@ -506,8 +507,8 @@ class TestParsingScreenOnMount:
         mock_log = Mock()
         parsing_screen.query_one = Mock(return_value=mock_log)
 
-        # Mock call_later для безопасного вызова
-        parsing_screen.call_later = Mock()
+        # Mock _return_to_menu
+        parsing_screen._return_to_menu = Mock()
 
         # Вызовем on_mount
         parsing_screen.on_mount()
@@ -517,7 +518,7 @@ class TestParsingScreenOnMount:
         assert any("Ошибка: не выбраны категории для парсинга!" in call for call in write_calls)
 
         # Проверяем что был вызван возврат в меню
-        parsing_screen.call_later.assert_called()
+        parsing_screen._return_to_menu.assert_called_once()
 
     def test_on_mount_with_selected_cities_and_categories(self, parsing_screen, mock_app):
         """Тест проверяет запуск парсинга когда города и категории выбраны.
@@ -663,10 +664,10 @@ class TestParsingScreenStopParsing:
         Сценарий:
         1. Пользователь нажимает "Стоп"
         2. Парсинг останавливается
-        3. Экран закрывается через pop_screen()
+        3. Экран закрывается через _return_to_menu()
 
         Ожидаемое поведение:
-        - call_later вызывается с _return_to_menu
+        - _return_to_menu вызывается напрямую
         """
         # Установим что парсинг запущен
         parsing_screen._parsing_started = True
@@ -675,18 +676,14 @@ class TestParsingScreenStopParsing:
         mock_log = Mock()
         parsing_screen.query_one = Mock(return_value=mock_log)
 
-        # Mock call_later
-        parsing_screen.call_later = Mock()
+        # Mock _return_to_menu
+        parsing_screen._return_to_menu = Mock()
 
         # Вызовем остановку
         parsing_screen.action_stop_parsing()
 
-        # Проверяем что call_later был вызван
-        parsing_screen.call_later.assert_called()
-
-        # Проверяем что был вызван _return_to_menu
-        call_args = parsing_screen.call_later.call_args
-        assert call_args[0][0] == parsing_screen._return_to_menu
+        # Проверяем что _return_to_menu был вызван
+        parsing_screen._return_to_menu.assert_called_once()
 
     def test_action_stop_parsing_not_started_yet(self, parsing_screen, mock_app):
         """Тест проверяет остановку когда парсинг ещё не запущен.
@@ -875,7 +872,7 @@ class TestTUIStateManagementIntegration:
 
         # Проверяем что города сохранены
         assert mock_app.selected_cities == ["Москва", "Омск"]
-        mock_app.push_screen.assert_called_with("category_selector")
+        mock_app.switch_screen.assert_called_with("category_selector")
 
         # Шаг 2: Выбор категорий
         category_screen._load_categories()
@@ -886,7 +883,7 @@ class TestTUIStateManagementIntegration:
 
         # Проверяем что категории сохранены
         assert mock_app.selected_categories == ["Рестораны"]
-        mock_app.push_screen.assert_called_with("parsing")
+        mock_app.switch_screen.assert_called_with("parsing")
 
     def test_state_persistence_across_screens(self, mock_app):
         """Тест проверяет сохранение состояния при переходе между экранами.

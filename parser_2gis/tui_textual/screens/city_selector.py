@@ -297,7 +297,9 @@ class CitySelectorScreen(Screen):
                 self._cities[i].get("name", "") for i in sorted(self._selected_indices)
             ]
             self.app.selected_cities = selected_names  # type: ignore
-            self.app.push_screen("category_selector")  # type: ignore
+            # Используем switch_screen для замены текущего экрана вместо push_screen
+            # Это предотвращает накопление экранов в стеке
+            self.app.switch_screen("category_selector")  # type: ignore
 
         elif button_id == "back":
             self.app.pop_screen()  # type: ignore

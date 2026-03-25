@@ -109,6 +109,7 @@ class TestStopParsingFix:
         mock_log = Mock()
         parsing_screen.query_one = Mock(return_value=mock_log)
         mock_app.start_parsing = Mock()
+        parsing_screen._return_to_menu = Mock()
 
         parsing_screen.on_mount()
 
@@ -133,6 +134,7 @@ class TestStopParsingFix:
 
         mock_log = Mock()
         parsing_screen.query_one = Mock(return_value=mock_log)
+        parsing_screen._return_to_menu = Mock()
 
         parsing_screen.on_mount()
 
@@ -142,20 +144,18 @@ class TestStopParsingFix:
         """Тест проверяет безопасный возврат в меню после остановки.
 
         Ожидаемое поведение:
-        - call_later вызывается с _return_to_menu
+        - _return_to_menu вызывается напрямую
         - Экран корректно закрывается
         """
         parsing_screen._parsing_started = True
 
         mock_log = Mock()
         parsing_screen.query_one = Mock(return_value=mock_log)
-        parsing_screen.call_later = Mock()
+        parsing_screen._return_to_menu = Mock()
 
         parsing_screen.action_stop_parsing()
 
-        parsing_screen.call_later.assert_called()
-        call_args = parsing_screen.call_later.call_args
-        assert call_args[0][0] == parsing_screen._return_to_menu
+        parsing_screen._return_to_menu.assert_called_once()
 
 
 class TestAppStopParsingMethod:
@@ -168,9 +168,9 @@ class TestAppStopParsingMethod:
     def test_stop_parsing_sets_running_flag(self, mock_app):
         """Тест проверяет что stop_parsing устанавливает флаг _running в False."""
         app = TUIApp()
-        type(app)._running = PropertyMock(return_value=True)
         app._running = True
         app._file_logger = Mock()
+        app.notify_user = Mock()
 
         app.stop_parsing()
 

@@ -22,10 +22,10 @@ import threading
 import time
 import typing
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from parser_2gis.common import MERGE_BATCH_SIZE
 from parser_2gis.constants import (

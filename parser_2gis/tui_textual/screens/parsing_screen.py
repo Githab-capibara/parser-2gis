@@ -183,13 +183,13 @@ class ParsingScreen(Screen):
         if not selected_cities:
             self._add_log("[bold red]Ошибка: не выбраны города для парсинга![/]")
             self._add_log("[yellow]Выберите города в меню и попробуйте снова.[/]")
-            self.call_later(self._return_to_menu)
+            self._return_to_menu()
             return
 
         if not selected_cats:
             self._add_log("[bold red]Ошибка: не выбраны категории для парсинга![/]")
             self._add_log("[yellow]Выберите категории в меню и попробуйте снова.[/]")
-            self.call_later(self._return_to_menu)
+            self._return_to_menu()
             return
 
         # Запустить парсинг
@@ -209,9 +209,13 @@ class ParsingScreen(Screen):
         """Вернуться в предыдущее меню.
 
         Безопасный возврат через pop_screen() после остановки парсинга
-        или при ошибке запуска.
+        или при ошибке запуска. Используем прямой вызов вместо call_later
+        для надёжности.
         """
-        self.app.pop_screen()  # type: ignore
+        try:
+            self.app.pop_screen()  # type: ignore
+        except Exception:
+            pass
 
     def update_progress(
         self,
@@ -305,10 +309,12 @@ class ParsingScreen(Screen):
             self.action_stop_parsing()
         elif button_id == "home":
             # Безопасный возврат в меню
+            # Если парсинг запущен - сначала останавливаем его
             if self._parsing_started and not self._stopping:
-                self._add_log("[yellow]Сначала остановите парсинг кнопкой 'Стоп'[/]")
-            else:
-                self.call_later(self._return_to_menu)
+                self._add_log("[yellow]Остановка парсинга перед возвратом в меню...[/]")
+                self._stopping = True
+                self.app.stop_parsing()  # type: ignore
+            self._return_to_menu()
 
     def action_toggle_pause(self) -> None:
         """Переключить состояние паузы парсинга.
@@ -330,7 +336,7 @@ class ParsingScreen(Screen):
         """Остановить парсинг по команде пользователя.
 
         Корректная остановка с защитой от повторного вызова.
-        Использует call_later() для безопасного переключения экранов.
+        Используем прямой вызов _return_to_menu для надёжности.
         """
         # Защита от повторного вызова
         if self._stopping:
@@ -340,7 +346,7 @@ class ParsingScreen(Screen):
         if not self._parsing_started:
             # Если парсинг ещё не начался - просто вернуться в меню без установки флага остановки
             self._add_log("[dim]Парсинг ещё не запущен, возврат в меню[/]")
-            self.call_later(self._return_to_menu)
+            self._return_to_menu()
             return
 
         self._stopping = True
@@ -351,8 +357,7 @@ class ParsingScreen(Screen):
         self.app.stop_parsing()  # type: ignore
 
         # Безопасный возврат в меню после остановки
-        # call_later() гарантирует что UI обновится корректно
-        self.call_later(self._return_to_menu)
+        self._return_to_menu()
 
     def on_parsing_complete(self, success: bool) -> None:
         """Обработать завершение парсинга.

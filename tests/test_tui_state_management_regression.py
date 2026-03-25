@@ -363,7 +363,7 @@ class TestStopParsingBeforeStart:
         Ожидаемое поведение:
         - app.running НЕ устанавливается в False
         - _stopping НЕ устанавливается в True
-        - Вызывается _return_to_menu() через call_later
+        - Вызывается _return_to_menu() напрямую
         - Запись в лог о том что парсинг ещё не запущен
 
         Args:
@@ -378,8 +378,8 @@ class TestStopParsingBeforeStart:
         mock_log = Mock()
         mock_parsing_screen.query_one = Mock(return_value=mock_log)
 
-        # Mock call_later
-        mock_parsing_screen.call_later = Mock()
+        # Mock _return_to_menu
+        mock_parsing_screen._return_to_menu = Mock()
 
         # Вызовем остановку
         mock_parsing_screen.action_stop_parsing()
@@ -392,7 +392,7 @@ class TestStopParsingBeforeStart:
         assert mock_parsing_screen._stopping is False
 
         # Проверяем что был вызван возврат в меню
-        mock_parsing_screen.call_later.assert_called_once()
+        mock_parsing_screen._return_to_menu.assert_called_once()
 
         # Проверяем что была запись в лог
         mock_log.write.assert_called()
@@ -427,7 +427,7 @@ class TestStopParsingBeforeStart:
 
         # Mock зависимостей
         mock_parsing_screen.query_one = Mock(return_value=Mock())
-        mock_parsing_screen.call_later = Mock()
+        mock_parsing_screen._return_to_menu = Mock()
 
         # Вызовем остановку
         mock_parsing_screen.action_stop_parsing()
@@ -458,7 +458,7 @@ class TestStopParsingDuringExecution:
         Ожидаемое поведение:
         - app.running устанавливается в False
         - _stopping устанавливается в True
-        - Вызывается _return_to_menu() через call_later
+        - Вызывается _return_to_menu() напрямую
         - Запись в лог об остановке
 
         Args:
@@ -473,8 +473,8 @@ class TestStopParsingDuringExecution:
         mock_log = Mock()
         mock_parsing_screen.query_one = Mock(return_value=mock_log)
 
-        # Mock call_later
-        mock_parsing_screen.call_later = Mock()
+        # Mock _return_to_menu
+        mock_parsing_screen._return_to_menu = Mock()
 
         # Вызовем остановку
         mock_parsing_screen.action_stop_parsing()
@@ -486,9 +486,7 @@ class TestStopParsingDuringExecution:
         assert mock_parsing_screen._stopping is True
 
         # Проверяем что был вызван возврат в меню
-        mock_parsing_screen.call_later.assert_called_once()
-        call_args = mock_parsing_screen.call_later.call_args
-        assert call_args[0][0] == mock_parsing_screen._return_to_menu
+        mock_parsing_screen._return_to_menu.assert_called_once()
 
         # Проверяем что была запись в лог об остановке
         mock_log.write.assert_called()
@@ -506,7 +504,7 @@ class TestStopParsingDuringExecution:
 
         Ожидаемое поведение:
         - Функция возвращается сразу (early return)
-        - call_later НЕ вызывается повторно
+        - _return_to_menu НЕ вызывается повторно
         - Флаги не изменяются повторно
 
         Args:
@@ -519,16 +517,16 @@ class TestStopParsingDuringExecution:
 
         # Mock зависимостей
         mock_parsing_screen.query_one = Mock(return_value=Mock())
-        mock_parsing_screen.call_later = Mock()
+        mock_parsing_screen._return_to_menu = Mock()
 
-        # Запомним количество вызовов call_later
-        call_later_count_before = mock_parsing_screen.call_later.call_count
+        # Запомним количество вызовов _return_to_menu
+        return_to_menu_count_before = mock_parsing_screen._return_to_menu.call_count
 
         # Вызовем остановку ещё раз
         mock_parsing_screen.action_stop_parsing()
 
-        # Проверяем что call_later не был вызван повторно
-        assert mock_parsing_screen.call_later.call_count == call_later_count_before
+        # Проверяем что _return_to_menu не был вызван повторно
+        assert mock_parsing_screen._return_to_menu.call_count == return_to_menu_count_before
 
     @pytest.mark.parametrize(
         "parsing_started,stopping",
@@ -576,7 +574,7 @@ class TestStopParsingDuringExecution:
         # Mock зависимостей
         mock_log = Mock()
         mock_parsing_screen.query_one = Mock(return_value=mock_log)
-        mock_parsing_screen.call_later = Mock()
+        mock_parsing_screen._return_to_menu = Mock()
 
         # Вызовем остановку
         mock_parsing_screen.action_stop_parsing()
@@ -586,14 +584,14 @@ class TestStopParsingDuringExecution:
             # Нормальная остановка должна сработать
             assert mock_parsing_screen._stopping is True
             assert mock_tui_app.running is False
-            mock_parsing_screen.call_later.assert_called_once()
+            mock_parsing_screen._return_to_menu.assert_called_once()
         elif stopping:
             # Защита от повторной остановки
-            mock_parsing_screen.call_later.assert_not_called()
+            mock_parsing_screen._return_to_menu.assert_not_called()
         else:
             # Остановка до запуска - возврат в меню без установки флагов
             assert mock_parsing_screen._stopping is False
-            mock_parsing_screen.call_later.assert_called_once()
+            mock_parsing_screen._return_to_menu.assert_called_once()
 
 
 # =============================================================================

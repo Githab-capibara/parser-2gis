@@ -302,7 +302,9 @@ class CategorySelectorScreen(Screen):
                 self._categories[i].get("name", "") for i in sorted(self._selected_indices)
             ]
             self.app.selected_categories = selected_names  # type: ignore
-            self.app.push_screen("parsing")  # type: ignore
+            # Используем switch_screen для замены текущего экрана вместо push_screen
+            # Это предотвращает накопление экранов в стеке
+            self.app.switch_screen("parsing")  # type: ignore
 
         elif button_id == "back":
             self.app.pop_screen()  # type: ignore

@@ -373,6 +373,10 @@ class TUIApp(App):
         """Показать экран парсинга."""
         self.push_screen("parsing")
 
+    def switch_to_main_menu(self) -> None:
+        """Переключиться на главное меню (замена текущего экрана)."""
+        self.switch_screen("main_menu")
+
     def stop_parsing(self) -> None:
         """Остановить парсинг.
 
