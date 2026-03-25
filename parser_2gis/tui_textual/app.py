@@ -398,10 +398,14 @@ class TUIApp(App):
         # Проверка что данные выбраны перед запуском
         if not cities:
             self.notify_user("Ошибка: не выбраны города для парсинга!", level="error")
+            # Вернуться в главное меню
+            self.call_from_thread(self.switch_to_main_menu)
             return
 
         if not categories:
             self.notify_user("Ошибка: не выбраны категории для парсинга!", level="error")
+            # Вернуться в главное меню
+            self.call_from_thread(self.switch_to_main_menu)
             return
 
         # Экран парсинга уже открыт через switch_screen из category_selector
@@ -486,18 +490,24 @@ class TUIApp(App):
         except Exception as e:
             self._running = False
             self.call_from_thread(self._parsing_error, str(e))
+            # Вернуться в главное меню при ошибке
+            self.call_from_thread(self.switch_to_main_menu)
 
     def _parsing_complete(self, success: bool) -> None:
         """Обработка завершения парсинга."""
         screen = self.screen
         if hasattr(screen, "on_parsing_complete"):
             screen.on_parsing_complete(success)
+        # Вернуться в главное меню после завершения
+        self.switch_to_main_menu()
 
     def _parsing_error(self, error: str) -> None:
         """Обработка ошибки парсинга."""
         screen = self.screen
         if hasattr(screen, "on_parsing_error"):
             screen.on_parsing_error(error)
+        # Вернуться в главное меню после ошибки
+        self.switch_to_main_menu()
 
 
 class Parser2GISTUI:

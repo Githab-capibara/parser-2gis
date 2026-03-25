@@ -205,6 +205,10 @@ class TestNoCyclicScreenCalls:
         """
         from textual.widgets import Button
 
+        # Установить выбранные города (требуется для валидации)
+        mock_app.selected_cities = [{"name": "Омск", "code": "omsk"}]
+        mock_app.selected_categories = []
+
         # Создаём экран
         screen = CategorySelectorScreen()
         type(screen).app = PropertyMock(return_value=mock_app)

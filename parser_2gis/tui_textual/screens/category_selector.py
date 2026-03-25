@@ -297,6 +297,15 @@ class CategorySelectorScreen(Screen):
             self._update_counter()
 
         elif button_id == "next":
+            # Проверка что города выбраны перед переходом к парсингу
+            selected_cities = self.app.selected_cities  # type: ignore
+            if not selected_cities:
+                # Показать уведомление об ошибке
+                self.app.notify("❌ Сначала выберите города в меню '📁 Выбрать города'", timeout=5)  # type: ignore
+                # Записать в лог
+                self.app.notify_user("Попытка запуска без выбранных городов", level="error")  # type: ignore
+                return
+
             # Сохранить выбранные категории
             selected_names = [
                 self._categories[i].get("name", "") for i in sorted(self._selected_indices)

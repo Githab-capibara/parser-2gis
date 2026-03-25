@@ -33,7 +33,7 @@ def mock_app():
         MagicMock с настроенными методами и свойствами TUIApp.
     """
     app = MagicMock(spec=TUIApp)
-    app.selected_cities = []
+    app.selected_cities = [{"name": "Омск", "code": "omsk"}]  # Города по умолчанию для валидации
     app.selected_categories = []
     app.get_cities.return_value = [
         {"name": "Москва", "url": "https://2gis.ru/moscow", "code": "moscow", "country_code": "ru"},
