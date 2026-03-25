@@ -278,7 +278,7 @@ class TestStartParsingValid:
         2. Оба списка не пустые
 
         Ожидаемое поведение:
-        - push_screen("parsing") вызывается
+        - push_screen НЕ вызывается (экран уже открыт через switch_screen)
         - notify_user() НЕ вызывается с уровнем error
         - Парсинг начинается корректно
 
@@ -290,8 +290,8 @@ class TestStartParsingValid:
         # Вызовем метод start_parsing
         TUIApp.start_parsing(mock_tui_app, cities_data, categories_data)
 
-        # Проверяем что экран парсинга был открыт
-        mock_tui_app.push_screen.assert_called_once_with("parsing")
+        # Проверяем что push_screen НЕ вызывался (экран уже открыт)
+        mock_tui_app.push_screen.assert_not_called()
 
         # Проверяем что НЕ было ошибок
         error_calls = [
@@ -321,7 +321,7 @@ class TestStartParsingValid:
         2. Параметризированный тест для проверки различных комбинаций
 
         Ожидаемое поведение:
-        - push_screen("parsing") вызывается для всех комбинаций
+        - push_screen НЕ вызывается (экран уже открыт)
         - Ошибок не возникает
 
         Args:
@@ -339,8 +339,8 @@ class TestStartParsingValid:
         # Вызовем метод start_parsing
         TUIApp.start_parsing(mock_tui_app, cities, categories)
 
-        # Проверяем что экран парсинга был открыт
-        mock_tui_app.push_screen.assert_called_once_with("parsing")
+        # Проверяем что push_screen НЕ вызывался (экран уже открыт)
+        mock_tui_app.push_screen.assert_not_called()
 
 
 # =============================================================================
@@ -816,7 +816,7 @@ class TestStateManagementIntegration:
         3. Запуск парсинга
 
         Ожидаемое поведение:
-        - push_screen("parsing") вызывается
+        - push_screen НЕ вызывается (экран уже открыт)
         - notify_user() НЕ вызывается с ошибкой
         - Парсинг начинается
 
@@ -832,8 +832,8 @@ class TestStateManagementIntegration:
         # Запуск парсинга
         TUIApp.start_parsing(mock_tui_app, cities_data, categories_data)
 
-        # Проверяем результат
-        mock_tui_app.push_screen.assert_called_once_with("parsing")
+        # Проверяем что push_screen НЕ вызывался (экран уже открыт)
+        mock_tui_app.push_screen.assert_not_called()
         error_calls = [
             call
             for call in mock_tui_app.notify_user.call_args_list
@@ -872,8 +872,8 @@ class TestStateManagementEdgeCases:
         # Запуск парсинга
         TUIApp.start_parsing(mock_tui_app, cities_with_empty, categories_data)
 
-        # Проверяем что парсинг запустился (список технически не пустой)
-        mock_tui_app.push_screen.assert_called_once_with("parsing")
+        # Проверяем что push_screen НЕ вызывался (экран уже открыт)
+        mock_tui_app.push_screen.assert_not_called()
 
     def test_whitespace_only_cities_list(
         self, mock_tui_app: MagicMock, categories_data: list[dict]
@@ -897,8 +897,8 @@ class TestStateManagementEdgeCases:
         # Запуск парсинга
         TUIApp.start_parsing(mock_tui_app, cities_with_whitespace, categories_data)
 
-        # Проверяем что парсинг запустился
-        mock_tui_app.push_screen.assert_called_once_with("parsing")
+        # Проверяем что push_screen НЕ вызывался (экран уже открыт)
+        mock_tui_app.push_screen.assert_not_called()
 
     def test_duplicate_cities_in_list(
         self, mock_tui_app: MagicMock, categories_data: list[dict]
@@ -925,8 +925,8 @@ class TestStateManagementEdgeCases:
         # Запуск парсинга
         TUIApp.start_parsing(mock_tui_app, duplicate_cities, categories_data)
 
-        # Проверяем что парсинг запустился
-        mock_tui_app.push_screen.assert_called_once_with("parsing")
+        # Проверяем что push_screen НЕ вызывался (экран уже открыт)
+        mock_tui_app.push_screen.assert_not_called()
 
 
 if __name__ == "__main__":

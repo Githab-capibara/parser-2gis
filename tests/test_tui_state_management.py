@@ -782,7 +782,7 @@ class TestTUIAppStartParsing:
         2. Парсинг запускается корректно
 
         Ожидаемое поведение:
-        - push_screen("parsing") вызывается
+        - push_screen НЕ вызывается (экран уже открыт через switch_screen)
         - _run_parsing вызывается в фоне
         """
         cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
@@ -791,8 +791,8 @@ class TestTUIAppStartParsing:
         # Вызовем start_parsing
         TUIApp.start_parsing(mock_app, cities, categories)
 
-        # Проверяем что push_screen был вызван
-        mock_app.push_screen.assert_called_with("parsing")
+        # Проверяем что push_screen НЕ вызывался (экран уже открыт)
+        mock_app.push_screen.assert_not_called()
 
         # Проверяем что notify_user не вызывался с ошибкой
         error_calls = [
@@ -994,8 +994,8 @@ class TestTUIStateSafety:
         # Вызовем start_parsing
         TUIApp.start_parsing(mock_app, cities, categories)
 
-        # Проверяем что push_screen был вызван
-        mock_app.push_screen.assert_called_with("parsing")
+        # Проверяем что push_screen НЕ вызывался (экран уже открыт)
+        mock_app.push_screen.assert_not_called()
 
 
 if __name__ == "__main__":
