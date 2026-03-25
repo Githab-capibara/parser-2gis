@@ -117,14 +117,14 @@ class SignalHandler:
                 if self._cleanup_callback:
                     try:
                         self._cleanup_callback()
-                    except Exception as cleanup_error:
+                    except (OSError, IOError, RuntimeError, ValueError) as cleanup_error:
                         logger.error("Ошибка при очистке ресурсов: %s", cleanup_error)
 
                 # Восстанавливаем оригинальные обработчики
                 for sig_num, handler in self._original_handlers.items():
                     try:
                         signal.signal(sig_num, handler)
-                    except Exception as restore_error:
+                    except (OSError, ValueError, RuntimeError) as restore_error:
                         logger.error(
                             "Ошибка при восстановлении обработчика сигнала %d: %s",
                             sig_num,
@@ -182,13 +182,13 @@ class SignalHandler:
             if self._cleanup_callback:
                 try:
                     self._cleanup_callback()
-                except Exception as cleanup_error:
+                except (OSError, IOError, RuntimeError, ValueError) as cleanup_error:
                     logger.error("Ошибка при очистке ресурсов в signal handler: %s", cleanup_error)
 
             logger.info("Очистка ресурсов завершена. Выход из приложения...")
             sys.exit(128 + signum)
 
-        except Exception as restore_error:
+        except (OSError, ValueError, RuntimeError) as restore_error:
             logger.error("Ошибка при восстановлении обработчиков сигналов: %s", restore_error)
         finally:
             # Сбрасываем флаг только если очистка завершена

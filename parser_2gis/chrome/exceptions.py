@@ -12,24 +12,16 @@
 
 from typing import Any
 
-from pychrome.exceptions import (
-    RuntimeException as _RuntimeException,
-    UserAbortException as _UserAbortException,
-)
+from pychrome.exceptions import RuntimeException as _RuntimeException
+from pychrome.exceptions import UserAbortException as _UserAbortException
+
+from parser_2gis.exceptions import ExceptionContextMixin
 
 
-# Импортируем BaseContextualException внутри класса для избежания циклических зависимостей
-def _get_base_exception() -> type:
-    """Получает базовый класс исключения лениво."""
-    from parser_2gis.exceptions import BaseContextualException
-
-    return BaseContextualException
-
-
-class ChromeException(Exception):
+class ChromeException(ExceptionContextMixin, Exception):
     """Базовое исключение Chrome.
 
-    Наследуется от BaseContextualException для автоматического добавления:
+    Наследуется от ExceptionContextMixin для автоматического добавления:
     - Имени функции, где произошла ошибка
     - Номера строки
     - Полной трассировки стека
@@ -37,21 +29,11 @@ class ChromeException(Exception):
     """
 
     def __init__(self, message: str = "", **kwargs: Any) -> None:
-        # Импортируем базовый класс лениво
-        _get_base_exception()
-
-        # Получаем информацию о вызове
-        import inspect
-
-        frame = inspect.currentframe()
-        if frame and frame.f_back:
-            self.function_name = frame.f_back.f_code.co_name
-            self.line_number = frame.f_back.f_lineno
-            self.filename = frame.f_back.f_code.co_filename
-        else:
-            self.function_name = "unknown"
-            self.line_number = 0
-            self.filename = "unknown"
+        # Получаем контекст через миксин
+        func_name, line_num, filename = self._capture_context()
+        self.function_name = func_name
+        self.line_number = line_num
+        self.filename = filename
 
         # Формируем полное сообщение с контекстом
         full_message = (

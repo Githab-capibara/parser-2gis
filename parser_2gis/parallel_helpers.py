@@ -77,7 +77,7 @@ class FileMerger:
                     if temp_file.exists():
                         temp_file.unlink()
                         logger.debug("Временный файл удалён: %s", temp_file)
-                except Exception as e:
+                except (OSError, IOError) as e:
                     logger.warning("Не удалось удалить временный файл %s: %s", temp_file, e)
             self._temp_files.clear()
 
@@ -87,7 +87,7 @@ class FileMerger:
             try:
                 fcntl.flock(self._lock_file_handle.fileno(), fcntl.LOCK_UN)
                 self._lock_file_handle.close()
-            except Exception as close_error:
+            except (OSError, IOError) as close_error:
                 logger.error("Ошибка при закрытии lock файла: %s", close_error)
             self._lock_file_handle = None
             self._lock_acquired = False
@@ -135,7 +135,7 @@ class FileMerger:
                     if lock_file_handle:
                         try:
                             lock_file_handle.close()
-                        except Exception as close_error:
+                        except (OSError, IOError) as close_error:
                             logger.error("Ошибка при закрытии lock файла: %s", close_error)
                     self._lock_file_handle = None
 
@@ -145,12 +145,12 @@ class FileMerger:
 
                     time.sleep(1)
 
-        except Exception as lock_error:
+        except (OSError, IOError, RuntimeError) as lock_error:
             logger.error("Ошибка при получении lock файла: %s", lock_error)
             if self._lock_file_handle:
                 try:
                     self._lock_file_handle.close()
-                except Exception as close_error:
+                except (OSError, IOError) as close_error:
                     logger.error("Ошибка при закрытии lock файла: %s", close_error)
             return False
 
@@ -288,12 +288,12 @@ class FileMerger:
                 try:
                     file_to_delete.unlink()
                     logger.debug("Исходный файл удалён: %s", file_to_delete)
-                except Exception as e:
+                except (OSError, IOError) as e:
                     logger.warning("Не удалось удалить файл %s: %s", file_to_delete, e)
 
             return True
 
-        except Exception as merge_error:
+        except (OSError, IOError, RuntimeError, csv.Error) as merge_error:
             logger.error("Ошибка при объединении CSV файлов: %s", merge_error)
             return False
         finally:

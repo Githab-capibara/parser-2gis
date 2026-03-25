@@ -273,9 +273,9 @@ class CacheDataValidator:
                         "Обнаружен потенциальный SQL-инъекция в URL-encoded кэше: %s", value[:100]
                     )
                     return False
-            except (ValueError, TypeError, UnicodeDecodeError):
+            except (ValueError, TypeError, UnicodeDecodeError) as e:
                 # Игнорируем ошибки декодирования
-                pass
+                app_logger.debug("Ошибка декодирования URL-encoded значения: %s", e)
         return True
 
 

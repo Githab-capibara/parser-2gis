@@ -17,7 +17,7 @@ if __name__ == "__main__":
         DELETED_COUNT = cleanup_orphaned_profiles()
         if DELETED_COUNT > 0:
             logger.info("Очищено %d осиротевших профилей Chrome", DELETED_COUNT)
-    except Exception as e:
+    except (OSError, IOError, RuntimeError) as e:
         logger.warning("Ошибка при очистке осиротевших профилей: %s", e)
 
     # Запуск основного приложения

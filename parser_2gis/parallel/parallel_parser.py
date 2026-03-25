@@ -22,10 +22,10 @@ import threading
 import time
 import typing
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
-
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 from parser_2gis.common import MERGE_BATCH_SIZE
 from parser_2gis.constants import (
@@ -101,6 +101,19 @@ class ParallelCityParser:
         max_workers: int = 3,
         timeout_per_url: int = DEFAULT_TIMEOUT,
     ) -> None:
+        """Инициализирует параллельный парсер городов.
+
+        Args:
+            cities: Список городов для парсинга.
+            categories: Список категорий для парсинга.
+            output_dir: Папка для сохранения результатов.
+            config: Конфигурация парсера.
+            max_workers: Максимальное количество одновременных браузеров.
+            timeout_per_url: Таймаут на один URL в секундах.
+
+        Raises:
+            ValueError: Если входные данные невалидны.
+        """
         # Валидация входных данных: проверка списка городов
         if not cities:
             raise ValueError("Список городов не может быть пустым")
@@ -1090,6 +1103,17 @@ class ParallelCityParserThread:
         timeout_per_url: int = DEFAULT_TIMEOUT,
         output_file: Optional[str] = None,
     ) -> None:
+        """Инициализирует поток для параллельного парсинга.
+
+        Args:
+            cities: Список городов для парсинга.
+            categories: Список категорий для парсинга.
+            output_dir: Папка для сохранения результатов.
+            config: Конфигурация парсера.
+            max_workers: Максимальное количество одновременных браузеров.
+            timeout_per_url: Таймаут на один URL в секундах.
+            output_file: Имя выходного файла (опционально).
+        """
         # Инициализация базового класса Thread
         super().__init__()
 

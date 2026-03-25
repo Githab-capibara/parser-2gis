@@ -435,9 +435,9 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> Tuple[
         normalized_code = (
             normalized_code.encode("utf-8").decode("unicode_escape").encode("utf-8").decode("utf-8")
         )
-    except (UnicodeDecodeError, UnicodeEncodeError):
+    except (UnicodeDecodeError, UnicodeEncodeError) as e:
         # Если декодирование не удалось, используем нормализованный код
-        pass
+        app_logger.warning("Не удалось декодировать Unicode эскейпы в JS коде: %s", e)
 
     # Проверка на None и пустую строку после нормализации
     if not normalized_code:

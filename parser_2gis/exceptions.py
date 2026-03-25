@@ -21,6 +21,35 @@ import inspect
 from typing import Any
 
 
+class ExceptionContextMixin:
+    """Миксин для получения контекста исключения.
+
+    Предоставляет метод для извлечения информации о месте возникновения ошибки:
+    - Имя функции, где произошла ошибка
+    - Номер строки
+    - Имя файла
+
+    Пример использования:
+        >>> class MyException(ExceptionContextMixin, Exception):
+        ...     pass
+    """
+
+    def _capture_context(self) -> tuple[str, int, str]:
+        """Получает имя функции, номер строки и имя файла.
+
+        Returns:
+            Кортеж (function_name, line_number, filename).
+        """
+        frame = inspect.currentframe()
+        if frame and frame.f_back:
+            return (
+                frame.f_back.f_code.co_name,
+                frame.f_back.f_lineno,
+                frame.f_back.f_code.co_filename,
+            )
+        return "unknown", 0, "unknown"
+
+
 # Базовый класс исключений
 class BaseContextualException(Exception):
     """Базовый класс для всех исключений с контекстной информацией.
@@ -61,4 +90,4 @@ class BaseContextualException(Exception):
         super().__init__(full_message, **kwargs)
 
 
-__all__ = ["BaseContextualException"]
+__all__ = ["BaseContextualException", "ExceptionContextMixin"]

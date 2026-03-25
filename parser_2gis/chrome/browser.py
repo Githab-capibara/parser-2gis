@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Optional
 
 from parser_2gis.logger.logger import logger as app_logger
 
+from .constants import DEFAULT_REMOTE_DEBUGGING_PORT, SECONDS_PER_HOUR
 from .exceptions import ChromePathNotFound
 from .utils import free_port, locate_chrome_path
 
@@ -206,12 +207,12 @@ class ChromeBrowser:
             app_logger.debug("Chrome браузер запущен с PID: %d", proc.pid)
             return proc
 
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError, FileNotFoundError, ValueError, TypeError) as e:
             app_logger.error("Ошибка при запуске Chrome браузера: %s", e)
             # Очистка профиля при ошибке запуска
             try:
                 shutil.rmtree(profile_path, ignore_errors=True)
-            except Exception as cleanup_error:
+            except (OSError, IOError) as cleanup_error:
                 app_logger.debug("Не удалось удалить профиль при ошибке запуска: %s", cleanup_error)
             raise
 
@@ -234,7 +235,7 @@ class ChromeBrowser:
             >>> options.headless = True
             >>> browser = ChromeBrowser(options)
             >>> print(browser.remote_port)
-            9222
+            DEFAULT_REMOTE_DEBUGGING_PORT
         """
         # Инициализируем переменные для гарантии очистки в finally
         self._profile_tempdir: Optional[tempfile.TemporaryDirectory] = None
@@ -270,13 +271,13 @@ class ChromeBrowser:
                 time.time() - self._start_time,
             )
 
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError, FileNotFoundError, ValueError, TypeError) as e:
             app_logger.error("Ошибка инициализации Chrome: %s", e)
             if self._profile_tempdir is not None:
                 try:
                     self._profile_tempdir.cleanup()
                     app_logger.debug("Профиль Chrome очищен при ошибке инициализации")
-                except Exception as cleanup_error:
+                except (OSError, IOError) as cleanup_error:
                     app_logger.debug("Ошибка при очистке профиля: %s", cleanup_error)
             raise
 
@@ -313,7 +314,7 @@ class ChromeBrowser:
 
             if profile_tempdir is not None:
                 profile_tempdir.cleanup()
-        except Exception as finalizer_error:
+        except (subprocess.SubprocessError, OSError, RuntimeError) as finalizer_error:
             app_logger.debug("Ошибка в weakref.finalize(): %s", finalizer_error)
 
     def _validate_binary_path(self, binary_path: str) -> None:
@@ -414,7 +415,7 @@ class ChromeBrowser:
             # Нет прав на завершение процесса
             app_logger.error("Нет прав на завершение процесса: %s", perm_error)
             return False, "permission_denied"
-        except Exception as terminate_error:
+        except (OSError, subprocess.SubprocessError, ValueError) as terminate_error:
             app_logger.warning(
                 "Ошибка при завершении Chrome (PID %d): %s (тип: %s)",
                 process_pid,
@@ -478,7 +479,7 @@ class ChromeBrowser:
             # Нет прав на завершение процесса
             app_logger.error("Нет прав на принудительное завершение: %s", perm_error)
             return False, "kill_permission_denied"
-        except Exception as kill_error:
+        except (OSError, subprocess.SubprocessError, ValueError) as kill_error:
             app_logger.error(
                 "Ошибка при принудительном закрытии Chrome (PID %d): %s (тип: %s)",
                 process_pid,
@@ -506,7 +507,7 @@ class ChromeBrowser:
                 exc_info=True,
             )
             profile_cleanup_error = profile_error
-        except Exception as profile_error:
+        except (RuntimeError, AttributeError, ValueError) as profile_error:
             app_logger.error(
                 "Непредвиденная ошибка при удалении профиля через TemporaryDirectory: %s",
                 profile_error,
@@ -526,7 +527,7 @@ class ChromeBrowser:
                         fallback_error,
                         exc_info=True,
                     )
-                except Exception as fallback_error:
+                except (RuntimeError, AttributeError, ValueError) as fallback_error:
                     app_logger.error(
                         "Непредвиденная ошибка при fallback очистке профиля: %s",
                         fallback_error,
@@ -570,7 +571,7 @@ class ChromeBrowser:
             else:
                 app_logger.warning("Процесс Chrome не инициализирован")
 
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as e:
             app_logger.error("Непредвиденная ошибка при закрытии Chrome: %s", e)
             process_status = "unexpected_error"
 
@@ -584,6 +585,11 @@ class ChromeBrowser:
         self._cleanup_profile()
 
     def __repr__(self) -> str:
+        """Возвращает строковое представление объекта ChromeBrowser.
+
+        Returns:
+            Строка с именем класса и аргументами команды.
+        """
         classname = self.__class__.__name__
         return f"{classname}(arguments={self._chrome_cmd!r})"
 
@@ -623,9 +629,9 @@ class ChromeBrowser:
                     except subprocess.TimeoutExpired:
                         self._proc.kill()
                         self._proc.wait(timeout=5)
-                    except (ProcessLookupError, PermissionError):
-                        pass
-                    except Exception as close_error:
+                    except (ProcessLookupError, PermissionError) as e:
+                        app_logger.warning("Не удалось завершить процесс Chrome: %s", e)
+                    except (OSError, subprocess.SubprocessError, ValueError) as close_error:
                         app_logger.debug(
                             "ChromeBrowser.__del__: ошибка при закрытии процесса %d: %s",
                             process_pid,
@@ -635,12 +641,12 @@ class ChromeBrowser:
             if hasattr(self, "_profile_tempdir") and self._profile_tempdir is not None:
                 try:
                     self._profile_tempdir.cleanup()
-                except Exception as cleanup_error:
+                except (OSError, IOError) as cleanup_error:
                     app_logger.debug(
                         "ChromeBrowser.__del__: ошибка при очистке профиля: %s", cleanup_error
                     )
 
-        except Exception as del_error:
+        except (OSError, IOError, RuntimeError, AttributeError) as del_error:
             app_logger.debug("ChromeBrowser.__del__: непредвиденная ошибка: %s", del_error)
 
 
@@ -680,7 +686,9 @@ def _check_profile_age_and_delete(
 
             _safe_remove_profile(item)
             app_logger.debug(
-                "Удалён осиротевший профиль: %s (возраст: %.1f ч)", item.name, age_seconds / 3600
+                "Удалён осиротевший профиль: %s (возраст: %.1f ч)",
+                item.name,
+                age_seconds / SECONDS_PER_HOUR,
             )
             return True
     except OSError as stat_error:
@@ -722,7 +730,7 @@ def _check_profile_age_by_dir(item: Path, current_time: float, max_age_seconds: 
             app_logger.debug(
                 "Удалён осиротевший профиль (без маркера): %s (возраст: %.1f ч)",
                 item.name,
-                age_seconds / 3600,
+                age_seconds / SECONDS_PER_HOUR,
             )
             return True
     except OSError as stat_error:
@@ -784,7 +792,7 @@ def cleanup_orphaned_profiles(
 
     deleted_count = 0
     current_time = time.time()
-    max_age_seconds = max_age_hours * 3600
+    max_age_seconds = max_age_hours * SECONDS_PER_HOUR
 
     app_logger.debug(
         "Поиск осиротевших профилей Chrome в %s (макс. возраст: %d ч)...",
@@ -808,7 +816,7 @@ def cleanup_orphaned_profiles(
 
     except PermissionError as perm_error:
         app_logger.warning("Нет прав для доступа к директории профилей: %s", perm_error)
-    except Exception as e:
+    except (OSError, IOError, RuntimeError) as e:
         app_logger.warning("Ошибка при очистке осиротевших профилей: %s", e)
 
     if deleted_count > 0:
@@ -886,7 +894,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
 
             return False
 
-    except Exception as e:
+    except (OSError, IOError, RuntimeError) as e:
         # При ошибке проверки считаем что профиль не используется
         app_logger.debug("Ошибка проверки активности профиля %s: %s", profile_path, e)
         return False
@@ -925,5 +933,5 @@ def _safe_remove_profile(profile_path: Path) -> None:
         else:
             app_logger.debug("Профиль успешно удалён: %s", profile_path)
 
-    except Exception as e:
+    except (OSError, IOError, RuntimeError) as e:
         app_logger.warning("Ошибка при удалении профиля %s: %s", profile_path, e)

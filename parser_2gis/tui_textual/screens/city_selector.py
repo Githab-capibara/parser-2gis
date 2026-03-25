@@ -256,10 +256,10 @@ class CitySelectorScreen(Screen):
                 self._update_counter()
             except StopIteration:
                 # Город не найден в отфильтрованном списке
-                pass
+                app_logger.debug("Город не найден в отфильтрованном списке")
             except ValueError:
                 # Город не найден в полном списке
-                pass
+                app_logger.debug("Город не найден в полном списке")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Обработать нажатие кнопки на экране.

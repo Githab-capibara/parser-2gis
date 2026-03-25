@@ -106,9 +106,9 @@ def validate_url(url: str) -> ValidationResult:
                             )
                     except ValueError:
                         continue
-            except socket.gaierror:
+            except socket.gaierror as e:
                 # Домен не разрешается - это нормально, может быть рабочим
-                pass
+                app_logger.debug("Домен не разрешается: %s", e)
             finally:
                 # Восстанавливаем исходный таймаут
                 socket.setdefaulttimeout(old_timeout)

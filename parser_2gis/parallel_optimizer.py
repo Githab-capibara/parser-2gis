@@ -15,10 +15,10 @@ from __future__ import annotations
 import queue
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import psutil
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .logger import logger
 
@@ -109,7 +109,7 @@ class ParallelOptimizer:
         self._process_cache: Optional[psutil.Process] = None
         try:
             self._process_cache = psutil.Process()
-        except Exception as process_error:
+        except (OSError, ValueError, RuntimeError) as process_error:
             # Логгируем ошибку создания процесса
             logger.debug("Не удалось создать кэш процесса psutil: %s", process_error)
 
@@ -200,7 +200,7 @@ class ParallelOptimizer:
 
             return available, memory_mb
 
-        except Exception as e:
+        except (OSError, ValueError, RuntimeError, psutil.Error) as e:
             logger.warning("Ошибка при проверке ресурсов: %s", e)
             return True, 0.0
 
@@ -368,7 +368,7 @@ class ParallelOptimizer:
                                 failed_count,
                                 f"{task.city_name}_{task.category_name}",
                             )
-                    except Exception as e:
+                    except (OSError, ValueError, RuntimeError) as e:
                         task = futures[future]
                         logger.error(
                             "Ошибка в задаче %s - %s: %s", task.city_name, task.category_name, e

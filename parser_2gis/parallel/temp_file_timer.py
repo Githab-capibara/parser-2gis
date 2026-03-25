@@ -253,13 +253,13 @@ class _TempFileTimer:
         if timer is not None:
             try:
                 timer.cancel()
-            except (RuntimeError, TypeError, ValueError):
-                pass
+            except (RuntimeError, TypeError, ValueError) as e:
+                app_logger.debug("Ошибка отмены таймера: %s", e)
         if lock is not None:
             try:
                 lock.release()
-            except (RuntimeError, TypeError):
-                pass
+            except (RuntimeError, TypeError) as e:
+                app_logger.debug("Ошибка освобождения блокировки: %s", e)
 
     def start(self) -> None:
         """Запускает таймер периодической очистки."""

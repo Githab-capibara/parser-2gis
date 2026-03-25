@@ -481,12 +481,12 @@ class ConnectionPool:
                     for conn in all_conns:
                         try:
                             conn.close()
-                        except (sqlite3.Error, OSError):
-                            pass
+                        except (sqlite3.Error, OSError) as e:
+                            app_logger.warning("Не удалось закрыть соединение с БД: %s", e)
                     all_conns.clear()
-            except (RuntimeError, TypeError):
+            except (RuntimeError, TypeError) as e:
                 # Интерпретатор завершается - игнорируем ошибки
-                pass
+                app_logger.debug("Ошибка при очистке пула соединений: %s", e)
 
     def __enter__(self) -> "ConnectionPool":
         """

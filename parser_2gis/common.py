@@ -167,20 +167,3 @@ def floor_to_hundreds(arg: int | float) -> int:
         Округлённое вниз число до ближайшей сотни.
     """
     return int((arg // 100) * 100)
-
-
-# =============================================================================
-# ЭКСПОРТ
-# =============================================================================
-
-__all__ = [
-    # Базовые утилиты
-    "report_from_validation_error",
-    "unwrap_dot_dict",
-    "floor_to_hundreds",
-    # Константы из constants.py
-    "DEFAULT_BUFFER_SIZE",
-    "CSV_BATCH_SIZE",
-    "MERGE_BATCH_SIZE",
-    "MAX_COLLECTION_SIZE",
-]

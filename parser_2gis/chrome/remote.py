@@ -46,8 +46,10 @@ from .constants import (
     CHROME_STARTUP_DELAY,
     EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
+    MAX_PORT,
     MAX_RESPONSE_SIZE,
     MAX_TOTAL_JS_SIZE,
+    MIN_PORT,
 )
 from .dom import DOMNode
 from .exceptions import ChromeException
@@ -137,13 +139,13 @@ def _validate_remote_port(port: Any) -> int:
     if not isinstance(port, int):
         raise ValueError(f"remote_port должен быть integer, получен {type(port).__name__}")
 
-    if port < 1024:
+    if port < MIN_PORT:
         raise ValueError(
-            f"remote_port должен быть >= 1024 (зарезервированные порты), получен {port}"
+            f"remote_port должен быть >= {MIN_PORT} (зарезервированные порты), получен {port}"
         )
 
-    if port > 65535:
-        raise ValueError(f"remote_port должен быть <= 65535, получен {port}")
+    if port > MAX_PORT:
+        raise ValueError(f"remote_port должен быть <= {MAX_PORT}, получен {port}")
 
     return port
 
@@ -158,6 +160,12 @@ class ChromeRemote:
     _active_instances: list[Optional["ChromeRemote"]] = []
 
     def __init__(self, chrome_options: ChromeOptions, response_patterns: list[str]) -> None:
+        """Инициализирует ChromeRemote для управления браузером через CDP.
+
+        Args:
+            chrome_options: Опции Chrome для настройки браузера.
+            response_patterns: Паттерны для фильтрации сетевых ответов.
+        """
         self._chrome_options: ChromeOptions = chrome_options
         self._chrome_browser: Optional[ChromeBrowser] = None
         self._chrome_interface: Optional[pychrome.Browser] = None
@@ -336,6 +344,11 @@ class ChromeRemote:
         result: Dict[str, Optional[Exception]] = {"error": None}
 
         def start_target() -> None:
+            """Запускает вкладку Chrome в отдельном потоке.
+
+            Note:
+                Функция выполняется в daemon потоке с таймаутом.
+            """
             try:
                 tab.start()
             except Exception as e:
@@ -468,6 +481,14 @@ class ChromeRemote:
                                 self._response_queues[pattern].put(response)
 
         def requestWillBeSent(**kwargs) -> None:
+            """Обработчик события отправки HTTP запроса.
+
+            Args:
+                **kwargs: Параметры запроса (requestId, request, type, etc.).
+
+            Note:
+                Игнорирует Preflight запросы (OPTIONS).
+            """
             request = kwargs.pop("request")
             request["meta"] = kwargs
             request_id = kwargs["requestId"]
@@ -534,6 +555,19 @@ class ChromeRemote:
         original_send = self._chrome_tab._send
 
         def wrapped_send(*args, **kwargs) -> Any:
+            """Обёртка для отправки сообщений в CDP с обработкой UserAbortException.
+
+            Args:
+                *args: Позиционные аргументы для original_send.
+                **kwargs: Именованные аргументы для original_send.
+
+            Returns:
+                Результат вызова original_send.
+
+            Raises:
+                pychrome.UserAbortException: Если вкладка была остановлена.
+                pychrome.RuntimeException: Если вкладка была остановлена (преобразованное).
+            """
             try:
                 return original_send(*args, **kwargs)
             except pychrome.UserAbortException as e:
@@ -886,11 +920,21 @@ class ChromeRemote:
 
             app_logger.info("Завершение остановки ChromeRemote - все ресурсы очищены")
 
-    def __enter__(self) -> ChromeRemote:
+    def __enter__(self) -> "ChromeRemote":
+        """Контекстный менеджер: вход.
+
+        Returns:
+            Экземпляр ChromeRemote.
+        """
         self.start()
         return self
 
     def __exit__(self, *exc_info: Any) -> None:
+        """Контекстный менеджер: выход.
+
+        Args:
+            exc_info: Информация об исключении (если было).
+        """
         self.stop()
 
     # =============================================================================
@@ -974,5 +1018,10 @@ class ChromeRemote:
         self.stop()
 
     def __repr__(self) -> str:
+        """Возвращает строковое представление объекта ChromeRemote.
+
+        Returns:
+            Строка с именем класса и параметрами.
+        """
         classname = self.__class__.__name__
         return f"{classname}(options={self._chrome_options!r}, response_patterns={self._response_patterns!r})"

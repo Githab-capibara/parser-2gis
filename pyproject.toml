@@ -113,7 +113,6 @@ known_standard_library = [
     "pathlib",
     "platform",
     "queue",
-    "queue",
     "re",
     "shutil",
     "signal",
