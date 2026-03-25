@@ -997,10 +997,12 @@ class ChromeRemote:
                 parsed_url = urlparse(self._dev_url)
                 port = int(parsed_url.port)
 
-                # Проверка доступности порта перед подключением
-                if not _check_port_available(port, timeout=1.0):
+                # Проверка, что Chrome слушает на порту (порт занят)
+                # _check_port_available возвращает True когда порт свободен,
+                # и False когда порт занят (Chrome слушает)
+                if _check_port_available(port, timeout=1.0):
                     app_logger.warning(
-                        "Порт %d недоступен при подключении к DevTools (попытка %d/%d)",
+                        "Порт %d свободен (Chrome ещё не слушает), попытка %d/%d",
                         port,
                         attempt + 1,
                         max_attempts,
@@ -1153,17 +1155,21 @@ class ChromeRemote:
                 )
                 time.sleep(startup_delay)
 
-                # Проверяем доступность порта
-                if _check_port_available(remote_port, timeout=1.0, retries=1):
-                    app_logger.debug("Порт %d доступен для подключения", remote_port)
+                # Проверяем, запустился ли Chrome (порт занят)
+                # _check_port_available возвращает True когда порт свободен,
+                # и False когда порт занят (Chrome слушает)
+                if not _check_port_available(remote_port, timeout=1.0, retries=1):
+                    app_logger.debug(
+                        "Порт %d занят (Chrome запущен), готов к подключению", remote_port
+                    )
                     break
 
                 # Увеличиваем задержку для следующей попытки
                 startup_delay = min(startup_delay * 1.5, 3.0)
             else:
                 raise ChromeException(
-                    f"Порт {remote_port} недоступен после {max_startup_attempts} попыток. "
-                    "Возможно, Chrome не запустился."
+                    f"Chrome не запустился после {max_startup_attempts} попыток. "
+                    f"Порт {remote_port} так и не был занят."
                 )
 
             # Подключаем браузер к CDP с проверкой результата

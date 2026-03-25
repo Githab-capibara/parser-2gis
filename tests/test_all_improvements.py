@@ -15,6 +15,7 @@
 Дата: 2026-03-23
 """
 
+from parser_2gis.utils.sanitizers import _sanitize_value
 import os
 import sys
 import tempfile
@@ -27,7 +28,6 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Импорт функции _sanitize_value из модуля утилит санитизации
-from parser_2gis.utils.sanitizers import _sanitize_value
 
 # =============================================================================
 # CRITICAL: ТЕСТЫ НА РЕФАКТОРИНГ ФУНКЦИЙ

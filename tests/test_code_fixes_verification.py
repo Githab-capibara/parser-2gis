@@ -12,6 +12,7 @@
 7. Тесты на type: ignore комментарии
 """
 
+from parser_2gis.utils.url_utils import generate_category_url
 import ast
 import re
 import subprocess
@@ -27,7 +28,6 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Импорт функции generate_category_url из модуля утилит URL
-from parser_2gis.utils.url_utils import generate_category_url
 
 # =============================================================================
 # ГРУППА 1: Тесты на отсутствие дублирующих импортов (parallel_parser.py)
