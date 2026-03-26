@@ -275,6 +275,9 @@ class ParallelCityParser:
         - После успешного завершения файл переименовывается в целевое имя
         - При ошибке временный файл удаляется
 
+        Для установки таймаута используется ThreadPoolExecutor с future.result(timeout=...),
+        что является потокобезопасной альтернативой signal.alarm().
+
         Args:
             url: URL для парсинга.
             category_name: Название категории.
@@ -287,10 +290,6 @@ class ParallelCityParser:
         # Проверяем флаг отмены
         if self._cancel_event.is_set():
             return False, "Отменено пользователем"
-
-        # Используем signal.alarm для установки таймаута на парсинг (только Unix)
-        timeout_occurred = False
-        use_signal_timeout = hasattr(signal, "alarm")
 
         # Формируем целевое имя файла
         safe_city = city_name.replace(" ", "_").replace("/", "_")
@@ -350,20 +349,13 @@ class ParallelCityParser:
                     )
                     raise
 
-        # Сохраняем старый обработчик SIGALRM для восстановления
-        old_handler = None
-        if use_signal_timeout:
+        def do_parse() -> Tuple[bool, str]:
+            """
+            Выполняет парсинг внутри отдельного потока.
 
-            def timeout_handler(signum, frame):
-                """Обработчик сигнала таймаута."""
-                nonlocal timeout_occurred
-                timeout_occurred = True
-                raise TimeoutError(f"Превышен таймаут парсинга ({self.timeout_per_url} сек)")
-
-            old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(self.timeout_per_url)
-
-        try:
+            Returns:
+                Кортеж (успех, сообщение).
+            """
             self.log(
                 f"Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filename})",
                 "info",
@@ -448,31 +440,42 @@ class ParallelCityParser:
 
             return True, str(filepath)
 
-        except TimeoutError as timeout_error:
-            self.log(
-                f"Таймаут парсинга {city_name} - {category_name} "
-                f"({self.timeout_per_url} сек): {timeout_error}",
-                "error",
-            )
+        # Используем ThreadPoolExecutor для установки таймаута (потокобезопасная альтернатива signal.alarm)
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(do_parse)
+                try:
+                    # Ожидаем результат с таймаутом
+                    success, message = future.result(timeout=self.timeout_per_url)
+                    return success, message
+                except FuturesTimeoutError:
+                    self.log(
+                        f"Таймаут парсинга {city_name} - {category_name} "
+                        f"({self.timeout_per_url} сек)",
+                        "error",
+                    )
 
-            try:
-                if temp_filepath.exists():
-                    temp_filepath.unlink()
-                    self.log(f"Временный файл удалён после таймаута: {temp_filename}", "debug")
-            except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-                self.log(
-                    f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}", "warning"
-                )
+                    try:
+                        if temp_filepath.exists():
+                            temp_filepath.unlink()
+                            self.log(
+                                f"Временный файл удалён после таймаута: {temp_filename}", "debug"
+                            )
+                    except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
+                        self.log(
+                            f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
+                            "warning",
+                        )
 
-            with self._lock:
-                self._stats["failed"] += 1
-                success_count = self._stats["success"]
-                failed_count = self._stats["failed"]
+                    with self._lock:
+                        self._stats["failed"] += 1
+                        success_count = self._stats["success"]
+                        failed_count = self._stats["failed"]
 
-            if progress_callback:
-                progress_callback(success_count, failed_count, "N/A")
+                    if progress_callback:
+                        progress_callback(success_count, failed_count, "N/A")
 
-            return False, f"Таймаут: {timeout_error}"
+                    return False, f"Таймаут: {self.timeout_per_url} сек"
 
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             self.log(f"Ошибка парсинга {city_name} - {category_name}: {e}", "error")
@@ -495,11 +498,6 @@ class ParallelCityParser:
                 progress_callback(success_count, failed_count, "N/A")
 
             return False, str(e)
-
-        finally:
-            if use_signal_timeout and old_handler is not None:
-                signal.alarm(0)
-                signal.signal(signal.SIGALRM, old_handler)
 
     # =====================================================================
     # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ MERGE_CSV_FILES
