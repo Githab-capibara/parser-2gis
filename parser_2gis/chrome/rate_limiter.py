@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 try:
     import requests
@@ -36,19 +36,34 @@ if TYPE_CHECKING:
 # =============================================================================
 
 
-def _safe_external_request(method: str = "GET", url: str = "", timeout: int = 30, **kwargs) -> None:
+def _safe_external_request(
+    method: str = "GET", url: str = "", timeout: int = 30, **kwargs
+) -> Optional[requests.Response]:
     """Безопасный внешний запрос с rate limiting.
-
-    Заглушка для обратной совместимости.
 
     Args:
         method: HTTP метод.
         url: URL для запроса.
         timeout: Таймаут запроса.
         **kwargs: Дополнительные аргументы для requests.
+
+    Returns:
+        requests.Response объект или None при ошибке.
     """
     if requests is None:
         raise ImportError("requests library is required for _safe_external_request")
 
-    # Простая реализация без rate limiting
-    requests.request(method, url, timeout=timeout, **kwargs)
+    try:
+        response = requests.request(method, url, timeout=timeout, **kwargs)
+        return response
+    except requests.exceptions.RequestException as e:
+        # Логируем ошибку, но не выбрасываем - пусть вызывающий код решает
+        from parser_2gis.logger import logger as app_logger
+
+        app_logger.debug("Ошибка HTTP запроса к %s: %s", url, e)
+        return None
+    except Exception as e:
+        from parser_2gis.logger import logger as app_logger
+
+        app_logger.error("Неожиданная ошибка HTTP запроса к %s: %s", url, e)
+        return None

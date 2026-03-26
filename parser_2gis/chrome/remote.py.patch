@@ -1,0 +1,35 @@
+    def _create_tab(self) -> pychrome.Tab:
+        """Создаёт Chrome-вкладку с повторными попытками."""
+        max_attempts = 10
+        delay_seconds = 1.5
+
+        for attempt in range(max_attempts):
+            try:
+                app_logger.debug("Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts)
+                resp = _safe_external_request(
+                    "put", "%s/json/new" % (self._dev_url), json={}, timeout=60, verify=True
+                )
+
+                # Проверка на None перед вызовом raise_for_status()
+                if resp is None:
+                    raise ChromeException("HTTP запрос вернул None")
+
+                resp.raise_for_status()
+                app_logger.debug("Вкладка успешно создана")
+                return pychrome.Tab(**resp.json())
+
+            except (RequestException, ValueError, KeyError) as e:
+                if attempt < max_attempts - 1:
+                    app_logger.warning(
+                        "Не удалось создать вкладку (попытка %d): %s. Повторная попытка через %.1f сек...",
+                        attempt + 1,
+                        e,
+                        delay_seconds,
+                    )
+                    time.sleep(delay_seconds)
+                else:
+                    raise ChromeException(
+                        f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
+                    ) from e
+
+        raise ChromeException("Не удалось создать вкладку")
