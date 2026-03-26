@@ -523,8 +523,29 @@ def main() -> None:
                 """Callback для обновления прогресса."""
                 logger.info("Прогресс: успешно=%d, ошибок=%d, файл=%s", success, failed, filename)
 
-            output_file = "omsk_all_categories.csv"
-            result = parser.run(output_file=output_file, progress_callback=progress_callback)
+            # Используем имя файла из аргументов или по умолчанию
+            if args.output_path:
+                output_path_obj = Path(args.output_path)
+                if output_path_obj.suffix:
+                    # Если указан файл с расширением, используем его
+                    output_file = output_path_obj.name
+                    # Пересоздаём output_dir для корректного пути
+                    output_dir = output_path_obj.parent
+                    if output_dir == Path("."):
+                        output_dir = Path("output")
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                else:
+                    # Если указана директория, используем имя по умолчанию
+                    output_file = "omsk_all_categories.csv"
+            else:
+                output_file = "omsk_all_categories.csv"
+
+            # Полный путь к выходному файлу
+            output_file_path = output_dir / output_file
+
+            result = parser.run(
+                output_file=str(output_file_path), progress_callback=progress_callback
+            )
 
             if result:
                 logger.info("Парсинг успешно завершён")

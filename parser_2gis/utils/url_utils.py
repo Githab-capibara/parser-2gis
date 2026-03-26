@@ -60,7 +60,7 @@ def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
     city_code, city_domain = city_key
     category_query, rubric_code = category_key
 
-    base_url = f"https://{city_domain}/{city_code}"
+    base_url = f"https://2gis.{city_domain}/{city_code}"
     rest_url = f"/search/{url_query_encode(category_query)}"
 
     if rubric_code:
@@ -168,7 +168,7 @@ def generate_city_urls(
                 continue
 
             # Формирование URL
-            base_url = f"https://{city['domain']}/{city['code']}"
+            base_url = f"https://2gis.{city['domain']}/{city['code']}"
             rest_url = f"/search/{encoded_query}"
 
             if rubric_code:
