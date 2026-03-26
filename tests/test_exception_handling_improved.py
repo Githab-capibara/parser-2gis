@@ -11,13 +11,10 @@
 
 from __future__ import annotations
 
-import os
-import sqlite3
 import subprocess
-import tempfile
 from pathlib import Path
-from typing import Any, Generator
-from unittest.mock import MagicMock, Mock, patch
+from typing import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -600,7 +597,6 @@ class TestChromeBrowserExceptionHandling:
         with patch("parser_2gis.chrome.browser.locate_chrome_path", return_value=None):
             with pytest.raises((TypeError, Exception)):
                 ChromeBrowser(mock_chrome_options)
-
 
 
 @pytest.fixture

@@ -11,8 +11,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, Generator
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -44,7 +43,6 @@ class TestParallelOptimizerWithoutPsutil:
         try:
             with patch.dict("sys.modules", {"psutil": None}):
                 # Перезагружаем модуль чтобы эмулировать импорт без psutil
-                import importlib
 
                 from parser_2gis import parallel_optimizer
 

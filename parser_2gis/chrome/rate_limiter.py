@@ -26,12 +26,9 @@ try:
 except ImportError:
     RequestException = Exception  # type: ignore[misc, assignment]
 
-from parser_2gis.logger.logger import logger as app_logger
-
-from .constants import EXTERNAL_RATE_LIMIT_CALLS, EXTERNAL_RATE_LIMIT_PERIOD
 
 if TYPE_CHECKING:
-    import requests
+    pass
 
 
 # =============================================================================

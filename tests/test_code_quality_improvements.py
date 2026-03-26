@@ -15,8 +15,7 @@ from __future__ import annotations
 import ast
 import inspect
 from pathlib import Path
-from typing import Any, Callable, Dict, List
-from unittest.mock import MagicMock, patch
+from typing import Any, Dict
 
 import pytest
 
@@ -537,8 +536,6 @@ class TestCodeStyle:
         Returns:
             None
         """
-        from parser_2gis.cache.pool import ConnectionPool
-        from parser_2gis.parallel_optimizer import ParallelOptimizer, ParallelTask
 
         # Проверяем что имена классов в PascalCase
         class_names = ["ConnectionPool", "ParallelOptimizer", "ParallelTask"]
@@ -554,7 +551,6 @@ class TestCodeStyle:
         Returns:
             None
         """
-        from parser_2gis.constants import DEFAULT_TIMEOUT, MAX_WORKERS, MIN_WORKERS
 
         # Проверяем что константы в UPPER_CASE
         constants = ["DEFAULT_TIMEOUT", "MAX_WORKERS", "MIN_WORKERS"]

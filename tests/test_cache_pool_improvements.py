@@ -12,13 +12,12 @@
 
 from __future__ import annotations
 
-import sqlite3
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Generator
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -290,7 +289,6 @@ class TestCalculateDynamicPoolSizeCaching:
         Returns:
             None
         """
-        import psutil
 
         # Очищаем кэш
         from parser_2gis.cache import pool as pool_module
@@ -335,7 +333,6 @@ class TestCalculateDynamicPoolSizeCaching:
 
         try:
             # Устанавливаем старый кэш
-            import time
 
             pool_module._POOL_SIZE_CACHE["pool_size"] = (0, 5)  # Очень старое время
 

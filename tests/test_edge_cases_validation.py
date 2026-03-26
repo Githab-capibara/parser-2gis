@@ -11,14 +11,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Generator
-from unittest.mock import MagicMock, patch
+from typing import Any, Dict
 
 import pytest
 
 from parser_2gis.common import unwrap_dot_dict
 from parser_2gis.validation.data_validator import (
-    ValidationResult,
     validate_email,
     validate_list_length,
     validate_non_empty_list,
