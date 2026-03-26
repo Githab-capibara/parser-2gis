@@ -33,26 +33,22 @@ from parser_2gis.cache import (
     SHA256_HASH_LENGTH,
 )
 
-# Импорт констант из модуля common
-from parser_2gis.common import (
+# Импорт констант из модуля constants
+from parser_2gis.constants import (
     CSV_BATCH_SIZE,
     DEFAULT_BUFFER_SIZE,
     DEFAULT_POLL_INTERVAL,
-    EXPONENTIAL_BACKOFF_MULTIPLIER,
-    MAX_POLL_INTERVAL,
-    MERGE_BATCH_SIZE,
-)
-
-# Импорт констант из модуля constants
-from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
+    EXPONENTIAL_BACKOFF_MULTIPLIER,
     MAX_COLLECTION_SIZE,
     MAX_DATA_DEPTH,
     MAX_DATA_SIZE,
     MAX_LOCK_FILE_AGE,
+    MAX_POLL_INTERVAL,
     MAX_TEMP_FILES,
     MAX_TIMEOUT,
     MAX_WORKERS,
+    MERGE_BATCH_SIZE,
     MERGE_LOCK_TIMEOUT,
     MIN_TIMEOUT,
     MIN_WORKERS,

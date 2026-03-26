@@ -1,7 +1,7 @@
 """
-Тесты для проверки гонки данных в _TempFileTimer.
+Тесты для проверки гонки данных в TempFileTimer.
 
-ИСПРАВление P0-5: Исправление гонки данных в _TempFileTimer
+ИСПРАВление P0-5: Исправление гонки данных в TempFileTimer
 Файлы: parser_2gis/parallel_parser.py
 
 Тестируют:
@@ -19,8 +19,8 @@ from typing import List
 
 import pytest
 
-from parser_2gis.parallel import _TempFileTimer
-from parser_2gis.temp_file_manager import (
+from parser_2gis.utils.temp_file_manager import (
+    TempFileTimer,
     cleanup_all_temp_files,
     register_temp_file,
     unregister_temp_file,
@@ -37,7 +37,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 @pytest.mark.unit
 class TestTempFileTimerReentrancy:
-    """Тесты для реентерабельности методов _TempFileTimer."""
+    """Тесты для реентерабельности методов TempFileTimer."""
 
     def test_rlock_allows_reentry(self, tmp_path: Path) -> None:
         """
@@ -45,7 +45,7 @@ class TestTempFileTimerReentrancy:
 
         Создаёт файл и вызывает метод очистки внутри блокировки.
         """
-        timer = _TempFileTimer(cleanup_interval=10)  # Большой интервал
+        timer = TempFileTimer(cleanup_interval=10)  # Большой интервал
 
         try:
             file_path = tmp_path / "test_reentry.tmp"
@@ -77,7 +77,7 @@ class TestTempFileTimerReentrancy:
 
         Вызывает _cleanup_callback несколько раз подряд.
         """
-        timer = _TempFileTimer(cleanup_interval=10)
+        timer = TempFileTimer(cleanup_interval=10)
 
         try:
             # Создаём тестовые файлы
@@ -106,7 +106,7 @@ class TestTempFileTimerReentrancy:
 
 @pytest.mark.unit
 class TestTempFileTimerNoDeadlock:
-    """Тесты для отсутствия deadlock в _TempFileTimer."""
+    """Тесты для отсутствия deadlock в TempFileTimer."""
 
     def test_no_deadlock_concurrent_cleanup(self, tmp_path: Path) -> None:
         """
@@ -114,7 +114,7 @@ class TestTempFileTimerNoDeadlock:
 
         Несколько потоков одновременно вызывают очистку.
         """
-        timer = _TempFileTimer(cleanup_interval=10)
+        timer = TempFileTimer(cleanup_interval=10)
 
         try:
             # Создаём файлы
@@ -152,7 +152,7 @@ class TestTempFileTimerNoDeadlock:
 
         Регистрация, удаление и очистка выполняются параллельно.
         """
-        timer = _TempFileTimer(cleanup_interval=10)
+        timer = TempFileTimer(cleanup_interval=10)
 
         try:
             errors: List[Exception] = []
@@ -228,8 +228,8 @@ class TestTempFileTimerCleanup:
 
         Создаёт файлы и проверяет что очистка их удаляет.
         """
-        pytest.skip("Known issue: _TempFileTimer cleanup not working correctly")
-        timer = _TempFileTimer(cleanup_interval=0.1)  # Короткий интервал
+        pytest.skip("Known issue: TempFileTimer cleanup not working correctly")
+        timer = TempFileTimer(cleanup_interval=0.1)  # Короткий интервал
 
         try:
             # Создаём файлы
@@ -255,7 +255,7 @@ class TestTempFileTimerCleanup:
 
         Файлы которые используются не должны удаляться.
         """
-        timer = _TempFileTimer(cleanup_interval=0.1)
+        timer = TempFileTimer(cleanup_interval=0.1)
 
         try:
             # Создаём файл

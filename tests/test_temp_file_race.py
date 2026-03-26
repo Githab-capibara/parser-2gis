@@ -1,12 +1,12 @@
 """Тесты для проверки race condition в register_temp_file."""
 
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import pytest
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from parser_2gis.temp_file_manager import (
+from parser_2gis.utils.temp_file_manager import (
     register_temp_file,
     temp_file_manager,
     unregister_temp_file,

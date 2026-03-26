@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from pydantic import ValidationError
 
-from parser_2gis.common import report_from_validation_error
 from parser_2gis.logger import logger
+from parser_2gis.utils import report_from_validation_error
 from parser_2gis.writer.models import CatalogItem
 
 from .csv_deduplicator import CSVDeduplicator

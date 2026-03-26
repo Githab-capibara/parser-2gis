@@ -1,7 +1,8 @@
 """Тест проверяет что зависимость PySocks установлена для устранения предупреждения SOCKS в urllib3."""
 
-import pytest
 import warnings
+
+import pytest
 from urllib3.exceptions import DependencyWarning
 
 

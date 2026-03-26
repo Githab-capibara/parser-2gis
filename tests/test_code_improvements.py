@@ -11,10 +11,11 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-# Импорт функции unwrap_dot_dict из общего модуля
-from parser_2gis.common import unwrap_dot_dict
 from parser_2gis.config import Configuration, ParserOptions, WriterOptions
 from parser_2gis.parallel import ParallelCityParser
+
+# Импорт функции unwrap_dot_dict из модуля data_utils
+from parser_2gis.utils.data_utils import unwrap_dot_dict
 
 # Импорт декоратора wait_until_finished из модуля декораторов
 from parser_2gis.utils.decorators import wait_until_finished

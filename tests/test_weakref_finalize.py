@@ -1,7 +1,7 @@
 """Тесты для проверки использования weakref.finalize.
 
 Проверяет что weakref.finalize используется для гарантированной очистки ресурсов
-в CacheManager, _ConnectionPool и _TempFileTimer.
+в CacheManager, _ConnectionPool и TempFileTimer.
 """
 
 import gc
@@ -9,7 +9,7 @@ import weakref
 from pathlib import Path
 
 from parser_2gis.cache import CacheManager, _ConnectionPool
-from parser_2gis.parallel import _TempFileTimer
+from parser_2gis.utils.temp_file_manager import TempFileTimer
 
 
 class TestWeakrefFinalize:
@@ -44,15 +44,15 @@ class TestWeakrefFinalize:
             assert cache._finalizer.alive, "Finalizer должен быть активен"
 
     def test_temp_file_timer_has_finalizer(self):
-        """Тест 3: _TempFileTimer имеет weakref.finalize."""
+        """Тест 3: TempFileTimer имеет weakref.finalize."""
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            timer = _TempFileTimer(temp_dir=Path(tmpdir))
+            timer = TempFileTimer(temp_dir=Path(tmpdir))
 
             # Проверяем наличие finalizer
-            assert hasattr(timer, "_finalizer"), "_TempFileTimer должен иметь _finalizer"
-            assert hasattr(timer, "_weak_ref"), "_TempFileTimer должен иметь _weak_ref"
+            assert hasattr(timer, "_finalizer"), "TempFileTimer должен иметь _finalizer"
+            assert hasattr(timer, "_weak_ref"), "TempFileTimer должен иметь _weak_ref"
 
             # Проверяем что finalizer активен
             assert timer._finalizer.alive, "Finalizer должен быть активен"

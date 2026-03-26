@@ -13,7 +13,7 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Pattern
 
-from parser_2gis.common import CSV_BATCH_SIZE
+from parser_2gis.constants import CSV_BATCH_SIZE
 from parser_2gis.logger import logger
 
 from .csv_buffer_manager import (

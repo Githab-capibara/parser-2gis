@@ -15,7 +15,6 @@
 Дата: 2026-03-23
 """
 
-from parser_2gis.utils.sanitizers import _sanitize_value
 import os
 import sys
 import tempfile
@@ -23,6 +22,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+from parser_2gis.utils.sanitizers import _sanitize_value
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -375,7 +376,7 @@ class TestWeakrefFinalizeAtexit:
         предотвращения проблем при завершении интерпретатора.
         """
         from parser_2gis.cache import CacheManager, _ConnectionPool
-        from parser_2gis.parallel import _TempFileTimer
+        from parser_2gis.utils.temp_file_manager import TempFileTimer
 
         # Тестируем CacheManager
         cache_dir = tmp_path / "cache"
@@ -402,12 +403,12 @@ class TestWeakrefFinalizeAtexit:
             finally:
                 pool.close_all()
 
-        # Тестируем _TempFileTimer
+        # Тестируем TempFileTimer
         with tempfile.TemporaryDirectory() as tmp_dir:
-            timer = _TempFileTimer(temp_dir=Path(tmp_dir))
+            timer = TempFileTimer(temp_dir=Path(tmp_dir))
 
             try:
-                assert hasattr(timer, "_finalizer"), "_TempFileTimer должен иметь _finalizer"
+                assert hasattr(timer, "_finalizer"), "TempFileTimer должен иметь _finalizer"
                 assert timer._finalizer.alive, "Finalizer таймера должен быть активен"
             finally:
                 timer.stop()

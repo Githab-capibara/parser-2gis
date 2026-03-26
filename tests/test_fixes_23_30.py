@@ -12,11 +12,11 @@
 - Исправление 30: Утечки ресурсов
 """
 
+import ast
 import re
 from pathlib import Path
 from typing import List, Tuple
 
-import ast
 import pytest
 
 # =============================================================================

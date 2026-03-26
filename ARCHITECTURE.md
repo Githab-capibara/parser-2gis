@@ -1,6 +1,6 @@
 # Архитектура проекта parser-2gis
 
-**Версия:** 2.1.6
+**Версия:** 2.1.7
 **Дата обновления:** 2026-03-26
 
 ## Общая схема проекта
@@ -38,10 +38,9 @@ parser_2gis/
 ├── parallel/            # Модуль параллельной обработки
 │   ├── __init__.py      # Экспорт API
 │   ├── file_merger.py   # Слияние CSV файлов
-│   ├── options.py       # Опции параллелизма
+│   ├── options.py       # Опции параллелизма (ParallelOptions, ParallelParserConfig)
 │   ├── parallel_parser.py # Параллельный парсинг
-│   ├── progress_tracker.py # Прогресс
-│   └── temp_file_timer.py # Очистка temp файлов
+│   └── progress_tracker.py # Прогресс
 ├── parser/              # Модуль парсинга данных
 │   ├── parsers/         # Конкретные парсеры
 │   ├── adaptive_limits.py
@@ -53,12 +52,15 @@ parser_2gis/
 │   └── utils.py
 ├── runner/              # Модуль запуска парсера
 ├── tui_textual/         # TUI интерфейс на Textual
-├── utils/               # Общие утилиты
+├── utils/               # Общие утилиты (НОВЫЙ в v2.0.0, расширен в v2.1.7)
 │   ├── __init__.py      # Экспорт API
 │   ├── cache_monitor.py # Мониторинг кэшей (НОВЫЙ в v2.1.0)
+│   ├── data_utils.py    # Преобразование структур данных (НОВЫЙ в v2.1.7)
 │   ├── decorators.py    # Декораторы ожидания
+│   ├── math_utils.py    # Математические операции (НОВЫЙ в v2.1.7)
 │   ├── path_utils.py    # Валидация путей (НОВЫЙ в v2.1.0)
 │   ├── sanitizers.py    # Санитаризация данных
+│   ├── temp_file_manager.py # Менеджер временных файлов (НОВЫЙ в v2.1.7)
 │   ├── url_utils.py     # Генерация URL
 │   └── validation_utils.py # Валидация городов/категорий
 ├── validation/          # Модуль валидации
@@ -80,8 +82,8 @@ parser_2gis/
 │   ├── exceptions.py
 │   ├── factory.py       # Registry pattern для writers
 │   └── options.py
-├── common.py            # Базовые утилиты (обратная совместимость)
 ├── config.py            # Конфигурация через Pydantic
+├── config_service.py    # Сервис операций с конфигурацией (НОВЫЙ в v2.1.7)
 ├── constants.py         # Централизованные константы
 ├── exceptions.py        # Иерархия исключений
 ├── main.py              # CLI точка входа (обратная совместимость)
@@ -89,13 +91,141 @@ parser_2gis/
 ├── parallel_optimizer.py # Оптимизатор параллелизма
 ├── paths.py             # Управление путями
 ├── protocols.py         # Protocol для callback и интерфейсов
-│                        # BrowserService (НОВЫЙ в v2.1.0)
+│                        # BrowserService, CacheBackend, ExecutionBackend (НОВЫЕ в v2.1.7)
+│                        # ParserFactory, WriterFactory (НОВЫЕ в v2.1.7)
 ├── pydantic_compat.py   # Pydantic совместимость
 ├── signal_handler.py    # Обработчик сигналов
 ├── statistics.py        # Статистика работы
-├── temp_file_manager.py # Менеджер временных файлов
-└── version.py           # Версия пакета
+├── version.py           # Версия пакета
+└── py.typed             # PEP 561 marker
 ```
+
+## Основные изменения в версии 2.1.7
+
+### Рефакторинг утилит и менеджеров
+
+#### Выделение новых модулей utils/
+Созданы новые специализированные модули для улучшения разделения ответственности:
+
+- **data_utils.py** — Преобразование структур данных
+  - `unwrap_dot_dict()` — Развёртывание плоских словарей с точечными ключами
+  - Оптимизация: использование `setdefault` вместо `functools.reduce`
+
+- **math_utils.py** — Математические операции
+  - `floor_to_hundreds()` — Округление вниз до ближайшей сотни
+  - Централизация математических утилит
+
+- **temp_file_manager.py** — Менеджер временных файлов
+  - `TempFileManager` — Регистрация и очистка временных файлов
+  - `TempFileTimer` — Периодическая автоматическая очистка осиротевших файлов
+  - Улучшения:
+    - RLock для потокобезопасной работы
+    - Weak references для предотвращения утечек памяти
+    - Настраиваемые интервалы очистки через ENV переменные
+    - Мониторинг максимального количества файлов
+
+#### Перемещение temp_file_manager.py
+- **Было:** `parser_2gis/temp_file_manager.py` (удалён)
+- **Стало:** `parser_2gis/utils/temp_file_manager.py`
+- **Причина:** Централизация утилит в пакете utils/
+
+#### Удаление temp_file_timer.py
+- **Файл:** `parser_2gis/parallel/temp_file_timer.py` (удалён)
+- **Причина:** Функциональность перенесена в `utils/temp_file_manager.py`
+- **Преимущества:**
+  - Устранение дублирования кода
+  - Централизация управления временными файлами
+  - Улучшенная тестируемость
+
+### Расширение Protocol абстракций
+
+#### Новые Protocol в protocols.py
+Добавлены Protocol для улучшения тестируемости и внедрения зависимостей:
+
+- **CacheBackend** — Абстракция бэкенда кэширования
+  - Методы: `get()`, `set()`, `delete()`, `exists()`
+  - Позволяет переключаться между Redis, SQLite, in-memory
+  - Упрощает тестирование через mock-реализации
+
+- **ExecutionBackend** — Абстракция параллельного выполнения
+  - Методы: `submit()`, `map()`, `shutdown()`
+  - Поддержка ThreadPoolExecutor, ProcessPoolExecutor, asyncio
+  - Гибкое переключение стратегий параллелизма
+
+- **ParserFactory** — Фабрика парсеров
+  - Метод: `get_parser(parser_type, **kwargs)`
+  - Упрощает добавление новых типов парсеров
+  - Следование принципу Open/Closed
+
+- **WriterFactory** — Фабрика писателей
+  - Метод: `get_writer(format, **kwargs)`
+  - Поддержка CSV, XLSX, JSON и будущих форматов
+  - Централизованное создание writers
+
+#### Расширение BrowserService Protocol
+Добавлены методы для полной абстракции браузера:
+- `navigate(url)` — Навигация по URL
+- `get_html()` — Получение HTML страницы
+- `execute_js(js_code, timeout)` — Выполнение JavaScript
+- `screenshot(path)` — Создание скриншотов
+- `close()` — Закрытие браузера
+
+### Улучшение конфигурации
+
+#### Выделение ConfigService
+- **Файл:** `parser_2gis/config_service.py` (НОВЫЙ)
+- **Назначение:** Операции с конфигурацией
+- **Методы:**
+  - `save_config()` — Сохранение в файл
+  - `load_config()` — Загрузка из файла
+  - `merge_configs()` — Объединение конфигураций
+  - `_backup_corrupted_config()` — Резервное копирование
+- **Преимущества:**
+  - Следование принципу единственной ответственности (SRP)
+  - Улучшенная тестируемость
+  - Централизованная обработка ошибок
+
+#### Расширение ParallelOptions
+- **Файл:** `parser_2gis/parallel/options.py`
+- **Новые поля:**
+  - `use_temp_file_cleanup` — Автоматическая очистка временных файлов
+  - `temp_file_cleanup_interval` — Интервал очистки (60 сек)
+  - `max_temp_files` — Максимум файлов для мониторинга (1000)
+  - `orphaned_temp_file_age` — Возраст осиротевшего файла (300 сек)
+  - `merge_lock_timeout` — Таймаут блокировки merge (300 сек)
+  - `max_lock_file_age` — Максимальный возраст lock файла (300 сек)
+- **ParallelParserConfig** — Dataclass для группировки параметров
+  - Устранение Data Clumps антипаттерна
+  - Централизация параметров парсера
+
+### Удалённые файлы
+
+- `parser_2gis/common.py` — Удалён (функциональность распределена по utils/)
+- `parser_2gis/temp_file_manager.py` — Перемещён в utils/temp_file_manager.py
+- `parser_2gis/parallel/temp_file_timer.py` — Удалён (интегрирован в utils/temp_file_manager.py)
+
+### Преимущества изменений v2.1.7
+
+#### Улучшение архитектуры
+- **Следование SOLID:**
+  - Single Responsibility — каждый модуль имеет одну ответственность
+  - Dependency Inversion — Protocol для абстракции зависимостей
+  - Interface Segregation — специализированные Protocol
+
+#### Улучшение тестируемости
+- Mock-реализации через Protocol
+- Изоляция зависимостей
+- Упрощённое тестирование утилит
+
+#### Улучшение производительности
+- Оптимизация `unwrap_dot_dict()` — setdefault вместо reduce
+- RLock для реентерабельности в многопоточной среде
+- Weak references для предотвращения утечек памяти
+
+#### Улучшение надёжности
+- Гарантированная очистка временных файлов
+- Защита от race condition через RLock
+- Мониторинг осиротевших файлов
 
 ## Основные изменения в версии 2.1.6
 
@@ -323,27 +453,37 @@ parser_2gis/
 ### Фабричный метод (Factory Method)
 - `get_parser()` в `parser/factory.py`
 - `get_writer()` в `writer/factory.py`
+- `ParserFactory` Protocol в `protocols.py` (НОВЫЙ в v2.1.7)
+- `WriterFactory` Protocol в `protocols.py` (НОВЫЙ в v2.1.7)
 
 ### Одиночка (Singleton)
 - `CacheManager` - единый экземпляр для кэширования
 - `SignalHandler` - глобальный обработчик сигналов
 - `PathValidator` - валидатор путей (через `get_path_validator()`)
+- `TempFileManager` - менеджер временных файлов (НОВЫЙ в v2.1.7)
 
 ### Стратегия (Strategy)
 - Различные парсеры (`FirmParser`, `InBuildingParser`, `MainParser`)
 - Различные writers (`CSVWriter`, `XLSXWriter`, `JSONWriter`)
+- Различные бэкенды кэширования через `CacheBackend` Protocol (НОВЫЙ в v2.1.7)
+- Различные бэкенды выполнения через `ExecutionBackend` Protocol (НОВЫЙ в v2.1.7)
 
 ### Контекстный менеджер (Context Manager)
 - `FileMerger` - гарантия очистки временных файлов
 - `ChromeBrowser` - гарантия закрытия браузера
+- `TempFileManager` - гарантия очистки через `cleanup_all()` (НОВЫЙ в v2.1.7)
 
 ### Пул объектов (Object Pool)
-- `_ConnectionPool` в `cache.py` - пул SQLite соединений (5-20 соединений)
+- `_ConnectionPool` в `cache/pool.py` - пул SQLite соединений (5-20 соединений)
 
 ### Protocol (Structural Subtyping)
 - `Writer`, `Parser` в `protocols.py`
-- `ProgressCallback`, `LogCallback`, `CleanupCallback` в `protocols.py`
+- `ProgressCallback`, `LogCallback`, `CleanupCallback`, `CancelCallback` в `protocols.py`
 - `LoggerProtocol` в `protocols.py`
+- `BrowserService` в `protocols.py` (абстракция браузера)
+- `CacheBackend` в `protocols.py` (НОВЫЙ в v2.1.7)
+- `ExecutionBackend` в `protocols.py` (НОВЫЙ в v2.1.7)
+- `ParserFactory`, `WriterFactory` в `protocols.py` (НОВЫЕ в v2.1.7)
 
 ## Иерархия исключений
 
@@ -405,11 +545,13 @@ Exception
 - Параллельный парсинг до 20 потоков
 - Изолированные экземпляры браузера
 - Разделение файлов результатов
+- TempFileManager для управления временными файлами (НОВЫЙ в v2.1.7)
 
 ### Вертикальное масштабирование
 - Оптимизированная буферизация (256KB стандартная, 1MB для больших файлов)
 - mmap для файлов >10MB
 - Connection pool для SQLite (5-20 соединений)
+- ExecutionBackend Protocol для переключения стратегий (НОВЫЙ в v2.1.7)
 
 ## Тестирование
 
@@ -460,18 +602,52 @@ Exception
 1. Создать класс наследуясь от базового парсера
 2. Реализовать методы парсинга
 3. Зарегистрировать в фабрике парсеров
+4. Опционально: реализовать ParserFactory Protocol для тестирования (НОВЫЙ в v2.1.7)
 
 ### Добавление нового формата вывода
 1. Создать класс наследуясь от FileWriter
 2. Реализовать метод write()
 3. Зарегистрировать в фабрике writers
+4. Опционально: реализовать WriterFactory Protocol для тестирования (НОВЫЙ в v2.1.7)
 
 ### Добавление новой утилиты
 1. Создать модуль в utils/
 2. Добавить экспорт в utils/__init__.py
 3. Импортировать в нужных модулях
 
+### Добавление нового бэкенда кэширования (НОВОЕ в v2.1.7)
+1. Реализовать CacheBackend Protocol
+2. Реализовать методы: get(), set(), delete(), exists()
+3. Использовать через dependency injection
+
+### Добавление нового бэкенда выполнения (НОВОЕ в v2.1.7)
+1. Реализовать ExecutionBackend Protocol
+2. Реализовать методы: submit(), map(), shutdown()
+3. Переключаться между ThreadPoolExecutor, ProcessPoolExecutor, asyncio
+
 ## Миграции
+
+### Версия 2.1.7 (текущая)
+- **Новые модули:**
+  - `utils/data_utils.py` — Преобразование структур данных
+  - `utils/math_utils.py` — Математические операции
+  - `utils/temp_file_manager.py` — Менеджер временных файлов (TempFileManager, TempFileTimer)
+  - `config_service.py` — Сервис операций с конфигурацией
+- **Удалённые файлы:**
+  - `common.py` — функциональность распределена по utils/
+  - `temp_file_manager.py` — перемещён в utils/temp_file_manager.py
+  - `parallel/temp_file_timer.py` — интегрирован в utils/temp_file_manager.py
+- **Protocol абстракции (protocols.py):**
+  - `CacheBackend` — абстракция бэкенда кэширования
+  - `ExecutionBackend` — абстракция параллельного выполнения
+  - `ParserFactory` — фабрика парсеров
+  - `WriterFactory` — фабрика writers
+- **Улучшения:**
+  - Расширен ParallelOptions (6 новых полей)
+  - Добавлен ParallelParserConfig dataclass
+  - Оптимизация unwrap_dot_dict() (setdefault вместо reduce)
+  - RLock для потокобезопасной работы
+  - Weak references для предотвращения утечек памяти
 
 ### Версия 2.0.0 (текущая)
 - Создан пакет `utils/` с утилитами из common.py

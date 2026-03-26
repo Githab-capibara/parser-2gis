@@ -16,7 +16,6 @@ from typing import List, Set
 
 import pytest
 
-
 PROJECT_ROOT = Path(__file__).parent.parent
 PARSER_2GIS_ROOT = PROJECT_ROOT / "parser_2gis"
 

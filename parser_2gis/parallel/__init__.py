@@ -16,10 +16,13 @@
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
     MAX_LOCK_FILE_AGE,
+    MAX_TEMP_FILES_MONITORING,
     MAX_TIMEOUT,
     MAX_WORKERS,
     MIN_TIMEOUT,
     MIN_WORKERS,
+    ORPHANED_TEMP_FILE_AGE,
+    TEMP_FILE_CLEANUP_INTERVAL,
 )
 
 from .file_merger import (
@@ -40,12 +43,6 @@ from .parallel_parser import (
     _unregister_temp_file,
 )
 from .progress_tracker import PROGRESS_UPDATE_INTERVAL
-from .temp_file_timer import (
-    MAX_TEMP_FILES_MONITORING,
-    ORPHANED_TEMP_FILE_AGE,
-    TEMP_FILE_CLEANUP_INTERVAL,
-    _TempFileTimer,
-)
 
 MERGE_LOCK_TIMEOUT = MERGE_LOCK_TIMEOUT_LOCAL
 
@@ -57,8 +54,7 @@ __all__ = [
     # Опции
     "ParallelOptions",
     "MAX_TEMP_FILES",
-    # Таймер очистки
-    "_TempFileTimer",
+    # Константы очистки
     "TEMP_FILE_CLEANUP_INTERVAL",
     "MAX_TEMP_FILES_MONITORING",
     "ORPHANED_TEMP_FILE_AGE",

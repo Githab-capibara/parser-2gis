@@ -11,9 +11,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING
-
 import warnings
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import queue

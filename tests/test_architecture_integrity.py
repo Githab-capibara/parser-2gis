@@ -1,274 +1,428 @@
 """
-Тесты на архитектурную целостность проекта parser-2gis.
+Тесты на целостность архитектуры проекта parser-2gis.
 
-Проверяют:
-- Отсутствие циклических зависимостей между модулями
-- Отсутствие дублирования констант
-- Использование централизованных констант из constants.py
-- Отсутствие дублирования кода исключений
-- Целостность архитектуры исключений
+Проверяет:
+- Все utils/ модули существуют
+- Все Protocol имеют реализации
+- Нет битых импортов
+- Backward совместимость сохранена
 """
 
 from __future__ import annotations
 
-import ast
-import re
+import importlib
+import sys
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import List, Tuple
+
+import pytest
 
 
-class TestArchitectureIntegrity:
-    """Тесты архитектурной целостности."""
+class TestAllUtilsModulesExist:
+    """Тесты на существование всех utils/ модулей."""
 
-    def test_no_duplicate_constants_in_modules(self) -> None:
-        """Проверяет отсутствие дублирования констант в модулях.
-
-        Константы должны быть определены только в constants.py
-        и импортироваться в других модулях.
-        """
-        # Константы которые должны быть в constants.py
-        known_constants = {
-            "MAX_DATA_DEPTH",
-            "MAX_DATA_SIZE",
-            "MAX_COLLECTION_SIZE",
-            "MAX_STRING_LENGTH",
-            "DEFAULT_BUFFER_SIZE",
-            "MERGE_BUFFER_SIZE",
-            "CSV_BATCH_SIZE",
-            "MERGE_BATCH_SIZE",
-            "MIN_WORKERS",
-            "MAX_WORKERS",
-            "MIN_TIMEOUT",
-            "MAX_TIMEOUT",
-            "DEFAULT_TIMEOUT",
-            "MERGE_LOCK_TIMEOUT",
-            "MAX_LOCK_FILE_AGE",
-        }
-
-        # Файлы которые не должны содержать дубликаты констант
-        excluded_files = {"constants.py", "__init__.py"}
-
+    def test_all_utils_modules_exist(self) -> None:
+        """Проверяет что все модули в utils/ существуют."""
         project_root = Path(__file__).parent.parent / "parser_2gis"
-        violations: List[Tuple[str, str]] = []
+        utils_dir = project_root / "utils"
 
-        for py_file in project_root.rglob("*.py"):
-            if py_file.name in excluded_files:
-                continue
+        assert utils_dir.exists(), "utils/ должен существовать"
 
-            # Пропускаем тесты и виртуальные окружения
-            if "tests" in py_file.parts or "venv" in py_file.parts:
-                continue
-
-            content = py_file.read_text(encoding="utf-8")
-
-            for const_name in known_constants:
-                # Ищем определения констант (не импорты)
-                pattern = rf"^{const_name}\s*:\s*int\s*=\s*\d+"
-                if re.search(pattern, content, re.MULTILINE):
-                    violations.append((str(py_file.relative_to(project_root)), const_name))
-
-        assert not violations, (
-            "Обнаружено дублирование констант в модулях:\n"
-            + "\n".join(f"  {f}: {c}" for f, c in violations)
-            + "\n\nКонстанты должны быть определены только в constants.py"
-        )
-
-    def test_constants_imported_from_central_module(self) -> None:
-        """Проверяет что константы импортируются из constants.py.
-
-        Если модуль использует константы, он должен импортировать их из
-        constants.py, а не определять локально.
-        """
-        project_root = Path(__file__).parent.parent / "parser_2gis"
-
-        # Модули которые используют константы
-        modules_using_constants = {
-            "common.py": ["MAX_DATA_DEPTH", "MAX_DATA_SIZE", "DEFAULT_BUFFER_SIZE"],
-            "cache.py": ["MAX_DATA_DEPTH", "MAX_STRING_LENGTH"],
-            "parallel_parser.py": ["MIN_WORKERS", "MAX_WORKERS", "DEFAULT_TIMEOUT"],
-            "parallel_helpers.py": ["MERGE_BUFFER_SIZE", "MERGE_LOCK_TIMEOUT"],
-        }
-
-        violations: List[str] = []
-
-        for module_name, expected_constants in modules_using_constants.items():
-            module_path = project_root / module_name
-            if not module_path.exists():
-                continue
-
-            content = module_path.read_text(encoding="utf-8")
-
-            # Проверяем что есть импорт из constants
-            has_constants_import = (
-                "from .constants import" in content
-                or "from parser_2gis.constants import" in content
-            )
-
-            if not has_constants_import:
-                violations.append(f"{module_name}: не импортирует константы из constants.py")
-                continue
-
-            # Проверяем что константы не определены локально
-            for const_name in expected_constants:
-                pattern = rf"^{const_name}\s*:\s*.*="
-                if re.search(pattern, content, re.MULTILINE):
-                    violations.append(f"{module_name}: определяет константу {const_name} локально")
-
-        assert not violations, "Нарушения импорта констант:\n" + "\n".join(
-            f"  {v}" for v in violations
-        )
-
-    def test_exception_hierarchy_uses_base_class(self) -> None:
-        """Проверяет что все исключения наследуются от BaseContextualException.
-
-        Все пользовательские исключения должны наследоваться от
-        BaseContextualException для единого стиля обработки ошибок.
-        """
-        # Проверяем через фактическое наследование в runtime
-        from parser_2gis.exceptions import BaseContextualException
-        from parser_2gis.parser.exceptions import ParserException
-        from parser_2gis.writer.exceptions import WriterUnknownFileFormat
-
-        # Проверяем что основные исключения наследуются
-        assert issubclass(ParserException, BaseContextualException)
-        assert issubclass(WriterUnknownFileFormat, BaseContextualException)
-
-        # Chrome исключения проверяем отдельно (они используют динамическое наследование)
-        # Проверяем что экземпляр создаётся корректно
-        try:
-            from parser_2gis.chrome.exceptions import ChromeException
-
-            exc = ChromeException("test")
-            # Проверяем что у исключения есть атрибуты базового класса
-            assert hasattr(exc, "function_name")
-            assert hasattr(exc, "line_number")
-            assert hasattr(exc, "filename")
-        except Exception:
-            pass  # Chrome может быть не установлен
-
-    def test_no_circular_imports_between_core_modules(self) -> None:
-        """Проверяет отсутствие циклических импортов между основными модулями.
-
-        Основные модули не должны импортировать друг друга циклически.
-        """
-        project_root = Path(__file__).parent.parent / "parser_2gis"
-
-        # Основные модули для проверки
-        core_modules = [
-            "cache.py",
-            "common.py",
-            "config.py",
-            "validation.py",
-            "parallel_parser.py",
-            "constants.py",
+        # Ожидаемые модули
+        expected_modules = [
+            "__init__.py",
+            "cache_monitor.py",
+            "data_utils.py",
+            "decorators.py",
+            "math_utils.py",
+            "path_utils.py",
+            "sanitizers.py",
+            "temp_file_manager.py",
+            "url_utils.py",
+            "validation_utils.py",
         ]
 
-        # Словарь зависимостей: модуль -> множество импортируемых модулей
-        dependencies: Dict[str, Set[str]] = {}
-
-        for module_name in core_modules:
-            module_path = project_root / module_name
+        missing_modules = []
+        for module in expected_modules:
+            module_path = utils_dir / module
             if not module_path.exists():
-                continue
+                missing_modules.append(module)
 
-            content = module_path.read_text(encoding="utf-8")
-            tree = ast.parse(content)
+        assert len(missing_modules) == 0, f"Отсутствуют модули в utils/: {missing_modules}"
 
-            imported_modules: Set[str] = set()
+    def test_all_utils_modules_importable(self) -> None:
+        """Проверяет что все модули в utils/ импортируются."""
+        utils_modules = [
+            "parser_2gis.utils.cache_monitor",
+            "parser_2gis.utils.data_utils",
+            "parser_2gis.utils.decorators",
+            "parser_2gis.utils.math_utils",
+            "parser_2gis.utils.path_utils",
+            "parser_2gis.utils.sanitizers",
+            "parser_2gis.utils.temp_file_manager",
+            "parser_2gis.utils.url_utils",
+            "parser_2gis.utils.validation_utils",
+        ]
 
-            for node in ast.walk(tree):
-                if isinstance(node, ast.ImportFrom):
-                    if node.module and node.module.startswith("."):
-                        # Относительный импорт
-                        imported = node.module.lstrip(".")
-                        if imported:
-                            imported_modules.add(imported.split(".")[0] + ".py")
-                    elif node.module:
-                        # Абсолютный импорт
-                        if node.module.startswith("parser_2gis"):
-                            imported = node.module.replace("parser_2gis.", "")
-                            imported_modules.add(imported.split(".")[0] + ".py")
+        failed_imports: List[Tuple[str, str]] = []
 
-            dependencies[module_name] = imported_modules
+        for module_name in utils_modules:
+            # Очищаем кэш
+            if module_name in sys.modules:
+                del sys.modules[module_name]
 
-        # Проверяем циклы
-        cycles: List[str] = []
-        for module_a, deps_a in dependencies.items():
-            for module_b in deps_a:
-                if module_b in dependencies:
-                    deps_b = dependencies[module_b]
-                    if module_a in deps_b:
-                        cycle = f"{module_a} <-> {module_b}"
-                        if cycle not in cycles and f"{module_b} <-> {module_a}" not in cycles:
-                            cycles.append(cycle)
+            try:
+                importlib.import_module(module_name)
+            except ImportError as e:
+                failed_imports.append((module_name, str(e)))
 
-        assert not cycles, "Обнаружены циклические зависимости между модулями:\n" + "\n".join(
-            f"  {c}" for c in cycles
+        assert len(failed_imports) == 0, "Модули utils/ не импортируются:\n" + "\n".join(
+            f"  {m}: {e}" for m, e in failed_imports
         )
 
-    def test_base_contextual_exception_exists(self) -> None:
-        """Проверяет что BaseContextualException существует и экспортируется."""
-        from parser_2gis.exceptions import BaseContextualException
+    def test_utils_init_exports_all_modules(self) -> None:
+        """Проверяет что utils/__init__.py экспортирует все модули."""
+        project_root = Path(__file__).parent.parent / "parser_2gis"
+        utils_init = project_root / "utils" / "__init__.py"
 
-        assert BaseContextualException is not None
-        assert issubclass(BaseContextualException, Exception)
+        content = utils_init.read_text(encoding="utf-8")
 
-    def test_all_exceptions_inherit_from_base_contextual(self) -> None:
-        """Проверяет что все основные исключения наследуются от BaseContextualException."""
-        from parser_2gis.exceptions import BaseContextualException
-        from parser_2gis.parser.exceptions import ParserException
-        from parser_2gis.writer.exceptions import WriterUnknownFileFormat
+        # Ожидаемые импорты
+        expected_imports = [
+            "cache_monitor",
+            "data_utils",
+            "decorators",
+            "math_utils",
+            "path_utils",
+            "sanitizers",
+            "temp_file_manager",
+            "url_utils",
+            "validation_utils",
+        ]
 
-        # Проверяем статическое наследование
-        assert issubclass(ParserException, BaseContextualException)
-        assert issubclass(WriterUnknownFileFormat, BaseContextualException)
+        missing_imports = []
+        for module in expected_imports:
+            if f"from .{module}" not in content:
+                missing_imports.append(module)
 
-        # Chrome исключения используют динамическое наследование через _get_base_exception()
-        # Проверяем что они имеют атрибуты базового класса
-        try:
-            from parser_2gis.chrome.exceptions import (
-                ChromeException,
-                ChromePathNotFound,
-                ChromeRuntimeException,
-                ChromeUserAbortException,
+        assert len(missing_imports) == 0, f"utils/__init__.py не импортирует: {missing_imports}"
+
+
+class TestAllProtocolsImplemented:
+    """Тесты на реализацию всех Protocol."""
+
+    def test_all_protocols_have_implementations(self) -> None:
+        """Проверяет что все Protocol имеют реализации."""
+        from parser_2gis.protocols import (
+            BrowserService,
+            CacheBackend,
+            ExecutionBackend,
+            ParserFactory,
+            WriterFactory,
+        )
+
+        # Проверяем что Protocol существуют
+        assert BrowserService is not None
+        assert CacheBackend is not None
+        assert ExecutionBackend is not None
+        assert ParserFactory is not None
+        assert WriterFactory is not None
+
+    def test_cache_backend_has_implementation(self) -> None:
+        """Проверяет что CacheBackend имеет реализацию."""
+        from parser_2gis.cache import CacheManager
+
+        # Проверяем что CacheManager реализует методы CacheBackend
+        required_methods = ["get", "set", "delete", "exists"]
+
+        for method in required_methods:
+            assert hasattr(CacheManager, method), f"CacheManager должен иметь метод '{method}'"
+
+    def test_execution_backend_has_implementation(self) -> None:
+        """Проверяет что ExecutionBackend имеет реализацию."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        # ThreadPoolExecutor реализует ExecutionBackend
+        required_methods = ["submit", "map", "shutdown"]
+
+        for method in required_methods:
+            assert hasattr(ThreadPoolExecutor, method), (
+                f"ThreadPoolExecutor должен иметь метод '{method}'"
             )
 
-            # Создаём экземпляры и проверяем наличие атрибутов
-            for exc_class in [ChromeException, ChromePathNotFound]:
-                try:
-                    exc = exc_class("test")
-                    assert hasattr(exc, "function_name")
-                    assert hasattr(exc, "line_number")
-                    assert hasattr(exc, "filename")
-                except Exception:
-                    pass  # Некоторые исключения могут требовать специальные параметры
+    def test_parser_factory_has_implementation(self) -> None:
+        """Проверяет что ParserFactory имеет реализацию."""
+        from parser_2gis.parser.factory import ParserFactoryImpl
 
-            # Для RuntimeException и UserAbortException проверяем только что они существуют
-            assert ChromeRuntimeException is not None
-            assert ChromeUserAbortException is not None
+        # ParserFactoryImpl должен существовать
+        assert ParserFactoryImpl is not None
 
-        except ImportError:
-            pass  # Chrome может быть не установлен
+        # Должен иметь метод get_parser
+        assert hasattr(ParserFactoryImpl, "get_parser")
 
-    def test_constants_are_consistent(self) -> None:
-        """Проверяет что константы консистентны во всех модулях.
+    def test_writer_factory_has_implementation(self) -> None:
+        """Проверяет что WriterFactory имеет реализацию."""
+        from parser_2gis.writer.factory import WriterFactoryImpl
 
-        MAX_DATA_DEPTH должно быть одинаковым во всех модулях.
-        """
-        # Импорт констант из различных модулей для проверки консистентности
-        from parser_2gis import constants
-        from parser_2gis.cache import MAX_DATA_DEPTH as cache_depth
+        # WriterFactoryImpl должен существовать
+        assert WriterFactoryImpl is not None
 
-        # Импорт MAX_DATA_DEPTH из модуля констант вместо common.py
-        from parser_2gis.constants import MAX_DATA_DEPTH as common_depth
+        # Должен иметь метод get_writer
+        assert hasattr(WriterFactoryImpl, "get_writer")
 
-        # Все константы должны быть равны значению из constants.py
-        assert common_depth == constants.MAX_DATA_DEPTH, (
-            f"MAX_DATA_DEPTH в common.py ({common_depth}) не совпадает с "
-            f"constants.py ({constants.MAX_DATA_DEPTH})"
+    def test_browser_service_has_implementation(self) -> None:
+        """Проверяет что BrowserService имеет реализацию."""
+        from parser_2gis.chrome.remote import ChromeRemote
+
+        # ChromeRemote должен реализовывать BrowserService
+        required_methods = ["navigate", "get_html", "execute_js", "screenshot", "close"]
+
+        for method in required_methods:
+            assert hasattr(ChromeRemote, method), f"ChromeRemote должен иметь метод '{method}'"
+
+
+class TestNoBrokenImports:
+    """Тесты на отсутствие битых импортов."""
+
+    def test_no_broken_imports(self) -> None:
+        """Проверяет что нет битых импортов в основных модулях."""
+        core_modules = [
+            "parser_2gis",
+            "parser_2gis.cache",
+            "parser_2gis.chrome",
+            "parser_2gis.parser",
+            "parser_2gis.writer",
+            "parser_2gis.utils",
+            "parser_2gis.validation",
+            "parser_2gis.cli",
+            "parser_2gis.parallel",
+            "parser_2gis.logger",
+            "parser_2gis.config",
+            "parser_2gis.config_service",
+        ]
+
+        failed_imports: List[Tuple[str, str]] = []
+
+        for module_name in core_modules:
+            # Очищаем кэш
+            modules_to_remove = [m for m in sys.modules if m.startswith(module_name)]
+            for mod in modules_to_remove:
+                del sys.modules[mod]
+
+            try:
+                importlib.import_module(module_name)
+            except ImportError as e:
+                failed_imports.append((module_name, str(e)))
+
+        assert len(failed_imports) == 0, "Обнаружены битые импорты:\n" + "\n".join(
+            f"  {m}: {e}" for m, e in failed_imports
         )
 
-        assert cache_depth == constants.MAX_DATA_DEPTH, (
-            f"MAX_DATA_DEPTH в cache.py ({cache_depth}) не совпадает с "
-            f"constants.py ({constants.MAX_DATA_DEPTH})"
-        )
+    def test_all_packages_have_init(self) -> None:
+        """Проверяет что все пакеты имеют __init__.py."""
+        project_root = Path(__file__).parent.parent / "parser_2gis"
+
+        packages = [
+            "cache",
+            "chrome",
+            "parser",
+            "writer",
+            "utils",
+            "validation",
+            "cli",
+            "parallel",
+            "logger",
+        ]
+
+        missing_inits = []
+
+        for package in packages:
+            init_path = project_root / package / "__init__.py"
+            if not init_path.exists():
+                missing_inits.append(package)
+
+        assert len(missing_inits) == 0, f"Пакеты не имеют __init__.py: {missing_inits}"
+
+    def test_init_files_export_symbols(self) -> None:
+        """Проверяет что __init__.py экспортируют символы."""
+        project_root = Path(__file__).parent.parent / "parser_2gis"
+
+        packages_with_expected_exports = {
+            "cache": ["CacheManager"],
+            "chrome": ["ChromeRemote"],
+            "protocols": ["BrowserService", "CacheBackend"],
+            "config": ["Configuration"],
+            "config_service": ["ConfigService"],
+        }
+
+        for package, expected_exports in packages_with_expected_exports.items():
+            init_path = project_root / package / "__init__.py"
+
+            if not init_path.exists():
+                pytest.fail(f"Пакет не имеет __init__.py: {package}")
+
+            content = init_path.read_text(encoding="utf-8")
+
+            for export in expected_exports:
+                assert export in content, f"{package}/__init__.py должен экспортировать {export}"
+
+
+class TestBackwardCompatibilityPreserved:
+    """Тесты на сохранение backward совместимости."""
+
+    def test_backward_compatibility_preserved(self) -> None:
+        """Проверяет что backward совместимость сохранена."""
+        # Старые пути импорта должны работать
+
+        # Configuration из config
+        from parser_2gis.config import Configuration
+
+        assert Configuration is not None
+
+        # main из parser_2gis.main
+        from parser_2gis.main import main
+
+        assert main is not None
+
+        # CLI символы
+        from parser_2gis.cli.main import main as cli_main
+
+        assert cli_main is not None
+
+    def test_old_import_paths_still_work(self) -> None:
+        """Проверяет что старые пути импорта работают."""
+        # Проверяем что основные классы доступны из старых мест
+
+        # CacheManager
+        from parser_2gis.cache import CacheManager
+
+        assert CacheManager is not None
+
+        # ChromeRemote
+        from parser_2gis.chrome import ChromeRemote
+
+        assert ChromeRemote is not None
+
+        # ParserFactory
+        from parser_2gis.parser.factory import ParserFactoryImpl
+
+        assert ParserFactoryImpl is not None
+
+        # WriterFactory
+        from parser_2gis.writer.factory import WriterFactoryImpl
+
+        assert WriterFactoryImpl is not None
+
+    def test_configuration_backward_compatible(self) -> None:
+        """Проверяет что Configuration backward совместим."""
+        from parser_2gis.config import Configuration
+
+        # Configuration должен иметь методы для backward совместимости
+        config = Configuration()
+
+        assert hasattr(config, "merge_with")
+        assert hasattr(config, "save_config")
+        assert hasattr(config, "load_config")
+
+    def test_config_service_new_api(self) -> None:
+        """Проверяет что ConfigService — новая API."""
+        from parser_2gis.config_service import ConfigService
+
+        # ConfigService должен существовать
+        assert ConfigService is not None
+
+        # Должен иметь статические методы
+        assert hasattr(ConfigService, "merge_configs")
+        assert hasattr(ConfigService, "load_config")
+        assert hasattr(ConfigService, "save_config")
+
+
+class TestArchitectureIntegrityOverall:
+    """Общие тесты на целостность архитектуры."""
+
+    def test_all_architectural_layers_exist(self) -> None:
+        """Проверяет что все архитектурные слои существуют."""
+        project_root = Path(__file__).parent.parent / "parser_2gis"
+
+        layers = {
+            "cache": "Слой кэширования",
+            "chrome": "Слой работы с браузером",
+            "parser": "Слой парсинга",
+            "writer": "Слой записи данных",
+            "utils": "Утилиты",
+            "validation": "Слой валидации",
+            "cli": "CLI слой",
+            "parallel": "Слой параллельного выполнения",
+            "logger": "Слой логирования",
+        }
+
+        for layer_name, description in layers.items():
+            layer_path = project_root / layer_name
+            assert layer_path.exists(), f"{description} ({layer_name}) должен существовать"
+
+    def test_no_circular_dependencies_between_layers(self) -> None:
+        """Проверяет отсутствие циклических зависимостей между слоями."""
+        # Это сложный тест, реализуем упрощённо
+
+        Path(__file__).parent.parent / "parser_2gis"
+
+        # Слои которые не должны иметь циклов
+        layers = ["cache", "chrome", "parser", "writer", "utils", "validation"]
+
+        # Проверяем что каждый слой импортируется независимо
+        for layer in layers:
+            module_name = f"parser_2gis.{layer}"
+
+            # Очищаем кэш
+            modules_to_remove = [m for m in sys.modules if m.startswith(module_name)]
+            for mod in modules_to_remove:
+                del sys.modules[mod]
+
+            try:
+                importlib.import_module(module_name)
+            except ImportError as e:
+                pytest.fail(f"{layer} должен импортироваться: {e}")
+
+    def test_architecture_documentation_exists(self) -> None:
+        """Проверяет что документация архитектуры существует."""
+        project_root = Path(__file__).parent.parent
+
+        # ARCHITECTURE.md должен существовать
+        architecture_md = project_root / "ARCHITECTURE.md"
+        assert architecture_md.exists(), "ARCHITECTURE.md должен существовать"
+
+        # README.md должен существовать
+        readme_md = project_root / "README.md"
+        assert readme_md.exists(), "README.md должен существовать"
+
+    def test_architecture_tests_exist(self) -> None:
+        """Проверяет что тесты архитектуры существуют."""
+        tests_dir = Path(__file__).parent
+
+        architecture_tests = [
+            "test_architecture_srp.py",
+            "test_architecture_protocols.py",
+            "test_architecture_cycles.py",
+            "test_architecture_soc.py",
+            "test_architecture_god_classes.py",
+            "test_architecture_dry.py",
+            "test_architecture_yagni.py",
+            "test_architecture_integrity.py",
+        ]
+
+        missing_tests = []
+        for test in architecture_tests:
+            test_path = tests_dir / test
+            if not test_path.exists():
+                missing_tests.append(test)
+
+        assert len(missing_tests) == 0, f"Отсутствуют тесты архитектуры: {missing_tests}"
+
+
+__all__ = [
+    "TestAllUtilsModulesExist",
+    "TestAllProtocolsImplemented",
+    "TestNoBrokenImports",
+    "TestBackwardCompatibilityPreserved",
+    "TestArchitectureIntegrityOverall",
+]

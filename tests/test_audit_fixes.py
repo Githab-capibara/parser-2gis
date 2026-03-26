@@ -2,8 +2,9 @@
 Тесты для проверки исправлений, найденных при аудите кода.
 """
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 
 class TestUrlValidatorFixes:
@@ -111,6 +112,7 @@ class TestChromeModuleFixes:
     def test_psutil_used_as_context_manager(self):
         """Проверяет что psutil.Process используется как контекстный менеджер"""
         import inspect
+
         from parser_2gis.chrome.health_monitor import BrowserHealthMonitor
 
         source = inspect.getsource(BrowserHealthMonitor.check_health)
@@ -123,6 +125,7 @@ class TestRemoteModuleFixes:
     def test_memory_error_not_caught(self):
         """Проверяет что MemoryError не перехватывается в socket операциях"""
         import inspect
+
         from parser_2gis.chrome.remote import _check_port_available_internal
 
         source = inspect.getsource(_check_port_available_internal)
@@ -131,6 +134,7 @@ class TestRemoteModuleFixes:
     def test_check_port_uses_timeout_params(self):
         """Проверяет что timeout и retries используются"""
         import inspect
+
         from parser_2gis.chrome.remote import _check_port_available
 
         sig = inspect.signature(_check_port_available)
@@ -158,6 +162,7 @@ class TestParallelModuleFixes:
     def test_parallel_parser_flock_order(self):
         """Проверяет что flock снимается до восстановления сигналов"""
         import inspect
+
         from parser_2gis.parallel.parallel_parser import ParallelCityParser
 
         if hasattr(ParallelCityParser, "merge_csv_files"):
@@ -177,6 +182,7 @@ class TestOptimizerFixes:
     def test_no_redundant_none_check(self):
         """Проверяет что убрана избыточная проверка на None"""
         import inspect
+
         from parser_2gis.parallel_optimizer import ParallelOptimizer
 
         if hasattr(ParallelOptimizer, "get_next_task"):

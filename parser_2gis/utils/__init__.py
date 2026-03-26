@@ -5,12 +5,15 @@
 - decorators: Декораторы ожидания завершения операций
 - url_utils: Генерация URL для парсинга
 - sanitizers: Санитаризация чувствительных данных
-- validation_utils: Валидация городов и категорий
+- validation_utils: Валидация городов и категорий, обработка ошибок
+- data_utils: Преобразование структур данных
+- math_utils: Математические операции
 - cache_monitor: Мониторинг статистики кэшей
 - path_utils: Валидация безопасности путей
 """
 
 from .cache_monitor import get_cache_stats, log_cache_stats
+from .data_utils import unwrap_dot_dict
 from .decorators import (
     DEFAULT_POLL_INTERVAL,
     EXPONENTIAL_BACKOFF_MULTIPLIER,
@@ -18,6 +21,7 @@ from .decorators import (
     async_wait_until_finished,
     wait_until_finished,
 )
+from .math_utils import floor_to_hundreds
 from .path_utils import FORBIDDEN_PATH_CHARS, validate_path_safety, validate_path_traversal
 from .sanitizers import _check_value_type_and_sensitivity, _is_sensitive_key, _sanitize_value
 from .url_utils import (
@@ -31,6 +35,7 @@ from .validation_utils import (
     _validate_category_cached,
     _validate_city,
     _validate_city_cached,
+    report_from_validation_error,
 )
 
 # =============================================================================
@@ -59,6 +64,11 @@ __all__ = [
     "_validate_category",
     "_validate_city_cached",
     "_validate_category_cached",
+    "report_from_validation_error",
+    # Преобразование данных
+    "unwrap_dot_dict",
+    # Математические утилиты
+    "floor_to_hundreds",
     # Мониторинг кэшей
     "get_cache_stats",
     "log_cache_stats",

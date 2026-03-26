@@ -13,7 +13,8 @@ Protocol для callback и интерфейсов проекта parser-2gis.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Protocol, runtime_checkable
+from concurrent.futures import Future
+from typing import Any, Callable, Iterator, Optional, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -245,13 +246,199 @@ class BrowserService(Protocol):
         pass
 
 
+# =============================================================================
+# PROTOCOL ДЛЯ КЭШИРОВАНИЯ
+# =============================================================================
+
+
+@runtime_checkable
+class CacheBackend(Protocol):
+    """Абстракция бэкенда кэширования.
+
+    Определяет интерфейс для всех бэкендов кэширования (Redis, SQLite, in-memory).
+    Позволяет легко переключаться между различными реализациями кэша.
+
+    Example:
+        >>> from parser_2gis.cache import CacheManager
+        >>> cache: CacheBackend = CacheManager(...)  # type: check
+        >>> cache.set("key", "value", ttl=3600)
+        >>> value = cache.get("key")
+        >>> cache.delete("key")
+    """
+
+    def get(self, key: str) -> Optional[Any]:
+        """Получает значение из кэша по ключу.
+
+        Args:
+            key: Ключ для получения.
+
+        Returns:
+            Значение из кэша или None если ключ не найден.
+        """
+        pass
+
+    def set(self, key: str, value: Any, ttl: int) -> None:
+        """Устанавливает значение в кэш.
+
+        Args:
+            key: Ключ для установки.
+            value: Значение для кэширования.
+            ttl: Время жизни кэша в секундах.
+        """
+        pass
+
+    def delete(self, key: str) -> None:
+        """Удаляет значение из кэша.
+
+        Args:
+            key: Ключ для удаления.
+        """
+        pass
+
+    def exists(self, key: str) -> bool:
+        """Проверяет наличие ключа в кэше.
+
+        Args:
+            key: Ключ для проверки.
+
+        Returns:
+            True если ключ существует.
+        """
+        pass
+
+
+# =============================================================================
+# PROTOCOL ДЛЯ ПАРАЛЛЕЛЬНОГО ВЫПОЛНЕНИЯ
+# =============================================================================
+
+
+@runtime_checkable
+class ExecutionBackend(Protocol):
+    """Абстракция бэкенда для параллельного выполнения.
+
+    Определяет интерфейс для всех бэкендов выполнения (ThreadPoolExecutor,
+    ProcessPoolExecutor, asyncio). Позволяет легко переключаться между
+    различными стратегиями параллелизма.
+
+    Example:
+        >>> from concurrent.futures import ThreadPoolExecutor
+        >>> executor: ExecutionBackend = ThreadPoolExecutor(max_workers=10)  # type: check
+        >>> future = executor.submit(my_function, arg1, arg2)
+        >>> results = list(executor.map(process_function, items))
+        >>> executor.shutdown(wait=True)
+    """
+
+    def submit(self, fn: Callable, *args: Any, **kwargs: Any) -> Future:
+        """Отправляет функцию на выполнение.
+
+        Args:
+            fn: Функция для выполнения.
+            *args: Позиционные аргументы для функции.
+            **kwargs: Именованные аргументы для функции.
+
+        Returns:
+            Future объект для получения результата.
+        """
+        pass
+
+    def map(self, fn: Callable, *iterables: Any, timeout: Optional[float] = None) -> Iterator[Any]:
+        """Выполняет функцию для каждого элемента итерации.
+
+        Args:
+            fn: Функция для выполнения.
+            *iterables: Итерируемые объекты с аргументами.
+            timeout: Таймаут выполнения в секундах (опционально).
+
+        Returns:
+            Итератор с результатами выполнения.
+        """
+        pass
+
+    def shutdown(self, wait: bool = True, cancel_futures: bool = False) -> None:
+        """Останавливает executor и освобождает ресурсы.
+
+        Args:
+            wait: Ждать завершения всех задач.
+            cancel_futures: Отменить незавершённые задачи (Python 3.9+).
+        """
+        pass
+
+
+# =============================================================================
+# PROTOCOL ДЛЯ ФАБРИК
+# =============================================================================
+
+
+@runtime_checkable
+class ParserFactory(Protocol):
+    """Абстракция фабрики парсеров.
+
+    Определяет интерфейс для создания парсеров различных типов.
+    Позволяет легко добавлять новые типы парсеров без изменения кода.
+
+    Example:
+        >>> from parser_2gis.parser import ParserFactoryImpl
+        >>> factory: ParserFactory = ParserFactoryImpl()  # type: check
+        >>> parser = factory.get_parser("firm", browser=browser)
+        >>> results = parser.parse()
+    """
+
+    def get_parser(self, parser_type: str, **kwargs: Any) -> Any:
+        """Создаёт парсер указанного типа.
+
+        Args:
+            parser_type: Тип парсера ("firm", "in_building", "main").
+            **kwargs: Дополнительные аргументы для парсера.
+
+        Returns:
+            Экземпляр парсера.
+        """
+        pass
+
+
+@runtime_checkable
+class WriterFactory(Protocol):
+    """Абстракция фабрики писателей.
+
+    Определяет интерфейс для создания писателей различных форматов.
+    Позволяет легко добавлять новые форматы вывода без изменения кода.
+
+    Example:
+        >>> from parser_2gis.writer import WriterFactoryImpl
+        >>> factory: WriterFactory = WriterFactoryImpl(output_dir=Path("./output"))  # type: check
+        >>> writer = factory.get_writer("csv", filename="results.csv")
+        >>> writer.write(records)
+        >>> writer.close()
+    """
+
+    def get_writer(self, format: str, **kwargs: Any) -> Any:
+        """Создаёт писатель указанного формата.
+
+        Args:
+            format: Формат писателя ("csv", "xlsx", "json").
+            **kwargs: Дополнительные аргументы для писателя.
+
+        Returns:
+            Экземпляр писателя.
+        """
+        pass
+
+
 __all__ = [
+    # Callback Protocol
     "LoggerProtocol",
     "ProgressCallback",
     "LogCallback",
     "CleanupCallback",
     "CancelCallback",
+    # Data Protocol
     "Writer",
     "Parser",
     "BrowserService",
+    # Backend Protocol
+    "CacheBackend",
+    "ExecutionBackend",
+    # Factory Protocol
+    "ParserFactory",
+    "WriterFactory",
 ]

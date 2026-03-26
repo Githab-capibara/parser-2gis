@@ -317,7 +317,7 @@ def temp_files_registry() -> Generator[set, None, None]:
     Yields:
         Пустой набор для реестра.
     """
-    from parser_2gis.parallel import _temp_files_lock, _temp_files_registry
+    from parser_2gis.parallel.parallel_parser import _temp_files_lock, _temp_files_registry
 
     # Сохраняем оригинальное состояние с блокировкой
     with _temp_files_lock:
@@ -397,7 +397,7 @@ def buffer_constants() -> Dict[str, int]:
     Returns:
         Словарь с константами буферизации.
     """
-    from parser_2gis.common import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE
+    from parser_2gis.constants import CSV_BATCH_SIZE, DEFAULT_BUFFER_SIZE, MERGE_BATCH_SIZE
 
     return {
         "DEFAULT_BUFFER_SIZE": DEFAULT_BUFFER_SIZE,
@@ -418,7 +418,7 @@ def poll_constants() -> Dict[str, float]:
     Returns:
         Словарь с константами polling.
     """
-    from parser_2gis.common import (
+    from parser_2gis.utils.decorators import (
         DEFAULT_POLL_INTERVAL,
         EXPONENTIAL_BACKOFF_MULTIPLIER,
         MAX_POLL_INTERVAL,

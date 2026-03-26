@@ -11,7 +11,9 @@
 
 from pydantic import BaseModel, ValidationError
 
-from parser_2gis.common import floor_to_hundreds, report_from_validation_error, unwrap_dot_dict
+from parser_2gis.utils.data_utils import unwrap_dot_dict
+from parser_2gis.utils.math_utils import floor_to_hundreds
+from parser_2gis.utils.validation_utils import report_from_validation_error
 
 
 class TestFloorToHundreds:

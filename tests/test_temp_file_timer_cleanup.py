@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Тесты для проверки исправления Memory Leak в _TempFileTimer.
+Тесты для проверки исправления Memory Leak в TempFileTimer.
 
 Проверяет что:
-- _TempFileTimer.stop() вызывается корректно
+- TempFileTimer.stop() вызывается корректно
 - Таймер отменяется правильно
 - Отсутствует утечка потоков
 
@@ -17,11 +17,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from parser_2gis.parallel import _TempFileTimer
+from parser_2gis.utils.temp_file_manager import TempFileTimer
 
 
 class TestTempFileTimerStop:
-    """Тесты для проверки метода stop() в _TempFileTimer."""
+    """Тесты для проверки метода stop() в TempFileTimer."""
 
     def test_stop_cancels_timer(self, tmp_path: Path) -> None:
         """
@@ -33,7 +33,7 @@ class TestTempFileTimerStop:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
         timer.start()
 
         # Проверяем что таймер запущен
@@ -58,7 +58,7 @@ class TestTempFileTimerStop:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
 
         # Проверяем что событие не установлено изначально
         assert timer._stop_event.is_set() is False, "Событие остановки не должно быть установлено"
@@ -79,7 +79,7 @@ class TestTempFileTimerStop:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
         timer.start()
 
         # Сохраняем ссылку на таймер
@@ -102,7 +102,7 @@ class TestTempFileTimerStop:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
         timer.start()
 
         # Вызываем stop несколько раз
@@ -124,7 +124,7 @@ class TestTempFileTimerStop:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
 
         # Вызываем stop без start
         timer.stop()
@@ -150,7 +150,7 @@ class TestTempFileTimerMemoryLeak:
         import gc
         import weakref
 
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
         timer.start()
 
         # Создаём слабую ссылку на таймер
@@ -182,7 +182,7 @@ class TestTempFileTimerMemoryLeak:
         initial_threads = threading.active_count()
 
         # Создаём и запускаем таймер
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
         timer.start()
 
         # Останавливаем таймер
@@ -217,7 +217,7 @@ class TestTempFileTimerMemoryLeak:
             """Mock finalizer функции."""
             finalizer_called["value"] = True
 
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
 
         # Сохраняем ссылку на finalizer
         original_finalizer = timer._finalizer
@@ -249,7 +249,7 @@ class TestTempFileTimerCallback:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
 
         # Устанавливаем событие остановки
         timer._stop_event.set()
@@ -270,7 +270,7 @@ class TestTempFileTimerCallback:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
 
         # Захватываем блокировку
         lock_acquired = timer._lock.acquire(timeout=5.0)
@@ -309,7 +309,7 @@ class TestTempFileTimerCallback:
             tmp_path: pytest tmp_path fixture.
             caplog: pytest caplog fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
 
         # Mock блокировки для имитации timeout
         mock_lock = MagicMock()
@@ -333,7 +333,7 @@ class TestTempFileTimerCallback:
             tmp_path: pytest tmp_path fixture.
             caplog: pytest caplog fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
 
         # Mock блокировки для имитации ошибки
         mock_lock = MagicMock()
@@ -360,7 +360,7 @@ class TestTempFileTimerEdgeCases:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
 
         # Mock очистки для имитации длительной операции
         cleanup_completed = threading.Event()
@@ -396,7 +396,7 @@ class TestTempFileTimerEdgeCases:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=1)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=1)
         timer.start()
 
         # Ждем немного
@@ -418,7 +418,7 @@ class TestTempFileTimerEdgeCases:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        timer = _TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
 
         # Initial count
         initial_count = timer._cleanup_count

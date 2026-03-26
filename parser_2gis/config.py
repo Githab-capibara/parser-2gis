@@ -10,18 +10,18 @@ from __future__ import annotations
 import json
 import pathlib
 import shutil
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Set
 
-from copy import deepcopy
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from .chrome import ChromeOptions
-from .common import report_from_validation_error
 from .logger import LogOptions, logger
 from .parallel import ParallelOptions
 from .parser import ParserOptions
 from .paths import user_path
 from .pydantic_compat import get_model_dump, get_model_fields_set, model_validate_json_class
+from .utils import report_from_validation_error
 from .version import config_version
 from .writer import WriterOptions
 

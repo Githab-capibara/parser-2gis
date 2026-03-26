@@ -383,14 +383,14 @@ class TestRLockReentrancy:
                     assert True, "Вложенные операции пула должны работать"
 
     def test_rlock_reentrant_temp_file_timer(self):
-        """Тест 20: RLock в _TempFileTimer."""
+        """Тест 20: RLock в TempFileTimer."""
         import tempfile
         from pathlib import Path
 
-        from parser_2gis.parallel import _TempFileTimer
+        from parser_2gis.utils.temp_file_manager import TempFileTimer
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            timer = _TempFileTimer(temp_dir=Path(tmpdir))
+            timer = TempFileTimer(temp_dir=Path(tmpdir))
 
             # Реентрантные операции
             with timer._lock:
@@ -407,8 +407,8 @@ class TestRLockReentrancy:
 
         from parser_2gis.chrome.remote import _HTTPCache
         from parser_2gis.parallel_helpers import FileMerger
-        from parser_2gis.parallel import _TempFileTimer
         from parser_2gis.signal_handler import SignalHandler
+        from parser_2gis.utils.temp_file_manager import TempFileTimer
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Создаём несколько компонентов
@@ -419,7 +419,7 @@ class TestRLockReentrancy:
                 config=type("Config", (), {"general": type("General", (), {"encoding": "utf-8"})}),
                 cancel_event=threading.Event(),
             )
-            timer = _TempFileTimer(temp_dir=Path(tmpdir))
+            timer = TempFileTimer(temp_dir=Path(tmpdir))
 
             # Комплексная реентрантная операция
             with handler._lock:

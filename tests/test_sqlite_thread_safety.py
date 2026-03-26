@@ -19,11 +19,11 @@ import sqlite3
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Dict, List
 
 import pytest
-from concurrent.futures import ThreadPoolExecutor
 
 from parser_2gis.cache import CacheManager
 

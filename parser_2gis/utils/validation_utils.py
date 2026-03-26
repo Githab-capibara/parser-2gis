@@ -1,14 +1,16 @@
 """
 Модуль утилит валидации.
 
-Содержит функции для валидации городов и категорий.
+Содержит функции для валидации городов, категорий и обработки ошибок валидации.
 """
 
 from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+from pydantic import ValidationError
 
 # =============================================================================
 # ЛОГГЕР
@@ -26,6 +28,58 @@ def _get_logger() -> Any:
     from parser_2gis.logger import logger as app_logger
 
     return app_logger
+
+
+# =============================================================================
+# ОБРАБОТКА ОШИБОК ВАЛИДАЦИИ
+# =============================================================================
+
+
+def report_from_validation_error(
+    ex: ValidationError, d: Optional[Dict[str, Any]] = None
+) -> Dict[str, Dict[str, Any]]:
+    """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
+
+    Note:
+        Удобно использовать при попытке инициализации модели с предопределённым
+        словарём.
+
+    Args:
+        ex: Выброшенное Pydantic ValidationError.
+        d: Словарь аргументов (опционально, для совместимости).
+
+    Returns:
+        Словарь с информацией об ошибках валидации.
+        Формат: {field_name: {'invalid_value': value, 'error_message': msg}}
+
+    Пример:
+        >>> from pydantic import BaseModel, ValidationError
+        >>> class User(BaseModel):
+        ...     name: str
+        ...     age: int
+        >>> try:
+        ...     User(name="test", age="invalid")
+        ... except ValidationError as e:
+        ...     report = report_from_validation_error(e, {"name": "test", "age": "invalid"})
+        ...     print(report)
+        {'age': {'invalid_value': 'invalid', 'error_message': '...'}}
+    """
+    error_report: Dict[str, Dict[str, Any]] = {}
+
+    for error in ex.errors():
+        msg = error["msg"]
+        loc = error["loc"]
+        # Берём только имя поля (последний элемент loc)
+        field_name = str(loc[-1]) if loc else "unknown"
+
+        # Получаем значение из словаря d если он предоставлен
+        invalid_value = "<No value>"
+        if d is not None and isinstance(d, dict):
+            invalid_value = d.get(field_name, "<No value>")
+
+        error_report[field_name] = {"invalid_value": invalid_value, "error_message": msg}
+
+    return error_report
 
 
 # =============================================================================
@@ -178,6 +232,9 @@ def _validate_category(category: Any) -> Dict[str, Any]:
 # =============================================================================
 
 __all__ = [
+    # Обработка ошибок валидации
+    "report_from_validation_error",
+    # Валидация
     "_validate_city",
     "_validate_category",
     "_validate_city_cached",

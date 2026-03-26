@@ -15,7 +15,7 @@ import shutil
 from contextlib import contextmanager
 from typing import Generator, Optional, Tuple, Union
 
-from parser_2gis.common import DEFAULT_BUFFER_SIZE
+from parser_2gis.constants import DEFAULT_BUFFER_SIZE
 from parser_2gis.logger import logger
 
 # =============================================================================

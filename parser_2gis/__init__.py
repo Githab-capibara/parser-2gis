@@ -31,7 +31,7 @@ from .protocols import (
     Writer,
 )
 from .statistics import ParserStatistics, StatisticsExporter
-from .temp_file_manager import TempFileManager, temp_file_manager
+from .utils.temp_file_manager import TempFileManager, temp_file_manager
 from .validation import ValidationResult
 from .version import version as __version__
 

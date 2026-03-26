@@ -12,8 +12,8 @@ from typing import Optional
 
 from parser_2gis.cli.formatter import ArgumentHelpFormatter, patch_argparse_translations
 from parser_2gis.cli.validator import ArgumentValidator
-from parser_2gis.common import unwrap_dot_dict
 from parser_2gis.config import Configuration
+from parser_2gis.utils import unwrap_dot_dict
 
 
 def _normalize_argv(argv: list[str]) -> list[str]:

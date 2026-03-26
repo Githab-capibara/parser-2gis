@@ -7,9 +7,9 @@
 - pass_replaced_with_ellipsis: замена pass на ellipsis
 """
 
+import ast
 from pathlib import Path
 
-import ast
 import pytest
 
 

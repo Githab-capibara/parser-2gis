@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from parser_2gis.temp_file_manager import (
+from parser_2gis.utils.temp_file_manager import (
     cleanup_all_temp_files,
     register_temp_file,
     temp_file_manager,

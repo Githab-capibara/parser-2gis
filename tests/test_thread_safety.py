@@ -25,7 +25,7 @@ class TestTempFilesRegistryThreadSafety:
         Каждый поток добавляет файл в реестр.
         Проверяет что нет race condition и все файлы добавлены.
         """
-        from parser_2gis.parallel import (
+        from parser_2gis.parallel.parallel_parser import (
             _cleanup_all_temp_files,
             _register_temp_file,
             _temp_files_lock,
@@ -77,7 +77,7 @@ class TestTempFilesRegistryThreadSafety:
         Пытается получить lock в другом потоке.
         Проверяет что timeout работает (5 секунд) и нет deadlock.
         """
-        from parser_2gis.parallel import _temp_files_lock
+        from parser_2gis.parallel.parallel_parser import _temp_files_lock
 
         lock_acquired = threading.Event()
         lock_release_requested = threading.Event()
@@ -134,7 +134,7 @@ class TestTempFilesRegistryThreadSafety:
         Вызывает _cleanup_all_temp_files.
         Проверяет что все файлы удалены и реестр очищен.
         """
-        from parser_2gis.parallel import (
+        from parser_2gis.parallel.parallel_parser import (
             _cleanup_all_temp_files,
             _register_temp_file,
             _temp_files_lock,
@@ -179,7 +179,7 @@ class TestRLockReentrancy:
 
         RLock должен позволять одному потоку захватывать lock несколько раз.
         """
-        from parser_2gis.parallel import _temp_files_lock
+        from parser_2gis.parallel.parallel_parser import _temp_files_lock
 
         acquired_count = 0
 

@@ -11,8 +11,8 @@ from typing import Any
 
 import pydantic
 
-from parser_2gis.common import report_from_validation_error
 from parser_2gis.config import Configuration
+from parser_2gis.utils import report_from_validation_error
 from parser_2gis.utils.path_utils import validate_path_safety
 from parser_2gis.validation import validate_positive_int, validate_url
 

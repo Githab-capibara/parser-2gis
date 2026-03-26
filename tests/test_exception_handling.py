@@ -127,7 +127,7 @@ class TestParallelParserExceptionLogging:
         Проверяет что при merge операции временные файлы
         добавляются в реестр для последующей очистки.
         """
-        from parser_2gis.temp_file_manager import temp_file_manager
+        from parser_2gis.utils.temp_file_manager import temp_file_manager
 
         # Создаем тестовый файл
         temp_file = tmp_path / "temp_test.csv"

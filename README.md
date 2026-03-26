@@ -56,6 +56,9 @@
 - RLock для реентерабельности в многопоточной среде
 - Кэширование результатов вычислений для оптимизации производительности
 - Обработка optional зависимостей для гибкой настройки
+- Protocol абстракции для тестируемости (CacheBackend, ExecutionBackend, ParserFactory, WriterFactory)
+- TempFileManager для гарантированной очистки временных файлов
+- Weak references для предотвращения утечек памяти
 
 **Производительность:**
 - Кэширование результатов на SQLite
@@ -724,21 +727,12 @@ parser_2gis/
 ├── __init__.py          # Экспорт основных компонентов
 ├── __main__.py          # Точка входа python -m
 ├── main.py              # CLI точка входа
-├── cache.py             # Кэширование на SQLite
-├── common.py            # Общие утилиты
-├── config.py            # Конфигурация
-├── validation.py        # Валидация данных
-├── validator.py         # Валидатор данных
-├── parallel_parser.py   # Параллельный парсинг
-├── parallel_helpers.py  # Helpers для параллелизма
-├── parallel_optimizer.py # Оптимизатор параллелизма
-├── signal_handler.py    # Обработчик сигналов
-├── statistics.py        # Статистика и экспорт
-├── paths.py             # Управление путями
-├── pydantic_compat.py   # Pydantic совместимость
-├── version.py           # Версия пакета
-├── exceptions.py        # Исключения
-│
+├── cache/               # Пакет кэширования на SQLite
+│   ├── __init__.py      # Экспорт API: CacheManager
+│   ├── manager.py       # CacheManager класс
+│   ├── pool.py          # ConnectionPool класс
+│   ├── serializer.py    # JsonSerializer класс
+│   └── validator.py     # CacheDataValidator класс
 ├── chrome/              # Модуль Chrome
 │   ├── browser.py       # Управление браузером
 │   ├── remote.py        # Chrome DevTools Protocol
@@ -748,10 +742,30 @@ parser_2gis/
 │   ├── utils.py         # Утилиты Chrome
 │   ├── file_handler.py  # Обработка файлов
 │   ├── health_monitor.py # Мониторинг здоровья
+│   ├── http_cache.py    # HTTP кэширование
+│   ├── js_executor.py   # Валидация и выполнение JS
+│   ├── rate_limiter.py  # Rate limiting
 │   └── exceptions.py    # Исключения Chrome
-│
+├── cli/                 # CLI интерфейс
+│   ├── __init__.py      # Экспорт API
+│   ├── arguments.py     # Парсинг аргументов
+│   ├── formatter.py     # Форматировщик справки
+│   ├── main.py          # Точка входа CLI
+│   └── validator.py     # Валидация аргументов
+├── config.py            # Конфигурация через Pydantic
+├── config_service.py    # Сервис операций с конфигурацией (НОВЫЙ в v2.1.7)
+├── constants.py         # Централизованные константы
+├── exceptions.py        # Иерархия исключений
+├── parallel/            # Модуль параллельной обработки
+│   ├── __init__.py      # Экспорт API
+│   ├── file_merger.py   # Слияние CSV файлов
+│   ├── options.py       # Опции параллелизма (ParallelOptions, ParallelParserConfig)
+│   ├── parallel_parser.py # Параллельный парсинг
+│   └── progress_tracker.py # Прогресс
+├── parallel_helpers.py  # Helpers для параллелизма
+├── parallel_optimizer.py # Оптимизатор параллелизма
 ├── parser/              # Модуль парсинга
-│   ├── factory.py       # Фабрика парсеров
+│   ├── factory.py       # Фабрика парсеров (Registry pattern)
 │   ├── options.py       # Опции парсера
 │   ├── adaptive_limits.py # Адаптивные лимиты
 │   ├── smart_retry.py   # Умный retry
@@ -762,9 +776,8 @@ parser_2gis/
 │       ├── firm.py      # Парсинг организаций
 │       ├── in_building.py # Парсинг внутри зданий
 │       └── main.py      # Главный парсер
-│
 ├── writer/              # Модуль записи
-│   ├── factory.py       # Фабрика writers
+│   ├── factory.py       # Фабрика writers (Registry pattern)
 │   ├── options.py       # Опции writer
 │   ├── exceptions.py    # Исключения
 │   ├── models/          # Модели данных
@@ -772,36 +785,49 @@ parser_2gis/
 │       ├── csv_writer.py # CSV writer
 │       ├── xlsx_writer.py # XLSX writer
 │       ├── json_writer.py # JSON writer
-│       └── file_writer.py # Базовый writer
-│
+│       ├── file_writer.py # Базовый writer
+│       ├── csv_buffer_manager.py # Буферизация
+│       ├── csv_deduplicator.py # Дедупликация
+│       └── csv_post_processor.py # Постобработка
 ├── logger/              # Модуль логирования
 │   ├── logger.py        # Настройка logger
 │   ├── options.py       # Опции логирования
 │   └── visual_logger.py # Визуальный logger
-│
-├── cli/                 # CLI интерфейс
-│   ├── app.py           # CLI приложение
-│   └── progress.py      # Прогресс-бары
-│
-├── tui_textual/         # TUI интерфейс
+├── runner/              # Запуск парсера
+│   ├── runner.py        # Запуск парсера
+│   └── cli.py           # CLI runner
+├── tui_textual/         # TUI интерфейс на Textual
 │   ├── app.py           # TUI приложение
 │   ├── run_parallel.py  # Параллельный запуск TUI
 │   ├── screens/         # Экраны TUI
 │   ├── widgets/         # Виджеты TUI
-│   ├── styles/          # Стили TUI
-│   └── utils/           # Утилиты TUI
-│
-├── runner/              # Запуск парсера
-│   ├── runner.py        # Запуск парсера
-│   └── cli.py           # CLI runner
-│
-├── parallel/            # Параллельные опции
-│   └── options.py       # Опции параллелизма
-│
-└── data/                # Данные
-    ├── cities.json      # Список городов
-    ├── categories_93.py # 93 категории
-    └── rubrics.json     # Справочник рубрик
+│   └── styles/          # Стили TUI
+├── utils/               # Общие утилиты (расширен в v2.1.7)
+│   ├── __init__.py      # Экспорт API
+│   ├── cache_monitor.py # Мониторинг кэшей
+│   ├── data_utils.py    # Преобразование структур данных (НОВЫЙ в v2.1.7)
+│   ├── decorators.py    # Декораторы ожидания
+│   ├── math_utils.py    # Математические операции (НОВЫЙ в v2.1.7)
+│   ├── path_utils.py    # Валидация путей
+│   ├── sanitizers.py    # Санитаризация данных
+│   ├── temp_file_manager.py # Менеджер временных файлов (НОВЫЙ в v2.1.7)
+│   ├── url_utils.py     # Генерация URL
+│   └── validation_utils.py # Валидация городов/категорий
+├── validation/          # Модуль валидации
+│   ├── __init__.py      # Экспорт API
+│   ├── data_validator.py # Валидация данных
+│   ├── legacy.py        # Обратная совместимость
+│   ├── path_validator.py # Валидация путей
+│   └── url_validator.py # Валидация URL
+├── paths.py             # Управление путями
+├── protocols.py         # Protocol для callback и интерфейсов
+│                        # BrowserService, CacheBackend, ExecutionBackend (НОВЫЕ в v2.1.7)
+│                        # ParserFactory, WriterFactory (НОВЫЕ в v2.1.7)
+├── pydantic_compat.py   # Pydantic совместимость
+├── signal_handler.py    # Обработчик сигналов
+├── statistics.py        # Статистика работы
+├── version.py           # Версия пакета
+└── py.typed             # PEP 561 marker
 ```
 
 ### Технологический стек
@@ -818,6 +844,39 @@ parser_2gis/
 | **orjson** | Быстрая JSON сериализация |
 | **XLSXWriter** | Генерация XLSX файлов |
 | **Jinja2** | Шаблонизация для экспорта |
+
+### Protocol абстракции (НОВЫЕ в v2.1.7)
+
+Проект использует Protocol (PEP 544) для создания абстракций и улучшения тестируемости:
+
+| Protocol | Назначение | Методы |
+|----------|------------|--------|
+| **CacheBackend** | Абстракция бэкенда кэширования | `get()`, `set()`, `delete()`, `exists()` |
+| **ExecutionBackend** | Абстракция параллельного выполнения | `submit()`, `map()`, `shutdown()` |
+| **ParserFactory** | Фабрика парсеров | `get_parser(parser_type, **kwargs)` |
+| **WriterFactory** | Фабрика писателей | `get_writer(format, **kwargs)` |
+| **BrowserService** | Абстракция браузера | `navigate()`, `get_html()`, `execute_js()`, `screenshot()`, `close()` |
+
+**Преимущества Protocol:**
+- **Тестируемость:** Mock-реализации для unit-тестирования
+- **Гибкость:** Легкое переключение между реализациями (Redis/SQLite, ThreadPool/ProcessPool)
+- **Слабая связанность:** Разрыв зависимостей между модулями
+- **Type safety:** Полная поддержка type checking через mypy/pyright
+
+**Пример использования:**
+```python
+from parser_2gis.protocols import CacheBackend, ExecutionBackend
+
+# Кэширование через Protocol
+cache: CacheBackend = CacheManager(cache_dir="./cache")
+data = cache.get("key")
+cache.set("key", data, ttl=3600)
+
+# Параллельное выполнение через Protocol
+executor: ExecutionBackend = ThreadPoolExecutor(max_workers=10)
+results = list(executor.map(process_function, items))
+executor.shutdown()
+```
 
 ---
 

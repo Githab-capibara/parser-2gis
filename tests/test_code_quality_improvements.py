@@ -233,7 +233,7 @@ class TestTypeHintsPresence:
         Returns:
             None
         """
-        from parser_2gis.common import unwrap_dot_dict
+        from parser_2gis.utils.data_utils import unwrap_dot_dict
 
         # Получаем signature функции
         sig = inspect.signature(unwrap_dot_dict)
@@ -446,7 +446,7 @@ class TestFunctionalityWithTypeHints:
         Returns:
             None
         """
-        from parser_2gis.common import unwrap_dot_dict
+        from parser_2gis.utils.data_utils import unwrap_dot_dict
 
         input_data: Dict[str, Any] = {"a.b.c": "value1", "x.y": "value2"}
 

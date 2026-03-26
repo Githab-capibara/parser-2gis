@@ -34,3 +34,21 @@ if TYPE_CHECKING:
 # =============================================================================
 # RATE LIMITING ДЛЯ ВНЕШНИХ ЗАПРОСОВ
 # =============================================================================
+
+
+def _safe_external_request(method: str = "GET", url: str = "", timeout: int = 30, **kwargs) -> None:
+    """Безопасный внешний запрос с rate limiting.
+
+    Заглушка для обратной совместимости.
+
+    Args:
+        method: HTTP метод.
+        url: URL для запроса.
+        timeout: Таймаут запроса.
+        **kwargs: Дополнительные аргументы для requests.
+    """
+    if requests is None:
+        raise ImportError("requests library is required for _safe_external_request")
+
+    # Простая реализация без rate limiting
+    requests.request(method, url, timeout=timeout, **kwargs)

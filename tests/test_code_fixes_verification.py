@@ -12,7 +12,6 @@
 7. Тесты на type: ignore комментарии
 """
 
-from parser_2gis.utils.url_utils import generate_category_url
 import ast
 import re
 import subprocess
@@ -23,6 +22,8 @@ from typing import List, Tuple
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+from parser_2gis.utils.url_utils import generate_category_url
 
 # Добавляем путь к пакету
 sys.path.insert(0, str(Path(__file__).parent.parent))

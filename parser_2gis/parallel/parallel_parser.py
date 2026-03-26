@@ -27,12 +27,12 @@ from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
-from parser_2gis.common import MERGE_BATCH_SIZE
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
     MAX_LOCK_FILE_AGE,
     MAX_TIMEOUT,
     MAX_WORKERS,
+    MERGE_BATCH_SIZE,
     MERGE_BUFFER_SIZE,
     MERGE_LOCK_TIMEOUT,
     MIN_TIMEOUT,
@@ -40,14 +40,12 @@ from parser_2gis.constants import (
 )
 from parser_2gis.logger import log_parser_finish, logger, print_progress
 from parser_2gis.parallel.progress_tracker import PROGRESS_UPDATE_INTERVAL
-from parser_2gis.parallel.temp_file_timer import (
+from parser_2gis.parser import get_parser
+from parser_2gis.utils.temp_file_manager import (
     MAX_TEMP_FILES_MONITORING,
     ORPHANED_TEMP_FILE_AGE,
     TEMP_FILE_CLEANUP_INTERVAL,
-    _TempFileTimer,
-)
-from parser_2gis.parser import get_parser
-from parser_2gis.temp_file_manager import (
+    TempFileTimer,
     cleanup_all_temp_files,
     register_temp_file,
     temp_file_manager,
@@ -203,10 +201,10 @@ class ParallelCityParser:
         self._merge_temp_files: List[Path] = []
         # Блокировка для потокобезопасного доступа к временным файлам
         self._merge_lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
-        self._temp_file_cleanup_timer: Optional[_TempFileTimer] = None
+        self._temp_file_cleanup_timer: Optional[TempFileTimer] = None
         if self.config.parallel.use_temp_file_cleanup:  # type: ignore[attr-defined]
             try:
-                self._temp_file_cleanup_timer = _TempFileTimer(
+                self._temp_file_cleanup_timer = TempFileTimer(
                     temp_dir=self.output_dir,
                     interval=TEMP_FILE_CLEANUP_INTERVAL,
                     max_files=MAX_TEMP_FILES_MONITORING,

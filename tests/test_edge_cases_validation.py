@@ -15,7 +15,7 @@ from typing import Any, Dict
 
 import pytest
 
-from parser_2gis.common import unwrap_dot_dict
+from parser_2gis.utils.data_utils import unwrap_dot_dict
 from parser_2gis.validation.data_validator import (
     validate_email,
     validate_list_length,
