@@ -207,7 +207,7 @@ def _check_concatenation_bypass(code: str) -> Tuple[bool, Optional[str]]:
         # Например: "ev" + "al" или 'func' + 'tion'
         dangerous_pattern = r'["\']([^"\']*)["\']\s*\+\s*["\']([^"\']*)["\']'
         matches = re.findall(dangerous_pattern, code, re.IGNORECASE)
-        
+
         for match in matches:
             # Проверяем, образует ли конкатенация опасное слово
             concatenated = "".join(match).lower()
@@ -347,23 +347,37 @@ def _check_bracket_access(code: str) -> Tuple[bool, Optional[str]]:
 
 
 def _check_reflect_and_apply(code: str) -> Tuple[bool, Optional[str]]:
-    """Проверяет код на использование Reflect.construct и Function.apply/call.
+    """Проверяет код на Reflect/apply/call с умной проверкой.
+
+    Блокирует только подозрительные случаи:
+    1. Reflect.* (любой доступ к Reflect)
+    2. apply/call с eval/Function (попытка выполнения кода)
+    3. apply/call в контексте обхода проверок
 
     Args:
         code: JavaScript код для проверки.
 
     Returns:
-        Кортеж (is_valid, error_message):
-        - is_valid: True если функции отсутствуют, False иначе
-        - error_message: Сообщение об ошибке или None
+        Кортеж (is_valid, error_message)
     """
-    # Проверка на использование Reflect
+    # Проверка на использование Reflect - блокируем всё
     if re.search(r"Reflect\s*\.", code, re.IGNORECASE):
         return False, "Reflect запрещён (может использоваться для обхода)"
 
-    # Проверка на использование apply/call
-    if re.search(r"\.\s*(?:apply|call)\s*\(", code, re.IGNORECASE):
-        return False, "apply/call запрещён (попытка обхода)"
+    # Проверка на apply/call ТОЛЬКО в подозрительных контекстах
+    # 1. apply/call с eval или Function
+    if re.search(r"\.\s*(?:apply|call)\s*\([^)]*(?:eval|Function)[^)]*\)", code, re.IGNORECASE):
+        return False, "apply/call с eval/Function запрещён"
+
+    # 2. apply/call для выполнения кода через Function.prototype
+    if re.search(r"Function\s*\.\s*prototype\s*\.\s*(?:apply|call)", code, re.IGNORECASE):
+        return False, "Function.prototype.apply/call запрещён"
+
+    # 3. apply/call с аргументами, которые могут быть кодом
+    if re.search(r"\.\s*(?:apply|call)\s*\(\s*this\s*,\s*\[", code, re.IGNORECASE):
+        # Проверяем, содержит ли массив строки с кодом
+        if re.search(r"\.\s*(?:apply|call)\s*\(\s*this\s*,\s*\[\s*['\"]", code, re.IGNORECASE):
+            return False, "apply/call с строковыми аргументами запрещён"
 
     return True, None
 
