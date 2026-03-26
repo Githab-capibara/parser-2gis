@@ -11,6 +11,7 @@ import functools
 import os
 import socket
 import subprocess
+import time
 
 
 @functools.lru_cache()
@@ -69,9 +70,16 @@ def free_port() -> int:
 
     Примечание:
         Порт выбирается автоматически операционной системой.
-        После вызова функции порт остаётся свободным для использования.
+        Сокет закрывается после выбора порта, порт остаётся свободным для использования.
+        ИСПРАВЛЕНИЕ: Добавлена опция SO_REUSEADDR для предотвращения проблем с занятостью порта.
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as free_socket:
+        # ИСПРАВЛЕНИЕ: Устанавливаем SO_REUSEADDR для предотвращения проблем с занятостью порта
+        free_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         free_socket.bind(("127.0.0.1", 0))
         free_socket.listen(5)
-        return free_socket.getsockname()[1]
+        port = free_socket.getsockname()[1]
+    # Сокет закрывается в конце контекстного менеджера
+    # Небольшая задержка для гарантии освобождения порта
+    time.sleep(0.01)
+    return port

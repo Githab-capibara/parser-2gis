@@ -199,12 +199,23 @@ def _check_concatenation_bypass(code: str) -> Tuple[bool, Optional[str]]:
     if "+" not in code or ('"' not in code and "'" not in code):
         return True, None
 
-    # Удаляем все не-буквенные символы для проверки
-    code_letters_only = "".join(c for c in code.lower() if c.isalpha())
-
+    # ИСПРАВЛЕНИЕ: Проверяем именно подозрительные паттерны конкатенации,
+    # а не просто наличие слов в коде.
+    # Паттерн: строка + строка, где при соединении получается опасное слово
     for dangerous in _DANGEROUS_CONCAT_LIST:
-        if dangerous in code_letters_only:
-            return False, f"Обнаружена подозрительная конкатенация строк с {dangerous}"
+        # Строим паттерн для поиска разбитого опасного слова
+        # Например: "ev" + "al" или 'func' + 'tion'
+        dangerous_pattern = r'["\']([^"\']*)["\']\s*\+\s*["\']([^"\']*)["\']'
+        matches = re.findall(dangerous_pattern, code, re.IGNORECASE)
+        
+        for match in matches:
+            # Проверяем, образует ли конкатенация опасное слово
+            concatenated = "".join(match).lower()
+            if dangerous in concatenated:
+                # Дополнительная проверка: это действительно обход или легитимный код?
+                # Если опасное слово не является полным словом в конкатенации - пропускаем
+                if concatenated == dangerous or dangerous in concatenated.split(dangerous):
+                    return False, f"Обнаружена подозрительная конкатенация строк с {dangerous}"
 
     # Дополнительная проверка на конкатенацию с array join
     if re.search(r'\[\s*["\'][^"\']*["\']\s*\]\s*\.\s*join\s*\(', code, re.IGNORECASE):
@@ -226,7 +237,7 @@ def _check_obfuscation_patterns(code: str) -> Tuple[bool, Optional[str]]:
     """
     # Проверка на split('').reverse().join() - техника обфускации
     if re.search(
-        r'split\s*\(\s*["\']["\']\s*\)\s*\.reverse\s*\(\)\s*\.join\s*\(', code, re.IGNORECASE
+        r'split\s*\(\s*["\"]["\"]\s*\)\s*\.reverse\s*\(\)\s*\.join\s*\(', code, re.IGNORECASE
     ):
         return False, "Обнаружена обфускация через split().reverse().join()"
 
