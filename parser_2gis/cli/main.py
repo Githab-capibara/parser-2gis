@@ -313,17 +313,23 @@ def _load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
                 logger.error("Город %d должен быть словарём, а не %s", i, type(city).__name__)
                 raise ValueError(f"Город {i} должен быть словарём")
 
-            if "name" not in city or "url" not in city:
-                logger.error("Город %d должен содержать поля 'name' и 'url'", i)
-                raise ValueError(f"Город {i} должен содержать поля 'name' и 'url'")
+            # ИЗМЕНЕНО: проверяем name, code, domain вместо url
+            if "name" not in city or "code" not in city or "domain" not in city:
+                logger.error("Город %d должен содержать поля 'name', 'code' и 'domain'", i)
+                raise ValueError(f"Город {i} должен содержать поля 'name', 'code' и 'domain'")
 
-            if not isinstance(city["name"], str) or not isinstance(city["url"], str):
-                logger.error("Поля 'name' и 'url' города %d должны быть строками", i)
-                raise ValueError(f"Поля 'name' и 'url' города {i} должны быть строками")
+            if (
+                not isinstance(city["name"], str)
+                or not isinstance(city["code"], str)
+                or not isinstance(city["domain"], str)
+            ):
+                logger.error("Поля 'name', 'code' и 'domain' города %d должны быть строками", i)
+                raise ValueError(f"Поля 'name', 'code' и 'domain' города {i} должны быть строками")
 
-            if not city["url"].startswith("http://") and not city["url"].startswith("https://"):
-                logger.error("URL города %d должен начинаться с http:// или https://", i)
-                raise ValueError(f"URL города {i} некорректен")
+            # Опционально: проверяем country_code если есть
+            if "country_code" in city and not isinstance(city["country_code"], str):
+                logger.error("Поле 'country_code' города %d должно быть строкой", i)
+                raise ValueError(f"Поле 'country_code' города {i} должно быть строкой")
 
         logger.debug("Файл городов валидирован: %d городов", len(all_cities))
         return all_cities
