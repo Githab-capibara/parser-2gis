@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from parser_2gis.cache import CacheManager
+from parser_2gis.chrome.options import ChromeOptions
 from parser_2gis.chrome.remote import ChromeRemote
 from parser_2gis.cli import cli_app
 from parser_2gis.cli.arguments import parse_arguments
@@ -24,10 +25,13 @@ from parser_2gis.config import Configuration
 from parser_2gis.constants import MAX_CITIES_COUNT, MAX_CITIES_FILE_SIZE, MMAP_CITIES_THRESHOLD
 from parser_2gis.data.categories_93 import CATEGORIES_93
 from parser_2gis.logger import log_parser_start, logger, setup_cli_logger
+from parser_2gis.parallel.options import ParallelOptions
+from parser_2gis.parser.options import ParserOptions
 from parser_2gis.paths import cache_path, data_path
 from parser_2gis.signal_handler import SignalHandler
 from parser_2gis.utils.url_utils import generate_city_urls
 from parser_2gis.version import version
+from parser_2gis.writer.options import WriterOptions
 
 # Опциональный импорт TUI модуля
 try:
@@ -484,12 +488,50 @@ def main() -> None:
             logger.info("Города: %s", [c["name"] for c in selected_cities])
             logger.info("Количество потоков: %d", command_line_config.parallel.max_workers)
 
-            logger.info("🎨 Запуск TUI интерфейса...")
+            # Импортируем ParallelCityParser для запуска параллельного парсинга
+            from parser_2gis.parallel import ParallelCityParser
 
-            raise NotImplementedError(
-                "Параллельный парсинг с TUI через CLI временно недоступен. "
-                "Используйте --tui-new-omsk для запуска с предустановленными настройками."
+            # Создаём конфигурацию для параллельного парсера
+            config = Configuration(
+                parallel=ParallelOptions(
+                    max_workers=command_line_config.parallel.max_workers, use_temp_file_cleanup=True
+                ),
+                chrome=ChromeOptions(
+                    headless=command_line_config.chrome.headless == "yes",
+                    disable_images=command_line_config.chrome.disable_images == "yes",
+                ),
+                parser=ParserOptions(
+                    max_records=command_line_config.parser.max_records,
+                    delay_ms=command_line_config.parser.delay_between_clicks,
+                    retry_on_network_errors=command_line_config.parser.retry_on_network_errors
+                    == "yes",
+                ),
+                writer=WriterOptions(format="csv", encoding="utf-8-sig", deduplicate=True),
             )
+
+            # Создаём и запускаем парсер
+            parser = ParallelCityParser(
+                cities=selected_cities,
+                categories=CATEGORIES_93,
+                output_dir=str(output_dir),
+                config=config,
+                max_workers=command_line_config.parallel.max_workers,
+                timeout_per_url=300,
+            )
+
+            def progress_callback(success: int, failed: int, filename: str) -> None:
+                """Callback для обновления прогресса."""
+                logger.info("Прогресс: успешно=%d, ошибок=%d, файл=%s", success, failed, filename)
+
+            output_file = "omsk_all_categories.csv"
+            result = parser.run(output_file=output_file, progress_callback=progress_callback)
+
+            if result:
+                logger.info("Парсинг успешно завершён")
+                sys.exit(0)
+            else:
+                logger.error("Парсинг завершён с ошибками")
+                sys.exit(1)
 
         query = args.query or "Организации"
         rubric = {"code": args.rubric} if args.rubric else None

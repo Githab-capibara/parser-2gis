@@ -388,6 +388,11 @@ class ChromeRemote:
                 resp = _safe_external_request(
                     "put", "%s/json/new" % (self._dev_url), json={}, timeout=60, verify=True
                 )
+
+                # Проверка на None перед вызовом raise_for_status()
+                if resp is None:
+                    raise ChromeException("HTTP запрос вернул None")
+
                 resp.raise_for_status()
                 app_logger.debug("Вкладка успешно создана")
                 return pychrome.Tab(**resp.json())
