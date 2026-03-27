@@ -40,9 +40,9 @@ class ParallelOptions(BaseModel):
     use_temp_file_cleanup: bool = True
     temp_file_cleanup_interval: PositiveInt = 60
     max_temp_files: PositiveInt = 1000
-    orphaned_temp_file_age: PositiveInt = 300
-    merge_lock_timeout: PositiveInt = 300
-    max_lock_file_age: PositiveInt = 300
+    orphaned_temp_file_age: PositiveInt = 60
+    merge_lock_timeout: PositiveInt = 60
+    max_lock_file_age: PositiveInt = 60
     max_workers: PositiveInt = 10
 
 
@@ -78,7 +78,7 @@ class ParallelParserConfig:
     output_dir: Path
     config: Configuration
     max_workers: int = 10
-    timeout_per_url: int = 300
+    timeout_per_url: int = 60
 
 
 __all__ = ["ParallelOptions", "ParallelParserConfig", "MAX_TEMP_FILES"]

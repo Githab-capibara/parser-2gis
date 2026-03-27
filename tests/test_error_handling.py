@@ -159,7 +159,7 @@ class TestKeyboardInterruptHandling:
             output_dir=tempfile.gettempdir(),
             config=mock_config,
             max_workers=2,
-            timeout_per_url=300,
+            timeout_per_url=60,
         )
 
         # Проверяем что флаг отмены изначально не установлен
@@ -190,7 +190,7 @@ class TestKeyboardInterruptHandling:
             output_dir=tempfile.gettempdir(),
             config=mock_config,
             max_workers=2,
-            timeout_per_url=300,
+            timeout_per_url=60,
         )
 
         # Устанавливаем флаг отмены
@@ -220,7 +220,7 @@ class TestKeyboardInterruptHandling:
             output_dir=tempfile.gettempdir(),
             config=mock_config,
             max_workers=2,
-            timeout_per_url=300,
+            timeout_per_url=60,
         )
 
         # Устанавливаем флаг отмены
@@ -251,7 +251,7 @@ class TestKeyboardInterruptHandling:
             output_dir=tempfile.gettempdir(),
             config=mock_config,
             max_workers=2,
-            timeout_per_url=300,
+            timeout_per_url=60,
         )
 
         # Мокаем parse_single_url чтобы выбросить KeyboardInterrupt

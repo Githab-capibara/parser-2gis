@@ -38,7 +38,7 @@ MERGE_BATCH_SIZE_LOCAL: int = MERGE_BATCH_SIZE
 
 # Таймаут ожидания блокировки merge операции в секундах
 MERGE_LOCK_TIMEOUT_LOCAL: int = validate_env_int(
-    "PARSER_MERGE_LOCK_TIMEOUT", default=300, min_value=60, max_value=3600
+    "PARSER_MERGE_LOCK_TIMEOUT", default=60, min_value=10, max_value=600
 )
 
 

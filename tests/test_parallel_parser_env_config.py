@@ -116,20 +116,20 @@ class TestParallelParserEnvConfigDefaults:
         Проверка значения по умолчанию для MERGE_LOCK_TIMEOUT.
 
         Note:
-            Значение по умолчанию: 300 секунд (5 минут)
+            Значение по умолчанию: 60 секунд (1 минута)
         """
-        result = check_env_value("PARSER_MERGE_LOCK_TIMEOUT", "MERGE_LOCK_TIMEOUT", "300", 300)
-        assert result is True, "PARSER_MERGE_LOCK_TIMEOUT по умолчанию должно быть 300"
+        result = check_env_value("PARSER_MERGE_LOCK_TIMEOUT", "MERGE_LOCK_TIMEOUT", "60", 60)
+        assert result is True, "PARSER_MERGE_LOCK_TIMEOUT по умолчанию должно быть 60"
 
     def test_max_lock_file_age_default_value(self) -> None:
         """
         Проверка значения по умолчанию для MAX_LOCK_FILE_AGE.
 
         Note:
-            Значение по умолчанию: 300 секунд (5 минут)
+            Значение по умолчанию: 60 секунд (1 минута)
         """
-        result = check_env_value("PARSER_MAX_LOCK_FILE_AGE", "MAX_LOCK_FILE_AGE", "300", 300)
-        assert result is True, "PARSER_MAX_LOCK_FILE_AGE по умолчанию должно быть 300"
+        result = check_env_value("PARSER_MAX_LOCK_FILE_AGE", "MAX_LOCK_FILE_AGE", "60", 60)
+        assert result is True, "PARSER_MAX_LOCK_FILE_AGE по умолчанию должно быть 60"
 
     def test_max_temp_files_default_value(self) -> None:
         """

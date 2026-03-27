@@ -326,7 +326,7 @@ class TestConfigFieldExtractor:
     def test_extract_simple_access(self, tmp_path: Path) -> None:
         """Проверяет извлечение простого обращения к конфигурации."""
         test_file = tmp_path / "test_settings.py"
-        test_file.write_text("config.parser.timeout = 300\nconfig.parallel.max_workers = 10\n")
+        test_file.write_text("config.parser.timeout = 60\nconfig.parallel.max_workers = 10\n")
 
         extractor = ConfigFieldExtractor(test_file)
         accesses = extractor.extract_config_accesses()
@@ -338,7 +338,7 @@ class TestConfigFieldExtractor:
     def test_extract_multiple_accesses_same_line(self, tmp_path: Path) -> None:
         """Проверяет извлечение нескольких обращений в одной строке."""
         test_file = tmp_path / "test_settings.py"
-        test_file.write_text("config.parser.timeout = 300; config.parallel.max_workers = 10\n")
+        test_file.write_text("config.parser.timeout = 60; config.parallel.max_workers = 10\n")
 
         extractor = ConfigFieldExtractor(test_file)
         accesses = extractor.extract_config_accesses()
@@ -350,7 +350,7 @@ class TestConfigFieldExtractor:
         test_file = tmp_path / "test_settings.py"
         test_file.write_text(
             "# config.parser.nonexistent = 100\n"
-            "config.parser.timeout = 300  # config.parallel.fake\n"
+            "config.parser.timeout = 60  # config.parallel.fake\n"
         )
 
         extractor = ConfigFieldExtractor(test_file)
@@ -363,7 +363,7 @@ class TestConfigFieldExtractor:
         """Проверяет получение уникальных обращений."""
         test_file = tmp_path / "test_settings.py"
         test_file.write_text(
-            "config.parser.timeout = 300\n"
+            "config.parser.timeout = 60\n"
             "config.parser.timeout = 400\n"
             "config.parallel.max_workers = 10\n"
         )
@@ -425,14 +425,14 @@ class TestTUIConfigFieldValidator:
     def test_validator_no_errors(self, tmp_path: Path) -> None:
         """Проверяет валидацию без ошибок."""
         test_settings = tmp_path / "test_settings.py"
-        test_settings.write_text("config.parser.timeout = 300\nconfig.parallel.max_workers = 10\n")
+        test_settings.write_text("config.parser.timeout = 60\nconfig.parallel.max_workers = 10\n")
 
         test_config = tmp_path / "test_config.py"
         test_config.write_text(
             "from pydantic import BaseModel\n"
             "\n"
             "class ParserOptions(BaseModel):\n"
-            "    timeout: int = 300\n"
+            "    timeout: int = 60\n"
             "\n"
             "class ParallelOptions(BaseModel):\n"
             "    max_workers: int = 10\n"
@@ -447,7 +447,7 @@ class TestTUIConfigFieldValidator:
         """Проверяет валидацию с ошибками."""
         test_settings = tmp_path / "test_settings.py"
         test_settings.write_text(
-            "config.parser.nonexistent_field = 100\nconfig.parser.timeout = 300\n"
+            "config.parser.nonexistent_field = 100\nconfig.parser.timeout = 60\n"
         )
 
         test_config = tmp_path / "test_config.py"
@@ -455,7 +455,7 @@ class TestTUIConfigFieldValidator:
             "from pydantic import BaseModel\n"
             "\n"
             "class ParserOptions(BaseModel):\n"
-            "    timeout: int = 300\n"
+            "    timeout: int = 60\n"
             "    existing_field: str = 'test'\n"
         )
 
@@ -476,7 +476,7 @@ class TestTUIConfigFieldValidator:
             "from pydantic import BaseModel\n"
             "\n"
             "class ParserOptions(BaseModel):\n"
-            "    timeout: int = 300\n"
+            "    timeout: int = 60\n"
         )
 
         validator = TUIConfigFieldValidator(test_settings, test_config, project_root=tmp_path)

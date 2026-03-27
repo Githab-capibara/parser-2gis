@@ -36,13 +36,13 @@ class TestParallelParserMock:
             output_dir=tempfile.mkdtemp(),
             config=config,
             max_workers=2,
-            timeout_per_url=300,
+            timeout_per_url=60,
         )
 
         assert parser.cities == cities
         assert parser.categories == categories
         assert parser.max_workers == 2
-        assert parser.timeout_per_url == 300
+        assert parser.timeout_per_url == 60
 
     def test_parallel_parser_invalid_workers(self) -> None:
         """Тест валидации max_workers."""

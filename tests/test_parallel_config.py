@@ -96,7 +96,7 @@ class TestParallelParserConfigFields:
         assert timeout_field is not None, "Поле timeout_per_url должно существовать"
 
         # Проверяем что есть значение по умолчанию
-        assert timeout_field.default == 300, "timeout_per_url по умолчанию должен быть 300"
+        assert timeout_field.default == 60, "timeout_per_url по умолчанию должен быть 60"
 
     def test_dataclass_has_no_default_factory_for_required_fields(self) -> None:
         """Проверяет что обязательные поля не имеют default_factory."""
@@ -131,7 +131,7 @@ class TestParallelParserConfigInstantiation:
         assert parser_config.output_dir == output_dir
         assert parser_config.config == config
         assert parser_config.max_workers == 10  # default
-        assert parser_config.timeout_per_url == 300  # default
+        assert parser_config.timeout_per_url == 60  # default
 
     def test_create_config_with_custom_max_workers(self) -> None:
         """Проверяет создание конфигурации с custom max_workers."""

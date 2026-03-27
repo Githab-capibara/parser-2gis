@@ -46,7 +46,7 @@ class ParserOptions(BaseModel):
         memory_threshold: Порог использования памяти в МБ для автоматической очистки (по умолчанию 2048).
         stop_on_first_404: Останавливать парсинг немедленно при первом 404 ответе (по умолчанию False).
         max_consecutive_empty_pages: Максимальное количество подряд пустых страниц перед остановкой (по умолчанию 3).
-        timeout: Таймаут выполнения парсинга в секундах (по умолчанию 300).
+        timeout: Таймаут выполнения парсинга в секундах (по умолчанию 60).
     """
 
     skip_404_response: bool = True
@@ -60,4 +60,4 @@ class ParserOptions(BaseModel):
     memory_threshold: PositiveInt = 2048
     stop_on_first_404: bool = False
     max_consecutive_empty_pages: PositiveInt = 3
-    timeout: PositiveInt = 300
+    timeout: PositiveInt = 60

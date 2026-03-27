@@ -225,17 +225,17 @@ class TestParallelParserValidationErrors:
             )
 
         # Проверяем что НЕ возникает ошибка при допустимых значениях
-        # max_workers <= 20, timeout <= 3600
+        # max_workers <= 20, timeout <= 600
         parser = ParallelCityParser(
             cities=cities,
             categories=categories,
             output_dir=output_dir,
             config=config,
             max_workers=15,
-            timeout_per_url=3000,
+            timeout_per_url=500,
         )
         assert parser.max_workers == 15
-        assert parser.timeout_per_url == 3000
+        assert parser.timeout_per_url == 500
 
         # Проверяем что возникает ошибка при превышении лимитов
         with pytest.raises(ValueError, match="max_workers слишком большой"):
@@ -254,7 +254,7 @@ class TestParallelParserValidationErrors:
                 output_dir=output_dir,
                 config=config,
                 max_workers=3,
-                timeout_per_url=10000,  # > 3600 максимум
+                timeout_per_url=1000,  # > 600 максимум
             )
 
 

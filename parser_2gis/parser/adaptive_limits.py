@@ -38,7 +38,7 @@ class AdaptiveLimits:
     }
 
     # Адаптивные таймауты для навигации (секунды)
-    ADAPTIVE_TIMEOUTS = {"small": 30, "medium": 60, "large": 90, "huge": 120}
+    ADAPTIVE_TIMEOUTS = {"small": 10, "medium": 20, "large": 30, "huge": 45}
 
     def __init__(self, base_limit: int = 3) -> None:
         """

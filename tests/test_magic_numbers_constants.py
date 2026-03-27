@@ -274,9 +274,9 @@ class TestTimeoutConfigurability:
         """
         # Проверяем что таймауты в разумных пределах
         assert MIN_TIMEOUT >= 1, "MIN_TIMEOUT слишком мал"
-        assert MAX_TIMEOUT <= 86400, "MAX_TIMEOUT слишком велик"  # 24 часа
-        assert DEFAULT_TIMEOUT >= 60, "DEFAULT_TIMEOUT слишком мал"
-        assert DEFAULT_TIMEOUT <= 3600, "DEFAULT_TIMEOUT слишком велик"  # 1 час
+        assert MAX_TIMEOUT <= 3600, "MAX_TIMEOUT слишком велик"  # 1 час
+        assert DEFAULT_TIMEOUT >= 10, "DEFAULT_TIMEOUT слишком мал"
+        assert DEFAULT_TIMEOUT <= 600, "DEFAULT_TIMEOUT слишком велик"  # 10 минут
 
 
 # =============================================================================

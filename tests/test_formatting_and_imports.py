@@ -89,7 +89,7 @@ def run_black_check(files: List[Path]) -> Tuple[int, str, str]:
         [sys.executable, "-m", "black", "--check", "--line-length=100", *file_paths],
         capture_output=True,
         text=True,
-        timeout=300,  # 5 минут таймаут
+        timeout=60,  # 1 минута таймаут
         cwd=str(PROJECT_ROOT),
     )
     return result.returncode, result.stdout, result.stderr
@@ -110,7 +110,7 @@ def run_ruff_format_check(files: List[Path]) -> Tuple[int, str, str]:
         [sys.executable, "-m", "ruff", "format", "--check", *file_paths],
         capture_output=True,
         text=True,
-        timeout=300,  # 5 минут таймаут
+        timeout=60,  # 1 минута таймаут
         cwd=str(PROJECT_ROOT),
     )
     return result.returncode, result.stdout, result.stderr
@@ -139,7 +139,7 @@ def run_isort_check(files: List[Path]) -> Tuple[int, str, str]:
         ],
         capture_output=True,
         text=True,
-        timeout=300,  # 5 минут таймаут
+        timeout=60,  # 1 минута таймаут
         cwd=str(PROJECT_ROOT),
     )
     return result.returncode, result.stdout, result.stderr
@@ -160,7 +160,7 @@ def run_autoflake_check(files: List[Path]) -> Tuple[int, str, str]:
         [sys.executable, "-m", "autoflake", "--check", "--remove-all-unused-imports", *file_paths],
         capture_output=True,
         text=True,
-        timeout=300,  # 5 минут таймаут
+        timeout=60,  # 1 минута таймаут
         cwd=str(PROJECT_ROOT),
     )
     return result.returncode, result.stdout, result.stderr
