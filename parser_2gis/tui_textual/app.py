@@ -447,7 +447,7 @@ class TUIApp(App):
                 output_dir="output",
                 config=config,
                 max_workers=max_workers,
-                timeout_per_url=300,
+                timeout_per_url=1800,  # 30 минут для парсинга одной категории
             )
 
             total_urls = len(cities) * len(categories)
