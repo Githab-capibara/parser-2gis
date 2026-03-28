@@ -71,7 +71,7 @@ if TYPE_CHECKING:
 # =============================================================================
 
 # Задержка между проверками порта в секундах
-PORT_CHECK_RETRY_DELAY: float = 0.1
+PORT_CHECK_RETRY_DELAY: float = 0.05  # Уменьшена для ускорения проверки порта
 
 # Оптимизация: скомпилированный regex паттерн для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
@@ -186,7 +186,7 @@ class ChromeRemote:
     def _connect_interface(self) -> bool:
         """Устанавливает соединение с Chrome и открывает новую вкладку."""
         max_attempts = 3
-        attempt_delay = 2.0
+        attempt_delay = 0.5  # Уменьшено для ускорения подключения
 
         for attempt in range(max_attempts):
             try:
@@ -280,7 +280,9 @@ class ChromeRemote:
                 return False
 
             result = self._chrome_tab.Runtime.evaluate(
-                expression="1+1", returnByValue=True, timeout=5000
+                expression="1+1",
+                returnByValue=True,
+                timeout=3000,  # Уменьшен таймаут для ускорения
             )
 
             if result and result.get("result", {}).get("value") == 2:
@@ -305,7 +307,7 @@ class ChromeRemote:
             # ИСПРАВЛЕНИЕ: Увеличено количество попыток и время ожидания для стабильности
             startup_delay = CHROME_STARTUP_DELAY
             max_startup_attempts = 5  # Увеличено с 3 до 5
-            max_delay = 5.0  # Увеличено с 3.0 до 5.0
+            max_delay = 2.0  # Уменьшено для ускорения запуска
 
             for attempt in range(max_startup_attempts):
                 app_logger.debug(
@@ -346,7 +348,7 @@ class ChromeRemote:
                 self._chrome_browser.close()
             raise
 
-    def _start_tab_with_timeout(self, tab: pychrome.Tab, timeout: int = 30) -> None:
+    def _start_tab_with_timeout(self, tab: pychrome.Tab, timeout: int = 15) -> None:
         """Запускает вкладку с таймаутом."""
         import threading
 
@@ -380,7 +382,7 @@ class ChromeRemote:
     def _create_tab(self) -> pychrome.Tab:
         """Создаёт Chrome-вкладку с повторными попытками."""
         max_attempts = 10
-        delay_seconds = 1.5
+        delay_seconds = 0.5  # Уменьшено для ускорения создания вкладки
 
         for attempt in range(max_attempts):
             try:
@@ -534,7 +536,9 @@ class ChromeRemote:
             return
 
         tab_detached = threading.Event()
-        MONITOR_INTERVAL = 2.0
+        MONITOR_INTERVAL = (
+            1.0  # Уменьшен интервал мониторинга вкладки для более быстрого обнаружения проблем
+        )
 
         def monitor_tab() -> None:
             """Мониторинг вкладки с оптимизированным интервалом."""
@@ -616,7 +620,7 @@ class ChromeRemote:
             app_logger.error("Ошибка навигации по URL %s: %s", url, e)
             raise
 
-    @wait_until_finished(timeout=300, throw_exception=False)
+    @wait_until_finished(timeout=300, throw_exception=False, poll_interval=0.05)
     def wait_response(self, response_pattern: str) -> Optional[Response]:
         """Ждёт указанный ответ с предопределённым паттерном."""
         try:
@@ -649,7 +653,7 @@ class ChromeRemote:
                 except queue.Empty:
                     break
 
-    @wait_until_finished(timeout=60, throw_exception=False)
+    @wait_until_finished(timeout=60, throw_exception=False, poll_interval=0.05)
     def get_response_body(self, response: Response) -> str:
         """Получает тело ответа."""
         if self._chrome_tab is None:

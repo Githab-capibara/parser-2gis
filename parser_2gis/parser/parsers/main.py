@@ -46,10 +46,10 @@ if TYPE_CHECKING:
 
 # Попытки и таймауты
 MAX_RESPONSE_ATTEMPTS: int = 3  # Максимальное количество попыток получить ответ
-NAVIGATION_TIMEOUT: int = 120  # Таймаут навигации в секундах
-WAIT_REQUESTS_TIMEOUT: int = 120  # Таймаут ожидания завершения запросов
-GET_LINKS_TIMEOUT: int = 5  # Таймаут получения ссылок
-GET_UNIQUE_LINKS_TIMEOUT: int = 10  # Таймаут получения уникальных ссылок
+NAVIGATION_TIMEOUT: int = 45  # Таймаут навигации в секундах (уменьшен для ускорения)
+WAIT_REQUESTS_TIMEOUT: int = 15  # Таймаут ожидания завершения запросов (уменьшен для ускорения)
+GET_LINKS_TIMEOUT: int = 3  # Таймаут получения ссылок (уменьшен для ускорения)
+GET_UNIQUE_LINKS_TIMEOUT: int = 5  # Таймаут получения уникальных ссылок (уменьшен для ускорения)
 MAX_RETRY_ATTEMPTS: int = 5  # Максимальное количество попыток получения ссылок
 MAX_LINK_ATTEMPTS: int = 5  # Максимальное количество попыток получения ссылок
 
@@ -59,7 +59,9 @@ MEMORY_KEEP_RATIO: float = 0.25  # Доля памяти для сохранен
 MEMORY_REMOVE_RATIO: float = 0.75  # Доля памяти для удаления при оптимизации (75%)
 
 # Задержки
-RESPONSE_RETRY_DELAY: float = 0.5  # Задержка между попытками получения ответа (сек)
+RESPONSE_RETRY_DELAY: float = (
+    0.05  # Задержка между попытками получения ответа (сек) — ускорено для интенсивного парсинга
+)
 
 # MAX_CONSECUTIVE_EMPTY_PAGES теперь задается через ParserOptions.max_consecutive_empty_pages (по умолчанию 3)
 
@@ -121,7 +123,7 @@ class MainParser:
         """URL-паттерн для парсера."""
         return r"https?://2gis\.[^/]+/[^/]+/search/.*"
 
-    @wait_until_finished(timeout=GET_LINKS_TIMEOUT, throw_exception=False)
+    @wait_until_finished(timeout=GET_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.05)
     def _get_links(self) -> Optional[DOMNodeList]:
         """Извлекает определённые DOM-узлы ссылок из текущего снимка DOM.
 
@@ -200,7 +202,7 @@ class MainParser:
         """
         self._chrome_remote.add_start_script(xhr_script)
 
-    @wait_until_finished(timeout=WAIT_REQUESTS_TIMEOUT)
+    @wait_until_finished(timeout=WAIT_REQUESTS_TIMEOUT, poll_interval=0.05)
     def _wait_requests_finished(self) -> bool:
         """Ждёт завершения всех ожидающих запросов."""
         return self._chrome_remote.execute_script("window.openHTTPs == 0")
@@ -706,7 +708,9 @@ class MainParser:
 
         # Эта обёртка не необходима, но я хочу быть уверен,
         # что мы не собрали ссылки из старого DOM каким-то образом.
-        @wait_until_finished(timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False)
+        @wait_until_finished(
+            timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.05
+        )
         def get_unique_links() -> Optional[DOMNodeList]:
             """Получает уникальные ссылки, которые ещё не были посещены.
 
@@ -823,6 +827,9 @@ class MainParser:
 
                 # Парсим страницу, если не идём к определённой странице
                 if not walk_page_number:
+                    # Счётчик ссылок для периодической очистки памяти
+                    links_since_gc = 0
+
                     # Итерируемся по собранным ссылкам
                     for link in links:
                         # Парсим страницу организации
@@ -836,8 +843,11 @@ class MainParser:
                                 )
                                 return
 
-                        # Очистка памяти после обработки каждой ссылки
-                        gc.collect()
+                        # Периодическая очистка памяти каждые 10 ссылок вместо каждой
+                        links_since_gc += 1
+                        if links_since_gc >= 10:
+                            gc.collect()
+                            links_since_gc = 0
 
                 # Запускаем сборщик мусора и проверяем использование памяти
                 # Это выполняется каждые несколько страниц для предотвращения OutOfMemory ошибок
