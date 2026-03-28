@@ -44,10 +44,11 @@ MAX_TEMP_FILES_MONITORING = validate_env_int(
 )
 
 # Возраст временного файла в секундах, после которого он считается
-# осиротевшим (300 секунд = 5 минут)
+# осиротевшим (3600 секунд = 1 час)
+# Увеличено до 1 часа, чтобы файлы не удалялись во время длительного парсинга категорий
 # Допустимый диапазон: 60-86400 секунд (1 день)
 ORPHANED_TEMP_FILE_AGE = validate_env_int(
-    "PARSER_ORPHANED_TEMP_FILE_AGE", default=300, min_value=60, max_value=86400
+    "PARSER_ORPHANED_TEMP_FILE_AGE", default=3600, min_value=60, max_value=86400
 )
 
 

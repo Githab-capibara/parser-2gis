@@ -25,6 +25,7 @@ def locate_chrome_path() -> str | None:
         Поиск выполняется в стандартных директориях Linux:
         - /usr/bin, /usr/sbin, /usr/local/bin, /usr/local/sbin
         - /opt/google/chrome
+        - /snap/bin (для Snap-версий Chromium)
         Также используется команда 'which' для поиска.
     """
     # Стандартные пути для Chrome на Linux Ubuntu
@@ -35,8 +36,16 @@ def locate_chrome_path() -> str | None:
         "/usr/local/sbin",
         "/sbin",
         "/opt/google/chrome",
+        "/snap/bin",
     ]
-    browser_executables = ["google-chrome", "chrome", "chrome-browser", "google-chrome-stable"]
+    browser_executables = [
+        "google-chrome",
+        "chrome",
+        "chrome-browser",
+        "google-chrome-stable",
+        "chromium",
+        "chromium-browser",
+    ]
 
     # Поиск в стандартных директориях
     for d in app_dirs:
