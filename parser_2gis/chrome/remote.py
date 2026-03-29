@@ -13,6 +13,24 @@
 """
 
 from __future__ import annotations
+from .rate_limiter import _safe_external_request
+from .patches import patch_all
+from .js_executor import _validate_js_code
+from .exceptions import ChromeException
+from .dom import DOMNode
+from .constants import (
+    CHROME_STARTUP_DELAY,
+    EXTERNAL_RATE_LIMIT_CALLS,
+    EXTERNAL_RATE_LIMIT_PERIOD,
+    MAX_PORT,
+    MAX_RESPONSE_SIZE,
+    MAX_TOTAL_JS_SIZE,
+    MIN_PORT,
+)
+from .browser import ChromeBrowser
+from parser_2gis.utils.decorators import wait_until_finished
+from parser_2gis.logger.logger import logger as app_logger
+from websocket import WebSocketException
 
 import base64
 import queue
@@ -20,6 +38,7 @@ import re
 import socket
 import threading
 import time
+import weakref
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -32,32 +51,15 @@ except ImportError:
     limits = None  # type: ignore[assignment, misc]
     sleep_and_retry = None  # type: ignore[assignment, misc]
 
+_RATELIMIT_AVAILABLE = limits is not None and sleep_and_retry is not None
+
 try:
     from requests.exceptions import RequestException
 except ImportError:
     RequestException = Exception  # type: ignore[misc, assignment]
-from websocket import WebSocketException
 
-from parser_2gis.logger.logger import logger as app_logger
-from parser_2gis.utils.decorators import wait_until_finished
-
-from .browser import ChromeBrowser
-from .constants import (
-    CHROME_STARTUP_DELAY,
-    EXTERNAL_RATE_LIMIT_CALLS,
-    EXTERNAL_RATE_LIMIT_PERIOD,
-    MAX_PORT,
-    MAX_RESPONSE_SIZE,
-    MAX_TOTAL_JS_SIZE,
-    MIN_PORT,
-)
-from .dom import DOMNode
-from .exceptions import ChromeException
 
 # Импорты для backward совместимости
-from .js_executor import _validate_js_code
-from .patches import patch_all
-from .rate_limiter import _safe_external_request
 
 if TYPE_CHECKING:
     from .options import ChromeOptions
@@ -71,13 +73,10 @@ if TYPE_CHECKING:
 # =============================================================================
 
 # Задержка между проверками порта в секундах
-PORT_CHECK_RETRY_DELAY: float = 0.05  # Уменьшена для ускорения проверки порта
+PORT_CHECK_RETRY_DELAY: float = 0.005  # Максимально ускоренная проверка порта
 
 # Оптимизация: скомпилированный regex паттерн для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
-
-# Кэш для проверки доступности портов
-_PORT_CACHE_TTL = 2.0  # Время жизни кэша порта в секундах (для обратной совместимости)
 
 
 # =============================================================================
@@ -88,10 +87,10 @@ _PORT_CACHE_TTL = 2.0  # Время жизни кэша порта в секун
 @lru_cache(maxsize=64)
 def _check_port_cached(port: int) -> bool:
     """Проверяет доступность порта с кэшированием через lru_cache."""
-    return _check_port_available_internal(port, timeout=0.5, retries=1)
+    return _check_port_available_internal(port, timeout=0.3, retries=1)
 
 
-def _check_port_available_internal(port: int, timeout: float = 0.5, retries: int = 2) -> bool:
+def _check_port_available_internal(port: int, timeout: float = 0.3, retries: int = 2) -> bool:
     """Внутренняя функция проверки порта без кэширования."""
     result = True
 
@@ -116,7 +115,7 @@ def _check_port_available_internal(port: int, timeout: float = 0.5, retries: int
     return result
 
 
-def _check_port_available(port: int, timeout: float = 0.5, retries: int = 2) -> bool:
+def _check_port_available(port: int, timeout: float = 0.3, retries: int = 2) -> bool:
     """Проверяет доступность порта для подключения."""
     return _check_port_available_internal(port, timeout=timeout, retries=retries)
 
@@ -157,7 +156,7 @@ patch_all()
 class ChromeRemote:
     """Обёртка для Chrome DevTools Protocol Interface."""
 
-    _active_instances: list[Optional["ChromeRemote"]] = []
+    _active_instances: weakref.WeakSet["ChromeRemote"] = weakref.WeakSet()
 
     def __init__(self, chrome_options: ChromeOptions, response_patterns: list[str]) -> None:
         """Инициализирует ChromeRemote для управления браузером через CDP.
@@ -182,11 +181,11 @@ class ChromeRemote:
         self._total_js_size: int = 0
         self._js_size_lock = threading.RLock()
 
-    @wait_until_finished(timeout=300)
+    @wait_until_finished(timeout=3600)  # 1 час
     def _connect_interface(self) -> bool:
         """Устанавливает соединение с Chrome и открывает новую вкладку."""
         max_attempts = 3
-        attempt_delay = 0.5  # Уменьшено для ускорения подключения
+        attempt_delay = 0.05  # Максимально ускоренное подключение
 
         for attempt in range(max_attempts):
             try:
@@ -198,7 +197,7 @@ class ChromeRemote:
                 parsed_url = urlparse(self._dev_url)
                 port = int(parsed_url.port)
 
-                if _check_port_available(port, timeout=1.0):
+                if _check_port_available(port, timeout=10.0):  # Увеличено для стабильности
                     app_logger.warning(
                         "Порт %d свободен (Chrome ещё не слушает), попытка %d/%d",
                         port,
@@ -218,8 +217,8 @@ class ChromeRemote:
                 app_logger.debug("Создание вкладки через _create_tab()...")
                 self._chrome_tab = self._create_tab()
 
-                app_logger.debug("Запуск вкладки с timeout=30...")
-                self._start_tab_with_timeout(self._chrome_tab, timeout=30)
+                app_logger.debug("Запуск вкладки с timeout=300...")
+                self._start_tab_with_timeout(self._chrome_tab, timeout=300)  # 5 минут
 
                 if not self._verify_connection():
                     app_logger.warning("Проверка соединения не пройдена, повторная попытка")
@@ -282,7 +281,7 @@ class ChromeRemote:
             result = self._chrome_tab.Runtime.evaluate(
                 expression="1+1",
                 returnByValue=True,
-                timeout=3000,  # Уменьшен таймаут для ускорения
+                timeout=1000,  # Максимально ускоренный таймаут проверки соединения
             )
 
             if result and result.get("result", {}).get("value") == 2:
@@ -304,10 +303,10 @@ class ChromeRemote:
             remote_port = _validate_remote_port(self._chrome_browser.remote_port)
             self._dev_url = f"http://127.0.0.1:{remote_port}"
 
-            # ИСПРАВЛЕНИЕ: Увеличено количество попыток и время ожидания для стабильности
+            # Оптимизация: увеличены задержки для поддержки 40+ параллельных браузеров
             startup_delay = CHROME_STARTUP_DELAY
-            max_startup_attempts = 5  # Увеличено с 3 до 5
-            max_delay = 2.0  # Уменьшено для ускорения запуска
+            max_startup_attempts = 20  # Увеличено для 40+ браузеров
+            max_delay = 5.0  # Максимальная задержка между попытками
 
             for attempt in range(max_startup_attempts):
                 app_logger.debug(
@@ -348,10 +347,8 @@ class ChromeRemote:
                 self._chrome_browser.close()
             raise
 
-    def _start_tab_with_timeout(self, tab: pychrome.Tab, timeout: int = 15) -> None:
+    def _start_tab_with_timeout(self, tab: pychrome.Tab, timeout: int = 300) -> None:  # 5 минут
         """Запускает вкладку с таймаутом."""
-        import threading
-
         result: Dict[str, Optional[Exception]] = {"error": None}
 
         def start_target() -> None:
@@ -382,7 +379,7 @@ class ChromeRemote:
     def _create_tab(self) -> pychrome.Tab:
         """Создаёт Chrome-вкладку с повторными попытками."""
         max_attempts = 10
-        delay_seconds = 0.5  # Уменьшено для ускорения создания вкладки
+        delay_seconds = 0.15  # Максимально ускоренное создание вкладки
 
         for attempt in range(max_attempts):
             try:
@@ -537,7 +534,7 @@ class ChromeRemote:
 
         tab_detached = threading.Event()
         MONITOR_INTERVAL = (
-            1.0  # Уменьшен интервал мониторинга вкладки для более быстрого обнаружения проблем
+            0.25  # Оптимизированный интервал мониторинга вкладки для быстрого обнаружения проблем
         )
 
         def monitor_tab() -> None:
@@ -606,7 +603,7 @@ class ChromeRemote:
 
         self._chrome_tab._send = wrapped_send
 
-    def navigate(self, url: str, referer: str = "", timeout: int = 300) -> None:
+    def navigate(self, url: str, referer: str = "", timeout: int = 3600) -> None:  # 1 час
         """Переходит по URL."""
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в navigate")
@@ -620,7 +617,7 @@ class ChromeRemote:
             app_logger.error("Ошибка навигации по URL %s: %s", url, e)
             raise
 
-    @wait_until_finished(timeout=300, throw_exception=False, poll_interval=0.05)
+    @wait_until_finished(timeout=3600, throw_exception=False, poll_interval=0.005)  # 1 час
     def wait_response(self, response_pattern: str) -> Optional[Response]:
         """Ждёт указанный ответ с предопределённым паттерном."""
         try:
@@ -653,7 +650,7 @@ class ChromeRemote:
                 except queue.Empty:
                     break
 
-    @wait_until_finished(timeout=60, throw_exception=False, poll_interval=0.05)
+    @wait_until_finished(timeout=3600, throw_exception=False, poll_interval=0.005)  # 1 час
     def get_response_body(self, response: Response) -> str:
         """Получает тело ответа."""
         if self._chrome_tab is None:
@@ -789,7 +786,7 @@ class ChromeRemote:
         except pychrome.CallMethodException:
             return False
 
-    def execute_script(self, expression: str, timeout: int = 30) -> Any:
+    def execute_script(self, expression: str, timeout: int = 300) -> Any:  # 5 минут
         """Выполняет скрипт."""
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в execute_script")
@@ -807,10 +804,8 @@ class ChromeRemote:
 
         return self._execute_script_internal(expression, timeout)
 
-    @sleep_and_retry
-    @limits(calls=EXTERNAL_RATE_LIMIT_CALLS, period=EXTERNAL_RATE_LIMIT_PERIOD)
-    def _execute_script_internal(self, expression: str, timeout: int = 30) -> Any:
-        """Внутренний метод выполнения скрипта с rate limiting."""
+    def _execute_script_internal_impl(self, expression: str, timeout: int = 300) -> Any:  # 5 минут
+        """Внутренний метод выполнения скрипта."""
         result = {"value": None, "error": None}
 
         def execute_target() -> None:
@@ -846,24 +841,54 @@ class ChromeRemote:
             app_logger.warning("Непредвиденная ошибка при выполнении скрипта: %s", e)
             return None
 
+    if _RATELIMIT_AVAILABLE:
+        _execute_script_internal = sleep_and_retry(
+            limits(calls=EXTERNAL_RATE_LIMIT_CALLS, period=EXTERNAL_RATE_LIMIT_PERIOD)(
+                _execute_script_internal_impl
+            )
+        )
+    else:
+        _execute_script_internal = _execute_script_internal_impl
+
     def perform_click(self, dom_node: DOMNode, timeout: Optional[int] = None) -> None:
-        """Выполняет клик мыши на DOM-узле."""
+        """Выполняет клик мыши на DOM-узле.
+
+        Оптимизировано: использует Input.dispatchMouseEvent для прямого клика
+        по координатам элемента (быстрее чем resolveNode + callFunctionOn).
+        Fallback на стандартный метод при ошибке.
+        """
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в perform_click")
             return
+        try:
+            # Шаг 1: Получаем координаты элемента через DOM.getBoxModel
+            box = self._chrome_tab.DOM.getBoxModel(backendNodeId=dom_node.backend_id)
+            if box and "model" in box:
+                content = box["model"]["content"]
+                # content = [x1,y1, x2,y2, x3,y3, x4,y4] — углы прямоугольника
+                # Вычисляем центр элемента
+                cx = (content[0] + content[2] + content[4] + content[6]) / 4
+                cy = (content[1] + content[3] + content[5] + content[7]) / 4
+
+                # Шаг 2: Симулируем клик через Input.dispatchMouseEvent (2 вызова)
+                self._chrome_tab.Input.dispatchMouseEvent(
+                    type="mousePressed", x=int(cx), y=int(cy), button="left", clickCount=1
+                )
+                self._chrome_tab.Input.dispatchMouseEvent(
+                    type="mouseReleased", x=int(cx), y=int(cy), button="left", clickCount=1
+                )
+                return
+        except Exception:
+            pass
+
+        # Fallback: стандартный метод через resolveNode + callFunctionOn
         try:
             resolved_node = self._chrome_tab.DOM.resolveNode(
                 backendNodeId=dom_node.backend_id, _timeout=timeout
             )
             object_id = resolved_node["object"]["objectId"]
             self._chrome_tab.Runtime.callFunctionOn(
-                objectId=object_id,
-                functionDeclaration="""
-                    (function() {
-                        this.scrollIntoView({ block: "center", behavior: "instant" });
-                        this.click();
-                    })
-                """,
+                objectId=object_id, functionDeclaration="(function(){this.click()})"
             )
         except Exception as e:
             app_logger.error("Ошибка при выполнении клика: %s", e)
@@ -982,7 +1007,7 @@ class ChromeRemote:
             Результат выполнения JavaScript.
         """
         if timeout is None:
-            timeout = 30
+            timeout = 300  # 5 минут
         return self.execute_script(expression=js_code, timeout=timeout)
 
     def get_html(self) -> str:

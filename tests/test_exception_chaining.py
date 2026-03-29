@@ -17,11 +17,7 @@ import pytest
 
 from parser_2gis.cache import _deserialize_json, _serialize_json
 from parser_2gis.chrome.file_handler import FileLogger
-from parser_2gis.chrome.remote import (
-    _check_port_cached,
-    _rate_limited_request,
-    _safe_external_request,
-)
+from parser_2gis.chrome.remote import _check_port_cached, _safe_external_request
 
 
 class TestFileHandlerExceptionChaining:
@@ -127,37 +123,33 @@ class TestRemoteExceptionChaining:
 
     def test_exception_chaining_in_remote_rate_limit(self):
         """
-        Тест 2.3: Проверка exception chaining при rate limiting.
+        Тест 2.3: Проверка обработки ошибок через _safe_external_request.
 
-        Проверяет что при ошибке rate limiting
-        исключение корректно обрабатывается с цепочкой.
+        Проверяет что при ошибке запроса
+        функция возвращает None (ошибки обрабатываются внутри).
         """
-        # Mock requests для вызова ошибки
-        with patch("parser_2gis.chrome.remote.requests.get") as mock_get:
-            mock_get.side_effect = Exception("Network error")
+        with patch("parser_2gis.chrome.rate_limiter.requests") as mock_requests:
+            mock_requests.exceptions.RequestException = Exception
+            mock_requests.request.side_effect = Exception("Network error")
 
-            # Проверяем что исключение пробрасывается с цепочкой
-            with pytest.raises(Exception) as exc_info:
-                _rate_limited_request("get", "http://example.com")
-
-            assert "Network error" in str(exc_info.value)
+            result = _safe_external_request("get", "http://example.com")
+            assert result is None
 
     def test_exception_chaining_in_safe_external_request(self):
         """
         Тест 2.4: Проверка exception chaining в _safe_external_request.
 
         Проверяет что при ошибке внешнего запроса
-        исключение корректно обрабатывается.
+        функция возвращает None (ошибки обрабатываются внутри).
         """
         # Mock requests для вызова ошибки
-        with patch("parser_2gis.chrome.remote.requests.get") as mock_get:
-            mock_get.side_effect = Exception("Request failed")
+        with patch("parser_2gis.chrome.rate_limiter.requests") as mock_requests:
+            mock_requests.exceptions.RequestException = Exception
+            mock_requests.request.side_effect = Exception("Request failed")
 
-            # Проверяем что исключение пробрасывается
-            with pytest.raises(Exception) as exc_info:
-                _safe_external_request("get", "http://example.com")
-
-            assert "Request failed" in str(exc_info.value)
+            # _safe_external_request возвращает None при ошибке
+            result = _safe_external_request("get", "http://example.com")
+            assert result is None
 
 
 class TestCacheExceptionChaining:
@@ -241,7 +233,6 @@ class TestExceptionChainingComprehensive:
         """
         # Проверяем что функции существуют
         assert callable(_check_port_cached)
-        assert callable(_rate_limited_request)
         assert callable(_safe_external_request)
 
     def test_exception_context_preserved(self):

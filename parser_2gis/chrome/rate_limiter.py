@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 
 def _safe_external_request(
-    method: str = "GET", url: str = "", timeout: int = 30, **kwargs
+    method: str = "GET", url: str = "", timeout: int = 15, **kwargs
 ) -> Optional[requests.Response]:
     """Безопасный внешний запрос с rate limiting.
 

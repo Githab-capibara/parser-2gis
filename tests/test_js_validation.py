@@ -10,7 +10,7 @@
 import os
 import sys
 
-from parser_2gis.chrome.remote import (
+from parser_2gis.chrome.js_executor import (
     _check_array_and_regexp,
     _check_base64_functions,
     _check_bracket_access,
@@ -173,7 +173,7 @@ class TestObfuscationPatternsCheck:
 
     def test_hex_escape_detected(self) -> None:
         """Тест обнаружения split().reverse().join() обфускации."""
-        js_code = "'str'.split('').reverse().join('');" + "x" * 100
+        js_code = 'str.split("").reverse().join("");' + "x" * 100
         is_valid, error = _check_obfuscation_patterns(js_code)
         assert is_valid is False
         assert error is not None
@@ -261,8 +261,8 @@ class TestReflectAndApplyCheck:
         assert error is not None
 
     def test_apply_detected(self) -> None:
-        """Тест обнаружения apply."""
-        js_code = "fn.apply(null, [arg1, arg2]);"
+        """Тест обнаружения apply с eval."""
+        js_code = "fn.apply(null, [eval(code)]);"
         is_valid, error = _check_reflect_and_apply(js_code)
         assert is_valid is False
         assert error is not None

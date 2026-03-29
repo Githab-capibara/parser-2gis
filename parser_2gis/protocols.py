@@ -14,7 +14,7 @@ Protocol для callback и интерфейсов проекта parser-2gis.
 from __future__ import annotations
 
 from concurrent.futures import Future
-from typing import Any, Callable, Iterator, Optional, Protocol, runtime_checkable
+from typing import Any, Callable, Iterator, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -221,7 +221,7 @@ class BrowserService(Protocol):
         """
         pass
 
-    def execute_js(self, js_code: str, timeout: Optional[int] = None) -> Any:
+    def execute_js(self, js_code: str, timeout: int | None = None) -> Any:
         """Выполнить JavaScript код.
 
         Args:
@@ -266,7 +266,7 @@ class CacheBackend(Protocol):
         >>> cache.delete("key")
     """
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Получает значение из кэша по ключу.
 
         Args:
@@ -341,7 +341,7 @@ class ExecutionBackend(Protocol):
         """
         pass
 
-    def map(self, fn: Callable, *iterables: Any, timeout: Optional[float] = None) -> Iterator[Any]:
+    def map(self, fn: Callable, *iterables: Any, timeout: float | None = None) -> Iterator[Any]:
         """Выполняет функцию для каждого элемента итерации.
 
         Args:

@@ -8,7 +8,7 @@ import threading
 
 import pytest
 
-from parser_2gis.chrome.remote import _HTTPCache
+from parser_2gis.chrome.http_cache import _HTTPCache
 from parser_2gis.parallel import ParallelCityParser
 from parser_2gis.parallel_helpers import FileMerger
 from parser_2gis.signal_handler import SignalHandler

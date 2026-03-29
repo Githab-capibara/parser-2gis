@@ -72,14 +72,7 @@ class CacheManager:
         ON cache(expires_at)
     """
 
-    # Индекс для url_hash уже существует как PRIMARY KEY, но добавим
-    # дополнительный индекс для ускорения поиска по url_hash в составных запросах
-    SQL_CREATE_URL_HASH_INDEX = """
-        CREATE INDEX IF NOT EXISTS idx_url_hash
-        ON cache(url_hash)
-    """
-
-    # Дополнительный индекс для cache_key для ускорения поиска
+    # Составной индекс для range queries по url_hash + expires_at
     SQL_CREATE_CACHE_KEY_INDEX = """
         CREATE INDEX IF NOT EXISTS idx_cache_key
         ON cache(url_hash, expires_at)
@@ -191,9 +184,6 @@ class CacheManager:
 
             # Создаем индекс для быстрого поиска истекших записей
             conn.execute(self.SQL_CREATE_INDEX)
-
-            # Создаем дополнительный индекс для url_hash для ускорения поиска
-            conn.execute(self.SQL_CREATE_URL_HASH_INDEX)
 
             # Создаём составной индекс для ускорения поиска
             conn.execute(self.SQL_CREATE_CACHE_KEY_INDEX)
@@ -669,13 +659,19 @@ class CacheManager:
             self._pool = None
             app_logger.debug("Менеджер кэша закрыт")
 
-    @staticmethod
-    def _cleanup_cache_manager() -> None:
+    def _cleanup_cache_manager(self) -> None:
         """
-        Статический метод для гарантированной очистки CacheManager.
+        Метод для гарантированной очистки CacheManager.
 
         Вызывается weakref.finalize() при уничтожении объекта сборщиком мусора.
+        Закрывает пул соединений при очистке.
         """
+        if hasattr(self, "_pool") and self._pool is not None:
+            try:
+                self._pool.close_all()
+            except (sqlite3.Error, OSError, RuntimeError) as e:
+                app_logger.debug("Ошибка при очистке пула в finalizer: %s", e)
+            self._pool = None
 
     def __enter__(self) -> "CacheManager":
         """

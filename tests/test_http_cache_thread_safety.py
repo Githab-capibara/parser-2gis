@@ -3,7 +3,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from unittest.mock import MagicMock, patch
 
-from parser_2gis.chrome.remote import _get_http_cache, _HTTPCache
+from parser_2gis.chrome.http_cache import _get_http_cache, _HTTPCache
 
 
 class TestHTTPCache:

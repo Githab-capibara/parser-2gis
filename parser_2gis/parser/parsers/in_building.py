@@ -34,7 +34,7 @@ class InBuildingParser(MainParser):
         """URL-паттерн для парсера."""
         return r"https?://2gis\.[^/]+/[^/]+/inside/.*"
 
-    @wait_until_finished(timeout=3, throw_exception=False, poll_interval=0.05)
+    @wait_until_finished(timeout=1.5, throw_exception=False, poll_interval=0.01)
     def _get_links(self) -> list[DOMNode] | None:
         """Извлекает конкретные ссылки узлов DOM из текущего снимка DOM.
 
@@ -59,8 +59,8 @@ class InBuildingParser(MainParser):
         Args:
             writer: Целевой файловый писатель.
         """
-        # Переходим по URL с уменьшенным таймаутом для ускорения
-        self._chrome_remote.navigate(self._url, referer="https://google.com", timeout=45)
+        # Переходим по URL с агрессивно уменьшенным таймаутом для ускорения
+        self._chrome_remote.navigate(self._url, referer="https://google.com", timeout=20)
 
         # Документ загружен, получаем ответ
         responses = self._chrome_remote.get_responses()
@@ -95,7 +95,7 @@ class InBuildingParser(MainParser):
         visited_links: set[str] = set()
 
         # Получаем новые ссылки
-        @wait_until_finished(timeout=3, throw_exception=False, poll_interval=0.05)
+        @wait_until_finished(timeout=1.5, throw_exception=False, poll_interval=0.01)
         def get_unique_links() -> list[DOMNode] | None:
             links = self._get_links()
             if links is None:

@@ -211,7 +211,7 @@ class BrowserHealthMonitor:
             logger.debug("Браузер закрыт")
 
             # Ждем немного
-            time.sleep(2)
+            time.sleep(0.5)
 
             # Сбрасываем счетчики
             with self._lock:

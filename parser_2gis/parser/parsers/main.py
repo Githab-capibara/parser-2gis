@@ -46,10 +46,10 @@ if TYPE_CHECKING:
 
 # Попытки и таймауты
 MAX_RESPONSE_ATTEMPTS: int = 3  # Максимальное количество попыток получить ответ
-NAVIGATION_TIMEOUT: int = 45  # Таймаут навигации в секундах (уменьшен для ускорения)
-WAIT_REQUESTS_TIMEOUT: int = 15  # Таймаут ожидания завершения запросов (уменьшен для ускорения)
-GET_LINKS_TIMEOUT: int = 3  # Таймаут получения ссылок (уменьшен для ускорения)
-GET_UNIQUE_LINKS_TIMEOUT: int = 5  # Таймаут получения уникальных ссылок (уменьшен для ускорения)
+NAVIGATION_TIMEOUT: int = 300  # Таймаут навигации в секундах (5 минут)
+WAIT_REQUESTS_TIMEOUT: int = 60  # Таймаут ожидания завершения запросов (1 минута)
+GET_LINKS_TIMEOUT: int = 30  # Таймаут получения ссылок (30 секунд)
+GET_UNIQUE_LINKS_TIMEOUT: int = 30  # Таймаут получения уникальных ссылок (30 секунд)
 MAX_RETRY_ATTEMPTS: int = 5  # Максимальное количество попыток получения ссылок
 MAX_LINK_ATTEMPTS: int = 5  # Максимальное количество попыток получения ссылок
 
@@ -60,7 +60,7 @@ MEMORY_REMOVE_RATIO: float = 0.75  # Доля памяти для удалени
 
 # Задержки
 RESPONSE_RETRY_DELAY: float = (
-    0.05  # Задержка между попытками получения ответа (сек) — ускорено для интенсивного парсинга
+    0.5  # Задержка между попытками получения ответа (сек) — увеличено для стабильности
 )
 
 # MAX_CONSECUTIVE_EMPTY_PAGES теперь задается через ParserOptions.max_consecutive_empty_pages (по умолчанию 3)
@@ -123,7 +123,7 @@ class MainParser:
         """URL-паттерн для парсера."""
         return r"https?://2gis\.[^/]+/[^/]+/search/.*"
 
-    @wait_until_finished(timeout=GET_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.05)
+    @wait_until_finished(timeout=GET_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.01)
     def _get_links(self) -> Optional[DOMNodeList]:
         """Извлекает определённые DOM-узлы ссылок из текущего снимка DOM.
 
@@ -202,7 +202,7 @@ class MainParser:
         """
         self._chrome_remote.add_start_script(xhr_script)
 
-    @wait_until_finished(timeout=WAIT_REQUESTS_TIMEOUT, poll_interval=0.05)
+    @wait_until_finished(timeout=WAIT_REQUESTS_TIMEOUT, poll_interval=0.01)
     def _wait_requests_finished(self) -> bool:
         """Ждёт завершения всех ожидающих запросов."""
         return self._chrome_remote.execute_script("window.openHTTPs == 0")
@@ -296,9 +296,9 @@ class MainParser:
                     retry_attempt < self._options.max_retries
                     and self._options.retry_on_network_errors
                 ):
-                    # Формула: base_delay * (2 ** retry) + random.uniform(0, 1)
-                    base_delay = self._options.retry_delay_base * (2**retry_attempt)
-                    jitter = random.uniform(0, 1)
+                    # Формула: base_delay * (1.5 ** retry) + random.uniform(0, 0.3)
+                    base_delay = self._options.retry_delay_base * (1.5**retry_attempt)
+                    jitter = random.uniform(0, 0.3)
                     delay = base_delay + jitter
                     logger.warning(
                         "Таймаут при навигации (попытка %d/%d): %s. "
@@ -328,9 +328,9 @@ class MainParser:
                     and self._options.retry_on_network_errors
                     and is_network_error
                 ):
-                    # Формула: base_delay * (2 ** retry) + random.uniform(0, 1)
-                    base_delay = self._options.retry_delay_base * (2**retry_attempt)
-                    jitter = random.uniform(0, 1)
+                    # Формула: base_delay * (1.5 ** retry) + random.uniform(0, 0.3)
+                    base_delay = self._options.retry_delay_base * (1.5**retry_attempt)
+                    jitter = random.uniform(0, 0.3)
                     delay = base_delay + jitter
                     logger.warning(
                         "Ошибка сети при навигации (попытка %d/%d): %s. "
@@ -709,7 +709,7 @@ class MainParser:
         # Эта обёртка не необходима, но я хочу быть уверен,
         # что мы не собрали ссылки из старого DOM каким-то образом.
         @wait_until_finished(
-            timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.05
+            timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.01
         )
         def get_unique_links() -> Optional[DOMNodeList]:
             """Получает уникальные ссылки, которые ещё не были посещены.
@@ -940,9 +940,9 @@ class MainParser:
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as navigate_error:
                 if attempt < max_retries and self._options.retry_on_network_errors:
                     # Добавляем jitter для предотвращения thundering herd эффекта
-                    # Формула: base_delay * (2 ** attempt) + random.uniform(0, 1)
-                    jitter = random.uniform(0, 1)
-                    delay = base_delay * (2**attempt) + jitter
+                    # Формула: base_delay * (1.5 ** attempt) + random.uniform(0, 0.3)
+                    jitter = random.uniform(0, 0.3)
+                    delay = base_delay * (1.5**attempt) + jitter
                     logger.warning(
                         "Ошибка при навигации (попытка %d/%d): %s. "
                         "Повторная попытка через %.1f сек...",

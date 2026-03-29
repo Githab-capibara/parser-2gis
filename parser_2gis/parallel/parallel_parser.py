@@ -16,6 +16,7 @@ import atexit
 import csv
 import fcntl
 import os
+import random
 import shutil
 import signal
 import threading
@@ -23,10 +24,12 @@ import time
 import typing
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import BoundedSemaphore
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
+from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
     MAX_LOCK_FILE_AGE,
@@ -197,6 +200,10 @@ class ParallelCityParser:
         # Событие для координации остановки (для тестов keyboard_interrupt_handling)
         self._stop_event = threading.Event()
 
+        # Семафор для контроля одновременного запуска браузеров
+        # Большое значение для поддержки 40+ потоков
+        self._browser_launch_semaphore = BoundedSemaphore(max_workers + 20)
+
         # Список для отслеживания временных файлов merge операции
         self._merge_temp_files: List[Path] = []
         # Блокировка для потокобезопасного доступа к временным файлам
@@ -360,12 +367,65 @@ class ParallelCityParser:
                 f"Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filename})",
                 "info",
             )
+
+            # Добавляем случайную задержку ПЕРЕД получением семафора
+            # Для 40+ потоков нужна большая задержка для равномерного распределения
+            initial_delay = random.uniform(5.0, 15.0)
+            time.sleep(initial_delay)
+
+            # Семафор для контроля одновременного запуска браузеров
+            # Освобождаем после завершения работы с браузером
+            self._browser_launch_semaphore.acquire()
+            active_count = self.max_workers - self._browser_launch_semaphore._value + 1
+            self.log(
+                f"Семафор получен. Активных браузеров: {active_count}/{self.max_workers}", "debug"
+            )
             try:
-                writer = get_writer(str(temp_filepath), "csv", self.config.writer)
-                parser = get_parser(
-                    url, chrome_options=self.config.chrome, parser_options=self.config.parser
-                )
+                # Дополнительная задержка для распределения нагрузки при запуске
+                launch_delay = random.uniform(2.0, 5.0)
+                self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
+                time.sleep(launch_delay)
+
+                max_retries = 10
+                retry_delay = 5.0
+
+                for attempt in range(max_retries):
+                    try:
+                        writer = get_writer(str(temp_filepath), "csv", self.config.writer)
+                        parser = get_parser(
+                            url,
+                            chrome_options=self.config.chrome,
+                            parser_options=self.config.parser,
+                        )
+                        break
+                    except ChromeException as chrome_error:
+                        if attempt < max_retries - 1:
+                            self.log(
+                                f"Попытка {attempt + 1}/{max_retries} не удалась: {chrome_error}. "
+                                f"Повтор через {retry_delay:.1f} сек...",
+                                "warning",
+                            )
+                            time.sleep(retry_delay)
+                            retry_delay *= 2
+                        else:
+                            raise chrome_error
+
+            except ChromeException as chrome_error:
+                self._browser_launch_semaphore.release()
+                self.log(f"Ошибка Chrome после {max_retries} попыток: {chrome_error}", "error")
+                try:
+                    if temp_filepath.exists():
+                        temp_filepath.unlink()
+                except (OSError, RuntimeError, TypeError, ValueError):
+                    pass
+
+                with self._lock:
+                    self._stats["failed"] += 1
+
+                return False, f"Ошибка Chrome: {chrome_error}"
+
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as init_error:
+                self._browser_launch_semaphore.release()
                 self.log(f"Ошибка инициализации для {url}: {init_error}", "error")
                 try:
                     if temp_filepath.exists():
@@ -385,12 +445,17 @@ class ParallelCityParser:
 
                 return False, f"Ошибка инициализации: {init_error}"
 
-            with parser:
-                with writer:
-                    try:
-                        parser.parse(writer)
-                    finally:
-                        logger.debug("Завершена очистка ресурсов парсера")
+            try:
+                with parser:
+                    with writer:
+                        try:
+                            parser.parse(writer)
+                        finally:
+                            logger.debug("Завершена очистка ресурсов парсера")
+            finally:
+                # Освобождаем семафор после завершения работы с браузером
+                # Это позволяет следующей задаче начать запуск Chrome
+                self._browser_launch_semaphore.release()
 
             # Переименовываем временный файл в целевой
             move_success = False

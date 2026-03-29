@@ -13,7 +13,6 @@
     >>> pool.close()
 """
 
-import os
 import queue
 import sqlite3
 import threading
@@ -22,79 +21,22 @@ import weakref
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from ..constants import MAX_POOL_SIZE, MIN_POOL_SIZE
+from ..constants import MAX_POOL_SIZE, MIN_POOL_SIZE, validate_env_int
 from ..logger.logger import logger as app_logger
 
 
-def _validate_pool_env_int(
-    env_name: str, default: int, min_value: Optional[int] = None, max_value: Optional[int] = None
-) -> int:
-    """
-    Валидирует ENV переменную для параметров пула соединений.
-
-    Args:
-        env_name: Имя ENV переменной.
-        default: Значение по умолчанию.
-        min_value: Минимальное допустимое значение.
-        max_value: Максимальное допустимое значение.
-
-    Returns:
-        Валидированное целое число в допустимом диапазоне.
-    """
-    value_str = os.getenv(env_name)
-
-    if value_str is None:
-        return default
-
-    try:
-        value = int(value_str)
-
-        # Проверяем минимальное значение
-        if min_value is not None and value < min_value:
-            app_logger.warning(
-                "ENV переменная %s=%d меньше минимального значения %d. Используется %d",
-                env_name,
-                value,
-                min_value,
-                min_value,
-            )
-            return min_value
-
-        # Проверяем максимальное значение
-        if max_value is not None and value > max_value:
-            app_logger.warning(
-                "ENV переменная %s=%d больше максимального значения %d. Используется %d",
-                env_name,
-                value,
-                max_value,
-                max_value,
-            )
-            return max_value
-
-        return value
-
-    except ValueError:
-        app_logger.warning(
-            "ENV переменная %s=%s не является целым числом. Используется значение по умолчанию %d",
-            env_name,
-            value_str,
-            default,
-        )
-        return default
-
-
 # Максимальное количество соединений в пуле (из ENV или default)
-_MAX_POOL_SIZE_ENV: int = _validate_pool_env_int(
+_MAX_POOL_SIZE_ENV: int = validate_env_int(
     "PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50
 )
 
 # Минимальное количество соединений в пуле (из ENV или default)
-_MIN_POOL_SIZE_ENV: int = _validate_pool_env_int(
+_MIN_POOL_SIZE_ENV: int = validate_env_int(
     "PARSER_MIN_POOL_SIZE", default=5, min_value=1, max_value=10
 )
 
 # Время жизни соединения в секундах (из ENV или default)
-_CONNECTION_MAX_AGE_ENV: int = _validate_pool_env_int(
+_CONNECTION_MAX_AGE_ENV: int = validate_env_int(
     "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
 )
 

@@ -11,7 +11,7 @@ import json
 import pathlib
 import shutil
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
@@ -72,8 +72,8 @@ class ConfigService:
         """
         warning_threshold: int = int(max_depth * 0.8)
         warning_shown: bool = False
-        stack: List[tuple[BaseModel, BaseModel, int]] = [(source, target, 0)]
-        visited: Set[int] = set()
+        stack: list[tuple[BaseModel, BaseModel, int]] = [(source, target, 0)]
+        visited: set[int] = set()
 
         while stack:
             current_source, current_target, current_depth = stack.pop()
@@ -101,7 +101,7 @@ class ConfigService:
             visited.discard(id(current_source))
 
     @staticmethod
-    def _is_cyclic_reference(model: BaseModel, visited: Set[int]) -> bool:
+    def _is_cyclic_reference(model: BaseModel, visited: set[int]) -> bool:
         """Проверяет модель на циклические ссылки."""
         model_id = id(model)
         if model_id in visited:
@@ -131,8 +131,8 @@ class ConfigService:
     def _process_fields(
         source: BaseModel,
         target: BaseModel,
-        fields_set: Set[str],
-        stack: List[tuple[BaseModel, BaseModel, int]],
+        fields_set: set[str],
+        stack: list[tuple[BaseModel, BaseModel, int]],
         current_depth: int,
     ) -> None:
         """Обрабатывает поля исходной модели."""
@@ -163,7 +163,7 @@ class ConfigService:
         source_value: BaseModel,
         target: BaseModel,
         field: str,
-        stack: List[tuple[BaseModel, BaseModel, int]],
+        stack: list[tuple[BaseModel, BaseModel, int]],
         current_depth: int,
     ) -> None:
         """Обрабатывает вложенную модель."""
@@ -175,9 +175,9 @@ class ConfigService:
             stack.append((source_value, target_value, current_depth + 1))
 
     @staticmethod
-    def _get_fields_set(model: BaseModel) -> Set[str]:
+    def _get_fields_set(model: BaseModel) -> set[str]:
         """Получает набор установленных полей модели."""
-        fields_set: Optional[Set[str]] = get_model_fields_set(model)
+        fields_set: set[str] | None = get_model_fields_set(model)
         return fields_set if fields_set else set()
 
     @staticmethod
@@ -199,7 +199,7 @@ class ConfigService:
 
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
-            config_dict: Dict[str, Any] = get_model_dump(config, exclude={"path"})
+            config_dict: dict[str, Any] = get_model_dump(config, exclude={"path"})
             json_str = json.dumps(config_dict, ensure_ascii=False, indent=4)
 
             with open(path, "w", encoding="utf-8") as f:
@@ -220,7 +220,7 @@ class ConfigService:
     @staticmethod
     def load_config(
         config_cls: type[BaseModel],
-        config_path: Optional[pathlib.Path] = None,
+        config_path: pathlib.Path | None = None,
         auto_create: bool = True,
     ) -> BaseModel:
         """Загружает конфигурацию из файла.

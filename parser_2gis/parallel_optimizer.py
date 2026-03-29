@@ -11,16 +11,17 @@
 """
 
 from __future__ import annotations
+from .logger import logger
+import psutil
 
+import itertools
 import queue
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-import psutil
-
-from .logger import logger
+_task_counter = itertools.count()
 
 
 class ParallelTask:
@@ -143,7 +144,8 @@ class ParallelOptimizer:
         # Оптимизация 3.5: Queue потокобезопасен, не нужна блокировка
         # Для приоритетных задач используем put с параметром block=False
         self._tasks.put(task, block=True)
-        self._stats["total_tasks"] += 1
+        with self._lock:
+            self._stats["total_tasks"] += 1
 
         logger.debug(
             "Добавлена задача: %s - %s (приоритет: %d)", city_name, category_name, priority
@@ -254,8 +256,8 @@ class ParallelOptimizer:
             self._stats["avg_duration"] = total_duration / len(self._completed_tasks)
 
             # Удаляем из активных задач
-            task_id = id(task)
-            if task_id in self._active_tasks:
+            task_id = getattr(task, "_task_id", None)
+            if task_id is not None and task_id in self._active_tasks:
                 del self._active_tasks[task_id]
 
         logger.info(
@@ -345,7 +347,9 @@ class ParallelOptimizer:
                     if task:
                         future = executor.submit(parse_func, task)
                         futures[future] = task
-                        self._active_tasks[id(task)] = task
+                        task_id = next(_task_counter)
+                        task._task_id = task_id
+                        self._active_tasks[task_id] = task
                         logger.debug("Запущена задача: %s - %s", task.city_name, task.category_name)
 
                 # Проверяем завершенные задачи

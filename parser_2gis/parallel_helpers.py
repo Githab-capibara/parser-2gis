@@ -14,7 +14,6 @@ from __future__ import annotations
 import csv
 import fcntl
 import os
-import signal
 import threading
 import time
 import uuid
@@ -23,6 +22,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .constants import MAX_LOCK_FILE_AGE, MERGE_BUFFER_SIZE, MERGE_LOCK_TIMEOUT
 from .logger import logger
+from .signal_handler import SignalHandler
 
 
 class FileMerger:
@@ -199,22 +199,11 @@ class FileMerger:
         if not self._acquire_lock(lock_file_path):
             return False
 
-        # Устанавливаем обработчики сигналов для очистки
-        old_sigint = signal.getsignal(signal.SIGINT)
-        old_sigterm = signal.getsignal(signal.SIGTERM)
-
-        def cleanup_handler():
-            self._cleanup_temp_files()
-
-        def signal_handler(signum: int, frame: Any) -> None:
-            logger.warning("Получен сигнал %d, очистка временных файлов...", signum)
-            cleanup_handler()
-            if callable(old_sigint):
-                old_sigint(signum, frame)
+        # Используем SignalHandler для обработки сигналов
+        sig_handler = SignalHandler(cleanup_callback=lambda: self._cleanup_temp_files())
 
         try:
-            signal.signal(signal.SIGINT, signal_handler)
-            signal.signal(signal.SIGTERM, signal_handler)
+            sig_handler.setup()
 
             # Регистрируем временный файл
             with self._lock:
@@ -298,8 +287,7 @@ class FileMerger:
             return False
         finally:
             # Восстанавливаем обработчики сигналов
-            signal.signal(signal.SIGINT, old_sigint)
-            signal.signal(signal.SIGTERM, old_sigterm)
+            sig_handler.cleanup()
             # Освобождаем lock
             self._release_lock()
 

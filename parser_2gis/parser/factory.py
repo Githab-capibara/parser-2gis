@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Type
 
 if TYPE_CHECKING:
     from parser_2gis.chrome.options import ChromeOptions
@@ -40,7 +40,7 @@ _PARSER_PATTERNS: List[Tuple[Type[BaseParser], re.Pattern]] = []
 """Список кортежей (parser_class, compiled_pattern) для сопоставления URL."""
 
 
-def register_parser(priority: int = 0) -> callable:
+def register_parser(priority: int = 0) -> Callable[..., Any]:
     """Декоратор для регистрации parser класса в реестре.
 
     Args:
