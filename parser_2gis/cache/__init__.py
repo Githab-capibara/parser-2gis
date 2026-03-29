@@ -24,14 +24,10 @@ from ..constants import (
     MAX_STRING_LENGTH,
     MIN_POOL_SIZE,
     SHA256_HASH_LENGTH,
+    validate_env_int,
 )
 from .manager import Cache, CacheManager
-from .pool import (
-    _PSUTIL_AVAILABLE,
-    ConnectionPool,
-    _calculate_dynamic_pool_size,
-    _validate_pool_env_int,
-)
+from .pool import _PSUTIL_AVAILABLE, ConnectionPool, _calculate_dynamic_pool_size
 from .serializer import JsonSerializer, _deserialize_json, _serialize_json
 from .validator import (
     CacheDataValidator,
@@ -46,6 +42,9 @@ from .validator import (
 
 # Для обратной совместимости с тестами
 _ConnectionPool = ConnectionPool
+
+# Алиас для обратной совместимости
+_validate_pool_env_int = validate_env_int
 
 # Экспортируем psutil для тестов (если доступен)
 try:
@@ -62,7 +61,8 @@ __all__ = [
     "CacheDataValidator",
     # Функции
     "_calculate_dynamic_pool_size",
-    "_validate_pool_env_int",
+    "validate_env_int",
+    "_validate_pool_env_int",  # Алиас для обратной совместимости
     "_validate_cached_data",  # Для обратной совместимости с тестами
     "_check_sql_injection_patterns",  # Для обратной совместимости с тестами
     "_normalize_unicode",  # Для обратной совместимости с тестами
