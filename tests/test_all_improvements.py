@@ -49,7 +49,7 @@ class TestFunctionRefactoring:
 
         Это снижает цикломатическую сложность и улучшает тестируемость.
         """
-        from parser_2gis.main import (
+        from parser_2gis.cli.main import (
             _cleanup_cache,
             _cleanup_chrome_remote,
             _cleanup_gc,
