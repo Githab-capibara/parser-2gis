@@ -3,7 +3,6 @@
 
 Проверяет:
 - Отсутствие цикла main.py ↔ cli/
-- Отсутствие цикла common.py ↔ logger/ (common.py удалён)
 - Отсутствие цикла parallel/ ↔ temp_file_manager.py
 - Общие тесты на отсутствие циклических импортов
 
@@ -122,58 +121,6 @@ class TestNoCycleMainCli:
                     imports.append(alias.name)
 
         return imports
-
-
-class TestNoCycleCommonLogger:
-    """Тесты на отсутствие цикла common.py ↔ logger/.
-
-    common.py был удалён, поэтому этот тест проверяет что:
-    - common.py не существует
-    - logger/ не импортирует из несуществующего common.py
-    """
-
-    def test_no_cycle_common_logger(self) -> None:
-        """Проверяет что common.py удалён и нет цикла с logger/."""
-        project_root = Path(__file__).parent.parent / "parser_2gis"
-
-        common_py = project_root / "common.py"
-        logger_dir = project_root / "logger"
-
-        # common.py не должен существовать
-        assert not common_py.exists(), "common.py должен быть удалён"
-
-        # logger/ существует
-        assert logger_dir.exists(), "logger/ должен существовать"
-
-        # Проверяем что logger/ не импортирует из common
-        logger_files = list(logger_dir.glob("*.py"))
-
-        for logger_file in logger_files:
-            if logger_file.name.startswith("__"):
-                continue
-
-            content = logger_file.read_text(encoding="utf-8")
-
-            # Не должно быть импортов из common
-            assert "from .common import" not in content, (
-                f"{logger_file.name} не должен импортировать из common"
-            )
-            assert "from parser_2gis.common import" not in content, (
-                f"{logger_file.name} не должен импортировать из parser_2gis.common"
-            )
-
-    def test_logger_is_independent(self) -> None:
-        """Проверяет что logger/ независим от common.py."""
-        project_root = Path(__file__).parent.parent / "parser_2gis"
-        project_root / "logger"
-
-        # Проверяем что logger импортируется без ошибок
-        try:
-            from parser_2gis import logger
-
-            assert logger is not None
-        except ImportError as e:
-            pytest.fail(f"logger/ должен импортироваться без ошибок: {e}")
 
 
 class TestNoCycleParallelTempFiles:
@@ -421,7 +368,6 @@ class TestModuleIndependence:
 
 __all__ = [
     "TestNoCycleMainCli",
-    "TestNoCycleCommonLogger",
     "TestNoCycleParallelTempFiles",
     "TestNoImportCyclesDetected",
     "TestModuleIndependence",

@@ -181,18 +181,6 @@ class TestDocstringPresence:
         assert parallel_optimizer.__doc__ is not None
         assert len(parallel_optimizer.__doc__.strip()) > 20
 
-    def test_common_has_module_docstring(self) -> None:
-        """
-        Тест наличия module docstring в common.py.
-
-        Returns:
-            None
-        """
-        from parser_2gis import common
-
-        assert common.__doc__ is not None
-        assert len(common.__doc__.strip()) > 20
-
     def test_data_validator_has_module_docstring(self) -> None:
         """
         Тест наличия module docstring в validation/data_validator.py.
@@ -575,7 +563,6 @@ class TestCodeQualityParametrized:
             ("parser_2gis.parallel.parallel_parser", 50),
             ("parser_2gis.chrome.browser", 50),
             ("parser_2gis.parallel_optimizer", 50),
-            ("parser_2gis.common", 50),
             ("parser_2gis.validation.data_validator", 50),
             ("parser_2gis.cache.manager", 50),
         ],
@@ -584,7 +571,6 @@ class TestCodeQualityParametrized:
             "parallel_parser",
             "chrome_browser",
             "parallel_optimizer",
-            "common",
             "data_validator",
             "cache_manager",
         ],
@@ -614,7 +600,7 @@ class TestCodeQualityParametrized:
     @pytest.mark.parametrize(
         "function_name,module_path",
         [
-            ("unwrap_dot_dict", "parser_2gis.common"),
+            ("unwrap_dot_dict", "parser_2gis.utils.data_utils"),
             ("validate_phone", "parser_2gis.validation.data_validator"),
             ("validate_email", "parser_2gis.validation.data_validator"),
             ("_calculate_dynamic_pool_size", "parser_2gis.cache.pool"),

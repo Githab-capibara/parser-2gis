@@ -57,20 +57,6 @@ class TestModuleSizeLimits:
             "Рекомендуется выделить вспомогательные функции в отдельные модули."
         )
 
-    def test_common_module_size_limit(self) -> None:
-        """Проверяет что common.py < 500 строк.
-
-        Превышение лимита указывает на необходимость декомпозиции на utils-модули.
-        """
-        common_path = Path(__file__).parent.parent / "parser_2gis" / "common.py"
-        content = common_path.read_text(encoding="utf-8")
-        lines = content.splitlines()
-
-        assert len(lines) < 500, (
-            f"common.py слишком большой: {len(lines)} строк (максимум: 500). "
-            "Рекомендуется использовать функции из utils/ вместо дублирования в common.py."
-        )
-
     def test_chrome_remote_module_size_limit(self) -> None:
         """Проверяет что chrome/remote.py < 2500 строк.
 
@@ -390,39 +376,6 @@ class TestNewModulesExist:
 
 class TestBackwardCompatibility:
     """Тесты на обратную совместимость после рефакторинга."""
-
-    def test_common_exports_utils_functions(self) -> None:
-        """Проверяет что common.py экспортирует функции из utils/ для обратной совместимости.
-
-        Примечание: это информационный тест. Он показывает какие функции нужно
-        добавить в common.py для обратной совместимости.
-        """
-        from parser_2gis import common
-
-        # Проверяем что функции из utils доступны через common
-        # Это нужно для обратной совместимости со старым кодом
-        expected_exports = [
-            "wait_until_finished",
-            "sanitize_value",
-            "generate_category_url",
-            "generate_city_urls",
-        ]
-
-        missing: List[str] = []
-        exported: List[str] = []
-        for export in expected_exports:
-            if hasattr(common, export):
-                exported.append(export)
-            else:
-                missing.append(export)
-
-        # Тест проходит если хотя бы некоторые функции экспортируются
-        # Это показывает прогресс рефакторинга
-        assert exported, (
-            f"common.py не экспортирует ни одной функции из utils/. "
-            f"Отсутствуют: {', '.join(missing)}. "
-            f"Для обратной совместимости добавьте экспорт в common.py"
-        )
 
     def test_validation_legacy_imports(self) -> None:
         """Проверяет что validation/legacy.py работает и экспортирует функции."""

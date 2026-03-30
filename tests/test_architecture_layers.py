@@ -34,19 +34,6 @@ class TestModuleSizeLimits:
             "Рекомендуется декомпозировать на специализированные модули."
         )
 
-    def test_common_module_size_limit(self) -> None:
-        """Проверяет что common.py не превышает разумный размер."""
-        common_path = Path(__file__).parent.parent / "parser_2gis" / "common.py"
-        content = common_path.read_text(encoding="utf-8")
-        lines = content.splitlines()
-
-        # common.py не должен превышать 1500 строк
-        # При превышении рекомендуется разделить на decorators.py, sanitizers.py, url_utils.py
-        assert len(lines) < 1500, (
-            f"common.py слишком большой: {len(lines)} строк (максимум: 1500). "
-            "Рекомендуется разделить на decorators.py, sanitizers.py, url_utils.py."
-        )
-
     def test_parallel_parser_module_size_limit(self) -> None:
         """Проверяет что parallel/parallel_parser.py не превышает разумный размер."""
         parallel_path = (
@@ -65,32 +52,6 @@ class TestModuleSizeLimits:
 
 class TestCircularDependencies:
     """Тесты на отсутствие циклических зависимостей."""
-
-    def test_no_circular_imports_common_logger(self) -> None:
-        """Проверяет отсутствие цикла common.py ↔ logger.py."""
-        common_path = Path(__file__).parent.parent / "parser_2gis" / "common.py"
-        logger_path = Path(__file__).parent.parent / "parser_2gis" / "logger" / "logger.py"
-
-        common_content = common_path.read_text(encoding="utf-8")
-        logger_content = logger_path.read_text(encoding="utf-8")
-
-        # Проверяем что common.py не импортирует logger напрямую в глобальной области
-        common_imports_logger = (
-            "from .logger import" in common_content
-            or "from parser_2gis.logger import" in common_content
-        )
-
-        # Проверяем что logger.py не импортирует common напрямую в глобальной области
-        logger_imports_common = (
-            "from .common import" in logger_content
-            or "from parser_2gis.common import" in logger_content
-        )
-
-        # Цикл возникает если оба модуля импортируют друг друга
-        assert not (common_imports_logger and logger_imports_common), (
-            "Обнаружена циклическая зависимость: common.py ↔ logger.py. "
-            "Используйте interfaces.py с Protocol для разрыва цикла."
-        )
 
     def test_no_circular_imports_main_config(self) -> None:
         """Проверяет отсутствие цикла main.py ↔ config.py."""
@@ -328,7 +289,7 @@ class TestArchitecturalLayers:
 
     def test_domain_layer_does_not_import_ui(self) -> None:
         """Проверяет что domain слой не импортирует UI."""
-        domain_modules = ["parser", "writer", "cache", "common", "config"]
+        domain_modules = ["parser", "writer", "cache", "config"]
 
         project_root = Path(__file__).parent.parent / "parser_2gis"
 

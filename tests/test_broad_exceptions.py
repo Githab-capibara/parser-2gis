@@ -420,7 +420,7 @@ class TestSpecificExceptionsCommon:
         Args:
             tmp_path: pytest tmp_path fixture.
         """
-        from parser_2gis.common import MAX_COLLECTION_SIZE
+        from parser_2gis.constants import MAX_COLLECTION_SIZE
 
         # Создаем данные превышающие лимит размера коллекции
         # MAX_COLLECTION_SIZE = 100,000
