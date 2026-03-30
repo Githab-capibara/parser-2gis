@@ -39,10 +39,11 @@ def cleanup_resources() -> None:
     Обрабатывает AttributeError, MemoryError, KeyboardInterrupt.
     """
     # Для backward совместимости создаём временный лаунчер
+    import gc
+
+    from parser_2gis.cache import CacheManager
     from parser_2gis.logger import logger
     from parser_2gis.paths import cache_path
-    from parser_2gis.cache import CacheManager
-    import gc
 
     try:
         logger.debug("Очистка кэша ресурсов...")

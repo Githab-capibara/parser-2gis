@@ -5,7 +5,11 @@
 нескольких городов с использованием нескольких экземпляров браузера.
 
 Структура модуля:
-- parallel_parser.py: ParallelCityParser и ParallelCityParserThread
+- coordinator.py: ParallelCoordinator (координация потоков)
+- merger.py: ParallelFileMerger (слияние файлов)
+- error_handler.py: ParallelErrorHandler (обработка ошибок)
+- progress.py: ParallelProgressReporter (прогресс)
+- parallel_parser.py: Устаревший класс (обратная совместимость)
 - file_merger.py: Функции слияния CSV файлов
 - temp_file_timer.py: Таймер очистки временных файлов
 - progress_tracker.py: Константы и функции отслеживания прогресса
@@ -25,6 +29,8 @@ from parser_2gis.constants import (
     TEMP_FILE_CLEANUP_INTERVAL,
 )
 
+from .coordinator import ParallelCoordinator, ParserThreadConfig
+from .error_handler import ParallelErrorHandler
 from .file_merger import (
     MERGE_LOCK_TIMEOUT_LOCAL,
     _acquire_merge_lock,
@@ -32,6 +38,7 @@ from .file_merger import (
     _merge_csv_files,
     _validate_merged_file,
 )
+from .merger import ParallelFileMerger
 from .options import MAX_TEMP_FILES, ParallelOptions
 from .parallel_parser import (
     ParallelCityParser,
@@ -42,13 +49,20 @@ from .parallel_parser import (
     _temp_files_registry,
     _unregister_temp_file,
 )
+from .progress import ParallelProgressReporter
 from .progress_tracker import PROGRESS_UPDATE_INTERVAL
 
 MERGE_LOCK_TIMEOUT = MERGE_LOCK_TIMEOUT_LOCAL
 
 # Экспорт основного API для обратной совместимости
 __all__ = [
-    # Основные классы
+    # Основные классы (новые)
+    "ParallelCoordinator",
+    "ParallelFileMerger",
+    "ParallelErrorHandler",
+    "ParallelProgressReporter",
+    "ParserThreadConfig",
+    # Основные классы (старые для обратной совместимости)
     "ParallelCityParser",
     "ParallelCityParserThread",
     # Опции

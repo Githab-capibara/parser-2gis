@@ -29,7 +29,6 @@ from typing import Dict, List, Tuple
 
 import pytest
 
-
 # =============================================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # =============================================================================
@@ -755,38 +754,6 @@ class TestExecutionBackendProtocol:
             )
 
 
-class TestParserFactoryProtocol:
-    """Тесты на проверку ParserFactory Protocol."""
-
-    def test_parser_factory_protocol_exists(self) -> None:
-        """Проверяет что ParserFactory Protocol существует."""
-        from parser_2gis.protocols import ParserFactory
-
-        assert ParserFactory is not None, "ParserFactory Protocol должен существовать"
-
-    def test_parser_factory_has_get_parser_method(self) -> None:
-        """Проверяет что ParserFactory определяет метод get_parser."""
-        from parser_2gis.protocols import ParserFactory
-
-        assert hasattr(ParserFactory, "get_parser"), "ParserFactory должен иметь метод 'get_parser'"
-
-
-class TestWriterFactoryProtocol:
-    """Тесты на проверку WriterFactory Protocol."""
-
-    def test_writer_factory_protocol_exists(self) -> None:
-        """Проверяет что WriterFactory Protocol существует."""
-        from parser_2gis.protocols import WriterFactory
-
-        assert WriterFactory is not None, "WriterFactory Protocol должен существовать"
-
-    def test_writer_factory_has_get_writer_method(self) -> None:
-        """Проверяет что WriterFactory определяет метод get_writer."""
-        from parser_2gis.protocols import WriterFactory
-
-        assert hasattr(WriterFactory, "get_writer"), "WriterFactory должен иметь метод 'get_writer'"
-
-
 class TestBrowserServiceProtocol:
     """Тесты на проверку BrowserService Protocol."""
 
@@ -884,6 +851,10 @@ class TestOtherProtocols:
     def test_all_protocols_are_runtime_checkable(self) -> None:
         """Проверяет что все Protocol декорированы @runtime_checkable."""
         from parser_2gis.protocols import (
+            BrowserContentAccess,
+            BrowserJSExecution,
+            BrowserNavigation,
+            BrowserScreenshot,
             BrowserService,
             CacheBackend,
             CancelCallback,
@@ -892,13 +863,15 @@ class TestOtherProtocols:
             LogCallback,
             LoggerProtocol,
             Parser,
-            ParserFactory,
             ProgressCallback,
             Writer,
-            WriterFactory,
         )
 
         all_protocols = [
+            BrowserContentAccess,
+            BrowserJSExecution,
+            BrowserNavigation,
+            BrowserScreenshot,
             BrowserService,
             CacheBackend,
             CancelCallback,
@@ -907,10 +880,8 @@ class TestOtherProtocols:
             LogCallback,
             LoggerProtocol,
             Parser,
-            ParserFactory,
             ProgressCallback,
             Writer,
-            WriterFactory,
         ]
 
         for protocol in all_protocols:
@@ -941,11 +912,13 @@ class TestProtocolsModuleExports:
             "CancelCallback",
             "Writer",
             "Parser",
+            "BrowserNavigation",
+            "BrowserContentAccess",
+            "BrowserJSExecution",
+            "BrowserScreenshot",
             "BrowserService",
             "CacheBackend",
             "ExecutionBackend",
-            "ParserFactory",
-            "WriterFactory",
         ]
 
         missing_exports = []

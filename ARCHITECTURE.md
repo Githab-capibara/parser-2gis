@@ -1,7 +1,112 @@
 # Архитектура проекта parser-2gis
 
-**Версия:** 2.1.8
+**Версия:** 2.2.0
 **Дата обновления:** 2026-03-30
+
+## Основные изменения в версии 2.2.0
+
+### Рефакторинг параллельной обработки
+
+#### Разделение parallel/parallel_parser.py
+Крупный модуль parallel_parser.py (1346 строк) разделён на специализированные модули:
+
+- **coordinator.py** — ParallelCoordinator (координация потоков, управление жизненным циклом)
+- **merger.py** — ParallelFileMerger (слияние CSV файлов)
+- **error_handler.py** — ParallelErrorHandler (обработка ошибок, MemoryError, retry logic)
+- **progress.py** — ParallelProgressReporter (отслеживание прогресса, статистика)
+- **config.py** — ParallelRunConfig, ParserThreadConfig (dataclass для конфигураций)
+
+**Преимущества:**
+- Следование Single Responsibility Principle
+- Улучшенная тестируемость каждого компонента
+- Снижение цикломатической сложности
+
+### Рефакторинг парсера главной страницы
+
+#### Разделение parser/parsers/main.py
+Модуль main.py (1123 строки) разделён на специализированные компоненты:
+
+- **main_parser.py** — MainPageParser (DOM операции, навигация, работа с браузером)
+- **main_extractor.py** — MainDataExtractor (извлечение данных из DOM)
+- **main_processor.py** — MainDataProcessor (обработка данных, пагинация, retry logic)
+
+**Преимущества:**
+- Разделение ответственности между компонентами
+- Упрощение тестирования через dependency injection
+- Возможность переиспользования Extractor и Processor в других парсерах
+
+### Устранение циклических зависимостей
+
+#### Новый пакет logging/
+Создан отдельный пакет для устранения циклической зависимости logger ↔ chrome:
+
+- **logging/__init__.py** — Экспорт API
+- **logging/handlers.py** — FileLogger (перемещён из chrome/file_handler.py)
+
+**Преимущества:**
+- Устранена циклическая зависимость
+- Logger и chrome теперь независимы
+- Улучшенная архитектура логирования
+
+### Protocol абстракции
+
+#### Разделение protocols.py
+Крупный модуль protocols.py (442 строки) разделён на специализированные Protocol:
+
+- **BrowserNavigation** — Навигация (navigate, get_current_url)
+- **BrowserContentAccess** — Доступ к контенту (get_html, get_text)
+- **BrowserJSExecution** — Выполнение JavaScript (execute_js)
+- **BrowserScreenshot** — Скриншоты (screenshot)
+- **BrowserService** — Комбинирует все браузерные Protocol
+
+**Удалены неиспользуемые:**
+- ParserFactory
+- WriterFactory
+- ModelProvider
+
+### Data Classes для конфигураций
+
+#### Новые конфигурационные классы
+Созданы dataclass для устранения Data Clumps антипаттерна:
+
+- **ParallelRunConfig** — Конфигурация параллельного запуска
+- **ParserThreadConfig** — Конфигурация потока парсинга
+- **ParserRunConfig** — Конфигурация запуска парсера
+- **CLIRunConfig** — Конфигурация CLI режима
+
+### Dependency Injection
+
+#### Внедрение зависимостей через Protocol
+- MainPageParser принимает BrowserService через __init__
+- ParallelCoordinator использует ParallelErrorHandler, ParallelFileMerger, ParallelProgressReporter через композицию
+- ConfigService оставлен только для save/load операций (устранён Middle Man)
+
+### Тестирование архитектуры
+
+#### Новые архитектурные тесты
+Добавлено 8 тестовых файлов для проверки архитектурных принципов:
+
+- **test_architecture_no_cycles.py** — Проверка отсутствия циклических зависимостей
+- **test_architecture_separation.py** — Проверка разделения ответственности
+- **test_architecture_protocols.py** — Проверка Protocol и dependency injection
+- **test_architecture_config_dataclasses.py** — Проверка dataclass конфигураций
+- **test_architecture_modularity.py** — Проверка модульности и размера файлов
+- **test_architecture_solid.py** — Проверка принципов SOLID
+- **test_architecture_antipatterns.py** — Проверка отсутствия антипаттернов
+- **test_architecture_integration.py** — Integration тесты новых модулей
+
+**Всего:** 179 архитектурных тестов
+
+### Метрики архитектуры v2.2.0
+
+| Метрика | Было | Стало | Изменение |
+|---------|------|-------|-----------|
+| Файлов >1000 строк | 4 | 0 | ✅ Устранено |
+| Файлов >500 строк | 11 | 3 | ✅ Улучшено |
+| Циклические зависимости | 1 | 0 | ✅ Устранено |
+| Protocol в protocols.py | 13 | 8 | ✅ Оптимизировано |
+| Архитектурных тестов | 0 | 179 | ✅ Добавлено |
+| Покрытие тестами | ~15% | ~45% | ✅ Улучшено |
 
 ## Общая схема проекта
 

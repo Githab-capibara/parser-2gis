@@ -226,7 +226,7 @@ def check_middle_man(file_path: Path, class_name: str) -> bool:
     # Ищем методы которые только вызывают методы другого объекта
 
     # Подсчитываем количество делегирующих методов
-    delegate_pattern = r'def\s+(\w+)\s*\([^)]*\)\s*->\s*[^:]*:\s*return\s+self\.\w+\.\1'
+    delegate_pattern = r"def\s+(\w+)\s*\([^)]*\)\s*->\s*[^:]*:\s*return\s+self\.\w+\.\1"
 
     delegate_methods = re.findall(delegate_pattern, content)
 
@@ -350,9 +350,7 @@ class TestNoDataClumps:
         assert "ParallelParserConfig" in content, (
             "parallel/options.py должен использовать ParallelParserConfig dataclass"
         )
-        assert "@dataclass" in content, (
-            "parallel/options.py должен использовать @dataclass"
-        )
+        assert "@dataclass" in content, "parallel/options.py должен использовать @dataclass"
 
     def test_no_dict_for_config_in_parallel(self) -> None:
         """Проверяет что parallel не использует dict для конфигурации."""
@@ -419,10 +417,10 @@ class TestNoMiddleMan:
         # ConfigService должен иметь собственную логику а не только делегировать
         # Проверяем что есть методы с собственной логикой
         has_own_logic = (
-            "save_config" in content and
-            "load_config" in content and
-            "_backup_corrupted_config" in content and
-            "_log_validation_errors" in content
+            "save_config" in content
+            and "load_config" in content
+            and "_backup_corrupted_config" in content
+            and "_log_validation_errors" in content
         )
 
         assert has_own_logic, (
@@ -441,10 +439,10 @@ class TestNoMiddleMan:
         # ParallelCoordinator должен координировать а не только делегировать
         # Проверяем что есть собственная логика координации
         has_coordination_logic = (
-            "generate_all_urls" in content and
-            "parse_single_url" in content and
-            "self._stats" in content and
-            "self._lock" in content
+            "generate_all_urls" in content
+            and "parse_single_url" in content
+            and "self._stats" in content
+            and "self._lock" in content
         )
 
         assert has_coordination_logic, (
@@ -486,9 +484,7 @@ class TestNoMagicNumbers:
         assert "MAX_WORKERS" in content or "MIN_WORKERS" in content, (
             "constants.py должен содержать константы для workers"
         )
-        assert "TIMEOUT" in content, (
-            "constants.py должен содержать константы для timeout"
-        )
+        assert "TIMEOUT" in content, "constants.py должен содержать константы для timeout"
 
 
 # =============================================================================
@@ -548,9 +544,7 @@ class TestNoSpaghettiCode:
         project_root = Path(__file__).parent.parent / "parser_2gis"
 
         # Проверяем основные файлы
-        files_to_check = [
-            project_root / "parser" / "parsers" / "main_parser.py",
-        ]
+        files_to_check = [project_root / "parser" / "parsers" / "main_parser.py"]
 
         for file_path in files_to_check:
             if not file_path.exists():
@@ -705,9 +699,7 @@ class TestAntiPatternIntegrity:
             if lines > 1000:
                 rel_path = str(py_file.relative_to(project_root))
                 # Это не ошибка но требует внимания
-                assert lines < 1500, (
-                    f"{rel_path} имеет {lines} строк - рекомендуется рефакторинг"
-                )
+                assert lines < 1500, f"{rel_path} имеет {lines} строк - рекомендуется рефакторинг"
 
 
 def count_lines(file_path: Path) -> int:

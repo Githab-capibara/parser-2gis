@@ -24,7 +24,6 @@ from typing import Dict, List, Optional
 from ..constants import MAX_POOL_SIZE, MIN_POOL_SIZE, validate_env_int
 from ..logger.logger import logger as app_logger
 
-
 # Максимальное количество соединений в пуле (из ENV или default)
 _MAX_POOL_SIZE_ENV: int = validate_env_int(
     "PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50

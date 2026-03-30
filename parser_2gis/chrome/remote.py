@@ -13,24 +13,6 @@
 """
 
 from __future__ import annotations
-from .rate_limiter import _safe_external_request
-from .patches import patch_all
-from .js_executor import _validate_js_code
-from .exceptions import ChromeException
-from .dom import DOMNode
-from .constants import (
-    CHROME_STARTUP_DELAY,
-    EXTERNAL_RATE_LIMIT_CALLS,
-    EXTERNAL_RATE_LIMIT_PERIOD,
-    MAX_PORT,
-    MAX_RESPONSE_SIZE,
-    MAX_TOTAL_JS_SIZE,
-    MIN_PORT,
-)
-from .browser import ChromeBrowser
-from parser_2gis.utils.decorators import wait_until_finished
-from parser_2gis.logger.logger import logger as app_logger
-from websocket import WebSocketException
 
 import base64
 import queue
@@ -44,6 +26,26 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pychrome
+from websocket import WebSocketException
+
+from parser_2gis.logger.logger import logger as app_logger
+from parser_2gis.utils.decorators import wait_until_finished
+
+from .browser import ChromeBrowser
+from .constants import (
+    CHROME_STARTUP_DELAY,
+    EXTERNAL_RATE_LIMIT_CALLS,
+    EXTERNAL_RATE_LIMIT_PERIOD,
+    MAX_PORT,
+    MAX_RESPONSE_SIZE,
+    MAX_TOTAL_JS_SIZE,
+    MIN_PORT,
+)
+from .dom import DOMNode
+from .exceptions import ChromeException
+from .js_executor import _validate_js_code
+from .patches import patch_all
+from .rate_limiter import _safe_external_request
 
 try:
     from ratelimit import limits, sleep_and_retry

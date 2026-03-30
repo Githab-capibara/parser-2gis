@@ -29,8 +29,8 @@ class TestParserThreadConfig:
 
         Проверяет что ParserThreadConfig может быть создан.
         """
-        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         config = Configuration()
         cities = [{"name": "Moscow", "code": "msk"}]
@@ -52,8 +52,8 @@ class TestParserThreadConfig:
 
         Проверяет что значения по умолчанию установлены корректно.
         """
-        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         config = Configuration()
 
@@ -72,8 +72,8 @@ class TestParserThreadConfig:
 
         Проверяет что можно установить пользовательские значения.
         """
-        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         config = Configuration()
 
@@ -311,8 +311,8 @@ class TestParallelParserConfig:
 
         Проверяет что ParallelParserConfig может быть создан.
         """
-        from parser_2gis.parallel.options import ParallelParserConfig
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.options import ParallelParserConfig
 
         config = Configuration()
         cities = [{"name": "Moscow", "code": "msk"}]
@@ -335,8 +335,8 @@ class TestParallelParserConfig:
 
         Проверяет что значения по умолчанию установлены корректно.
         """
-        from parser_2gis.parallel.options import ParallelParserConfig
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.options import ParallelParserConfig
 
         config = Configuration()
 
@@ -354,8 +354,8 @@ class TestParallelParserConfig:
 
         Проверяет что можно установить пользовательские значения.
         """
-        from parser_2gis.parallel.options import ParallelParserConfig
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.options import ParallelParserConfig
 
         config = Configuration()
 
@@ -413,8 +413,8 @@ class TestDataclassImmutability:
 
         Проверяет что поля можно изменять после создания.
         """
-        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         config = Configuration()
 
@@ -468,8 +468,8 @@ class TestDataclassEquality:
 
         Проверяет что одинаковые конфигурации равны.
         """
-        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         config1 = Configuration()
         config2 = Configuration()

@@ -20,7 +20,6 @@ import pytest
 from parser_2gis.cache import CacheManager
 from parser_2gis.cache.serializer import _deserialize_json, _serialize_json
 
-
 # =============================================================================
 # ТЕСТЫ ДЛЯ СПЕЦИФИЧНЫХ ИСКЛЮЧЕНИЙ В CACHE.PY
 # =============================================================================

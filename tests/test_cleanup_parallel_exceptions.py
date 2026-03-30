@@ -17,7 +17,6 @@ import pytest
 from parser_2gis.cli.main import cleanup_resources
 from parser_2gis.parallel.parallel_parser import ParallelCityParser
 
-
 # =============================================================================
 # ТЕСТЫ ДЛЯ ОБРАБОТКИ ОШИБОК В CLEANUP_RESOURCES
 # =============================================================================

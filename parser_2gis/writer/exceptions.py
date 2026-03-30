@@ -22,7 +22,5 @@ class WriterUnknownFileFormat(BaseContextualException):
     - Имени файла
     """
 
-    pass
-
 
 __all__ = ["WriterUnknownFileFormat"]

@@ -81,7 +81,6 @@ class FileWriter(ABC):
     @abstractmethod
     def write(self, catalog_doc: Any) -> None:
         """Записывает JSON-документ Catalog Item API, полученный парсером."""
-        pass
 
     def _open_file(
         self, file_path: str, mode: str = "r", newline: Optional[str] = None, **kwargs: Any

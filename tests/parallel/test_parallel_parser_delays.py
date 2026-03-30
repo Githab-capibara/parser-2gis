@@ -9,9 +9,9 @@ from unittest.mock import patch
 
 import pytest
 
+from parser_2gis.config import Configuration
 from parser_2gis.parallel.options import ParallelOptions
 from parser_2gis.parallel.parallel_parser import ParallelCityParser
-from parser_2gis.config import Configuration
 
 
 class TestParallelParserDelays:

@@ -25,9 +25,11 @@ import threading
 import time
 import typing
 import uuid
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
-from threading import BoundedSemaphore
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
+from dataclasses import dataclass
 from pathlib import Path
+from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
 import psutil
@@ -37,6 +39,7 @@ from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
     MAX_LOCK_FILE_AGE,
     MAX_TIMEOUT,
+    MAX_UNIQUE_NAME_ATTEMPTS,
     MAX_WORKERS,
     MERGE_BATCH_SIZE,
     MERGE_BUFFER_SIZE,
@@ -59,8 +62,6 @@ from parser_2gis.utils.temp_file_manager import (
 )
 from parser_2gis.utils.url_utils import generate_category_url
 from parser_2gis.writer import get_writer
-
-from dataclasses import dataclass
 
 if TYPE_CHECKING:
     from .config import Configuration
@@ -87,14 +88,6 @@ class ParserThreadConfig:
     max_workers: int = 3
     timeout_per_url: int = DEFAULT_TIMEOUT
     output_file: Optional[str] = None
-
-
-# =============================================================================
-# КОНСТАНТЫ ДЛЯ УНИКАЛЬНЫХ ИМЁН ФАЙЛОВ
-# =============================================================================
-
-# Максимальное количество попыток создания уникального имени файла
-MAX_UNIQUE_NAME_ATTEMPTS: int = 10
 
 
 # =============================================================================

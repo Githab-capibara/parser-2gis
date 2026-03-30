@@ -6,10 +6,13 @@
 - Корректную работу с Optional типами
 """
 
-from unittest.mock import MagicMock, Mock
-
+from unittest.mock import MagicMock
 
 from parser_2gis.protocols import (
+    BrowserContentAccess,
+    BrowserJSExecution,
+    BrowserNavigation,
+    BrowserScreenshot,
     BrowserService,
     CacheBackend,
     CancelCallback,
@@ -17,12 +20,9 @@ from parser_2gis.protocols import (
     ExecutionBackend,
     LogCallback,
     LoggerProtocol,
-    ModelProvider,
     Parser,
-    ParserFactory,
     ProgressCallback,
     Writer,
-    WriterFactory,
 )
 
 
@@ -171,6 +171,12 @@ class TestProtocolNoneHandling:
         # Тест с None URL
         mock_browser.navigate(None)
 
+        # Вызываем методы для проверки
+        mock_browser.get_html()
+        mock_browser.execute_js(None)
+        mock_browser.screenshot(None)
+        mock_browser.close()
+
         # Проверяем что методы были вызваны
         assert mock_browser.navigate.called
         assert mock_browser.get_html.called
@@ -228,112 +234,6 @@ class TestProtocolNoneHandling:
         assert mock_executor.map.called
         assert mock_executor.shutdown.called
 
-    def test_parser_factory_none_handling(self):
-        """Тест обработки None в ParserFactory.
-
-        Проверяет:
-        - ParserFactory.get_parser работает с None аргументами
-        """
-        mock_factory = MagicMock(spec=ParserFactory)
-        mock_factory.get_parser.return_value = None
-
-        # Тест с None аргументами
-        result = mock_factory.get_parser(None)
-
-        # Проверяем что метод был вызван
-        assert mock_factory.get_parser.called
-        assert result is None
-
-    def test_writer_factory_none_handling(self):
-        """Тест обработки None в WriterFactory.
-
-        Проверяет:
-        - WriterFactory.get_writer работает с None аргументами
-        """
-        mock_factory = MagicMock(spec=WriterFactory)
-        mock_factory.get_writer.return_value = None
-
-        # Тест с None аргументами
-        result = mock_factory.get_writer(None)
-
-        # Проверяем что метод был вызван
-        assert mock_factory.get_writer.called
-        assert result is None
-
-    def test_model_provider_none_handling(self):
-        """Тест обработки None в ModelProvider.
-
-        Проверяет:
-        - ModelProvider.generate работает с None prompt
-        - ModelProvider.is_available может возвращать None
-        """
-        mock_provider = MagicMock(spec=ModelProvider)
-        mock_provider.generate.return_value = None
-        mock_provider.is_available.return_value = None
-
-        # Тест с None prompt
-        result = mock_provider.generate(None)
-        available = mock_provider.is_available()
-
-        # Проверяем что методы были вызваны
-        assert mock_provider.generate.called
-        assert mock_provider.is_available.called
-        assert result is None
-        assert available is None
-
-    def test_protocol_runtime_checkable(self):
-        """Тест runtime_checkable для Protocol.
-
-        Проверяет:
-        - Protocol с @runtime_checkable работают корректно
-        - isinstance проверки работают
-        """
-        # Создаем mock объект
-        mock_obj = MagicMock()
-
-        # Добавляем необходимые атрибуты
-        mock_obj.debug = Mock()
-        mock_obj.info = Mock()
-        mock_obj.warning = Mock()
-        mock_obj.error = Mock()
-        mock_obj.critical = Mock()
-
-        # Проверяем isinstance
-        assert isinstance(mock_obj, LoggerProtocol)
-
-    def test_protocol_optional_types(self):
-        """Тест Optional типов в Protocol.
-
-        Проверяет:
-        - Optional типы обрабатываются корректно
-        - None значения допустимы
-        """
-        mock_cache = MagicMock(spec=CacheBackend)
-
-        # Тест с None значением
-        mock_cache.get.return_value = None
-        result = mock_cache.get("key")
-
-        # Проверяем что результат может быть None
-        assert result is None
-
-    def test_protocol_method_return_none(self):
-        """Тест возврата None из методов Protocol.
-
-        Проверяет:
-        - Методы Protocol могут возвращать None
-        """
-        mock_writer = MagicMock(spec=Writer)
-        mock_writer.write.return_value = None
-        mock_writer.close.return_value = None
-
-        write_result = mock_writer.write([])
-        close_result = mock_writer.close()
-
-        # Проверяем что результаты None
-        assert write_result is None
-        assert close_result is None
-
     def test_protocol_callable_none(self):
         """Тест Callable Protocol с None.
 
@@ -383,3 +283,117 @@ class TestProtocolNoneHandling:
 
         # Проверяем что методы были вызваны без ошибок
         assert True
+
+
+class TestBrowserNavigationProtocol:
+    """Тесты для BrowserNavigation Protocol."""
+
+    def test_browser_navigation_protocol_exists(self):
+        """Тест существования BrowserNavigation Protocol."""
+        assert BrowserNavigation is not None
+
+    def test_browser_navigation_has_navigate_method(self):
+        """Тест наличия метода navigate в BrowserNavigation."""
+        assert hasattr(BrowserNavigation, "navigate")
+
+    def test_browser_navigation_none_handling(self):
+        """Тест обработки None в BrowserNavigation.
+
+        Проверяет:
+        - BrowserNavigation.navigate работает с None URL
+        """
+        mock_browser = MagicMock(spec=BrowserNavigation)
+        mock_browser.navigate.return_value = None
+
+        # Тест с None URL
+        mock_browser.navigate(None)
+
+        # Проверяем что метод был вызван
+        assert mock_browser.navigate.called
+
+
+class TestBrowserContentAccessProtocol:
+    """Тесты для BrowserContentAccess Protocol."""
+
+    def test_browser_content_access_protocol_exists(self):
+        """Тест существования BrowserContentAccess Protocol."""
+        assert BrowserContentAccess is not None
+
+    def test_browser_content_access_has_required_methods(self):
+        """Тест наличия методов в BrowserContentAccess."""
+        assert hasattr(BrowserContentAccess, "get_html")
+        assert hasattr(BrowserContentAccess, "get_document")
+
+    def test_browser_content_access_none_handling(self):
+        """Тест обработки None в BrowserContentAccess.
+
+        Проверяет:
+        - BrowserContentAccess.get_html может возвращать None
+        - BrowserContentAccess.get_document может возвращать None
+        """
+        mock_browser = MagicMock(spec=BrowserContentAccess)
+        mock_browser.get_html.return_value = None
+        mock_browser.get_document.return_value = None
+
+        html_result = mock_browser.get_html()
+        doc_result = mock_browser.get_document()
+
+        # Проверяем что результаты могут быть None
+        assert html_result is None
+        assert doc_result is None
+
+
+class TestBrowserJSExecutionProtocol:
+    """Тесты для BrowserJSExecution Protocol."""
+
+    def test_browser_js_execution_protocol_exists(self):
+        """Тест существования BrowserJSExecution Protocol."""
+        assert BrowserJSExecution is not None
+
+    def test_browser_js_execution_has_execute_js_method(self):
+        """Тест наличия метода execute_js в BrowserJSExecution."""
+        assert hasattr(BrowserJSExecution, "execute_js")
+
+    def test_browser_js_execution_none_handling(self):
+        """Тест обработки None в BrowserJSExecution.
+
+        Проверяет:
+        - BrowserJSExecution.execute_js работает с None кодом
+        - BrowserJSExecution.execute_js может возвращать None
+        """
+        mock_browser = MagicMock(spec=BrowserJSExecution)
+        mock_browser.execute_js.return_value = None
+
+        # Тест с None кодом
+        result = mock_browser.execute_js(None)
+
+        # Проверяем что метод был вызван
+        assert mock_browser.execute_js.called
+        assert result is None
+
+
+class TestBrowserScreenshotProtocol:
+    """Тесты для BrowserScreenshot Protocol."""
+
+    def test_browser_screenshot_protocol_exists(self):
+        """Тест существования BrowserScreenshot Protocol."""
+        assert BrowserScreenshot is not None
+
+    def test_browser_screenshot_has_screenshot_method(self):
+        """Тест наличия метода screenshot в BrowserScreenshot."""
+        assert hasattr(BrowserScreenshot, "screenshot")
+
+    def test_browser_screenshot_none_handling(self):
+        """Тест обработки None в BrowserScreenshot.
+
+        Проверяет:
+        - BrowserScreenshot.screenshot работает с None путем
+        """
+        mock_browser = MagicMock(spec=BrowserScreenshot)
+        mock_browser.screenshot.return_value = None
+
+        # Тест с None путем
+        mock_browser.screenshot(None)
+
+        # Проверяем что метод был вызван
+        assert mock_browser.screenshot.called

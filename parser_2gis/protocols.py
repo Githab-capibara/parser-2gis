@@ -16,6 +16,10 @@ from __future__ import annotations
 from concurrent.futures import Future
 from typing import Any, Callable, Iterator, Protocol, runtime_checkable
 
+# =============================================================================
+# CALLBACK PROTOCOLS
+# =============================================================================
+
 
 @runtime_checkable
 class LoggerProtocol(Protocol):
@@ -116,6 +120,11 @@ class CancelCallback(Protocol):
         """
 
 
+# =============================================================================
+# DATA PROTOCOLS
+# =============================================================================
+
+
 @runtime_checkable
 class Writer(Protocol):
     """Protocol для записи данных.
@@ -164,28 +173,43 @@ class Parser(Protocol):
         """
 
 
-@runtime_checkable
-class BrowserService(Protocol):
-    """Абстракция браузера для разрыва связи между chrome/ и parser/.
+# =============================================================================
+# BROWSER SERVICE PROTOCOLS (разделены по ответственности)
+# =============================================================================
 
-    Определяет минимальный интерфейс для работы с браузером:
-    - Навигация по URL
-    - Получение HTML
-    - Выполнение JavaScript
-    - Создание скриншотов
-    - Закрытие браузера
+
+@runtime_checkable
+class BrowserNavigation(Protocol):
+    """Protocol для навигации браузера.
+
+    Определяет интерфейс для навигации по URL.
 
     Example:
         >>> from parser_2gis.chrome import ChromeRemote
-        >>> browser: BrowserService = ChromeRemote(...)  # type: check
+        >>> nav: BrowserNavigation = ChromeRemote(...)  # type: check
+        >>> nav.navigate("https://2gis.ru")
     """
 
-    def navigate(self, url: str) -> None:
+    def navigate(self, url: str, **kwargs: Any) -> None:
         """Перейти на URL.
 
         Args:
             url: URL для навигации.
+            **kwargs: Дополнительные параметры навигации.
         """
+
+
+@runtime_checkable
+class BrowserContentAccess(Protocol):
+    """Protocol для доступа к содержимому страницы.
+
+    Определяет интерфейс для получения HTML и DOM.
+
+    Example:
+        >>> from parser_2gis.chrome import ChromeRemote
+        >>> content: BrowserContentAccess = ChromeRemote(...)  # type: check
+        >>> html = content.get_html()
+    """
 
     def get_html(self) -> str:
         """Получить HTML страницы.
@@ -193,6 +217,26 @@ class BrowserService(Protocol):
         Returns:
             HTML содержимое текущей страницы.
         """
+
+    def get_document(self) -> Any:
+        """Получить DOM дерево страницы.
+
+        Returns:
+            DOM дерево текущей страницы.
+        """
+
+
+@runtime_checkable
+class BrowserJSExecution(Protocol):
+    """Protocol для выполнения JavaScript.
+
+    Определяет интерфейс для выполнения JS кода.
+
+    Example:
+        >>> from parser_2gis.chrome import ChromeRemote
+        >>> js: BrowserJSExecution = ChromeRemote(...)  # type: check
+        >>> result = js.execute_js("document.title")
+    """
 
     def execute_js(self, js_code: str, timeout: int | None = None) -> Any:
         """Выполнить JavaScript код.
@@ -205,6 +249,19 @@ class BrowserService(Protocol):
             Результат выполнения JavaScript.
         """
 
+
+@runtime_checkable
+class BrowserScreenshot(Protocol):
+    """Protocol для создания скриншотов.
+
+    Определяет интерфейс для создания скриншотов страницы.
+
+    Example:
+        >>> from parser_2gis.chrome import ChromeRemote
+        >>> screenshot: BrowserScreenshot = ChromeRemote(...)  # type: check
+        >>> browser.screenshot("page.png")
+    """
+
     def screenshot(self, path: str) -> None:
         """Сделать скриншот.
 
@@ -212,12 +269,34 @@ class BrowserService(Protocol):
             path: Путь для сохранения скриншота.
         """
 
+
+@runtime_checkable
+class BrowserService(
+    BrowserNavigation, BrowserContentAccess, BrowserJSExecution, BrowserScreenshot, Protocol
+):
+    """Абстракция браузера для разрыва связи между chrome/ и parser/.
+
+    Объединяет все браузерные протоколы:
+    - BrowserNavigation: навигация по URL
+    - BrowserContentAccess: получение HTML и DOM
+    - BrowserJSExecution: выполнение JavaScript
+    - BrowserScreenshot: создание скриншотов
+    - close: закрытие браузера
+
+    Example:
+        >>> from parser_2gis.chrome import ChromeRemote
+        >>> browser: BrowserService = ChromeRemote(...)  # type: check
+        >>> browser.navigate("https://2gis.ru")
+        >>> html = browser.get_html()
+        >>> browser.close()
+    """
+
     def close(self) -> None:
         """Закрыть браузер и освободить ресурсы."""
 
 
 # =============================================================================
-# PROTOCOL ДЛЯ КЭШИРОВАНИЯ
+# CACHE PROTOCOLS
 # =============================================================================
 
 
@@ -274,7 +353,7 @@ class CacheBackend(Protocol):
 
 
 # =============================================================================
-# PROTOCOL ДЛЯ ПАРАЛЛЕЛЬНОГО ВЫПОЛНЕНИЯ
+# EXECUTION PROTOCOLS
 # =============================================================================
 
 
@@ -329,114 +408,23 @@ class ExecutionBackend(Protocol):
         """
 
 
-# =============================================================================
-# PROTOCOL ДЛЯ ФАБРИК
-# =============================================================================
-
-
-@runtime_checkable
-class ParserFactory(Protocol):
-    """Абстракция фабрики парсеров.
-
-    Определяет интерфейс для создания парсеров различных типов.
-    Позволяет легко добавлять новые типы парсеров без изменения кода.
-
-    Example:
-        >>> from parser_2gis.parser import ParserFactoryImpl
-        >>> factory: ParserFactory = ParserFactoryImpl()  # type: check
-        >>> parser = factory.get_parser("firm", browser=browser)
-        >>> results = parser.parse()
-    """
-
-    def get_parser(self, parser_type: str, **kwargs: Any) -> Any:
-        """Создаёт парсер указанного типа.
-
-        Args:
-            parser_type: Тип парсера ("firm", "in_building", "main").
-            **kwargs: Дополнительные аргументы для парсера.
-
-        Returns:
-            Экземпляр парсера.
-        """
-
-
-@runtime_checkable
-class WriterFactory(Protocol):
-    """Абстракция фабрики писателей.
-
-    Определяет интерфейс для создания писателей различных форматов.
-    Позволяет легко добавлять новые форматы вывода без изменения кода.
-
-    Example:
-        >>> from parser_2gis.writer import WriterFactoryImpl
-        >>> factory: WriterFactory = WriterFactoryImpl(output_dir=Path("./output"))  # type: check
-        >>> writer = factory.get_writer("csv", filename="results.csv")
-        >>> writer.write(records)
-        >>> writer.close()
-    """
-
-    def get_writer(self, format: str, **kwargs: Any) -> Any:
-        """Создаёт писатель указанного формата.
-
-        Args:
-            format: Формат писателя ("csv", "xlsx", "json").
-            **kwargs: Дополнительные аргументы для писателя.
-
-        Returns:
-            Экземпляр писателя.
-        """
-
-
-@runtime_checkable
-class ModelProvider(Protocol):
-    """Абстракция провайдера языковой модели для AI-функций.
-
-    Определяет интерфейс для взаимодействия с различными LLM провайдерами
-    (Ollama, OpenAI, и т.д.). Позволяет легко переключаться между
-    различными реализациями без изменения кода.
-
-    Example:
-        >>> from parser_2gis.services.ollama_client import OllamaClient
-        >>> provider: ModelProvider = OllamaClient()  # type: check
-        >>> response = provider.generate("Привет!")
-    """
-
-    def generate(self, prompt: str, **kwargs: Any) -> str:
-        """Генерирует ответ на запрос.
-
-        Args:
-            prompt: Входной запрос.
-            **kwargs: Дополнительные параметры генерации.
-
-        Returns:
-            Сгенерированный ответ.
-        """
-
-    def is_available(self) -> bool:
-        """Проверяет доступность провайдера.
-
-        Returns:
-            True если провайдер доступен.
-        """
-
-
 __all__ = [
-    # Callback Protocol
+    # Callback Protocols
     "LoggerProtocol",
     "ProgressCallback",
     "LogCallback",
     "CleanupCallback",
     "CancelCallback",
-    # Data Protocol
+    # Data Protocols
     "Writer",
     "Parser",
+    # Browser Protocols (разделены по ответственности)
+    "BrowserNavigation",
+    "BrowserContentAccess",
+    "BrowserJSExecution",
+    "BrowserScreenshot",
     "BrowserService",
-    # Backend Protocol
+    # Backend Protocols
     "CacheBackend",
     "ExecutionBackend",
-    # Factory Protocol
-    "ParserFactory",
-    "WriterFactory",
-    # AI Protocol
-    "ModelProvider",
 ]

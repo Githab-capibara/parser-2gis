@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from parser_2gis.utils.temp_file_manager import TempFileTimer, TempFileManager
+from parser_2gis.utils.temp_file_manager import TempFileManager, TempFileTimer
 
 
 class TestTempFileTimerFinallyCleanup:

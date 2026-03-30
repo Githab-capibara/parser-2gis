@@ -154,10 +154,7 @@ class TestParserRunConfig:
         config = Configuration()
 
         parser_config = ParallelParserConfig(
-            cities=[],
-            categories=[],
-            output_dir=Path("/tmp"),
-            config=config,
+            cities=[], categories=[], output_dir=Path("/tmp"), config=config
         )
 
         # Проверяем значения по умолчанию
@@ -254,10 +251,7 @@ class TestParserThreadConfig:
         config = Configuration()
 
         thread_config = ParserThreadConfig(
-            cities=[],
-            categories=[],
-            output_dir="/tmp",
-            config=config,
+            cities=[], categories=[], output_dir="/tmp", config=config
         )
 
         # Проверяем значения по умолчанию

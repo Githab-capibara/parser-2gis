@@ -3,11 +3,17 @@
 
 Предоставляет классы и функции для работы с конфигурацией,
 включая валидацию, загрузку и сохранение настроек.
+
+Примечание:
+    Логика merge_configs перемещена из ConfigService в Configuration
+    для устранения нарушения Middle Man (SRP).
+    ConfigService оставлен только для операций save/load.
 """
 
 from __future__ import annotations
 
 import pathlib
+from copy import deepcopy
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -33,7 +39,7 @@ class Configuration(BaseModel):
     path: pathlib.Path | None = None
     version: str = config_version
 
-    def merge_with(self, other_config: Configuration, max_depth: int = 50) -> None:
+    def merge_with(self, other_config: "Configuration", max_depth: int = 50) -> None:
         """Объединяет конфигурацию с другой.
 
         Рекурсивно обновляет поля текущей конфигурации значениями из other_config.
@@ -44,34 +50,81 @@ class Configuration(BaseModel):
             max_depth: Максимальная глубина рекурсии при объединении (по умолчанию 50).
 
         Raises:
-            ValueError: Если возникает конфликт типов при объединении.
+            RecursionError: При превышении максимальной глубины.
+            ValueError: При конфликте типов.
+
+        Note:
+            При достижении 80% от max_depth выводится предупреждение.
         """
-        ConfigService.merge_configs(source=other_config, target=self, max_depth=max_depth)
+        self._merge_models_iterative(source=other_config, target=self, max_depth=max_depth)
 
     @staticmethod
     def _merge_models_iterative(source: BaseModel, target: BaseModel, max_depth: int = 50) -> None:
         """Итеративно объединяет две Pydantic модели без рекурсии.
 
-        Делегирует к ConfigService для устранения дублирования.
+        Использует стек вместо рекурсии для предотвращения RecursionError.
+
+        Args:
+            source: Исходная модель.
+            target: Целевая модель.
+            max_depth: Максимальная глубина.
         """
-        ConfigService._merge_models_iterative(source=source, target=target, max_depth=max_depth)
+        warning_threshold: int = int(max_depth * 0.8)
+        warning_shown: bool = False
+        stack: list[tuple[BaseModel, BaseModel, int]] = [(source, target, 0)]
+        visited: set[int] = set()
+
+        while stack:
+            current_source, current_target, current_depth = stack.pop()
+
+            if Configuration._is_cyclic_reference(current_source, visited):
+                logger.warning("Обнаружена циклическая ссылка при объединении конфигурации")
+                continue
+
+            warning_shown = Configuration._check_depth_limit(
+                current_depth=current_depth,
+                max_depth=max_depth,
+                warning_threshold=warning_threshold,
+                warning_shown=warning_shown,
+            )
+
+            fields_set = Configuration._get_fields_set(current_source)
+            Configuration._process_fields(
+                source=current_source,
+                target=current_target,
+                fields_set=fields_set,
+                stack=stack,
+                current_depth=current_depth,
+            )
+
+            visited.discard(id(current_source))
 
     @staticmethod
     def _is_cyclic_reference(model: BaseModel, visited: set[int]) -> bool:
-        """Проверяет модель на наличие циклических ссылок."""
-        return ConfigService._is_cyclic_reference(model=model, visited=visited)
+        """Проверяет модель на циклические ссылки."""
+        model_id = id(model)
+        if model_id in visited:
+            return True
+        visited.add(model_id)
+        return False
 
     @staticmethod
     def _check_depth_limit(
         current_depth: int, max_depth: int, warning_threshold: int, warning_shown: bool
     ) -> bool:
-        """Проверяет лимит глубины и выводит предупреждение при необходимости."""
-        return ConfigService._check_depth_limit(
-            current_depth=current_depth,
-            max_depth=max_depth,
-            warning_threshold=warning_threshold,
-            warning_shown=warning_shown,
-        )
+        """Проверяет лимит глубины и выводит предупреждение."""
+        if current_depth >= max_depth:
+            raise RecursionError(f"Превышена максимальная глубина обработки ({max_depth})")
+
+        if current_depth >= warning_threshold and not warning_shown:
+            logger.warning(
+                "Внимание: глубина обработки достигла %d/%d (80%% от лимита)",
+                current_depth,
+                max_depth,
+            )
+            warning_shown = True
+
+        return warning_shown
 
     @staticmethod
     def _process_fields(
@@ -81,14 +134,29 @@ class Configuration(BaseModel):
         stack: list[tuple[BaseModel, BaseModel, int]],
         current_depth: int,
     ) -> None:
-        """Обрабатывает поля исходной модели и обновляет целевую модель."""
-        ConfigService._process_fields(
-            source=source,
-            target=target,
-            fields_set=fields_set,
-            stack=stack,
-            current_depth=current_depth,
-        )
+        """Обрабатывает поля исходной модели."""
+
+        for field in fields_set:
+            try:
+                source_value = getattr(source, field)
+
+                if not isinstance(source_value, BaseModel):
+                    setattr(target, field, source_value)
+                else:
+                    Configuration._handle_nested_model(
+                        source_value=source_value,
+                        target=target,
+                        field=field,
+                        stack=stack,
+                        current_depth=current_depth,
+                    )
+
+            except (AttributeError, TypeError) as e:
+                logger.warning("Ошибка при объединении поля %s: %s", field, e)
+                raise
+            except (ValueError, RuntimeError, OSError) as e:
+                logger.error("Непредвиденная ошибка при объединении поля %s: %s", field, e)
+                raise
 
     @staticmethod
     def _handle_nested_model(
@@ -98,19 +166,21 @@ class Configuration(BaseModel):
         stack: list[tuple[BaseModel, BaseModel, int]],
         current_depth: int,
     ) -> None:
-        """Обрабатывает вложенную модель при объединении."""
-        ConfigService._handle_nested_model(
-            source_value=source_value,
-            target=target,
-            field=field,
-            stack=stack,
-            current_depth=current_depth,
-        )
+        """Обрабатывает вложенную модель."""
+        target_value = getattr(target, field, None)
+
+        if target_value is None:
+            setattr(target, field, deepcopy(source_value))
+        else:
+            stack.append((source_value, target_value, current_depth + 1))
 
     @staticmethod
     def _get_fields_set(model: BaseModel) -> set[str]:
         """Получает набор установленных полей модели."""
-        return ConfigService._get_fields_set(model=model)
+        from parser_2gis.pydantic_compat import get_model_fields_set
+
+        fields_set: set[str] | None = get_model_fields_set(model)
+        return fields_set if fields_set else set()
 
     def save_config(self) -> None:
         """Сохраняет конфигурацию, если она была загружена из пути."""
@@ -122,10 +192,10 @@ class Configuration(BaseModel):
     @classmethod
     def load_config(
         cls, config_path: pathlib.Path | None = None, auto_create: bool = True
-    ) -> Configuration:
+    ) -> "Configuration":
         """Загружает конфигурацию из файла.
 
-        Делегирует к ConfigService для устранения дублирования.
+        Делегирует к ConfigService для операций save/load.
         """
         return ConfigService.load_config(
             config_cls=cls, config_path=config_path, auto_create=auto_create
@@ -139,4 +209,15 @@ class Configuration(BaseModel):
     @staticmethod
     def _log_validation_errors(ex: ValidationError) -> None:
         """Формирует детальное сообщение об ошибках валидации."""
-        ConfigService._log_validation_errors(ex)
+        from parser_2gis.utils import report_from_validation_error
+
+        errors = []
+        errors_report = report_from_validation_error(ex)
+        for attr_path, error in errors_report.items():
+            error_msg = error.get("error_message", "неизвестная ошибка")
+            errors.append(f"атрибут {attr_path} ({error_msg})")
+
+        if errors:
+            logger.warning("Ошибки валидации: %s", ", ".join(errors))
+        else:
+            logger.warning("Неизвестные ошибки валидации")

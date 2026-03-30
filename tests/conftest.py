@@ -746,16 +746,16 @@ def tui_screen_names():
         list: Список кортежей (screen_class, screen_name).
     """
     try:
-        from parser_2gis.tui_textual.screens.main_menu import MainMenuScreen
-        from parser_2gis.tui_textual.screens.city_selector import CitySelectorScreen
         from parser_2gis.tui_textual.screens.category_selector import CategorySelectorScreen
+        from parser_2gis.tui_textual.screens.city_selector import CitySelectorScreen
+        from parser_2gis.tui_textual.screens.main_menu import MainMenuScreen
+        from parser_2gis.tui_textual.screens.other_screens import AboutScreen, CacheViewerScreen
         from parser_2gis.tui_textual.screens.parsing_screen import ParsingScreen
         from parser_2gis.tui_textual.screens.settings import (
             BrowserSettingsScreen,
-            ParserSettingsScreen,
             OutputSettingsScreen,
+            ParserSettingsScreen,
         )
-        from parser_2gis.tui_textual.screens.other_screens import AboutScreen, CacheViewerScreen
 
         return [
             (MainMenuScreen, "MainMenuScreen"),

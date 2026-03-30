@@ -1,8 +1,12 @@
 """
 Сервис для операций с конфигурацией.
 
-Предоставляет класс ConfigService для сохранения, загрузки и объединения конфигураций.
+Предоставляет класс ConfigService для сохранения и загрузки конфигураций.
 Выделен из config.py для соблюдения принципа единственной ответственности (SRP).
+
+Примечание:
+    Логика merge_configs перемещена в класс Configuration для устранения
+    нарушения Middle Man. Этот класс оставлен только для операций save/load.
 """
 
 from __future__ import annotations
@@ -10,14 +14,13 @@ from __future__ import annotations
 import json
 import pathlib
 import shutil
-from copy import deepcopy
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
 from .logger import logger
 from .paths import user_path
-from .pydantic_compat import get_model_dump, get_model_fields_set, model_validate_json_class
+from .pydantic_compat import get_model_dump, model_validate_json_class
 from .utils import report_from_validation_error
 
 
@@ -27,7 +30,6 @@ class ConfigService:
     Предоставляет статические методы для:
     - Сохранения конфигурации в файл
     - Загрузки конфигурации из файла
-    - Объединения конфигураций
     - Создания резервных копий
 
     Example:
@@ -35,150 +37,11 @@ class ConfigService:
         >>> config = Configuration()
         >>> ConfigService.save_config(config, Path("./config.json"))
         >>> loaded = ConfigService.load_config(Path("./config.json"))
-        >>> ConfigService.merge_configs(source, target)
+
+    Примечание:
+        Методы merge_configs, _merge_models_iterative и связанные методы
+        перемещены в класс Configuration для устранения Middle Man.
     """
-
-    @staticmethod
-    def merge_configs(source: BaseModel, target: BaseModel, max_depth: int = 50) -> None:
-        """Объединяет две конфигурации.
-
-        Рекурсивно обновляет поля target значениями из source.
-        Используются только явно установленные поля (model_fields_set).
-
-        Args:
-            source: Исходная конфигурация для чтения значений.
-            target: Целевая конфигурация для обновления.
-            max_depth: Максимальная глубина рекурсии (по умолчанию 50).
-
-        Raises:
-            RecursionError: При превышении максимальной глубины.
-            ValueError: При конфликте типов.
-
-        Note:
-            При достижении 80% от max_depth выводится предупреждение.
-        """
-        ConfigService._merge_models_iterative(source=source, target=target, max_depth=max_depth)
-
-    @staticmethod
-    def _merge_models_iterative(source: BaseModel, target: BaseModel, max_depth: int = 50) -> None:
-        """Итеративно объединяет две Pydantic модели без рекурсии.
-
-        Использует стек вместо рекурсии для предотвращения RecursionError.
-
-        Args:
-            source: Исходная модель.
-            target: Целевая модель.
-            max_depth: Максимальная глубина.
-        """
-        warning_threshold: int = int(max_depth * 0.8)
-        warning_shown: bool = False
-        stack: list[tuple[BaseModel, BaseModel, int]] = [(source, target, 0)]
-        visited: set[int] = set()
-
-        while stack:
-            current_source, current_target, current_depth = stack.pop()
-
-            if ConfigService._is_cyclic_reference(current_source, visited):
-                logger.warning("Обнаружена циклическая ссылка при объединении конфигурации")
-                continue
-
-            warning_shown = ConfigService._check_depth_limit(
-                current_depth=current_depth,
-                max_depth=max_depth,
-                warning_threshold=warning_threshold,
-                warning_shown=warning_shown,
-            )
-
-            fields_set = ConfigService._get_fields_set(current_source)
-            ConfigService._process_fields(
-                source=current_source,
-                target=current_target,
-                fields_set=fields_set,
-                stack=stack,
-                current_depth=current_depth,
-            )
-
-            visited.discard(id(current_source))
-
-    @staticmethod
-    def _is_cyclic_reference(model: BaseModel, visited: set[int]) -> bool:
-        """Проверяет модель на циклические ссылки."""
-        model_id = id(model)
-        if model_id in visited:
-            return True
-        visited.add(model_id)
-        return False
-
-    @staticmethod
-    def _check_depth_limit(
-        current_depth: int, max_depth: int, warning_threshold: int, warning_shown: bool
-    ) -> bool:
-        """Проверяет лимит глубины и выводит предупреждение."""
-        if current_depth >= max_depth:
-            raise RecursionError(f"Превышена максимальная глубина обработки ({max_depth})")
-
-        if current_depth >= warning_threshold and not warning_shown:
-            logger.warning(
-                "Внимание: глубина обработки достигла %d/%d (80%% от лимита)",
-                current_depth,
-                max_depth,
-            )
-            warning_shown = True
-
-        return warning_shown
-
-    @staticmethod
-    def _process_fields(
-        source: BaseModel,
-        target: BaseModel,
-        fields_set: set[str],
-        stack: list[tuple[BaseModel, BaseModel, int]],
-        current_depth: int,
-    ) -> None:
-        """Обрабатывает поля исходной модели."""
-        for field in fields_set:
-            try:
-                source_value = getattr(source, field)
-
-                if not isinstance(source_value, BaseModel):
-                    setattr(target, field, source_value)
-                else:
-                    ConfigService._handle_nested_model(
-                        source_value=source_value,
-                        target=target,
-                        field=field,
-                        stack=stack,
-                        current_depth=current_depth,
-                    )
-
-            except (AttributeError, TypeError) as e:
-                logger.warning("Ошибка при объединении поля %s: %s", field, e)
-                raise
-            except (ValueError, RuntimeError, OSError) as e:
-                logger.error("Непредвиденная ошибка при объединении поля %s: %s", field, e)
-                raise
-
-    @staticmethod
-    def _handle_nested_model(
-        source_value: BaseModel,
-        target: BaseModel,
-        field: str,
-        stack: list[tuple[BaseModel, BaseModel, int]],
-        current_depth: int,
-    ) -> None:
-        """Обрабатывает вложенную модель."""
-        target_value = getattr(target, field, None)
-
-        if target_value is None:
-            setattr(target, field, deepcopy(source_value))
-        else:
-            stack.append((source_value, target_value, current_depth + 1))
-
-    @staticmethod
-    def _get_fields_set(model: BaseModel) -> set[str]:
-        """Получает набор установленных полей модели."""
-        fields_set: set[str] | None = get_model_fields_set(model)
-        return fields_set if fields_set else set()
 
     @staticmethod
     def save_config(config: BaseModel, path: pathlib.Path) -> None:

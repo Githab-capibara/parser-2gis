@@ -22,9 +22,10 @@ class TestExceptionHandlingInCacheManager:
 
         Проверяет что при ошибке чтения из кэша исключение распространяется.
         """
-        from parser_2gis.cache.manager import CacheManager
-        from pathlib import Path
         import tempfile
+        from pathlib import Path
+
+        from parser_2gis.cache.manager import CacheManager
 
         # Создаём временный кэш
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -40,9 +41,10 @@ class TestExceptionHandlingInCacheManager:
 
         Проверяет что метод обрабатывает некорректные данные.
         """
-        from parser_2gis.cache.manager import CacheManager
-        from pathlib import Path
         import tempfile
+        from pathlib import Path
+
+        from parser_2gis.cache.manager import CacheManager
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             cache = CacheManager(cache_dir=Path(tmp_dir))
@@ -61,9 +63,10 @@ class TestExceptionHandlingInCacheManager:
 
         Проверяет что закрытие кэша выполняется корректно.
         """
-        from parser_2gis.cache.manager import CacheManager
-        from pathlib import Path
         import tempfile
+        from pathlib import Path
+
+        from parser_2gis.cache.manager import CacheManager
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             cache = CacheManager(cache_dir=Path(tmp_dir))
@@ -131,8 +134,8 @@ class TestExceptionHandlingInParallelParser:
 
         Проверяет что ошибка при слиянии отсутствующих файлов обрабатывается.
         """
-        from parser_2gis.parallel.parallel_parser import ParallelCityParser
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.parallel_parser import ParallelCityParser
 
         config = Configuration()
         cities = [{"name": "Test", "code": "test", "domain": "test"}]
@@ -158,8 +161,8 @@ class TestExceptionHandlingInParallelParser:
 
         Проверяет что парсер корректно обрабатывает исключения.
         """
-        from parser_2gis.parallel.parallel_parser import ParallelCityParser
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.parallel_parser import ParallelCityParser
 
         caplog.set_level(logging.ERROR)
 
@@ -284,9 +287,10 @@ class TestExceptionNotSwallowed:
 
         Проверяет что исключения кэша не проглатываются.
         """
-        from parser_2gis.cache.manager import CacheManager
-        from pathlib import Path
         import tempfile
+        from pathlib import Path
+
+        from parser_2gis.cache.manager import CacheManager
 
         # Создаём временный кэш
         with tempfile.TemporaryDirectory() as tmp_dir:

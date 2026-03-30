@@ -49,7 +49,7 @@ class TestDirectImports:
 
         Проверяет что модуль validation импортируется без ошибок.
         """
-        from parser_2gis.validation import url_validator, data_validator
+        from parser_2gis.validation import data_validator, url_validator
 
         assert url_validator is not None
         assert data_validator is not None
@@ -102,10 +102,9 @@ class TestCyclicDependencies:
         Проверяет что validation и chrome не имеют циклической зависимости.
         """
         # Импортируем validation
-        from parser_2gis.validation import url_validator
-
         # Импортируем chrome
         from parser_2gis.chrome import browser
+        from parser_2gis.validation import url_validator
 
         # Оба модуля должны быть загружены независимо
         assert url_validator is not None

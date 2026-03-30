@@ -41,9 +41,7 @@ class TestLoggerHandlersIntegration:
         content = logger_init.read_text(encoding="utf-8")
 
         # logger должен импортировать FileLogger из logging
-        assert "FileLogger" in content, (
-            "logger/__init__.py должен импортировать FileLogger"
-        )
+        assert "FileLogger" in content, "logger/__init__.py должен импортировать FileLogger"
         assert "parser_2gis.logging" in content, (
             "logger/__init__.py должен импортировать из parser_2gis.logging"
         )
@@ -113,9 +111,7 @@ class TestParallelCoordinatorIntegration:
         ]
 
         for import_name in expected_imports:
-            assert import_name in content, (
-                f"coordinator.py должен использовать {import_name}"
-            )
+            assert import_name in content, f"coordinator.py должен использовать {import_name}"
 
     def test_coordinator_instantiates_error_handler(self) -> None:
         """Проверяет что coordinator создаёт ParallelErrorHandler."""
@@ -336,8 +332,8 @@ class TestModuleImportIntegration:
             except ImportError as e:
                 failed_imports.append(f"{module_name}: {e}")
 
-        assert len(failed_imports) == 0, (
-            "Все core модули должны импортироваться:\n" + "\n".join(failed_imports)
+        assert len(failed_imports) == 0, "Все core модули должны импортироваться:\n" + "\n".join(
+            failed_imports
         )
 
     def test_parallel_submodules_importable(self) -> None:
@@ -576,10 +572,7 @@ class TestArchitectureBoundaries:
 
             content = py_file.read_text(encoding="utf-8")
 
-            high_level_imports = [
-                "from parser_2gis.cli",
-                "from parser_2gis.tui",
-            ]
+            high_level_imports = ["from parser_2gis.cli", "from parser_2gis.tui"]
 
             for imp in high_level_imports:
                 assert imp not in content, (
@@ -598,9 +591,9 @@ class TestArchitectureBoundaries:
         # protocols не должен импортировать другие модули проекта
         # (кроме typing и стандартной библиотеки)
         # Исключаем docstring примеры (строки с >>>)
-        lines = content.split('\n')
-        code_lines = [line for line in lines if '>>>' not in line and '"""' not in line]
-        code_content = '\n'.join(code_lines)
+        lines = content.split("\n")
+        code_lines = [line for line in lines if ">>>" not in line and '"""' not in line]
+        code_content = "\n".join(code_lines)
 
         project_imports = [
             "from parser_2gis.chrome",
@@ -620,9 +613,7 @@ class TestArchitectureBoundaries:
         ]
 
         for imp in project_imports:
-            assert imp not in code_content, (
-                f"protocols.py не должен импортировать: {imp}"
-            )
+            assert imp not in code_content, f"protocols.py не должен импортировать: {imp}"
 
 
 if __name__ == "__main__":

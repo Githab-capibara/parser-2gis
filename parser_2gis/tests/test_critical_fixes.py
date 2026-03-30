@@ -26,7 +26,6 @@ from unittest.mock import patch
 
 import pytest
 
-
 # =============================================================================
 # ТЕСТ 1: SQL Injection fix в cache/manager.py
 # =============================================================================
@@ -241,8 +240,8 @@ class TestParserFactoryUnusedGlobals:
         Тест проверяет что PARSER_REGISTRY и _PARSER_PATTERNS используются.
         """
         from parser_2gis.parser.factory import (
-            PARSER_REGISTRY,
             _PARSER_PATTERNS,
+            PARSER_REGISTRY,
             clear_parser_registry,
             get_registered_parsers,
             register_parser,
@@ -619,8 +618,8 @@ class TestParallelParserMemoryErrorHandling:
 
         Тест с моком что вызывает MemoryError искусственно.
         """
-        from parser_2gis.parallel.parallel_parser import ParallelCityParser
         from parser_2gis.config import Configuration
+        from parser_2gis.parallel.parallel_parser import ParallelCityParser
 
         # Arrange: Создаём тестовый парсер
         config = Configuration.load_config()
@@ -937,13 +936,13 @@ class TestAllCriticalFixesIntegration:
         """
         # Импортируем все модули с исправлениями
         from parser_2gis.cache.manager import CacheManager
-        from parser_2gis.parser.factory import get_parser, register_parser
+        from parser_2gis.chrome.browser import ChromeBrowser
+        from parser_2gis.chrome.remote import ChromeRemote
         from parser_2gis.cli.launcher import ApplicationLauncher
         from parser_2gis.cli.main import main as cli_main
-        from parser_2gis.chrome.browser import ChromeBrowser
         from parser_2gis.parallel.parallel_parser import ParallelCityParser
+        from parser_2gis.parser.factory import get_parser, register_parser
         from parser_2gis.protocols import ModelProvider
-        from parser_2gis.chrome.remote import ChromeRemote
         from parser_2gis.utils.temp_file_manager import create_temp_file
 
         # Проверяем что все классы и функции доступны

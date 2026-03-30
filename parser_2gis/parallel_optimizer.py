@@ -11,8 +11,6 @@
 """
 
 from __future__ import annotations
-from .logger import logger
-import psutil
 
 import itertools
 import queue
@@ -20,6 +18,10 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import psutil
+
+from .logger import logger
 
 _task_counter = itertools.count()
 

@@ -6,11 +6,28 @@
 - Retry logic при таймауте
 """
 
+from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from parser_2gis.parser.parsers.main import MainParser
+from parser_2gis.parser.parsers.main_parser import MainPageParser
+from parser_2gis.writer import FileWriter
+
+
+class TestableMainPageParser(MainPageParser):
+    """Тестовая реализация MainPageParser для тестов.
+
+    Реализует абстрактные методы parse и get_stats.
+    """
+
+    def parse(self, writer: FileWriter) -> None:
+        """Заглушка для теста."""
+        pass
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Заглушка для теста."""
+        return self._stats
 
 
 class TestNavigateTimeoutHandling:
@@ -78,7 +95,7 @@ class TestNavigateTimeoutHandling:
         - При TimeoutError выполняется retry
         - Задержка между попытками экспоненциальная
         """
-        parser = MainParser(
+        parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -116,7 +133,7 @@ class TestNavigateTimeoutHandling:
         - При успешной навигации после retry возвращается True
         - Retry выполняется нужное количество раз
         """
-        parser = MainParser(
+        parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -149,7 +166,7 @@ class TestNavigateTimeoutHandling:
         """
         mock_parser_options.retry_on_network_errors = False
 
-        parser = MainParser(
+        parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -180,7 +197,7 @@ class TestNavigateTimeoutHandling:
         - Все попытки retry выполняются
         - После исчерпания возвращается False
         """
-        parser = MainParser(
+        parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -209,7 +226,7 @@ class TestNavigateTimeoutHandling:
         - Задержка увеличивается экспоненциально
         - Jitter добавляется к задержке
         """
-        parser = MainParser(
+        parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -242,7 +259,7 @@ class TestNavigateTimeoutHandling:
         """
         import logging
 
-        parser = MainParser(
+        parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -270,7 +287,7 @@ class TestNavigateTimeoutHandling:
         Проверяет:
         - Ошибки сети (502, 503, 504) обрабатываются с retry
         """
-        parser = MainParser(
+        parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -300,7 +317,7 @@ class TestNavigateTimeoutHandling:
         Проверяет:
         - Не-сетевые ошибки не вызывают retry
         """
-        parser = MainParser(
+        parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -331,7 +348,7 @@ class TestNavigateTimeoutHandling:
         - TimeoutError обрабатывается корректно
         - Возвращается None
         """
-        parser = MainParser(
+        parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -355,7 +372,7 @@ class TestNavigateTimeoutHandling:
         - Таймаут обрабатывается корректно
         - Возвращается False
         """
-        parser = MainParser(
+        parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,

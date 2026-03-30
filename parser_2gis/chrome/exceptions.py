@@ -48,13 +48,9 @@ class ChromeException(ExceptionContextMixin, Exception):
 class ChromeRuntimeException(_RuntimeException, ChromeException):
     """Исключение времени выполнения Chrome."""
 
-    pass
-
 
 class ChromeUserAbortException(_UserAbortException, ChromeException):
     """Исключение прерывания пользователем Chrome."""
-
-    pass
 
 
 class ChromePathNotFound(ChromeException):

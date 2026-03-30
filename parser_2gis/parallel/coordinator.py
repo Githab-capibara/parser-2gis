@@ -38,10 +38,7 @@ from parser_2gis.parallel.error_handler import ParallelErrorHandler
 from parser_2gis.parallel.merger import ParallelFileMerger
 from parser_2gis.parallel.progress import ParallelProgressReporter
 from parser_2gis.parser import get_parser
-from parser_2gis.utils.temp_file_manager import (
-    TempFileTimer,
-    temp_file_manager,
-)
+from parser_2gis.utils.temp_file_manager import TempFileTimer, temp_file_manager
 from parser_2gis.utils.url_utils import generate_category_url
 from parser_2gis.writer import get_writer
 
@@ -118,6 +115,7 @@ class ParallelCoordinator:
                     ORPHANED_TEMP_FILE_AGE,
                     TEMP_FILE_CLEANUP_INTERVAL,
                 )
+
                 self._temp_file_cleanup_timer = TempFileTimer(
                     temp_dir=self.output_dir,
                     interval=TEMP_FILE_CLEANUP_INTERVAL,
@@ -155,7 +153,9 @@ class ParallelCoordinator:
         if max_workers < MIN_WORKERS:
             raise ValueError(f"max_workers должен быть не менее {MIN_WORKERS}")
         if max_workers > MAX_WORKERS:
-            raise ValueError(f"max_workers слишком большой: {max_workers} (максимум: {MAX_WORKERS})")
+            raise ValueError(
+                f"max_workers слишком большой: {max_workers} (максимум: {MAX_WORKERS})"
+            )
         if timeout_per_url < MIN_TIMEOUT:
             raise ValueError(f"timeout_per_url должен быть не менее {MIN_TIMEOUT} секунд")
         if timeout_per_url > MAX_TIMEOUT:
@@ -184,7 +184,10 @@ class ParallelCoordinator:
                     url = generate_category_url(city, category)
                     all_urls.append((url, category["name"], city["name"]))
                 except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
-                    self.log(f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}", "error")
+                    self.log(
+                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
+                        "error",
+                    )
 
         with self._lock:
             self._stats["total"] = len(all_urls)
@@ -227,9 +230,7 @@ class ParallelCoordinator:
                 nonlocal parser, writer
                 writer = get_writer(str(temp_filepath), "csv", self.config.writer)
                 parser = get_parser(
-                    url,
-                    chrome_options=self.config.chrome,
-                    parser_options=self.config.parser,
+                    url, chrome_options=self.config.chrome, parser_options=self.config.parser
                 )
 
             try:
@@ -257,13 +258,21 @@ class ParallelCoordinator:
 
             try:
                 os.replace(str(temp_filepath), str(filepath))
-                self.log(f"Временный файл переименован: {temp_filepath.name} → {filepath.name}", "debug")
+                self.log(
+                    f"Временный файл переименован: {temp_filepath.name} → {filepath.name}", "debug"
+                )
             except OSError as replace_error:
-                self.log(f"Не удалось переименовать файл (OSError): {replace_error}. Используем shutil.move", "debug")
+                self.log(
+                    f"Не удалось переименовать файл (OSError): {replace_error}. Используем shutil.move",
+                    "debug",
+                )
                 try:
                     shutil.move(str(temp_filepath), str(filepath))
                 except (OSError, RuntimeError, TypeError, ValueError) as move_error:
-                    self.log(f"Не удалось переместить временный файл {temp_filepath.name}: {move_error}", "error")
+                    self.log(
+                        f"Не удалось переместить временный файл {temp_filepath.name}: {move_error}",
+                        "error",
+                    )
                     self._error_handler._cleanup_temp_file(temp_filepath)
                     raise move_error
 
@@ -280,7 +289,9 @@ class ParallelCoordinator:
             return True, str(filepath)
 
         except Exception as e:
-            return self._error_handler.handle_other_error(e, temp_filepath, city_name, category_name)
+            return self._error_handler.handle_other_error(
+                e, temp_filepath, city_name, category_name
+            )
 
     def parse_single_url(
         self,
@@ -292,7 +303,9 @@ class ParallelCoordinator:
         """Парсит один URL и сохраняет результат в отдельный файл."""
         available_memory = psutil.virtual_memory().available
         if available_memory < 100 * 1024 * 1024:
-            logger.warning(f"Low memory ({available_memory // 1024 // 1024}MB), skipping {city_name} - {category_name}")
+            logger.warning(
+                f"Low memory ({available_memory // 1024 // 1024}MB), skipping {city_name} - {category_name}"
+            )
             return False, "Недостаточно памяти"
 
         if self._cancel_event.is_set():
@@ -325,7 +338,9 @@ class ParallelCoordinator:
                         temp_filepath, city_name, category_name, self.timeout_per_url
                     )
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
-            return self._error_handler.handle_other_error(e, temp_filepath, city_name, category_name)
+            return self._error_handler.handle_other_error(
+                e, temp_filepath, city_name, category_name
+            )
 
     def run(
         self,
@@ -434,7 +449,12 @@ class ParallelCoordinator:
                 self.log("Не удалось объединить CSV файлы", "error")
                 log_parser_finish(
                     success=False,
-                    stats={"Городов": len(self.cities), "Категорий": len(self.categories), "Успешно": success_count, "Ошибки": failed_count},
+                    stats={
+                        "Городов": len(self.cities),
+                        "Категорий": len(self.categories),
+                        "Успешно": success_count,
+                        "Ошибки": failed_count,
+                    },
                     duration=duration_str,
                 )
                 return False
@@ -442,7 +462,12 @@ class ParallelCoordinator:
             self.log("Нет успешных результатов для объединения", "warning")
             log_parser_finish(
                 success=False,
-                stats={"Городов": len(self.cities), "Категорий": len(self.categories), "Успешно": 0, "Ошибки": failed_count},
+                stats={
+                    "Городов": len(self.cities),
+                    "Категорий": len(self.categories),
+                    "Успешно": 0,
+                    "Ошибки": failed_count,
+                },
                 duration=duration_str,
             )
             return False

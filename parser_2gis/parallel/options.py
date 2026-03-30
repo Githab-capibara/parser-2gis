@@ -4,6 +4,10 @@
 Содержит классы:
 - ParallelOptions: Опции для конфигурирования параллельного парсинга
 - ParallelParserConfig: Dataclass для группировки параметров парсера
+
+Примечание:
+    Константа MAX_UNIQUE_NAME_ATTEMPTS перемещена в constants.py
+    для устранения дублирования.
 """
 
 from __future__ import annotations

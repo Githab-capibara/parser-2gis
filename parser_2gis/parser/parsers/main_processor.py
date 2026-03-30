@@ -213,10 +213,7 @@ class MainDataProcessor:
 
                     # Принудительный вызов GC
                     gc_collected = gc.collect()
-                    logger.info(
-                        "GC собрал %d объектов",
-                        gc_collected,
-                    )
+                    logger.info("GC собрал %d объектов", gc_collected)
 
                     # Очищаем кэш запросов Chrome если возможно
                     try:
@@ -380,7 +377,9 @@ class MainDataProcessor:
                     if self._parser._options.use_gc:
                         logger.debug("Запуск сборщика мусора.")
                         try:
-                            self._parser._chrome_remote.execute_script('"gc" in window && window.gc()')
+                            self._parser._chrome_remote.execute_script(
+                                '"gc" in window && window.gc()'
+                            )
                         except (OSError, RuntimeError, TypeError, ValueError) as gc_error:
                             logger.debug("Ошибка при запуске сборщика мусора: %s", gc_error)
 

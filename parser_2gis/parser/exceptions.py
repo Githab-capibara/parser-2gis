@@ -22,7 +22,5 @@ class ParserException(BaseContextualException):
     - Имени файла
     """
 
-    pass
-
 
 __all__ = ["ParserException"]
