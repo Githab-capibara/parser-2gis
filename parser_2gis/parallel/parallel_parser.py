@@ -146,6 +146,28 @@ class ParallelCityParser:
                 f"Превышение лимита может указывать на проблемы с сетью или зависание."
             )
 
+        # Валидация структуры элементов cities: проверка наличия ключей name и id
+        for idx, city in enumerate(cities):
+            if not isinstance(city, dict):
+                raise ValueError(
+                    f"Город {idx} должен быть словарём (dict), получен: {type(city).__name__}"
+                )
+            if "name" not in city:
+                raise ValueError(f"Город {idx} отсутствует ключ 'name'")
+            if not isinstance(city.get("name"), str) or not city.get("name"):
+                raise ValueError(f"Город {idx}: 'name' должен быть непустой строкой")
+
+        # Валидация структуры элементов categories: проверка наличия ключей name и id
+        for idx, category in enumerate(categories):
+            if not isinstance(category, dict):
+                raise ValueError(
+                    f"Категория {idx} должна быть словарём (dict), получен: {type(category).__name__}"
+                )
+            if "name" not in category:
+                raise ValueError(f"Категория {idx} отсутствует ключ 'name'")
+            if not isinstance(category.get("name"), str) or not category.get("name"):
+                raise ValueError(f"Категория {idx}: 'name' должен быть непустой строкой")
+
         self.cities = cities
         self.categories = categories
         self.output_dir = Path(output_dir)
@@ -386,13 +408,7 @@ class ParallelCityParser:
             )
             time.sleep(initial_delay)
 
-            # Семафор для контроля одновременного запуска браузеров
-            # Освобождаем после завершения работы с браузером
             self._browser_launch_semaphore.acquire()
-            active_count = self.max_workers - self._browser_launch_semaphore._value + 1
-            self.log(
-                f"Семафор получен. Активных браузеров: {active_count}/{self.max_workers}", "debug"
-            )
             try:
                 # Дополнительная задержка для распределения нагрузки при запуске
                 launch_delay = random.uniform(
@@ -836,6 +852,8 @@ class ParallelCityParser:
         # БЛОКИРОВКА 2: Signal handler для очистки при KeyboardInterrupt
         old_sigint_handler = signal.getsignal(signal.SIGINT)
         old_sigterm_handler = signal.getsignal(signal.SIGTERM)
+        sigint_registered = False
+        sigterm_registered = False
 
         def cleanup_temp_files():
             """Функция очистки временных файлов при прерывании."""
@@ -858,8 +876,14 @@ class ParallelCityParser:
             if callable(old_sigint_handler):
                 old_sigint_handler(signum, frame)
 
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
+        # Регистрируем обработчики сигналов
+        try:
+            signal.signal(signal.SIGINT, signal_handler)
+            sigint_registered = True
+            signal.signal(signal.SIGTERM, signal_handler)
+            sigterm_registered = True
+        except (OSError, ValueError) as sig_error:
+            self.log(f"Не удалось зарегистрировать обработчики сигналов: {sig_error}", "warning")
 
         try:
             with self._merge_lock:
@@ -965,13 +989,22 @@ class ParallelCityParser:
         finally:
             self._cleanup_merge_lock(lock_file_handle, lock_file_path)
 
-            try:
-                signal.signal(signal.SIGINT, old_sigint_handler)
-                signal.signal(signal.SIGTERM, old_sigterm_handler)
-            except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
-                self.log(
-                    f"Ошибка при восстановлении обработчиков сигналов: {restore_error}", "error"
-                )
+            # ВОССТАНОВЛЕНИЕ СИГНАЛОВ ВСЕГДА через try/finally
+            if sigint_registered:
+                try:
+                    signal.signal(signal.SIGINT, old_sigint_handler)
+                except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
+                    self.log(
+                        f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error"
+                    )
+
+            if sigterm_registered:
+                try:
+                    signal.signal(signal.SIGTERM, old_sigterm_handler)
+                except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
+                    self.log(
+                        f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
+                    )
 
             unregister_temp_file(temp_output)
 

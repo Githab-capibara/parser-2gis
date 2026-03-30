@@ -55,11 +55,7 @@ class FileWriter(ABC):
 
         # Проверяем на наличие Path traversal конструкций
         if ".." in file_path_str:
-            logger.warning(
-                "Путь к файлу содержит '..' (возможная Path traversal атака): %s. "
-                "Путь будет нормализован.",
-                file_path_str,
-            )
+            raise ValueError(f"Путь к файлу содержит '..' (Path traversal атака): {file_path_str}")
 
         # Нормализуем путь через os.path.normpath()
         normalized_path = os.path.normpath(file_path_str)

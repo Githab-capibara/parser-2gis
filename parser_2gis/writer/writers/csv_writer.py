@@ -25,6 +25,46 @@ from .file_writer import FileWriter
 if TYPE_CHECKING:
     from parser_2gis.writer.models.contact_group import ContactGroup
 
+# Константа для заголовка колонки URL
+CSV_URL_HEADER = "2GIS URL"
+
+
+def _append_contact(
+    data: Dict[str, Any],
+    contact_group: "ContactGroup",
+    contact_type: str,
+    priority_fields: List[str],
+    formatter: Optional[Callable[[str], str]],
+    add_comments: bool,
+) -> None:
+    """Добавляет контакт в data.
+
+    Args:
+        data: Словарь данных для записи в CSV.
+        contact_group: Группа контактов.
+        contact_type: Тип контакта (см. Contact в catalog_item.py)
+        priority_fields: Поля контакта для добавления, сортированные по приоритету
+        formatter: Форматировщик значения поля
+        add_comments: Добавлять ли комментарии к контактам
+    """
+    contacts = [x for x in contact_group.contacts if x.type == contact_type]
+    for i, contact in enumerate(contacts, 1):
+        contact_value = None
+
+        for field in priority_fields:
+            if hasattr(contact, field):
+                contact_value = getattr(contact, field)
+                break
+
+        if not contact_value:
+            continue
+
+        data_name = f"{contact_type}_{i}"
+        if data_name in data:
+            data[data_name] = formatter(contact_value) if formatter else contact_value
+            if add_comments and contact.comment:
+                data[data_name] += " (%s)" % contact.comment
+
 
 class CSVWriter(FileWriter):
     """Писатель в CSV-таблицу.
@@ -117,7 +157,7 @@ class CSVWriter(FileWriter):
 
         return {
             **data_mapping,
-            **{"point_lat": "Широта", "point_lon": "Долгота", "url": "2GIS URL", "type": "Тип"},
+            **{"point_lat": "Широта", "point_lon": "Долгота", "url": CSV_URL_HEADER, "type": "Тип"},
         }
 
     def _writerow(self, row: Dict[str, Any]) -> None:
@@ -211,7 +251,7 @@ class CSVWriter(FileWriter):
         Returns:
             Словарь для строки CSV или пустой словарь при ошибке.
         """
-        data: Dict[str, Any] = {k: None for k in self._data_mapping.keys()}
+        data: Dict[str, Any] = {}
 
         # Проверка структуры документа
         try:
@@ -301,42 +341,6 @@ class CSVWriter(FileWriter):
 
         # Контактные данные (телефоны, email, сайты, соцсети)
         for contact_group in catalog_item.contact_groups:
-
-            def append_contact(
-                contact_group: "ContactGroup",
-                contact_type: str,
-                priority_fields: List[str],
-                formatter: Optional[Callable[[str], str]] = None,
-            ) -> None:
-                """Добавляет контакт в `data`.
-
-                Args:
-                    contact_group: Группа контактов.
-                    contact_type: Тип контакта (см. `Contact` в `catalog_item.py`)
-                    priority_fields: Поля контакта для добавления, сортированные по приоритету
-                    formatter: Форматировщик значения поля
-                """
-                contacts = [x for x in contact_group.contacts if x.type == contact_type]
-                for i, contact in enumerate(contacts, 1):
-                    contact_value = None
-
-                    for field in priority_fields:
-                        if hasattr(contact, field):
-                            contact_value = getattr(contact, field)
-                            break
-
-                    # Отсутствующие значения контакта - пропускаем
-                    if not contact_value:
-                        continue
-
-                    data_name = f"{contact_type}_{i}"
-                    if data_name in data:
-                        data[data_name] = formatter(contact_value) if formatter else contact_value
-
-                        # Добавляем комментарий к контакту при наличии
-                        if self._options.csv.add_comments and contact.comment:
-                            data[data_name] += " (%s)" % contact.comment
-
             # Интернет-адреса (веб-сайты, соцсети)
             for t in [
                 "website",
@@ -350,7 +354,9 @@ class CSVWriter(FileWriter):
                 "youtube",
                 "skype",
             ]:
-                append_contact(contact_group, t, ["url"])
+                _append_contact(
+                    data, contact_group, t, ["url"], None, self._options.csv.add_comments
+                )
 
             # Удаляем параметры из URL WhatsApp
             for field in data:
@@ -359,16 +365,20 @@ class CSVWriter(FileWriter):
 
             # Текстовые значения (email, skype и т.д.)
             for t in ["email", "skype"]:
-                append_contact(contact_group, t, ["value"])
+                _append_contact(
+                    data, contact_group, t, ["value"], None, self._options.csv.add_comments
+                )
 
             # Телефоны (поле `value` иногда содержит нерелевантные данные,
             # поэтому предпочитаем парсить поле `text`.
             # Если в контакте нет `text` - используем атрибут `value`)
-            append_contact(
+            _append_contact(
+                data,
                 contact_group,
                 "phone",
                 ["text", "value"],
-                formatter=lambda x: re.sub(r"^\+7", "8", re.sub(r"[^0-9+]", "", x)),
+                lambda x: re.sub(r"^\+7", "8", re.sub(r"[^0-9+]", "", x)),
+                self._options.csv.add_comments,
             )
 
         # Режим работы объекта

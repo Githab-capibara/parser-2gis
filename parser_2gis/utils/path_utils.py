@@ -18,14 +18,7 @@ import urllib.parse
 from pathlib import Path
 from typing import List, Optional, Set
 
-from parser_2gis.constants import MAX_PATH_LENGTH
-
-# =============================================================================
-# КОНСТАНТЫ БЕЗОПАСНОСТИ
-# =============================================================================
-
-# Запрещённые символы в путях для предотвращения path traversal атак
-FORBIDDEN_PATH_CHARS: List[str] = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
+from parser_2gis.constants import FORBIDDEN_PATH_CHARS, MAX_PATH_LENGTH
 
 # Разрешённые базовые директории для записи
 # ОБОСНОВАНИЕ: Используем tempfile.gettempdir() вместо hardcoded /tmp для кроссплатформенности

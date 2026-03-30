@@ -229,7 +229,33 @@ class TUIApp(App):
             "current_page": 0,
             "total_records": 0,
             "current_record": 0,
+            "_parsing_logs": [],  # Буфер логов парсинга с ограничением размера
         }
+
+    # Максимальный размер буфера логов для предотвращения утечки памяти
+    _MAX_LOG_BUFFER_SIZE: int = 1000
+
+    def _clear_state(self) -> None:
+        """Очистить состояние приложения для освобождения памяти."""
+        self._state = {
+            "selected_cities": [],
+            "selected_categories": [],
+            "parsing_active": False,
+            "parsing_progress": 0,
+            "total_urls": 0,
+            "current_url": 0,
+            "current_city": "",
+            "current_category": "",
+            "success_count": 0,
+            "error_count": 0,
+            "total_pages": 0,
+            "current_page": 0,
+            "total_records": 0,
+            "current_record": 0,
+            "_parsing_logs": [],
+        }
+        self._parser = None
+        self._last_notification = None
 
     @property
     def last_notification(self) -> Optional[dict[str, str]]:
@@ -288,6 +314,11 @@ class TUIApp(App):
         for key, value in kwargs.items():
             if key in self._state:
                 self._state[key] = value
+            # Ограничиваем буфер логов для предотвращения утечки памяти
+            if key == "_parsing_logs" and isinstance(value, list):
+                if len(value) > self._MAX_LOG_BUFFER_SIZE:
+                    # Оставляем только последние записи
+                    self._state[key] = value[-self._MAX_LOG_BUFFER_SIZE :]
 
     def get_state(self, key: str) -> Any:
         """Получить значение из состояния."""
@@ -326,7 +357,18 @@ class TUIApp(App):
 
     def _setup_logging(self) -> None:
         """Настроить логирование."""
+        # Используем существующий logger с очисткой предыдущих handlers
         self._file_logger = logging.getLogger("parser_2gis.tui")
+
+        # Очищаем существующие handlers для предотвращения утечки ресурсов
+        if self._file_logger.handlers:
+            for handler in self._file_logger.handlers[:]:
+                try:
+                    handler.close()
+                    self._file_logger.removeHandler(handler)
+                except (OSError, RuntimeError, TypeError, ValueError):
+                    pass  # Игнорируем ошибки при очистке
+
         self._file_logger.setLevel(logging.INFO)
 
     def action_go_back(self) -> None:
@@ -460,22 +502,32 @@ class TUIApp(App):
                     success: Количество успешных операций
                     failed: Количество неудачных операций
                     filename: Имя файла вывода
+
+                Note:
+                    Использует call_from_thread для синхронизации с главным потоком
+                    и предотвращения race condition при доступе к состоянию приложения.
                 """
                 # Проверка флага остановки во время парсинга
                 if not self._running:
                     return
 
-                category = filename.replace(".csv", "").split("_")[-1] if "_" in filename else ""
-                self.update_state(
-                    success_count=success,
-                    error_count=failed,
-                    current_category=category,
-                    current_record=success + failed,
-                )
+                # Синхронизация с главным потоком для предотвращения race condition
+                def update_progress_state() -> None:
+                    if not self._running:
+                        return
+                    category = (
+                        filename.replace(".csv", "").split("_")[-1] if "_" in filename else ""
+                    )
+                    self.update_state(
+                        success_count=success,
+                        error_count=failed,
+                        current_category=category,
+                        current_record=success + failed,
+                    )
+                    if not self._running:
+                        return
 
-                # Дополнительная проверка флага остановки после обновления состояния
-                if not self._running:
-                    return
+                self.call_from_thread(update_progress_state)
 
             output_file = f"Омск_парсинг_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
             result = parser.run(output_file=output_file, progress_callback=progress_callback)

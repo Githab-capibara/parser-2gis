@@ -203,8 +203,18 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     _visited: set = set()
 
     # Проверка максимального размера данных перед обработкой
+    # Ограничиваем размер repr() для предотвращения переполнения памяти
     try:
         value_str = repr(value)
+        if len(value_str) > MAX_DATA_SIZE:
+            logger.error(
+                "Размер repr() превышает максимальный лимит: %d символов (максимум: %d)",
+                len(value_str),
+                MAX_DATA_SIZE,
+            )
+            raise ValueError(
+                "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки."
+            )
         value_size = len(value_str.encode("utf-8"))
 
         if value_size > MAX_DATA_SIZE:
@@ -277,7 +287,6 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
 
                 # Проверяем на циклические ссылки
                 if current_id in results:
-                    # Уже обработано, используем кэшированный результат
                     result = results[current_id]
                     if parent is not None and parent_key is not None:
                         if isinstance(parent, dict):
@@ -287,17 +296,18 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                     continue
 
                 # Проверяем на циклические ссылки для изменяемых типов
+                if isinstance(current_value, (dict, list)) and current_id in _visited:
+                    result = "<REDACTED>"
+                    if parent is not None and parent_key is not None:
+                        if isinstance(parent, dict):
+                            parent[parent_key] = result
+                        elif isinstance(parent, list):
+                            parent[parent_key] = result
+                    else:
+                        results[current_id] = result
+                    continue
+
                 if isinstance(current_value, (dict, list)):
-                    if current_id in _visited:
-                        result = "<REDACTED>"
-                        if parent is not None and parent_key is not None:
-                            if isinstance(parent, dict):
-                                parent[parent_key] = result
-                            elif isinstance(parent, list):
-                                parent[parent_key] = result
-                        else:
-                            results[current_id] = result
-                        continue
                     _visited.add(current_id)
 
                 # Чувствительные ключи обрабатываем сразу

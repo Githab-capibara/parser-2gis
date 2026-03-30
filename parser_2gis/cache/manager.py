@@ -395,7 +395,8 @@ class CacheManager:
 
         finally:
             try:
-                cursor.close()
+                if cursor is not None:
+                    cursor.close()
             except (sqlite3.Error, OSError, MemoryError) as cursor_error:
                 app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
@@ -555,7 +556,7 @@ class CacheManager:
             deleted_count = cursor.rowcount
             conn.commit()
 
-            if deleted_count > 0:
+            if deleted_count is not None and deleted_count > 0:
                 app_logger.debug("Очищено %d истекших записей кэша", deleted_count)
 
             return deleted_count

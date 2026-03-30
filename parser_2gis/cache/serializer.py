@@ -25,7 +25,6 @@ try:
     _USE_ORJSON = True
 except ImportError:
     _USE_ORJSON = False
-    orjson = None  # type: ignore
 
 
 class JsonSerializer:

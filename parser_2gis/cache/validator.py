@@ -44,25 +44,42 @@ class CacheDataValidator:
     """
 
     # Паттерн для обнаружения SQL-инъекций
+    # Используем (?<![^\s]) вместо \b для корректной работы с unicode
     _SQL_INJECTION_PATTERNS: re.Pattern = re.compile(
-        r"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE)\b|"
+        r"((?<![^\s])(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE)(?![^\s])|"
         r"--|/\*|\*/|@@|CHAR\(|0x[0-9a-f]+|"
-        r"\b(OR|AND)\s+\d+\s*=\s*\d+|"
-        r"\bUNION\s+(ALL\s+)?SELECT\b|"
-        r"\bWAITFOR\s+DELAY\b|"
-        r"\bBENCHMARK\s*\(|"
-        r"\bHAVING\s+\d+\s*=\s*\d+|"
-        r"\bGROUP\s+BY\s+\d+|"
-        r"\bORDER\s+BY\s+\d+|"
-        r"\bSLEEP\s*\(\s*\d+\s*\)|"
-        r"\bINFORMATION_SCHEMA\b|"
-        r"\bSYS\.\w+\b|"
-        r";\s*(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE)\b)",
+        r"(?<![^\s])(OR|AND)\s+\d+\s*=\s*\d+|"
+        r"(?<![^\s])UNION\s+(ALL\s+)?SELECT(?![^\s])|"
+        r"(?<![^\s])WAITFOR\s+DELAY(?![^\s])|"
+        r"(?<![^\s])BENCHMARK\s*\(|"
+        r"(?<![^\s])HAVING\s+\d+\s*=\s*\d+|"
+        r"(?<![^\s])GROUP\s+BY\s+\d+|"
+        r"(?<![^\s])ORDER\s+BY\s+\d+|"
+        r"(?<![^\s])SLEEP\s*\(\s*\d+\s*\)|"
+        r"(?<![^\s])INFORMATION_SCHEMA(?![^\s])|"
+        r"(?<![^\s])SYS\.\w+(?![^\s])|"
+        r";\s*(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE))",
         re.IGNORECASE,
     )
 
     # Опасные ключи для защиты от prototype pollution
-    _DANGEROUS_KEYS: Set[str] = {"__proto__", "constructor", "prototype"}
+    # Расширенный набор для полной защиты от различных методов прототипного загрязнения
+    _DANGEROUS_KEYS: Set[str] = {
+        "__proto__",
+        "constructor",
+        "prototype",
+        "__defineGetter__",
+        "__defineSetter__",
+        "__lookupGetter__",
+        "__lookupSetter__",
+        "__iterator__",
+        "hasOwnProperty",
+        "isPrototypeOf",
+        "propertyIsEnumerable",
+        "toString",
+        "valueOf",
+        "toLocaleString",
+    }
 
     def __init__(self) -> None:
         """Инициализация валидатора."""

@@ -346,7 +346,7 @@ class ProgressTracker:
             Процент выполнения (0.0 - 100.0).
         """
         with self._lock:
-            if self.total_tasks == 0:
+            if self.total_tasks is None or self.total_tasks <= 0:
                 return 0.0
             return (self.completed_tasks / self.total_tasks) * 100.0
 
@@ -403,10 +403,14 @@ class StatsCollector:
         with self._lock:
             self.end_time = time.time()
 
+    # Максимальное значение счётчика для предотвращения overflow
+    _MAX_COUNTER_VALUE: int = 10**9
+
     def record_success(self) -> None:
         """Записывает успешную операцию."""
         with self._lock:
-            self.success_count += 1
+            if self.success_count < self._MAX_COUNTER_VALUE:
+                self.success_count += 1
 
     def record_error(self, error_message: str, city: str = "", category: str = "") -> None:
         """
@@ -418,7 +422,8 @@ class StatsCollector:
             category: Название категории (опционально).
         """
         with self._lock:
-            self.error_count += 1
+            if self.error_count < self._MAX_COUNTER_VALUE:
+                self.error_count += 1
             self.errors.append(
                 {
                     "message": error_message,

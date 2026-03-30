@@ -346,10 +346,11 @@ class ParallelOptimizer:
                     task = self.get_next_task()
                     if task:
                         future = executor.submit(parse_func, task)
-                        futures[future] = task
-                        task_id = next(_task_counter)
-                        task._task_id = task_id
-                        self._active_tasks[task_id] = task
+                        with self._lock:
+                            futures[future] = task
+                            task_id = next(_task_counter)
+                            task._task_id = task_id
+                            self._active_tasks[task_id] = task
                         logger.debug("Запущена задача: %s - %s", task.city_name, task.category_name)
 
                 # Проверяем завершенные задачи

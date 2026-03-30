@@ -99,9 +99,7 @@ class CSVDeduplicator:
 
         try:
             optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
-            file_size = (
-                os.path.getsize(self._file_path) if os.path.exists(self._file_path) else None
-            )
+            file_size = os.path.getsize(self._file_path)
             optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
 
             # Определяем метод чтения на основе размера файла
@@ -120,7 +118,7 @@ class CSVDeduplicator:
             with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
                 f_csv,
                 is_mmap,
-                underlying_fp,
+                _,  # underlying_fp не используется
             ):
                 f_tmp_csv = open(
                     tmp_csv_name,

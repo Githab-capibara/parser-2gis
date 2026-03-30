@@ -105,8 +105,8 @@ class CSVPostProcessor:
             # Используем контекстный менеджер для безопасной работы с mmap
             with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
                 f_csv,
-                is_mmap,
-                underlying_fp,
+                _,  # is_mmap не используется
+                _,  # underlying_fp не используется
             ):
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
 
@@ -197,18 +197,18 @@ class CSVPostProcessor:
             # Используем контекстный менеджер для безопасной работы с mmap
             with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
                 f_csv,
-                is_mmap,
-                underlying_fp,
+                _,  # is_mmap не используется
+                _,  # underlying_fp не используется
             ):
-                f_tmp_csv = open(
-                    tmp_csv_name,
-                    "w",
-                    newline="",
-                    buffering=optimal_write_buffer,
-                    encoding=self._encoding,
-                )
-
+                f_tmp_csv: Optional[Any] = None
                 try:
+                    f_tmp_csv = open(
+                        tmp_csv_name,
+                        "w",
+                        newline="",
+                        buffering=optimal_write_buffer,
+                        encoding=self._encoding,
+                    )
                     # ВАЖНО: Помечаем что временный файл создан
                     temp_created = True
 
@@ -263,8 +263,9 @@ class CSVPostProcessor:
                         use_mmap,
                     )
                 finally:
-                    # Гарантированно закрываем файл записи
-                    f_tmp_csv.close()
+                    # Гарантированно закрываем файл записи при любом исходе
+                    if f_tmp_csv is not None and not f_tmp_csv.closed:
+                        f_tmp_csv.close()
 
             # Замена оригинального файла новым с безопасной обработкой
             move_success = _safe_move_file(tmp_csv_name, self._file_path)

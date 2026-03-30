@@ -119,10 +119,6 @@ def _calculate_dynamic_pool_size() -> int:
             "Неожиданная ошибка при расчёте размера пула: %s, используем минимум", general_error
         )
         return MIN_POOL_SIZE
-    finally:
-        # Гарантия выполнения любой необходимой очистки
-        # В данном случае очистка не требуется, но блок finally обеспечивает структуру
-        pass
 
 
 class ConnectionPool:
@@ -227,77 +223,74 @@ class ConnectionPool:
             2. Проверка и получение/создание соединения внутри блокировки
             Это упрощает логику и устраняет гонки данных.
         """
-        # ЕДИНАЯ БЛОКИРОВКА для всех операций
+        # ДВОЙНАЯ ПРОВЕРКА С DRY LOCK для минимизации времени удержания блокировки
+        # Быстрая проверка без блокировки - проверяем кэш thread-local
+        if hasattr(self._local, "connection") and self._local.connection is not None:
+            conn_id = id(self._local.connection)
+            if conn_id in self._connection_age:
+                age = time.time() - self._connection_age[conn_id]
+                if age <= _CONNECTION_MAX_AGE_ENV:
+                    return self._local.connection
+
+        # Блокировка только для модификации общих структур
         with self._lock:
-            # Проверяем есть ли соединение в thread-local
+            # Повторная проверка в случае если другое соединение было создано
             if hasattr(self._local, "connection") and self._local.connection is not None:
-                # Проверяем возраст
                 conn_id = id(self._local.connection)
-                if conn_id in self._connection_age:
-                    age = time.time() - self._connection_age[conn_id]
+                age = self._connection_age.get(conn_id)
+                if age is not None:
+                    age = time.time() - age
                     if age <= _CONNECTION_MAX_AGE_ENV:
                         return self._local.connection
-                    # Соединение устарело - закрываем
                     app_logger.debug(
                         "Соединение устарело (возраст: %.0f сек), требуется пересоздание", age
                     )
-                    try:
-                        self._local.connection.close()
-                    except sqlite3.Error as db_error:
-                        app_logger.warning(
-                            "Ошибка БД при закрытии устаревшего соединения: %s",
-                            db_error,
-                            exc_info=True,
-                        )
-                    except OSError as os_error:
-                        app_logger.warning(
-                            "Ошибка ОС при закрытии устаревшего соединения: %s",
-                            os_error,
-                            exc_info=True,
-                        )
-                    if self._local.connection in self._all_conns:
-                        self._all_conns.remove(self._local.connection)
-                    del self._connection_age[conn_id]
-                    self._local.connection = None
+                else:
+                    app_logger.debug(
+                        "Соединение не найдено в _connection_age, требуется пересоздание"
+                    )
+                try:
+                    self._local.connection.close()
+                except (sqlite3.Error, OSError):
+                    pass
+                if self._local.connection in self._all_conns:
+                    self._all_conns.remove(self._local.connection)
+                del self._connection_age[conn_id]
+                self._local.connection = None
 
             # Если соединения нет, создаём новое или получаем из queue
             if not hasattr(self._local, "connection") or self._local.connection is None:
                 # Пытаемся получить соединение из queue
                 try:
                     conn = self._connection_queue.get_nowait()
-                    # Проверяем возраст соединения
                     conn_id = id(conn)
                     if conn_id in self._connection_age:
                         age = time.time() - self._connection_age[conn_id]
                         if age > _CONNECTION_MAX_AGE_ENV:
-                            # Соединение устарело, пересоздаём
                             app_logger.debug(
                                 "Соединение устарело (возраст: %.0f сек), пересоздаём", age
                             )
                             try:
                                 conn.close()
-                            except sqlite3.Error as db_error:
-                                app_logger.warning(
-                                    "Ошибка БД при закрытии устаревшего соединения: %s",
-                                    db_error,
-                                    exc_info=True,
-                                )
-                            except OSError as os_error:
-                                app_logger.warning(
-                                    "Ошибка ОС при закрытии устаревшего соединения: %s",
-                                    os_error,
-                                    exc_info=True,
-                                )
+                            except (sqlite3.Error, OSError):
+                                pass
                             if conn in self._all_conns:
                                 self._all_conns.remove(conn)
                             del self._connection_age[conn_id]
-                            conn = self._create_connection()
+                            conn = None
+
+                    if conn is None:
+                        conn = self._create_connection()
+                        app_logger.debug("Создано новое соединение (queue было пустым)")
+                    else:
+                        app_logger.debug("Получено соединение из queue (reuse)")
 
                     self._local.connection = conn
-                    app_logger.debug("Получено соединение из queue (reuse)")
+
                 except queue.Empty:
                     # Queue пуста, создаём новое соединение
                     self._local.connection = self._create_connection()
+                    app_logger.debug("Создано новое соединение (queue пуста)")
                     # Проверяем лимит соединений
                     if len(self._all_conns) >= self._pool_size:
                         app_logger.warning(

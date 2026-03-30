@@ -200,7 +200,46 @@ class MainParser:
                 }
             })();
         """
-        self._chrome_remote.add_start_script(xhr_script)
+        # Проверяем что скрипт не содержит потенциально опасных паттернов
+        if self._validate_js_script(xhr_script):
+            self._chrome_remote.add_start_script(xhr_script)
+
+    def _validate_js_script(self, script: str) -> bool:
+        """
+        Валидирует JavaScript код перед внедрением.
+
+        Args:
+            script: JavaScript код для проверки.
+
+        Returns:
+            True если скрипт безопасен, False иначе.
+        """
+        import re
+
+        # Запрещённые паттерны в JavaScript
+        dangerous_patterns = [
+            r"document\.cookie",
+            r"localStorage",
+            r"sessionStorage",
+            r"eval\s*\(",
+            r"Function\s*\(",
+            r"setTimeout\s*\(\s*['\"].*['\"]",
+            r"setInterval\s*\(\s*['\"].*['\"]",
+            r"innerHTML\s*=",
+            r"outerHTML\s*=",
+            r"insertAdjacentHTML",
+            r"document\.write",
+            r"window\.location",
+            r"location\.href",
+            r"XMLHttpRequest\.prototype\.setRequestHeader",
+        ]
+
+        for pattern in dangerous_patterns:
+            if re.search(pattern, script, re.IGNORECASE):
+                logger.warning("Заблокирован потенциально опасный JavaScript паттерн: %s", pattern)
+                return False
+
+        return True
 
     @wait_until_finished(timeout=WAIT_REQUESTS_TIMEOUT, poll_interval=0.01)
     def _wait_requests_finished(self) -> bool:
@@ -271,7 +310,30 @@ class MainParser:
             - Автоматический повторный парсинг при временных ошибках (502, 503, 504, TimeoutError)
             - Экспоненциальная задержка между попытками с jitter
             - Обработка HTTP статусов (404, 403, 5xx)
+            - Создаёт отдельные исключения для разных типов ошибок навигации
         """
+
+        # Кастомные исключения для разных типов ошибок навигации
+        class NavigationTimeoutError(Exception):
+            """Ошибка таймаута навигации."""
+
+            pass
+
+        class NavigationNetworkError(Exception):
+            """Ошибка сети при навигации (502, 503, 504 и т.д.)."""
+
+            pass
+
+        class NavigationBlockedError(Exception):
+            """Ошибка блокировки (403, 429 и т.д.)."""
+
+            pass
+
+        class NavigationGenericError(Exception):
+            """Общая ошибка навигации."""
+
+            pass
+
         # Переходим по URL с возможностью повторных попыток при ошибках сети
         for retry_attempt in range(self._options.max_retries + 1):
             try:
@@ -292,6 +354,7 @@ class MainParser:
 
             except TimeoutError as timeout_error:
                 # Явная обработка TimeoutError с retry logic
+                error_type = NavigationTimeoutError(str(timeout_error))
                 if (
                     retry_attempt < self._options.max_retries
                     and self._options.retry_on_network_errors
@@ -301,8 +364,9 @@ class MainParser:
                     jitter = random.uniform(0, 0.3)
                     delay = base_delay + jitter
                     logger.warning(
-                        "Таймаут при навигации (попытка %d/%d): %s. "
+                        "[%s] Таймаут при навигации (попытка %d/%d): %s. "
                         "Повторная попытка через %.1f сек...",
+                        error_type.__class__.__name__,
                         retry_attempt + 1,
                         self._options.max_retries,
                         timeout_error,
@@ -311,7 +375,12 @@ class MainParser:
                     time.sleep(delay)
                 else:
                     # Исчерпаны все попытки
-                    logger.error("Таймаут навигации по URL %s: %s", url, timeout_error)
+                    logger.error(
+                        "[%s] Таймаут навигации по URL %s: %s",
+                        error_type.__class__.__name__,
+                        url,
+                        timeout_error,
+                    )
                     return False
 
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as navigate_error:
@@ -322,28 +391,61 @@ class MainParser:
                     or "504" in error_msg
                     or "timeout" in error_msg
                 )
+                is_blocked_error = (
+                    "403" in error_msg
+                    or "429" in error_msg
+                    or "blocked" in error_msg
+                    or "forbidden" in error_msg
+                )
 
-                if (
-                    retry_attempt < self._options.max_retries
-                    and self._options.retry_on_network_errors
-                    and is_network_error
-                ):
-                    # Формула: base_delay * (1.5 ** retry) + random.uniform(0, 0.3)
-                    base_delay = self._options.retry_delay_base * (1.5**retry_attempt)
-                    jitter = random.uniform(0, 0.3)
-                    delay = base_delay + jitter
-                    logger.warning(
-                        "Ошибка сети при навигации (попытка %d/%d): %s. "
-                        "Повторная попытка через %.1f сек...",
-                        retry_attempt + 1,
-                        self._options.max_retries,
+                if is_blocked_error:
+                    error_type = NavigationBlockedError(str(navigate_error))
+                    logger.error(
+                        "[%s] Доступ заблокирован при навигации по URL %s: %s",
+                        error_type.__class__.__name__,
+                        url,
                         navigate_error,
-                        delay,
                     )
-                    time.sleep(delay)
+                    return False
+
+                if is_network_error:
+                    error_type = NavigationNetworkError(str(navigate_error))
+                    if (
+                        retry_attempt < self._options.max_retries
+                        and self._options.retry_on_network_errors
+                    ):
+                        # Формула: base_delay * (1.5 ** retry) + random.uniform(0, 0.3)
+                        base_delay = self._options.retry_delay_base * (1.5**retry_attempt)
+                        jitter = random.uniform(0, 0.3)
+                        delay = base_delay + jitter
+                        logger.warning(
+                            "[%s] Ошибка сети при навигации (попытка %d/%d): %s. "
+                            "Повторная попытка через %.1f сек...",
+                            error_type.__class__.__name__,
+                            retry_attempt + 1,
+                            self._options.max_retries,
+                            navigate_error,
+                            delay,
+                        )
+                        time.sleep(delay)
+                    else:
+                        # Исчерпаны все попытки для сетевой ошибки
+                        logger.error(
+                            "[%s] Исчерпаны все попытки для URL %s: %s",
+                            error_type.__class__.__name__,
+                            url,
+                            navigate_error,
+                        )
+                        return False
                 else:
-                    # Либо это не ошибка сети, либо исчерпаны все попытки
-                    logger.error("Ошибка навигации по URL %s: %s", url, navigate_error)
+                    # Общая ошибка - не подлежит повтору
+                    error_type = NavigationGenericError(str(navigate_error))
+                    logger.error(
+                        "[%s] Общая ошибка навигации по URL %s: %s",
+                        error_type.__class__.__name__,
+                        url,
+                        navigate_error,
+                    )
                     return False
 
         return False
@@ -766,12 +868,25 @@ class MainParser:
 
         current_page_number = 1
 
+        # Максимальное количество итераций цикла для предотвращения бесконечного цикла
+        MAX_TOTAL_ITERATIONS = MAX_LINK_ATTEMPTS * 2 + 10
+        total_iterations = 0
+
         try:
             # Счётчик попыток получения ссылок для предотвращения бесконечного цикла
             # Используем константу MAX_LINK_ATTEMPTS вместо магического числа
             link_attempt_count = 0
 
             while True:
+                # Защита от бесконечного цикла по общему числу итераций
+                total_iterations += 1
+                if total_iterations > MAX_TOTAL_ITERATIONS:
+                    logger.error(
+                        "Достигнут лимит общих итераций цикла (%d). Прекращаем парсинг URL.",
+                        MAX_TOTAL_ITERATIONS,
+                    )
+                    return
+
                 # Ждём завершения всех 2GIS запросов
                 try:
                     if not self._wait_requests_finished():
@@ -788,11 +903,13 @@ class MainParser:
                     link_attempt_count += 1
                     logger.warning(
                         "Не удалось получить ссылки, переходим к следующей странице. "
-                        "(Пустых страниц подряд: %d/%d, Попыток: %d/%d)",
+                        "(Пустых страниц подряд: %d/%d, Попыток: %d/%d, Итераций: %d/%d)",
                         consecutive_empty_pages,
                         self._options.max_consecutive_empty_pages,
                         link_attempt_count,
                         MAX_LINK_ATTEMPTS,
+                        total_iterations,
+                        MAX_TOTAL_ITERATIONS,
                     )
 
                     # Если подряд слишком много пустых страниц - прерываем парсинг
@@ -925,50 +1042,64 @@ class MainParser:
         base_delay = self._options.retry_delay_base
 
         navigate_success = False
-        for attempt in range(max_retries + 1):
-            try:
-                # Первая попытка или повторная
-                if attempt > 0:
-                    logger.info(
-                        "Повторная попытка навигации (%d/%d) для URL: %s", attempt, max_retries, url
-                    )
+        try:
+            for attempt in range(max_retries + 1):
+                try:
+                    # Первая попытка или повторная
+                    if attempt > 0:
+                        logger.info(
+                            "Повторная попытка навигации (%d/%d) для URL: %s",
+                            attempt,
+                            max_retries,
+                            url,
+                        )
 
-                self._navigate_to_search(url)
-                navigate_success = True
-                break
+                    self._navigate_to_search(url)
+                    navigate_success = True
+                    break
 
-            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as navigate_error:
-                if attempt < max_retries and self._options.retry_on_network_errors:
-                    # Добавляем jitter для предотвращения thundering herd эффекта
-                    # Формула: base_delay * (1.5 ** attempt) + random.uniform(0, 0.3)
-                    jitter = random.uniform(0, 0.3)
-                    delay = base_delay * (1.5**attempt) + jitter
-                    logger.warning(
-                        "Ошибка при навигации (попытка %d/%d): %s. "
-                        "Повторная попытка через %.1f сек...",
-                        attempt + 1,
-                        max_retries,
-                        navigate_error,
-                        delay,
-                    )
-                    time.sleep(delay)
-                else:
-                    # Исчерпаны все попытки
-                    logger.error("Таймаут навигации по URL %s: %s", url, navigate_error)
-                    return
+                except (
+                    OSError,
+                    RuntimeError,
+                    TypeError,
+                    ValueError,
+                    MemoryError,
+                ) as navigate_error:
+                    if attempt < max_retries and self._options.retry_on_network_errors:
+                        # Добавляем jitter для предотвращения thundering herd эффекта
+                        # Формула: base_delay * (1.5 ** attempt) + random.uniform(0, 0.3)
+                        jitter = random.uniform(0, 0.3)
+                        delay = base_delay * (1.5**attempt) + jitter
+                        logger.warning(
+                            "Ошибка при навигации (попытка %d/%d): %s. "
+                            "Повторная попытка через %.1f сек...",
+                            attempt + 1,
+                            max_retries,
+                            navigate_error,
+                            delay,
+                        )
+                        time.sleep(delay)
+                    else:
+                        # Исчерпаны все попытки
+                        logger.error("Таймаут навигации по URL %s: %s", url, navigate_error)
+                        return
 
-        # Если навигация не удалась - выходим
-        if not navigate_success:
-            return
+            # Если навигация не удалась - выходим
+            if not navigate_success:
+                return
 
-        # Валидация ответа документа
-        document_response = self._validate_document_response()
-        if document_response is None:
-            return
+            # Валидация ответа документа
+            document_response = self._validate_document_response()
+            if document_response is None:
+                return
 
-        # Парсинг результатов поиска
-        # Передаём visited_links для управления памятью с eviction policy
-        self._parse_search_results(writer, walk_page_number, visited_links, max_visited_links)
+            # Парсинг результатов поиска
+            # Передаём visited_links для управления памятью с eviction policy
+            self._parse_search_results(writer, walk_page_number, visited_links, max_visited_links)
+
+        finally:
+            # Гарантированная очистка ресурсов браузера при любом исходе
+            self.close()
 
     def close(self) -> None:
         """Закрывает браузер и освобождает ресурсы.
