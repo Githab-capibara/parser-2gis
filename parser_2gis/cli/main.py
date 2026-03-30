@@ -43,7 +43,7 @@ def cleanup_resources() -> None:
 
     from parser_2gis.cache import CacheManager
     from parser_2gis.logger import logger
-    from parser_2gis.paths import cache_path
+    from parser_2gis.utils.paths import cache_path
 
     try:
         logger.debug("Очистка кэша ресурсов...")

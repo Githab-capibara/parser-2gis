@@ -6,39 +6,43 @@
 
 Структура модуля:
 - coordinator.py: ParallelCoordinator (координация потоков)
-- merger.py: ParallelFileMerger (слияние файлов)
+- merger.py: ParallelFileMerger (слияние файлов) + функции слияния
 - error_handler.py: ParallelErrorHandler (обработка ошибок)
 - progress.py: ParallelProgressReporter (прогресс)
 - parallel_parser.py: Устаревший класс (обратная совместимость)
-- file_merger.py: Функции слияния CSV файлов
-- temp_file_timer.py: Таймер очистки временных файлов
-- progress_tracker.py: Константы и функции отслеживания прогресса
 - options.py: Опции параллельного парсинга
+
+Примечание:
+    Константы перемещены в constants.py для централизованного управления.
 """
 
 # Ре-экспорт констант из constants.py для обратной совместимости
+# Ре-экспорт константы из constants.py для обратной совместимости
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
     MAX_LOCK_FILE_AGE,
     MAX_TEMP_FILES_MONITORING,
     MAX_TIMEOUT,
     MAX_WORKERS,
+    MERGE_LOCK_TIMEOUT,
     MIN_TIMEOUT,
     MIN_WORKERS,
     ORPHANED_TEMP_FILE_AGE,
+    PROGRESS_UPDATE_INTERVAL,
     TEMP_FILE_CLEANUP_INTERVAL,
 )
 
-from .coordinator import ParallelCoordinator, ParserThreadConfig
+from .config import ParallelRunConfig
+from .coordinator import ParallelCoordinator
 from .error_handler import ParallelErrorHandler
-from .file_merger import (
-    MERGE_LOCK_TIMEOUT_LOCAL,
+from .merger import (
+    MergeConfig,  # noqa: F401 - используется для типизации
+    ParallelFileMerger,
     _acquire_merge_lock,
     _cleanup_source_files,
     _merge_csv_files,
     _validate_merged_file,
 )
-from .merger import ParallelFileMerger
 from .options import MAX_TEMP_FILES, ParallelOptions
 from .parallel_parser import (
     ParallelCityParser,
@@ -50,9 +54,6 @@ from .parallel_parser import (
     _unregister_temp_file,
 )
 from .progress import ParallelProgressReporter
-from .progress_tracker import PROGRESS_UPDATE_INTERVAL
-
-MERGE_LOCK_TIMEOUT = MERGE_LOCK_TIMEOUT_LOCAL
 
 # Экспорт основного API для обратной совместимости
 __all__ = [
@@ -61,10 +62,11 @@ __all__ = [
     "ParallelFileMerger",
     "ParallelErrorHandler",
     "ParallelProgressReporter",
-    "ParserThreadConfig",
+    "ParallelRunConfig",
     # Основные классы (старые для обратной совместимости)
     "ParallelCityParser",
     "ParallelCityParserThread",
+    "ParserThreadConfig",  # Deprecated: используйте ParallelRunConfig
     # Опции
     "ParallelOptions",
     "MAX_TEMP_FILES",

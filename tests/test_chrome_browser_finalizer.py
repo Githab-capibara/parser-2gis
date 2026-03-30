@@ -3,7 +3,6 @@
 import subprocess
 from unittest.mock import MagicMock, patch
 
-
 from parser_2gis.chrome.browser import BrowserLifecycleManager, ProcessManager
 
 

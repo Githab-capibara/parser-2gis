@@ -16,7 +16,6 @@ import pytest
 
 from parser_2gis.parallel.parallel_parser import ParallelCityParser
 
-
 # =============================================================================
 # ТЕСТЫ ДЛЯ ОБРАБОТКИ KEYBOARDINTERRUPT В PARALLEL_PARSER
 # =============================================================================

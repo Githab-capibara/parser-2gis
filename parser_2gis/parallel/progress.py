@@ -14,8 +14,8 @@ import threading
 import time
 from typing import Callable, Dict, Optional
 
+from parser_2gis.constants import PROGRESS_UPDATE_INTERVAL
 from parser_2gis.logger import logger, print_progress
-from parser_2gis.parallel.progress_tracker import PROGRESS_UPDATE_INTERVAL
 
 
 class ParallelProgressReporter:

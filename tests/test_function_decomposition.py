@@ -196,8 +196,8 @@ class TestBrowserInitDecomposition:
         from parser_2gis.chrome.browser import (
             BrowserLifecycleManager,
             BrowserPathResolver,
-            ProfileManager,
             ProcessManager,
+            ProfileManager,
         )
 
         # Проверяем что компоненты существуют

@@ -301,18 +301,17 @@ class BrowserService(
 
 
 @runtime_checkable
-class CacheBackend(Protocol):
-    """Абстракция бэкенда кэширования.
+class CacheReader(Protocol):
+    """Protocol для чтения из кэша.
 
-    Определяет интерфейс для всех бэкендов кэширования (Redis, SQLite, in-memory).
-    Позволяет легко переключаться между различными реализациями кэша.
+    Определяет интерфейс для операций чтения кэша.
+    Позволяет использовать объекты кэша только для чтения.
 
     Example:
         >>> from parser_2gis.cache import CacheManager
-        >>> cache: CacheBackend = CacheManager(...)  # type: check
-        >>> cache.set("key", "value", ttl=3600)
-        >>> value = cache.get("key")
-        >>> cache.delete("key")
+        >>> reader: CacheReader = CacheManager(...)  # type: check
+        >>> value = reader.get("key")
+        >>> exists = reader.exists("key")
     """
 
     def get(self, key: str) -> Any | None:
@@ -324,6 +323,31 @@ class CacheBackend(Protocol):
         Returns:
             Значение из кэша или None если ключ не найден.
         """
+
+    def exists(self, key: str) -> bool:
+        """Проверяет наличие ключа в кэше.
+
+        Args:
+            key: Ключ для проверки.
+
+        Returns:
+            True если ключ существует.
+        """
+
+
+@runtime_checkable
+class CacheWriter(Protocol):
+    """Protocol для записи в кэш.
+
+    Определяет интерфейс для операций записи и удаления из кэша.
+    Позволяет использовать объекты кэша только для записи.
+
+    Example:
+        >>> from parser_2gis.cache import CacheManager
+        >>> writer: CacheWriter = CacheManager(...)  # type: check
+        >>> writer.set("key", "value", ttl=3600)
+        >>> writer.delete("key")
+    """
 
     def set(self, key: str, value: Any, ttl: int) -> None:
         """Устанавливает значение в кэш.
@@ -341,15 +365,22 @@ class CacheBackend(Protocol):
             key: Ключ для удаления.
         """
 
-    def exists(self, key: str) -> bool:
-        """Проверяет наличие ключа в кэше.
 
-        Args:
-            key: Ключ для проверки.
+@runtime_checkable
+class CacheBackend(CacheReader, CacheWriter, Protocol):
+    """Абстракция бэкенда кэширования.
 
-        Returns:
-            True если ключ существует.
-        """
+    Объединяет CacheReader и CacheWriter для полного доступа к кэшу.
+    Определяет интерфейс для всех бэкендов кэширования (Redis, SQLite, in-memory).
+    Позволяет легко переключаться между различными реализациями кэша.
+
+    Example:
+        >>> from parser_2gis.cache import CacheManager
+        >>> cache: CacheBackend = CacheManager(...)  # type: check
+        >>> cache.set("key", "value", ttl=3600)
+        >>> value = cache.get("key")
+        >>> cache.delete("key")
+    """
 
 
 # =============================================================================
@@ -424,7 +455,10 @@ __all__ = [
     "BrowserJSExecution",
     "BrowserScreenshot",
     "BrowserService",
-    # Backend Protocols
+    # Cache Protocols (разделены по ответственности)
+    "CacheReader",
+    "CacheWriter",
     "CacheBackend",
+    # Backend Protocols
     "ExecutionBackend",
 ]

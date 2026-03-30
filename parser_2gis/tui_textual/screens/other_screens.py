@@ -112,7 +112,7 @@ class CacheViewerScreen(Screen):
         Получает размер файла кэша и отображает информацию о нём.
         Если файл кэша не существует, отображает сообщение "Кэш пуст".
         """
-        from parser_2gis.paths import cache_path
+        from parser_2gis.utils.paths import cache_path
 
         cache_dir = cache_path()
         cache_file = cache_dir / "cache.db"
@@ -167,7 +167,7 @@ class CacheViewerScreen(Screen):
         """
 
         from parser_2gis.cache import CacheManager
-        from parser_2gis.paths import cache_path
+        from parser_2gis.utils.paths import cache_path
 
         cache_dir = cache_path()
         cache_manager = CacheManager(cache_dir=cache_dir)

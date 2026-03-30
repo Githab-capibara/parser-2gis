@@ -3,20 +3,19 @@
 Предоставляет компоненты для логирования:
 - Logger, logger - основной логгер
 - QueueHandler - обработчик очереди
-- FileLogger - файловый логгер (импорт из parser_2gis.logging)
+- FileLogger - файловый логгер (импорт из logger/handlers.py)
 - VisualLogger - визуальный логгер с emoji и цветами
 - LogOptions - опции логирования
 - Функции настройки: setup_logger, setup_cli_logger, setup_gui_logger
 
 Примечание:
-    FileLogger выделен в отдельный модуль parser_2gis.logging для устранения
+    FileLogger выделен в отдельный модуль logger/handlers.py для устранения
     циклической зависимости между logger и chrome модулями.
 """
 
-# FileLogger импортируется из выделенного модуля logging для устранения
+# FileLogger импортируется из выделенного модуля handlers для устранения
 # циклической зависимости с chrome модулем
-from parser_2gis.logging import FileLogger
-
+from .handlers import FileLogger
 from .logger import (
     Logger,
     QueueHandler,

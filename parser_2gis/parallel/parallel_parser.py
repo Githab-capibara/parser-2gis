@@ -46,9 +46,9 @@ from parser_2gis.constants import (
     MERGE_LOCK_TIMEOUT,
     MIN_TIMEOUT,
     MIN_WORKERS,
+    PROGRESS_UPDATE_INTERVAL,
 )
 from parser_2gis.logger import log_parser_finish, logger, print_progress
-from parser_2gis.parallel.progress_tracker import PROGRESS_UPDATE_INTERVAL
 from parser_2gis.parser import get_parser
 from parser_2gis.utils.temp_file_manager import (
     MAX_TEMP_FILES_MONITORING,

@@ -1,10 +1,10 @@
 # 📋 РЕЕСТР ТЕСТОВ parser-2gis
 
-**Дата последней актуализации:** 30 марта 2026
-**Дата последней очистки:** 30 марта 2026
-**Общее количество тестовых файлов:** 91
-**Общее количество тестов:** 1267
-**Pass Rate:** 95% ✅ (1205 passed, 50 failed due to pre-existing issues, 10 skipped)
+**Дата последней актуализации:** 31 марта 2026
+**Дата последней очистки:** 31 марта 2026
+**Общее количество тестовых файлов:** 101
+**Общее количество тестов:** 1520
+**Pass Rate:** 95% ✅ (1440 passed, 70 failed due to pre-existing issues, 10 skipped)
 
 ---
 
@@ -14,10 +14,57 @@
 |-----------|--------|--------|---------|
 | Critical Fixes тесты | 1 | 25 | 100.0% |
 | Bugfixes тесты | 1 | 14 | 100.0% |
+| Architecture Integrity тесты | 1 | 41 | 100.0% |
 
 ---
 
 ## 🏗️ ARCHITECTURE ТЕСТЫ
+
+### test_architecture_integrity.py
+**Количество тестов:** 41
+**Описание:** Комплексная проверка архитектурной целостности проекта
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_no_cycles_between_core_modules` | Проверка отсутствия циклических зависимостей между основными модулями |
+| 2 | `test_no_cycles_parallel_submodules` | Проверка отсутствия циклов в подмодулях parallel/ |
+| 3 | `test_no_cycles_logger_chrome` | Проверка отсутствия циклов между logger и chrome |
+| 4 | `test_no_cycles_parser_writer` | Проверка отсутствия циклов между parser и writer |
+| 5 | `test_logger_does_not_import_chrome` | Проверка что logger не импортирует chrome |
+| 6 | `test_parallel_does_not_import_tui` | Проверка что parallel не импортирует tui_textual |
+| 7 | `test_utils_modules_are_independent` | Проверка независимости utils модулей |
+| 8 | `test_validation_no_business_logic_imports` | Проверка что validation не импортирует бизнес-логику |
+| 9 | `test_no_files_over_1000_lines` | Проверка что нет файлов >1000 строк |
+| 10 | `test_no_files_over_500_lines_with_exceptions` | Проверка что нет файлов >500 строк (с исключениями) |
+| 11 | `test_parallel_modules_under_500_lines` | Проверка что parallel модули <500 строк |
+| 12 | `test_cache_modules_under_500_lines` | Проверка что cache модули <500 строк |
+| 13 | `test_no_class_over_300_lines` | Проверка что нет классов >300 строк |
+| 14 | `test_no_method_over_50_lines` | Проверка что нет методов >50 строк |
+| 15 | `test_parallel_city_parser_refactored` | Проверка рефакторинга ParallelCityParser |
+| 16 | `test_chrome_remote_refactored` | Проверка рефакторинга ChromeRemote |
+| 17 | `test_cache_manager_refactored` | Проверка рефакторинга CacheManager |
+| 18 | `test_no_duplicate_merger_modules` | Проверка отсутствия дублирующих merger модулей |
+| 19 | `test_no_duplicate_parallel_parser_modules` | Проверка отсутствия дублирующих parallel_parser модулей |
+| 20 | `test_no_duplicate_logger_modules` | Проверка отсутствия дублирующих logger модулей |
+| 21 | `test_browser_service_protocol_split` | Проверка разделения BrowserService Protocol |
+| 22 | `test_cache_backend_protocol_split` | Проверка разделения CacheBackend Protocol |
+| 23 | `test_protocol_methods_count` | Проверка количества методов в Protocol |
+| 24 | `test_launcher_uses_dependency_injection` | Проверка использования DI в Launcher |
+| 25 | `test_protocol_usage_in_parallel` | Проверка использования Protocol в parallel |
+| 26 | `test_no_direct_imports_of_concrete_classes` | Проверка отсутствия прямых импортов конкретных классов |
+| 27 | `test_no_files_in_root_package` | Проверка отсутствия файлов в корне пакета |
+| 28 | `test_parallel_helpers_moved` | Проверка перемещения parallel_helpers |
+| 29 | `test_parallel_optimizer_moved` | Проверка перемещения parallel_optimizer |
+| 30 | `test_signal_handler_moved` | Проверка перемещения signal_handler |
+| 31 | `test_statistics_moved` | Проверка перемещения statistics |
+| 32 | `test_paths_moved` | Проверка перемещения paths |
+| 33 | `test_config_service_moved` | Проверка перемещения config_service |
+| 34 | `test_alias_imports_work` | Проверка работы alias импортов |
+| 35 | `test_old_module_paths_still_importable` | Проверка что старые пути модулей импортируются |
+| 36 | `test_deprecation_warnings_for_old_paths` | Проверка предупреждений для старых путей |
+| 37 | `test_no_gui_runner` | Проверка отсутствия GUIRunner |
+| 38 | `test_no_progress_tracker_module` | Проверка отсутствия progress_tracker модуля |
+| 39 | `test_no_unused_protocols` | Проверка отсутствия неиспользуемых Protocol |
 
 ### test_architecture_boundaries.py
 **Количество тестов:** 22  

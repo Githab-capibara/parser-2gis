@@ -12,7 +12,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # =============================================================================
 # 1. CACHE POOL - DEADLOCK PREVENTION
 # =============================================================================
@@ -141,6 +140,7 @@ def test_cache_manager_weakref_finalize_cleanup():
     weakref.finalize вызывает метод очистки и закрывает пул соединений.
     """
     import gc
+
     from parser_2gis.cache.manager import CacheManager
     from parser_2gis.cache.pool import ConnectionPool
 
@@ -180,8 +180,9 @@ def test_paths_is_relative_to_python_38():
     Проверяет что функция _is_relative_to корректно работает
     даже на Python версиях где нет встроенного is_relative_to().
     """
-    from parser_2gis.paths import _is_relative_to
     import pathlib
+
+    from parser_2gis.paths import _is_relative_to
 
     # Arrange
     base_path = pathlib.Path("/home/user/project")
@@ -418,8 +419,9 @@ def test_cache_manager_refactored_methods():
     - _handle_cache_hit обрабатывает попадание в кэш
     - _handle_cache_miss обрабатывает промах кэша
     """
-    from parser_2gis.cache.manager import CacheManager
     from datetime import datetime, timedelta
+
+    from parser_2gis.cache.manager import CacheManager
 
     # Arrange
     with patch("parser_2gis.cache.manager.ConnectionPool"):
@@ -472,7 +474,7 @@ def test_statistics_html_generation_refactored():
     - _generate_html_footer
     работают корректно и возвращают валидный HTML.
     """
-    from parser_2gis.statistics import StatisticsExporter, ParserStatistics
+    from parser_2gis.statistics import ParserStatistics, StatisticsExporter
 
     # Arrange
     exporter = StatisticsExporter()

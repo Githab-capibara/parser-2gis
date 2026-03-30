@@ -18,7 +18,6 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from dataclasses import dataclass
 from pathlib import Path
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
@@ -46,29 +45,6 @@ if TYPE_CHECKING:
     from parser_2gis.config import Configuration
 
 
-@dataclass
-class ParserThreadConfig:
-    """Конфигурация для потока параллельного парсинга.
-
-    Attributes:
-        cities: Список городов для парсинга.
-        categories: Список категорий для парсинга.
-        output_dir: Папка для сохранения результатов.
-        config: Конфигурация парсера.
-        max_workers: Максимальное количество одновременных браузеров.
-        timeout_per_url: Таймаут на один URL в секундах.
-        output_file: Имя выходного файла (опционально).
-    """
-
-    cities: List[dict]
-    categories: List[dict]
-    output_dir: str
-    config: "Configuration"
-    max_workers: int = 3
-    timeout_per_url: int = DEFAULT_TIMEOUT
-    output_file: Optional[str] = None
-
-
 class ParallelCoordinator:
     """Координатор для параллельного парсинга городов.
 
@@ -85,7 +61,27 @@ class ParallelCoordinator:
         max_workers: int = 3,
         timeout_per_url: int = DEFAULT_TIMEOUT,
     ) -> None:
-        """Инициализация координатора параллельного парсинга."""
+        """Инициализация координатора параллельного парсинга.
+
+        Args:
+            cities: Список городов для парсинга.
+            categories: Список категорий для парсинга.
+            output_dir: Директория для сохранения результатов.
+            config: Конфигурация парсера.
+            max_workers: Максимальное количество рабочих потоков.
+            timeout_per_url: Таймаут на один URL в секундах.
+
+        Note:
+            Для удобства можно использовать ParallelRunConfig:
+            >>> run_config = ParallelRunConfig(
+            ...     cities=cities,
+            ...     categories=categories,
+            ...     output_dir=Path("./output"),
+            ...     config=config,
+            ...     max_workers=5,
+            ... )
+            >>> coordinator = ParallelCoordinator(**run_config.to_dict())
+        """
         self._validate_inputs(cities, categories, max_workers, timeout_per_url, output_dir)
 
         self.cities = cities
@@ -556,7 +552,6 @@ def _cleanup_all_temp_files() -> None:
 
 __all__ = [
     "ParallelCoordinator",
-    "ParserThreadConfig",
     "_temp_files_lock",
     "_temp_files_registry",
     "_register_temp_file",

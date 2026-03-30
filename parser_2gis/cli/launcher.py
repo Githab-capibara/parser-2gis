@@ -3,6 +3,11 @@
 
 Модуль предоставляет класс ApplicationLauncher для разделения режимов работы приложения
 и управления жизненным циклом.
+
+Примечание:
+    Реализует Dependency Inversion Principle (DIP):
+    - Зависимости внедряются через __init__
+    - Используются Protocol для абстракции зависимостей
 """
 
 from __future__ import annotations
@@ -13,17 +18,36 @@ import sqlite3
 import threading
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Protocol
 
 from parser_2gis.cache import CacheManager
 from parser_2gis.chrome.remote import ChromeRemote
 from parser_2gis.logger import logger
-from parser_2gis.paths import cache_path
-from parser_2gis.signal_handler import SignalHandler
+from parser_2gis.utils.paths import cache_path
+from parser_2gis.utils.signal_handler import SignalHandler
 
 if TYPE_CHECKING:
     from parser_2gis.config import Configuration
     from parser_2gis.parser.options import ParserOptions
+
+
+# =============================================================================
+# PROTOCOLS ДЛЯ ВНЕШНИХ ЗАВИСИМОСТЕЙ (DIP)
+# =============================================================================
+
+
+class CleanupCallback(Protocol):
+    """Protocol для callback очистки ресурсов."""
+
+    def __call__(self) -> None:
+        """Вызывает очистку ресурсов."""
+
+
+class SignalHandlerFactory(Protocol):
+    """Protocol для фабрики SignalHandler."""
+
+    def __call__(self, cleanup_callback: Optional[CleanupCallback] = None) -> SignalHandler:
+        """Создаёт SignalHandler."""
 
 
 # =============================================================================
@@ -37,23 +61,45 @@ class ApplicationLauncher:
     Управляет инициализацией, обработкой сигналов и запуском приложения
     в различных режимах (TUI, CLI, параллельный парсинг).
 
+    Реализует Dependency Inversion Principle:
+    - Зависимости внедряются через __init__
+    - Используются Protocol для абстракции
+
     Attributes:
         config: Конфигурация приложения.
         options: Опции парсера.
         signal_handler: Обработчик сигналов.
+        signal_handler_factory: Фабрика для создания SignalHandler.
+
+    Example:
+        >>> # Использование с dependency injection
+        >>> launcher = ApplicationLauncher(config, options)
+        >>> launcher.launch(args)
     """
 
-    def __init__(self, config: Configuration, options: ParserOptions):
+    def __init__(
+        self,
+        config: "Configuration",
+        options: "ParserOptions",
+        signal_handler_factory: Optional[SignalHandlerFactory] = None,
+    ):
         """Инициализация лаунчера.
 
         Args:
             config: Конфигурация приложения.
             options: Опции парсера.
+            signal_handler_factory: Опциональная фабрика SignalHandler
+                                   для внедрения зависимости (тестирование).
+
+        Note:
+            По умолчанию используется SignalHandler, но для тестирования
+            можно передать mock фабрику.
         """
         self.config = config
         self.options = options
         self._signal_handler: Optional[SignalHandler] = None
         self._signal_handler_lock = threading.Lock()
+        self._signal_handler_factory = signal_handler_factory or SignalHandler
 
     def launch(self, args: argparse.Namespace) -> int:
         """Запуск приложения в выбранном режиме.
@@ -77,9 +123,15 @@ class ApplicationLauncher:
             return self._run_cli_mode(args)
 
     def _setup_signal_handlers(self) -> None:
-        """Настройка обработчиков сигналов SIGINT и SIGTERM."""
+        """Настройка обработчиков сигналов SIGINT и SIGTERM.
+
+        Использует внедрённую фабрику SignalHandler для создания обработчика.
+        """
         with self._signal_handler_lock:
-            self._signal_handler = SignalHandler(cleanup_callback=self._cleanup_resources)
+            # Используем внедрённую зависимость (DIP)
+            self._signal_handler = self._signal_handler_factory(
+                cleanup_callback=self._cleanup_resources
+            )
             self._signal_handler.setup()
         logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через ApplicationLauncher")
 
