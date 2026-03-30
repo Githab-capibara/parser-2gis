@@ -18,6 +18,7 @@ from parser_2gis.tui_textual.screens.category_selector import CategorySelectorSc
 
 try:
     from parser_2gis.data.categories_93 import CATEGORIES_93
+
     TEXTUAL_AVAILABLE = True
 except ImportError:
     TEXTUAL_AVAILABLE = False
@@ -27,6 +28,7 @@ except ImportError:
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def mock_app_basic():
@@ -82,6 +84,7 @@ def category_screen_extended(mock_app_extended):
 # CLASS 1: БАЗОВЫЕ ТЕСТЫ
 # =============================================================================
 
+
 class TestCategorySelectorBasic:
     """Базовые тесты загрузки и фильтрации категорий."""
 
@@ -107,8 +110,9 @@ class TestCategorySelectorBasic:
         checkbox_original_indices = [
             getattr(cb, "original_index", None) for cb in category_screen._checkboxes
         ]
-        assert len(checkbox_original_indices) == len(set(checkbox_original_indices)), \
+        assert len(checkbox_original_indices) == len(set(checkbox_original_indices)), (
             "Обнаружены дубликаты original_index!"
+        )
 
     def test_populate_categories_after_search_filter(self, category_screen):
         """
@@ -125,8 +129,7 @@ class TestCategorySelectorBasic:
         # Имитируем фильтрацию по запросу "кафе"
         query = "кафе"
         category_screen._filtered_categories = [
-            cat for cat in category_screen._categories
-            if query in cat.get("name", "").lower()
+            cat for cat in category_screen._categories if query in cat.get("name", "").lower()
         ]
         category_screen._populate_categories()
 
@@ -142,6 +145,7 @@ class TestCategorySelectorBasic:
 # CLASS 2: ТЕСТЫ ГЛОБАЛЬНОЙ КОНСТАНТЫ CATEGORIES_93
 # =============================================================================
 
+
 class TestCategorySelectorGlobalConstant:
     """Тесты для проверки работы с глобальной константой CATEGORIES_93."""
 
@@ -153,8 +157,7 @@ class TestCategorySelectorGlobalConstant:
         """
         for cat in CATEGORIES_93:
             assert "original_index" not in cat, (
-                f"Категория '{cat.get('name')}' уже содержит original_index "
-                "в глобальной константе!"
+                f"Категория '{cat.get('name')}' уже содержит original_index в глобальной константе!"
             )
 
     def test_categories_copy_preserves_original_index_uniqueness(self):
@@ -172,15 +175,16 @@ class TestCategorySelectorGlobalConstant:
 
         # Проверить уникальность
         original_indices = [cat["original_index"] for cat in categories_copy]
-        assert len(original_indices) == len(set(original_indices)), \
+        assert len(original_indices) == len(set(original_indices)), (
             "Обнаружены дубликаты original_index!"
-        assert len(original_indices) == 93, \
+        )
+        assert len(original_indices) == 93, (
             f"Ожидалось 93 категории, получено: {len(original_indices)}"
+        )
 
         # Проверить, что оригинальная константа не изменилась
         for cat in CATEGORIES_93:
-            assert "original_index" not in cat, \
-                f"Категория '{cat.get('name')}' была мутирована!"
+            assert "original_index" not in cat, f"Категория '{cat.get('name')}' была мутирована!"
 
     def test_filter_preserves_original_index_uniqueness(self):
         """
@@ -195,21 +199,21 @@ class TestCategorySelectorGlobalConstant:
 
         # Отфильтровать категории (имитация поиска по букве "а")
         query = "а"
-        filtered = [
-            cat for cat in categories
-            if query in cat.get("name", "").lower()
-        ]
+        filtered = [cat for cat in categories if query in cat.get("name", "").lower()]
 
         # Проверить уникальность original_index в отфильтрованных
         filtered_indices = [cat["original_index"] for cat in filtered]
-        assert len(filtered_indices) == len(set(filtered_indices)), \
+        assert len(filtered_indices) == len(set(filtered_indices)), (
             f"Дубликаты ID при фильтрации '{query}': {filtered_indices}"
+        )
 
         # Проверить, что все original_index в допустимом диапазоне
         for idx in filtered_indices:
             assert 0 <= idx < 93, f"Неверный original_index: {idx}"
 
-    @pytest.mark.parametrize("query", ["а", "о", "р", "к"], ids=["letter_a", "letter_o", "letter_r", "letter_k"])
+    @pytest.mark.parametrize(
+        "query", ["а", "о", "р", "к"], ids=["letter_a", "letter_o", "letter_r", "letter_k"]
+    )
     def test_multiple_filters_no_duplicate_ids(self, query):
         """
         Проверяет отсутствие дубликатов ID при множественных фильтрациях.
@@ -222,15 +226,11 @@ class TestCategorySelectorGlobalConstant:
             cat["original_index"] = i
 
         # Фильтрация по запросу
-        filtered = [
-            cat for cat in categories
-            if query in cat.get("name", "").lower()
-        ]
+        filtered = [cat for cat in categories if query in cat.get("name", "").lower()]
         ids = {cat["original_index"] for cat in filtered}
 
         # Проверить уникальность
-        assert len(ids) == len(filtered), \
-            f"Дубликаты ID при фильтрации '{query}': {ids}"
+        assert len(ids) == len(filtered), f"Дубликаты ID при фильтрации '{query}': {ids}"
 
     def test_checkbox_ids_generation_from_original_index(self):
         """
@@ -248,13 +248,13 @@ class TestCategorySelectorGlobalConstant:
         checkbox_ids = [f"category-{cat['original_index']}" for cat in categories]
 
         # Проверить уникальность ID
-        assert len(checkbox_ids) == len(set(checkbox_ids)), \
+        assert len(checkbox_ids) == len(set(checkbox_ids)), (
             f"Обнаружены дубликаты ID checkbox: {checkbox_ids}"
+        )
 
         # Проверить формат ID
         for checkbox_id in checkbox_ids:
-            assert checkbox_id.startswith("category-"), \
-                f"Неверный формат ID: {checkbox_id}"
+            assert checkbox_id.startswith("category-"), f"Неверный формат ID: {checkbox_id}"
 
     def test_all_93_categories_have_unique_original_index(self):
         """
@@ -268,13 +268,13 @@ class TestCategorySelectorGlobalConstant:
             cat["original_index"] = i
 
         # Проверить количество категорий
-        assert len(categories) == 93, \
-            f"Ожидалось 93 категории, получено: {len(categories)}"
+        assert len(categories) == 93, f"Ожидалось 93 категории, получено: {len(categories)}"
 
         # Проверить уникальность original_index
         original_indices = [cat["original_index"] for cat in categories]
-        assert len(original_indices) == len(set(original_indices)), \
+        assert len(original_indices) == len(set(original_indices)), (
             "Обнаружены дубликаты original_index!"
+        )
 
         # Проверить диапазон original_index
         assert min(original_indices) == 0, "Минимальный original_index должен быть 0"
@@ -301,8 +301,7 @@ class TestCategorySelectorGlobalConstant:
                 mutation_detected = True
                 break
 
-        assert mutation_detected, \
-            "Поверхностное копирование должно приводить к мутации оригинала!"
+        assert mutation_detected, "Поверхностное копирование должно приводить к мутации оригинала!"
 
         # Очистить original_index после теста
         for cat in CATEGORIES_93:
@@ -332,6 +331,7 @@ class TestCategorySelectorGlobalConstant:
 # =============================================================================
 # CLASS 3: ТЕСТЫ ПРЕДОТВРАЩЕНИЯ ДУБЛИКАТОВ UI
 # =============================================================================
+
 
 class TestCategorySelectorDuplicatePrevention:
     """Тесты для предотвращения DuplicateIds ошибки в UI."""
@@ -446,6 +446,7 @@ class TestCategorySelectorDuplicatePrevention:
 # CLASS 4: ТЕСТЫ СЦЕНАРИЕВ ФИЛЬТРАЦИИ
 # =============================================================================
 
+
 class TestCategorySelectorFilterScenarios:
     """Тесты сценариев фильтрации категорий."""
 
@@ -474,9 +475,7 @@ class TestCategorySelectorFilterScenarios:
         self.screen._populate_categories()
 
         # Проверить, что все original_index уникальны
-        original_indices = [
-            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
-        ]
+        original_indices = [getattr(cb, "original_index", None) for cb in self.screen._checkboxes]
         assert len(original_indices) == len(set(original_indices))
         assert len(original_indices) == 5  # 5 категорий
 
@@ -490,15 +489,12 @@ class TestCategorySelectorFilterScenarios:
 
         # Фильтрация (только "Кафе")
         self.screen._filtered_categories = [
-            cat for cat in self.screen._categories
-            if "кафе" in cat.get("name", "").lower()
+            cat for cat in self.screen._categories if "кафе" in cat.get("name", "").lower()
         ]
 
         # Вторая загрузка
         self.screen._populate_categories()
-        second_indices = [
-            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
-        ]
+        second_indices = [getattr(cb, "original_index", None) for cb in self.screen._checkboxes]
 
         # Проверить уникальность
         assert len(second_indices) == len(set(second_indices))
@@ -518,42 +514,38 @@ class TestCategorySelectorFilterScenarios:
         """
         # Цикл 1: Фильтрация по "а"
         self.screen._filtered_categories = [
-            cat for cat in self.screen._categories
-            if "а" in cat.get("name", "").lower()
+            cat for cat in self.screen._categories if "а" in cat.get("name", "").lower()
         ]
         self.screen._populate_categories()
-        indices_1 = [
-            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
-        ]
+        indices_1 = [getattr(cb, "original_index", None) for cb in self.screen._checkboxes]
         assert len(indices_1) == len(set(indices_1))
 
         # Цикл 2: Очистка фильтра
         self.screen._filtered_categories = self.screen._categories.copy()
         self.screen._populate_categories()
-        indices_2 = [
-            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
-        ]
+        indices_2 = [getattr(cb, "original_index", None) for cb in self.screen._checkboxes]
         assert len(indices_2) == len(set(indices_2))
         assert len(indices_2) == 5
 
         # Цикл 3: Фильтрация по "р"
         self.screen._filtered_categories = [
-            cat for cat in self.screen._categories
-            if "р" in cat.get("name", "").lower()
+            cat for cat in self.screen._categories if "р" in cat.get("name", "").lower()
         ]
         self.screen._populate_categories()
-        indices_3 = [
-            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
-        ]
+        indices_3 = [getattr(cb, "original_index", None) for cb in self.screen._checkboxes]
         assert len(indices_3) == len(set(indices_3))
 
-    @pytest.mark.parametrize("letter,expected_count", [
-        ("к", 1),  # Только "Кафе"
-        ("а", 3),  # "Кафе", "Рестораны", "Бары"
-        ("о", 2),  # "Рестораны", "Столовые"
-        ("р", 3),  # "Рестораны", "Бары", "Пиццерии"
-        ("и", 1),  # "Пиццерии"
-    ], ids=["letter_k", "letter_a", "letter_o", "letter_r", "letter_i"])
+    @pytest.mark.parametrize(
+        "letter,expected_count",
+        [
+            ("к", 1),  # Только "Кафе"
+            ("а", 3),  # "Кафе", "Рестораны", "Бары"
+            ("о", 2),  # "Рестораны", "Столовые"
+            ("р", 3),  # "Рестораны", "Бары", "Пиццерии"
+            ("и", 1),  # "Пиццерии"
+        ],
+        ids=["letter_k", "letter_a", "letter_o", "letter_r", "letter_i"],
+    )
     def test_filter_by_letter(self, letter, expected_count):
         """
         Проверяет фильтрацию по различным буквам.
@@ -561,8 +553,7 @@ class TestCategorySelectorFilterScenarios:
         Параметризованный тест для разных букв русского алфавита.
         """
         self.screen._filtered_categories = [
-            cat for cat in self.screen._categories
-            if letter in cat.get("name", "").lower()
+            cat for cat in self.screen._categories if letter in cat.get("name", "").lower()
         ]
         self.screen._populate_categories()
 
@@ -570,15 +561,11 @@ class TestCategorySelectorFilterScenarios:
         assert len(self.screen._checkboxes) == expected_count
 
         # Проверить уникальность original_index
-        indices = [
-            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
-        ]
+        indices = [getattr(cb, "original_index", None) for cb in self.screen._checkboxes]
         assert len(indices) == len(set(indices))
 
         # Проверить, что original_index соответствуют отфильтрованным категориям
-        expected_indices = {
-            cat["original_index"] for cat in self.screen._filtered_categories
-        }
+        expected_indices = {cat["original_index"] for cat in self.screen._filtered_categories}
         assert set(indices) == expected_indices
 
     def test_clear_filter_restores_all_categories(self):
@@ -592,8 +579,7 @@ class TestCategorySelectorFilterScenarios:
         """
         # Фильтрация по "о" (Рестораны, Столовые)
         self.screen._filtered_categories = [
-            cat for cat in self.screen._categories
-            if "о" in cat.get("name", "").lower()
+            cat for cat in self.screen._categories if "о" in cat.get("name", "").lower()
         ]
         self.screen._populate_categories()
         assert len(self.screen._checkboxes) == 2
@@ -606,9 +592,7 @@ class TestCategorySelectorFilterScenarios:
         assert len(self.screen._checkboxes) == 5
 
         # Проверить уникальность
-        indices = [
-            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
-        ]
+        indices = [getattr(cb, "original_index", None) for cb in self.screen._checkboxes]
         assert len(indices) == len(set(indices))
         assert set(indices) == {0, 1, 2, 3, 4}
 

@@ -246,7 +246,11 @@ class TestConnectionPoolCleanupOnError:
             pool.return_connection(conn3)
 
             # Проверяем что операция прошла без ошибок
-            assert True, "Операция возврата не удалась"
+            # Если бы была ошибка, тест упал бы с исключением
+            # Дополнительно проверяем что queue не переполнен
+            assert pool._connection_queue.qsize() <= pool._pool_size, (
+                "Queue не должен быть переполнен"
+            )
 
         except Exception as e:
             pytest.fail(f"Неожиданное исключение: {e}")

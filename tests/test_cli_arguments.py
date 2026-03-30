@@ -174,7 +174,10 @@ class TestAllParserOptionsArguments:
                 try:
                     args, config = parse_arguments()
                     # Если парсинг прошёл без ошибки - аргумент зарегистрирован
-                    assert True, f"Аргумент {cli_arg} успешно распарсен"
+                    # Проверяем что config имеет ожидаемое поле
+                    assert hasattr(config.parser, field.replace("-", "_")), (
+                        f"Аргумент {cli_arg} не найден в конфигурации"
+                    )
                 except SystemExit:
                     # Если возникла ошибка парсинга - аргумент не зарегистрирован
                     pytest.fail(f"Аргумент {cli_arg} не зарегистрирован в argparse")

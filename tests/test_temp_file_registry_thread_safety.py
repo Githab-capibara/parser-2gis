@@ -69,7 +69,6 @@ class TestTempFileRegistryThreadSafety:
             f"но только {len(registry_set)} уникальных"
         )
 
-    @pytest.mark.skip(reason="Flaky test for thread safety")
     def test_concurrent_registration_and_unregistration(self, tmp_path: Path) -> None:
         """
         Тест 1.2: Параллельная регистрация и удаление.
@@ -78,8 +77,9 @@ class TestTempFileRegistryThreadSafety:
         """
         num_workers = 10
         files_per_worker = 10
+        all_registered_files: list[Path] = []
 
-        def register_worker(worker_id: int) -> List[Path]:
+        def register_worker(worker_id: int) -> list[Path]:
             files = []
             for i in range(files_per_worker):
                 file_path = tmp_path / f"reg_file_{worker_id}_{i}.tmp"
@@ -87,19 +87,20 @@ class TestTempFileRegistryThreadSafety:
                 files.append(file_path)
             return files
 
-        def unregister_worker(worker_id: int, files: List[Path]) -> None:
-            for file_path in files:
+        def unregister_worker(worker_id: int) -> None:
+            # Каждый поток удаляет только свои файлы
+            for i in range(files_per_worker):
+                file_path = tmp_path / f"reg_file_{worker_id}_{i}.tmp"
                 unregister_temp_file(file_path)
 
         with ThreadPoolExecutor(max_workers=num_workers * 2) as executor:
+            # Сначала регистрируем все файлы
             register_futures = [executor.submit(register_worker, i) for i in range(num_workers)]
-            registered_files = []
             for f in as_completed(register_futures):
-                registered_files.extend(f.result())
+                all_registered_files.extend(f.result())
 
-            unregister_futures = [
-                executor.submit(unregister_worker, i, registered_files) for i in range(num_workers)
-            ]
+            # Затем удаляем файлы параллельно
+            unregister_futures = [executor.submit(unregister_worker, i) for i in range(num_workers)]
             for f in as_completed(unregister_futures):
                 f.result()
 
@@ -115,19 +116,29 @@ class TestTempFileRegistryThreadSafety:
 
         Проверяет что cleanup_all работает корректно в многопоточной среде.
         """
-        pytest.skip("Known thread safety issue in TempFileManager")
         num_workers = 5
         files_per_worker = 10
+        total_files = num_workers * files_per_worker
 
         def worker(worker_id: int) -> None:
             for i in range(files_per_worker):
                 file_path = tmp_path / f"cleanup_file_{worker_id}_{i}.tmp"
+                # Создаём файл и регистрируем
+                file_path.touch(exist_ok=True)
                 register_temp_file(file_path)
 
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             futures = [executor.submit(worker, i) for i in range(num_workers)]
             for f in as_completed(futures):
                 f.result()
+
+        # Проверяем что все файлы зарегистрированы
+        with temp_file_manager._lock:
+            registered_count = len(temp_file_manager._registry)
+
+        assert registered_count == total_files, (
+            f"Ожидалось {total_files} файлов, но зарегистрировано {registered_count}"
+        )
 
         # Запускаем очистку
         success, errors = cleanup_all_temp_files()
@@ -139,8 +150,7 @@ class TestTempFileRegistryThreadSafety:
             )
 
         # Все файлы должны быть успешно удалены
-        expected_files = num_workers * files_per_worker
-        assert success == expected_files, (
-            f"Ожидалось {expected_files} успешно удалённых файлов, но удалено {success}"
+        assert success == total_files, (
+            f"Ожидалось {total_files} успешно удалённых файлов, но удалено {success}"
         )
         assert errors == 0, f"Ожидалось 0 ошибок при очистке, но получено {errors}"

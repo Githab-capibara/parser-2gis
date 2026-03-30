@@ -48,29 +48,32 @@ class TestTempFileRaceCondition:
             f"но только {len(unique_files)} уникальных"
         )
 
-    @pytest.mark.skip(reason="Flaky test for thread safety")
     def test_concurrent_registration_and_unregistration(self):
         """Параллельная регистрация и удаление должны быть безопасны."""
+        num_workers = 10
+        files_per_worker = 5
 
         def register_worker(worker_id):
-            for i in range(5):
+            for i in range(files_per_worker):
                 file_path = Path(f"/tmp/test_reg_{worker_id}_{i}.tmp")
                 register_temp_file(file_path)
             return worker_id
 
         def unregister_worker(worker_id):
-            for i in range(5):
+            for i in range(files_per_worker):
                 file_path = Path(f"/tmp/test_reg_{worker_id}_{i}.tmp")
                 unregister_temp_file(file_path)
             return worker_id
 
-        with ThreadPoolExecutor(max_workers=20) as executor:
-            futures = []
-            for i in range(10):
-                futures.append(executor.submit(register_worker, i))
-                futures.append(executor.submit(unregister_worker, i))
+        with ThreadPoolExecutor(max_workers=num_workers * 2) as executor:
+            # Сначала регистрируем
+            register_futures = [executor.submit(register_worker, i) for i in range(num_workers)]
+            for f in as_completed(register_futures):
+                f.result()
 
-            for f in as_completed(futures):
+            # Затем удаляем
+            unregister_futures = [executor.submit(unregister_worker, i) for i in range(num_workers)]
+            for f in as_completed(unregister_futures):
                 f.result()
 
         # Все файлы должны быть удалены

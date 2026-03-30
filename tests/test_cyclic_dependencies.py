@@ -1,14 +1,13 @@
 """
 Тесты на отсутствие циклических зависимостей.
 
-Использует pydeps для анализа графа зависимостей между модулями.
+Использует AST анализ для проверки графа зависимостей между модулями.
+Примечание: тест с pydeps удалён так как требует установки дополнительной зависимости.
 """
 
 from __future__ import annotations
 
 import ast
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -16,37 +15,6 @@ import pytest
 
 class TestCyclicDependencies:
     """Тесты на отсутствие циклических зависимостей."""
-
-    @pytest.mark.skip(reason="Требует установленный pydeps")
-    def test_no_cyclic_dependencies_with_pydeps(self) -> None:
-        """Проверяет отсутствие циклических зависимостей через pydeps."""
-        try:
-            import pydeps  # noqa: F401
-        except ImportError:
-            pytest.skip("pydeps не установлен. Установите: pip install pydeps")
-
-        project_root = Path(__file__).parent.parent / "parser_2gis"
-
-        # Запускаем pydeps с проверкой на циклы
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "pydeps",
-                str(project_root),
-                "--show-cycles",
-                "--max-bacon=2",
-                "--no-show",  # Не показывать граф, только проверить
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-
-        # Проверяем что нет циклов
-        assert result.returncode == 0, (
-            f"Обнаружены циклические зависимости:\n{result.stdout}\n{result.stderr}"
-        )
 
     def test_no_direct_circular_imports(self) -> None:
         """Проверяет отсутствие прямых циклических импортов через AST анализ."""

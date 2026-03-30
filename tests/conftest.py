@@ -10,6 +10,7 @@
 - pytest tmp_path fixture (автоматическая очистка)
 """
 
+import ast
 import asyncio
 import os
 import sqlite3
@@ -20,6 +21,11 @@ from typing import Any, Callable, Dict, Generator, List
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+
+try:
+    from parser_2gis.tui_textual.app import TUIApp
+except ImportError:
+    TUIApp = None  # type: ignore
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -641,3 +647,411 @@ def num_records(request: pytest.FixtureRequest) -> int:
         Количество записей.
     """
     return request.param
+
+
+# =============================================================================
+# НОВЫЕ ОБЩИЕ ФИКСТУРЫ ДЛЯ ОПТИМИЗИРОВАННЫХ ТЕСТОВ
+# =============================================================================
+
+
+# =============================================================================
+# TUI ФИКСТУРЫ
+# =============================================================================
+
+
+@pytest.fixture
+def mock_tui_app_base():
+    """Базовая фикстура для создания mock TUIApp.
+
+    Создаёт полностью изолированный mock объект приложения со всеми
+    необходимыми методами и свойствами для тестирования TUI.
+
+    Returns:
+        MagicMock: Mock объект приложения TUIApp.
+    """
+    app = MagicMock(spec=TUIApp if TUIApp else MagicMock)
+
+    # Начальное состояние
+    app.selected_cities = []
+    app.selected_categories = []
+    app.running = False
+    app._running = False
+    app._started_at = None
+
+    # Mock методов получения данных
+    app.get_cities = Mock(return_value=[])
+    app.get_categories = Mock(return_value=[])
+
+    # Mock методов навигации
+    app.push_screen = Mock()
+    app.pop_screen = Mock()
+    app.switch_screen = Mock()
+    app.switch_to_main_menu = Mock()
+
+    # Mock методов уведомления
+    app.notify_user = Mock()
+    app.notify = Mock()
+
+    # Mock методов парсинга
+    app.stop_parsing = Mock()
+    app.start_parsing = Mock()
+
+    # Mock call_from_thread - критически важный метод для обновления UI из потока
+    app.call_from_thread = Mock()
+
+    # Mock методов состояния
+    app.update_state = Mock()
+    app.get_state = Mock(return_value=None)
+
+    return app
+
+
+@pytest.fixture
+def screen_test_data():
+    """Данные для тестов экранов TUI.
+
+    Returns:
+        dict: Словарь с тестовыми данными для экранов.
+    """
+    return {
+        "cities": [
+            {
+                "name": "Москва",
+                "url": "https://2gis.ru/moscow",
+                "code": "moscow",
+                "country_code": "ru",
+            },
+            {
+                "name": "Санкт-Петербург",
+                "url": "https://2gis.ru/spb",
+                "code": "spb",
+                "country_code": "ru",
+            },
+            {"name": "Омск", "url": "https://2gis.ru/omsk", "code": "omsk", "country_code": "ru"},
+        ],
+        "categories": [
+            {"name": "Рестораны", "id": 93, "query": "рестораны"},
+            {"name": "Аптеки", "id": 107, "query": "аптеки"},
+            {"name": "Кафе", "id": 161, "query": "кафе"},
+            {"name": "Бары", "id": 162, "query": "бары"},
+        ],
+    }
+
+
+@pytest.fixture
+def tui_screen_names():
+    """Список имен экранов TUI для параметризации.
+
+    Returns:
+        list: Список кортежей (screen_class, screen_name).
+    """
+    try:
+        from parser_2gis.tui_textual.screens.main_menu import MainMenuScreen
+        from parser_2gis.tui_textual.screens.city_selector import CitySelectorScreen
+        from parser_2gis.tui_textual.screens.category_selector import CategorySelectorScreen
+        from parser_2gis.tui_textual.screens.parsing_screen import ParsingScreen
+        from parser_2gis.tui_textual.screens.settings import (
+            BrowserSettingsScreen,
+            ParserSettingsScreen,
+            OutputSettingsScreen,
+        )
+        from parser_2gis.tui_textual.screens.other_screens import AboutScreen, CacheViewerScreen
+
+        return [
+            (MainMenuScreen, "MainMenuScreen"),
+            (CitySelectorScreen, "CitySelectorScreen"),
+            (CategorySelectorScreen, "CategorySelectorScreen"),
+            (ParsingScreen, "ParsingScreen"),
+            (BrowserSettingsScreen, "BrowserSettingsScreen"),
+            (ParserSettingsScreen, "ParserSettingsScreen"),
+            (OutputSettingsScreen, "OutputSettingsScreen"),
+            (CacheViewerScreen, "CacheViewerScreen"),
+            (AboutScreen, "AboutScreen"),
+        ]
+    except ImportError:
+        return []
+
+
+# =============================================================================
+# АРХИТЕКТУРА ФИКСТУРЫ
+# =============================================================================
+
+
+@pytest.fixture(scope="session")
+def project_root_path():
+    """Путь к корню проекта.
+
+    Returns:
+        Path: Путь к корневой директории проекта parser_2gis.
+    """
+    return Path(__file__).parent.parent / "parser_2gis"
+
+
+@pytest.fixture
+def python_files_finder(project_root_path: Path):
+    """Фикстура для поиска Python файлов в проекте.
+
+    Args:
+        project_root_path: Путь к корню проекта.
+
+    Returns:
+        Callable: Функция для поиска Python файлов.
+    """
+
+    def find_files(exclude_dirs=None, exclude_files=None):
+        """Находит Python файлы в проекте.
+
+        Args:
+            exclude_dirs: Список директорий для исключения.
+            exclude_files: Список файлов для исключения.
+
+        Returns:
+            List[Path]: Список путей к Python файлам.
+        """
+        if exclude_dirs is None:
+            exclude_dirs = [
+                "__pycache__",
+                ".pytest_cache",
+                ".mypy_cache",
+                ".ruff_cache",
+                "tests",
+                "venv",
+            ]
+
+        if exclude_files is None:
+            exclude_files = ["__init__.py"]
+
+        python_files = []
+
+        for py_file in project_root_path.rglob("*.py"):
+            # Пропускаем исключенные директории
+            if any(part in exclude_dirs for part in py_file.parts):
+                continue
+
+            # Пропускаем исключенные файлы
+            if py_file.name in exclude_files:
+                continue
+
+            python_files.append(py_file)
+
+        return python_files
+
+    return find_files
+
+
+@pytest.fixture
+def ast_analyzer():
+    """Фикстура для AST анализа кода.
+
+    Returns:
+        Callable: Функция для AST анализа.
+    """
+
+    def analyze_file(file_path: Path):
+        """Анализирует Python файл с помощью AST.
+
+        Args:
+            file_path: Путь к файлу.
+
+        Returns:
+            ast.AST: AST дерево файла или None при ошибке.
+        """
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            return ast.parse(content)
+        except (SyntaxError, UnicodeDecodeError):
+            return None
+
+    return analyze_file
+
+
+# =============================================================================
+# ИСКЛЮЧЕНИЯ ФИКСТУРЫ
+# =============================================================================
+
+
+@pytest.fixture
+def exception_test_data():
+    """Данные для тестов исключений.
+
+    Returns:
+        dict: Словарь с тестовыми данными для исключений.
+    """
+    import sqlite3
+
+    return {
+        "sqlite_errors": [
+            ("database is locked", sqlite3.Error),
+            ("disk I/O error", sqlite3.Error),
+            ("no such table: cache", sqlite3.Error),
+        ],
+        "os_errors": [("Mocked OSError", OSError), ("File not found", FileNotFoundError)],
+        "type_errors": [("Mocked serialization error", TypeError)],
+    }
+
+
+@pytest.fixture
+def mock_error_factory():
+    """Фабрика для создания mock ошибок.
+
+    Returns:
+        Callable: Функция для создания mock ошибок.
+    """
+
+    def create_error(error_type: str, message: str):
+        """Создает mock ошибку указанного типа.
+
+        Args:
+            error_type: Тип ошибки ('sqlite', 'os', 'type', 'runtime').
+            message: Сообщение ошибки.
+
+        Returns:
+            Exception: Экземпляр ошибки.
+        """
+        import sqlite3
+
+        error_map = {
+            "sqlite": lambda m: sqlite3.Error(m),
+            "os": lambda m: OSError(m),
+            "type": lambda m: TypeError(m),
+            "runtime": lambda m: RuntimeError(m),
+            "value": lambda m: ValueError(m),
+        }
+
+        factory = error_map.get(error_type, lambda m: RuntimeError(m))
+        return factory(message)
+
+    return create_error
+
+
+# =============================================================================
+# КЭШ ФИКСТУРЫ
+# =============================================================================
+
+
+@pytest.fixture
+def temp_cache_manager(tmp_path: Path):
+    """Фикстура для создания временного CacheManager.
+
+    Args:
+        tmp_path: pytest tmp_path fixture.
+
+    Yields:
+        CacheManager: Временный менеджер кэша.
+    """
+    from parser_2gis.cache import CacheManager
+
+    cache_dir = tmp_path / "test_cache"
+    cache = CacheManager(cache_dir, ttl_hours=24)
+
+    yield cache
+
+    cache.close()
+
+
+@pytest.fixture
+def cache_test_scenarios():
+    """Сценарии для тестов кэша.
+
+    Returns:
+        dict: Словарь с тестовыми сценариями для кэша.
+    """
+    return {
+        "valid_data": {
+            "name": "Тестовая организация",
+            "address": "г. Москва, ул. Тестовая, д. 1",
+            "phones": ["+7 (495) 123-45-67"],
+            "emails": ["test@example.com"],
+            "website": "https://example.com",
+            "rubrics": ["Тестовая рубрика"],
+        },
+        "invalid_data": {
+            "name": None,
+            "address": "",
+            "phones": [],
+            "emails": ["invalid-email"],
+            "website": "not-a-url",
+        },
+        "edge_cases": {
+            "empty_dict": {},
+            "none_value": None,
+            "nan_value": float("nan"),
+            "large_list": list(range(1000)),
+        },
+    }
+
+
+# =============================================================================
+# ВАЛИДАЦИЯ ФИКСТУРЫ
+# =============================================================================
+
+
+@pytest.fixture
+def phone_test_data():
+    """Данные для тестов валидации телефона.
+
+    Returns:
+        dict: Словарь с тестовыми данными для телефона.
+    """
+    return {
+        "valid": ["+7 (495) 123-45-67", "+71234567890", "+7 (999) 000-00-00"],
+        "invalid_format": ["not-a-phone", "123", "abc-def-ghij"],
+        "invalid_length": [
+            "+712345678",  # 9 символов - слишком короткий
+            "+712345678901234",  # 16 символов - слишком длинный
+        ],
+        "edge_cases": [
+            "+71234567890123",  # 15 символов - максимальная длина
+            "+71234567890",  # 11 символов - минимальная длина
+        ],
+    }
+
+
+@pytest.fixture
+def config_field_test_data():
+    """Данные для тестов полей конфигурации.
+
+    Returns:
+        dict: Словарь с тестовыми данными для полей конфигурации.
+    """
+    return {
+        "parser_fields": [
+            ("timeout", 30),
+            ("max_records", 100),
+            ("delay_between_clicks", 100),
+            ("skip_404_response", True),
+        ],
+        "chrome_fields": [("headless", True), ("memory_limit", 512), ("disable_images", True)],
+        "writer_fields": [("encoding", "utf-8-sig"), ("verbose", False)],
+    }
+
+
+# =============================================================================
+# CSS УТИЛИТЫ
+# =============================================================================
+
+
+@pytest.fixture
+def css_extractor():
+    """Фикстура для извлечения CSS блоков.
+
+    Returns:
+        Callable: Функция для извлечения CSS блоков.
+    """
+    import re
+
+    def extract_css_block(css: str, selector: str) -> str:
+        """Извлекает блок CSS по селектору.
+
+        Args:
+            css: CSS содержимое.
+            selector: CSS селектор.
+
+        Returns:
+            str: CSS блок для указанного селектора.
+        """
+        pattern = re.escape(selector) + r"\s*\{([^}]*)\}"
+        match = re.search(pattern, css)
+        return match.group(0) if match else ""
+
+    return extract_css_block

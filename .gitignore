@@ -5,6 +5,7 @@ venv/
 
 # Python
 __pycache__/
+*.pyc
 dist/
 build/
 *.egg-info/
@@ -17,6 +18,7 @@ build/
 
 # Логи
 *.log
+logs/
 
 # Временные файлы
 *.tmp
@@ -31,6 +33,15 @@ KODA.md
 
 # Coverage
 .coverage
+htmlcov/
 
 # Debug reports
 parser_2gis/tui_textual/DEBUG_REPORT.md
+
+# Временные отчеты тестов
+TEST_AUDIT_REPORT.md
+TEST_FIX_REPORT.md
+TEST_OPTIMIZATION_REPORT.md
+
+# Результаты тестов
+output/
