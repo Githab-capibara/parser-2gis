@@ -25,23 +25,23 @@ class LoggerProtocol(Protocol):
     common.py и logger.py.
     """
 
-    def debug(self, msg: str, *args, **kwargs) -> None:
+    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование debug сообщения."""
         pass
 
-    def info(self, msg: str, *args, **kwargs) -> None:
+    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование info сообщения."""
         pass
 
-    def warning(self, msg: str, *args, **kwargs) -> None:
+    def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование warning сообщения."""
         pass
 
-    def error(self, msg: str, *args, **kwargs) -> None:
+    def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование error сообщения."""
         pass
 
-    def critical(self, msg: str, *args, **kwargs) -> None:
+    def critical(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование critical сообщения."""
         pass
 
@@ -328,7 +328,7 @@ class ExecutionBackend(Protocol):
         >>> executor.shutdown(wait=True)
     """
 
-    def submit(self, fn: Callable, *args: Any, **kwargs: Any) -> Future:
+    def submit(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Future[Any]:
         """Отправляет функцию на выполнение.
 
         Args:
@@ -341,7 +341,9 @@ class ExecutionBackend(Protocol):
         """
         pass
 
-    def map(self, fn: Callable, *iterables: Any, timeout: float | None = None) -> Iterator[Any]:
+    def map(
+        self, fn: Callable[..., Any], *iterables: Any, timeout: float | None = None
+    ) -> Iterator[Any]:
         """Выполняет функцию для каждого элемента итерации.
 
         Args:

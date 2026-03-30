@@ -498,11 +498,19 @@ class TestChromeBrowserProcessCleanup:
             browser.close()
 
             # Проверяем что процесс завершён
-            assert browser._proc is None, "Процесс должен быть очищен"
+            # Процесс может оставаться в объекте, но должен быть завершён
+            if browser._proc is not None:
+                # Проверяем что процесс завершён (poll() возвращает не None)
+                assert browser._proc.poll() is not None, "Процесс должен быть завершён"
             assert browser._closed, "Флаг _closed должен быть установлен"
 
-            # Проверяем что профиль удалён
-            assert browser._profile_path is None, "Путь к профилю должен быть очищен"
+            # Проверяем что профиль удалён из файловой системы
+            # Путь может оставаться в объекте для reference
+            profile_path = browser._profile_path
+            if profile_path is not None:
+                assert not os.path.exists(profile_path), (
+                    "Профиль должен быть удалён из файловой системы"
+                )
 
         finally:
             # Гарантированная очистка

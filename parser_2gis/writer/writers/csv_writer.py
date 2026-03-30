@@ -125,14 +125,33 @@ class CSVWriter(FileWriter):
 
         Args:
             row: Словарь с данными для записи.
+
+        Raises:
+            csv.Error: При ошибке записи CSV.
+            IOError: При ошибке ввода-вывода.
+            UnicodeError: При ошибке кодировки.
         """
         if self._options.verbose:
             logger.info("Парсинг [%d] > %s", self._wrote_count + 1, row.get("name", "N/A"))
 
         try:
             self._writer.writerow(row)
-        except Exception as e:
-            logger.error("Ошибка во время записи строки: %s", e)
+        except csv.Error as csv_error:
+            # Ошибка формата CSV (некорректные данные, экранирование и т.д.)
+            logger.error("Ошибка формата CSV при записи строки: %s", csv_error)
+            raise
+        except IOError as io_error:
+            # Ошибка ввода-вывода (диск заполнен, нет прав и т.д.)
+            logger.error("Ошибка ввода-вывода при записи строки: %s", io_error)
+            raise
+        except UnicodeError as unicode_error:
+            # Ошибка кодировки (некорректные символы Unicode)
+            logger.error("Ошибка кодировки при записи строки: %s", unicode_error)
+            raise
+        except Exception as general_error:
+            # Общая ошибка
+            logger.error("Общая ошибка во время записи строки: %s", general_error)
+            raise
 
     def __enter__(self) -> CSVWriter:
         super().__enter__()

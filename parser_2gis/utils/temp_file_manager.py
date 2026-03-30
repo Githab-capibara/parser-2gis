@@ -527,11 +527,21 @@ class TempFileTimer:
         )
 
     def __del__(self) -> None:
-        """Гарантирует остановку таймера при уничтожении."""
+        """Гарантирует остановку таймера при уничтожении.
+
+        Важно:
+            - Используется weakref.finalize() для гарантированной очистки
+            - Блок finally обеспечивает выполнение остановки даже при исключениях
+            - Критические исключения (MemoryError, KeyboardInterrupt, SystemExit) пробрасываются
+        """
+        cleanup_performed = False
+        timer_to_cancel: Optional[threading.Timer] = None
+
         try:
             if hasattr(self, "_finalizer") and self._finalizer is not None:
                 if self._finalizer.detach():
                     logger.debug("TempFileTimer очищен через weakref.finalize()")
+                    cleanup_performed = True
                     return
 
             if hasattr(self, "_is_running") and self._is_running:
@@ -539,10 +549,46 @@ class TempFileTimer:
                     "TempFileTimer уничтожается сборщиком мусора без явной остановки. "
                     "Всегда вызывайте stop() явно."
                 )
-        except (MemoryError, KeyboardInterrupt, SystemExit):
+                # Сохраняем ссылку на таймер для очистки в finally
+                timer_to_cancel = getattr(self, "_timer", None)
+        except MemoryError:
+            # Критическая ошибка памяти - пробрасываем дальше
+            logger.critical("MemoryError в __del__ TempFileTimer")
+            raise
+        except KeyboardInterrupt:
+            # Прерывание пользователем - пробрасываем дальше
+            logger.warning("KeyboardInterrupt в __del__ TempFileTimer")
+            raise
+        except SystemExit:
+            # Выход из системы - пробрасываем дальше
+            logger.debug("SystemExit в __del__ TempFileTimer")
             raise
         except (RuntimeError, TypeError, ValueError, OSError) as stop_error:
+            # Ожидаемые ошибки - логируем но не пробрасываем
             logger.debug("Ошибка при остановке таймера в __del__: %s", stop_error)
+        finally:
+            # Гарантия выполнения очистки ресурсов
+            try:
+                if not cleanup_performed:
+                    # Отменяем таймер если это не было сделано
+                    if timer_to_cancel is not None:
+                        try:
+                            timer_to_cancel.cancel()
+                        except (RuntimeError, TypeError, ValueError):
+                            pass  # Игнорируем ошибки при отмене в __del__
+
+                    # Сбрасываем флаг выполнения
+                    try:
+                        if hasattr(self, "_is_running"):
+                            object.__setattr__(self, "_is_running", False)
+                    except (AttributeError, TypeError, ValueError):
+                        pass  # Игнорируем ошибки при сбросе флага
+            except (MemoryError, KeyboardInterrupt, SystemExit):
+                # Критические исключения пробрасываем даже из finally
+                raise
+            except Exception as cleanup_error:
+                # Любые другие ошибки в finally только логируем
+                logger.debug("Ошибка в finally блоке __del__ TempFileTimer: %s", cleanup_error)
 
 
 # =============================================================================

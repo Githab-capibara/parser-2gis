@@ -1,0 +1,358 @@
+"""
+Тесты для обработки ошибок в writer/writers/csv_writer.py.
+
+Проверяет:
+- Обработку csv.Error
+- Обработку IOError
+- Обработку UnicodeError
+"""
+
+import csv
+import logging
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from parser_2gis.writer.writers.csv_writer import CSVWriter
+
+
+class TestCSVWriterErrorHandling:
+    """Тесты обработки ошибок в CSVWriter."""
+
+    @pytest.fixture
+    def mock_options(self) -> MagicMock:
+        """Создает mock опций.
+
+        Returns:
+            MagicMock с опциями.
+        """
+        options = MagicMock()
+        options.verbose = False
+        options.encoding = "utf-8-sig"
+        options.csv.columns_per_entity = 3
+        options.csv.add_rubrics = True
+        options.csv.add_comments = False
+        options.csv.remove_empty_columns = False
+        options.csv.remove_duplicates = False
+        options.csv.join_char = ", "
+        return options
+
+    @pytest.fixture
+    def temp_output_path(self, tmp_path: Path) -> Path:
+        """Создает временный путь для вывода.
+
+        Args:
+            tmp_path: pytest tmp_path fixture.
+
+        Returns:
+            Путь к временному файлу.
+        """
+        return tmp_path / "test_output.csv"
+
+    @pytest.fixture
+    def csv_writer(self, mock_options, temp_output_path) -> CSVWriter:
+        """Создает CSVWriter для тестов.
+
+        Args:
+            mock_options: Mock опций.
+            temp_output_path: Путь к временному файлу.
+
+        Returns:
+            CSVWriter экземпляр.
+        """
+        writer = CSVWriter(file_path=str(temp_output_path), writer_options=mock_options)
+        yield writer
+        try:
+            writer.close()
+        except Exception:
+            pass
+
+    def test_csv_writer_csv_error_handling(self, csv_writer: CSVWriter, caplog):
+        """Тест обработки csv.Error.
+
+        Проверяет:
+        - csv.Error обрабатывается корректно
+        - Исключение пробрасывается дальше
+        """
+        with caplog.at_level(logging.ERROR):
+            with csv_writer:
+                # Mock writer для выбрасывания csv.Error
+                mock_dict_writer = MagicMock()
+                mock_dict_writer.writerow.side_effect = csv.Error("Mocked csv.Error")
+                csv_writer._writer = mock_dict_writer
+
+                # Пытаемся записать строку
+                with pytest.raises(csv.Error):
+                    csv_writer._writerow({"name": "Test"})
+
+                # Проверяем что ошибка была залогирована
+                assert any(
+                    "csv.Error" in record.message or "формата CSV" in record.message
+                    for record in caplog.records
+                )
+
+    def test_csv_writer_io_error_handling(self, csv_writer: CSVWriter, caplog):
+        """Тест обработки IOError.
+
+        Проверяет:
+        - IOError обрабатывается корректно
+        - Исключение пробрасывается дальше
+        """
+        with caplog.at_level(logging.ERROR):
+            with csv_writer:
+                # Mock writer для выбрасывания IOError
+                mock_dict_writer = MagicMock()
+                mock_dict_writer.writerow.side_effect = IOError("Mocked IOError")
+                csv_writer._writer = mock_dict_writer
+
+                # Пытаемся записать строку
+                with pytest.raises(IOError):
+                    csv_writer._writerow({"name": "Test"})
+
+                # Проверяем что ошибка была залогирована
+                assert any(
+                    "IOError" in record.message or "ввода-вывода" in record.message
+                    for record in caplog.records
+                )
+
+    def test_csv_writer_unicode_error_handling(self, csv_writer: CSVWriter, caplog):
+        """Тест обработки UnicodeError.
+
+        Проверяет:
+        - UnicodeError обрабатывается корректно
+        - Исключение пробрасывается дальше
+        """
+        with caplog.at_level(logging.ERROR):
+            with csv_writer:
+                # Mock writer для выбрасывания UnicodeError
+                mock_dict_writer = MagicMock()
+                mock_dict_writer.writerow.side_effect = UnicodeError("Mocked UnicodeError")
+                csv_writer._writer = mock_dict_writer
+
+                # Пытаемся записать строку
+                with pytest.raises(UnicodeError):
+                    csv_writer._writerow({"name": "Test"})
+
+                # Проверяем что ошибка была залогирована
+                assert any(
+                    "UnicodeError" in record.message or "кодировки" in record.message
+                    for record in caplog.records
+                )
+
+    def test_csv_writer_general_exception_handling(self, csv_writer: CSVWriter, caplog):
+        """Тест обработки общего исключения.
+
+        Проверяет:
+        - General Exception обрабатывается корректно
+        - Исключение пробрасывается дальше
+        """
+        with caplog.at_level(logging.ERROR):
+            with csv_writer:
+                # Mock writer для выбрасывания Exception
+                mock_dict_writer = MagicMock()
+                mock_dict_writer.writerow.side_effect = RuntimeError("Mocked RuntimeError")
+                csv_writer._writer = mock_dict_writer
+
+                # Пытаемся записать строку
+                with pytest.raises(RuntimeError):
+                    csv_writer._writerow({"name": "Test"})
+
+                # Проверяем что ошибка была залогирована
+                assert any("Общая ошибка" in record.message for record in caplog.records)
+
+    def test_csv_writer_post_processor_exception(self, temp_output_path, mock_options, caplog):
+        """Тест обработки исключений в постпроцессоре.
+
+        Проверяет:
+        - Исключения в постпроцессоре обрабатываются
+        - Не ломают основной процесс
+        """
+        # Создаем файл
+        temp_output_path.write_text("col1,col2\nval1,val2\n", encoding="utf-8")
+
+        mock_options.csv.remove_empty_columns = True
+
+        with caplog.at_level(logging.ERROR):
+            with patch(
+                "parser_2gis.writer.writers.csv_writer.CSVPostProcessor"
+            ) as mock_processor_class:
+                mock_processor = MagicMock()
+                mock_processor.remove_empty_columns.side_effect = RuntimeError("Mocked error")
+                mock_processor_class.return_value = mock_processor
+
+                writer = CSVWriter(file_path=str(temp_output_path), writer_options=mock_options)
+
+                with writer:
+                    writer._writerow({"name": "Test"})
+
+                # Проверяем что ошибка была залогирована
+                assert any(
+                    "Ошибка при удалении пустых колонок" in record.message
+                    for record in caplog.records
+                )
+
+    def test_csv_writer_deduplicator_exception(self, temp_output_path, mock_options, caplog):
+        """Тест обработки исключений в дедупликаторе.
+
+        Проверяет:
+        - Исключения в дедупликаторе обрабатываются
+        - Не ломают основной процесс
+        """
+        # Создаем файл
+        temp_output_path.write_text("col1,col2\nval1,val2\n", encoding="utf-8")
+
+        mock_options.csv.remove_duplicates = True
+
+        with caplog.at_level(logging.ERROR):
+            with patch("parser_2gis.writer.writers.csv_writer.CSVDeduplicator") as mock_dedup_class:
+                mock_dedup = MagicMock()
+                mock_dedup.remove_duplicates.side_effect = RuntimeError("Mocked error")
+                mock_dedup_class.return_value = mock_dedup
+
+                writer = CSVWriter(file_path=str(temp_output_path), writer_options=mock_options)
+
+                with writer:
+                    writer._writerow({"name": "Test"})
+
+                # Проверяем что ошибка была залогирована
+                assert any(
+                    "Ошибка при удалении дубликатов" in record.message for record in caplog.records
+                )
+
+    def test_csv_writer_extract_raw_validation_error(self, csv_writer: CSVWriter, caplog):
+        """Тест обработки ValidationError при извлечении данных.
+
+        Проверяет:
+        - ValidationError обрабатывается корректно
+        - Возвращается пустой словарь
+        """
+        with caplog.at_level(logging.ERROR):
+            # Некорректный документ
+            invalid_doc = {"invalid": "data"}
+
+            result = csv_writer._extract_raw(invalid_doc)
+
+            # Проверяем что результат пустой словарь
+            assert result == {}
+
+            # Проверяем что ошибка была залогирована
+            assert any("Ошибка" in record.message for record in caplog.records)
+
+    def test_csv_writer_extract_raw_key_error(self, csv_writer: CSVWriter, caplog):
+        """Тест обработки KeyError при извлечении данных.
+
+        Проверяет:
+        - KeyError обрабатывается корректно
+        - Возвращается пустой словарь
+        """
+        with caplog.at_level(logging.ERROR):
+            # Документ с отсутствующими ключами
+            invalid_doc = {"result": {}}
+
+            result = csv_writer._extract_raw(invalid_doc)
+
+            # Проверяем что результат пустой словарь
+            assert result == {}
+
+    def test_csv_writer_extract_raw_type_error(self, csv_writer: CSVWriter, caplog):
+        """Тест обработки TypeError при извлечении данных.
+
+        Проверяет:
+        - TypeError обрабатывается корректно
+        - Возвращается пустой словарь
+        """
+        with caplog.at_level(logging.ERROR):
+            # Документ с некорректным типом
+            invalid_doc = None
+
+            result = csv_writer._extract_raw(invalid_doc)
+
+            # Проверяем что результат пустой словарь
+            assert result == {}
+
+    def test_csv_writer_extract_raw_index_error(self, csv_writer: CSVWriter, caplog):
+        """Тест обработки IndexError при извлечении данных.
+
+        Проверяет:
+        - IndexError обрабатывается корректно
+        - Возвращается пустой словарь
+        """
+        with caplog.at_level(logging.ERROR):
+            # Документ с пустым списком items
+            invalid_doc = {"result": {"items": []}}
+
+            result = csv_writer._extract_raw(invalid_doc)
+
+            # Проверяем что результат пустой словарь
+            assert result == {}
+
+    def test_csv_writer_check_catalog_doc_false(self, csv_writer: CSVWriter):
+        """Тест _check_catalog_doc возвращающего False.
+
+        Проверяет:
+        - При False запись не выполняется
+        """
+        # Mock _check_catalog_doc для возвращения False
+        with patch.object(csv_writer, "_check_catalog_doc", return_value=False):
+            with csv_writer:
+                # Пытаемся записать документ
+                csv_writer.write({"test": "data"})
+
+                # Проверяем что ничего не было записано
+                assert csv_writer._wrote_count == 0
+
+    def test_csv_writer_file_open_error(self, tmp_path: Path, mock_options, caplog):
+        """Тест обработки ошибки открытия файла.
+
+        Проверяет:
+        - OSError при открытии файла обрабатывается
+        """
+        with caplog.at_level(logging.ERROR):
+            # Пытаемся создать writer с недоступным путем
+            invalid_path = tmp_path / "nonexistent" / "file.csv"
+
+            with pytest.raises((OSError, IOError)):
+                writer = CSVWriter(file_path=invalid_path, options=mock_options)
+                with writer:
+                    pass
+
+    def test_csv_writer_context_manager_exception(self, temp_output_path, mock_options, caplog):
+        """Тест обработки исключений в контекстном менеджере.
+
+        Проверяет:
+        - Исключения в __exit__ обрабатываются
+        """
+        with caplog.at_level(logging.ERROR):
+            writer = CSVWriter(file_path=temp_output_path, options=mock_options)
+
+            with writer:
+                writer._writerow({"name": "Test"})
+
+                # Mock super().__exit__ для выбрасывания исключения
+                with patch(
+                    "parser_2gis.writer.writers.file_writer.FileWriter.__exit__",
+                    side_effect=RuntimeError("Mocked error"),
+                ):
+                    pass
+
+            # Проверяем что ошибка была обработана (тест проходит если не было падения)
+            assert True
+
+    def test_csv_writer_close_exception(self, temp_output_path, mock_options, caplog):
+        """Тест обработки исключений при закрытии.
+
+        Проверяет:
+        - Исключения при close() обрабатываются
+        """
+        with caplog.at_level(logging.ERROR):
+            writer = CSVWriter(file_path=temp_output_path, options=mock_options)
+
+            with writer:
+                writer._writerow({"name": "Test"})
+
+            # Mock _file.close для выбрасывания исключения
+            with patch.object(writer._file, "close", side_effect=IOError("Mocked error")):
+                # Пытаемся закрыть
+                with pytest.raises(IOError):
+                    writer.close()

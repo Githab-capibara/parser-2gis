@@ -95,10 +95,34 @@ def _calculate_dynamic_pool_size() -> int:
         # psutil не установлен, используем значение по умолчанию
         app_logger.debug("psutil не установлен, используем размер пула по умолчанию")
         return MIN_POOL_SIZE
-    except (MemoryError, OSError, ValueError, TypeError, Exception):
-        # Любая другая ошибка - используем минимальный размер
-        app_logger.debug("Ошибка при расчёте размера пула, используем минимум")
+    except MemoryError:
+        # Критическая ошибка памяти - используем минимальный размер
+        app_logger.warning("MemoryError при расчёте размера пула, используем минимум")
         return MIN_POOL_SIZE
+    except OSError as os_error:
+        # Ошибка ОС (например, недоступность системной информации)
+        app_logger.warning("OSError при расчёте размера пула: %s, используем минимум", os_error)
+        return MIN_POOL_SIZE
+    except ValueError as value_error:
+        # Ошибка значения (например, некорректные данные из ENV)
+        app_logger.warning(
+            "ValueError при расчёте размера пула: %s, используем минимум", value_error
+        )
+        return MIN_POOL_SIZE
+    except TypeError as type_error:
+        # Ошибка типа данных
+        app_logger.warning("TypeError при расчёте размера пула: %s, используем минимум", type_error)
+        return MIN_POOL_SIZE
+    except Exception as general_error:
+        # Любая другая ошибка - используем минимальный размер
+        app_logger.warning(
+            "Неожиданная ошибка при расчёте размера пула: %s, используем минимум", general_error
+        )
+        return MIN_POOL_SIZE
+    finally:
+        # Гарантия выполнения любой необходимой очистки
+        # В данном случае очистка не требуется, но блок finally обеспечивает структуру
+        pass
 
 
 class ConnectionPool:

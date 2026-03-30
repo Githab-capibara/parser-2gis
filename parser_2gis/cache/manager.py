@@ -706,11 +706,18 @@ class CacheManager:
     def __del__(self) -> None:
         """
         Гарантирует закрытие соединений при уничтожении объекта.
+
+        Важно:
+            - Используется weakref.finalize() для гарантированной очистки
+            - Блок finally обеспечивает выполнение очистки даже при исключениях
+            - Критические исключения (MemoryError, KeyboardInterrupt, SystemExit) пробрасываются
         """
+        cleanup_performed = False
         try:
             if hasattr(self, "_finalizer") and self._finalizer is not None:
                 if self._finalizer.detach():
                     app_logger.debug("CacheManager очищен через weakref.finalize()")
+                    cleanup_performed = True
                     return
 
             if hasattr(self, "_pool") and self._pool is not None:
@@ -718,10 +725,37 @@ class CacheManager:
                     "CacheManager уничтожается сборщиком мусора без явного закрытия. "
                     "Всегда вызывайте close() явно или используйте контекстный менеджер."
                 )
-        except (MemoryError, KeyboardInterrupt, SystemExit):
+        except MemoryError:
+            # Критическая ошибка памяти - пробрасываем дальше
+            app_logger.critical("MemoryError в __del__ CacheManager")
+            raise
+        except KeyboardInterrupt:
+            # Прерывание пользователем - пробрасываем дальше
+            app_logger.warning("KeyboardInterrupt в __del__ CacheManager")
+            raise
+        except SystemExit:
+            # Выход из системы - пробрасываем дальше
+            app_logger.debug("SystemExit в __del__ CacheManager")
             raise
         except (RuntimeError, TypeError, ValueError, OSError) as del_error:
+            # Ожидаемые ошибки - логируем но не пробрасываем
             app_logger.debug("Ошибка в __del__ CacheManager: %s", del_error)
+        finally:
+            # Гарантия выполнения очистки ресурсов
+            try:
+                if not cleanup_performed:
+                    # Пытаемся закрыть пул если это не было сделано
+                    if hasattr(self, "_pool") and self._pool is not None:
+                        try:
+                            self._pool.close()
+                        except (sqlite3.Error, OSError, RuntimeError):
+                            pass  # Игнорируем ошибки при закрытии в __del__
+            except (MemoryError, KeyboardInterrupt, SystemExit):
+                # Критические исключения пробрасываем даже из finally
+                raise
+            except Exception as cleanup_error:
+                # Любые другие ошибки в finally только логируем
+                app_logger.debug("Ошибка в finally блоке __del__ CacheManager: %s", cleanup_error)
 
     @staticmethod
     def _hash_url(url: str) -> str:
