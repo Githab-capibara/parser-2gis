@@ -878,8 +878,8 @@ class ChromeRemote:
                     type="mouseReleased", x=int(cx), y=int(cy), button="left", clickCount=1
                 )
                 return
-        except Exception:
-            pass
+        except (ConnectionError, TimeoutError, OSError) as e:
+            app_logger.debug("Подавлено исключение в click(): %s", e)
 
         # Fallback: стандартный метод через resolveNode + callFunctionOn
         try:

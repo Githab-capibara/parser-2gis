@@ -12,6 +12,7 @@ import functools
 import logging
 import threading
 import time
+from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 # =============================================================================
@@ -26,6 +27,26 @@ MAX_POLL_INTERVAL: float = 0.5
 
 EXPONENTIAL_BACKOFF_MULTIPLIER: float = 2
 """Множитель для экспоненциальной задержки."""
+
+
+@dataclass
+class WaitConfig:
+    """Конфигурация для декоратора wait_until_finished.
+
+    Attributes:
+        timeout: Таймаут ожидания в секундах.
+        finished: Функция-предикат для проверки завершения.
+        throw_exception: Бросать ли исключение при таймауте.
+        poll_interval: Начальный интервал опроса.
+        max_retries: Максимальное количество попыток.
+    """
+
+    timeout: Optional[int] = None
+    finished: Optional[Callable[[Any], bool]] = None
+    throw_exception: bool = False
+    poll_interval: float = DEFAULT_POLL_INTERVAL
+    max_retries: Optional[int] = None
+
 
 # =============================================================================
 # ЛОГГЕР
@@ -133,38 +154,46 @@ def wait_until_finished(
             max_retries: Optional[int] = None,
             **kwargs: Any,
         ) -> Any:
-            # Приоритет: override_* > оригинальные имена > значения из декоратора
-            effective_timeout = (
-                override_timeout
-                if override_timeout is not None
-                else (timeout if timeout is not None else decorator_timeout)
-            )
-            effective_finished = (
-                override_finished
-                if override_finished is not None
-                else (
-                    finished if finished is not None else decorator_finished or _default_predicate
-                )
-            )
-            effective_throw = (
-                override_throw_exception
-                if override_throw_exception is not None
-                else (throw_exception if throw_exception is not None else decorator_throw_exception)
-            )
-            effective_poll = (
-                override_poll_interval
-                if override_poll_interval is not None
-                else (poll_interval if poll_interval is not None else decorator_poll_interval)
-            )
-            effective_max_retries = (
-                override_max_retries
-                if override_max_retries is not None
-                else (max_retries if max_retries is not None else decorator_max_retries)
+            # Группировка эффективных параметров в dataclass
+            effective_config = WaitConfig(
+                timeout=(
+                    override_timeout
+                    if override_timeout is not None
+                    else (timeout if timeout is not None else decorator_timeout)
+                ),
+                finished=(
+                    override_finished
+                    if override_finished is not None
+                    else (
+                        finished
+                        if finished is not None
+                        else decorator_finished or _default_predicate
+                    )
+                ),
+                throw_exception=(
+                    override_throw_exception
+                    if override_throw_exception is not None
+                    else (
+                        throw_exception
+                        if throw_exception is not None
+                        else decorator_throw_exception
+                    )
+                ),
+                poll_interval=(
+                    override_poll_interval
+                    if override_poll_interval is not None
+                    else (poll_interval if poll_interval is not None else decorator_poll_interval)
+                ),
+                max_retries=(
+                    override_max_retries
+                    if override_max_retries is not None
+                    else (max_retries if max_retries is not None else decorator_max_retries)
+                ),
             )
 
             ret: Any = None
             start_time = time.time()
-            current_poll_interval = effective_poll
+            current_poll_interval = effective_config.poll_interval
             consecutive_failures = 0  # Счётчик неудач для экспоненциальной задержки
             attempt_count = 0  # ИСПРАВЛЕНИЕ 18: Счётчик попыток
 
@@ -173,23 +202,27 @@ def wait_until_finished(
 
             while True:
                 # ИСПРАВЛЕНИЕ 18: Проверка таймаута в начале цикла
-                if effective_timeout is not None and time.time() - start_time > effective_timeout:
-                    timeout_msg = (
-                        f"Превышено время ожидания для {func.__name__} ({effective_timeout} сек)"
-                    )
-                    if effective_throw:
+                if (
+                    effective_config.timeout is not None
+                    and time.time() - start_time > effective_config.timeout
+                ):
+                    timeout_msg = f"Превышено время ожидания для {func.__name__} ({effective_config.timeout} сек)"
+                    if effective_config.throw_exception:
                         raise TimeoutError(timeout_msg)
                     # Логируем timeout для диагностики
                     _get_logger().warning(timeout_msg)
                     return ret
 
                 # ИСПРАВЛЕНИЕ 18: Проверка максимального количества попыток
-                if effective_max_retries is not None and attempt_count >= effective_max_retries:
+                if (
+                    effective_config.max_retries is not None
+                    and attempt_count >= effective_config.max_retries
+                ):
                     retries_msg = (
                         f"Превышено максимальное количество попыток для {func.__name__} "
-                        f"({effective_max_retries} попыток)"
+                        f"({effective_config.max_retries} попыток)"
                     )
-                    if effective_throw:
+                    if effective_config.throw_exception:
                         raise TimeoutError(retries_msg)
                     _get_logger().warning(retries_msg)
                     return ret
@@ -198,7 +231,7 @@ def wait_until_finished(
 
                 try:
                     ret = func(*args, **kwargs)
-                    if effective_finished(ret):
+                    if effective_config.finished(ret):
                         return ret
                     consecutive_failures = 0  # Сброс при успехе
                 except TimeoutError:
@@ -219,10 +252,11 @@ def wait_until_finished(
                 if use_exponential_backoff and consecutive_failures > 0:
                     # Увеличиваем интервал после каждой неудачи
                     current_poll_interval = min(
-                        effective_poll * (2 ** (consecutive_failures - 1)), max_poll_interval
+                        effective_config.poll_interval * (2 ** (consecutive_failures - 1)),
+                        max_poll_interval,
                     )
                 else:
-                    current_poll_interval = effective_poll
+                    current_poll_interval = effective_config.poll_interval
 
                 # ИСПРАВЛЕНИЕ 18: Используем Event.wait() вместо time.sleep()
                 # Это позволяет прервать ожидание через stop_event.set() из другого потока

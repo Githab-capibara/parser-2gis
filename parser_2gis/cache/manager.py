@@ -451,7 +451,10 @@ class CacheManager:
         except sqlite3.Error as db_error:
             app_logger.error("Ошибка БД при сохранении кэша: %s", db_error)
         finally:
-            cursor.close()
+            try:
+                cursor.close()
+            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
+                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
     def set_batch(self, items: List[Tuple[str, Dict[str, Any]]]) -> int:
         """
@@ -514,7 +517,10 @@ class CacheManager:
         except sqlite3.Error as db_error:
             app_logger.error("Ошибка БД при пакетном сохранении кэша: %s", db_error)
         finally:
-            cursor.close()
+            try:
+                cursor.close()
+            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
+                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
         return saved_count
 
@@ -565,7 +571,10 @@ class CacheManager:
             app_logger.warning("Ошибка БД при очистке истекшего кэша: %s", db_error)
             return 0
         finally:
-            cursor.close()
+            try:
+                cursor.close()
+            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
+                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
     def clear_batch(self, url_hashes: List[str]) -> int:
         """
@@ -620,7 +629,10 @@ class CacheManager:
             app_logger.warning("Ошибка БД при пакетном удалении: %s", db_error)
             return 0
         finally:
-            cursor.close()
+            try:
+                cursor.close()
+            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
+                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
     def get_stats(self) -> Dict[str, Any]:
         """Получение статистики кэша.
@@ -657,7 +669,10 @@ class CacheManager:
             app_logger.warning("Ошибка при получении статистики кэша: %s", db_error)
             return {"total_records": 0, "expired_records": 0, "cache_size": 0}
         finally:
-            cursor.close()
+            try:
+                cursor.close()
+            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
+                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
     def close(self) -> None:
         """
@@ -749,8 +764,10 @@ class CacheManager:
                     if hasattr(self, "_pool") and self._pool is not None:
                         try:
                             self._pool.close()
-                        except (sqlite3.Error, OSError, RuntimeError):
-                            pass  # Игнорируем ошибки при закрытии в __del__
+                        except (sqlite3.Error, OSError, RuntimeError) as e:
+                            app_logger.debug(
+                                "Подавлено исключение при закрытии пула в __del__: %s", e
+                            )
             except (MemoryError, KeyboardInterrupt, SystemExit):
                 # Критические исключения пробрасываем даже из finally
                 raise
@@ -904,7 +921,10 @@ class CacheManager:
                         )
 
                 finally:
-                    cursor.close()
+                    try:
+                        cursor.close()
+                    except (sqlite3.Error, OSError, MemoryError) as cursor_error:
+                        app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
         except OSError as os_error:
             app_logger.warning("Ошибка при проверке размера кэша: %s", os_error)

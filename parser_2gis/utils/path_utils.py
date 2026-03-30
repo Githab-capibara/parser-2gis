@@ -55,6 +55,8 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
     2. Проверка максимальной длины
     3. Разрешение символьных ссылок через realpath
     4. Проверка нахождения в разрешённых директориях
+    5. Проверка на абсолютный путь
+    6. Проверка запрещённых директорий (/, /etc, /root, /home)
 
     Args:
         path: Путь для валидации.
@@ -69,7 +71,7 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
         >>> validate_path_safety("../etc/passwd", "output_path")  # Raises ValueError
     """
     if not path:
-        return
+        raise ValueError(f"{path_name} не может быть пустым")
 
     # Проверка длины пути
     if len(path) > MAX_PATH_LENGTH:
@@ -85,11 +87,30 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
                 "Path traversal атаки запрещены."
             )
 
+    # Преобразуем в Path для проверок
+    path_obj = Path(path)
+
+    # Проверка что путь абсолютный
+    if not path_obj.is_absolute():
+        raise ValueError(f"{path_name} должен быть абсолютным путём, получен относительный: {path}")
+
     # Разрешаем путь через realpath для предотвращения symlink атак
     try:
-        resolved_path = Path(path).resolve()
+        resolved_path = path_obj.resolve()
     except (OSError, RuntimeError) as fs_error:
         raise OSError(f"Ошибка разрешения {path_name}: {fs_error}") from fs_error
+
+    # Проверка запрещённых директорий (/, /etc, /root, /home)
+    forbidden_dirs = ["/", "/etc", "/root", "/home"]
+    resolved_path_str = str(resolved_path)
+    for forbidden_dir in forbidden_dirs:
+        if resolved_path_str == forbidden_dir or resolved_path_str.startswith(forbidden_dir + "/"):
+            # Исключаем временные директории внутри /tmp
+            if not resolved_path_str.startswith("/tmp"):
+                raise ValueError(
+                    f"{path_name} не может находиться в системной директории: {forbidden_dir}. "
+                    f"Попытка записи в: {resolved_path_str}"
+                )
 
     # Проверка что путь находится в разрешённой директории
     # Это предотвращает запись в системные директории

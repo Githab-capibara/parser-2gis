@@ -13,6 +13,7 @@ import fcntl
 import os
 import threading
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, TextIO, Tuple
 
@@ -24,6 +25,32 @@ from parser_2gis.constants import (
     MERGE_LOCK_TIMEOUT,
     validate_env_int,
 )
+
+
+@dataclass
+class MergeConfig:
+    """Конфигурация для объединения CSV файлов.
+
+    Attributes:
+        file_paths: Список путей к CSV файлам для объединения.
+        output_path: Путь к выходному файлу.
+        encoding: Кодировка для чтения/записи.
+        buffer_size: Размер буфера в байтах.
+        batch_size: Размер пакета строк для записи.
+        log_callback: Функция для логирования.
+        progress_callback: Функция обновления прогресса.
+        cancel_event: Событие для отмены операции.
+    """
+
+    file_paths: List[Path]
+    output_path: Path
+    encoding: str
+    buffer_size: int = MERGE_BUFFER_SIZE
+    batch_size: int = MERGE_BATCH_SIZE
+    log_callback: Optional[Callable[[str, str], None]] = None
+    progress_callback: Optional[Callable[[str], None]] = None
+    cancel_event: Optional[threading.Event] = None
+
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ СЛИЯНИЯ ФАЙЛОВ
@@ -139,10 +166,27 @@ def _merge_csv_files(
         - total_rows: Количество объединённых строк.
         - files_to_delete: Список файлов для удаления.
     """
+    # Группировка параметров в dataclass для удобства
+    merge_config = MergeConfig(
+        file_paths=file_paths,
+        output_path=output_path,
+        encoding=encoding,
+        buffer_size=buffer_size,
+        batch_size=batch_size,
+        log_callback=log_callback,
+        progress_callback=progress_callback,
+        cancel_event=cancel_event,
+    )
 
     def log(msg: str, level: str = "info") -> None:
-        if log_callback:
-            log_callback(msg, level)
+        """Выводит сообщение лога через callback.
+
+        Args:
+            msg: Сообщение для логирования.
+            level: Уровень логирования (debug, info, warning, error).
+        """
+        if merge_config.log_callback:
+            merge_config.log_callback(msg, level)
 
     files_to_delete: List[Path] = []
     total_rows = 0
@@ -188,13 +232,13 @@ def _merge_csv_files(
 
     try:
         with outfile:  # type: ignore[union-attr]
-            for csv_file in file_paths:
-                if cancel_event is not None and cancel_event.is_set():
+            for csv_file in merge_config.file_paths:
+                if merge_config.cancel_event is not None and merge_config.cancel_event.is_set():
                     log("Объединение отменено пользователем", "warning")
                     return False, 0, []
 
-                if progress_callback:
-                    progress_callback(f"Обработка: {csv_file.name}")
+                if merge_config.progress_callback:
+                    merge_config.progress_callback(f"Обработка: {csv_file.name}")
 
                 stem = csv_file.stem
                 last_underscore_idx = stem.rfind("_")

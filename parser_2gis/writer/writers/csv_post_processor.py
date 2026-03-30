@@ -255,7 +255,8 @@ class CSVPostProcessor:
                         total_batches += 1
 
                     logger.debug(
-                        "Запись CSV завершена (всего пакетов: %d, размер пакета: %d, буфер чтения: %d, буфер записи: %d, mmap: %s)",
+                        "Запись CSV завершена (всего пакетов: %d, размер пакета: %d, "
+                        "буфер чтения: %d, буфер записи: %d, mmap: %s)",
                         total_batches,
                         batch_size,
                         optimal_read_buffer,

@@ -16,7 +16,15 @@ import websocket
 pychrome_logger = logging.getLogger("pychrome")
 
 
-def patch_pychrome():
+def patch_pychrome() -> None:
+    """Патчит метод _recv_loop в pychrome.tab.Tab для улучшенной обработки исключений.
+
+    Модифицирует поведение получения сообщений через websocket:
+    - Обрабатывает таймауты websocket без прерывания цикла
+    - Логирует websocket исключения при активном соединении
+    - Корректно обрабатывает сообщения с id и method
+    """
+
     def _recv_loop_patched(self):
         while not self._stopped.is_set():
             try:

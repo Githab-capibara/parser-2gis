@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 from typing import Any
 
 import pydantic
@@ -15,6 +16,29 @@ from parser_2gis.config import Configuration
 from parser_2gis.utils import report_from_validation_error
 from parser_2gis.utils.path_utils import validate_path_safety
 from parser_2gis.validation import validate_positive_int, validate_url
+
+
+@dataclass
+class ValidationArgument:
+    """Конфигурация для валидации CLI аргумента.
+
+    Attributes:
+        args: Аргументы командной строки.
+        arg_parser: Парсер аргументов для вывода ошибок.
+        attr_name: Имя атрибута для проверки.
+        min_val: Минимально допустимое значение.
+        max_val: Максимально допустимое значение.
+        error_name: Имя аргумента для сообщения об ошибке.
+        convert_to_int: Конвертировать значение в int перед валидацией.
+    """
+
+    args: argparse.Namespace
+    arg_parser: argparse.ArgumentParser
+    attr_name: str
+    min_val: int
+    max_val: float
+    error_name: str
+    convert_to_int: bool = False
 
 
 class ArgumentValidator:
@@ -58,22 +82,42 @@ class ArgumentValidator:
             Функция безопасно проверяет наличие атрибута и его значение.
             При ошибке валидации вызывает arg_parser.error().
         """
-        if hasattr(args, attr_name) and getattr(args, attr_name) is not None:
+        # Группировка параметров в dataclass для удобства
+        validation_config = ValidationArgument(
+            args=args,
+            arg_parser=arg_parser,
+            attr_name=attr_name,
+            min_val=min_val,
+            max_val=max_val,
+            error_name=error_name,
+            convert_to_int=convert_to_int,
+        )
+
+        if (
+            hasattr(validation_config.args, validation_config.attr_name)
+            and getattr(validation_config.args, validation_config.attr_name) is not None
+        ):
             try:
-                value = getattr(args, attr_name)
-                if convert_to_int:
+                value = getattr(validation_config.args, validation_config.attr_name)
+                if validation_config.convert_to_int:
                     value = int(value)
-                max_val_int = int(max_val) if max_val != float("inf") else None
+                max_val_int = (
+                    int(validation_config.max_val)
+                    if validation_config.max_val != float("inf")
+                    else None
+                )
                 if max_val_int is not None:
-                    validate_positive_int(value, min_val, max_val_int, error_name)
+                    validate_positive_int(
+                        value, validation_config.min_val, max_val_int, validation_config.error_name
+                    )
                 else:
-                    if value >= min_val:
+                    if value >= validation_config.min_val:
                         return
                     raise ValueError(
-                        f"{error_name} должен быть не менее {min_val} (получено {value})"
+                        f"{validation_config.error_name} должен быть не менее {validation_config.min_val} (получено {value})"
                     )
             except ValueError as e:
-                arg_parser.error(str(e))
+                validation_config.arg_parser.error(str(e))
 
     def validate_urls(self, args: argparse.Namespace, arg_parser: argparse.ArgumentParser) -> None:
         """Валидирует URL из аргументов командной строки.

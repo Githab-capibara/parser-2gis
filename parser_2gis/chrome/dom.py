@@ -71,12 +71,28 @@ class DOMNode(BaseModel):
         @field_validator("attributes", mode="before")
         @classmethod
         def validate_attributes(cls, attributes_list: list[str]) -> dict[str, str]:
+            """Валидирует атрибуты в режиме Pydantic V2.
+
+            Args:
+                attributes_list: Список атрибутов в формате [name1, value1, name2, value2, ...].
+
+            Returns:
+                Словарь атрибутов {name1: value1, name2: value2, ...}.
+            """
             return cls._validate_attributes(attributes_list)
 
     else:
 
         @validator("attributes", pre=True)
         def validate_attributes(self, attributes_list: list[str]) -> dict[str, str]:
+            """Валидирует атрибуты в режиме Pydantic V1.
+
+            Args:
+                attributes_list: Список атрибутов в формате [name1, value1, name2, value2, ...].
+
+            Returns:
+                Словарь атрибутов {name1: value1, name2: value2, ...}.
+            """
             return self._validate_attributes(attributes_list)
 
     def search(self, predicate: Callable[[DOMNode], bool]) -> list[DOMNode]:

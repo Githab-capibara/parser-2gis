@@ -42,7 +42,7 @@ from .visual_logger import (
 
 def __getattr__(name: str):
     """Ленивый импорт FileLogger для избежания циклического импорта.
-    
+
     PEP 562 позволяет определять __getattr__ на уровне модуля.
     """
     if name == "FileLogger":

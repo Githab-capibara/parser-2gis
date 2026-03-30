@@ -269,6 +269,11 @@ class TUIApp(App):
 
     @selected_cities.setter
     def selected_cities(self, value: list[str]) -> None:
+        """Устанавливает список выбранных городов.
+
+        Args:
+            value: Список названий городов для выбора.
+        """
         self._state["selected_cities"] = value
 
     @property
@@ -278,6 +283,11 @@ class TUIApp(App):
 
     @selected_categories.setter
     def selected_categories(self, value: list[str]) -> None:
+        """Устанавливает список выбранных категорий.
+
+        Args:
+            value: Список названий категорий для выбора.
+        """
         self._state["selected_categories"] = value
 
     @property
@@ -287,6 +297,11 @@ class TUIApp(App):
 
     @running.setter
     def running(self, value: bool) -> None:
+        """Устанавливает флаг работы приложения.
+
+        Args:
+            value: True если приложение работает, False иначе.
+        """
         self._running = value
 
     def get_config(self) -> Configuration:
@@ -513,6 +528,11 @@ class TUIApp(App):
 
                 # Синхронизация с главным потоком для предотвращения race condition
                 def update_progress_state() -> None:
+                    """Обновляет состояние прогресса парсинга в главном потоке.
+
+                    Извлекает название категории из имени файла и обновляет
+                    счётчики успешных/неудачных операций в состоянии приложения.
+                    """
                     if not self._running:
                         return
                     category = (

@@ -255,7 +255,7 @@ class ConnectionPool:
                     app_logger.debug("Ошибка при закрытии соединения: %s", close_error)
                 if self._local.connection in self._all_conns:
                     self._all_conns.remove(self._local.connection)
-                del self._connection_age[conn_id]
+                self._connection_age.pop(conn_id, None)
                 self._local.connection = None
 
             # Если соединения нет, создаём новое или получаем из queue
@@ -272,11 +272,13 @@ class ConnectionPool:
                             )
                             try:
                                 conn.close()
-                            except (sqlite3.Error, OSError):
-                                pass
+                            except (sqlite3.Error, OSError) as e:
+                                app_logger.debug(
+                                    "Подавлено исключение при закрытии соединения: %s", e
+                                )
                             if conn in self._all_conns:
                                 self._all_conns.remove(conn)
-                            del self._connection_age[conn_id]
+                            self._connection_age.pop(conn_id, None)
                             conn = None
 
                     if conn is None:
@@ -340,7 +342,7 @@ class ConnectionPool:
                     self._all_conns.remove(conn)
             conn_id = id(conn)
             if conn_id in self._connection_age:
-                del self._connection_age[conn_id]
+                self._connection_age.pop(conn_id, None)
 
     def _create_connection(self) -> sqlite3.Connection:
         """

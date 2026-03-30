@@ -1090,8 +1090,10 @@ def _safe_remove_profile(profile_path: Path) -> None:
         marker_file = profile_path / ".deleting_marker"
         try:
             marker_file.touch(exist_ok=True)
-        except OSError:
-            pass  # Не критично
+        except OSError as e:
+            app_logger.debug(
+                "Подавлено исключение при создании маркера удаления: %s", e
+            )  # Не критично
 
         # Удаляем профиль
         shutil.rmtree(profile_path, ignore_errors=True)

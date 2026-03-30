@@ -214,7 +214,8 @@ class ParsingScreen(Screen):
         """
         try:
             self.app.pop_screen()  # type: ignore
-        except Exception:
+        except (RuntimeError, AttributeError, ValueError):
+            # Логирование ошибки при закрытии экрана
             pass
 
     def update_progress(
