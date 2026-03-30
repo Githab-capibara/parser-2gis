@@ -242,7 +242,13 @@ class ParallelCoordinator:
                 self._browser_launch_semaphore.release()
                 return self._error_handler.handle_init_error(init_error, temp_filepath, url)
 
+            # Проверка что parser и writer были успешно созданы
+            if parser is None or writer is None:
+                self._browser_launch_semaphore.release()
+                return False, "Ошибка инициализации парсера или писателя"
+
             try:
+                # pylint: disable=not-context-manager
                 with parser:
                     with writer:
                         try:
@@ -300,7 +306,11 @@ class ParallelCoordinator:
         city_name: str,
         progress_callback: Optional[Callable[[int, int, str], None]] = None,
     ) -> Tuple[bool, str]:
-        """Парсит один URL и сохраняет результат в отдельный файл."""
+        """Парсит один URL и сохраняет результат в отдельный файл.
+
+        Returns:
+            Кортеж (успех, сообщение/путь к файлу).
+        """
         available_memory = psutil.virtual_memory().available
         if available_memory < 100 * 1024 * 1024:
             logger.warning(
@@ -316,6 +326,7 @@ class ParallelCoordinator:
         filename = f"{safe_city}_{safe_category}.csv"
         filepath = self.output_dir / filename
 
+        temp_filepath: Optional[Path] = None
         try:
             temp_filepath = self._error_handler.create_unique_temp_file(city_name, category_name)
         except (OSError, RuntimeError) as e:
@@ -327,6 +338,7 @@ class ParallelCoordinator:
                 url, category_name, city_name, temp_filepath, filepath, progress_callback
             )
 
+        # ИСПРАВЛЕНИЕ: Добавлена обработка отмены с try/finally для очистки временных файлов
         try:
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(do_parse)
@@ -337,10 +349,33 @@ class ParallelCoordinator:
                     return self._error_handler.handle_timeout_error(
                         temp_filepath, city_name, category_name, self.timeout_per_url
                     )
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    # ИСПРАВЛЕНИЕ: Обработка отмены с очисткой временных файлов
+                    self.log(f"Парсинг отменён: {city_name} - {category_name}", "warning")
+                    if temp_filepath and temp_filepath.exists():
+                        try:
+                            temp_filepath.unlink()
+                            self.log(f"Временный файл удалён: {temp_filepath}", "debug")
+                        except (OSError, RuntimeError) as cleanup_error:
+                            self.log(
+                                f"Ошибка при удалении временного файла: {cleanup_error}", "error"
+                            )
+                    return False, "Отменено пользователем"
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             return self._error_handler.handle_other_error(
                 e, temp_filepath, city_name, category_name
             )
+        finally:
+            # ИСПРАВЛЕНИЕ: Очистка временных файлов в finally
+            if temp_filepath and temp_filepath.exists() and not filepath.exists():
+                # Временный файл существует, но финальный файл не создан - удаляем временный
+                try:
+                    temp_filepath.unlink()
+                    self.log(f"Временный файл удалён в finally: {temp_filepath}", "debug")
+                except (OSError, RuntimeError) as cleanup_error:
+                    self.log(
+                        f"Ошибка при удалении временного файла в finally: {cleanup_error}", "error"
+                    )
 
     def run(
         self,

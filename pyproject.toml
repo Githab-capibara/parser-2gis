@@ -170,7 +170,6 @@ persistent = true
 disable = [
     "broad-exception-caught",  # Сознательное решение для надежной обработки ошибок
     "too-many-arguments",  # Сложные функции парсера требуют много параметров
-    "too-many-positional-arguments",  # Аналогично
     "too-many-return-statements",  # Функции с множеством условий выхода
     "too-many-nested-blocks",  # Сложная логика обработки
     "too-many-instance-attributes",  # Классы конфигурации имеют много полей
@@ -194,6 +193,7 @@ disable = [
     "consider-using-with",  # Сознательное решение для управления ресурсами
     "unused-variable",  # Допустимо для отладки
     "unused-argument",  # Допустимо для будущих расширений
+    "import-error",  # Внешние зависимости (textual и др.)
     "unnecessary-pass",  # Не критично
     "try-except-raise",  # Допустимо для повторного выброса
     "no-self-argument",  # Не критично для cls методов
@@ -211,7 +211,6 @@ disable = [
     "keyword-arg-before-vararg",  # Не критично
     "global-statement",  # Сознательное использование
     "arguments-differ",  # Допустимо для переопределения
-    "possibly-used-before-assignment",  # Проблемы с анализом потока
     "redefined-outer-name",  # Допустимо в ограниченных контекстах
     "raise-missing-from",  # Не всегда требуется
     "consider-using-f-string",  # Не критично

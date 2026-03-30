@@ -633,9 +633,11 @@ class TestNoLongParameterList:
                 if func_name.startswith("__"):
                     continue
 
-                assert param_count <= MAX_PARAMETERS_PER_FUNCTION, (
-                    f"{file_path.name}:{func_name} имеет слишком много параметров: {param_count} (максимум: {MAX_PARAMETERS_PER_FUNCTION})"
-                )
+                assert param_count <= MAX_PARAMETERS_PER_FUNCTION, f"{file_path.name}:{
+                    func_name
+                } имеет слишком много параметров: {param_count} (максимум: {
+                    MAX_PARAMETERS_PER_FUNCTION
+                })"
 
     def test_init_parameters_use_dataclass(self) -> None:
         """Проверяет что __init__ используют dataclass для параметров."""
@@ -696,8 +698,12 @@ class TestAntiPatternIntegrity:
             lines = count_lines(py_file)
 
             # Файлы >1000 строк требуют внимания
+            # Исключения: coordinator.py (555 строк), manager.py (961 строка)
             if lines > 1000:
                 rel_path = str(py_file.relative_to(project_root))
+                # Разрешаем исключения
+                if rel_path not in ("parallel/coordinator.py", "cache/manager.py"):
+                    pytest.fail(f"Файл {rel_path} имеет {lines} строк (максимум: 1000)")
                 # Это не ошибка но требует внимания
                 assert lines < 1500, f"{rel_path} имеет {lines} строк - рекомендуется рефакторинг"
 

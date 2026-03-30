@@ -138,18 +138,23 @@ class ParserStatistics:
 
         Returns:
             Процент успешных записей от общего количества
+
+        Raises:
+            ValueError: Если данные некорректны (successful_records < 0 или > total_records).
         """
         if self.total_records == 0:
             return 0.0
-        # Защита от деления на ноль и отрицательных значений
-        # ИСПРАВЛЕНИЕ 9: Добавлена проверка корректности данных с warning
+        # ИСПРАВЛЕНИЕ: Выбрасываем ValueError при некорректных данных вместо возврата 100%
         if self.successful_records < 0 or self.successful_records > self.total_records:
             logger.warning(
-                "Некорректные данные: successful=%d, total=%d. Возвращаем 100%%",
+                "Некорректные данные: successful=%d, total=%d (successful не может быть < 0 или > total)",
                 self.successful_records,
                 self.total_records,
             )
-            return 100.0
+            raise ValueError(
+                f"Некорректные данные success_rate: successful_records={self.successful_records}, "
+                f"total_records={self.total_records}"
+            )
         return (self.successful_records / self.total_records) * 100
 
     @property
@@ -315,24 +320,13 @@ class StatisticsExporter:
             "Количество ошибок": str(len(stats.errors)),
         }
 
-    def _generate_html(self, stats: ParserStatistics) -> str:
-        """Генерация HTML отчета.
-
-        Создает красивый HTML отчет с использованием CSS стилей.
-        Оптимизация: используется список и join() вместо конкатенации строк.
-
-        Args:
-            stats: Объект статистики
+    # ИСПРАВЛЕНИЕ: Рефакторинг — выделение секций HTML в отдельные методы
+    def _generate_html_header(self) -> str:
+        """Генерирует заголовок HTML документа со стилями.
 
         Returns:
-            HTML содержимое отчета
+            HTML строка с заголовком и стилями.
         """
-        data = self._prepare_for_dict(stats)
-
-        # Используем список для накопления частей HTML вместо конкатенации
-        html_parts: list[str] = []
-
-        # Добавляем заголовок HTML документа
         csp_policy = (
             "default-src 'self'; "
             "script-src 'none'; "
@@ -340,7 +334,7 @@ class StatisticsExporter:
             "base-uri 'none'; "
             "form-action 'none';"
         )
-        html_parts.append(f"""<!DOCTYPE html>
+        return f"""<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -404,54 +398,95 @@ class StatisticsExporter:
                 <th>Значение</th>
             </tr>
         </thead>
-        <tbody>""")
+        <tbody>"""
 
-        # Добавляем данные в таблицу
+    def _generate_html_table_rows(self, data: Dict[str, str]) -> list[str]:
+        """Генерирует строки таблицы с данными.
+
+        Args:
+            data: Словарь с данными для отображения.
+
+        Returns:
+            Список HTML строк таблицы.
+        """
+        rows: list[str] = []
         for key, value in data.items():
             value_class = ""
             if "Успешность" in key:
                 try:
-                    # Экранируем значение перед парсингом
                     safe_value = html_module.escape(str(value))
                     value_num = float(safe_value.rstrip("%"))
                     value_class = "success" if value_num > 80 else "error"
                 except (ValueError, TypeError):
                     value_class = ""
 
-            # Экранируем ключ и значение для предотвращения XSS
             safe_key = html_module.escape(str(key))
             safe_value = html_module.escape(str(value))
 
-            html_parts.append(f"""            <tr>
+            rows.append(f"""            <tr>
                 <td>{safe_key}</td>
                 <td class="{value_class}">{safe_value}</td>
             </tr>""")
+        return rows
 
-        # Добавляем ошибки, если есть
-        if stats.errors:
-            html_parts.append("""            <tr>
+    def _generate_html_errors(self, errors: list[str]) -> list[str]:
+        """Генерирует секцию ошибок.
+
+        Args:
+            errors: Список ошибок для отображения.
+
+        Returns:
+            Список HTML строк с ошибками.
+        """
+        rows: list[str] = []
+        if errors:
+            rows.append("""            <tr>
                 <td colspan="2"><strong>Ошибки:</strong></td>
             </tr>""")
-
-            for error in stats.errors:
-                # Экранируем HTML для предотвращения XSS-атак
+            for error in errors:
                 safe_error = html_module.escape(str(error))
-                html_parts.append(f"""            <tr>
+                rows.append(f"""            <tr>
                 <td colspan="2">{safe_error}</td>
             </tr>""")
+        return rows
 
-        # Добавляем закрывающую часть HTML документа
-        # Экранируем дату для предотвращения XSS через манипуляцию времени
+    def _generate_html_footer(self) -> str:
+        """Генерирует подвал HTML документа.
+
+        Returns:
+            HTML строка с подвалом.
+        """
         safe_timestamp = html_module.escape(
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"), quote=True
         )
-        html_parts.append(f"""        </tbody>
+        return f"""        </tbody>
     </table>
     <div class="footer">
         Сгенерировано: {safe_timestamp}
     </div>
 </body>
-</html>""")
+</html>"""
 
-        # Объединяем все части в одну строку
+    def _generate_html(self, stats: ParserStatistics) -> str:
+        """Генерация HTML отчета.
+
+        Создает красивый HTML отчет с использованием CSS стилей.
+        Оптимизация: используется список и join() вместо конкатенации строк.
+        Рефакторинг: генерация каждой секции выделена в отдельный метод.
+
+        Args:
+            stats: Объект статистики
+
+        Returns:
+            HTML содержимое отчета
+        """
+        data = self._prepare_for_dict(stats)
+        html_parts: list[str] = []
+
+        # ИСПРАВЛЕНИЕ: Используем выделенные методы для генерации секций
+        html_parts.append(self._generate_html_header())
+        html_parts.extend(self._generate_html_table_rows(data))
+        html_parts.extend(self._generate_html_errors(stats.errors))
+        html_parts.append(self._generate_html_footer())
+
         return "\n".join(html_parts)

@@ -64,6 +64,7 @@ class SignalHandler:
         self._interrupted = False
         self._is_cleaning_up = False
         self._cleanup_completed = False  # Флаг завершения очистки
+        self._is_handling_signal = False  # ИСПРАВЛЕНИЕ: Флаг для блокировки повторных сигналов
         self._cleanup_callback = cleanup_callback
         self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
         self._original_handlers: dict[int, Any] = {}
@@ -142,6 +143,7 @@ class SignalHandler:
         Внутренний обработчик сигналов.
         - ИСПРАВЛЕНИЕ: Используется threading.Lock для атомарной проверки и установки флагов
         - Устранена гонка условий между проверкой _is_cleaning_up и установкой
+        - ИСПРАВЛЕНИЕ: Добавлен флаг _is_handling_signal для блокировки повторных сигналов
 
         Args:
             signum: Номер полученного сигнала.
@@ -154,16 +156,17 @@ class SignalHandler:
         """
         # ИСПРАВЛЕНИЕ: Атомарная проверка и установка флагов под блокировкой
         with self._lock:
-            # Проверяем флаг перед обработкой сигнала
-            if self._is_cleaning_up:
+            # Проверяем флаги перед обработкой сигнала
+            if self._is_cleaning_up or self._is_handling_signal:
                 logger.warning(
-                    "Получен повторный сигнал %d во время очистки ресурсов. Игнорируется.", signum
+                    "Получен повторный сигнал %d во время обработки/очистки. Игнорируется.", signum
                 )
                 return
 
             # Атомарно устанавливаем флаги - гонка условий устранена
             self._interrupted = True
             self._is_cleaning_up = True
+            self._is_handling_signal = True  # Блокируем повторные сигналы
 
             logger.warning("Получен сигнал %d. Начинается безопасная очистка ресурсов...", signum)
 
@@ -191,9 +194,10 @@ class SignalHandler:
         except (OSError, ValueError, RuntimeError) as restore_error:
             logger.error("Ошибка при восстановлении обработчиков сигналов: %s", restore_error)
         finally:
-            # Сбрасываем флаг только если очистка завершена
+            # Сбрасываем флаги только если очистка завершена
             with self._lock:
                 self._is_cleaning_up = False
+                self._is_handling_signal = False  # Разблокируем обработку сигналов
 
     def is_interrupted(self) -> bool:
         """

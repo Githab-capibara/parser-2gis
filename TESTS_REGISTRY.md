@@ -2,9 +2,9 @@
 
 **Дата последней актуализации:** 30 марта 2026
 **Дата последней очистки:** 30 марта 2026
-**Общее количество тестовых файлов:** 90
-**Общее количество тестов:** 1253
-**Pass Rate:** 95% ✅ (1191 passed, 50 failed due to pre-existing issues, 10 skipped)
+**Общее количество тестовых файлов:** 91
+**Общее количество тестов:** 1267
+**Pass Rate:** 95% ✅ (1205 passed, 50 failed due to pre-existing issues, 10 skipped)
 
 ---
 
@@ -13,6 +13,7 @@
 | Категория | Файлов | Тестов | Процент |
 |-----------|--------|--------|---------|
 | Critical Fixes тесты | 1 | 25 | 100.0% |
+| Bugfixes тесты | 1 | 14 | 100.0% |
 
 ---
 
@@ -305,6 +306,29 @@
 | 23 | `test_all_critical_fixes_integration` | Интеграционный тест всех исправлений |
 | 24 | `test_no_regression_in_core_functionality` | Проверка отсутствия регрессии |
 | 25 | `test_all_fixes_compatible_together` | Проверка совместимости всех исправлений |
+
+---
+
+### test_bugfixes.py
+**Количество тестов:** 14
+**Описание:** Тесты для проверки исправлений проблем в parser-2gis
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_cache_pool_no_deadlock_on_connection_error` | Проверка что deadlock не возникает при ошибке создания соединения |
+| 2 | `test_cache_manager_cursor_none_in_finally` | Проверка работы с cursor=None в finally блоке |
+| 3 | `test_chrome_remote_wait_response_missing_pattern` | Проверка выброса исключения при отсутствии паттерна |
+| 4 | `test_cache_manager_weakref_finalize_cleanup` | Проверка что weakref.finalize корректно очищает ресурсы |
+| 5 | `test_paths_is_relative_to_python_38` | Проверка работы _is_relative_to на Python <3.9 |
+| 6 | `test_statistics_success_rate_invalid_data` | Проверка выброса ValueError при некорректных данных |
+| 7 | `test_signal_handler_no_race_condition` | Проверка что повторные сигналы игнорируются во время обработки |
+| 8 | `test_paths_validate_path_safety_traversal` | Проверка защиты от path traversal |
+| 9 | `test_parallel_coordinator_cleanup_on_cancel` | Проверка очистки временных файлов при отмене |
+| 10 | `test_url_utils_generate_category_url_cached` | Проверка кэширования URL |
+| 11 | `test_cache_manager_refactored_methods` | Проверка корректности работы _get_from_db, _handle_cache_hit, _handle_cache_miss |
+| 12 | `test_statistics_html_generation_refactored` | Проверка корректности работы выделенных методов генерации HTML |
+| 13 | `test_cache_manager_error_handling_style` | Проверка единого стиля обработки ошибок |
+| 14 | `test_chrome_remote_connect_returns_false_on_failure` | Проверка что _connect_interface возвращает False при неудаче |
 
 ---
 
@@ -1057,6 +1081,11 @@
 - Покрытие 10 критических исправлений архитектуры
 - Интеграционные тесты на отсутствие регрессии
 
+### 7. Новые тесты исправлений (март 2026)
+- Добавлен test_bugfixes.py с 14 тестами
+- Покрытие исправлений проблем в cache, chrome, paths, statistics, signal_handler, parallel, url_utils
+- Тесты обработки ошибок, очистки ресурсов, кэширования
+
 ---
 
 ## 📈 МЕТРИКИ КАЧЕСТВА ТЕСТОВ
@@ -1064,10 +1093,10 @@
 | Метрика | Значение |
 |---------|----------|
 | Покрытие кода | 87% |
-| Количество тестов | 1089 |
-| Количество тестовых файлов | 75 |
+| Количество тестов | 1267 |
+| Количество тестовых файлов | 91 |
 | Среднее время прогона | 45 секунд |
-| Pass Rate | 100% |
+| Pass Rate | 95% |
 | Flake8/PEP8 compliance | 100% |
 | MyPy типизация | 95% |
 

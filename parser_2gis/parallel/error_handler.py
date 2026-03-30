@@ -196,15 +196,15 @@ class ParallelErrorHandler:
                 # Атомарное создание файла
                 fd = os.open(str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644)
                 os.close(fd)
-                self.log(5, "Временный файл атомарно создан: %s", temp_filename)
+                logger.log(5, "Временный файл атомарно создан: %s", temp_filename)
                 return temp_filepath
             except FileExistsError:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
-                    self.log(5, "Коллизия имён (попытка %d): генерация нового имени", attempt + 1)
+                    logger.log(5, "Коллизия имён (попытка %d): генерация нового имени", attempt + 1)
                     temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{id(self)}.tmp"
                     temp_filepath = self.output_dir / temp_filename
                 else:
-                    self.log.error(
+                    logger.error(
                         "Не удалось создать уникальный временный файл после %d попыток: %s",
                         MAX_UNIQUE_NAME_ATTEMPTS,
                         temp_filename,
@@ -214,13 +214,13 @@ class ParallelErrorHandler:
                     )
             except OSError as e:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
-                    self.log(
+                    logger.log(
                         5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1
                     )
                     temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{id(self)}.tmp"
                     temp_filepath = self.output_dir / temp_filename
                 else:
-                    self.log.error(
+                    logger.error(
                         "Не удалось создать временный файл после %d попыток: %s",
                         MAX_UNIQUE_NAME_ATTEMPTS,
                         temp_filename,

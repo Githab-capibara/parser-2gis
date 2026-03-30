@@ -89,7 +89,7 @@ class PathValidator:
             if forbidden_char in path:
                 raise ValueError(
                     f"{path_name} содержит запрещённый символ: {forbidden_char!r}. "
-                    "Path traversal атаки запрещены."
+                    "Path traversal атака обнаружена."
                 )
 
         # Разрешаем путь через realpath для предотвращения symlink атак

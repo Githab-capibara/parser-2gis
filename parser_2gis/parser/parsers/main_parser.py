@@ -29,6 +29,7 @@ from parser_2gis.utils.decorators import wait_until_finished
 if TYPE_CHECKING:
     from parser_2gis.chrome import ChromeOptions
     from parser_2gis.parser.options import ParserOptions
+    from parser_2gis.writer import FileWriter
 
 # =============================================================================
 # КОНСТАНТЫ МОДУЛЯ
@@ -85,7 +86,14 @@ class MainPageParser(BaseParser):
             parser_options: Опции парсера.
             browser: Опциональный браузер.
         """
-        super().__init__(url, chrome_options, parser_options, browser)
+        # Инициализируем базовый класс только browser аргументом
+        # BaseParser принимает только browser, остальные аргументы обрабатываются здесь
+        super().__init__(browser)
+
+        # Сохраняем опции для использования в дочернем классе
+        self._chrome_options = chrome_options
+        self._parser_options = parser_options
+        self._url = url
 
         # Паттерн ответа "Catalog Item Document"
         self._item_response_pattern = r"https://catalog\.api\.2gis.[^/]+/.*/items/byid"
@@ -96,7 +104,7 @@ class MainPageParser(BaseParser):
         # Отключаем определённые запросы
         from parser_2gis.parser.utils import blocked_requests
 
-        blocked_urls = blocked_requests(extended=chrome_options.disable_images)
+        blocked_urls = blocked_requests(extended=self._chrome_options.disable_images)
         self._chrome_remote.add_blocked_requests(blocked_urls)
 
     @staticmethod
@@ -307,14 +315,14 @@ class MainPageParser(BaseParser):
             """Общая ошибка навигации."""
 
         # Переходим по URL с возможностью повторных попыток при ошибках сети
-        for retry_attempt in range(self._options.max_retries + 1):
+        for retry_attempt in range(self._parser_options.max_retries + 1):
             try:
                 # Первая попытка или повторная
                 if retry_attempt > 0:
                     logger.info(
                         "Повторная попытка навигации (%d/%d) для URL: %s",
                         retry_attempt,
-                        self._options.max_retries,
+                        self._parser_options.max_retries,
                         url,
                     )
 
@@ -328,11 +336,11 @@ class MainPageParser(BaseParser):
                 # Явная обработка TimeoutError с retry logic
                 error_type = NavigationTimeoutError(str(timeout_error))
                 if (
-                    retry_attempt < self._options.max_retries
-                    and self._options.retry_on_network_errors
+                    retry_attempt < self._parser_options.max_retries
+                    and self._parser_options.retry_on_network_errors
                 ):
                     # Формула: base_delay * (1.5 ** retry) + random.uniform(0, 0.3)
-                    base_delay = self._options.retry_delay_base * (1.5**retry_attempt)
+                    base_delay = self._parser_options.retry_delay_base * (1.5**retry_attempt)
                     jitter = random.uniform(0, 0.3)
                     delay = base_delay + jitter
                     logger.warning(
@@ -340,7 +348,7 @@ class MainPageParser(BaseParser):
                         "Повторная попытка через %.1f сек...",
                         error_type.__class__.__name__,
                         retry_attempt + 1,
-                        self._options.max_retries,
+                        self._parser_options.max_retries,
                         timeout_error,
                         delay,
                     )
@@ -383,11 +391,11 @@ class MainPageParser(BaseParser):
                 if is_network_error:
                     error_type = NavigationNetworkError(str(navigate_error))
                     if (
-                        retry_attempt < self._options.max_retries
-                        and self._options.retry_on_network_errors
+                        retry_attempt < self._parser_options.max_retries
+                        and self._parser_options.retry_on_network_errors
                     ):
                         # Формула: base_delay * (1.5 ** retry) + random.uniform(0, 0.3)
-                        base_delay = self._options.retry_delay_base * (1.5**retry_attempt)
+                        base_delay = self._parser_options.retry_delay_base * (1.5**retry_attempt)
                         jitter = random.uniform(0, 0.3)
                         delay = base_delay + jitter
                         logger.warning(
@@ -395,7 +403,7 @@ class MainPageParser(BaseParser):
                             "Повторная попытка через %.1f сек...",
                             error_type.__class__.__name__,
                             retry_attempt + 1,
-                            self._options.max_retries,
+                            self._parser_options.max_retries,
                             navigate_error,
                             delay,
                         )
@@ -467,11 +475,11 @@ class MainPageParser(BaseParser):
 
         if http_status == 404:
             logger.warning('Сервер вернул 404: "Точных совпадений нет / Не найдено".')
-            if self._options.skip_404_response:
+            if self._parser_options.skip_404_response:
                 logger.info("Пропуск URL из-за 404 ответа (skip_404_response=True).")
                 return None
             # Если включен режим немедленной остановки при первом 404 - завершаем парсинг
-            if self._options.stop_on_first_404:
+            if self._parser_options.stop_on_first_404:
                 logger.info(
                     "Немедленная остановка парсинга при первом 404 (stop_on_first_404=True)."
                 )
@@ -491,3 +499,24 @@ class MainPageParser(BaseParser):
             logger.warning("Сервер вернул нестандартный статус: %d", http_status)
 
         return document_response
+
+    def parse(self, writer: "FileWriter") -> None:
+        """Основной метод парсинга.
+
+        MainPageParser является вспомогательным классом для MainParser,
+        поэтому этот метод не используется напрямую.
+
+        Args:
+            writer: Объект FileWriter для записи данных.
+        """
+        # Этот класс используется только как вспомогательный компонент
+        # Основной парсинг выполняется в MainParser
+        logger.debug("MainPageParser.parse() вызван (вспомогательный метод)")
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Получение статистики парсера.
+
+        Returns:
+            Словарь со статистикой парсера.
+        """
+        return dict(self._stats)

@@ -15,6 +15,32 @@ import pathlib
 from .constants import FORBIDDEN_PATH_CHARS
 
 
+def _is_relative_to(path: pathlib.Path, other: pathlib.Path) -> bool:
+    """Проверяет, является ли путь относительным к другому пути.
+
+    Универсальная реализация для совместимости с Python <3.9 и >=3.9.
+    В Python 3.9+ используется встроенный метод is_relative_to().
+    В Python <3.9 используется os.path.realpath() + проверка префикса.
+
+    Args:
+        path: Путь для проверки.
+        other: Базовый путь.
+
+    Returns:
+        True если path находится внутри other, False иначе.
+    """
+    try:
+        # Python 3.9+ - используем встроенный метод
+        return path.is_relative_to(other)  # type: ignore[attr-defined]
+    except AttributeError:
+        # Python <3.9 - используем os.path.realpath + проверка префикса
+        abs_path = os.path.realpath(str(path))
+        abs_other = os.path.realpath(str(other))
+        # Добавляем os.sep для предотвращения ложных совпадений
+        # Например: /foo/bar и /foobar
+        return abs_path == abs_other or abs_path.startswith(abs_other + os.sep)
+
+
 def data_path() -> pathlib.Path:
     """Получает путь к данным пакета."""
     if "_MEIPASS2" in os.environ:
@@ -95,7 +121,8 @@ def image_path(basename: str, ext: str | None = None) -> str:
             resolved_images_dir = images_dir.resolve()
 
             # Проверяем что путь находится внутри директории изображений
-            if not resolved_img_path.is_relative_to(resolved_images_dir):
+            # ИСПРАВЛЕНИЕ: Используем универсальную функцию для совместимости с Python <3.9
+            if not _is_relative_to(resolved_img_path, resolved_images_dir):
                 raise ValueError(f"Path traversal detected: {basename}")
         except (OSError, ValueError) as e:
             raise ValueError(f"Недопустимый путь к изображению: {e}") from e
@@ -113,7 +140,8 @@ def image_path(basename: str, ext: str | None = None) -> str:
             resolved_images_dir = images_dir.resolve()
 
             # Проверяем что путь находится внутри директории изображений
-            if not resolved_img_path.is_relative_to(resolved_images_dir):
+            # ИСПРАВЛЕНИЕ: Используем универсальную функцию для совместимости с Python <3.9
+            if not _is_relative_to(resolved_img_path, resolved_images_dir):
                 raise ValueError(f"Path traversal detected: {img_name}")
 
             return str(resolved_img_path)

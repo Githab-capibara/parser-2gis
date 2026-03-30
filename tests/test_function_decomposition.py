@@ -19,7 +19,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from parser_2gis.cache import (
+from parser_2gis.cache.validator import (
     MAX_DATA_DEPTH,
     MAX_STRING_LENGTH,
     _validate_cached_data,
@@ -29,7 +29,6 @@ from parser_2gis.cache import (
     _validate_string_data,
 )
 from parser_2gis.chrome.browser import (
-    ChromeBrowser,
     _check_profile_age_and_delete,
     _check_profile_age_by_dir,
     _process_orphaned_profile,
@@ -192,19 +191,26 @@ class TestBrowserInitDecomposition:
         Тест 2.1: Проверка что методы декомпозиции существуют.
 
         Проверяет что все методы декомпозиции
-        существуют в классе ChromeBrowser.
+        существуют в классе BrowserLifecycleManager.
         """
-        # Проверяем что методы существуют
-        assert hasattr(ChromeBrowser, "_get_binary_path")
-        assert hasattr(ChromeBrowser, "_create_profile_dir")
-        assert hasattr(ChromeBrowser, "_build_chrome_cmd")
-        assert hasattr(ChromeBrowser, "_launch_chrome_process")
+        from parser_2gis.chrome.browser import (
+            BrowserLifecycleManager,
+            BrowserPathResolver,
+            ProfileManager,
+            ProcessManager,
+        )
+
+        # Проверяем что компоненты существуют
+        assert hasattr(BrowserLifecycleManager, "_build_chrome_cmd")
+        assert hasattr(BrowserPathResolver, "resolve_path")
+        assert hasattr(ProfileManager, "create_profile")
+        assert hasattr(ProcessManager, "launch_process")
 
         # Проверяем что методы callable
-        assert callable(getattr(ChromeBrowser, "_get_binary_path"))
-        assert callable(getattr(ChromeBrowser, "_create_profile_dir"))
-        assert callable(getattr(ChromeBrowser, "_build_chrome_cmd"))
-        assert callable(getattr(ChromeBrowser, "_launch_chrome_process"))
+        assert callable(getattr(BrowserLifecycleManager, "_build_chrome_cmd"))
+        assert callable(getattr(BrowserPathResolver, "resolve_path"))
+        assert callable(getattr(ProfileManager, "create_profile"))
+        assert callable(getattr(ProcessManager, "launch_process"))
 
     def test_browser_init_decomposed_build_chrome_cmd(self):
         """
@@ -213,8 +219,10 @@ class TestBrowserInitDecomposition:
         Проверяет что функция _build_chrome_cmd
         корректно формирует команду запуска.
         """
-        # Создаем mock ChromeBrowser
-        browser = object.__new__(ChromeBrowser)
+        from parser_2gis.chrome.browser import BrowserLifecycleManager
+
+        # Создаем mock BrowserLifecycleManager
+        manager = object.__new__(BrowserLifecycleManager)
 
         # Mock параметров
         mock_options = MagicMock()
@@ -225,7 +233,7 @@ class TestBrowserInitDecomposition:
         mock_options.silent_browser = False
 
         # Формируем команду
-        cmd = browser._build_chrome_cmd(
+        cmd = manager._build_chrome_cmd(
             binary_path="/usr/bin/google-chrome",
             profile_path="/tmp/profile",
             remote_port=9222,
@@ -248,35 +256,37 @@ class TestBrowserCloseDecomposition:
         Тест 3.1: Проверка что методы декомпозиции существуют.
 
         Проверяет что все методы декомпозиции
-        существуют в классе ChromeBrowser.
+        существуют в классе ProcessManager.
         """
-        # Проверяем что методы существуют
-        assert hasattr(ChromeBrowser, "_terminate_process_graceful")
-        assert hasattr(ChromeBrowser, "_terminate_process_forceful")
-        assert hasattr(ChromeBrowser, "_cleanup_profile")
+        from parser_2gis.chrome.browser import ProcessManager
+
+        # ProcessManager имеет методы для завершения процесса
+        assert hasattr(ProcessManager, "terminate_process_graceful")
+        assert hasattr(ProcessManager, "terminate_process_forceful")
 
         # Проверяем что методы callable
-        assert callable(getattr(ChromeBrowser, "_terminate_process_graceful"))
-        assert callable(getattr(ChromeBrowser, "_terminate_process_forceful"))
-        assert callable(getattr(ChromeBrowser, "_cleanup_profile"))
+        assert callable(getattr(ProcessManager, "terminate_process_graceful"))
+        assert callable(getattr(ProcessManager, "terminate_process_forceful"))
 
     def test_browser_close_decomposed_cleanup_profile(self):
         """
         Тест 3.2: Проверка функции очистки профиля.
 
-        Проверяет что функция _cleanup_profile
+        Проверяет что ProfileManager.cleanup_profile
         корректно удаляет временный профиль.
         """
-        # Создаем mock ChromeBrowser
-        browser = object.__new__(ChromeBrowser)
+        from parser_2gis.chrome.browser import ProfileManager
+
+        # Создаем mock ProfileManager
+        profile_manager = ProfileManager.__new__(ProfileManager)
 
         # Mock TemporaryDirectory
         mock_tempdir = MagicMock()
-        browser._profile_tempdir = mock_tempdir
-        browser._profile_path = "/tmp/profile"
+        profile_manager._profile_tempdir = mock_tempdir
+        profile_manager._profile_path = "/tmp/profile"
 
         # Вызываем функцию
-        browser._cleanup_profile()
+        profile_manager.cleanup_profile()
 
         # Проверяем что cleanup был вызван
         mock_tempdir.cleanup.assert_called_once()

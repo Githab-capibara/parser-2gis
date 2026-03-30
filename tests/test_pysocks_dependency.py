@@ -5,7 +5,16 @@ import warnings
 import pytest
 from urllib3.exceptions import DependencyWarning
 
+# Проверяем доступен ли PySocks
+try:
+    import socks  # noqa: F401
 
+    PYSOCKS_AVAILABLE = True
+except ImportError:
+    PYSOCKS_AVAILABLE = False
+
+
+@pytest.mark.skipif(not PYSOCKS_AVAILABLE, reason="PySocks не установлен")
 def test_pysocks_installed():
     """Проверяет что PySocks установлен и доступен."""
     try:
@@ -16,6 +25,7 @@ def test_pysocks_installed():
         pytest.fail("PySocks не установлен. Установите: pip install PySocks")
 
 
+@pytest.mark.skipif(not PYSOCKS_AVAILABLE, reason="PySocks не установлен")
 def test_urllib3_socks_warning_not_present(caplog):
     """Проверяет что предупреждение о SOCKS зависимостях в urllib3 не появляется."""
     # Capture warnings
@@ -37,6 +47,7 @@ def test_urllib3_socks_warning_not_present(caplog):
         )
 
 
+@pytest.mark.skipif(not PYSOCKS_AVAILABLE, reason="PySocks не установлен")
 def test_optional_dependency_pysocks_installed():
     """Проверяет что опциональная зависимость PySocks учтена в requirements."""
     # This test ensures that if someone tries to use SOCKS functionality,

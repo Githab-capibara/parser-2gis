@@ -621,7 +621,17 @@ class ChromeRemote:
 
     @wait_until_finished(timeout=3600, throw_exception=False, poll_interval=0.005)  # 1 час
     def wait_response(self, response_pattern: str) -> Optional[Response]:
-        """Ждёт указанный ответ с предопределённым паттерном."""
+        """Ждёт указанный ответ с предопределённым паттерном.
+
+        Args:
+            response_pattern: Паттерн для ожидания ответа.
+
+        Returns:
+            Response или None если ответ не найден.
+
+        Raises:
+            ChromeException: Если паттерн не зарегистрирован в _response_queues.
+        """
         try:
             if self._chrome_tab is None:
                 app_logger.warning("Chrome tab не инициализирован")
@@ -631,9 +641,21 @@ class ChromeRemote:
                 app_logger.warning("Вкладка Chrome была остановлена")
                 return None
 
+            # ИСПРАВЛЕНИЕ: Добавлена проверка на существование паттерна
+            if response_pattern not in self._response_queues:
+                app_logger.error(
+                    "Паттерн ответа не найден в _response_queues: %s", response_pattern
+                )
+                raise ChromeException(
+                    f"Паттерн ответа '{response_pattern}' не зарегистрирован в системе"
+                )
+
             return self._response_queues[response_pattern].get(block=False)
         except queue.Empty:
             return None
+        except ChromeException:
+            # Пробрасываем ChromeException дальше
+            raise
         except KeyError:
             app_logger.warning("Неизвестный паттерн ответа: %s", response_pattern)
             return None

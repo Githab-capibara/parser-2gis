@@ -241,6 +241,58 @@ class CacheManager:
         """
         cursor.execute(self.SQL_DELETE, (url_hash,))
 
+    # ИСПРАВЛЕНИЕ: Рефакторинг метода get — выделение подметодов
+    def _get_from_db(self, cursor: Any, url_hash: str) -> Optional[Tuple[str, str]]:
+        """Извлекает строку кэша из базы данных.
+
+        Args:
+            cursor: Курсор базы данных.
+            url_hash: Хеш URL для поиска.
+
+        Returns:
+            Кортеж (data, expires_at_str) или None если не найдено.
+        """
+        cursor.execute(self.SQL_SELECT, (url_hash,))
+        return cursor.fetchone()  # type: ignore[return-value]
+
+    def _handle_cache_hit(
+        self, data: str, expires_at_str: str, cursor: Any, url_hash: str, conn: Any
+    ) -> Optional[Dict[str, Any]]:
+        """Обрабатывает попадание в кэш.
+
+        Args:
+            data: Сериализованные данные.
+            expires_at_str: Строка даты истечения.
+            cursor: Курсор базы данных.
+            url_hash: Хеш URL.
+            conn: Соединение базы данных.
+
+        Returns:
+            Десериализованные данные или None если кэш истёк.
+        """
+        expires_at = self._parse_expires_at(expires_at_str)
+        if expires_at is None:
+            conn.rollback()
+            return None
+
+        if self._is_cache_expired(expires_at):
+            self._delete_cached_entry(cursor, url_hash)
+            conn.commit()
+            return None
+
+        conn.commit()
+        return self._serializer.deserialize(data)
+
+    def _handle_cache_miss(self, cursor: Any, url_hash: str, conn: Any) -> None:
+        """Обрабатывает промах кэша.
+
+        Args:
+            cursor: Курсор базы данных.
+            url_hash: Хеш URL.
+            conn: Соединение базы данных.
+        """
+        conn.rollback()
+
     def _handle_db_error(
         self, db_error: sqlite3.Error, url: str, cursor: Any, url_hash: str
     ) -> Optional[Dict[str, Any]]:
@@ -338,6 +390,7 @@ class CacheManager:
         Raises:
             sqlite3.Error: При критической ошибке БД (disk I/O, no such table)
         """
+        # ИСПРАВЛЕНИЕ: Рефакторинг — используется декомпозиция на подметоды
         if not self._pool:
             return None
 
@@ -347,30 +400,24 @@ class CacheManager:
             return None
 
         conn = self._pool.get_connection()
-        cursor = conn.cursor()
+        # Инициализируем cursor = None перед try для безопасности в finally
+        cursor: Optional[sqlite3.Cursor] = None
 
         try:
+            cursor = conn.cursor()
             cursor.execute("BEGIN IMMEDIATE")
-            row = self._get_cached_row(cursor, url_hash)
+
+            # ИСПРАВЛЕНИЕ: Используем новый метод _get_from_db
+            row = self._get_from_db(cursor, url_hash)
 
             if not row:
-                conn.rollback()
+                # ИСПРАВЛЕНИЕ: Используем новый метод _handle_cache_miss
+                self._handle_cache_miss(cursor, url_hash, conn)
                 return None
 
             data, expires_at_str = row
-            expires_at = self._parse_expires_at(expires_at_str)
-
-            if expires_at is None:
-                conn.rollback()
-                return None
-
-            if self._is_cache_expired(expires_at):
-                self._delete_cached_entry(cursor, url_hash)
-                conn.commit()
-                return None
-
-            conn.commit()
-            return self._serializer.deserialize(data)
+            # ИСПРАВЛЕНИЕ: Используем новый метод _handle_cache_hit
+            return self._handle_cache_hit(data, expires_at_str, cursor, url_hash, conn)
 
         except sqlite3.Error as db_error:
             try:
@@ -449,6 +496,13 @@ class CacheManager:
             )
             conn.commit()
         except sqlite3.Error as db_error:
+            # ИСПРАВЛЕНИЕ: Унифицированный стиль обработки ошибок
+            # Критические ошибки БД выбрасываются дальше
+            error_str = str(db_error).lower()
+            if "disk i/o error" in error_str or "no such table" in error_str:
+                app_logger.critical("Критическая ошибка БД при сохранении кэша: %s", db_error)
+                raise
+            # Ожидаемые ошибки логируются
             app_logger.error("Ошибка БД при сохранении кэша: %s", db_error)
         finally:
             try:
@@ -515,6 +569,13 @@ class CacheManager:
                 )
 
         except sqlite3.Error as db_error:
+            # ИСПРАВЛЕНИЕ: Унифицированный стиль обработки ошибок
+            error_str = str(db_error).lower()
+            if "disk i/o error" in error_str or "no such table" in error_str:
+                app_logger.critical(
+                    "Критическая ошибка БД при пакетном сохранении кэша: %s", db_error
+                )
+                raise
             app_logger.error("Ошибка БД при пакетном сохранении кэша: %s", db_error)
         finally:
             try:
@@ -539,6 +600,11 @@ class CacheManager:
             conn.commit()
             app_logger.debug("Кэш полностью очищен")
         except sqlite3.Error as db_error:
+            # ИСПРАВЛЕНИЕ: Унифицированный стиль обработки ошибок
+            error_str = str(db_error).lower()
+            if "disk i/o error" in error_str or "no such table" in error_str:
+                app_logger.critical("Критическая ошибка БД при очистке кэша: %s", db_error)
+                raise
             app_logger.error("Ошибка БД при очистке кэша: %s", db_error)
 
     def clear_expired(self) -> int:
@@ -568,6 +634,13 @@ class CacheManager:
             return deleted_count
 
         except sqlite3.Error as db_error:
+            # ИСПРАВЛЕНИЕ: Унифицированный стиль обработки ошибок
+            error_str = str(db_error).lower()
+            if "disk i/o error" in error_str or "no such table" in error_str:
+                app_logger.critical(
+                    "Критическая ошибка БД при очистке истекшего кэша: %s", db_error
+                )
+                raise
             app_logger.warning("Ошибка БД при очистке истекшего кэша: %s", db_error)
             return 0
         finally:
@@ -626,6 +699,11 @@ class CacheManager:
             return deleted_count
 
         except sqlite3.Error as db_error:
+            # ИСПРАВЛЕНИЕ: Унифицированный стиль обработки ошибок
+            error_str = str(db_error).lower()
+            if "disk i/o error" in error_str or "no such table" in error_str:
+                app_logger.critical("Критическая ошибка БД при пакетном удалении: %s", db_error)
+                raise
             app_logger.warning("Ошибка БД при пакетном удалении: %s", db_error)
             return 0
         finally:
@@ -666,6 +744,13 @@ class CacheManager:
             return {"total_records": total, "expired_records": expired, "cache_size": cache_size}
 
         except sqlite3.Error as db_error:
+            # ИСПРАВЛЕНИЕ: Унифицированный стиль обработки ошибок
+            error_str = str(db_error).lower()
+            if "disk i/o error" in error_str or "no such table" in error_str:
+                app_logger.critical(
+                    "Критическая ошибка БД при получении статистики кэша: %s", db_error
+                )
+                raise
             app_logger.warning("Ошибка при получении статистики кэша: %s", db_error)
             return {"total_records": 0, "expired_records": 0, "cache_size": 0}
         finally:
@@ -725,55 +810,35 @@ class CacheManager:
 
         Важно:
             - Используется weakref.finalize() для гарантированной очистки
-            - Блок finally обеспечивает выполнение очистки даже при исключениях
-            - Критические исключения (MemoryError, KeyboardInterrupt, SystemExit) пробрасываются
+            - Этот метод только логирует если объект не был закрыт явно
+            - weakref.finalize() работает даже при циклических ссылках и MemoryError
+
+        Примечание:
+            Не следует полагаться на этот метод для гарантированной очистки.
+            Всегда вызывайте close() явно или используйте контекстный менеджер.
         """
-        cleanup_performed = False
+        # ИСПРАВЛЕНИЕ: Упрощён для предотвращения MemoryError
+        # weakref.finalize() уже зарегистрирован в __init__ и вызовет _cleanup_cache_manager
+        # Этот метод используется только для логирования
         try:
             if hasattr(self, "_finalizer") and self._finalizer is not None:
                 if self._finalizer.detach():
+                    # Финализатор был успешно отделён и вызван
                     app_logger.debug("CacheManager очищен через weakref.finalize()")
-                    cleanup_performed = True
                     return
 
+            # Fallback: если финализатор не сработал, логируем предупреждение
             if hasattr(self, "_pool") and self._pool is not None:
                 app_logger.warning(
                     "CacheManager уничтожается сборщиком мусора без явного закрытия. "
                     "Всегда вызывайте close() явно или используйте контекстный менеджер."
                 )
-        except MemoryError:
-            # Критическая ошибка памяти - пробрасываем дальше
-            app_logger.critical("MemoryError в __del__ CacheManager")
+        except (MemoryError, KeyboardInterrupt, SystemExit):
+            # Критические исключения - пробрасываем дальше
             raise
-        except KeyboardInterrupt:
-            # Прерывание пользователем - пробрасываем дальше
-            app_logger.warning("KeyboardInterrupt в __del__ CacheManager")
-            raise
-        except SystemExit:
-            # Выход из системы - пробрасываем дальше
-            app_logger.debug("SystemExit в __del__ CacheManager")
-            raise
-        except (RuntimeError, TypeError, ValueError, OSError) as del_error:
-            # Ожидаемые ошибки - логируем но не пробрасываем
+        except Exception as del_error:
+            # В __del__ нельзя выбрасывать исключения - только логируем
             app_logger.debug("Ошибка в __del__ CacheManager: %s", del_error)
-        finally:
-            # Гарантия выполнения очистки ресурсов
-            try:
-                if not cleanup_performed:
-                    # Пытаемся закрыть пул если это не было сделано
-                    if hasattr(self, "_pool") and self._pool is not None:
-                        try:
-                            self._pool.close()
-                        except (sqlite3.Error, OSError, RuntimeError) as e:
-                            app_logger.debug(
-                                "Подавлено исключение при закрытии пула в __del__: %s", e
-                            )
-            except (MemoryError, KeyboardInterrupt, SystemExit):
-                # Критические исключения пробрасываем даже из finally
-                raise
-            except Exception as cleanup_error:
-                # Любые другие ошибки в finally только логируем
-                app_logger.debug("Ошибка в finally блоке __del__ CacheManager: %s", cleanup_error)
 
     @staticmethod
     def _hash_url(url: str) -> str:

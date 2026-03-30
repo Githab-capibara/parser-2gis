@@ -369,9 +369,8 @@ class TestCallbackProtocols:
                 hasattr(protocol, "__runtime_checkable__")
                 or getattr(protocol, "_is_runtime_protocol", False)
                 or hasattr(protocol, "__protocol_attrs__")
-                or
                 # Для Callable Protocol проверяем что они работают с isinstance
-                callable(protocol)
+                or callable(protocol)
             )
             # Callable Protocol могут не иметь явного __runtime_checkable__
             # но всё равно работать с isinstance через __call__

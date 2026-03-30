@@ -259,6 +259,9 @@ class ConnectionPool:
 
             # Если соединения нет, создаём новое или получаем из queue
             if not hasattr(self._local, "connection") or self._local.connection is None:
+                conn: Optional[sqlite3.Connection] = None
+                need_to_create = False
+
                 # Пытаемся получить соединение из queue
                 try:
                     conn = self._connection_queue.get_nowait()
@@ -279,19 +282,47 @@ class ConnectionPool:
                                 self._all_conns.remove(conn)
                             self._connection_age.pop(conn_id, None)
                             conn = None
+                            need_to_create = True
 
                     if conn is None:
-                        conn = self._create_connection()
-                        app_logger.debug("Создано новое соединение (queue было пустым)")
-                    else:
-                        app_logger.debug("Получено соединение из queue (reuse)")
-
-                    self._local.connection = conn
+                        need_to_create = True
 
                 except queue.Empty:
-                    # Queue пуста, создаём новое соединение
-                    self._local.connection = self._create_connection()
-                    app_logger.debug("Создано новое соединение (queue пуста)")
+                    # Queue пуста, нужно создавать новое соединение
+                    need_to_create = True
+
+                # ИСПРАВЛЕНИЕ: Выносим создание соединения за пределы блокировки
+                # для предотвращения deadlock при ошибке создания
+                if need_to_create:
+                    # Освобождаем блокировку перед созданием соединения
+                    pass  # Блокировка будет освобождена при выходе из with
+
+            # Выходим из блокировки перед созданием соединения
+            # Создаём соединение вне блокировки для предотвращения deadlock
+            if need_to_create:
+                try:
+                    conn = self._create_connection()
+                    app_logger.debug("Создано новое соединение (queue было пустым)")
+                except sqlite3.Error as db_error:
+                    app_logger.error(
+                        "Ошибка БД при создании соединения: %s", db_error, exc_info=True
+                    )
+                    raise
+                except OSError as os_error:
+                    app_logger.error(
+                        "Ошибка ОС при создании соединения: %s", os_error, exc_info=True
+                    )
+                    raise
+                except (RuntimeError, TypeError, ValueError) as e:
+                    app_logger.error(
+                        "Неожиданная ошибка при создании соединения: %s", e, exc_info=True
+                    )
+                    raise
+
+            # Возвращаемся в блокировку для добавления в пул
+            with self._lock:
+                if need_to_create:
+                    self._local.connection = conn
                     # Проверяем лимит соединений
                     if len(self._all_conns) >= self._pool_size:
                         app_logger.warning(
@@ -301,6 +332,10 @@ class ConnectionPool:
                     else:
                         self._all_conns.append(self._local.connection)
                         self._connection_age[id(self._local.connection)] = time.time()
+                elif conn is not None:
+                    # Получили из queue - просто присваиваем
+                    self._local.connection = conn
+                    app_logger.debug("Получено соединение из queue (reuse)")
 
         return self._local.connection
 

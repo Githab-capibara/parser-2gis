@@ -189,10 +189,10 @@ class TestCacheManagerFinallyCleanup:
         """Тест finally блока в __del__ при MemoryError.
 
         Проверяет:
-        - finally блок выполняется при MemoryError в __del__
+        - MemoryError пробрасывается из __del__
         - Ресурсы очищаются корректно
         """
-        with caplog.at_level(logging.CRITICAL):
+        with caplog.at_level(logging.DEBUG):
             manager = CacheManager(temp_cache_dir, ttl_hours=24, pool_size=5)
 
             # Mock finalizer для выбрасывания MemoryError
@@ -211,7 +211,7 @@ class TestCacheManagerFinallyCleanup:
         """Тест finally блока в __del__ при KeyboardInterrupt.
 
         Проверяет:
-        - finally блок выполняется при KeyboardInterrupt в __del__
+        - KeyboardInterrupt пробрасывается из __del__
         - Ресурсы очищаются корректно
         """
         with caplog.at_level(logging.WARNING):
@@ -233,7 +233,7 @@ class TestCacheManagerFinallyCleanup:
         """Тест finally блока в __del__ при SystemExit.
 
         Проверяет:
-        - finally блок выполняется при SystemExit в __del__
+        - SystemExit пробрасывается из __del__
         - Ресурсы очищаются корректно
         """
         with caplog.at_level(logging.DEBUG):
