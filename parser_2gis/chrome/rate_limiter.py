@@ -16,18 +16,6 @@ try:
 except ImportError:
     requests = None  # type: ignore[assignment]
 
-try:
-    from ratelimit import limits, sleep_and_retry
-except ImportError:
-    limits = None  # type: ignore[assignment, misc]
-    sleep_and_retry = None  # type: ignore[assignment, misc]
-
-# RequestException используется как базовый класс для обработки исключений
-try:
-    from requests.exceptions import RequestException
-except ImportError:
-    RequestException = Exception  # type: ignore[misc, assignment]
-
 
 if TYPE_CHECKING:
     pass

@@ -25,7 +25,7 @@ class AbstractRunner(ABC):
     """
 
     def __init__(
-        self, urls: list[str], output_path: str, format: str, config: Configuration
+        self, urls: list[str], output_path: str, format: str, config: "Configuration"
     ) -> None:
         self._urls = urls
         self._output_path = output_path
@@ -35,12 +35,10 @@ class AbstractRunner(ABC):
     @abstractmethod
     def start(self) -> None:
         """Запускает процесс парсинга."""
-        pass
 
     @abstractmethod
     def stop(self) -> None:
         """Останавливает процесс парсинга."""
-        pass
 
 
 class GUIRunner(AbstractRunner):
@@ -61,7 +59,6 @@ class GUIRunner(AbstractRunner):
             В текущей реализации метод не выполняет действий.
             Для GUI режима используется TUI (Textual).
         """
-        pass
 
     def stop(self) -> None:
         """Останавливает процесс парсинга в GUI режиме.
@@ -70,7 +67,6 @@ class GUIRunner(AbstractRunner):
             В текущей реализации метод не выполняет действий.
             Для остановки GUI режима используется TUI (Textual).
         """
-        pass
 
 
 __all__ = ["AbstractRunner", "GUIRunner"]

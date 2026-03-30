@@ -187,7 +187,12 @@ class FileMerger:
             return False
 
         logger.info("Найдено %d CSV файлов для объединения", len(csv_files))
-        csv_files.sort(key=lambda x: x.name)
+
+        def _get_filename(file_path: Path) -> str:
+            """Возвращает имя файла для сортировки."""
+            return file_path.name
+
+        csv_files.sort(key=_get_filename)
 
         # Создаём временный файл
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
@@ -199,8 +204,12 @@ class FileMerger:
         if not self._acquire_lock(lock_file_path):
             return False
 
+        def _cleanup_wrapper() -> None:
+            """Функция обратного вызова для очистки временных файлов."""
+            self._cleanup_temp_files()
+
         # Используем SignalHandler для обработки сигналов
-        sig_handler = SignalHandler(cleanup_callback=lambda: self._cleanup_temp_files())
+        sig_handler = SignalHandler(cleanup_callback=_cleanup_wrapper)
 
         try:
             sig_handler.setup()

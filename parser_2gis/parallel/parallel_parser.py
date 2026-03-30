@@ -25,9 +25,8 @@ import threading
 import time
 import typing
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 from threading import BoundedSemaphore
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
@@ -61,8 +60,33 @@ from parser_2gis.utils.temp_file_manager import (
 from parser_2gis.utils.url_utils import generate_category_url
 from parser_2gis.writer import get_writer
 
+from dataclasses import dataclass
+
 if TYPE_CHECKING:
     from .config import Configuration
+
+
+@dataclass
+class ParserThreadConfig:
+    """Конфигурация для потока параллельного парсинга.
+
+    Attributes:
+        cities: Список городов для парсинга.
+        categories: Список категорий для парсинга.
+        output_dir: Папка для сохранения результатов.
+        config: Конфигурация парсера.
+        max_workers: Максимальное количество одновременных браузеров.
+        timeout_per_url: Таймаут на один URL в секундах.
+        output_file: Имя выходного файла (опционально).
+    """
+
+    cities: List[dict]
+    categories: List[dict]
+    output_dir: str
+    config: "Configuration"
+    max_workers: int = 3
+    timeout_per_url: int = DEFAULT_TIMEOUT
+    output_file: Optional[str] = None
 
 
 # =============================================================================
@@ -1222,7 +1246,7 @@ class ParallelCityParserThread:
         cities: List[dict],
         categories: List[dict],
         output_dir: str,
-        config: Configuration,
+        config: "Configuration",
         max_workers: int = 3,
         timeout_per_url: int = DEFAULT_TIMEOUT,
         output_file: Optional[str] = None,
@@ -1241,13 +1265,29 @@ class ParallelCityParserThread:
         # Инициализация базового класса Thread
         super().__init__()
 
+        # Группировка параметров в dataclass для удобства
+        thread_config = ParserThreadConfig(
+            cities=cities,
+            categories=categories,
+            output_dir=output_dir,
+            config=config,
+            max_workers=max_workers,
+            timeout_per_url=timeout_per_url,
+            output_file=output_file,
+        )
+
         # Инициализация парсера (композиция)
         self._parser = ParallelCityParser(
-            cities, categories, output_dir, config, max_workers, timeout_per_url
+            thread_config.cities,
+            thread_config.categories,
+            thread_config.output_dir,
+            thread_config.config,
+            thread_config.max_workers,
+            thread_config.timeout_per_url,
         )
 
         self._result: Optional[bool] = None
-        self._output_file = output_file
+        self._output_file = thread_config.output_file
 
     @property
     def output_dir(self) -> Path:

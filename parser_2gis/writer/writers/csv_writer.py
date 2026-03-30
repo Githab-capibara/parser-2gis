@@ -359,9 +359,9 @@ class CSVWriter(FileWriter):
                 )
 
             # Удаляем параметры из URL WhatsApp
-            for field in data:
-                if field.startswith("whatsapp") and data[field]:
-                    data[field] = data[field].split("?")[0]
+            for field, value in data.items():
+                if field.startswith("whatsapp") and value:
+                    data[field] = value.split("?")[0]
 
             # Текстовые значения (email, skype и т.д.)
             for t in ["email", "skype"]:

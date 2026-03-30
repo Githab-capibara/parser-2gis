@@ -3,13 +3,14 @@
 Предоставляет компоненты для логирования:
 - Logger, logger - основной логгер
 - QueueHandler - обработчик очереди
-- FileLogger - файловый логгер
+- FileLogger - файловый логгер (ленивый импорт)
 - VisualLogger - визуальный логгер с emoji и цветами
 - LogOptions - опции логирования
 - Функции настройки: setup_logger, setup_cli_logger, setup_gui_logger
 """
 
-from parser_2gis.chrome.file_handler import FileLogger
+# FileLogger импортируется лениво для избежания циклического импорта
+# Явный импорт невозможен из-за циклической зависимости с chrome.file_handler
 
 from .logger import (
     Logger,
@@ -38,6 +39,19 @@ from .visual_logger import (
     visual_logger,
 )
 
+
+def __getattr__(name: str):
+    """Ленивый импорт FileLogger для избежания циклического импорта.
+    
+    PEP 562 позволяет определять __getattr__ на уровне модуля.
+    """
+    if name == "FileLogger":
+        from parser_2gis.chrome.file_handler import FileLogger
+
+        return FileLogger
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
     "logger",
     "Logger",
@@ -46,7 +60,6 @@ __all__ = [
     "setup_logger",
     "QueueHandler",
     "LogOptions",
-    "FileLogger",
     "VisualLogger",
     "visual_logger",
     "print_header",
@@ -62,4 +75,5 @@ __all__ = [
     "ColorCodes",
     "log_parser_start",
     "log_parser_finish",
+    "__getattr__",  # Для ленивого импорта FileLogger (PEP 562)
 ]

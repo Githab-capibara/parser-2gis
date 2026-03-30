@@ -27,23 +27,18 @@ class LoggerProtocol(Protocol):
 
     def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование debug сообщения."""
-        ...
 
     def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование info сообщения."""
-        ...
 
     def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование warning сообщения."""
-        ...
 
     def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование error сообщения."""
-        ...
 
     def critical(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование critical сообщения."""
-        ...
 
 
 @runtime_checkable
@@ -54,7 +49,6 @@ class ProgressCallback(Protocol):
 
     Example:
         >>> def progress_handler(success: int, failed: int, filename: str) -> None:
-        ...     print(f"Успешно: {success}, Ошибок: {failed}, Файл: {filename}")
         >>> callback: ProgressCallback = progress_handler
     """
 
@@ -66,7 +60,6 @@ class ProgressCallback(Protocol):
             failed: Количество операций с ошибками.
             filename: Имя текущего файла (если применимо).
         """
-        ...
 
 
 @runtime_checkable
@@ -77,7 +70,6 @@ class LogCallback(Protocol):
 
     Example:
         >>> def logger(message: str, level: str = "INFO") -> None:
-        ...     print(f"[{level}] {message}")
         >>> callback: LogCallback = logger
     """
 
@@ -88,7 +80,6 @@ class LogCallback(Protocol):
             message: Текст сообщения.
             level: Уровень логирования (DEBUG, INFO, WARNING, ERROR).
         """
-        ...
 
 
 @runtime_checkable
@@ -99,13 +90,11 @@ class CleanupCallback(Protocol):
 
     Example:
         >>> def cleanup() -> None:
-        ...     print("Очистка ресурсов")
         >>> callback: CleanupCallback = cleanup
     """
 
     def __call__(self) -> None:
         """Вызывается для очистки ресурсов."""
-        ...
 
 
 @runtime_checkable
@@ -116,7 +105,6 @@ class CancelCallback(Protocol):
 
     Example:
         >>> def should_cancel() -> bool:
-        ...     return False  # или проверка внешнего флага
         >>> callback: CancelCallback = should_cancel
     """
 
@@ -126,7 +114,6 @@ class CancelCallback(Protocol):
         Returns:
             True если операция должна быть отменена.
         """
-        ...
 
 
 @runtime_checkable
@@ -137,10 +124,6 @@ class Writer(Protocol):
 
     Example:
         >>> class CSVWriter:
-        ...     def write(self, records: list[dict]) -> None:
-        ...         pass
-        ...     def close(self) -> None:
-        ...         pass
         >>> writer: Writer = CSVWriter(...)
     """
 
@@ -150,11 +133,9 @@ class Writer(Protocol):
         Args:
             records: Список записей для записи.
         """
-        ...
 
     def close(self) -> None:
         """Закрывает writer и освобождает ресурсы."""
-        ...
 
 
 @runtime_checkable
@@ -165,10 +146,6 @@ class Parser(Protocol):
 
     Example:
         >>> class FirmParser:
-        ...     def parse(self) -> list[dict]:
-        ...         pass
-        ...     def get_stats(self) -> dict:
-        ...         pass
         >>> parser: Parser = FirmParser(...)
     """
 
@@ -178,7 +155,6 @@ class Parser(Protocol):
         Returns:
             Список спарсенных записей.
         """
-        ...
 
     def get_stats(self) -> dict:
         """Возвращает статистику парсинга.
@@ -186,7 +162,6 @@ class Parser(Protocol):
         Returns:
             Словарь со статистикой.
         """
-        ...
 
 
 @runtime_checkable
@@ -211,7 +186,6 @@ class BrowserService(Protocol):
         Args:
             url: URL для навигации.
         """
-        ...
 
     def get_html(self) -> str:
         """Получить HTML страницы.
@@ -219,7 +193,6 @@ class BrowserService(Protocol):
         Returns:
             HTML содержимое текущей страницы.
         """
-        ...
 
     def execute_js(self, js_code: str, timeout: int | None = None) -> Any:
         """Выполнить JavaScript код.
@@ -231,7 +204,6 @@ class BrowserService(Protocol):
         Returns:
             Результат выполнения JavaScript.
         """
-        ...
 
     def screenshot(self, path: str) -> None:
         """Сделать скриншот.
@@ -239,11 +211,9 @@ class BrowserService(Protocol):
         Args:
             path: Путь для сохранения скриншота.
         """
-        ...
 
     def close(self) -> None:
         """Закрыть браузер и освободить ресурсы."""
-        ...
 
 
 # =============================================================================
@@ -275,7 +245,6 @@ class CacheBackend(Protocol):
         Returns:
             Значение из кэша или None если ключ не найден.
         """
-        ...
 
     def set(self, key: str, value: Any, ttl: int) -> None:
         """Устанавливает значение в кэш.
@@ -285,7 +254,6 @@ class CacheBackend(Protocol):
             value: Значение для кэширования.
             ttl: Время жизни кэша в секундах.
         """
-        ...
 
     def delete(self, key: str) -> None:
         """Удаляет значение из кэша.
@@ -293,7 +261,6 @@ class CacheBackend(Protocol):
         Args:
             key: Ключ для удаления.
         """
-        ...
 
     def exists(self, key: str) -> bool:
         """Проверяет наличие ключа в кэше.
@@ -304,7 +271,6 @@ class CacheBackend(Protocol):
         Returns:
             True если ключ существует.
         """
-        ...
 
 
 # =============================================================================
@@ -339,7 +305,6 @@ class ExecutionBackend(Protocol):
         Returns:
             Future объект для получения результата.
         """
-        ...
 
     def map(
         self, fn: Callable[..., Any], *iterables: Any, timeout: float | None = None
@@ -354,7 +319,6 @@ class ExecutionBackend(Protocol):
         Returns:
             Итератор с результатами выполнения.
         """
-        ...
 
     def shutdown(self, wait: bool = True, cancel_futures: bool = False) -> None:
         """Останавливает executor и освобождает ресурсы.
@@ -363,7 +327,6 @@ class ExecutionBackend(Protocol):
             wait: Ждать завершения всех задач.
             cancel_futures: Отменить незавершённые задачи (Python 3.9+).
         """
-        ...
 
 
 # =============================================================================
@@ -395,7 +358,6 @@ class ParserFactory(Protocol):
         Returns:
             Экземпляр парсера.
         """
-        ...
 
 
 @runtime_checkable
@@ -423,7 +385,6 @@ class WriterFactory(Protocol):
         Returns:
             Экземпляр писателя.
         """
-        ...
 
 
 @runtime_checkable
@@ -450,7 +411,6 @@ class ModelProvider(Protocol):
         Returns:
             Сгенерированный ответ.
         """
-        ...
 
     def is_available(self) -> bool:
         """Проверяет доступность провайдера.
@@ -458,7 +418,6 @@ class ModelProvider(Protocol):
         Returns:
             True если провайдер доступен.
         """
-        ...
 
 
 __all__ = [

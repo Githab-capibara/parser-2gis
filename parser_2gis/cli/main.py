@@ -29,7 +29,6 @@ except ImportError:
     logger.warning("TUI модуль (textual) недоступен. TUI функции будут недоступны")
 
 # Backward совместимость для тестов
-from parser_2gis.cache import CacheManager as Cache  # noqa: F401
 from parser_2gis.chrome.remote import ChromeRemote  # noqa: F401
 
 
@@ -55,8 +54,10 @@ def cleanup_resources() -> None:
                     try:
                         if instance is not None:
                             instance.stop()
-                    except (AttributeError, RuntimeError, TypeError, ValueError):
-                        pass
+                    except (AttributeError, RuntimeError, TypeError, ValueError) as e:
+                        logger.debug(
+                            "Подавлено исключение при остановке экземпляра ChromeRemote: %s", e
+                        )
         except (AttributeError, TypeError) as chrome_iter_error:
             logger.error("Ошибка итерации _active_instances: %s", chrome_iter_error)
 

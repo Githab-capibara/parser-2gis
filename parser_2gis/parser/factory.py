@@ -21,13 +21,13 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Type
 
+from .parsers import FirmParser, InBuildingParser, MainParser
+from .parsers.base import BaseParser
+
 if TYPE_CHECKING:
     from parser_2gis.chrome.options import ChromeOptions
     from parser_2gis.parser.options import ParserOptions
     from parser_2gis.protocols import BrowserService
-
-from .parsers import FirmParser, InBuildingParser, MainParser
-from .parsers.base import BaseParser
 
 # =============================================================================
 # REGISTRY PATTERN ДЛЯ PARSERS

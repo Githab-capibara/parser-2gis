@@ -114,9 +114,10 @@ class Configuration(BaseModel):
 
     def save_config(self) -> None:
         """Сохраняет конфигурацию, если она была загружена из пути."""
-        ConfigService.save_config(config=self, path=self.path) if self.path else (
+        if self.path:
+            ConfigService.save_config(config=self, path=self.path)
+        else:
             logger.warning("Путь для сохранения конфигурации не указан")
-        )
 
     @classmethod
     def load_config(
