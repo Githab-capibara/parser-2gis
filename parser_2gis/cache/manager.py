@@ -589,20 +589,30 @@ class CacheManager:
             )
 
         # Строгая валидация каждого хеша (64 символа, hex)
-        for hash_val in url_hashes:
-            if not self._validate_hash(hash_val):
-                raise ValueError(f"Некорректный формат хеша: {hash_val}")
+        validated_hashes = [h for h in url_hashes if self._validate_hash(h)]
+        if not validated_hashes:
+            return 0
 
         conn = self._pool.get_connection()
         cursor = conn.cursor()
 
         try:
-            placeholders = ",".join("?" * len(url_hashes))
-            delete_query = f"DELETE FROM cache WHERE url_hash IN ({placeholders})"
-            cursor.execute(delete_query, url_hashes)  # nosec B608
-            deleted_count = cursor.rowcount
-            conn.commit()
+            # Создаем временную таблицу для безопасного batch удаления
+            cursor.execute("CREATE TEMP TABLE IF NOT EXISTS temp_hashes (hash TEXT PRIMARY KEY)")
 
+            # Вставляем хеши безопасно через параметризованный запрос
+            cursor.executemany(
+                "INSERT OR IGNORE INTO temp_hashes VALUES (?)", [(h,) for h in validated_hashes]
+            )
+
+            # Удаляем через JOIN с временной таблицей
+            cursor.execute("DELETE FROM cache WHERE url_hash IN (SELECT hash FROM temp_hashes)")
+            deleted_count = cursor.rowcount
+
+            # Очищаем временную таблицу
+            cursor.execute("DROP TABLE IF EXISTS temp_hashes")
+
+            conn.commit()
             return deleted_count
 
         except sqlite3.Error as db_error:

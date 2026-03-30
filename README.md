@@ -35,7 +35,7 @@
 | Параллельные потоки | До 20 одновременных работников |
 | Форматы вывода | CSV, XLSX, JSON |
 | Кэширование | SQLite с TTL 24 часа, connection pool (5-20 соединений, динамический размер) |
-| Тестовое покрытие | 1980 автоматических тестов (85%+ покрытие) |
+| Тестовое покрытие | 1114 автоматических тестов (85%+ покрытие) |
 | Качество кода | Pylint 9.97/10, Ruff clean, Black formatted |
 
 ### Ключевые функции
@@ -416,20 +416,42 @@ parser-2gis \
 
 ## Функции проекта
 
-### Модуль main.py — Точка входа CLI
+### Модуль cli/launcher.py — Лаунчер приложения
+
+**Классы:**
+
+- `ApplicationLauncher` — Лаунчер с разделением режимов работы (TUI, CLI, parallel)
+
+**Методы ApplicationLauncher:**
+
+- `__init__(config, options)` — Инициализация лаунчера
+- `launch(args)` — Запуск приложения в выбранном режиме
+- `_run_tui_mode(args, tui_type)` — Запуск TUI режима
+- `_run_cli_mode(args)` — Запуск CLI режима
+- `_run_parallel_mode(args)` — Запуск параллельного парсинга
+- `_cleanup_resources()` — Централизованная очистка ресурсов
+- `_cleanup_chrome_remote()` — Очистка соединений ChromeRemote
+- `_cleanup_cache()` — Закрытие кэша базы данных
+- `_cleanup_gc()` — Принудительный сборщик мусора
 
 **Функции:**
 
-- `main()` — Главная точка входа приложения
+- `_get_signal_handler_cached(handler_instance)` — Кэшированная версия SignalHandler
+
+### Модуль data/cities_loader.py — Загрузчик городов
+
+**Функции:**
+
+- `load_cities_json(cities_path_str)` — Загрузка JSON файла городов с оптимизацией
+- Использует mmap для больших файлов (>1MB)
+- Валидация структуры данных и лимитов
+
+### Модуль cli/main.py — Точка входа CLI
+
+**Функции:**
+
+- `main()` — Главная точка входа (делегирование ApplicationLauncher)
 - `parse_arguments(argv)` — Парсинг аргументов командной строки
-- `cleanup_resources()` — Централизованная очистка ресурсов
-- `_setup_signal_handlers()` — Установка обработчиков сигналов
-- `_get_signal_handler()` — Получение глобального SignalHandler
-- `_get_signal_handler_cached()` — Кэшированная версия SignalHandler
-- `_load_cities_json(cities_path)` — Загрузка JSON файла городов
-- `_validate_positive_int(value, min_val, max_val, arg_name)` — Валидация положительных целых чисел
-- `patch_argparse_translations()` — Патчинг gettext для перевода argparse
-- `ArgumentHelpFormatter` — Форматировщик справки с значениями по умолчанию
 
 ### Модуль cache.py — Кэширование результатов
 
@@ -456,48 +478,97 @@ parser-2gis \
 - `get_stats()` — Получение статистики кэша
 - `close()` — Закрытие соединений
 
-### Модуль common.py — Общие утилиты
+### Модуль utils/ — Общие утилиты
+
+**Модуль utils/temp_file_manager.py:**
+
+**Классы:**
+
+- `TempFileManager` — Менеджер временных файлов с RLock и weak references
+- `TempFileTimer` — Таймер периодической очистки осиротевших файлов
+
+**Методы TempFileManager:**
+
+- `register(file_path)` — Регистрация временного файла
+- `unregister(file_path)` — Удаление файла из реестра
+- `cleanup_all()` — Очистка всех зарегистрированных файлов
+- `get_count()` — Количество зарегистрированных файлов
+- `get_files()` — Список зарегистрированных файлов
+
+**Методы TempFileTimer:**
+
+- `start()` — Запуск таймера периодической очистки
+- `stop()` — Остановка таймера
+- `_cleanup_callback()` — Callback для периодической очистки
+- `_cleanup_temp_files()` — Удаление осиротевших файлов
 
 **Функции:**
 
-- `wait_until_finished(timeout, finished, throw_exception, poll_interval, use_exponential_backoff, max_poll_interval)` — Декоратор ожидания завершения функции
-- `async_wait_until_finished(...)` — Асинхронная версия декоратора
-- `report_from_validation_error(ex, d)` — Генерация отчёта об ошибке валидации
-- `unwrap_dot_dict(d)` — Развёртывание плоского словаря с точечными ключами
+- `create_temp_file(directory, prefix)` — Атомарное создание временного файла (tempfile.mkstemp)
+- `register_temp_file(file_path)` — Обёртка для обратной совместимости
+- `unregister_temp_file(file_path)` — Обёртка для обратной совместимости
+- `cleanup_all_temp_files()` — Обёртка для обратной совместимости
+- `get_temp_file_count()` — Обёртка для обратной совместимости
+
+**Константы:**
+
+- `TEMP_FILE_CLEANUP_INTERVAL` — Интервал очистки (60 сек, настраивается)
+- `MAX_TEMP_FILES_MONITORING` — Максимум файлов для мониторинга (1000)
+- `ORPHANED_TEMP_FILE_AGE` — Возраст осиротевшего файла (3600 сек = 1 час)
+
+**Модуль utils/data_utils.py:**
+
+- `unwrap_dot_dict(d)` — Развёртывание плоского словаря с точечными ключами (оптимизировано через setdefault)
+
+**Модуль utils/math_utils.py:**
+
 - `floor_to_hundreds(arg)` — Округление вниз до сотни
+
+**Модуль utils/url_utils.py:**
+
 - `generate_city_urls(cities, query, rubric)` — Генерация URL для городов
 - `generate_category_url(city_code, city_domain, category_id)` — Генерация URL категории
 - `url_query_encode(url)` — Кодирование query параметров URL
+
+**Модуль utils/validation_utils.py:**
+
 - `_validate_city(city, field_name)` — Валидация структуры города
 - `_validate_category(category, field_name)` — Валидация структуры категории
 - `_validate_city_cached(code, domain)` — Кэшированная валидация города
 - `_validate_category_cached(id, name)` — Кэшированная валидация категории
+
+**Модуль utils/sanitizers.py:**
+
 - `_sanitize_value(value, key)` — Очистка чувствительных данных
 - `_is_sensitive_key(key)` — Проверка чувствительности ключа
-- `_get_logger()` — Получение logger для модуля
 
-**Константы:**
+**Модуль utils/decorators.py:**
 
-- `DEFAULT_BUFFER_SIZE` — Размер буфера по умолчанию (256 KB)
-- `CSV_BATCH_SIZE` — Размер пакета строк для CSV (1000)
-- `MERGE_BATCH_SIZE` — Размер пакета для слияния (500)
-- `DEFAULT_POLL_INTERVAL` — Начальный интервал опроса (0.1 сек)
-- `MAX_POLL_INTERVAL` — Максимальный интервал опроса (2.0 сек)
-- `EXPONENTIAL_BACKOFF_MULTIPLIER` — Множитель экспоненциальной задержки (2)
+- `wait_until_finished(...)` — Декоратор ожидания завершения функции
+- `async_wait_until_finished(...)` — Асинхронная версия декоратора
 
-### Модуль parallel_parser.py — Параллельный парсинг
+**Модуль utils/path_utils.py:**
+
+- `validate_path_safety(path)` — Валидация безопасности пути
+- `validate_path_traversal(path)` — Проверка на path traversal
+
+**Модуль utils/cache_monitor.py:**
+
+- `get_cache_stats()` — Получение статистики кэша
+- `log_cache_stats()` — Логирование статистики кэша
+
+### Модуль parallel/parallel_parser.py — Параллельный парсинг
 
 **Классы:**
 
 - `ParallelCityParser` — Параллельный парсер городов
 - `ParallelCityParserThread` — Поток для параллельного парсинга
-- `_TempFileTimer` — Таймер периодической очистки временных файлов
 
 **Функции:**
 
-- `_register_temp_file(file_path)` — Регистрация временного файла
-- `_unregister_temp_file(file_path)` — Удаление файла из реестра
-- `_cleanup_all_temp_files()` — Очистка всех временных файлов
+- `_register_temp_file(file_path)` — Регистрация временного файла (делегирование в utils/temp_file_manager)
+- `_unregister_temp_file(file_path)` — Удаление файла из реестра (делегирование в utils/temp_file_manager)
+- `_cleanup_all_temp_files()` — Очистка всех временных файлов (делегирование в utils/temp_file_manager)
 - `_acquire_merge_lock(lock_file_path, timeout, log_callback)` — Получение блокировки merge
 - `_merge_csv_files(file_paths, output_path, encoding, buffer_size, batch_size, log_callback, progress_callback, cancel_event)` — Слияние CSV файлов
 - `_create_unique_filename(directory, extension)` — Создание уникального имени файла
@@ -506,8 +577,8 @@ parser-2gis \
 **Методы ParallelCityParser:**
 
 - `__init__(urls, options, config, log_callback, progress_callback)` — Инициализация парсера
-- `parse()` — Запуск параллельного парсинга
-- `_parse_url(url, worker_id)` — Парсинг одного URL
+- `parse()` — Запуск параллельного парсинга (с обработкой MemoryError)
+- `_parse_url(url, worker_id)` — Парсинг одного URL (с обработкой MemoryError и очисткой кэша)
 - `_merge_results()` — Слияние результатов
 - `get_stats()` — Получение статистики
 - `cancel()` — Отмена парсинга

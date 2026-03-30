@@ -111,4 +111,32 @@ def patch_argparse_translations() -> None:
     argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore
 
 
-__all__ = ["ArgumentHelpFormatter", "patch_argparse_translations"]
+__all__ = ["ArgumentHelpFormatter", "patch_argparse_translations", "format_config_summary"]
+
+
+def format_config_summary(config: Configuration) -> dict[str, Any]:
+    """Форматирует конфигурацию для логирования.
+
+    Args:
+        config: Конфигурация приложения.
+
+    Returns:
+        Словарь с отформатированной конфигурацией.
+    """
+    return {
+        "chrome": {
+            "Headless": "Да" if config.chrome.headless else "Нет",
+            "Без изображений": "Да" if config.chrome.disable_images else "Нет",
+            "Максимизирован": "Да" if config.chrome.start_maximized else "Нет",
+        },
+        "parser": {
+            "Макс. записей": str(config.parser.max_records),
+            "Задержка (мс)": str(config.parser.delay_between_clicks),
+            "GC включен": "Да" if config.parser.use_gc else "Нет",
+        },
+        "writer": {
+            "Формат": config.writer.format.upper() if config.writer.format else "CSV",
+            "Кодировка": config.writer.encoding,
+            "Удалить дубликаты": "Да" if config.writer.csv.remove_duplicates else "Нет",
+        },
+    }

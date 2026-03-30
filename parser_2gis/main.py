@@ -14,15 +14,8 @@ from __future__ import annotations
 # Импортируем все символы из нового пакета cli для backward совместимости
 from parser_2gis.cli import ArgumentHelpFormatter, ArgumentValidator, main, parse_arguments
 
-# Импортируем TUI символы и cleanup_resources для backward совместимости с тестами
-from parser_2gis.cli.main import (
-    Parser2GISTUI,
-    _get_signal_handler_cached,
-    _tui_omsk_stub,
-    _tui_stub,
-    cleanup_resources,
-    run_new_tui_omsk,
-)
+# Импортируем TUI символы для backward совместимости
+from parser_2gis.cli.main import Parser2GISTUI, run_new_tui_omsk
 
 # Экспортируем для backward совместимости
 __all__ = [
@@ -31,9 +24,5 @@ __all__ = [
     "ArgumentValidator",
     "ArgumentHelpFormatter",
     "Parser2GISTUI",
-    "_tui_omsk_stub",
-    "_tui_stub",
     "run_new_tui_omsk",
-    "_get_signal_handler_cached",
-    "cleanup_resources",
 ]

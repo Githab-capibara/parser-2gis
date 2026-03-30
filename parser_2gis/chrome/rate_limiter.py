@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
+from .constants import DEFAULT_NETWORK_TIMEOUT
+
 try:
     import requests
 except ImportError:
@@ -37,14 +39,14 @@ if TYPE_CHECKING:
 
 
 def _safe_external_request(
-    method: str = "GET", url: str = "", timeout: int = 15, **kwargs
+    method: str = "GET", url: str = "", timeout: Optional[int] = None, **kwargs
 ) -> Optional[requests.Response]:
     """Безопасный внешний запрос с rate limiting.
 
     Args:
         method: HTTP метод.
         url: URL для запроса.
-        timeout: Таймаут запроса.
+        timeout: Таймаут запроса (по умолчанию DEFAULT_NETWORK_TIMEOUT).
         **kwargs: Дополнительные аргументы для requests.
 
     Returns:
@@ -52,6 +54,10 @@ def _safe_external_request(
     """
     if requests is None:
         raise ImportError("requests library is required for _safe_external_request")
+
+    # Используем дефолтный таймаут если не указан
+    if timeout is None:
+        timeout = DEFAULT_NETWORK_TIMEOUT
 
     try:
         response = requests.request(method, url, timeout=timeout, **kwargs)

@@ -424,6 +424,41 @@ class WriterFactory(Protocol):
         pass
 
 
+@runtime_checkable
+class ModelProvider(Protocol):
+    """Абстракция провайдера языковой модели для AI-функций.
+
+    Определяет интерфейс для взаимодействия с различными LLM провайдерами
+    (Ollama, OpenAI, и т.д.). Позволяет легко переключаться между
+    различными реализациями без изменения кода.
+
+    Example:
+        >>> from parser_2gis.services.ollama_client import OllamaClient
+        >>> provider: ModelProvider = OllamaClient()  # type: check
+        >>> response = provider.generate("Привет!")
+    """
+
+    def generate(self, prompt: str, **kwargs: Any) -> str:
+        """Генерирует ответ на запрос.
+
+        Args:
+            prompt: Входной запрос.
+            **kwargs: Дополнительные параметры генерации.
+
+        Returns:
+            Сгенерированный ответ.
+        """
+        pass
+
+    def is_available(self) -> bool:
+        """Проверяет доступность провайдера.
+
+        Returns:
+            True если провайдер доступен.
+        """
+        pass
+
+
 __all__ = [
     # Callback Protocol
     "LoggerProtocol",
@@ -441,4 +476,6 @@ __all__ = [
     # Factory Protocol
     "ParserFactory",
     "WriterFactory",
+    # AI Protocol
+    "ModelProvider",
 ]

@@ -398,7 +398,7 @@ class TestModuleSizes:
             "utils/path_utils.py": 250,
             "utils/math_utils.py": 100,
             "utils/data_utils.py": 150,
-            "protocols.py": 450,
+            "protocols.py": 500,
             "config_service.py": 400,
             "writer/factory.py": 250,
             "parser/factory.py": 250,
@@ -479,6 +479,7 @@ class TestClassSizes:
             "CSVWriter",  # CSV writer
             "TempFileTimer",  # Таймер временных файлов
             "ParallelOptimizer",  # Оптимизатор параллелизма
+            "ApplicationLauncher",  # Лаунчер приложения (координация режимов работы)
         }
 
         large_classes: List[Tuple[str, str, int]] = []

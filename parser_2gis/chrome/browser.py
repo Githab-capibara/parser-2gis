@@ -244,6 +244,7 @@ class ChromeBrowser:
         self._chrome_cmd: Optional[list[str]] = None
         self._remote_port: Optional[int] = None
         self._start_time: float = time.time()  # ИСПРАВЛЕНИЕ 15: Для отслеживания времени жизни
+        self._closed: bool = False  # Флаг для предотвращения повторного закрытия
 
         try:
             # Получаем и валидируем путь к браузеру
@@ -544,45 +545,47 @@ class ChromeBrowser:
             2. Принудительное завершение через kill() + wait(timeout=10)
 
         Важно:
-            - ИСПРАВЛЕНИЕ 8: Проверка poll() после terminate() для обнаружения zombie процессов
-            - Использовать kill() если terminate() не работает
-            - Добавлен wait() с timeout для предотвращения утечки процессов
-            - Метод обрабатывает zombie процессы через wait() с timeout
+            - Проверка флага _closed для предотвращения повторного закрытия
+            - Сохранение локальных копий ссылок для безопасности
+            - Используется terminate() + wait(timeout=5) для корректного завершения
+            - При timeout используется kill() для принудительного завершения
             - TemporaryDirectory.cleanup() гарантирует удаление профиля
             - Все ошибки логируются для последующего анализа
         """
-        app_logger.debug("Завершение работы Chrome браузера.")
+        # Проверка на повторное закрытие
+        if self._closed:
+            app_logger.debug("Браузер уже закрыт, повторный вызов игнорируется")
+            return
 
-        process_closed = False
-        process_status = "unknown"
+        self._closed = True
+        app_logger.debug(f"Closing Chrome browser (PID: {self._proc.pid if self._proc else 'N/A'})")
+
+        # Сохраняем локальные копии для безопасности
+        proc = self._proc
+        profile_path = self._profile_path
 
         try:
-            if hasattr(self, "_proc") and self._proc is not None:
-                process_pid = self._proc.pid
-                app_logger.debug("Завершение процесса Chrome с PID: %d", process_pid)
+            # Завершаем процесс безопасно
+            if proc is not None:
+                try:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        proc.wait(timeout=2)
+                except (ProcessLookupError, OSError):
+                    pass  # Процесс уже завершен
 
-                # Попытка 1: Корректное завершение через terminate()
-                process_closed, process_status = self._terminate_process_graceful(process_pid)
+            # Очищаем профиль
+            if profile_path and os.path.exists(profile_path):
+                shutil.rmtree(profile_path, ignore_errors=True)
 
-                # Попытка 2: Принудительное завершение через kill()
-                if not process_closed:
-                    process_closed, process_status = self._terminate_process_forceful(process_pid)
-
-            else:
-                app_logger.warning("Процесс Chrome не инициализирован")
-
-        except (OSError, subprocess.SubprocessError, RuntimeError, ValueError) as e:
-            app_logger.error("Непредвиденная ошибка при закрытии Chrome: %s", e)
-            process_status = "unexpected_error"
-
-        # Логируем финальный статус процесса
-        if hasattr(self, "_proc") and self._proc is not None:
-            app_logger.debug(
-                "Финальный статус процесса Chrome: %s (PID: %d)", process_status, self._proc.pid
-            )
-
-        # Очистка профиля
-        self._cleanup_profile()
+        except Exception as e:
+            app_logger.error(f"Error closing browser: {e}")
+        finally:
+            self._proc = None
+            self._profile_path = None
 
     def __repr__(self) -> str:
         """Возвращает строковое представление объекта ChromeBrowser.

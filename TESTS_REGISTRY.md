@@ -1,9 +1,9 @@
 # 📋 РЕЕСТР ТЕСТОВ parser-2gis
 
-**Дата последней актуализации:** 30 марта 2026  
-**Дата последней очистки:** 28 марта 2026  
-**Общее количество тестовых файлов:** 75  
-**Общее количество тестов:** 1089  
+**Дата последней актуализации:** 30 марта 2026
+**Дата последней очистки:** 28 марта 2026
+**Общее количество тестовых файлов:** 76
+**Общее количество тестов:** 1114
 **Pass Rate:** 100% ✅
 
 ---
@@ -12,15 +12,15 @@
 
 | Категория | Файлов | Тестов | Процент |
 |-----------|--------|--------|---------|
-| Architecture тесты | 5 | 111 | 10.2% |
-| TUI тесты | 10 | 156 | 14.3% |
-| Parser тесты | 8 | 142 | 13.0% |
-| Cache тесты | 6 | 89 | 8.2% |
-| Validation тесты | 4 | 98 | 9.0% |
-| Exception Handling тесты | 5 | 87 | 8.0% |
-| Security тесты | 6 | 71 | 6.5% |
-| Integration тесты | 4 | 67 | 6.2% |
-| Другие тесты | 27 | 268 | 24.6% |
+| Architecture тесты | 5 | 111 | 10.0% |
+| TUI тесты | 10 | 156 | 14.0% |
+| Parser тесты | 8 | 142 | 12.7% |
+| Cache тесты | 6 | 89 | 8.0% |
+| Validation тесты | 4 | 98 | 8.8% |
+| Exception Handling тесты | 5 | 87 | 7.8% |
+| Security тесты | 6 | 71 | 6.4% |
+| Integration тесты | 4 | 67 | 6.0% |
+| Другие тесты | 28 | 293 | 26.3% |
 
 ---
 
@@ -273,12 +273,46 @@
 ---
 
 ### test_optional_deps_tui.py
-**Количество тестов:** 3  
+**Количество тестов:** 3
 **Описание:** Тесты для опциональных зависимостей TUI
 
 | № | Тест | Описание |
 |---|------|----------|
 | 1-3 | *(тесты опциональных зависимостей)* | Проверка работы с опциональными зависимостями |
+
+---
+
+### test_critical_fixes.py
+**Количество тестов:** 25
+**Описание:** Тесты для проверки 10 критических исправлений проекта
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_cache_delete_batch_sql_injection_protection` | Проверка параметризованных SQL запросов в delete_batch() |
+| 2 | `test_cache_delete_batch_valid_hashes` | Проверка корректного удаления валидных хешей |
+| 3 | `test_parser_factory_no_unused_globals` | Проверка отсутствия неиспользованных global объявлений |
+| 4 | `test_parser_factory_global_variables_usage` | Проверка использования глобальных переменных в factory.py |
+| 5 | `test_application_launcher_responsibility_separation` | Проверка разделения ответственности в ApplicationLauncher |
+| 6 | `test_application_launcher_methods_are_separate` | Проверка независимости методов режимов |
+| 7 | `test_cli_main_srp_compliance` | Проверка Single Responsibility Principle в cli/main.py |
+| 8 | `test_cli_main_delegates_to_launcher` | Проверка что main() делегирует логику ApplicationLauncher |
+| 9 | `test_chrome_browser_process_cleanup` | Проверка корректного завершения процесса Chrome |
+| 10 | `test_chrome_browser_close_idempotent` | Проверка безопасности повторного вызова close() |
+| 11 | `test_chrome_browser_context_manager_cleanup` | Проверка контекстного менеджера |
+| 12 | `test_parallel_parser_memory_error_handling` | Проверка обработки MemoryError в parallel_parser |
+| 13 | `test_parallel_parser_memory_error_in_parse` | Проверка обработки MemoryError в parse() |
+| 14 | `test_parallel_parser_gc_collect_called` | Проверка вызова gc.collect() при MemoryError |
+| 15 | `test_tui_uses_model_provider_protocol` | Проверка использования ModelProvider protocol в TUI |
+| 16 | `test_model_provider_protocol_definition` | Проверка корректности определения ModelProvider |
+| 17 | `test_chrome_remote_has_timeouts` | Проверка наличия timeout во всех HTTP запросах |
+| 18 | `test_chrome_remote_timeout_configurable` | Проверка настраиваемости timeout |
+| 19 | `test_chrome_remote_safe_external_request_timeout` | Проверка timeout в _safe_external_request |
+| 20 | `test_temp_file_atomic_creation` | Проверка атомарного создания временных файлов |
+| 21 | `test_temp_file_creation_is_atomic` | Проверка атомарности создания файлов |
+| 22 | `test_temp_file_manager_module_exports` | Проверка экспорта create_temp_file |
+| 23 | `test_all_critical_fixes_integration` | Интеграционный тест всех исправлений |
+| 24 | `test_no_regression_in_core_functionality` | Проверка отсутствия регрессии |
+| 25 | `test_all_fixes_compatible_together` | Проверка совместимости всех исправлений |
 
 ---
 
@@ -1003,8 +1037,8 @@
 
 ### 1. Консолидация тестовых файлов
 - **До:** 92 файла
-- **После:** 75 файлов
-- **Сокращение:** 18% (17 файлов удалено)
+- **После:** 76 файлов
+- **Сокращение:** 17% (16 файлов удалено)
 
 ### 2. Устранение дублирования
 - Удалены дублирующиеся тесты на уникальность ID виджетов
@@ -1025,6 +1059,11 @@
 - Добавлены подробные docstrings для всех тестов
 - Унифицирован формат описания тестов
 - Добавлены комментарии для сложных тестовых сценариев
+
+### 6. Новые тесты критических исправлений (март 2026)
+- Добавлен test_critical_fixes.py с 25 тестами
+- Покрытие 10 критических исправлений архитектуры
+- Интеграционные тесты на отсутствие регрессии
 
 ---
 

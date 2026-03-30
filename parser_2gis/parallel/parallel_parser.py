@@ -15,6 +15,7 @@ from __future__ import annotations
 import atexit
 import csv
 import fcntl
+import gc
 import os
 import random
 import shutil
@@ -28,6 +29,8 @@ from threading import BoundedSemaphore
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+
+import psutil
 
 from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.constants import (
@@ -294,6 +297,14 @@ class ParallelCityParser:
         Returns:
             Кортеж (успех, сообщение).
         """
+        # Проверка доступной памяти перед началом парсинга
+        available_memory = psutil.virtual_memory().available
+        if available_memory < 100 * 1024 * 1024:  # Менее 100MB
+            logger.warning(
+                f"Low memory ({available_memory // 1024 // 1024}MB), skipping {city_name} - {category_name}"
+            )
+            return False, "Недостаточно памяти"
+
         # Проверяем флаг отмены
         if self._cancel_event.is_set():
             return False, "Отменено пользователем"
@@ -450,6 +461,14 @@ class ParallelCityParser:
                     with writer:
                         try:
                             parser.parse(writer)
+                        except MemoryError as memory_error:
+                            logger.error(f"Memory error while parsing {url}: {memory_error}")
+                            # Освобождаем кэш если есть
+                            if hasattr(parser, "_cache"):
+                                parser._cache.clear()
+                            # Принудительный GC
+                            gc.collect()
+                            raise
                         finally:
                             logger.debug("Завершена очистка ресурсов парсера")
             finally:

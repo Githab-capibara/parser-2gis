@@ -1,7 +1,7 @@
 # Архитектура проекта parser-2gis
 
-**Версия:** 2.1.7
-**Дата обновления:** 2026-03-29
+**Версия:** 2.1.8
+**Дата обновления:** 2026-03-30
 
 ## Общая схема проекта
 
@@ -29,11 +29,16 @@ parser_2gis/
 │   └── utils.py         # Утилиты Chrome
 ├── cli/                 # CLI интерфейс (НОВЫЙ в v2.1.0)
 │   ├── __init__.py      # Экспорт API
+│   ├── app.py           # CLI приложение
 │   ├── arguments.py     # Парсинг аргументов
 │   ├── formatter.py     # Форматировщик справки
+│   ├── launcher.py      # ApplicationLauncher класс (НОВЫЙ в v2.1.8)
 │   ├── main.py          # Точка входа CLI
+│   ├── progress.py      # Индикатор прогресса
 │   └── validator.py     # Валидация аргументов
 ├── data/                # Данные (города, категории, рубрики)
+│   ├── cities_loader.py # Загрузчик городов (НОВЫЙ в v2.1.8)
+│   └── ...
 ├── logger/              # Модуль логирования
 ├── parallel/            # Модуль параллельной обработки
 │   ├── __init__.py      # Экспорт API
@@ -99,6 +104,168 @@ parser_2gis/
 ├── version.py           # Версия пакета
 └── py.typed             # PEP 561 marker
 ```
+
+## Основные изменения в версии 2.1.8
+
+### Новые компоненты архитектуры
+
+#### ApplicationLauncher (cli/launcher.py)
+Добавлен класс `ApplicationLauncher` для разделения режимов работы приложения:
+
+- **Назначение:** Управление жизненным циклом приложения и разделение режимов (TUI, CLI, parallel)
+- **Методы:**
+  - `launch(args)` — Запуск приложения в выбранном режиме
+  - `_run_tui_mode(args, tui_type)` — Запуск TUI режима
+  - `_run_cli_mode(args)` — Запуск CLI режима
+  - `_run_parallel_mode(args)` — Запуск параллельного парсинга
+  - `_cleanup_resources()` — Централизованная очистка ресурсов
+  - `_cleanup_chrome_remote()` — Очистка соединений ChromeRemote
+  - `_cleanup_cache()` — Закрытие кэша базы данных
+  - `_cleanup_gc()` — Принудительный сборщик мусора
+- **Преимущества:**
+  - Следование Single Responsibility Principle
+  - Устранение God Object антипаттерна
+  - Улучшенная тестируемость через разделение ответственности
+  - Снижение цикломатической сложности main()
+
+#### CitiesLoader (data/cities_loader.py)
+Выделен специализированный модуль для загрузки городов:
+
+- **Функция:** `load_cities_json(cities_path_str)` — Загрузка JSON файла городов
+- **Оптимизации:**
+  - mmap для больших файлов (>1MB)
+  - lru_cache для кэширования результатов (maxsize=16)
+  - Валидация структуры данных и лимитов
+  - Проверка размера файла (MAX_CITIES_FILE_SIZE)
+  - Проверка количества городов (MAX_CITIES_COUNT)
+
+#### ModelProvider Protocol (protocols.py)
+Добавлен Protocol для абстракции языковых моделей:
+
+- **Методы:**
+  - `generate(prompt, **kwargs)` — Генерация ответа на запрос
+  - `is_available()` — Проверка доступности провайдера
+- **Назначение:** Dependency injection для AI-функций
+- **Преимущества:**
+  - Возможность переключения между Ollama, OpenAI и другими провайдерами
+  - Упрощение тестирования через mock-реализации
+  - Следование Dependency Inversion Principle
+
+### Улучшения существующих компонентов
+
+#### Обновление utils/temp_file_manager.py
+Добавлено атомарное создание временных файлов:
+
+- **Функция:** `create_temp_file(directory, prefix)` — Атомарное создание через tempfile.mkstemp
+- **Преимущества:**
+  - Предотвращение race condition при параллельном создании
+  - Гарантированная уникальность имён файлов
+  - Правильные права доступа (0o600/0o644)
+
+#### Обновление chrome/constants.py
+Добавлена константа `DEFAULT_NETWORK_TIMEOUT`:
+
+- **Значение:** 30 секунд по умолчанию
+- **Назначение:** Таймаут для всех HTTP запросов
+- **Преимущества:**
+  - Предотвращение зависаний при сетевых проблемах
+  - Централизованное управление таймаутами
+  - Настраиваемость через параметры
+
+#### Обновление chrome/rate_limiter.py
+Добавлены таймауты для HTTP запросов:
+
+- **Функция:** `_safe_external_request(method, url, timeout, **kwargs)`
+- **Изменения:**
+  - Параметр timeout по умолчанию = DEFAULT_NETWORK_TIMEOUT
+  - Обработка requests.exceptions.RequestException
+  - Улучшенная обработка ошибок
+
+#### Обновление parallel/parallel_parser.py
+Добавлена обработка MemoryError:
+
+- **Метод:** `parse_single_url()` — Обработка MemoryError с очисткой кэша
+- **Механизм:**
+  - Очистка кэша при MemoryError
+  - Вызов gc.collect() для принудительной сборки мусора
+  - Возврат кортежа (False, message) вместо выбрасывания исключения
+- **Преимущества:**
+  -Graceful degradation при нехватке памяти
+  - Автоматическая очистка ресурсов
+  - Предотвращение падения всего парсера
+
+#### Обновление parser/factory.py
+Удалены неиспользованные global объявления:
+
+- **Проблема:** Объявления global без использования
+- **Решение:** Удаление лишних global объявлений
+- **Преимущества:**
+  - Улучшенная читаемость кода
+  - Предотвращение потенциальных ошибок
+  - Следование best practices
+
+#### Обновление cli/main.py
+Рефакторинг функции main():
+
+- **Изменения:**
+  - Делегирование логики в ApplicationLauncher
+  - Снижение цикломатической сложности
+  - Устранение бизнес-логики из main()
+- **Преимущества:**
+  - Следование Single Responsibility Principle
+  - Улучшенная тестируемость
+  - Более чистая архитектура
+
+#### Обновление chrome/browser.py
+Исправлена утечка процессов Chrome:
+
+- **Метод:** `close()` — Корректное завершение процесса
+- **Изменения:**
+  - Гарантированное завершение процесса браузера
+  - Очистка профиля
+  - Идемпотентность close() (безопасный повторный вызов)
+- **Преимущества:**
+  - Предотвращение утечек процессов
+  - Освобождение системных ресурсов
+  - Корректная работа контекстного менеджера
+
+### Обновление тестов
+
+#### test_critical_fixes.py (25 новых тестов)
+Добавлен модуль для проверки критических исправлений:
+
+- **SQL Injection protection** — Тесты параметризованных SQL запросов в cache/manager.py
+- **Unused globals fix** — Тесты отсутствия неиспользованных global в parser/factory.py
+- **ApplicationLauncher** — Тесты разделения ответственности
+- **SRP в cli/main.py** — Тесты Single Responsibility Principle
+- **Chrome process cleanup** — Тесты корректного завершения процессов
+- **MemoryError handling** — Тесты обработки MemoryError в parallel_parser
+- **ModelProvider protocol** — Тесты использования Protocol в TUI
+- **Network timeouts** — Тесты наличия timeout в HTTP запросах
+- **Atomic temp file creation** — Тесты атомарного создания файлов
+- **Integration tests** — Тесты совместимости всех исправлений
+
+### Итоговые изменения v2.1.8
+
+#### Новые файлы
+- `parser_2gis/cli/launcher.py` — ApplicationLauncher класс
+- `parser_2gis/data/cities_loader.py` — Загрузчик городов
+- `parser_2gis/tests/test_critical_fixes.py` — 25 тестов критических исправлений
+
+#### Обновленные файлы
+- `parser_2gis/utils/temp_file_manager.py` — Атомарное создание файлов
+- `parser_2gis/protocols.py` — ModelProvider protocol
+- `parser_2gis/chrome/constants.py` — DEFAULT_NETWORK_TIMEOUT
+- `parser_2gis/chrome/rate_limiter.py` — Таймауты для HTTP запросов
+- `parser_2gis/parallel/parallel_parser.py` — Обработка MemoryError
+- `parser_2gis/parser/factory.py` — Удаление unused globals
+- `parser_2gis/cli/main.py` — Рефакторинг main()
+- `parser_2gis/chrome/browser.py` — Исправление утечки процессов
+
+#### Статистика тестов
+- **Всего тестов:** 1089 + 25 = 1114
+- **Тестовых файлов:** 75 + 1 = 76
+- **Покрытие:** 85%+
 
 ## Основные изменения в версии 2.1.7
 
@@ -626,6 +793,33 @@ Exception
 3. Переключаться между ThreadPoolExecutor, ProcessPoolExecutor, asyncio
 
 ## Миграции
+
+### Версия 2.1.8 (текущая)
+- **Новые модули:**
+  - `cli/launcher.py` — ApplicationLauncher класс для разделения режимов работы
+  - `data/cities_loader.py` — Загрузчик городов с mmap оптимизацией
+  - `tests/test_critical_fixes.py` — 25 тестов критических исправлений
+- **Новые Protocol (protocols.py):**
+  - `ModelProvider` — абстракция провайдера языковой модели (generate, is_available)
+- **Обновленные модули:**
+  - `utils/temp_file_manager.py` — добавлена функция create_temp_file() для атомарного создания
+  - `chrome/constants.py` — добавлена константа DEFAULT_NETWORK_TIMEOUT (30 сек)
+  - `chrome/rate_limiter.py` — добавлены таймауты для HTTP запросов
+  - `parallel/parallel_parser.py` — добавлена обработка MemoryError с очисткой кэша
+  - `parser/factory.py` — удалены неиспользованные global объявления
+  - `cli/main.py` — рефакторинг с делегированием в ApplicationLauncher
+  - `chrome/browser.py` — исправлена утечка процессов (корректный close())
+- **Улучшения:**
+  - Разделение ответственности между TUI, CLI и parallel режимами
+  - Снижение цикломатической сложности main()
+  - Graceful degradation при нехватке памяти
+  - Предотвращение race condition при создании временных файлов
+  - Централизованное управление сетевыми таймаутами
+  - Dependency injection для AI-функций через ModelProvider Protocol
+- **Статистика:**
+  - Всего тестов: 1114 (1089 + 25)
+  - Тестовых файлов: 76 (75 + 1)
+  - Покрытие: 85%+
 
 ### Версия 2.1.7 (текущая)
 - **Новые модули:**

@@ -150,9 +150,13 @@ class TempFileManager:
         with self._lock:
             self._registry.clear()
 
-        self._logger.info(
-            f"Очистка временных файлов завершена: успешно={success_count}, ошибок={error_count}"
-        )
+        try:
+            self._logger.info(
+                f"Очистка временных файлов завершена: успешно={success_count}, ошибок={error_count}"
+            )
+        except (ValueError, OSError):
+            # Логгер закрыт, игнорируем
+            pass
 
         return success_count, error_count
 
@@ -437,7 +441,9 @@ class TempFileTimer:
         return deleted_count
 
     @staticmethod
-    def _cleanup_timer(timer: Optional[threading.Timer], lock: threading.RLock) -> None:
+    def _cleanup_timer(
+        timer: Optional[threading.Timer], lock: Optional[threading.RLock] = None
+    ) -> None:
         """
         Статический метод для гарантированной очистки таймера.
 
@@ -445,18 +451,14 @@ class TempFileTimer:
 
         Args:
             timer: Таймер для отмены.
-            lock: Блокировка для потокобезопасной очистки.
+            lock: Блокировка (не используется, оставлена для совместимости).
         """
         if timer is not None:
             try:
                 timer.cancel()
-            except (RuntimeError, TypeError, ValueError) as e:
-                logger.debug("Ошибка отмены таймера: %s", e)
-        if lock is not None:
-            try:
-                lock.release()
-            except (RuntimeError, TypeError) as e:
-                logger.debug("Ошибка освобождения блокировки: %s", e)
+            except (RuntimeError, TypeError, ValueError):
+                pass
+        # Блокировка не освобождается здесь - она управляется в _cleanup_thread
 
     def start(self) -> None:
         """Запускает таймер периодической очистки."""
@@ -544,6 +546,36 @@ class TempFileTimer:
 
 
 # =============================================================================
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# =============================================================================
+
+
+def create_temp_file(directory: str, prefix: str = "parser_") -> str:
+    """Атомарное создание временного файла.
+
+    Использует tempfile.mkstemp для атомарного создания временного файла,
+    что предотвращает race condition при параллельном создании файлов.
+
+    Args:
+        directory: Директория для создания файла.
+        prefix: Префикс имени файла.
+
+    Returns:
+        Путь к созданному временному файлу.
+
+    Example:
+        >>> temp_path = create_temp_file("/tmp", prefix="myapp_")
+        >>> print(temp_path)
+        /tmp/myapp_abc123.tmp
+    """
+    import os
+
+    fd, path = tempfile.mkstemp(prefix=prefix, suffix=".tmp", dir=directory)
+    os.close(fd)  # Закрываем дескриптор, файл остается
+    return path
+
+
+# =============================================================================
 # ЭКСПОРТ
 # =============================================================================
 
@@ -561,4 +593,6 @@ __all__ = [
     "get_temp_file_count",
     # TempFileTimer
     "TempFileTimer",
+    # Helper functions
+    "create_temp_file",
 ]

@@ -130,7 +130,6 @@ def clear_parser_registry() -> None:
 
     Полезно для тестирования или перерегистрации парсеров.
     """
-    global _PARSER_PATTERNS, PARSER_REGISTRY
     PARSER_REGISTRY.clear()
     _PARSER_PATTERNS.clear()
 
