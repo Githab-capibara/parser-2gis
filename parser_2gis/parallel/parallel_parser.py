@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import atexit
 import csv
 import fcntl
@@ -1105,8 +1106,11 @@ class ParallelCityParser:
                         "error",
                     )
 
-                except KeyboardInterrupt:
-                    self.log("⚠️ Парсинг прерван пользователем (KeyboardInterrupt)", "warning")
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    self.log(
+                        "⚠️ Парсинг прерван пользователем (KeyboardInterrupt/CancelledError)",
+                        "warning",
+                    )
                     self._cancel_event.set()
                     for f in futures:
                         f.cancel()
@@ -1118,8 +1122,11 @@ class ParallelCityParser:
                         f"❌ Исключение при парсинге {city_name} - {category_name}: {e}", "error"
                     )
 
-        except KeyboardInterrupt:
-            self.log("⚠️ Парсинг прерван пользователем (KeyboardInterrupt в цикле)", "warning")
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            self.log(
+                "⚠️ Парсинг прерван пользователем (KeyboardInterrupt/CancelledError в цикле)",
+                "warning",
+            )
             self._cancel_event.set()
             if executor is not None:
                 for f in futures:

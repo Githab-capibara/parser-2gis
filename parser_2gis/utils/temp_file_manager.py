@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
 import threading
 import time
@@ -614,8 +615,6 @@ def create_temp_file(directory: str, prefix: str = "parser_") -> str:
         >>> print(temp_path)
         /tmp/myapp_abc123.tmp
     """
-    import os
-
     fd, path = tempfile.mkstemp(prefix=prefix, suffix=".tmp", dir=directory)
     os.close(fd)  # Закрываем дескриптор, файл остается
     return path

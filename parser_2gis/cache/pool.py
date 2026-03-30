@@ -251,8 +251,8 @@ class ConnectionPool:
                     )
                 try:
                     self._local.connection.close()
-                except (sqlite3.Error, OSError):
-                    pass
+                except (sqlite3.Error, OSError) as close_error:
+                    app_logger.debug("Ошибка при закрытии соединения: %s", close_error)
                 if self._local.connection in self._all_conns:
                     self._all_conns.remove(self._local.connection)
                 del self._connection_age[conn_id]
@@ -362,17 +362,12 @@ class ConnectionPool:
             check_same_thread=False,  # Потокобезопасность
         )
 
-        # Включаем WAL режим для лучшей конкурентности
-        conn.execute("PRAGMA journal_mode=WAL")
-
-        # Увеличиваем размер кэша страниц (по умолчанию 2000 страниц)
-        conn.execute("PRAGMA cache_size=-64000")  # 64MB кэш
-
-        # Оптимизируем синхронизацию (риск потери данных при сбое питания)
-        conn.execute("PRAGMA synchronous=NORMAL")
-
-        # Включаем busy timeout для обработки конфликтов
-        conn.execute("PRAGMA busy_timeout=30000")
+        conn.executescript("""
+            PRAGMA journal_mode=WAL;
+            PRAGMA cache_size=-64000;
+            PRAGMA synchronous=NORMAL;
+            PRAGMA busy_timeout=30000;
+        """)
 
         return conn
 

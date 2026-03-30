@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Optional
 
@@ -49,8 +50,6 @@ def validate_env_int(
         >>> validate_env_int("PARSER_MAX_WORKERS", default=10, min_value=1, max_value=20)
         10
     """
-    import logging
-
     logger = logging.getLogger("parser_2gis.constants")
 
     value_str = os.getenv(env_name)

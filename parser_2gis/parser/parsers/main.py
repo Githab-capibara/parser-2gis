@@ -214,8 +214,6 @@ class MainParser:
         Returns:
             True если скрипт безопасен, False иначе.
         """
-        import re
-
         # Запрещённые паттерны в JavaScript
         dangerous_patterns = [
             r"document\.cookie",
