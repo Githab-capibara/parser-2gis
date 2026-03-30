@@ -220,6 +220,30 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     p_parser.add_argument(
         "--parallel.max-workers", type=int, default=10, help="Потоков для параллельного парсинга"
     )
+    p_parser.add_argument(
+        "--parallel.initial-delay-min",
+        type=float,
+        default=0.1,
+        help="Минимальная задержка перед получением семафора (сек)",
+    )
+    p_parser.add_argument(
+        "--parallel.initial-delay-max",
+        type=float,
+        default=1.0,
+        help="Максимальная задержка перед получением семафора (сек)",
+    )
+    p_parser.add_argument(
+        "--parallel.launch-delay-min",
+        type=float,
+        default=0.1,
+        help="Минимальная задержка перед запуском Chrome (сек)",
+    )
+    p_parser.add_argument(
+        "--parallel.launch-delay-max",
+        type=float,
+        default=0.5,
+        help="Максимальная задержка перед запуском Chrome (сек)",
+    )
 
     # Группа: Прочие аргументы
     other_parser = arg_parser.add_argument_group("Прочие аргументы")

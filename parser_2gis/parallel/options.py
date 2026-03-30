@@ -44,6 +44,10 @@ class ParallelOptions(BaseModel):
     merge_lock_timeout: PositiveInt = 60
     max_lock_file_age: PositiveInt = 60
     max_workers: PositiveInt = 10
+    initial_delay_min: float = 0.1
+    initial_delay_max: float = 1.0
+    launch_delay_min: float = 0.1
+    launch_delay_max: float = 0.5
 
 
 @dataclass

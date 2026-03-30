@@ -381,7 +381,9 @@ class ParallelCityParser:
 
             # Добавляем случайную задержку ПЕРЕД получением семафора
             # Для 40+ потоков нужна большая задержка для равномерного распределения
-            initial_delay = random.uniform(5.0, 15.0)
+            initial_delay = random.uniform(
+                self.config.parallel.initial_delay_min, self.config.parallel.initial_delay_max
+            )
             time.sleep(initial_delay)
 
             # Семафор для контроля одновременного запуска браузеров
@@ -393,7 +395,9 @@ class ParallelCityParser:
             )
             try:
                 # Дополнительная задержка для распределения нагрузки при запуске
-                launch_delay = random.uniform(2.0, 5.0)
+                launch_delay = random.uniform(
+                    self.config.parallel.launch_delay_min, self.config.parallel.launch_delay_max
+                )
                 self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
                 time.sleep(launch_delay)
 

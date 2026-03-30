@@ -215,6 +215,10 @@ class CSVWriter(FileWriter):
 
         # Проверка структуры документа
         try:
+            if not isinstance(catalog_doc, dict):
+                logger.error("Некорректная структура документа: не dict")
+                return {}
+
             result = catalog_doc.get("result")
             if not result or "items" not in result:
                 logger.error("Некорректная структура документа: отсутствует result.items")
@@ -226,7 +230,7 @@ class CSVWriter(FileWriter):
                 return {}
 
             item = items[0]
-        except (KeyError, TypeError, IndexError) as e:
+        except (KeyError, TypeError, IndexError, AttributeError) as e:
             logger.error("Ошибка при извлечении элемента из документа: %s", e)
             return {}
 
@@ -323,7 +327,7 @@ class CSVWriter(FileWriter):
 
                     # Отсутствующие значения контакта - пропускаем
                     if not contact_value:
-                        return
+                        continue
 
                     data_name = f"{contact_type}_{i}"
                     if data_name in data:
