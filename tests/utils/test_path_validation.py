@@ -31,35 +31,38 @@ class TestValidatePathUtility:
         - Корректные пути принимаются
         - Исключения не выбрасываются
         """
-        # Тест с корректным путем
-        validate_path_safety("/tmp/test.txt", "test_path")
+        from pathlib import Path
 
-        # Проверяем что исключение не было выброшено
-        assert True
+        # Тест с корректным путем
+        result = validate_path_safety("/tmp/test.txt", "test_path")
+
+        # Проверяем что возвращено значение (функция не выбросила исключение)
+        # Функция может возвращать None или Path
+        assert result is None or isinstance(result, Path)
 
     def test_validate_path_safety_empty_path(self):
         """Тест валидации пустого пути.
 
         Проверяет:
         - Пустой путь обрабатывается корректно
+        - Выбрасывается ValueError
         """
-        # Тест с пустым путем
-        validate_path_safety("", "test_path")
 
-        # Проверяем что исключение не было выброшено
-        assert True
+        # Тест с пустым путем - должно выбросить ValueError
+        with pytest.raises(ValueError, match="не может быть пустым"):
+            validate_path_safety("", "test_path")
 
     def test_validate_path_safety_none_path(self):
         """Тест валидации None пути.
 
         Проверяет:
         - None путь обрабатывается корректно
+        - Выбрасывается ValueError
         """
-        # Тест с None путем
-        validate_path_safety(None, "test_path")
 
-        # Проверяем что исключение не было выброшено
-        assert True
+        # Тест с None путем - должно выбросить ValueError
+        with pytest.raises(ValueError, match="не может быть пустым"):
+            validate_path_safety(None, "test_path")
 
     def test_validate_path_safety_too_long_path(self):
         """Тест валидации слишком длинного пути.
@@ -108,12 +111,17 @@ class TestValidatePathUtility:
         - Символические ссылки разрешаются
         - Путь нормализуется
         """
-        # Тест с нормальным путем (симуляция разрешения symlink)
-        with patch("pathlib.Path.resolve", return_value=Path("/tmp/test.txt")):
-            validate_path_safety("/tmp/test.txt", "test_path")
+        from pathlib import Path
 
-            # Проверяем что исключение не было выброшено
-            assert True
+        # Тест с нормальным путем (симуляция разрешения symlink)
+        with patch("pathlib.Path.resolve", return_value=Path("/tmp/test.txt")) as mock_resolve:
+            result = validate_path_safety("/tmp/test.txt", "test_path")
+
+            # Проверяем что mock был вызван
+            assert mock_resolve.called
+
+            # Проверяем что возвращено значение
+            assert result is None or isinstance(result, Path)
 
     def test_validate_path_safety_allowed_dirs(self):
         """Тест проверки разрешенных директорий.
@@ -122,16 +130,16 @@ class TestValidatePathUtility:
         - Пути в разрешенных директориях принимаются
         - Пути вне разрешенных директорий отклоняются
         """
-        # Тест с путем в разрешенной директории
         import tempfile
+        from pathlib import Path
 
         temp_dir = tempfile.gettempdir()
         valid_path = os.path.join(temp_dir, "test.txt")
 
-        validate_path_safety(valid_path, "test_path")
+        result = validate_path_safety(valid_path, "test_path")
 
-        # Проверяем что исключение не было выброшено
-        assert True
+        # Проверяем что возвращено значение (путь в разрешенной директории)
+        assert result is None or isinstance(result, Path)
 
     def test_validate_path_safety_disallowed_dirs(self):
         """Тест проверки запрещенных директорий.

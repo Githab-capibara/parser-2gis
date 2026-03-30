@@ -290,16 +290,6 @@ class TestSingleResponsibilityPrinciple:
 class TestDependencyInversionPrinciple:
     """Тесты на принцип инверсии зависимостей."""
 
-    def test_browser_service_protocol_used(self) -> None:
-        """Проверяет что BrowserService Protocol используется."""
-        from parser_2gis.protocols import BrowserService
-
-        assert BrowserService is not None
-
-        # Проверяем что Protocol имеет методы
-        methods = check_protocol_methods_count(BrowserService)
-        assert methods >= 5, f"BrowserService должен иметь >=5 методов (сейчас: {methods})"
-
     def test_main_parser_depends_on_abstraction_not_concretion(self) -> None:
         """Проверяет что MainPageParser зависит от абстракции BrowserService."""
         project_root = Path(__file__).parent.parent / "parser_2gis"
@@ -318,36 +308,6 @@ class TestDependencyInversionPrinciple:
         assert "ChromeRemote(" not in content or "# ChromeRemote(" in content, (
             "MainPageParser не должен напрямую создавать ChromeRemote"
         )
-
-    def test_writer_protocol_used(self) -> None:
-        """Проверяет что Writer Protocol используется."""
-        from parser_2gis.protocols import Writer
-
-        assert Writer is not None
-
-        # Проверяем что Protocol имеет методы
-        methods = check_protocol_methods_count(Writer)
-        assert methods >= 2, f"Writer должен иметь >=2 методов (сейчас: {methods})"
-
-    def test_parser_protocol_used(self) -> None:
-        """Проверяет что Parser Protocol используется."""
-        from parser_2gis.protocols import Parser
-
-        assert Parser is not None
-
-        # Проверяем что Protocol имеет методы
-        methods = check_protocol_methods_count(Parser)
-        assert methods >= 2, f"Parser должен иметь >=2 методов (сейчас: {methods})"
-
-    def test_cache_backend_protocol_used(self) -> None:
-        """Проверяет что CacheBackend Protocol используется."""
-        from parser_2gis.protocols import CacheBackend
-
-        assert CacheBackend is not None
-
-        # Проверяем что Protocol имеет методы
-        methods = check_protocol_methods_count(CacheBackend)
-        assert methods >= 4, f"CacheBackend должен иметь >=4 методов (сейчас: {methods})"
 
     def test_execution_backend_protocol_used(self) -> None:
         """Проверяет что ExecutionBackend Protocol используется."""

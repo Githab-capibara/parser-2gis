@@ -274,15 +274,19 @@ class TestProtocolNoneHandling:
 
         logger = CustomLogger()
 
-        # Тест с None сообщением
-        logger.debug(None)
-        logger.info(None)
-        logger.warning(None)
-        logger.error(None)
-        logger.critical(None)
+        # Тест с None сообщением - проверяем что методы возвращают None
+        debug_result = logger.debug(None)
+        info_result = logger.info(None)
+        warning_result = logger.warning(None)
+        error_result = logger.error(None)
+        critical_result = logger.critical(None)
 
-        # Проверяем что методы были вызваны без ошибок
-        assert True
+        # Проверяем что все методы возвращают None (как указано в type hints)
+        assert debug_result is None
+        assert info_result is None
+        assert warning_result is None
+        assert error_result is None
+        assert critical_result is None
 
 
 class TestBrowserNavigationProtocol:

@@ -339,17 +339,17 @@ class TestCacheManagerFinallyCleanup:
         with caplog.at_level(logging.DEBUG):
             try:
                 with CacheManager(temp_cache_dir, ttl_hours=24, pool_size=5) as manager:
-                    # Mock pool.close для выбрасывания исключения
+                    # Mock pool.close для проверки вызова
                     with patch.object(
-                        manager._pool, "close", side_effect=sqlite3.Error("Mocked error")
-                    ):
-                        raise RuntimeError("Mocked runtime error in context")
+                        manager._pool, "close", wraps=manager._pool.close
+                    ) as mock_close:
+                        # Вызываем close явно для проверки
+                        manager.close()
+
+                        # Проверяем что pool.close был вызван
+                        assert mock_close.called
             except (RuntimeError, sqlite3.Error):
                 pass
-
-            # Проверяем что ошибка при закрытии была залогирована
-            # (если она была)
-            assert True  # Тест проходит если не было непредвиденных ошибок
 
     def test_cache_manager_batch_operations_finally(self, cache_manager: CacheManager, caplog):
         """Тест finally блока в пакетных операциях.

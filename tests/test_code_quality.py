@@ -336,32 +336,6 @@ class TestCodeQuality:
             f"Примеры: {functions_without_docstrings[:5]}"
         )
 
-    def test_import_ordering(self, parsed_files: List[Tuple[Path, ast.AST]]):
-        """Тест порядка импортов.
-
-        Проверяет:
-        - Стандартные импорты в начале
-        - Сторонние импорты после
-        - Локальные импорты в конце
-        """
-        # Этот тест требует более сложного анализа
-        # Пока просто проверяем что импорты есть
-        files_without_imports = []
-
-        for file_path, tree in parsed_files:
-            has_import = False
-
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.Import, ast.ImportFrom)):
-                    has_import = True
-                    break
-
-            if not has_import and file_path.name not in ("__init__.py",):
-                files_without_imports.append(file_path.name)
-
-        # Разрешаем файлы без импортов
-        assert True  # Тест информационный
-
     def test_exception_handling_best_practices(self, parsed_files: List[Tuple[Path, ast.AST]]):
         """Тест лучших практик обработки исключений.
 

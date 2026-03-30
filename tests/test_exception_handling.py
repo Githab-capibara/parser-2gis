@@ -49,13 +49,10 @@ class TestExceptionHandlingInCacheManager:
         with tempfile.TemporaryDirectory() as tmp_dir:
             cache = CacheManager(cache_dir=Path(tmp_dir))
 
-            # Метод должен обработать некорректные данные без критичной ошибки
-            try:
+            # Метод должен выбросить TypeError при передаче None значения
+            # Проверяем что исключение выбрасывается корректно
+            with pytest.raises(TypeError, match="не могут быть None"):
                 cache.set("http://test.com", None)
-            except Exception:
-                pass
-
-            assert True
 
     def test_cache_close_works_without_error(self):
         """
@@ -81,33 +78,41 @@ class TestExceptionHandlingInCacheManager:
 class TestExceptionHandlingInFileLogger:
     """Тесты для проверки обработки исключений в FileLogger."""
 
-    def test_file_logger_handles_invalid_path(self, tmp_path):
+    def test_file_logger_handles_invalid_path(self, tmp_path, caplog):
         """
         Тест 2.1: Проверка обработки некорректного пути в FileLogger.
 
         Проверяет что FileLogger обрабатывает некорректный путь.
         """
+        import logging
+
         from parser_2gis.chrome.file_handler import FileLogger
 
         # Создаём FileLogger с некорректным путём
         invalid_path = tmp_path / "nonexistent_dir" / "test.log"
 
         # FileLogger должен создать директорию или обработать ошибку
-        try:
-            logger = FileLogger(str(invalid_path))
-            logger.write("Test message", "info")
-        except (FileNotFoundError, OSError, AttributeError):
-            pass
+        # Проверяем что логирование происходит при ошибке
+        caplog.set_level(logging.DEBUG)
 
-        # Метод должен обработать ошибку
-        assert True
+        logger = FileLogger(invalid_path)  # Передаём Path вместо str
 
-    def test_file_logger_handles_permission_error(self, tmp_path):
+        # FileLogger не имеет метода write, используем setup_logger
+        test_logger = logging.getLogger("test_logger")
+        logger.setup_logger(test_logger)
+        test_logger.info("Test message")
+
+        # Проверяем что файл был создан (FileLogger создаёт директорию)
+        assert invalid_path.exists()
+
+    def test_file_logger_handles_permission_error(self, tmp_path, caplog):
         """
         Тест 2.2: Проверка обработки ошибки разрешений в FileLogger.
 
         Проверяет что ошибка разрешений обрабатывается корректно.
         """
+        import logging
+
         from parser_2gis.chrome.file_handler import FileLogger
 
         # Создаём файл и делаем его недоступным для записи
@@ -115,27 +120,35 @@ class TestExceptionHandlingInFileLogger:
         log_file.write_text("")
         log_file.chmod(0o444)  # Только для чтения
 
+        caplog.set_level(logging.ERROR)
+
         try:
-            logger = FileLogger(str(log_file))
+            logger = FileLogger(log_file)  # Передаём Path вместо str
             logger.write("Test message", "info")
         except (PermissionError, OSError, AttributeError):
-            pass
+            # Проверяем что ошибка была выброшена
+            assert True
+            return  # Тест прошёл - исключение было выброшено
 
-        # Метод должен обработать ошибку
-        assert True
+        # Если исключение не было выброшено, проверяем что файл был создан
+        assert log_file.exists()
 
 
 class TestExceptionHandlingInParallelParser:
     """Тесты для проверки обработки исключений в ParallelCityParser."""
 
-    def test_parallel_parser_merge_handles_missing_files(self, tmp_path):
+    def test_parallel_parser_merge_handles_missing_files(self, tmp_path, caplog):
         """
         Тест 3.1: Проверка обработки отсутствующих файлов при слиянии.
 
         Проверяет что ошибка при слиянии отсутствующих файлов обрабатывается.
         """
+        import logging
+
         from parser_2gis.config import Configuration
         from parser_2gis.parallel.parallel_parser import ParallelCityParser
+
+        caplog.set_level(logging.WARNING)
 
         config = Configuration()
         cities = [{"name": "Test", "code": "test", "domain": "test"}]
@@ -147,13 +160,16 @@ class TestExceptionHandlingInParallelParser:
         csv_files = [tmp_path / "nonexistent1.csv", tmp_path / "nonexistent2.csv"]
         output_file = tmp_path / "output.csv"
 
-        # Метод должен обработать ошибку
-        try:
-            parser.merge_csv_files(str(output_file), csv_files)
-        except Exception:
-            pass
+        # Метод должен обработать ошибку и залогировать её
+        parser.merge_csv_files(str(output_file), csv_files)
 
-        assert True
+        # Проверяем что предупреждение было залогировано
+        assert any(
+            "не найдено" in record.message.lower()
+            or "csv файлов" in record.message.lower()
+            or "объединения" in record.message.lower()
+            for record in caplog.records
+        )
 
     def test_parallel_parser_handles_exceptions(self, caplog, tmp_path):
         """
@@ -186,15 +202,21 @@ class TestExceptionHandlingInDataValidator:
 
         Проверяет что ошибка валидации числа логируется.
         """
+        import logging
+
         from parser_2gis.validation.data_validator import validate_positive_int
 
         caplog.set_level(logging.ERROR)
 
         # Пытаемся валидировать некорректное значение
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError) as exc_info:
             validate_positive_int(-1, 1, 100, "--test.arg")
 
-        # Проверяем что ошибка была вызвана
+        # Проверяем что ошибка была вызвана и содержит контекст
+        assert "--test.arg" in str(exc_info.value)
+        assert "1" in str(exc_info.value)
+
+        # Проверяем что ValueError был выброшен (это и есть обработка ошибки)
         assert True
 
     def test_validate_url_logs_warning(self, caplog):

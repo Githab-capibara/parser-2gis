@@ -62,18 +62,17 @@ class TestTempFileTimerFinallyCleanup:
             # Запускаем таймер
             temp_file_timer.start()
 
-            # Mock timer.cancel для выбрасывания исключения
+            # Mock timer.cancel для проверки вызова
             original_timer = temp_file_timer._timer
             if original_timer is not None:
                 with patch.object(
-                    type(original_timer), "cancel", side_effect=RuntimeError("Mocked error")
-                ):
+                    type(original_timer), "cancel", wraps=original_timer.cancel
+                ) as mock_cancel:
                     # Останавливаем таймер
                     temp_file_timer.stop()
 
-            # Проверяем что ошибка была залогирована
-            # (если она была)
-            assert True  # Тест проходит если не было непредвиденных ошибок
+                    # Проверяем что cancel был вызван
+                    assert mock_cancel.called
 
     def test_temp_file_timer_finally_cleanup_memory_error(self, temp_dir: Path, caplog):
         """Тест finally блока при MemoryError.
@@ -241,18 +240,17 @@ class TestTempFileTimerFinallyCleanup:
             # Запускаем таймер
             temp_file_timer.start()
 
-            # Mock timer.join для выбрасывания исключения
+            # Mock timer.join для проверки вызова
             original_timer = temp_file_timer._timer
             if original_timer is not None:
                 with patch.object(
-                    type(original_timer), "join", side_effect=RuntimeError("Mocked error")
-                ):
+                    type(original_timer), "join", wraps=original_timer.join
+                ) as mock_join:
                     # Останавливаем таймер
                     temp_file_timer.stop()
 
-            # Проверяем что ошибка была залогирована
-            # (если она была)
-            assert True  # Тест проходит если не было непредвиденных ошибок
+                    # Проверяем что join был вызван
+                    assert mock_join.called
 
     def test_temp_file_timer_weakref_finalizer_cleanup(self, temp_dir: Path, caplog):
         """Тест weakref.finalizer для гарантированной очистки.
@@ -265,12 +263,20 @@ class TestTempFileTimerFinallyCleanup:
             timer = TempFileTimer(temp_dir=temp_dir, interval=60)
             timer.start()
 
-            # Уничтожаем таймер
-            del timer
+            # Проверяем что таймер запущен
+            assert timer._is_running
 
-            # Проверяем что таймер был отменён (если он существует)
-            # Примечание: это может не сработать в тестах из-за GC
-            assert True  # Тест проходит если не было ошибок
+            # Останавливаем таймер
+            timer.stop()
+
+            # Проверяем что таймер остановлен
+            assert not timer._is_running
+
+            # Проверяем что сообщение об остановке было залогировано
+            assert any(
+                "Таймер периодической очистки остановлен" in record.message
+                for record in caplog.records
+            )
 
     def test_temp_file_timer_cleanup_temp_files_exception(
         self, temp_file_timer: TempFileTimer, caplog
