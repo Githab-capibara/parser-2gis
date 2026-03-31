@@ -1,235 +1,89 @@
 """
-Модуль для обработки сигналов операционной системы.
+Модуль обработки сигналов для парсера.
 
-Предоставляет класс SignalHandler для безопасной обработки сигналов
-SIGINT (Ctrl+C) и SIGTERM с гарантированной очисткой ресурсов.
-- Устранено глобальное состояние (_interrupted и _is_cleaning_up)
-- Создан класс SignalHandler с инкапсулированным состоянием
-- Thread-safe реализация с использованием Lock
-
-Пример использования:
-    >>> from parser_2gis.utils.signal_handler import SignalHandler
-    >>> handler = SignalHandler(cleanup_callback=my_cleanup_function)
-    >>> handler.setup()  # Установить обработчики сигналов
-    >>> # ... работа приложения ...
-    >>> handler.cleanup()  # Очистка ресурсов
+Предоставляет класс SignalHandler для обработки сигналов:
+- Обработка SIGINT (Ctrl+C)
+- Обработка SIGTERM
+- Graceful shutdown
 """
 
 from __future__ import annotations
 
+import logging
 import signal
-import sys
 import threading
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
-from parser_2gis.logger import logger
+logger = logging.getLogger("parser_2gis.utils.signal_handler")
 
 
 class SignalHandler:
-    """
-    Обработчик сигналов для безопасной очистки ресурсов приложения.
+    """Обработчик сигналов для graceful shutdown.
 
-    Этот класс предоставляет централизованную обработку сигналов SIGINT (Ctrl+C)
-    и SIGTERM с гарантированной очисткой ресурсов. Использует флаг для
-    предотвращения рекурсивных вызовов обработчика.
-    - Инкапсулированное состояние вместо глобальных переменных
-    - Thread-safe реализация с использованием threading.Lock
-    - Поддержка callback функции для очистки ресурсов
+    Обрабатывает сигналы прерывания (SIGINT, SIGTERM) и обеспечивает
+    корректное завершение работы парсера.
 
     Attributes:
-        _interrupted: Флаг прерывания работы приложения.
-        _is_cleaning_up: Флаг текущей очистки для предотвращения рекурсии.
-        _cleanup_callback: Callback функция для очистки ресурсов.
-        _lock: Блокировка для потокобезопасности.
-        _original_handlers: Сохранённые оригинальные обработчики сигналов.
-
-    Пример использования:
-        >>> def my_cleanup():
-        ...     print("Очистка ресурсов...")
-        >>> handler = SignalHandler(cleanup_callback=my_cleanup)
-        >>> handler.setup()
-        >>> # Работа приложения
-        >>> if handler.is_interrupted():
-        ...     handler.cleanup()
+        cleanup_callback: Функция обратного вызова для очистки ресурсов.
+        cancel_event: Событие для сигнализации об отмене операции.
     """
 
-    def __init__(self, cleanup_callback: Optional[Callable[[], None]] = None) -> None:
-        """
-        Инициализация обработчика сигналов.
+    def __init__(
+        self,
+        cleanup_callback: Optional[Callable[[], None]] = None,
+        cancel_event: Optional[threading.Event] = None,
+    ) -> None:
+        """Инициализация обработчика сигналов.
 
         Args:
-            cleanup_callback: Функция обратного вызова для очистки ресурсов.
-                              Вызывается при получении сигнала прерывания.
+            cleanup_callback: Функция для очистки ресурсов при завершении.
+            cancel_event: Событие для сигнализации об отмене.
         """
-        self._interrupted = False
-        self._is_cleaning_up = False
-        self._cleanup_completed = False  # Флаг завершения очистки
-        self._is_handling_signal = False  # ИСПРАВЛЕНИЕ: Флаг для блокировки повторных сигналов
         self._cleanup_callback = cleanup_callback
-        self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
-        self._original_handlers: dict[int, Any] = {}
-        # Для совместимости с тестами
-        self._original_handler_sigint: Any = None
-        self._original_handler_sigterm: Any = None
+        self._cancel_event = cancel_event or threading.Event()
+        self._old_sigint_handler: Optional[Callable] = None
+        self._old_sigterm_handler: Optional[Callable] = None
+        self._registered = False
 
-    def setup(self) -> None:
-        """
-        Устанавливает обработчики сигналов SIGINT и SIGTERM.
+    def register(self) -> None:
+        """Регистрирует обработчики сигналов."""
+        if self._registered:
+            return
 
-        Примечание:
-            - SIGINT (Ctrl+C) - прерывание пользователем
-            - SIGTERM - сигнал завершения от системы
-            - Обработчики устанавливаются только для основного потока
-
-        Важно:
-            Вызывайте этот метод только в основном потоке приложения.
-        """
-        with self._lock:
-            # Сохраняем оригинальные обработчики
-            self._original_handlers[signal.SIGINT] = signal.getsignal(signal.SIGINT)
-            self._original_handlers[signal.SIGTERM] = signal.getsignal(signal.SIGTERM)
-            # Для совместимости с тестами
-            self._original_handler_sigint = self._original_handlers[signal.SIGINT]
-            self._original_handler_sigterm = self._original_handlers[signal.SIGTERM]
-
-            # Устанавливаем наши обработчики
-            signal.signal(signal.SIGINT, self._handle_signal)
-            signal.signal(signal.SIGTERM, self._handle_signal)
-
-            logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены")
-
-    def cleanup(self) -> None:
-        """
-        Выполняет очистку ресурсов и восстанавливает обработчики сигналов.
-
-        Метод вызывает callback функцию очистки (если указана) и
-        восстанавливает оригинальные обработчики сигналов.
-        """
-        with self._lock:
-            # Предотвращаем повторную очистку
-            if self._is_cleaning_up or self._cleanup_completed:
-                logger.warning("Очистка уже выполняется или завершена")
-                return
-
-            self._is_cleaning_up = True
-
-            try:
-                # Вызываем callback очистки
-                if self._cleanup_callback:
-                    try:
-                        self._cleanup_callback()
-                    except (OSError, IOError, RuntimeError, ValueError) as cleanup_error:
-                        logger.error("Ошибка при очистке ресурсов: %s", cleanup_error)
-
-                # Восстанавливаем оригинальные обработчики
-                for sig_num, handler in self._original_handlers.items():
-                    try:
-                        signal.signal(sig_num, handler)
-                    except (OSError, ValueError, RuntimeError) as restore_error:
-                        logger.error(
-                            "Ошибка при восстановлении обработчика сигнала %d: %s",
-                            sig_num,
-                            restore_error,
-                        )
-
-                logger.info("Очистка ресурсов завершена")
-
-            finally:
-                self._is_cleaning_up = False
-                self._cleanup_completed = True
-
-    def _handle_signal(self, signum: int, frame: Any) -> None:
-        """
-        Внутренний обработчик сигналов.
-        - ИСПРАВЛЕНИЕ: Используется threading.Lock для атомарной проверки и установки флагов
-        - Устранена гонка условий между проверкой _is_cleaning_up и установкой
-        - ИСПРАВЛЕНИЕ: Добавлен флаг _is_handling_signal для блокировки повторных сигналов
-
-        Args:
-            signum: Номер полученного сигнала.
-            frame: Текущий фрейм выполнения.
-
-        Примечание:
-            Метод использует флаг _is_cleaning_up для предотвращения
-            рекурсивных вызовов во время очистки ресурсов.
-            Блокировка обеспечивается через self._lock для атомарности операций.
-        """
-        # ИСПРАВЛЕНИЕ: Атомарная проверка и установка флагов под блокировкой
-        with self._lock:
-            # Проверяем флаги перед обработкой сигнала
-            if self._is_cleaning_up or self._is_handling_signal:
-                logger.warning(
-                    "Получен повторный сигнал %d во время обработки/очистки. Игнорируется.", signum
-                )
-                return
-
-            # Атомарно устанавливаем флаги - гонка условий устранена
-            self._interrupted = True
-            self._is_cleaning_up = True
-            self._is_handling_signal = True  # Блокируем повторные сигналы
-
-            logger.warning("Получен сигнал %d. Начинается безопасная очистка ресурсов...", signum)
-
-            # Игнорируем повторные сигналы во время cleanup
-            # Получаем оригинальные обработчики (но не используем - просто для безопасности)
-            signal.getsignal(signal.SIGINT)
-            signal.getsignal(signal.SIGTERM)
-
-        # Выносим обработку сигналов за пределы блокировки для избежания deadlock
-        # Сигналы могут быть доставлены в тот же поток
-        try:
-            signal.signal(signal.SIGINT, signal.SIG_IGN)
-            signal.signal(signal.SIGTERM, signal.SIG_IGN)
-
-            # Немедленная очистка ресурсов
+        def handler(signum: int, frame) -> None:
+            """Обработчик сигналов прерывания."""
+            logger.warning("Получен сигнал %d, инициализация завершения...", signum)
+            self._cancel_event.set()
             if self._cleanup_callback:
-                try:
-                    self._cleanup_callback()
-                except (OSError, IOError, RuntimeError, ValueError) as cleanup_error:
-                    logger.error("Ошибка при очистке ресурсов в signal handler: %s", cleanup_error)
+                self._cleanup_callback()
 
-            logger.info("Очистка ресурсов завершена. Выход из приложения...")
-            sys.exit(128 + signum)
+        self._old_sigint_handler = signal.signal(signal.SIGINT, handler)
+        self._old_sigterm_handler = signal.signal(signal.SIGTERM, handler)
+        self._registered = True
+        logger.debug("Обработчики сигналов зарегистрированы")
 
-        except (OSError, ValueError, RuntimeError) as restore_error:
-            logger.error("Ошибка при восстановлении обработчиков сигналов: %s", restore_error)
-        finally:
-            # Сбрасываем флаги только если очистка завершена
-            with self._lock:
-                self._is_cleaning_up = False
-                self._is_handling_signal = False  # Разблокируем обработку сигналов
+    def unregister(self) -> None:
+        """Восстанавливает оригинальные обработчики сигналов."""
+        if not self._registered:
+            return
 
-    def is_interrupted(self) -> bool:
-        """
-        Проверяет, был ли получен сигнал прерывания.
+        if self._old_sigint_handler is not None:
+            signal.signal(signal.SIGINT, self._old_sigint_handler)
+        if self._old_sigterm_handler is not None:
+            signal.signal(signal.SIGTERM, self._old_sigterm_handler)
+
+        self._registered = False
+        logger.debug("Обработчики сигналов восстановлены")
+
+    def is_cancelled(self) -> bool:
+        """Проверяет флаг отмены.
 
         Returns:
-            True если был получен сигнал прерывания, False иначе.
-
-        Пример:
-            >>> handler = SignalHandler()
-            >>> handler.setup()
-            >>> if handler.is_interrupted():
-            ...     print("Приложение было прервано")
+            True если операция отменена.
         """
-        with self._lock:
-            return self._interrupted
+        return self._cancel_event.is_set()
 
-    def reset(self) -> None:
-        """
-        Сбрасывает флаг прерывания.
-
-        Позволяет продолжить работу приложения после обработки сигнала.
-        """
-        with self._lock:
-            self._interrupted = False
-            logger.debug("Флаг прерывания сброшен")
-
-    def __enter__(self) -> "SignalHandler":
-        """Контекстный менеджер: устанавливает обработчики сигналов."""
-        self.setup()
-        return self
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Контекстный менеджер: выполняет очистку ресурсов."""
-        self.cleanup()
+    def cancel(self) -> None:
+        """Устанавливает флаг отмены."""
+        self._cancel_event.set()
+        logger.debug("Флаг отмены установлен")

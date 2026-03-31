@@ -15,7 +15,7 @@ from unittest.mock import Mock
 import pytest
 
 from parser_2gis.chrome.health_monitor import BrowserHealthMonitor
-from parser_2gis.parallel_optimizer import ParallelOptimizer, ParallelTask
+from parser_2gis.parallel.optimizer import ParallelOptimizer, ParallelTask
 from parser_2gis.parser.adaptive_limits import AdaptiveLimits
 from parser_2gis.parser.end_of_results import EndOfResultsDetector
 from parser_2gis.parser.options import ParserOptions

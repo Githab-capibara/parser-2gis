@@ -14,75 +14,218 @@ from __future__ import annotations
 
 import logging
 import os
+from dataclasses import dataclass, field
 from typing import Optional
 
 # =============================================================================
-# УТИЛИТЫ ДЛЯ ВАЛИДАЦИИ
+# DATACLASS ДЛЯ ВАЛИДАЦИИ ENV ПЕРЕМЕННЫХ
+# =============================================================================
+
+
+@dataclass
+class EnvConfig:
+    """Конфигурация ENV переменных с валидацией.
+
+    Централизованная валидация ENV переменных для устранения дублирования кода.
+    Использует валидаторы полей для проверки диапазонов значений.
+
+    Attributes:
+        max_workers: Максимальное количество рабочих потоков.
+        max_timeout: Максимальный таймаут в секундах.
+        default_timeout: Таймаут по умолчанию в секундах.
+        max_pool_size: Максимальный размер пула соединений.
+        min_pool_size: Минимальный размер пула соединений.
+        max_cache_size_mb: Максимальный размер кэша в MB.
+        max_temp_files: Максимальное количество временных файлов.
+        temp_file_cleanup_interval: Интервал очистки временных файлов в секундах.
+
+    Example:
+        >>> config = EnvConfig()
+        >>> print(config.max_workers)  # 50 (или значение из PARSER_MAX_WORKERS)
+    """
+
+    _logger: logging.Logger = field(
+        default_factory=lambda: logging.getLogger("parser_2gis.constants.env_config"),
+        repr=False,
+        init=False,
+    )
+
+    def _validate_env_int(
+        self,
+        env_name: str,
+        default: int,
+        min_value: Optional[int] = None,
+        max_value: Optional[int] = None,
+    ) -> int:
+        """Валидирует ENV переменную как целое число в допустимом диапазоне.
+
+        Args:
+            env_name: Имя ENV переменной.
+            default: Значение по умолчанию.
+            min_value: Минимальное допустимое значение.
+            max_value: Максимальное допустимое значение.
+
+        Returns:
+            Валидированное целое число.
+        """
+        value_str = os.getenv(env_name)
+
+        if value_str is None:
+            return default
+
+        try:
+            value = int(value_str)
+        except ValueError as e:
+            self._logger.error(
+                "ENV переменная %s=%s не является целым числом: %s", env_name, value_str, e
+            )
+            return default
+
+        if min_value is not None and value < min_value:
+            self._logger.warning(
+                "ENV переменная %s=%d меньше минимального значения %d. Используется %d",
+                env_name,
+                value,
+                min_value,
+                min_value,
+            )
+            return min_value
+
+        if max_value is not None and value > max_value:
+            self._logger.warning(
+                "ENV переменная %s=%d больше максимального значения %d. Используется %d",
+                env_name,
+                value,
+                max_value,
+                max_value,
+            )
+            return max_value
+
+        return value
+
+    # Параллельный парсинг
+    max_workers: int = field(init=False)
+    max_timeout: int = field(init=False)
+    default_timeout: int = field(init=False)
+    min_workers: int = field(init=False, default=1)
+    min_timeout: int = field(init=False, default=1)
+
+    # Connection Pool
+    max_pool_size: int = field(init=False)
+    min_pool_size: int = field(init=False)
+    connection_max_age: int = field(init=False)
+    max_connection_age: int = field(init=False)
+
+    # Кэширование
+    max_cache_size_mb: int = field(init=False)
+
+    # Временные файлы
+    max_temp_files: int = field(init=False, default=1000)
+    max_temp_files_monitoring: int = field(init=False)
+    temp_file_cleanup_interval: int = field(init=False)
+    orphaned_temp_file_age: int = field(init=False)
+
+    # Merge операции
+    merge_lock_timeout: int = field(init=False)
+    max_lock_file_age: int = field(init=False)
+
+    def __post_init__(self) -> None:
+        """Инициализация полей после создания объекта."""
+        # Параллельный парсинг
+        object.__setattr__(
+            self, "max_workers", self._validate_env_int("PARSER_MAX_WORKERS", 50, 1, 100)
+        )
+        object.__setattr__(
+            self, "max_timeout", self._validate_env_int("PARSER_MAX_TIMEOUT", 36000, 60, 86400)
+        )
+        object.__setattr__(
+            self,
+            "default_timeout",
+            self._validate_env_int("PARSER_DEFAULT_TIMEOUT", 3600, 60, 36000),
+        )
+
+        # Connection Pool
+        object.__setattr__(
+            self, "max_pool_size", self._validate_env_int("PARSER_MAX_POOL_SIZE", 20, 5, 50)
+        )
+        object.__setattr__(
+            self, "min_pool_size", self._validate_env_int("PARSER_MIN_POOL_SIZE", 5, 1, 10)
+        )
+        object.__setattr__(
+            self,
+            "connection_max_age",
+            self._validate_env_int("PARSER_CONNECTION_MAX_AGE", 300, 60, 3600),
+        )
+        object.__setattr__(
+            self,
+            "max_connection_age",
+            self._validate_env_int("PARSER_MAX_CONNECTION_AGE", 300, 60, 3600),
+        )
+
+        # Кэширование
+        object.__setattr__(
+            self,
+            "max_cache_size_mb",
+            self._validate_env_int("PARSER_MAX_CACHE_SIZE_MB", 500, 100, 2000),
+        )
+
+        # Временные файлы
+        object.__setattr__(
+            self,
+            "max_temp_files_monitoring",
+            self._validate_env_int("PARSER_MAX_TEMP_FILES_MONITORING", 1000, 100, 10000),
+        )
+        object.__setattr__(
+            self,
+            "temp_file_cleanup_interval",
+            self._validate_env_int("PARSER_TEMP_FILE_CLEANUP_INTERVAL", 60, 10, 3600),
+        )
+        object.__setattr__(
+            self,
+            "orphaned_temp_file_age",
+            self._validate_env_int("PARSER_ORPHANED_TEMP_FILE_AGE", 300, 60, 86400),
+        )
+
+        # Merge операции
+        object.__setattr__(
+            self,
+            "merge_lock_timeout",
+            self._validate_env_int("PARSER_MERGE_LOCK_TIMEOUT", 3600, 60, 7200),
+        )
+        object.__setattr__(
+            self,
+            "max_lock_file_age",
+            self._validate_env_int("PARSER_MAX_LOCK_FILE_AGE", 60, 10, 600),
+        )
+
+
+# Глобальный экземпляр конфигурации ENV
+env_config: EnvConfig = EnvConfig()
+
+
+# =============================================================================
+# ФУНКЦИЯ ВАЛИДАЦИИ ENV ПЕРЕМЕННЫХ (для экспорта)
 # =============================================================================
 
 
 def validate_env_int(
-    env_name: str, default: int, min_value: Optional[int] = None, max_value: Optional[int] = None
+    env_name: str, default: int, min_value: int | None = None, max_value: int | None = None
 ) -> int:
     """Валидирует ENV переменную как целое число в допустимом диапазоне.
 
-    ИСПРАВЛЕНИЕ 24: Общая функция для валидации ENV переменных.
-    Устраняет дублирование кода между cache.py и parallel_parser.py.
+    Функция-обёртка для EnvConfig._validate_env_int для использования
+    на уровне модуля.
 
     Args:
         env_name: Имя ENV переменной.
-        default: Значение по умолчанию (используется если переменная не установлена).
-        min_value: Минимальное допустимое значение (None если нет ограничения).
-        max_value: Максимальное допустимое значение (None если нет ограничения).
+        default: Значение по умолчанию.
+        min_value: Минимальное допустимое значение.
+        max_value: Максимальное допустимое значение.
 
     Returns:
         Валидированное целое число.
-
-    Raises:
-        ValueError: Если значение не является целым числом (нечисловая строка).
-
-    Примечание:
-        - Выбрасывает ValueError при некорректных значениях (нечисловые строки)
-        - Возвращает min/max значение при выходе за пределы диапазона (с предупреждением)
-        - Возвращает значение по умолчанию только если переменная не установлена
-
-    Пример:
-        >>> validate_env_int("PARSER_MAX_WORKERS", default=10, min_value=1, max_value=20)
-        10
     """
-    logger = logging.getLogger("parser_2gis.constants")
-
-    value_str = os.getenv(env_name)
-
-    if value_str is None:
-        return default
-
-    # Преобразуем в целое число (выбросит ValueError при некорректном значении)
-    value = int(value_str)
-
-    # Проверяем минимальное значение
-    if min_value is not None and value < min_value:
-        logger.warning(
-            "ENV переменная %s=%d меньше минимального значения %d. Используется %d",
-            env_name,
-            value,
-            min_value,
-            min_value,
-        )
-        return min_value
-
-    # Проверяем максимальное значение
-    if max_value is not None and value > max_value:
-        logger.warning(
-            "ENV переменная %s=%d больше максимального значения %d. Используется %d",
-            env_name,
-            value,
-            max_value,
-            max_value,
-        )
-        return max_value
-
-    return value
+    return env_config._validate_env_int(env_name, default, min_value, max_value)
 
 
 # =============================================================================
@@ -123,18 +266,14 @@ DEFAULT_BATCH_SIZE: int = 100
 
 # Максимальный возраст соединения в секундах (5 минут)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MAX_CONNECTION_AGE: int = validate_env_int(
-    "PARSER_MAX_CONNECTION_AGE", default=300, min_value=60, max_value=3600
-)
+MAX_CONNECTION_AGE: int = env_config.max_connection_age
 
 # Максимальный размер пакета для предотвращения DoS атак
 MAX_BATCH_SIZE: int = 1000
 
 # Максимальный размер кэша в мегабайтах
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MAX_CACHE_SIZE_MB: int = validate_env_int(
-    "PARSER_MAX_CACHE_SIZE_MB", default=500, min_value=100, max_value=2000
-)
+MAX_CACHE_SIZE_MB: int = env_config.max_cache_size_mb
 
 # Количество записей для удаления при LRU eviction
 LRU_EVICT_BATCH: int = 100
@@ -154,71 +293,59 @@ SHA256_HASH_LENGTH: int = 64
 # - queue.Queue для управления соединениями обеспечивает потокобезопасность
 # Допустимый диапазон: 5-50 соединений
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MAX_POOL_SIZE: int = validate_env_int("PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50)
+MAX_POOL_SIZE: int = env_config.max_pool_size
 
 # Минимальное количество соединений в пуле
 # Допустимый диапазон: 1-10 соединений
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MIN_POOL_SIZE: int = validate_env_int("PARSER_MIN_POOL_SIZE", default=5, min_value=1, max_value=10)
+MIN_POOL_SIZE: int = env_config.min_pool_size
 
 # Время жизни соединения в секундах (5 минут)
 # Соединения старше этого возраста будут пересозданы
 # Допустимый диапазон: 60-3600 секунд (1 час)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-CONNECTION_MAX_AGE: int = validate_env_int(
-    "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
-)
+CONNECTION_MAX_AGE: int = env_config.connection_max_age
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ ПАРАЛЛЕЛЬНОГО ПАРСИНГА
 # =============================================================================
 
 # Минимальное количество рабочих потоков
-MIN_WORKERS: int = 1
+MIN_WORKERS: int = env_config.min_workers
 
 # Максимальное количество рабочих потоков (разумный предел для I/O операций)
 # ОБОСНОВАНИЕ: 50 потоков - оптимально для современных систем с 16-32+ ядрами
 # При 50 потоках с 200MB на браузер = ~10GB памяти (требуется мощная система)
 # Может быть переопределено через ENV переменную PARSER_MAX_WORKERS (диапазон: 1-100)
-MAX_WORKERS: int = validate_env_int("PARSER_MAX_WORKERS", default=50, min_value=1, max_value=100)
+MAX_WORKERS: int = env_config.max_workers
 
 # Минимальный таймаут на один URL в секундах
-MIN_TIMEOUT: int = 1
+MIN_TIMEOUT: int = env_config.min_timeout
 
 # Максимальный таймаут на один URL в секундах (10 часов - практически безлимит)
 # Увеличено для поддержки 40+ параллельных браузеров без таймаутов
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MAX_TIMEOUT: int = validate_env_int(
-    "PARSER_MAX_TIMEOUT", default=36000, min_value=60, max_value=86400
-)
+MAX_TIMEOUT: int = env_config.max_timeout
 
 # Таймаут по умолчанию на один URL в секундах (1 час)
 # Увеличено для стабильной работы с большим количеством параллельных браузеров
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-DEFAULT_TIMEOUT: int = validate_env_int(
-    "PARSER_DEFAULT_TIMEOUT", default=3600, min_value=60, max_value=36000
-)
+DEFAULT_TIMEOUT: int = env_config.default_timeout
 
 # Интервал периодической очистки временных файлов в секундах (60 секунд)
 # Допустимый диапазон: 10-3600 секунд (10 минут)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-TEMP_FILE_CLEANUP_INTERVAL: int = validate_env_int(
-    "PARSER_TEMP_FILE_CLEANUP_INTERVAL", default=60, min_value=10, max_value=3600
-)
+TEMP_FILE_CLEANUP_INTERVAL: int = env_config.temp_file_cleanup_interval
 
 # Максимальное количество временных файлов для мониторинга
 # Допустимый диапазон: 100-10000
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MAX_TEMP_FILES_MONITORING: int = validate_env_int(
-    "PARSER_MAX_TEMP_FILES_MONITORING", default=1000, min_value=100, max_value=10000
-)
+MAX_TEMP_FILES_MONITORING: int = env_config.max_temp_files_monitoring
 
 # Возраст временного файла в секундах, после которого он считается осиротевшим
 # Допустимый диапазон: 60-86400 секунд (1 день)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-ORPHANED_TEMP_FILE_AGE: int = validate_env_int(
-    "PARSER_ORPHANED_TEMP_FILE_AGE", default=300, min_value=60, max_value=86400
-)
+ORPHANED_TEMP_FILE_AGE: int = env_config.orphaned_temp_file_age
 
 # Максимальное количество отслеживаемых временных файлов
 # ОБОСНОВАНИЕ: 1000 файлов выбрано исходя из:
@@ -233,14 +360,14 @@ MAX_TEMP_FILES: int = 1000
 # - Типичное время merge операции: 5-30 секунд
 # - 60 секунд - достаточно для обработки больших файлов
 # - Защита от зависших процессов (осиротевшие lock файлы)
-MERGE_LOCK_TIMEOUT: int = 3600  # 1 час для больших объёмов данных
+MERGE_LOCK_TIMEOUT: int = env_config.merge_lock_timeout
 
 # Максимальный возраст lock файла в секундах (1 минута)
 # ОБОСНОВАНИЕ: 60 секунд выбрано исходя из:
 # - Типичное время merge: 5-30 секунд
 # - 1 минута - достаточно для завершения merge операции
 # - Lock файлы старше считаются осиротевшими (процесс упал)
-MAX_LOCK_FILE_AGE: int = validate_env_int("PARSER_MAX_LOCK_FILE_AGE", 60, 10, 600)
+MAX_LOCK_FILE_AGE: int = env_config.max_lock_file_age
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ БУФЕРИЗАЦИИ
@@ -384,6 +511,10 @@ FORBIDDEN_PATH_CHARS: list[str] = ["..", "~", "$", "`", "|", ";", "&", ">", "<",
 # =============================================================================
 
 __all__ = [
+    # Конфигурация ENV
+    "env_config",
+    "EnvConfig",
+    "validate_env_int",
     # Безопасность данных
     "MAX_DATA_DEPTH",
     "MAX_STRING_LENGTH",

@@ -149,6 +149,7 @@ class TestValidatePathUtility:
         - ValueError выбрасывается
         """
         from pathlib import Path
+
         from parser_2gis.utils import path_utils
 
         # Тест с путем вне разрешенных директорий

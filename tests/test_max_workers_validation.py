@@ -298,10 +298,11 @@ class TestMaxWorkersEnvInvalidValues:
 
     def test_env_max_workers_invalid_string(self) -> None:
         """
-        Тест 5: Проверка что некорректное значение ENV (не число) вызывает ошибку.
+        Тест 5: Проверка что некорректное значение ENV (не число) использует default.
         """
         os.environ["PARSER_MAX_WORKERS"] = "invalid"
 
+        # При некорректном значении должно использоваться default
         code = """
 import os
 os.environ['PARSER_MAX_WORKERS'] = 'invalid'
@@ -316,11 +317,12 @@ print(MAX_WORKERS)
             cwd=str(Path(__file__).parent.parent),
         )
 
-        assert result.returncode != 0, "Некорректное значение должно вызывать ошибку"
-        assert "ValueError" in result.stderr or "invalid literal" in result.stderr
+        # Должно вернуть default значение (50)
+        assert result.returncode == 0, "Некорректное значение должно использовать default"
+        assert result.stdout.strip() == "50", "Должно использоваться default значение 50"
 
     def test_env_max_workers_float_string(self) -> None:
-        """Проверка что строка с float значением вызывает ошибку."""
+        """Проверка что строка с float значением использует default."""
         os.environ["PARSER_MAX_WORKERS"] = "40.5"
 
         code = """
@@ -337,8 +339,9 @@ print(MAX_WORKERS)
             cwd=str(Path(__file__).parent.parent),
         )
 
-        assert result.returncode != 0, "Строка с float должна вызывать ошибку"
-        assert "ValueError" in result.stderr or "invalid literal" in result.stderr
+        # Должно вернуть default значение (50)
+        assert result.returncode == 0, "Строка с float должна использовать default"
+        assert result.stdout.strip() == "50", "Должно использоваться default значение 50"
 
 
 if __name__ == "__main__":

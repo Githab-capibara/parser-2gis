@@ -15,7 +15,7 @@ import sys
 
 for _ in range(2):
     try:
-        import parser_2gis.paths
+        import parser_2gis.utils.paths
         from parser_2gis.chrome import ChromeOptions, ChromeRemote
 
         break
@@ -63,7 +63,7 @@ with ChromeRemote(chrome_options, [_REGIONS_LIST_RESPONSE]) as chrome_remote:
         )
 
     cities = sorted(cities, key=lambda x: x["domain"])
-    cities_path = parser_2gis.paths.data_path() / "cities.json"
+    cities_path = parser_2gis.utils.paths.data_path() / "cities.json"
     with open(cities_path, "w", encoding="utf-8") as f:
         json.dump(cities, f, ensure_ascii=False, indent=4)
         print(f"Сохранено {len(cities)} городов в {cities_path}")

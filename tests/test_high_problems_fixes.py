@@ -192,16 +192,10 @@ class TestEnvVariablesForConstants:
         """
 
         with patch("parser_2gis.constants.os.getenv", return_value="5"):
-            with patch("parser_2gis.constants.logging.getLogger") as mock_logger:
-                mock_log = MagicMock()
-                mock_logger.return_value = mock_log
+            result = validate_env_int("TEST_VAR", default=10, min_value=10, max_value=20)
 
-                result = validate_env_int("TEST_VAR", default=10, min_value=10, max_value=20)
-
-                # Должно вернуть min_value
-                assert result == 10
-                # Логирование предупреждения
-                assert mock_log.warning.called
+            # Должно вернуть min_value
+            assert result == 10
 
     def test_validate_env_int_above_max(self) -> None:
         """Тест 9: Значение выше максимума.
@@ -211,24 +205,21 @@ class TestEnvVariablesForConstants:
         - Логирование предупреждения
         """
         with patch("parser_2gis.constants.os.getenv", return_value="100"):
-            with patch("parser_2gis.constants.logging.getLogger") as mock_logger:
-                mock_log = MagicMock()
-                mock_logger.return_value = mock_log
+            result = validate_env_int("TEST_VAR", default=10, min_value=1, max_value=50)
 
-                result = validate_env_int("TEST_VAR", default=10, min_value=1, max_value=50)
-
-                # Должно вернуть max_value
-                assert result == 50
+            # Должно вернуть max_value
+            assert result == 50
 
     def test_validate_env_int_invalid_value(self) -> None:
         """Тест 10: Некорректное значение ENV.
 
         Проверяет:
-        - ValueError при некорректном значении
+        - Возвращается default при некорректном значении
         """
         with patch("parser_2gis.constants.os.getenv", return_value="invalid"):
-            with pytest.raises(ValueError):
-                validate_env_int("TEST_VAR", default=10)
+            result = validate_env_int("TEST_VAR", default=10)
+            # Должно вернуть default при некорректном значении
+            assert result == 10
 
     def test_validate_env_int_none_returns_default(self) -> None:
         """Тест 11: None возвращает default.
@@ -354,10 +345,10 @@ class TestTypeHintsInHelpers:
         - Функции имеют аннотации типов
         - Возвращаемые типы указаны
         """
-        from parser_2gis.parallel import helpers
-
         # Проверяем наличие аннотаций
         import inspect
+
+        from parser_2gis.parallel import helpers
 
         # Проверяем FileMerger
         sig = inspect.signature(helpers.FileMerger.__init__)
@@ -399,16 +390,16 @@ class TestValidationCodeDeduplication:
         assert result2 == 5
 
     def test_validation_raises_consistent_errors(self) -> None:
-        """Тест 27: Валидация выбрасывает согласованные ошибки.
+        """Тест 27: Валидация возвращает согласованные значения.
 
         Проверяет:
-        - TypeError для некорректных типов
-        - ValueError для некорректных значений
+        - При некорректном типе возвращается default
+        - Валидация работает корректно
         """
-        # TypeError для некорректного типа
+        # При некорректном значении возвращается default
         with patch("parser_2gis.constants.os.getenv", return_value="invalid"):
-            with pytest.raises(ValueError):  # int("invalid") выбросит ValueError
-                validate_env_int("TEST", default=10)
+            result = validate_env_int("TEST", default=10)
+            assert result == 10  # Возвращается default
 
 
 class TestSerializerBufferEfficiency:

@@ -12,7 +12,7 @@ import sys
 
 for _ in range(2):
     try:
-        import parser_2gis.paths
+        import parser_2gis.utils.paths
         from parser_2gis.chrome import ChromeOptions, ChromeRemote
 
         break
@@ -51,7 +51,7 @@ with ChromeRemote(chrome_options, [_REGIONS_LIST_RESPONSE]) as chrome_remote:
     assert any(x["label"] == "Без рубрики" for x in rubrics.values())
 
     # Сохраняем список рубрик
-    rubrics_path = parser_2gis.paths.data_path() / "rubrics.json"
+    rubrics_path = parser_2gis.utils.paths.data_path() / "rubrics.json"
     with open(rubrics_path, "w", encoding="utf-8") as f:
         json.dump(rubrics, f, ensure_ascii=False, indent=4)
         print(f"Сохранено {len(rubrics)} рубрик в {rubrics_path}")

@@ -251,8 +251,8 @@ class TestConfigServiceIntegration:
 
     def test_config_service_loads_configuration(self) -> None:
         """Проверяет что ConfigService загружает Configuration."""
+        from parser_2gis.cli.config_service import ConfigService
         from parser_2gis.config import Configuration
-        from parser_2gis.config_service import ConfigService
 
         # Проверяем что ConfigService может загрузить Configuration
         config = ConfigService.load_config(Configuration, auto_create=False)
@@ -265,8 +265,8 @@ class TestConfigServiceIntegration:
         import os
         import tempfile
 
+        from parser_2gis.cli.config_service import ConfigService
         from parser_2gis.config import Configuration
-        from parser_2gis.config_service import ConfigService
 
         config = Configuration()
 
@@ -319,7 +319,6 @@ class TestModuleImportIntegration:
             "parser_2gis.utils",
             "parser_2gis.validation",
             "parser_2gis.config",
-            "parser_2gis.config_service",
             "parser_2gis.protocols",
         ]
 
@@ -500,8 +499,8 @@ class TestEndToEndArchitecture:
 
     def test_config_system_works(self) -> None:
         """Проверяет что система конфигурации работает."""
+        from parser_2gis.cli.config_service import ConfigService
         from parser_2gis.config import Configuration
-        from parser_2gis.config_service import ConfigService
 
         # Создаём конфигурацию
         config = Configuration()

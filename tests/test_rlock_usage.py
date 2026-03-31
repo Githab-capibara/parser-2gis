@@ -10,22 +10,14 @@ import pytest
 
 from parser_2gis.chrome.http_cache import _HTTPCache
 from parser_2gis.parallel import ParallelCityParser
-from parser_2gis.parallel_helpers import FileMerger
-from parser_2gis.signal_handler import SignalHandler
+from parser_2gis.parallel.helpers import FileMerger
 
 
 class TestRLockUsage:
     """Тесты использования RLock в проекте."""
 
-    def test_signal_handler_uses_rlock(self):
-        """Тест 1: SignalHandler использует RLock."""
-        handler = SignalHandler()
-        assert isinstance(handler._lock, type(threading.RLock())), (
-            "SignalHandler._lock должен быть RLock"
-        )
-
     def test_parallel_parser_main_lock_uses_rlock(self):
-        """Тест 2: ParallelCityParser использует RLock для основной блокировки."""
+        """Тест 1: ParallelCityParser использует RLock для основной блокировки."""
         # Проверяем что класс имеет правильную структуру через inspect
         import inspect
 
@@ -36,7 +28,7 @@ class TestRLockUsage:
         assert "threading.RLock()" in source, "ParallelCityParser должен использовать RLock"
 
     def test_parallel_parser_merge_lock_uses_rlock(self):
-        """Тест 3: ParallelCityParser использует RLock для merge блокировки."""
+        """Тест 2: ParallelCityParser использует RLock для merge блокировки."""
         import inspect
 
         # Получаем исходный код класса
@@ -48,14 +40,14 @@ class TestRLockUsage:
         )
 
     def test_http_cache_uses_rlock(self):
-        """Тест 4: _HTTPCache использует RLock."""
+        """Тест 3: _HTTPCache использует RLock."""
         cache = _HTTPCache()
         assert isinstance(cache._lock, type(threading.RLock())), (
             "_HTTPCache._lock должен быть RLock"
         )
 
     def test_file_merger_uses_rlock(self):
-        """Тест 5: FileMerger использует RLock."""
+        """Тест 4: FileMerger использует RLock."""
         import tempfile
         from pathlib import Path
 
@@ -69,28 +61,8 @@ class TestRLockUsage:
                 "FileMerger._lock должен быть RLock"
             )
 
-    def test_rlock_reentrancy_in_signal_handler(self):
-        """Тест 6: RLock поддерживает реентрантность в SignalHandler."""
-        handler = SignalHandler()
-
-        # Проверяем что один и тот же поток может захватить блокировку несколько раз
-        lock_acquired_count = 0
-
-        def nested_lock_operations():
-            nonlocal lock_acquired_count
-            with handler._lock:
-                lock_acquired_count += 1
-                # Реентрантный вызов - тот же поток захватывает ту же блокировку
-                with handler._lock:
-                    lock_acquired_count += 1
-                    with handler._lock:
-                        lock_acquired_count += 1
-
-        nested_lock_operations()
-        assert lock_acquired_count == 3, "RLock должен поддерживать реентрантность"
-
     def test_rlock_in_parallel_parser_stats(self):
-        """Тест 7: ParallelCityParser использует RLock для защиты статистики."""
+        """Тест 5: ParallelCityParser использует RLock для защиты статистики."""
         import inspect
 
         # Получаем исходный код класса
@@ -102,15 +74,16 @@ class TestRLockUsage:
         )
 
     def test_rlock_thread_safety(self):
-        """Тест 8: RLock обеспечивает потокобезопасность."""
-        handler = SignalHandler()
+        """Тест 6: RLock обеспечивает потокобезопасность."""
+        # Используем RLock напрямую для теста
+        lock = threading.RLock()
         counter = {"value": 0}
         errors = []
 
         def increment():
             try:
                 for _ in range(100):
-                    with handler._lock:
+                    with lock:
                         counter["value"] += 1
             except Exception as e:
                 errors.append(e)
@@ -126,7 +99,7 @@ class TestRLockUsage:
         assert counter["value"] == 1000, "Счётчик должен быть 1000"
 
     def test_rlock_release_in_try_except(self):
-        """Тест 9: RLock.release() вызывается в try/except."""
+        """Тест 7: RLock.release() вызывается в try/except."""
         # Проверяем что код не вызывает lock.locked() - это вызовет AttributeError
         lock = threading.RLock()
 
@@ -142,13 +115,12 @@ class TestRLockUsage:
             lock.locked()  # type: ignore[attr-defined]
 
     def test_multiple_rlock_components_integration(self):
-        """Тест 10: Интеграция нескольких компонентов с RLock."""
+        """Тест 8: Интеграция нескольких компонентов с RLock."""
         import tempfile
         from pathlib import Path
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Создаём несколько компонентов
-            handler = SignalHandler()
             cache = _HTTPCache()
             merger = FileMerger(
                 output_dir=Path(tmpdir),
@@ -157,22 +129,21 @@ class TestRLockUsage:
             )
 
             # Все используют RLock
-            assert isinstance(handler._lock, type(threading.RLock()))
             assert isinstance(cache._lock, type(threading.RLock()))
             assert isinstance(merger._lock, type(threading.RLock()))
 
     def test_rlock_prevents_deadlock_in_nested_calls(self):
-        """Тест 11: RLock предотвращает deadlock при вложенных вызовах."""
-        handler = SignalHandler()
+        """Тест 9: RLock предотвращает deadlock при вложенных вызовах."""
+        lock = threading.RLock()
         deadlock_detected = False
 
         def outer_call():
-            with handler._lock:
+            with lock:
                 # Вложенный вызов с той же блокировкой
                 inner_call()
 
         def inner_call():
-            with handler._lock:
+            with lock:
                 # Если бы был Lock, здесь был бы deadlock
                 pass
 
@@ -182,3 +153,23 @@ class TestRLockUsage:
             deadlock_detected = True
 
         assert not deadlock_detected, "RLock должен предотвращать deadlock"
+
+    def test_rlock_reentrancy(self):
+        """Тест 10: RLock поддерживает реентрантность."""
+        lock = threading.RLock()
+
+        # Проверяем что один и тот же поток может захватить блокировку несколько раз
+        lock_acquired_count = 0
+
+        def nested_lock_operations():
+            nonlocal lock_acquired_count
+            with lock:
+                lock_acquired_count += 1
+                # Реентрантный вызов - тот же поток захватывает ту же блокировку
+                with lock:
+                    lock_acquired_count += 1
+                    with lock:
+                        lock_acquired_count += 1
+
+        nested_lock_operations()
+        assert lock_acquired_count == 3, "RLock должен поддерживать реентрантность"

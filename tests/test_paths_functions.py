@@ -18,7 +18,7 @@ class TestPathsModuleFunctions:
 
     def test_data_path_exists(self):
         """Проверка, что функция data_path существует и работает."""
-        from parser_2gis.paths import data_path
+        from parser_2gis.utils.paths import data_path
 
         result = data_path()
         assert isinstance(result, pathlib.Path)
@@ -26,7 +26,7 @@ class TestPathsModuleFunctions:
 
     def test_user_path_exists(self):
         """Проверка, что функция user_path существует и работает."""
-        from parser_2gis.paths import user_path
+        from parser_2gis.utils.paths import user_path
 
         # Проверяем для конфигурации
         config_path = user_path(is_config=True)
@@ -38,14 +38,14 @@ class TestPathsModuleFunctions:
 
     def test_image_path_exists(self):
         """Проверка, что функция image_path существует."""
-        from parser_2gis.paths import image_path
+        from parser_2gis.utils.paths import image_path
 
         # Проверяем, что функция определена
         assert callable(image_path)
 
     def test_image_data_exists(self):
         """Проверка, что функция image_data существует."""
-        from parser_2gis.paths import image_data
+        from parser_2gis.utils.paths import image_data
 
         # Проверяем, что функция определена
         assert callable(image_data)
@@ -57,7 +57,7 @@ class TestPathsModuleFunctions:
         Этот тест предотвращает ошибку ImportError, когда функция
         используется в TUI, но не определена в модуле paths.
         """
-        from parser_2gis.paths import cache_path
+        from parser_2gis.utils.paths import cache_path
 
         # Проверяем, что функция существует
         assert callable(cache_path)
@@ -78,7 +78,7 @@ class TestPathsModuleFunctions:
         """
         import os
 
-        from parser_2gis.paths import cache_path
+        from parser_2gis.utils.paths import cache_path
 
         # Сохраняем оригинальное значение
         original_xdg = os.environ.get("XDG_CACHE_HOME")
@@ -114,7 +114,7 @@ class TestPathsModuleFunctions:
         """
         import os
 
-        from parser_2gis.paths import cache_path
+        from parser_2gis.utils.paths import cache_path
 
         # Сохраняем оригинальное значение
         original_xdg = os.environ.get("XDG_CACHE_HOME")
@@ -157,7 +157,7 @@ class TestTUIPathImports:
         работает корректно и может быть использован в TUI.
         """
         # Этот импорт должен работать без ошибок
-        from parser_2gis.paths import cache_path
+        from parser_2gis.utils.paths import cache_path
 
         # Проверяем, что функция может быть вызвана
         result = cache_path()
@@ -187,7 +187,7 @@ class TestTUIPathImports:
         Тест проверяет наличие всех функций, которые могут быть
         использованы в TUI экранах.
         """
-        from parser_2gis import paths
+        from parser_2gis.utils import paths
 
         # Список функций, которые должны быть доступны
         required_functions = ["data_path", "user_path", "image_path", "image_data", "cache_path"]

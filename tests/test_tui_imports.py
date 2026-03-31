@@ -19,7 +19,7 @@ class TestTUIImports:
     def test_paths_module_importable(self):
         """Проверка, что модуль paths импортируется."""
         try:
-            from parser_2gis import paths
+            from parser_2gis.utils import paths
 
             assert paths is not None
             assert hasattr(paths, "user_path")
@@ -192,7 +192,7 @@ class TestCriticalModuleAvailability:
 
     def test_user_path_function_exists(self):
         """Проверка, что функция user_path существует и вызывается."""
-        from parser_2gis.paths import user_path
+        from parser_2gis.utils.paths import user_path
 
         result = user_path()
         assert isinstance(result, pathlib.Path)

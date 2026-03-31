@@ -484,7 +484,7 @@ class TestSeparationOfConcerns:
         project_root = Path(__file__).parent.parent / "parser_2gis"
 
         config_py = project_root / "config.py"
-        config_service_py = project_root / "config_service.py"
+        config_service_py = project_root / "cli" / "config_service.py"
 
         assert config_py.exists(), "config.py должен существовать"
         assert config_service_py.exists(), "config_service.py должен существовать"

@@ -9,6 +9,8 @@
 - merger.py: ParallelFileMerger (слияние файлов) + функции слияния
 - error_handler.py: ParallelErrorHandler (обработка ошибок)
 - progress.py: ParallelProgressReporter (прогресс)
+- url_parser.py: UrlParser (генерация URL)
+- thread_manager.py: ThreadManager (управление потоками)
 - parallel_parser.py: Устаревший класс (обратная совместимость)
 - options.py: Опции параллельного парсинга
 
@@ -17,7 +19,6 @@
 """
 
 # Ре-экспорт констант из constants.py для обратной совместимости
-# Ре-экспорт константы из constants.py для обратной совместимости
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
     MAX_LOCK_FILE_AGE,
@@ -55,6 +56,8 @@ from .parallel_parser import (
     _unregister_temp_file,
 )
 from .progress import ParallelProgressReporter
+from .thread_manager import ThreadManager
+from .url_parser import UrlParser
 
 # Экспорт основного API для обратной совместимости
 __all__ = [
@@ -64,6 +67,8 @@ __all__ = [
     "ParallelErrorHandler",
     "ParallelProgressReporter",
     "ParallelRunConfig",
+    "UrlParser",
+    "ThreadManager",
     # Основные классы (старые для обратной совместимости)
     "ParallelCityParser",
     "ParallelCityParserThread",

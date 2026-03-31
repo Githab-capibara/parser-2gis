@@ -677,8 +677,8 @@ class TestAntiPatternIntegrity:
         content = coordinator_file.read_text(encoding="utf-8")
         assert "dataclass" in content or "Configuration" in content or "config" in content.lower()
 
-        # Middle Man
-        config_service_file = project_root / "config_service.py"
+        # Middle Man - config_service в cli/
+        config_service_file = project_root / "cli" / "config_service.py"
         assert config_service_file.exists()
 
         # Magic Numbers

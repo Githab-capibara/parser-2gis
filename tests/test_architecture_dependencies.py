@@ -482,7 +482,6 @@ class TestImportIntegrity:
             "parser_2gis.parallel",
             "parser_2gis.logger",
             "parser_2gis.config",
-            "parser_2gis.config_service",
         ]
 
         failed_imports: List[Tuple[str, str]] = []

@@ -12,7 +12,7 @@ import pytest
 # Добавляем путь к пакету
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from parser_2gis.main import parse_arguments  # noqa: E402
+from parser_2gis.cli.arguments import parse_arguments  # noqa: E402
 
 
 class TestCategoriesModeValidation:
@@ -37,21 +37,22 @@ class TestCategoriesModeValidation:
             '[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]'
         )
 
-        with patch("parser_2gis.paths.data_path", return_value=data_dir):
-            with patch(
-                "sys.argv",
-                [
-                    "parser-2gis",
-                    "--cities",
-                    "omsk",
-                    "--categories-mode",
-                    "-o",
-                    str(tmp_path / "output"),
-                    "-f",
-                    "csv",
-                ],
-            ):
-                args, config = parse_arguments()
+        output_file = tmp_path / "output.csv"
+
+        with patch(
+            "sys.argv",
+            [
+                "parser-2gis",
+                "--cities",
+                "omsk",
+                "--categories-mode",
+                "-o",
+                str(output_file),
+                "-f",
+                "csv",
+            ],
+        ):
+            args, config = parse_arguments()
 
             assert args.cities == ["omsk"]
             assert args.categories_mode is True
@@ -66,20 +67,12 @@ class TestCategoriesModeValidation:
             '[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]'
         )
 
-        with patch("parser_2gis.paths.data_path", return_value=data_dir):
-            with patch(
-                "sys.argv",
-                [
-                    "parser-2gis",
-                    "--cities",
-                    "omsk",
-                    "-o",
-                    str(tmp_path / "output.csv"),
-                    "-f",
-                    "csv",
-                ],
-            ):
-                args, config = parse_arguments()
+        output_file = tmp_path / "output.csv"
+
+        with patch(
+            "sys.argv", ["parser-2gis", "--cities", "omsk", "-o", str(output_file), "-f", "csv"]
+        ):
+            args, config = parse_arguments()
 
             assert args.cities == ["omsk"]
             assert args.url is None
@@ -101,22 +94,23 @@ class TestCategoriesModeValidation:
             '[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]'
         )
 
-        with patch("parser_2gis.paths.data_path", return_value=data_dir):
-            with patch(
-                "sys.argv",
-                [
-                    "parser-2gis",
-                    "-i",
-                    "https://2gis.ru/moscow/search/Аптеки",
-                    "--cities",
-                    "omsk",
-                    "-o",
-                    str(tmp_path / "output.csv"),
-                    "-f",
-                    "csv",
-                ],
-            ):
-                args, config = parse_arguments()
+        output_file = tmp_path / "output.csv"
+
+        with patch(
+            "sys.argv",
+            [
+                "parser-2gis",
+                "-i",
+                "https://2gis.ru/moscow/search/Аптеки",
+                "--cities",
+                "omsk",
+                "-o",
+                str(output_file),
+                "-f",
+                "csv",
+            ],
+        ):
+            args, config = parse_arguments()
 
             assert args.url is not None
             assert args.cities == ["omsk"]
@@ -138,23 +132,26 @@ class TestParallelWorkersValidation:
         output_dir = tmp_path / "output"
         output_dir.mkdir(exist_ok=True)
 
-        with patch("parser_2gis.paths.data_path", return_value=data_dir):
-            with patch(
-                "sys.argv",
-                [
-                    "parser-2gis",
-                    "--cities",
-                    "omsk",
-                    "--categories-mode",
-                    "-o",
-                    str(output_dir),
-                    "-f",
-                    "csv",
-                ],
-            ):
-                args, config = parse_arguments()
+        with patch(
+            "sys.argv",
+            [
+                "parser-2gis",
+                "--cities",
+                "omsk",
+                "--categories-mode",
+                "-o",
+                str(output_dir),
+                "-f",
+                "csv",
+            ],
+        ):
+            args, config = parse_arguments()
 
-            assert getattr(args, "parallel.max_workers") == 10  # По умолчанию
+            # Проверяем что parallel.max_workers имеет значение по умолчанию
+            # Аргумент парсится как 'parallel.max_workers' (с точкой в имени)
+            assert hasattr(args, "parallel.max_workers")
+            # Значение по умолчанию 10
+            assert getattr(args, "parallel.max_workers") == 10
 
     def test_parallel_workers_custom(self, tmp_path: Path):
         """Проверка пользовательского значения."""
@@ -169,24 +166,24 @@ class TestParallelWorkersValidation:
         output_dir = tmp_path / "output"
         output_dir.mkdir(exist_ok=True)
 
-        with patch("parser_2gis.paths.data_path", return_value=data_dir):
-            with patch(
-                "sys.argv",
-                [
-                    "parser-2gis",
-                    "--cities",
-                    "omsk",
-                    "--categories-mode",
-                    "--parallel.max-workers",
-                    "5",
-                    "-o",
-                    str(output_dir),
-                    "-f",
-                    "csv",
-                ],
-            ):
-                args, config = parse_arguments()
+        with patch(
+            "sys.argv",
+            [
+                "parser-2gis",
+                "--cities",
+                "omsk",
+                "--categories-mode",
+                "--parallel.max-workers",
+                "5",
+                "-o",
+                str(output_dir),
+                "-f",
+                "csv",
+            ],
+        ):
+            args, config = parse_arguments()
 
+            assert hasattr(args, "parallel.max_workers")
             assert getattr(args, "parallel.max_workers") == 5
 
 

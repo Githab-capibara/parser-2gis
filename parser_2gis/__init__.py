@@ -8,8 +8,6 @@ Parser2GIS — парсер сайта 2GIS для сбора данных об 
 - ParallelCityParserThread: Поток для параллельного парсинга
 - CacheManager: Менеджер кэширования результатов
 - ValidationResult: Результат валидации
-- ParserStatistics: Статистика парсера
-- StatisticsExporter: Экспортёр статистики
 - ProgressManager: Менеджер прогресс-баров
 - logger: Логгер приложения
 - temp_file_manager: Менеджер временных файлов
@@ -30,7 +28,6 @@ from .protocols import (
     ProgressCallback,
     Writer,
 )
-from .statistics import ParserStatistics, StatisticsExporter
 from .utils.temp_file_manager import TempFileManager, temp_file_manager
 from .validation import ValidationResult
 from .version import version as __version__
@@ -42,8 +39,6 @@ __all__ = [
     "ParallelCityParserThread",
     "CacheManager",
     "ValidationResult",
-    "ParserStatistics",
-    "StatisticsExporter",
     "ProgressManager",
     "logger",
     "temp_file_manager",

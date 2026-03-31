@@ -13,7 +13,7 @@ import pathlib
 
 import pytest
 
-from parser_2gis.paths import data_path, image_data, image_path, user_path
+from parser_2gis.utils.paths import data_path, image_data, image_path, user_path
 
 
 class TestDataPath:
