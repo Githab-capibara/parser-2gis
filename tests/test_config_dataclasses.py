@@ -134,7 +134,7 @@ class TestMergeConfig:
 
         Проверяет что MergeConfig может быть создан.
         """
-        from parser_2gis.parallel.file_merger import MergeConfig
+        from parser_2gis.parallel.merger import MergeConfig
 
         file_paths = [Path("/tmp/file1.csv"), Path("/tmp/file2.csv")]
         output_path = Path("/tmp/output.csv")
@@ -152,7 +152,7 @@ class TestMergeConfig:
 
         Проверяет что значения по умолчанию установлены корректно.
         """
-        from parser_2gis.parallel.file_merger import MergeConfig
+        from parser_2gis.parallel.merger import MergeConfig
 
         file_paths = [Path("/tmp/file1.csv")]
         output_path = Path("/tmp/output.csv")
@@ -172,7 +172,7 @@ class TestMergeConfig:
 
         Проверяет что callback функции могут быть установлены.
         """
-        from parser_2gis.parallel.file_merger import MergeConfig
+        from parser_2gis.parallel.merger import MergeConfig
 
         def log_callback(msg: str, level: str) -> None:
             pass
@@ -201,7 +201,7 @@ class TestMergeConfig:
 
         Проверяет что класс является dataclass.
         """
-        from parser_2gis.parallel.file_merger import MergeConfig
+        from parser_2gis.parallel.merger import MergeConfig
 
         assert is_dataclass(MergeConfig) is True
 
@@ -211,7 +211,7 @@ class TestMergeConfig:
 
         Проверяет что все ожидаемые поля присутствуют.
         """
-        from parser_2gis.parallel.file_merger import MergeConfig
+        from parser_2gis.parallel.merger import MergeConfig
 
         field_names = [f.name for f in fields(MergeConfig)]
 
@@ -432,7 +432,7 @@ class TestDataclassImmutability:
 
         Проверяет что поля можно изменять после создания.
         """
-        from parser_2gis.parallel.file_merger import MergeConfig
+        from parser_2gis.parallel.merger import MergeConfig
 
         merge_config = MergeConfig(
             file_paths=[Path("/tmp/file1.csv")],

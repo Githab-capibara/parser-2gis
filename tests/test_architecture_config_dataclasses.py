@@ -186,19 +186,19 @@ class TestParserThreadConfig:
 
     def test_parser_thread_config_exists(self) -> None:
         """Проверяет что ParserThreadConfig существует."""
-        from parser_2gis.parallel.coordinator import ParserThreadConfig
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         assert ParserThreadConfig is not None
 
     def test_parser_thread_config_is_dataclass(self) -> None:
         """Проверяет что ParserThreadConfig это dataclass."""
-        from parser_2gis.parallel.coordinator import ParserThreadConfig
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         assert is_dataclass(ParserThreadConfig) is True
 
     def test_parser_thread_config_fields(self) -> None:
         """Проверяет поля ParserThreadConfig."""
-        from parser_2gis.parallel.coordinator import ParserThreadConfig
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         field_names = get_dataclass_fields(ParserThreadConfig)
 
@@ -218,7 +218,7 @@ class TestParserThreadConfig:
     def test_parser_thread_config_instantiation(self) -> None:
         """Проверяет создание экземпляра ParserThreadConfig."""
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel.coordinator import ParserThreadConfig
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         config = Configuration()
         cities: List[Dict[str, Any]] = [{"name": "Москва"}]
@@ -246,7 +246,7 @@ class TestParserThreadConfig:
     def test_parser_thread_config_default_values(self) -> None:
         """Проверяет значения по умолчанию ParserThreadConfig."""
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel.coordinator import ParserThreadConfig
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         config = Configuration()
 
@@ -358,7 +358,7 @@ class TestDataclassAttributes:
     def test_parser_thread_config_attribute_access(self) -> None:
         """Проверяет доступ к атрибутам ParserThreadConfig."""
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel.coordinator import ParserThreadConfig
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         config = Configuration()
         thread_config = ParserThreadConfig(
@@ -419,7 +419,7 @@ class TestDataclassTypeHints:
 
     def test_parser_thread_config_type_hints(self) -> None:
         """Проверяет аннотации типов ParserThreadConfig."""
-        from parser_2gis.parallel.coordinator import ParserThreadConfig
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         annotations = ParserThreadConfig.__annotations__
 
@@ -484,7 +484,7 @@ class TestDataclassComparison:
     def test_parser_thread_config_equality(self) -> None:
         """Проверяет равенство ParserThreadConfig."""
         from parser_2gis.config import Configuration
-        from parser_2gis.parallel.coordinator import ParserThreadConfig
+        from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         config = Configuration()
 
