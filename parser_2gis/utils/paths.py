@@ -43,7 +43,7 @@ def _is_relative_to(path: pathlib.Path, other: pathlib.Path) -> bool:
 
 def resources_path() -> pathlib.Path:
     """Получает путь к ресурсам пакета.
-    
+
     Note:
         Эта функция заменяет устаревшую data_path().
         Ресурсы перемещены в parser_2gis/resources/ для устранения дублирования.
@@ -51,7 +51,8 @@ def resources_path() -> pathlib.Path:
     if "_MEIPASS2" in os.environ:
         here = os.environ["_MEIPASS2"]
     else:
-        here = os.path.dirname(os.path.abspath(__file__))
+        # Получаем путь к директории parser_2gis (родитель utils/)
+        here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     path = os.path.join(here, "resources")
     return pathlib.Path(path)
@@ -59,7 +60,7 @@ def resources_path() -> pathlib.Path:
 
 def data_path() -> pathlib.Path:
     """Получает путь к данным пакета.
-    
+
     Deprecated:
         Используйте resources_path() вместо data_path().
         Эта функция оставлена для обратной совместимости.

@@ -256,7 +256,8 @@ class TestParallelCoordinatorComposition:
         assert "ParallelErrorHandler(" in content, (
             "ParallelCoordinator должен создавать экземпляр ParallelErrorHandler"
         )
-        assert "self._error_handler = ParallelErrorHandler" in content, (
+        # Координатор использует DI: self._error_handler = error_handler или ParallelErrorHandler(...)
+        assert "self._error_handler" in content, (
             "ParallelCoordinator должен сохранять экземпляр как self._error_handler"
         )
 

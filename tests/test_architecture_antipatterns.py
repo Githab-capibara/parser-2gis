@@ -519,13 +519,17 @@ class TestNoHardcodedDependencies:
 
         content = coordinator_file.read_text(encoding="utf-8")
 
-        # ParallelCoordinator должен создавать зависимости в __init__
-        assert "self._error_handler = ParallelErrorHandler" in content, (
+        # ParallelCoordinator использует композицию с DI
+        assert "ParallelErrorHandler(" in content, (
             "ParallelCoordinator должен создавать ParallelErrorHandler"
         )
-        assert "self._file_merger = ParallelFileMerger" in content, (
+        assert "ParallelFileMerger(" in content, (
             "ParallelCoordinator должен создавать ParallelFileMerger"
         )
+        assert "self._error_handler" in content, (
+            "ParallelCoordinator должен сохранять error_handler"
+        )
+        assert "self._file_merger" in content, "ParallelCoordinator должен сохранять file_merger"
 
 
 # =============================================================================

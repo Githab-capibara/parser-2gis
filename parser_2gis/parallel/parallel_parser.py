@@ -142,10 +142,10 @@ class ParallelCityParser:
         # H6: Централизация валидации в validation/data_validator.py
         # Валидация городов
         validate_cities_config(cities, "cities")
-        
+
         # Валидация категорий
         validate_categories_config(categories, "categories")
-        
+
         # Валидация конфигурации параллельного парсинга
         validate_parallel_config(
             max_workers=max_workers,

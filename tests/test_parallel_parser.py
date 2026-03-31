@@ -13,7 +13,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Импортируем напрямую без использования parser_2gis.__init__
-from parser_2gis.data.categories_93 import (  # noqa: E402
+from parser_2gis.resources.categories_93 import (  # noqa: E402
     CATEGORIES_93,
     generate_urls_for_city,
     get_categories_list,

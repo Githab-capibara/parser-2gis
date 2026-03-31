@@ -183,9 +183,9 @@ class ApplicationLauncher:
         """
         try:
             # Импортируем здесь для избежания циклических зависимостей
-            from parser_2gis.resources import CATEGORIES_93, load_cities_json
             from parser_2gis.parallel import ParallelCityParser
             from parser_2gis.paths import resources_path
+            from parser_2gis.resources import CATEGORIES_93, load_cities_json
 
             # Загружаем города
             cities_path = resources_path() / "cities.json"
@@ -271,8 +271,8 @@ class ApplicationLauncher:
         """
         try:
             from parser_2gis.cli import cli_app
-            from parser_2gis.resources import load_cities_json
             from parser_2gis.paths import resources_path
+            from parser_2gis.resources import load_cities_json
             from parser_2gis.utils.url_utils import generate_city_urls
 
             urls = args.url or []

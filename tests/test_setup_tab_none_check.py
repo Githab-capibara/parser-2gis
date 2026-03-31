@@ -178,6 +178,7 @@ class TestSetupTabNoneCheck:
         - Порядок операций корректный
         """
         import inspect
+
         from parser_2gis.chrome.remote import ChromeRemote
 
         # Получаем исходный код метода

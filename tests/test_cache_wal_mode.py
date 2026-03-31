@@ -10,7 +10,6 @@
 
 from pathlib import Path
 
-
 from parser_2gis.cache.manager import CacheManager
 
 

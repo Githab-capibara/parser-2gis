@@ -615,6 +615,32 @@ class CacheManager:
                 raise
             app_logger.error("Ошибка БД при очистке кэша: %s", db_error)
 
+    def delete(self, url: str) -> None:
+        """Удаление записи из кэша по URL.
+
+        Args:
+            url: URL для удаления из кэша.
+        """
+        if not self._pool:
+            return
+
+        try:
+            url_hash = self._hash_url(url)
+        except (ValueError, TypeError):
+            return
+
+        conn = self._pool.get_connection()
+
+        try:
+            conn.execute(self.SQL_DELETE, (url_hash,))
+            conn.commit()
+        except sqlite3.Error as db_error:
+            error_str = str(db_error).lower()
+            if "disk i/o error" in error_str or "no such table" in error_str:
+                app_logger.critical("Критическая ошибка БД при удалении кэша: %s", db_error)
+                raise
+            app_logger.error("Ошибка БД при удалении кэша: %s", db_error)
+
     def clear_expired(self) -> int:
         """Очистка истекшего кэша.
 

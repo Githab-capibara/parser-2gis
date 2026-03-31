@@ -1,7 +1,97 @@
 # Архитектура проекта parser-2gis
 
-**Версия:** 2.4.0
+**Версия:** 2.5.0
 **Дата обновления:** 2026-03-31
+
+## Основные изменения в версии 2.5.0
+
+### Application Layer (Фасады)
+
+Выделен Application Layer с фасадами для упрощения взаимодействия с основными компонентами:
+
+- **Пакет:** `application/` — Application Layer
+- **Файл:** `application/layer.py` — Фасады (ParserFacade, CacheFacade, BrowserFacade)
+- **Компоненты:**
+  - `ParserFacade` — фасад для создания и использования парсеров
+  - `CacheFacade` — фасад для операций кэширования
+  - `BrowserFacade` — фасад для работы с браузером
+- **Преимущества:**
+  - Упрощение API для клиентов
+  - Снижение связанности между слоями
+  - Улучшенная тестируемость через подмену фасадов
+  - Следование принципу Facade pattern
+
+### Infrastructure Layer
+
+Выделен Infrastructure Layer для инфраструктурных зависимостей:
+
+- **Пакет:** `infrastructure/` — Infrastructure Layer
+- **Файл:** `infrastructure/resource_monitor.py` — Мониторинг ресурсов
+- **Компоненты:**
+  - `MemoryMonitor` — мониторинг памяти
+  - `ResourceMonitor` — общий мониторинг ресурсов
+  - `ResourceMonitorFacade` — фасад для мониторинга
+  - `MemoryInfo` — dataclass информации о памяти
+- **Преимущества:**
+  - Изоляция зависимостей (psutil только в infrastructure)
+  - Централизация мониторинга ресурсов
+  - Улучшенная тестируемость
+  - Следование принципу Single Responsibility
+
+### Resources пакет
+
+Создан пакет для централизованного хранения ресурсов:
+
+- **Пакет:** `resources/` — Пакет ресурсов
+- **Файлы:**
+  - `resources/categories_93.py` — 93 категории парсинга
+  - `resources/cities_loader.py` — загрузчик городов из cities.json
+- **Преимущества:**
+  - Централизация статических данных
+  - Упрощение доступа к ресурсам
+  - Чёткое разделение данных и кода
+
+### Централизованная валидация конфигурации
+
+Расширен модуль validation для централизованной валидации:
+
+- **Модуль:** `validation/` — Модуль валидации
+- **Функции:**
+  - `validate_cities_config()` — валидация конфигурации городов
+  - `validate_categories_config()` — валидация конфигурации категорий
+  - `validate_parallel_config()` — валидация параллельной конфигурации
+- **Преимущества:**
+  - Раннее обнаружение ошибок конфигурации
+  - Централизация логики валидации
+  - Информативные сообщения об ошибках
+  - Использование в parallel_parser.py и coordinator.py
+
+### Dependency Injection улучшения
+
+Улучшено использование Dependency Injection:
+
+- **ParallelCoordinator:** Принимает зависимости через конструктор
+- **ParserFactory (get_parser):** Поддержка внедрения браузера через Protocol
+- **ApplicationLauncher:** Внедрение SignalHandlerFactory
+- **Преимущества:**
+  - Улучшенная тестируемость через подмену зависимостей
+  - Следование принципу Dependency Inversion
+  - Снижение связанности между компонентами
+
+### Архитектурные тесты
+
+Добавлено 8 новых тестовых файлов для проверки архитектурных принципов:
+
+- `test_architecture_resources.py` — 6 тестов структуры resources/
+- `test_architecture_facades.py` — 11 тестов Application Layer фасадов
+- `test_architecture_infrastructure.py` — 11 тестов Infrastructure слоя
+- `test_architecture_validation.py` — 15 тестов централизованной валидации
+- `test_architecture_di.py` — 12 тестов Dependency Injection
+- `test_architecture_no_duplicates.py` — 9 тестов отсутствия дублирования
+- `test_architecture_module_independence.py` — 9 тестов независимости модулей
+- `test_architecture_solid_extra.py` — 14 тестов принципов SOLID
+
+**Итого:** 1642+ тестов (95%+ coverage)
 
 ## Основные изменения в версии 2.4.0
 
@@ -189,6 +279,22 @@
 - Предотвращение архитектурной регрессии
 - Гарантия качества рефакторинга
 
+### Метрики архитектуры v2.5.0
+
+| Метрика | Было (v2.4.0) | Стало (v2.5.0) | Изменение |
+|---------|------|-------|-----------|
+| Файлов >1000 строк | 0 | 0 | ✅ Без изменений |
+| Файлов >500 строк | 5 | 5 | ⚠️ Требуется рефакторинг |
+| Циклические зависимости | 0 | 0 | ✅ Без изменений |
+| Application Layer фасадов | 0 | 3 | ✅ Добавлено |
+| Infrastructure Layer компонентов | 0 | 4 | ✅ Добавлено |
+| Функций централизованной валидации | 0 | 3 | ✅ Добавлено |
+| Архитектурных тестов | 238 | 325 | ✅ Добавлено 87 тестов |
+| Тестов всего | 1547 | 1642 | ✅ Улучшено |
+| Тестовых файлов | 101 | 109 | ✅ Добавлено 8 файлов |
+| Покрытие тестами | 95%+ | 95%+ | ✅ Поддержано |
+| Оценка Pylint | 10.00/10 | 10.00/10 | ✅ Без изменений |
+
 ### Метрики архитектуры v2.4.0
 
 | Метрика | Было (v2.3.0) | Стало (v2.4.0) | Изменение |
@@ -365,6 +471,9 @@
 
 ```
 parser_2gis/
+├── application/         # Application Layer (НОВЫЙ в v2.5.0)
+│   ├── __init__.py      # Экспорт фасадов: ParserFacade, CacheFacade, BrowserFacade
+│   └── layer.py         # Фасады для упрощения работы с компонентами
 ├── cache/               # Пакет кэширования на SQLite (НОВЫЙ в v2.1.0)
 │   ├── __init__.py      # Экспорт API: CacheManager
 │   ├── manager.py       # CacheManager класс (кэширование)
@@ -395,9 +504,13 @@ parser_2gis/
 │   ├── main.py          # Точка входа CLI
 │   ├── progress.py      # Индикатор прогресса
 │   └── validator.py     # Валидация аргументов
-├── data/                # Данные (города, категории, рубрики)
-│   ├── cities_loader.py # Загрузчик городов (НОВЫЙ в v2.1.8)
-│   └── ...
+├── config.py            # Конфигурация через Pydantic
+├── config_service.py    # Сервис операций с конфигурацией
+├── constants.py         # Централизованные константы
+├── exceptions.py        # Иерархия исключений
+├── infrastructure/      # Infrastructure Layer (НОВЫЙ в v2.5.0)
+│   ├── __init__.py      # Экспорт: MemoryMonitor, ResourceMonitor, ResourceMonitorFacade
+│   └── resource_monitor.py # Мониторинг системных ресурсов (psutil wrapper)
 ├── logger/              # Модуль логирования (объединён с logging/ в v2.3.0)
 │   ├── __init__.py      # Экспорт API
 │   ├── handlers.py      # Обработчики логов
@@ -424,6 +537,10 @@ parser_2gis/
 │   ├── options.py
 │   ├── smart_retry.py
 │   └── utils.py
+├── resources/           # Пакет ресурсов (НОВЫЙ в v2.5.0)
+│   ├── __init__.py      # Экспорт: CATEGORIES_93, load_cities_json
+│   ├── categories_93.py # 93 категории парсинга
+│   └── cities_loader.py # Загрузчик городов из cities.json
 ├── runner/              # Модуль запуска парсера
 ├── tui_textual/         # TUI интерфейс на Textual
 ├── utils/               # Общие утилиты (НОВЫЙ в v2.0.0, расширен в v2.1.7, v2.3.0)
@@ -440,7 +557,7 @@ parser_2gis/
 │   ├── temp_file_manager.py # Менеджер временных файлов (НОВЫЙ в v2.1.7)
 │   ├── url_utils.py     # Генерация URL
 │   └── validation_utils.py # Валидация городов/категорий
-├── validation/          # Модуль валидации
+├── validation/          # Модуль валидации (РАСШИРЕН в v2.5.0)
 │   ├── __init__.py      # Экспорт API
 │   ├── data_validator.py # Валидация данных
 │   ├── legacy.py        # Обратная совместимость
@@ -459,9 +576,6 @@ parser_2gis/
 │   ├── exceptions.py
 │   ├── factory.py       # Registry pattern для writers
 │   └── options.py
-├── config.py            # Конфигурация через Pydantic
-├── constants.py         # Централизованные константы
-├── exceptions.py        # Иерархия исключений
 ├── main.py              # CLI точка входа (обратная совместимость)
 ├── protocols.py         # Protocol для callback и интерфейсов
 │                        # BrowserService, CacheReader, CacheWriter, CacheBackend

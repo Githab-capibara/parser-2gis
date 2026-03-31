@@ -449,8 +449,8 @@ class TestArchitecturalImprovementsIntegration:
         """
         # Простая проверка: импорты должны работать
         try:
-            from parser_2gis.parallel import parallel_parser
             from parser_2gis.chrome import remote
+            from parser_2gis.parallel import parallel_parser
 
             assert hasattr(parallel_parser, "ParallelCityParser")
             assert hasattr(remote, "ChromeRemote")

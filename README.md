@@ -35,9 +35,9 @@
 | Параллельные потоки | До 20 одновременных работников |
 | Форматы вывода | CSV, XLSX, JSON |
 | Кэширование | SQLite с TTL 24 часа, connection pool (5-20 соединений, динамический размер), WAL режим |
-| Тестовое покрытие | 1547 автоматических тестов (95%+ coverage) |
+| Тестовое покрытие | 1642+ автоматических тестов (95%+ coverage) |
 | Качество кода | Pylint 10.00/10, Ruff clean, Black formatted |
-| Архитектура | SOLID принципы, Protocol абстракции, 0 циклических зависимостей |
+| Архитектура | SOLID принципы, Protocol абстракции, 0 циклических зависимостей, Application/Infrastructure слои |
 
 ### Ключевые функции
 
@@ -62,11 +62,14 @@
 - Weak references для предотвращения утечек памяти
 - **WAL режим в кэше** для улучшенной конкурентности SQLite
 - **Упрощённый ProcessManager** с terminate/kill методами
-- **Централизованная валидация путей** через path_validator
+- **Централизованная валидация** через validation модуль (cities, categories, parallel config)
 - **Обработка MemoryError** в параллельном парсинге
 - **Периодическая очистка visited_links** для предотвращения утечек памяти
 - **Таймаут подключения Chrome** (30 сек) для предотвращения зависаний
 - **Проверка на None в _setup_tab()** для надёжной работы с вкладками
+- **Application Layer фасады** (ParserFacade, CacheFacade, BrowserFacade) для упрощения API
+- **Infrastructure слой** для мониторинга ресурсов (MemoryMonitor, ResourceMonitor)
+- **Resources пакет** для централизованного хранения данных (cities.json, rubrics.json, images/)
 
 **Производительность:**
 - Кэширование результатов на SQLite
@@ -810,6 +813,9 @@ parser_2gis/
 ├── __init__.py          # Экспорт основных компонентов
 ├── __main__.py          # Точка входа python -m
 ├── main.py              # CLI точка входа
+├── application/         # Application Layer (НОВЫЙ в v2.4.0)
+│   ├── __init__.py      # Экспорт фасадов: ParserFacade, CacheFacade, BrowserFacade
+│   └── layer.py         # Фасады для упрощения работы с компонентами
 ├── cache/               # Пакет кэширования на SQLite
 │   ├── __init__.py      # Экспорт API: CacheManager
 │   ├── manager.py       # CacheManager класс
@@ -839,6 +845,9 @@ parser_2gis/
 ├── config_service.py    # Сервис операций с конфигурацией (НОВЫЙ в v2.1.7)
 ├── constants.py         # Централизованные константы
 ├── exceptions.py        # Иерархия исключений
+├── infrastructure/      # Infrastructure Layer (НОВЫЙ в v2.4.0)
+│   ├── __init__.py      # Экспорт: MemoryMonitor, ResourceMonitor, ResourceMonitorFacade
+│   └── resource_monitor.py # Мониторинг системных ресурсов (psutil wrapper)
 ├── parallel/            # Модуль параллельной обработки
 │   ├── __init__.py      # Экспорт API
 │   ├── file_merger.py   # Слияние CSV файлов
@@ -896,12 +905,16 @@ parser_2gis/
 │   ├── temp_file_manager.py # Менеджер временных файлов (НОВЫЙ в v2.1.7)
 │   ├── url_utils.py     # Генерация URL
 │   └── validation_utils.py # Валидация городов/категорий
-├── validation/          # Модуль валидации
+├── validation/          # Модуль валидации (НОВЫЙ в v2.4.0)
 │   ├── __init__.py      # Экспорт API
 │   ├── data_validator.py # Валидация данных
 │   ├── legacy.py        # Обратная совместимость
 │   ├── path_validator.py # Валидация путей
 │   └── url_validator.py # Валидация URL
+├── resources/           # Пакет ресурсов (НОВЫЙ в v2.4.0)
+│   ├── __init__.py      # Экспорт: CATEGORIES_93, load_cities_json
+│   ├── categories_93.py # 93 категории парсинга
+│   └── cities_loader.py # Загрузчик городов из cities.json
 ├── paths.py             # Управление путями
 ├── protocols.py         # Protocol для callback и интерфейсов
 │                        # BrowserService, CacheBackend, ExecutionBackend (НОВЫЕ в v2.1.7)
@@ -915,7 +928,7 @@ parser_2gis/
 
 ### Технологический стек
 
-| Компонент | Назначение |
+| Компонент | Наззначение |
 |-----------|------------|
 | **Python 3.10-3.12** | Основная платформа |
 | **Pydantic v2** | Валидация и сериализация данных |
@@ -927,6 +940,111 @@ parser_2gis/
 | **orjson** | Быстрая JSON сериализация |
 | **XLSXWriter** | Генерация XLSX файлов |
 | **Jinja2** | Шаблонизация для экспорта |
+
+### Application Layer (НОВЫЙ в v2.4.0)
+
+Application Layer предоставляет фасады для упрощения взаимодействия с основными компонентами системы:
+
+**Фасады:**
+
+| Фасад | Назначение | Методы |
+|-------|------------|--------|
+| **ParserFacade** | Упрощение создания и использования парсеров | `create_parser()`, `parse_url()` |
+| **CacheFacade** | Упрощение операций кэширования | `get()`, `set()`, `exists()`, `delete()`, `close()` |
+| **BrowserFacade** | Упрощение работы с браузером | `create_browser()` |
+
+**Преимущества:**
+- **Упрощение API:** Единый интерфейс для сложных операций
+- **Снижение связанности:** CLI код работает с фасадами, а не с конкретными реализациями
+- **Тестируемость:** Легко подменять фасады mock-объектами
+- **Следование принципу Facade pattern:** Скрытие сложности подсистем
+
+**Пример использования:**
+```python
+from parser_2gis.application import ParserFacade, CacheFacade
+
+# Создание парсера через фасад
+parser = ParserFacade.create_parser(
+    url="https://2gis.ru/moscow/search/Аптеки",
+    chrome_options=chrome_opts,
+    parser_options=parser_opts,
+)
+
+# Кэширование через фасад
+cache = CacheFacade(cache_path="./cache")
+cached_data = cache.get("key")
+if not cache.exists("key"):
+    cache.set("key", data, ttl=3600)
+```
+
+### Infrastructure Layer (НОВЫЙ в v2.4.0)
+
+Infrastructure Layer предоставляет инфраструктурные абстракции для мониторинга системных ресурсов:
+
+**Компоненты:**
+
+| Компонент | Назначение | Методы |
+|-----------|------------|--------|
+| **MemoryMonitor** | Мониторинг памяти | `get_available_memory()`, `get_memory_usage()` |
+| **ResourceMonitor** | Общий мониторинг ресурсов | `get_memory_monitor()`, `check_memory_threshold()` |
+| **ResourceMonitorFacade** | Фасад для мониторинга | Упрощённый интерфейс к ResourceMonitor |
+| **MemoryInfo** | Dataclass информации о памяти | `available_mb`, `used_percent`, `total_mb` |
+
+**Преимущества:**
+- **Изоляция зависимостей:** psutil импортируется только в infrastructure слое
+- **Централизация мониторинга:** Единая точка для всех проверок памяти
+- **Тестируемость:** Легко подменять мониторы mock-объектами
+- **Следование принципу Single Responsibility:** Чёткое разделение ответственности
+
+**Пример использования:**
+```python
+from parser_2gis.infrastructure import ResourceMonitor, MemoryMonitor
+
+# Мониторинг памяти
+monitor = MemoryMonitor()
+available = monitor.get_available_memory()  # MB
+usage = monitor.get_memory_usage()  # MemoryInfo
+
+# Проверка порога памяти
+resource_monitor = ResourceMonitor()
+if resource_monitor.check_memory_threshold(80):  # 80%
+    # Память ниже порога, можно продолжать работу
+    pass
+```
+
+### Централизованная валидация (НОВЫЙ в v2.4.0)
+
+Модуль validation предоставляет централизованные функции валидации конфигурации:
+
+**Функции валидации:**
+
+| Функция | Назначение | Проверяемые параметры |
+|---------|------------|----------------------|
+| **validate_cities_config()** | Валидация конфигурации городов | code, domain, name, наличие всех полей |
+| **validate_categories_config()** | Валидация конфигурации категорий | id, name, url_template, наличие всех полей |
+| **validate_parallel_config()** | Валидация параллельной конфигурации | workers_count, timeout, диапазоны значений |
+
+**Преимущества:**
+- **Централизация логики:** Вся валидация в одном модуле
+- **Раннее обнаружение ошибок:** Валидация до начала выполнения
+- **Информативные сообщения:** Чёткие ошибки при нарушении конфигурации
+- **Использование в parallel_parser.py и coordinator.py:** Гарантированная валидация входных данных
+
+**Пример использования:**
+```python
+from parser_2gis.validation import (
+    validate_cities_config,
+    validate_categories_config,
+    validate_parallel_config,
+)
+
+# Валидация городов
+cities = [{"code": "msk", "domain": "moscow.2gis.ru", "name": "Москва"}]
+validate_cities_config(cities, "cities")  # ValueError при ошибке
+
+# Валидация параллельной конфигурации
+validate_parallel_config(workers_count=5, timeout=300)  # ValueError при ошибке
+```
 
 ### Protocol абстракции (НОВЫЕ в v2.1.7)
 

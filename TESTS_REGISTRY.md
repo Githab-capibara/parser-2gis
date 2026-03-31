@@ -2,8 +2,8 @@
 
 **Дата последней актуализации:** 31 марта 2026
 **Дата последней очистки:** 31 марта 2026
-**Общее количество тестовых файлов:** 101
-**Общее количество тестов:** 1547
+**Общее количество тестовых файлов:** 109
+**Общее количество тестов:** 1642
 **Pass Rate:** 95%+ coverage ✅
 
 ---
@@ -15,6 +15,14 @@
 | Critical Fixes тесты | 1 | 25 | 100.0% |
 | Bugfixes тесты | 1 | 14 | 100.0% |
 | Architecture Integrity тесты | 1 | 41 | 100.0% |
+| Architecture Resources тесты | 1 | 6 | 100.0% |
+| Architecture Facades тесты | 1 | 11 | 100.0% |
+| Architecture Infrastructure тесты | 1 | 11 | 100.0% |
+| Architecture Validation тесты | 1 | 15 | 100.0% |
+| Architecture DI тесты | 1 | 12 | 100.0% |
+| Architecture No Duplicates тесты | 1 | 9 | 100.0% |
+| Architecture Module Independence тесты | 1 | 9 | 100.0% |
+| Architecture SOLID Extra тесты | 1 | 14 | 100.0% |
 
 ---
 
@@ -178,6 +186,167 @@
 | 6 | `test_setup_tab_none_concurrent` | Проверка None в потоках |
 | 7 | `test_setup_tab_none_prevention` | Проверка предотвращения None |
 | 8 | `test_setup_tab_none_integration` | Интеграционный тест None обработки |
+
+---
+
+## 🆕 НОВЫЕ АРХИТЕКТУРНЫЕ ТЕСТЫ (Март 2026)
+
+### test_architecture_resources.py
+**Количество тестов:** 6
+**Описание:** Тесты для новой структуры resources/
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_resources_directory_exists` | Проверка существования директории resources/ |
+| 2 | `test_resources_has_cities_json` | Проверка наличия cities.json в resources/ |
+| 3 | `test_resources_has_rubrics_json` | Проверка наличия rubrics.json в resources/ |
+| 4 | `test_resources_has_images` | Проверка наличия изображений в resources/images/ |
+| 5 | `test_old_data_directories_removed` | Проверка удаления старых data/ директорий |
+| 6 | `test_resources_path_function` | Проверка работы функции resources_path() |
+
+---
+
+### test_architecture_facades.py
+**Количество тестов:** 11
+**Описание:** Тесты для Application Layer фасадов
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_parser_facade_exists` | Проверка существования ParserFacade |
+| 2 | `test_parser_facade_create_parser` | Проверка метода create_parser |
+| 3 | `test_parser_facade_with_browser_di` | Проверка DI через browser параметр |
+| 4 | `test_cache_facade_exists` | Проверка существования CacheFacade |
+| 5 | `test_cache_facade_operations` | Проверка операций кэширования |
+| 6 | `test_cache_facade_context_manager` | Проверка контекстного менеджера |
+| 7 | `test_browser_facade_exists` | Проверка существования BrowserFacade |
+| 8 | `test_browser_facade_create_browser` | Проверка метода create_browser |
+| 9 | `test_facades_used_in_cli` | Проверка использования фасадов в CLI |
+| 10 | `test_facades_are_importable_from_application` | Проверка импорта из application |
+| 11 | `test_application_init_exports_facades` | Проверка экспорта фасадов в __init__ |
+
+---
+
+### test_architecture_infrastructure.py
+**Количество тестов:** 11
+**Описание:** Тесты для Infrastructure слоя
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_infrastructure_package_exists` | Проверка существования пакета infrastructure/ |
+| 2 | `test_infrastructure_init_exists` | Проверка existence infrastructure/__init__.py |
+| 3 | `test_memory_monitor_exists` | Проверка существования MemoryMonitor |
+| 4 | `test_memory_monitor_get_available_memory` | Проверка метода get_available_memory |
+| 5 | `test_memory_monitor_get_memory_usage` | Проверка метода get_memory_usage |
+| 6 | `test_memory_info_properties` | Проверка свойств MemoryInfo |
+| 7 | `test_resource_monitor_exists` | Проверка существования ResourceMonitor |
+| 8 | `test_resource_monitor_get_memory_monitor` | Проверка метода get_memory_monitor |
+| 9 | `test_psutil_not_imported_in_parallel` | Проверка что psutil не импортируется в parallel/ |
+| 10 | `test_psutil_not_imported_in_parser` | Проверка что psutil не импортируется в parser/ |
+| 11 | `test_psutil_imported_only_in_infrastructure` | Проверка что psutil только в infrastructure/ |
+
+---
+
+### test_architecture_validation.py
+**Количество тестов:** 15
+**Описание:** Тесты для централизованной валидации
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_validate_cities_config_exists` | Проверка существования validate_cities_config |
+| 2 | `test_validate_cities_config_valid` | Проверка валидации корректных городов |
+| 3 | `test_validate_cities_config_invalid` | Проверка валидации некорректных городов |
+| 4 | `test_validate_cities_config_missing_fields` | Проверка городов с отсутствующими полями |
+| 5 | `test_validate_categories_config_exists` | Проверка существования validate_categories_config |
+| 6 | `test_validate_categories_config_valid` | Проверка валидации корректных категорий |
+| 7 | `test_validate_categories_config_invalid` | Проверка валидации некорректных категорий |
+| 8 | `test_validate_parallel_config_exists` | Проверка существования validate_parallel_config |
+| 9 | `test_validate_parallel_config_valid` | Проверка валидации корректной конфигурации |
+| 10 | `test_validate_parallel_config_invalid_workers` | Проверка некорректного workers_count |
+| 11 | `test_validate_parallel_config_invalid_timeout` | Проверка некорректного timeout |
+| 12 | `test_validation_used_in_parallel_parser` | Проверка использования в parallel_parser |
+| 13 | `test_parallel_parser_calls_validation` | Проверка вызова валидации в parallel_parser |
+| 14 | `test_validation_used_in_coordinator` | Проверка использования в coordinator |
+| 15 | `test_coordinator_calls_validation` | Проверка вызова валидации в coordinator |
+
+---
+
+### test_architecture_di.py
+**Количество тестов:** 12
+**Описание:** Тесты для Dependency Injection
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_parallel_coordinator_accepts_dependencies` | Проверка DI в ParallelCoordinator |
+| 2 | `test_parallel_coordinator_default_dependencies` | Проверка DI по умолчанию |
+| 3 | `test_parallel_coordinator_constructor_signature` | Проверка сигнатуры конструктора |
+| 4 | `test_main_page_parser_accepts_browser` | Проверка DI в MainPageParser |
+| 5 | `test_main_page_parser_constructor_signature` | Проверка сигнатуры конструктора |
+| 6 | `test_firm_parser_accepts_browser` | Проверка DI в FirmParser |
+| 7 | `test_in_building_parser_accepts_browser` | Проверка DI в InBuildingParser |
+| 8 | `test_get_parser_accepts_browser` | Проверка DI в get_parser |
+| 9 | `test_get_parser_factory_signature` | Проверка сигнатуры фабрики |
+| 10 | `test_application_launcher_accepts_signal_handler_factory` | Проверка DI в ApplicationLauncher |
+| 11 | `test_application_launcher_default_signal_handler` | Проверка DI по умолчанию |
+| 12 | `test_application_launcher_constructor_signature` | Проверка сигнатуры конструктора |
+
+---
+
+### test_architecture_no_duplicates.py
+**Количество тестов:** 9
+**Описание:** Тесты отсутствия дублирования
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_no_duplicate_cities_files` | Проверка отсутствия дублирующих cities файлов |
+| 2 | `test_cities_json_is_valid` | Проверка валидности cities.json |
+| 3 | `test_no_duplicate_rubrics_files` | Проверка отсутствия дублирующих rubrics файлов |
+| 4 | `test_rubrics_json_is_valid` | Проверка валидности rubrics.json |
+| 5 | `test_validation_functions_in_validation_module` | Проверка функций в validation модуле |
+| 6 | `test_no_duplicate_validate_cities` | Проверка отсутствия дублирования validate_cities |
+| 7 | `test_no_duplicate_validate_categories` | Проверка отсутствия дублирования validate_categories |
+| 8 | `test_no_duplicate_validate_parallel_config` | Проверка отсутствия дублирования validate_parallel_config |
+| 9 | `test_validation_module_exports_all_functions` | Проверка экспорта всех функций валидации |
+
+---
+
+### test_architecture_module_independence.py
+**Количество тестов:** 9
+**Описание:** Тесты независимости модулей
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_cli_does_not_import_business_logic` | Проверка что CLI не импортирует бизнес-логику |
+| 2 | `test_cli_uses_facades` | Проверка что CLI использует фасады |
+| 3 | `test_cli_imports_are_layered` | Проверка слоёных импортов в CLI |
+| 4 | `test_no_circular_dependencies_in_parallel` | Проверка отсутствия циклов в parallel/ |
+| 5 | `test_parallel_modules_have_clear_responsibilities` | Проверка чётких ответственностей модулей |
+| 6 | `test_utils_modules_are_independent` | Проверка независимости utils модулей |
+| 7 | `test_utils_modules_are_reusable` | Проверка переиспользуемости utils модулей |
+| 8 | `test_paths_module_is_independent` | Проверка независимости paths модуля |
+| 9 | `test_validation_module_is_independent` | Проверка независимости validation модуля |
+
+---
+
+### test_architecture_solid_extra.py
+**Количество тестов:** 14
+**Описание:** Дополнительные тесты принципов SOLID
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_parallel_coordinator_has_single_responsibility` | Проверка SRP в ParallelCoordinator |
+| 2 | `test_parallel_error_handler_has_single_responsibility` | Проверка SRP в ParallelErrorHandler |
+| 3 | `test_parallel_file_merger_has_single_responsibility` | Проверка SRP в ParallelFileMerger |
+| 4 | `test_parallel_coordinator_uses_di` | Проверка DIP в ParallelCoordinator |
+| 5 | `test_parser_uses_browser_protocol` | Проверка DIP в парсерах |
+| 6 | `test_protocols_are_used_for_abstractions` | Проверка использования Protocol |
+| 7 | `test_browser_protocol_is_segregated` | Проверка ISP в BrowserService |
+| 8 | `test_callback_protocols_are_segregated` | Проверка ISP в callback Protocol |
+| 9 | `test_protocols_are_not_fat` | Проверка что Protocol не перегружены |
+| 10 | `test_all_solid_principles_are_applied` | Проверка всех принципов SOLID |
+| 11 | `test_infrastructure_layer_is_isolated` | Проверка изоляции Infrastructure Layer |
+| 12 | `test_application_layer_provides_facades` | Проверка что Application Layer предоставляет фасады |
+| 13 | `test_layers_are_separated` | Проверка разделения слоёв |
+| 14 | `test_no_cross_layer_violations` | Проверка отсутствия нарушений слоёв |
 
 ---
 

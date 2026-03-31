@@ -71,7 +71,7 @@ class ParallelCoordinator:
 
     Запускает несколько браузеров одновременно для парсинга разных URL.
     Результаты сохраняются в отдельную папку output/, затем объединяются.
-    
+
     H3: Dependency Injection для errorHandler и fileMerger через конструктор.
     """
 
@@ -108,7 +108,7 @@ class ParallelCoordinator:
             ...     max_workers=5,
             ... )
             >>> coordinator = ParallelCoordinator(**run_config.to_dict())
-            
+
         H3: Dependency Injection через конструктор:
             - error_handler и file_merger могут быть переданы извне
             - По умолчанию создаются внутренние экземпляры для обратной совместимости
@@ -174,15 +174,15 @@ class ParallelCoordinator:
         output_dir: str,
     ) -> None:
         """Валидирует входные данные с использованием централизованных функций валидации.
-        
+
         H6: Централизация валидации в validation/data_validator.py
         """
         # Валидация городов
         validate_cities_config(cities, "cities")
-        
+
         # Валидация категорий
         validate_categories_config(categories, "categories")
-        
+
         # Валидация конфигурации параллельного парсинга
         validate_parallel_config(
             max_workers=max_workers,
@@ -192,7 +192,7 @@ class ParallelCoordinator:
             min_timeout=MIN_TIMEOUT,
             max_timeout=MAX_TIMEOUT,
         )
-        
+
         # Валидация output_dir
         if not output_dir:
             raise ValueError("output_dir не может быть пустым")

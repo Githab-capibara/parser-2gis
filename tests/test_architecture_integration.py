@@ -124,7 +124,8 @@ class TestParallelCoordinatorIntegration:
 
         content = coordinator_file.read_text(encoding="utf-8")
 
-        assert "self._error_handler = ParallelErrorHandler(" in content, (
+        # Координатор использует DI: error_handler или создаёт ParallelErrorHandler
+        assert "ParallelErrorHandler(" in content, (
             "coordinator.py должен создавать экземпляр ParallelErrorHandler"
         )
 
@@ -137,7 +138,8 @@ class TestParallelCoordinatorIntegration:
 
         content = coordinator_file.read_text(encoding="utf-8")
 
-        assert "self._file_merger = ParallelFileMerger(" in content, (
+        # Координатор использует DI: file_merger или создаёт ParallelFileMerger
+        assert "ParallelFileMerger(" in content, (
             "coordinator.py должен создавать экземпляр ParallelFileMerger"
         )
 

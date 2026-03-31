@@ -199,6 +199,7 @@ class TestConnectInterfaceTimeout:
         """
         # Проверяем значение в коде через inspect
         import inspect
+
         from parser_2gis.chrome.remote import ChromeRemote
 
         source = inspect.getsource(ChromeRemote._connect_interface)

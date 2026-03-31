@@ -16,9 +16,4 @@ from parser_2gis.infrastructure.resource_monitor import (
     ResourceMonitorFacade,
 )
 
-__all__ = [
-    "MemoryInfo",
-    "MemoryMonitor",
-    "ResourceMonitor",
-    "ResourceMonitorFacade",
-]
+__all__ = ["MemoryInfo", "MemoryMonitor", "ResourceMonitor", "ResourceMonitorFacade"]

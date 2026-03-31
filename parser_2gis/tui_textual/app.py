@@ -18,8 +18,8 @@ from textual.binding import Binding
 from textual.widgets import Footer, Header
 
 from parser_2gis.config import Configuration
-from parser_2gis.resources import CATEGORIES_93
 from parser_2gis.parallel import ParallelCityParser
+from parser_2gis.resources import CATEGORIES_93
 
 from .screens import (
     AboutScreen,
