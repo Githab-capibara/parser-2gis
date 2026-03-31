@@ -122,13 +122,19 @@ MAX_PATH_LENGTH: int = 4096
 DEFAULT_BATCH_SIZE: int = 100
 
 # Максимальный возраст соединения в секундах (5 минут)
-MAX_CONNECTION_AGE: int = 300
+# HIGH 10: Вынесено в ENV переменную для гибкой настройки
+MAX_CONNECTION_AGE: int = validate_env_int(
+    "PARSER_MAX_CONNECTION_AGE", default=300, min_value=60, max_value=3600
+)
 
 # Максимальный размер пакета для предотвращения DoS атак
 MAX_BATCH_SIZE: int = 1000
 
 # Максимальный размер кэша в мегабайтах
-MAX_CACHE_SIZE_MB: int = 500
+# HIGH 10: Вынесено в ENV переменную для гибкой настройки
+MAX_CACHE_SIZE_MB: int = validate_env_int(
+    "PARSER_MAX_CACHE_SIZE_MB", default=500, min_value=100, max_value=2000
+)
 
 # Количество записей для удаления при LRU eviction
 LRU_EVICT_BATCH: int = 100
@@ -147,16 +153,21 @@ SHA256_HASH_LENGTH: int = 64
 # - 20 * 5MB = 100MB - разумный предел для большинства систем
 # - queue.Queue для управления соединениями обеспечивает потокобезопасность
 # Допустимый диапазон: 5-50 соединений
-MAX_POOL_SIZE: int = 20
+# HIGH 10: Вынесено в ENV переменную для гибкой настройки
+MAX_POOL_SIZE: int = validate_env_int("PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50)
 
 # Минимальное количество соединений в пуле
 # Допустимый диапазон: 1-10 соединений
-MIN_POOL_SIZE: int = 5
+# HIGH 10: Вынесено в ENV переменную для гибкой настройки
+MIN_POOL_SIZE: int = validate_env_int("PARSER_MIN_POOL_SIZE", default=5, min_value=1, max_value=10)
 
 # Время жизни соединения в секундах (5 минут)
 # Соединения старше этого возраста будут пересозданы
 # Допустимый диапазон: 60-3600 секунд (1 час)
-CONNECTION_MAX_AGE: int = 300
+# HIGH 10: Вынесено в ENV переменную для гибкой настройки
+CONNECTION_MAX_AGE: int = validate_env_int(
+    "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
+)
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ ПАРАЛЛЕЛЬНОГО ПАРСИНГА
@@ -176,23 +187,38 @@ MIN_TIMEOUT: int = 1
 
 # Максимальный таймаут на один URL в секундах (10 часов - практически безлимит)
 # Увеличено для поддержки 40+ параллельных браузеров без таймаутов
-MAX_TIMEOUT: int = 36000
+# HIGH 10: Вынесено в ENV переменную для гибкой настройки
+MAX_TIMEOUT: int = validate_env_int(
+    "PARSER_MAX_TIMEOUT", default=36000, min_value=60, max_value=86400
+)
 
 # Таймаут по умолчанию на один URL в секундах (1 час)
 # Увеличено для стабильной работы с большим количеством параллельных браузеров
-DEFAULT_TIMEOUT: int = 3600
+# HIGH 10: Вынесено в ENV переменную для гибкой настройки
+DEFAULT_TIMEOUT: int = validate_env_int(
+    "PARSER_DEFAULT_TIMEOUT", default=3600, min_value=60, max_value=36000
+)
 
 # Интервал периодической очистки временных файлов в секундах (60 секунд)
 # Допустимый диапазон: 10-3600 секунд (10 минут)
-TEMP_FILE_CLEANUP_INTERVAL: int = 60
+# HIGH 10: Вынесено в ENV переменную для гибкой настройки
+TEMP_FILE_CLEANUP_INTERVAL: int = validate_env_int(
+    "PARSER_TEMP_FILE_CLEANUP_INTERVAL", default=60, min_value=10, max_value=3600
+)
 
 # Максимальное количество временных файлов для мониторинга
 # Допустимый диапазон: 100-10000
-MAX_TEMP_FILES_MONITORING: int = 1000
+# HIGH 10: Вынесено в ENV переменную для гибкой настройки
+MAX_TEMP_FILES_MONITORING: int = validate_env_int(
+    "PARSER_MAX_TEMP_FILES_MONITORING", default=1000, min_value=100, max_value=10000
+)
 
 # Возраст временного файла в секундах, после которого он считается осиротевшим
 # Допустимый диапазон: 60-86400 секунд (1 день)
-ORPHANED_TEMP_FILE_AGE: int = 300
+# HIGH 10: Вынесено в ENV переменную для гибкой настройки
+ORPHANED_TEMP_FILE_AGE: int = validate_env_int(
+    "PARSER_ORPHANED_TEMP_FILE_AGE", default=300, min_value=60, max_value=86400
+)
 
 # Максимальное количество отслеживаемых временных файлов
 # ОБОСНОВАНИЕ: 1000 файлов выбрано исходя из:

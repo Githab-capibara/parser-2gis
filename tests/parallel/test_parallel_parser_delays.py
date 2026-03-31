@@ -43,8 +43,8 @@ class TestParallelParserDelays:
         Returns:
             ParallelCityParser экземпляр.
         """
-        cities = [{"code": "msk", "domain": "moscow.2gis.ru"}]
-        categories = [{"name": "Кафе", "query": "cafe"}]
+        cities = [{"code": "msk", "domain": "moscow.2gis.ru", "name": "Москва"}]
+        categories = [{"id": "1", "name": "Кафе"}]
 
         parser = ParallelCityParser(
             cities=cities,
@@ -71,8 +71,8 @@ class TestParallelParserDelays:
                     mock_sem.acquire.return_value = None
                     mock_sem._value = 1
 
-                    with patch("parser_2gis.parallel.parallel_parser.get_writer"):
-                        with patch("parser_2gis.parallel.parallel_parser.get_parser"):
+                    with patch("parser_2gis.writer.factory.get_writer"):
+                        with patch("parser_2gis.parser.factory.get_parser"):
                             # Запускаем метод, который содержит задержку
                             try:
                                 mock_parallel_parser.parse_single_url(
@@ -83,11 +83,20 @@ class TestParallelParserDelays:
                             except Exception:
                                 pass  # Игнорируем ошибки, нас интересуют только вызовы задержек
 
-                # Проверяем, что random.uniform вызван с правильными аргументами
-                # Первый вызов должен быть для initial_delay
-                assert mock_uniform.call_count >= 1
+                # Проверяем, что random.uniform вызывался
+                assert mock_uniform.call_count >= 1, (
+                    "random.uniform должен быть вызван хотя бы один раз"
+                )
+
+                # Проверяем что первый вызов использует initial_delay диапазон из конфига
                 first_call_args = mock_uniform.call_args_list[0][0]
-                assert first_call_args == (0.1, 0.2)  # initial_delay_min, initial_delay_max
+                # Ожидаем (initial_delay_min, initial_delay_max) = (0.1, 0.2)
+                assert first_call_args[0] == 0.1, (
+                    f"initial_delay_min должен быть 0.1, получен {first_call_args[0]}"
+                )
+                assert first_call_args[1] == 0.2, (
+                    f"initial_delay_max должен быть 0.2, получен {first_call_args[1]}"
+                )
 
     def test_launch_delay_uses_configured_range(self, mock_parallel_parser: ParallelCityParser):
         """Тест, что задержка запуска использует настроенный диапазон.
@@ -105,8 +114,8 @@ class TestParallelParserDelays:
                     mock_sem.acquire.return_value = None
                     mock_sem._value = 1
 
-                    with patch("parser_2gis.parallel.parallel_parser.get_writer"):
-                        with patch("parser_2gis.parallel.parallel_parser.get_parser"):
+                    with patch("parser_2gis.writer.factory.get_writer"):
+                        with patch("parser_2gis.parser.factory.get_parser"):
                             try:
                                 mock_parallel_parser.parse_single_url(
                                     url="https://example.com",
@@ -116,8 +125,18 @@ class TestParallelParserDelays:
                             except Exception:
                                 pass
 
-                # Проверяем вызовы random.uniform
+                # Проверяем вызовы random.uniform - должно быть хотя бы 2 вызова
+                # (initial_delay и launch_delay)
+                assert mock_uniform.call_count >= 2, (
+                    f"random.uniform должен быть вызван хотя бы 2 раза, вызван {mock_uniform.call_count} раз"
+                )
+
                 # Второй вызов должен быть для launch_delay
-                assert mock_uniform.call_count >= 2
                 second_call_args = mock_uniform.call_args_list[1][0]
-                assert second_call_args == (0.05, 0.1)  # launch_delay_min, launch_delay_max
+                # Ожидаем (launch_delay_min, launch_delay_max) = (0.05, 0.1)
+                assert second_call_args[0] == 0.05, (
+                    f"launch_delay_min должен быть 0.05, получен {second_call_args[0]}"
+                )
+                assert second_call_args[1] == 0.1, (
+                    f"launch_delay_max должен быть 0.1, получен {second_call_args[1]}"
+                )

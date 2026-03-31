@@ -609,6 +609,20 @@ def setup_test_environment() -> Generator[None, None, None]:
         del os.environ["TESTING"]
 
 
+@pytest.fixture(autouse=True)
+def reset_mock_state() -> Generator[None, None, None]:
+    """Автоматическая фикстура для сброса состояния mock'ов между тестами.
+
+    Выполняется после каждого теста для гарантии очистки mock'ов.
+    """
+    yield
+
+    # Сбрасываем все patch'и которые могли остаться
+    from unittest.mock import patch
+
+    patch.stopall()
+
+
 @pytest.fixture
 def mock_response() -> Dict[str, Any]:
     """Фикстура для мок-ответа.

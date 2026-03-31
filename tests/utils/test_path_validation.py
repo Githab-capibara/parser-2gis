@@ -141,21 +141,22 @@ class TestValidatePathUtility:
         # Проверяем что возвращено значение (путь в разрешенной директории)
         assert result is None or isinstance(result, Path)
 
-    def test_validate_path_safety_disallowed_dirs(self):
+    def test_validate_path_safety_disallowed_dirs(self, monkeypatch):
         """Тест проверки запрещенных директорий.
 
         Проверяет:
         - Пути вне разрешенных директорий отклоняются
         - ValueError выбрасывается
         """
+        from pathlib import Path
+        from parser_2gis.utils import path_utils
+
         # Тест с путем вне разрешенных директорий
-        # Используем путь который точно не в разрешенных директориях
-        with patch(
-            "parser_2gis.utils.path_utils._get_allowed_base_dirs",
-            return_value=[Path("/allowed/dir")],
-        ):
-            with pytest.raises(ValueError, match="разрешённых директорий"):
-                validate_path_safety("/tmp/test.txt", "test_path")
+        # Используем monkeypatch для надёжного управления mock'ами
+        monkeypatch.setattr(path_utils, "_get_allowed_base_dirs", lambda: [Path("/allowed/dir")])
+
+        with pytest.raises(ValueError, match="разрешённых директорий"):
+            validate_path_safety("/tmp/test.txt", "test_path")
 
     def test_validate_path_traversal_valid_path(self):
         """Тест валидации корректного пути в validate_path_traversal.
@@ -194,8 +195,8 @@ class TestValidatePathUtility:
         - Encoded path traversal атаки обнаруживаются
         - ValueError выбрасывается
         """
-        # Тест с encoded path traversal
-        with pytest.raises(ValueError, match="Некорректный путь к файлу"):
+        # Тест с encoded path traversal - проверяем что обнаруживается опасный паттерн
+        with pytest.raises(ValueError, match="encoded"):
             validate_path_traversal("/tmp/%2e%2e/etc/passwd")
 
     def test_validate_path_traversal_unicode_normalization(self):

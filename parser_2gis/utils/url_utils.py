@@ -46,8 +46,8 @@ def clear_url_query_cache() -> None:
 
 
 # Оптимизация: кэширование сгенерированных URL
-# ИСПРАВЛЕНИЕ: Размер кэша изменён на 2048 для оптимального использования памяти
-@lru_cache(maxsize=2048)
+# HIGH 12: Размер кэша уменьшен до 512 для оптимального использования памяти
+@lru_cache(maxsize=512)
 def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
     """Кэшированная версия генерации URL.
 
@@ -93,29 +93,57 @@ def generate_category_url(city: Dict[str, Any], category: Dict[str, Any]) -> str
 
     Raises:
         ValueError: Если город или категория некорректны.
+        TypeError: Если типы данных некорректны.
     """
     from parser_2gis.utils.validation_utils import _get_logger
 
     local_logger = _get_logger()
 
-    # Минимальная валидация
-    if not isinstance(city, dict) or "code" not in city or "domain" not in city:
-        local_logger.warning("Некорректный город: %s", city)
-        raise ValueError("city должен содержать code и domain")
+    # HIGH 11: Явная валидация параметров
+    # Проверка city
+    if city is None:
+        raise TypeError("city не может быть None")
+    if not isinstance(city, dict):
+        local_logger.warning("Некорректный город (не dict): %s", city)
+        raise TypeError("city должен быть словарём (dict)")
+    if "code" not in city:
+        local_logger.warning("Некорректный город (нет code): %s", city)
+        raise ValueError("city должен содержать code")
+    if "domain" not in city:
+        local_logger.warning("Некорректный город (нет domain): %s", city)
+        raise ValueError("city должен содержать domain")
+    if not isinstance(city.get("code"), str) or not city["code"]:
+        local_logger.warning("Некорректный city code: %s", city.get("code"))
+        raise ValueError("city['code'] должен быть непустой строкой")
+    if not isinstance(city.get("domain"), str) or not city["domain"]:
+        local_logger.warning("Некорректный city domain: %s", city.get("domain"))
+        raise ValueError("city['domain'] должен быть непустой строкой")
 
+    # Проверка category
+    if category is None:
+        raise TypeError("category не может быть None")
     if not isinstance(category, dict):
-        local_logger.warning("Некорректная категория: %s", category)
-        raise ValueError("category должен быть словарём")
+        local_logger.warning("Некорректная категория (не dict): %s", category)
+        raise TypeError("category должен быть словарём (dict)")
 
     # Получаем query категории с fallback на name
     category_query = category.get("query", category.get("name", ""))
     if not category_query:
         local_logger.warning("Категория не содержит query или name: %s", category)
         raise ValueError("category должен содержать query или name")
+    if not isinstance(category_query, str):
+        local_logger.warning("category query/name не строка: %s", category_query)
+        raise TypeError("category['query'] или category['name'] должен быть строкой")
+
+    # Проверка rubric_code если указан
+    rubric_code = category.get("rubric_code", "")
+    if rubric_code and not isinstance(rubric_code, str):
+        local_logger.warning("rubric_code не строка: %s", rubric_code)
+        raise TypeError("category['rubric_code'] должен быть строкой")
 
     # Используем кэшированную версию
     city_key = (city["code"], city["domain"])
-    category_key = (category_query, category.get("rubric_code", ""))
+    category_key = (category_query, rubric_code)
 
     return _generate_category_url_cached(city_key, category_key)
 

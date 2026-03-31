@@ -24,6 +24,9 @@ from typing import Dict, List, Optional
 from ..constants import MAX_POOL_SIZE, MIN_POOL_SIZE, validate_env_int
 from ..logger.logger import logger as app_logger
 
+# ИСПРАВЛЕНИЕ CRITICAL 23: Заменяем RLock на Lock где не нужна реентерабельность
+# RLock используется только там, где требуется реентерабельность (например, вложенные вызовы)
+
 # Максимальное количество соединений в пуле (из ENV или default)
 _MAX_POOL_SIZE_ENV: int = validate_env_int(
     "PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50
@@ -187,9 +190,9 @@ class ConnectionPool:
 
         self._local = threading.local()
         self._all_conns: List[sqlite3.Connection] = []
-        # Используем RLock для реентерабельности
-        # RLock позволяет одному и тому же потоку получать блокировку несколько раз
-        self._lock = threading.RLock()
+        # ИСПРАВЛЕНИЕ CRITICAL 23: Используем Lock вместо RLock где не нужна реентерабельность
+        # Lock более производительный и предотвращает случайные реентерабельные вызовы
+        self._lock = threading.Lock()
         # queue.Queue для управления соединениями
         self._connection_queue: queue.Queue[sqlite3.Connection] = queue.Queue(
             maxsize=self._pool_size
@@ -231,117 +234,104 @@ class ConnectionPool:
         Returns:
             SQLite соединение для текущего потока.
 
-        Примечание:
-            Используется единая блокировка (single-checked locking) для предотвращения race condition:
-            1. Блокировка RLock
-            2. Проверка и получение/создание соединения внутри блокировки
-            Это упрощает логику и устраняет гонки данных.
-        """
-        # ДВОЙНАЯ ПРОВЕРКА С DRY LOCK для минимизации времени удержания блокировки
-        # Быстрая проверка без блокировки - проверяем кэш thread-local
-        if hasattr(self._local, "connection") and self._local.connection is not None:
-            conn_id = id(self._local.connection)
-            if conn_id in self._connection_age:
-                age = time.time() - self._connection_age[conn_id]
-                if age <= _CONNECTION_MAX_AGE_ENV:
-                    # Дополнительная проверка активности соединения
-                    if self._is_connection_valid(self._local.connection):
-                        return self._local.connection
-                    app_logger.debug(
-                        "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
-                    )
+        Raises:
+            sqlite3.Error: При ошибке создания соединения.
+            OSError: При ошибке ОС.
+            RuntimeError: При критической ошибке инициализации.
 
-        # Блокировка только для модификации общих структур
-        with self._lock:
-            # Повторная проверка в случае если другое соединение было создано
+        Примечание:
+            ИСПРАВЛЕНИЕ CRITICAL 1: Перестроена логика для гарантированной инициализации conn
+            ИСПРАВЛЕНИЕ CRITICAL 2: Добавлен finally блок для гарантированной очистки
+        """
+        conn: Optional[sqlite3.Connection] = None
+        created_new: bool = False
+
+        try:
+            # Быстрая проверка без блокировки - проверяем кэш thread-local
             if hasattr(self._local, "connection") and self._local.connection is not None:
                 conn_id = id(self._local.connection)
-                age = self._connection_age.get(conn_id)
-                if age is not None:
-                    age = time.time() - age
+                if conn_id in self._connection_age:
+                    age = time.time() - self._connection_age[conn_id]
                     if age <= _CONNECTION_MAX_AGE_ENV:
-                        # Проверка активности соединения перед использованием
+                        # Дополнительная проверка активности соединения
                         if self._is_connection_valid(self._local.connection):
                             return self._local.connection
                         app_logger.debug(
                             "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
                         )
+
+            # Блокировка для модификации общих структур
+            with self._lock:
+                # Повторная проверка в блокировке
+                if hasattr(self._local, "connection") and self._local.connection is not None:
+                    conn_id = id(self._local.connection)
+                    age = self._connection_age.get(conn_id)
+                    if age is not None:
+                        age = time.time() - age
+                        if age <= _CONNECTION_MAX_AGE_ENV:
+                            # Проверка активности соединения перед использованием
+                            if self._is_connection_valid(self._local.connection):
+                                return self._local.connection
+                            app_logger.debug(
+                                "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
+                            )
+                        else:
+                            app_logger.debug(
+                                "Соединение устарело (возраст: %.0f сек), требуется пересоздание",
+                                age,
+                            )
                     else:
                         app_logger.debug(
-                            "Соединение устарело (возраст: %.0f сек), требуется пересоздание", age
+                            "Соединение не найдено в _connection_age, требуется пересоздание"
                         )
-                else:
-                    app_logger.debug(
-                        "Соединение не найдено в _connection_age, требуется пересоздание"
-                    )
-                try:
-                    self._local.connection.close()
-                except (sqlite3.Error, OSError) as close_error:
-                    app_logger.debug("Ошибка при закрытии соединения: %s", close_error)
-                if self._local.connection in self._all_conns:
-                    self._all_conns.remove(self._local.connection)
-                self._connection_age.pop(conn_id, None)
-                self._local.connection = None
 
-            # Если соединения нет, создаём новое или получаем из queue
-            if not hasattr(self._local, "connection") or self._local.connection is None:
-                # Инициализируем переменные до вложенной логики
-                conn: Optional[sqlite3.Connection] = None
-                need_to_create: bool = False
+                    # Закрываем старое соединение
+                    try:
+                        self._local.connection.close()
+                    except (sqlite3.Error, OSError) as close_error:
+                        app_logger.debug("Ошибка при закрытии соединения: %s", close_error)
+
+                    # Удаляем из пула
+                    if self._local.connection in self._all_conns:
+                        self._all_conns.remove(self._local.connection)
+                    self._connection_age.pop(conn_id, None)
+                    self._local.connection = None
 
                 # Пытаемся получить соединение из queue
                 try:
                     conn = self._connection_queue.get_nowait()
                     conn_id = id(conn)
+
+                    # Проверяем возраст и активность
                     if conn_id in self._connection_age:
                         age = time.time() - self._connection_age[conn_id]
-                        if age > _CONNECTION_MAX_AGE_ENV:
+                        if age > _CONNECTION_MAX_AGE_ENV or not self._is_connection_valid(conn):
                             app_logger.debug(
-                                "Соединение устарело (возраст: %.0f сек), пересоздаём", age
+                                "Соединение из queue устарело или неактивно, пересоздаём"
                             )
                             try:
                                 conn.close()
-                            except (sqlite3.Error, OSError) as e:
-                                app_logger.debug(
-                                    "Подавлено исключение при закрытии соединения: %s", e
-                                )
+                            except (sqlite3.Error, OSError):
+                                pass
                             if conn in self._all_conns:
                                 self._all_conns.remove(conn)
                             self._connection_age.pop(conn_id, None)
                             conn = None
-                            need_to_create = True
-                        else:
-                            # Проверка активности соединения из queue
-                            if not self._is_connection_valid(conn):
-                                app_logger.debug("Соединение из queue неактивно, пересоздаём")
-                                try:
-                                    conn.close()
-                                except (sqlite3.Error, OSError):
-                                    pass
-                                if conn in self._all_conns:
-                                    self._all_conns.remove(conn)
-                                self._connection_age.pop(conn_id, None)
-                                conn = None
-                                need_to_create = True
-
-                    if conn is None:
-                        need_to_create = True
-
                 except queue.Empty:
                     # Queue пуста, нужно создавать новое соединение
-                    need_to_create = True
+                    pass
 
-                # Создаём соединение вне блокировки для предотвращения deadlock
-                if need_to_create:
+                # Создаём новое соединение если не получили из queue
+                if conn is None:
                     # Выходим из блокировки перед созданием соединения
                     pass
 
-            # Выходим из блокировки перед созданием соединения
             # Создаём соединение вне блокировки для предотвращения deadlock
-            if need_to_create:
+            if conn is None:
                 try:
                     conn = self._create_connection()
-                    app_logger.debug("Создано новое соединение (queue было пустым)")
+                    created_new = True
+                    app_logger.debug("Создано новое соединение")
                 except sqlite3.Error as db_error:
                     app_logger.error(
                         "Ошибка БД при создании соединения: %s", db_error, exc_info=True
@@ -358,13 +348,13 @@ class ConnectionPool:
                     )
                     raise
 
-            # Проверяем что conn инициализирован перед использованием
+            # ИСПРАВЛЕНИЕ CRITICAL 1: Гарантированная проверка что conn инициализирован
             if conn is None:
-                raise RuntimeError("Не удалось получить соединение с БД")
+                raise RuntimeError("Не удалось получить соединение с БД: conn остался None")
 
             # Возвращаемся в блокировку для добавления в пул
             with self._lock:
-                if need_to_create:
+                if created_new:
                     self._local.connection = conn
                     # Проверяем лимит соединений
                     if len(self._all_conns) >= self._pool_size:
@@ -373,14 +363,28 @@ class ConnectionPool:
                             self._pool_size,
                         )
                     else:
-                        self._all_conns.append(self._local.connection)
-                        self._connection_age[id(self._local.connection)] = time.time()
+                        self._all_conns.append(conn)
+                        self._connection_age[id(conn)] = time.time()
                 else:
                     # Получили из queue - просто присваиваем
                     self._local.connection = conn
                     app_logger.debug("Получено соединение из queue (reuse)")
 
-        return self._local.connection
+            return conn
+
+        except (sqlite3.Error, OSError, RuntimeError) as e:
+            # ИСПРАВЛЕНИЕ CRITICAL 2: Гарантированная очистка при исключении
+            app_logger.error("Ошибка при получении соединения: %s", e)
+            raise
+        finally:
+            # ИСПРАВЛЕНИЕ CRITICAL 2: finally блок для гарантированной очистки
+            # Если соединение было создано но не добавлено в пул - закрываем его
+            if conn is not None and not hasattr(self._local, "connection"):
+                try:
+                    conn.close()
+                    app_logger.debug("Соединение закрыто в finally (не добавлено в пул)")
+                except (sqlite3.Error, OSError) as cleanup_error:
+                    app_logger.debug("Ошибка при закрытии соединения в finally: %s", cleanup_error)
 
     def return_connection(self, conn: sqlite3.Connection) -> None:
         """

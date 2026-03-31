@@ -24,7 +24,7 @@ class TestCategoryTypedDict:
         Вызывает функцию с существующей категорией.
         Проверяет что возвращается CategoryDict со всеми полями.
         """
-        from parser_2gis.data.categories_93 import get_category_by_name
+        from parser_2gis.resources.categories_93 import get_category_by_name
 
         # Вызываем функцию с существующей категорией
         result = get_category_by_name("Кафе")
@@ -60,7 +60,7 @@ class TestCategoryTypedDict:
         Вызывает функцию с несуществующей категорией.
         Проверяет что возвращается None.
         """
-        from parser_2gis.data.categories_93 import get_category_by_name
+        from parser_2gis.resources.categories_93 import get_category_by_name
 
         # Вызываем функцию с несуществующей категорией
         result = get_category_by_name("Несуществующая категория 12345")
@@ -74,7 +74,7 @@ class TestCategoryTypedDict:
 
         Проверяет что каждый словарь в списке имеет все поля CategoryDict.
         """
-        from parser_2gis.data.categories_93 import CATEGORIES_93
+        from parser_2gis.resources.categories_93 import CATEGORIES_93
 
         required_fields = {"name", "query", "rubric_code"}
 
@@ -108,7 +108,7 @@ class TestCategoryFunctions:
         """
         Проверка что get_categories_list возвращает все категории.
         """
-        from parser_2gis.data.categories_93 import CATEGORIES_93, get_categories_list
+        from parser_2gis.resources.categories_93 import CATEGORIES_93, get_categories_list
 
         result = get_categories_list()
 
@@ -121,7 +121,7 @@ class TestCategoryFunctions:
         """
         from urllib.parse import unquote
 
-        from parser_2gis.data.categories_93 import generate_urls_for_city
+        from parser_2gis.resources.categories_93 import generate_urls_for_city
 
         # Тестовый город
         city = {"code": "132", "domain": "msk"}
@@ -150,7 +150,7 @@ class TestCategoryFunctions:
         """
         from urllib.parse import unquote
 
-        from parser_2gis.data.categories_93 import generate_urls_for_city
+        from parser_2gis.resources.categories_93 import generate_urls_for_city
 
         city = {"code": "132", "domain": "msk"}
 
@@ -183,7 +183,7 @@ class TestTypeChecking:
                 "-m",
                 "mypy",
                 "--ignore-missing-imports",
-                "parser_2gis/data/categories_93.py",
+                "parser_2gis/resources/categories_93.py",
             ],
             capture_output=True,
             text=True,

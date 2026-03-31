@@ -134,13 +134,14 @@ class MainParser:
                     navigate_success = True
                     break
 
-                except (
-                    OSError,
-                    RuntimeError,
-                    TypeError,
-                    ValueError,
-                    MemoryError,
-                ) as navigate_error:
+                # HIGH 9: Разделяем broad exception на конкретные обработчики
+                except MemoryError as memory_error:
+                    # Критическая ошибка памяти - не повторяем
+                    logger.error("MemoryError при навигации по URL %s: %s", url, memory_error)
+                    return
+
+                except (OSError, RuntimeError) as system_error:
+                    # Системные ошибки - повторяем если разрешено
                     if attempt < max_retries and self._options.retry_on_network_errors:
                         # Добавляем jitter для предотвращения thundering herd эффекта
                         # Формула: base_delay * (1.5 ** attempt) + random.uniform(0, 0.3)
@@ -149,11 +150,11 @@ class MainParser:
                         jitter = random.uniform(0, 0.3)
                         delay = base_delay * (1.5**attempt) + jitter
                         logger.warning(
-                            "Ошибка при навигации (попытка %d/%d): %s. "
+                            "Системная ошибка при навигации (попытка %d/%d): %s. "
                             "Повторная попытка через %.1f сек...",
                             attempt + 1,
                             max_retries,
-                            navigate_error,
+                            system_error,
                             delay,
                         )
                         import time
@@ -161,8 +162,15 @@ class MainParser:
                         time.sleep(delay)
                     else:
                         # Исчерпаны все попытки
-                        logger.error("Таймаут навигации по URL %s: %s", url, navigate_error)
+                        logger.error("Таймаут навигации по URL %s: %s", url, system_error)
                         return
+
+                except (TypeError, ValueError) as validation_error:
+                    # Ошибки валидации - не повторяем, это программная ошибка
+                    logger.error(
+                        "Ошибка валидации при навигации по URL %s: %s", url, validation_error
+                    )
+                    return
 
             # Если навигация не удалась - выходим
             if not navigate_success:

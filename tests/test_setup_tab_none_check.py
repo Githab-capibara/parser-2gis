@@ -127,7 +127,7 @@ class TestSetupTabNoneCheck:
         assert "не инициализирован" in error_message or "None" in error_message
 
     def test_setup_tab_none_check_logs_error(
-        self, mock_chrome_options: MagicMock, mock_response_patterns: list
+        self, mock_chrome_options: MagicMock, mock_response_patterns: list, monkeypatch
     ) -> None:
         """Тест что ошибка логируется перед выбрасыванием.
 
@@ -135,19 +135,26 @@ class TestSetupTabNoneCheck:
         - app_logger.error вызывается
         - Сообщение об ошибке логируется
         """
+        from parser_2gis.chrome import remote as remote_module
+
+        # Создаем mock логгера
+        mock_logger = MagicMock()
+        monkeypatch.setattr(remote_module, "app_logger", mock_logger)
+
         chrome_remote = ChromeRemote(mock_chrome_options, mock_response_patterns)
         chrome_remote._chrome_tab = None
 
-        with patch("parser_2gis.chrome.remote.app_logger") as mock_logger:
-            with pytest.raises(ChromeException):
-                chrome_remote._setup_tab()
+        with pytest.raises(ChromeException):
+            chrome_remote._setup_tab()
 
-            # Проверяем что ошибка была залогирована
-            assert mock_logger.error.called
+        # Проверяем что ошибка была залогирована
+        assert mock_logger.error.called, "app_logger.error не был вызван"
 
-            # Проверяем содержание лога
-            log_args = mock_logger.error.call_args[0][0]
-            assert "Chrome tab" in log_args or "_setup_tab" in log_args
+        # Проверяем содержание лога
+        log_args = mock_logger.error.call_args[0][0]
+        assert "Chrome tab" in log_args or "_setup_tab" in log_args, (
+            f"Некорректное сообщение лога: {log_args}"
+        )
 
     def test_chrome_exception_type_not_runtime_error(
         self, mock_chrome_options: MagicMock, mock_response_patterns: list

@@ -683,6 +683,7 @@ class BrowserLifecycleManager:
         H2: Использует упрощённые методы terminate() и kill().
 
         Примечание:
+            ИСПРАВЛЕНИЕ CRITICAL 8: Обернуто в try/finally для гарантии выполнения
             Функция гарантирует попытку закрытия даже при ошибках.
             Используется двухуровневая стратегия завершения:
             1. Корректное завершение через terminate() + wait(timeout=5)
@@ -708,11 +709,14 @@ class BrowserLifecycleManager:
                 if not success:
                     self._process_manager.kill(process_pid, timeout=10)
 
-            # Очищаем профиль
-            self._profile_manager.cleanup_profile()
-
         except Exception as e:
             app_logger.error(f"Error closing browser: {e}")
+        finally:
+            # ИСПРАВЛЕНИЕ CRITICAL 8: Гарантированная очистка профиля в finally
+            try:
+                self._profile_manager.cleanup_profile()
+            except Exception as cleanup_error:
+                app_logger.error(f"Error cleaning up profile in finally: {cleanup_error}")
 
     @staticmethod
     def _cleanup_from_finalizer(

@@ -156,21 +156,41 @@ def validate_path_traversal(file_path: str) -> Path:
     if not file_path:
         raise ValueError("Путь к файлу не может быть пустым")
 
-    # Шаг 1: URL-decode проверка перед валидацией для обнаружения encoded атак
-    try:
-        decoded_path = urllib.parse.unquote(file_path)
-        # Проверяем на наличие %2e%2e и другие encoded символы
-        if decoded_path != file_path:
-            # Путь был encoded - проверяем его на опасные паттерны
-            dangerous_encoded_patterns = ["%2e%2e", "%2f", "%5c", "%00", "%25"]
-            for pattern in dangerous_encoded_patterns:
-                if pattern.lower() in file_path.lower():
-                    raise ValueError(
-                        f"Path traversal атака обнаружена: {file_path}. "
-                        f"Обнаружен encoded опасный паттерн: {pattern}"
-                    )
-    except (ValueError, TypeError, UnicodeDecodeError) as decode_error:
-        raise ValueError(f"Некорректный путь к файлу: {file_path}") from decode_error
+    # ИСПРАВЛЕНИЕ CRITICAL 5: Многоуровневое декодирование с проверкой
+    # Шаг 1: Многократное URL-decode до стабильного состояния
+    # Это предотвращает атаки через двойное/тройное кодирование (%252e%252e -> %2e%2e -> ..)
+    decoded_path = file_path
+    max_decode_iterations = 5  # Защита от бесконечного цикла
+    decode_iteration = 0
+
+    while decode_iteration < max_decode_iterations:
+        previous_path = decoded_path
+        try:
+            decoded_path = urllib.parse.unquote(decoded_path)
+        except (ValueError, TypeError, UnicodeDecodeError) as decode_error:
+            raise ValueError(f"Некорректный путь к файлу: {file_path}") from decode_error
+
+        # Если строка не изменилась - выходим
+        if decoded_path == previous_path:
+            break
+
+        decode_iteration += 1
+
+    # Проверка на бесконечное кодирование
+    if decode_iteration >= max_decode_iterations:
+        raise ValueError(
+            f"Path traversal атака обнаружена: {file_path}. "
+            "Обнаружено многократное URL-кодирование (возможная атака)"
+        )
+
+    # Проверка на опасные encoded паттерны в исходном пути
+    dangerous_encoded_patterns = ["%2e%2e", "%2f", "%5c", "%00", "%25"]
+    for pattern in dangerous_encoded_patterns:
+        if pattern.lower() in file_path.lower():
+            raise ValueError(
+                f"Path traversal атака обнаружена: {file_path}. "
+                f"Обнаружен encoded опасный паттерн: {pattern}"
+            )
 
     # Шаг 2: Unicode normalization для предотвращения атак через unicode
     try:

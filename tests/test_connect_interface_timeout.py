@@ -115,27 +115,33 @@ class TestConnectInterfaceTimeout:
         assert result is False  # Подключение не удалось
 
     def test_connect_interface_logs_timeout_error(
-        self, mock_chrome_options: MagicMock, mock_response_patterns: list
+        self, mock_chrome_options: MagicMock, mock_response_patterns: list, monkeypatch
     ) -> None:
         """Тест что таймаут логируется как ошибка.
 
         Проверяет:
-        - app_logger.error вызывается при таймауте
-        - Сообщение содержит информацию о таймауте
+        - app_logger.error вызывается при неудачном подключении
+        - Сообщение содержит информацию о попытках
         """
+        from parser_2gis.chrome import remote as remote_module
+
+        # Создаем mock логгера
+        mock_logger = MagicMock()
+
+        # Используем monkeypatch для надёжного управления mock'ами
+        monkeypatch.setattr(remote_module, "app_logger", mock_logger)
+        monkeypatch.setattr(remote_module, "_check_port_available", lambda *args, **kwargs: False)
+        monkeypatch.setattr(remote_module.time, "sleep", lambda *args, **kwargs: None)
+
         chrome_remote = ChromeRemote(mock_chrome_options, mock_response_patterns)
         chrome_remote._dev_url = "http://127.0.0.1:9222"
+        chrome_remote._connect_interface()
 
-        with patch("parser_2gis.chrome.remote._check_port_available", return_value=False):
-            with patch("parser_2gis.chrome.remote.time.sleep", return_value=None):
-                with patch("parser_2gis.chrome.remote.app_logger") as mock_logger:
-                    chrome_remote._connect_interface()
-
-                    # Проверяем что ошибка была залогирована
-                    assert mock_logger.error.called
+        # Проверяем что error логгер был вызван (при неудачном подключении)
+        assert mock_logger.error.called, "app_logger.error не был вызван"
 
     def test_connect_interface_max_attempts(
-        self, mock_chrome_options: MagicMock, mock_response_patterns: list
+        self, mock_chrome_options: MagicMock, mock_response_patterns: list, monkeypatch
     ) -> None:
         """Тест что используется max_attempts=3.
 
@@ -143,8 +149,7 @@ class TestConnectInterfaceTimeout:
         - 3 попытки подключения
         - Задержка между попытками
         """
-        chrome_remote = ChromeRemote(mock_chrome_options, mock_response_patterns)
-        chrome_remote._dev_url = "http://127.0.0.1:9222"
+        from parser_2gis.chrome import remote as remote_module
 
         attempt_count = 0
 
@@ -153,14 +158,17 @@ class TestConnectInterfaceTimeout:
             attempt_count += 1
             return False
 
-        with patch(
-            "parser_2gis.chrome.remote._check_port_available", mock_check_port_count_attempts
-        ):
-            with patch("parser_2gis.chrome.remote.time.sleep", return_value=None):
-                chrome_remote._connect_interface()
+        # Используем monkeypatch для надёжного управления mock'ами
+        monkeypatch.setattr(remote_module, "_check_port_available", mock_check_port_count_attempts)
+        monkeypatch.setattr(remote_module.time, "sleep", lambda *args, **kwargs: None)
+        monkeypatch.setattr(remote_module, "app_logger", MagicMock())
 
-        # Должно быть 3 попытки
-        assert attempt_count == 3
+        chrome_remote = ChromeRemote(mock_chrome_options, mock_response_patterns)
+        chrome_remote._dev_url = "http://127.0.0.1:9222"
+        chrome_remote._connect_interface()
+
+        # Должно быть 3 попытки (max_attempts)
+        assert attempt_count == 3, f"Ожидалось 3 попытки, фактически: {attempt_count}"
 
     def test_connect_interface_success_before_timeout(
         self, mock_chrome_options: MagicMock, mock_response_patterns: list

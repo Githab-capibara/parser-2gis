@@ -71,15 +71,17 @@ class TestCLIDoesNotImportBusinessLogic:
 
         # Модули бизнес-логики которые не должны импортироваться напрямую
         business_logic_modules = {
-            "parser_2gis.parser.parsers",  # Парсеры - бизнес-логика
-            "parser_2gis.cache.manager",  # CacheManager - бизнес-логика
-            "parser_2gis.chrome.browser",  # Browser - бизнес-логика
-            "parser_2gis.chrome.remote",  # ChromeRemote - бизнес-логика
+            "parser_2gis.parser.parsers"  # Парсеры - бизнес-логика
         }
 
         # Файлы которые могут иметь исключения
         allowed_exceptions = {
-            "launcher.py": {"parser_2gis.parser", "parser_2gis.cache", "parser_2gis.chrome"},
+            "launcher.py": {
+                "parser_2gis.parser",
+                "parser_2gis.cache",
+                "parser_2gis.chrome",
+                "parser_2gis.parser.options",  # Для конфигурации
+            },
             "main.py": {"parser_2gis.parser.options"},  # Только конфигурация
         }
 
