@@ -4,9 +4,36 @@
 Предоставляет класс ConfigService для сохранения и загрузки конфигураций.
 Выделен из config.py для соблюдения принципа единственной ответственности (SRP).
 
+Назначение класса:
+    ConfigService существует для разделения ответственности между:
+    1. Configuration (модель данных) - хранение и валидация настроек
+    2. ConfigService (сервис) - операции сохранения/загрузки из файла
+
+    Это следует паттерну Service Layer и предотвращает нарушение SRP
+    в классе Configuration.
+
+Ответственность ConfigService:
+    - Сохранение конфигурации в JSON файл
+    - Загрузка конфигурации из JSON файла
+    - Создание резервных копий при повреждении
+    - Логирование операций с конфигурацией
+
+    ConfigService НЕ должен:
+    - Содержать бизнес-логику конфигурации
+    - Модифицировать данные конфигурации
+    - Зависеть от конкретных реализаций Configuration
+
 Примечание:
     Логика merge_configs перемещена в класс Configuration для устранения
     нарушения Middle Man. Этот класс оставлен только для операций save/load.
+
+Пример использования:
+    >>> from parser_2gis.cli.config_service import ConfigService
+    >>> from parser_2gis.config import Configuration
+    >>> from pathlib import Path
+    >>> config = Configuration()
+    >>> ConfigService.save_config(config, Path("./config.json"))
+    >>> loaded = ConfigService.load_config(Configuration, Path("./config.json"))
 """
 
 from __future__ import annotations
@@ -32,11 +59,26 @@ class ConfigService:
     - Загрузки конфигурации из файла
     - Создания резервных копий
 
+    Этот класс реализует паттерн Service Layer для операций с конфигурацией.
+    Все методы статические, так как сервис не хранит состояние.
+
+    Принцип работы:
+        1. save_config() - сериализует pydantic модель в JSON и сохраняет в файл
+        2. load_config() - читает JSON из файла, валидирует и возвращает модель
+        3. При ошибке валидации создаётся резервная копия повреждённого файла
+
+    Обработка ошибок:
+        - FileNotFoundError: создаётся конфигурация по умолчанию
+        - ValidationError: создаётся резервная копия, возвращается default
+        - JSONDecodeError: создаётся резервная копия, возвращается default
+        - OSError: пробрасывается дальше для обработки вызывающим кодом
+
     Example:
         >>> from parser_2gis.cli.config_service import ConfigService
+        >>> from parser_2gis.config import Configuration
         >>> config = Configuration()
         >>> ConfigService.save_config(config, Path("./config.json"))
-        >>> loaded = ConfigService.load_config(Path("./config.json"))
+        >>> loaded = ConfigService.load_config(Configuration, Path("./config.json"))
 
     Примечание:
         Методы merge_configs, _merge_models_iterative и связанные методы

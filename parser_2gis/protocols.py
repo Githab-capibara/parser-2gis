@@ -25,8 +25,18 @@ from typing import Any, Callable, Iterator, Protocol, runtime_checkable
 class LoggerProtocol(Protocol):
     """Protocol для логгера.
 
-    Используется для разрыва циклической зависимости между
-    common.py и logger.py.
+    Назначение:
+        Используется для разрыва циклической зависимости между
+        модулями логирования и другими компонентами.
+
+    Места использования:
+        - parser_2gis/logger/handlers.py: типизация логгера
+        - parser_2gis/cli/validator.py: валидация конфигурации
+
+    Пример:
+        >>> from parser_2gis.logger import logger
+        >>> log: LoggerProtocol = logger
+        >>> log.info("Сообщение")
     """
 
     def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
@@ -49,10 +59,18 @@ class LoggerProtocol(Protocol):
 class ProgressCallback(Protocol):
     """Protocol для callback прогресса параллельного парсинга.
 
-    Используется для уведомления о прогрессе выполнения задач.
+    Назначение:
+        Используется для уведомления о прогрессе выполнения задач
+        параллельного парсинга городов.
 
-    Example:
+    Места использования:
+        - parser_2gis/parallel/parallel_parser.py: обновление прогресса
+        - parser_2gis/parallel/progress.py: отчёт о прогрессе
+        - parser_2gis/parallel/coordinator.py: координация потоков
+
+    Пример:
         >>> def progress_handler(success: int, failed: int, filename: str) -> None:
+        >>>     print(f"Успешно: {success}, Ошибок: {failed}")
         >>> callback: ProgressCallback = progress_handler
     """
 
@@ -70,10 +88,17 @@ class ProgressCallback(Protocol):
 class LogCallback(Protocol):
     """Protocol для callback логирования.
 
-    Используется для передачи сообщений логов между компонентами.
+    Назначение:
+        Используется для передачи сообщений логов между компонентами.
+        Позволяет использовать кастомные обработчики логов.
 
-    Example:
+    Места использования:
+        - parser_2gis/parallel/parallel_parser.py: логгирование в потоках
+        - parser_2gis/cli/progress.py: отображение прогресса в CLI
+
+    Пример:
         >>> def logger(message: str, level: str = "INFO") -> None:
+        >>>     print(f"[{level}] {message}")
         >>> callback: LogCallback = logger
     """
 
@@ -90,10 +115,17 @@ class LogCallback(Protocol):
 class CleanupCallback(Protocol):
     """Protocol для callback очистки ресурсов.
 
-    Используется для вызова процедур очистки.
+    Назначение:
+        Используется для вызова процедур очистки при завершении
+        работы или возникновении ошибок.
 
-    Example:
+    Места использования:
+        - parser_2gis/utils/temp_file_manager.py: очистка временных файлов
+        - parser_2gis/parallel/parallel_parser.py: очистка при прерывании
+
+    Пример:
         >>> def cleanup() -> None:
+        >>>     print("Очистка ресурсов...")
         >>> callback: CleanupCallback = cleanup
     """
 
@@ -105,10 +137,17 @@ class CleanupCallback(Protocol):
 class CancelCallback(Protocol):
     """Protocol для callback проверки отмены операции.
 
-    Используется для проверки флага отмены в длительных операциях.
+    Назначение:
+        Используется для проверки флага отмены в длительных операциях.
+        Позволяет корректно завершать потоки при отмене.
 
-    Example:
+    Места использования:
+        - parser_2gis/parallel/parallel_parser.py: проверка отмены парсинга
+        - parser_2gis/signal_handler.py: обработка сигналов прерывания
+
+    Пример:
         >>> def should_cancel() -> bool:
+        >>>     return cancel_event.is_set()
         >>> callback: CancelCallback = should_cancel
     """
 
@@ -129,11 +168,21 @@ class CancelCallback(Protocol):
 class Writer(Protocol):
     """Protocol для записи данных.
 
-    Определяет интерфейс для всех writers (CSV, XLSX, JSON).
+    Назначение:
+        Определяет интерфейс для всех writers (CSV, XLSX, JSON).
+        Позволяет использовать разные форматы вывода через единый интерфейс.
 
-    Example:
-        >>> class CSVWriter:
-        >>> writer: Writer = CSVWriter(...)
+    Места использования:
+        - parser_2gis/writer/writers/file_writer.py: базовый класс FileWriter
+        - parser_2gis/writer/writers/csv_writer.py: CSVWriter
+        - parser_2gis/writer/writers/xlsx_writer.py: XLSXWriter
+        - parser_2gis/parallel/parallel_parser.py: запись результатов парсинга
+
+    Пример:
+        >>> from parser_2gis.writer.writers.csv_writer import CSVWriter
+        >>> writer: Writer = CSVWriter("output.csv", encoding="utf-8")
+        >>> writer.write([{"name": "test"}])
+        >>> writer.close()
     """
 
     def write(self, records: list[dict]) -> None:
@@ -151,11 +200,21 @@ class Writer(Protocol):
 class Parser(Protocol):
     """Protocol для парсеров.
 
-    Определяет интерфейс для всех парсеров.
+    Назначение:
+        Определяет интерфейс для всех парсеров.
+        Позволяет использовать разные парсеры через единый интерфейс.
 
-    Example:
-        >>> class FirmParser:
-        >>> parser: Parser = FirmParser(...)
+    Места использования:
+        - parser_2gis/parser/parsers/base.py: BaseParser (базовый класс)
+        - parser_2gis/parser/parsers/main_parser.py: MainParser
+        - parser_2gis/parser/parsers/firm_parser.py: FirmParser
+        - parser_2gis/parallel/parallel_parser.py: выполнение парсинга
+
+    Пример:
+        >>> from parser_2gis.parser.parsers.firm_parser import FirmParser
+        >>> parser: Parser = FirmParser(browser, url)
+        >>> results = parser.parse()
+        >>> stats = parser.get_stats()
     """
 
     def parse(self) -> list[dict]:
@@ -182,12 +241,18 @@ class Parser(Protocol):
 class BrowserNavigation(Protocol):
     """Protocol для навигации браузера.
 
-    Определяет интерфейс для навигации по URL.
+    Назначение:
+        Определяет интерфейс для навигации по URL.
+        Позволяет абстрагироваться от конкретной реализации браузера.
 
-    Example:
-        >>> from parser_2gis.chrome import ChromeRemote
-        >>> nav: BrowserNavigation = ChromeRemote(...)  # type: check
-        >>> nav.navigate("https://2gis.ru")
+    Места использования:
+        - parser_2gis/chrome/remote.py: ChromeRemote.navigate()
+        - parser_2gis/parser/parsers/base.py: навигация к странице
+
+    Пример:
+        >>> from parser_2gis.chrome.remote import ChromeRemote
+        >>> nav: BrowserNavigation = ChromeRemote(options, patterns)
+        >>> nav.navigate("https://2gis.ru/moscow")
     """
 
     def navigate(self, url: str, **kwargs: Any) -> None:
@@ -203,12 +268,19 @@ class BrowserNavigation(Protocol):
 class BrowserContentAccess(Protocol):
     """Protocol для доступа к содержимому страницы.
 
-    Определяет интерфейс для получения HTML и DOM.
+    Назначение:
+        Определяет интерфейс для получения HTML и DOM.
+        Позволяет получать содержимое страницы без зависимости от реализации.
 
-    Example:
-        >>> from parser_2gis.chrome import ChromeRemote
-        >>> content: BrowserContentAccess = ChromeRemote(...)  # type: check
+    Места использования:
+        - parser_2gis/chrome/remote.py: ChromeRemote.get_html(), get_document()
+        - parser_2gis/parser/parsers/base.py: получение HTML страницы
+
+    Пример:
+        >>> from parser_2gis.chrome.remote import ChromeRemote
+        >>> content: BrowserContentAccess = ChromeRemote(options, patterns)
         >>> html = content.get_html()
+        >>> dom = content.get_document()
     """
 
     def get_html(self) -> str:
@@ -230,12 +302,18 @@ class BrowserContentAccess(Protocol):
 class BrowserJSExecution(Protocol):
     """Protocol для выполнения JavaScript.
 
-    Определяет интерфейс для выполнения JS кода.
+    Назначение:
+        Определяет интерфейс для выполнения JS кода.
+        Позволяет выполнять JavaScript в контексте страницы.
 
-    Example:
-        >>> from parser_2gis.chrome import ChromeRemote
-        >>> js: BrowserJSExecution = ChromeRemote(...)  # type: check
-        >>> result = js.execute_js("document.title")
+    Места использования:
+        - parser_2gis/chrome/remote.py: ChromeRemote.execute_js()
+        - parser_2gis/parser/parsers/base.py: выполнение JS для парсинга
+
+    Пример:
+        >>> from parser_2gis.chrome.remote import ChromeRemote
+        >>> js: BrowserJSExecution = ChromeRemote(options, patterns)
+        >>> title = js.execute_js("document.title")
     """
 
     def execute_js(self, js_code: str, timeout: int | None = None) -> Any:
@@ -254,12 +332,18 @@ class BrowserJSExecution(Protocol):
 class BrowserScreenshot(Protocol):
     """Protocol для создания скриншотов.
 
-    Определяет интерфейс для создания скриншотов страницы.
+    Назначение:
+        Определяет интерфейс для создания скриншотов страницы.
+        Позволяет сохранять визуальное представление страницы.
 
-    Example:
-        >>> from parser_2gis.chrome import ChromeRemote
-        >>> screenshot: BrowserScreenshot = ChromeRemote(...)  # type: check
-        >>> browser.screenshot("page.png")
+    Места использования:
+        - parser_2gis/chrome/remote.py: ChromeRemote.screenshot()
+        - parser_2gis/parser/parsers/base.py: отладка парсинга
+
+    Пример:
+        >>> from parser_2gis.chrome.remote import ChromeRemote
+        >>> screenshot: BrowserScreenshot = ChromeRemote(options, patterns)
+        >>> screenshot.screenshot("page.png")
     """
 
     def screenshot(self, path: str) -> None:
@@ -276,18 +360,24 @@ class BrowserService(
 ):
     """Абстракция браузера для разрыва связи между chrome/ и parser/.
 
-    Объединяет все браузерные протоколы:
-    - BrowserNavigation: навигация по URL
-    - BrowserContentAccess: получение HTML и DOM
-    - BrowserJSExecution: выполнение JavaScript
-    - BrowserScreenshot: создание скриншотов
-    - close: закрытие браузера
+    Назначение:
+        Объединяет все браузерные протоколы в единый интерфейс.
+        Разрывает циклическую зависимость между модулями chrome/ и parser/.
+        Позволяет использовать dependency injection для тестирования.
 
-    Example:
-        >>> from parser_2gis.chrome import ChromeRemote
-        >>> browser: BrowserService = ChromeRemote(...)  # type: check
-        >>> browser.navigate("https://2gis.ru")
+    Места использования:
+        - parser_2gis/parser/parsers/base.py: BaseParser(browser: BrowserService)
+        - parser_2gis/parser/parsers/main.py: типизация браузера
+        - parser_2gis/parser/parsers/main_parser.py: типизация браузера
+        - parser_2gis/chrome/remote.py: реализация всех методов
+
+    Пример:
+        >>> from parser_2gis.chrome.remote import ChromeRemote
+        >>> browser: BrowserService = ChromeRemote(options, patterns)
+        >>> browser.navigate("https://2gis.ru/moscow")
         >>> html = browser.get_html()
+        >>> result = browser.execute_js("document.title")
+        >>> browser.screenshot("page.png")
         >>> browser.close()
     """
 
@@ -304,14 +394,21 @@ class BrowserService(
 class CacheReader(Protocol):
     """Protocol для чтения из кэша.
 
-    Определяет интерфейс для операций чтения кэша.
-    Позволяет использовать объекты кэша только для чтения.
+    Назначение:
+        Определяет интерфейс для операций чтения кэша.
+        Позволяет использовать объекты кэша только для чтения
+        (принцип минимальных привилегий).
 
-    Example:
-        >>> from parser_2gis.cache import CacheManager
-        >>> reader: CacheReader = CacheManager(...)  # type: check
+    Места использования:
+        - parser_2gis/cache/manager.py: CacheManager (реализация)
+        - parser_2gis/parser/parsers/base.py: чтение закэшированных данных
+
+    Пример:
+        >>> from parser_2gis.cache.manager import CacheManager
+        >>> reader: CacheReader = CacheManager()
         >>> value = reader.get("key")
-        >>> exists = reader.exists("key")
+        >>> if reader.exists("key"):
+        >>>     print("Ключ существует")
     """
 
     def get(self, key: str) -> Any | None:
@@ -339,14 +436,20 @@ class CacheReader(Protocol):
 class CacheWriter(Protocol):
     """Protocol для записи в кэш.
 
-    Определяет интерфейс для операций записи и удаления из кэша.
-    Позволяет использовать объекты кэша только для записи.
+    Назначение:
+        Определяет интерфейс для операций записи и удаления из кэша.
+        Позволяет использовать объекты кэша только для записи
+        (принцип минимальных привилегий).
 
-    Example:
-        >>> from parser_2gis.cache import CacheManager
-        >>> writer: CacheWriter = CacheManager(...)  # type: check
+    Места использования:
+        - parser_2gis/cache/manager.py: CacheManager (реализация)
+        - parser_2gis/parser/parsers/base.py: запись результатов в кэш
+
+    Пример:
+        >>> from parser_2gis.cache.manager import CacheManager
+        >>> writer: CacheWriter = CacheManager()
         >>> writer.set("key", "value", ttl=3600)
-        >>> writer.delete("key")
+        >>> writer.delete("old_key")
     """
 
     def set(self, key: str, value: Any, ttl: int) -> None:
@@ -370,16 +473,22 @@ class CacheWriter(Protocol):
 class CacheBackend(CacheReader, CacheWriter, Protocol):
     """Абстракция бэкенда кэширования.
 
-    Объединяет CacheReader и CacheWriter для полного доступа к кэшу.
-    Определяет интерфейс для всех бэкендов кэширования (Redis, SQLite, in-memory).
-    Позволяет легко переключаться между различными реализациями кэша.
+    Назначение:
+        Объединяет CacheReader и CacheWriter для полного доступа к кэшу.
+        Определяет интерфейс для всех бэкендов кэширования (Redis, SQLite, in-memory).
+        Позволяет легко переключаться между различными реализациями кэша.
 
-    Example:
-        >>> from parser_2gis.cache import CacheManager
-        >>> cache: CacheBackend = CacheManager(...)  # type: check
+    Места использования:
+        - parser_2gis/cache/manager.py: CacheManager (полная реализация)
+        - parser_2gis/parser/parsers/base.py: полный доступ к кэшу
+
+    Пример:
+        >>> from parser_2gis.cache.manager import CacheManager
+        >>> cache: CacheBackend = CacheManager()
         >>> cache.set("key", "value", ttl=3600)
         >>> value = cache.get("key")
-        >>> cache.delete("key")
+        >>> if cache.exists("key"):
+        >>>     cache.delete("key")
     """
 
 
@@ -392,13 +501,23 @@ class CacheBackend(CacheReader, CacheWriter, Protocol):
 class ExecutionBackend(Protocol):
     """Абстракция бэкенда для параллельного выполнения.
 
-    Определяет интерфейс для всех бэкендов выполнения (ThreadPoolExecutor,
-    ProcessPoolExecutor, asyncio). Позволяет легко переключаться между
-    различными стратегиями параллелизма.
+    Назначение:
+        Определяет интерфейс для всех бэкендов выполнения (ThreadPoolExecutor,
+        ProcessPoolExecutor, asyncio). Позволяет легко переключаться между
+        различными стратегиями параллелизма.
 
-    Example:
+    Места использования:
+        - parser_2gis/parallel/coordinator.py: выполнение задач в пуле потоков
+        - parser_2gis/parallel/parallel_parser.py: параллельный парсинг
+
+    Примечание:
+        В настоящее время используется только ThreadPoolExecutor из стандартной
+        библиотеки Python. ExecutionBackend предоставлен для будущей поддержки
+        альтернативных бэкендов (asyncio, ProcessPoolExecutor).
+
+    Пример:
         >>> from concurrent.futures import ThreadPoolExecutor
-        >>> executor: ExecutionBackend = ThreadPoolExecutor(max_workers=10)  # type: check
+        >>> executor: ExecutionBackend = ThreadPoolExecutor(max_workers=10)
         >>> future = executor.submit(my_function, arg1, arg2)
         >>> results = list(executor.map(process_function, items))
         >>> executor.shutdown(wait=True)

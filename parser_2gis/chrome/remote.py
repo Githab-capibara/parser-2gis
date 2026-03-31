@@ -678,53 +678,75 @@ class ChromeRemote:
                 except queue.Empty:
                     break
 
+    def _decode_response_body(self, response_data: Dict[str, Any], request_id: str) -> str:
+        """Декодирует тело ответа с поддержкой base64.
+
+        Args:
+            response_data: Данные ответа от CDP.
+            request_id: Идентификатор запроса для логирования.
+
+        Returns:
+            Декодированное тело ответа в виде строки.
+        """
+        if response_data.get("base64Encoded"):
+            try:
+                encoded_body = response_data.get("body", "")
+                if encoded_body:
+                    decoded_bytes = base64.b64decode(encoded_body)
+                    return decoded_bytes.decode("utf-8")
+            except (UnicodeDecodeError, ValueError) as decode_error:
+                app_logger.warning(
+                    "Ошибка декодирования тела ответа (requestId: %s): %s", request_id, decode_error
+                )
+            return ""
+        return response_data.get("body", "")
+
     @wait_until_finished(timeout=3600, throw_exception=False, poll_interval=0.005)  # 1 час
     def get_response_body(self, response: Response) -> str:
-        """Получает тело ответа."""
+        """Получает тело ответа.
+
+        Args:
+            response: Словарь с данными ответа.
+
+        Returns:
+            Тело ответа в виде строки или пустую строку при ошибке.
+
+        Raises:
+            ValueError: Если размер ответа превышает лимит.
+        """
+        # Guard Clause: проверка инициализации Chrome tab
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в get_response_body")
             return ""
 
+        # Guard Clause: проверка наличия meta поля
+        if "meta" not in response:
+            app_logger.warning("Отсутствует поле meta в response")
+            return ""
+
+        # Guard Clause: проверка наличия requestId
+        if "requestId" not in response["meta"]:
+            app_logger.warning("Отсутствует поле requestId в response.meta")
+            return ""
+
+        request_id = response["meta"]["requestId"]
         response_data: Optional[Dict[str, Any]] = None
-        response_body: str = ""
 
         try:
-            if "meta" not in response:
-                app_logger.warning("Отсутствует поле meta в response")
-                return ""
-
-            if "requestId" not in response["meta"]:
-                app_logger.warning("Отсутствует поле requestId в response.meta")
-                return ""
-
-            request_id = response["meta"]["requestId"]
-
+            # Получение тела ответа через CDP
             response_data = self._chrome_tab.call_method(
                 "Network.getResponseBody", requestId=request_id
             )
 
+            # Guard Clause: проверка пустого ответа
             if not response_data:
                 app_logger.debug("Тело ответа пустое для requestId: %s", request_id)
                 return ""
 
-            if response_data.get("base64Encoded"):
-                try:
-                    encoded_body = response_data.get("body", "")
-                    if encoded_body:
-                        decoded_bytes = base64.b64decode(encoded_body)
-                        response_body = decoded_bytes.decode("utf-8")
-                    else:
-                        response_body = ""
-                except (UnicodeDecodeError, ValueError) as decode_error:
-                    app_logger.warning(
-                        "Ошибка декодирования тела ответа (requestId: %s): %s",
-                        request_id,
-                        decode_error,
-                    )
-                    response_body = ""
-            else:
-                response_body = response_data.get("body", "")
+            # Декодирование тела ответа
+            response_body = self._decode_response_body(response_data, request_id)
 
+            # Guard Clause: проверка размера ответа
             if len(response_body) > MAX_RESPONSE_SIZE:
                 app_logger.warning(
                     "Размер ответа превышает лимит (%d > %d байт) для requestId: %s. "
@@ -745,15 +767,15 @@ class ChromeRemote:
         except pychrome.CallMethodException as e:
             app_logger.debug("CallMethodException при получении тела ответа: %s", e)
             return ""
-
         except KeyError as e:
             app_logger.warning("Отсутствует поле в response при получении тела ответа: %s", e)
             return ""
-
+        except ValueError:
+            # Пробрасываем ValueError дальше (превышение размера)
+            raise
         except Exception as e:
             app_logger.warning("Непредвиденная ошибка при получении тела ответа: %s", e)
             return ""
-
         finally:
             if response_data is not None:
                 response_data.pop("body", None)
@@ -929,75 +951,105 @@ class ChromeRemote:
         self._chrome_tab.wait(timeout)
 
     def stop(self) -> None:
-        """Закрывает браузер, отключает интерфейс."""
+        """Закрывает браузер, отключает интерфейс.
+
+        Использует Guard Clauses для уменьшения вложенности.
+        """
         app_logger.info("Начало остановки ChromeRemote...")
 
+        # Остановка вкладки Chrome
+        self._stop_chrome_tab()
+
+        # Остановка браузера Chrome
+        self._stop_chrome_browser()
+
+        # Отключение интерфейса Chrome
+        if self._chrome_interface is not None:
+            app_logger.debug("Отключение Chrome интерфейса...")
+            self._chrome_interface = None
+            app_logger.debug("_chrome_interface обнулён")
+
+        # Финальная очистка ресурсов
+        self._cleanup_after_stop()
+
+        app_logger.info("Завершение остановки ChromeRemote - все ресурсы очищены")
+
+    def _stop_chrome_tab(self) -> None:
+        """Останавливает Chrome вкладку с обработкой ошибок.
+
+        Guard Clause: если вкладка не инициализирована - метод завершается досрочно.
+        """
+        if self._chrome_tab is None:
+            return
+
         try:
-            if self._chrome_tab is not None:
-                try:
-                    app_logger.debug("Закрытие Chrome вкладки...")
-                    self._close_tab(self._chrome_tab)
-                    app_logger.info("Chrome вкладка успешно закрыта")
-                except (pychrome.RuntimeException, RequestException) as close_tab_error:
-                    app_logger.error(
-                        "Ошибка при закрытии вкладки: %s (тип: %s)",
-                        close_tab_error,
-                        type(close_tab_error).__name__,
-                    )
-                finally:
-                    self._chrome_tab = None
-                    app_logger.debug("_chrome_tab обнулён")
-
-            if self._chrome_browser is not None:
-                try:
-                    app_logger.debug("Закрытие Chrome браузера...")
-                    self._chrome_browser.close()
-                    app_logger.info("Chrome браузер успешно закрыт")
-                except Exception as close_browser_error:
-                    app_logger.error(
-                        "Ошибка при закрытии браузера: %s (тип: %s)",
-                        close_browser_error,
-                        type(close_browser_error).__name__,
-                    )
-                finally:
-                    self._chrome_browser = None
-                    app_logger.debug("_chrome_browser обнулён")
-
-            if self._chrome_interface is not None:
-                app_logger.debug("Отключение Chrome интерфейса...")
-                self._chrome_interface = None
-                app_logger.debug("_chrome_interface обнулён")
-
-        except Exception as outer_error:
-            app_logger.critical(
-                "Критическая ошибка при остановке ChromeRemote: %s (тип: %s)",
-                outer_error,
-                type(outer_error).__name__,
-                exc_info=True,
+            app_logger.debug("Закрытие Chrome вкладки...")
+            self._close_tab(self._chrome_tab)
+            app_logger.info("Chrome вкладка успешно закрыта")
+        except (pychrome.RuntimeException, RequestException) as close_tab_error:
+            app_logger.error(
+                "Ошибка при закрытии вкладки: %s (тип: %s)",
+                close_tab_error,
+                type(close_tab_error).__name__,
             )
         finally:
-            app_logger.debug("Выполнение финальной очистки ресурсов...")
-
             self._chrome_tab = None
+            app_logger.debug("_chrome_tab обнулён")
+
+    def _stop_chrome_browser(self) -> None:
+        """Останавливает Chrome браузер с обработкой ошибок.
+
+        Guard Clause: если браузер не инициализирован - метод завершается досрочно.
+        """
+        if self._chrome_browser is None:
+            return
+
+        try:
+            app_logger.debug("Закрытие Chrome браузера...")
+            self._chrome_browser.close()
+            app_logger.info("Chrome браузер успешно закрыт")
+        except Exception as close_browser_error:
+            app_logger.error(
+                "Ошибка при закрытии браузера: %s (тип: %s)",
+                close_browser_error,
+                type(close_browser_error).__name__,
+            )
+        finally:
             self._chrome_browser = None
-            self._chrome_interface = None
+            app_logger.debug("_chrome_browser обнулён")
 
-            try:
-                self.clear_requests()
-                app_logger.debug("Очередь запросов очищена")
-            except Exception as clear_requests_error:
-                app_logger.warning("Ошибка при очистке очереди запросов: %s", clear_requests_error)
+    def _cleanup_after_stop(self) -> None:
+        """Выполняет финальную очистку ресурсов после остановки.
 
-            self._response_queues = {}
-            app_logger.debug("Очереди ответов обнулены")
+        Очищает:
+        - Очереди запросов и ответов
+        - Кэш портов
+        - Обнуляет все ресурсы
+        """
+        app_logger.debug("Выполнение финальной очистки ресурсов...")
 
-            try:
-                _clear_port_cache()
-                app_logger.debug("Кэш портов очищен")
-            except Exception as clear_cache_error:
-                app_logger.warning("Ошибка при очистке кэша портов: %s", clear_cache_error)
+        # Обнуление всех ресурсов
+        self._chrome_tab = None
+        self._chrome_browser = None
+        self._chrome_interface = None
 
-            app_logger.info("Завершение остановки ChromeRemote - все ресурсы очищены")
+        # Очистка очереди запросов
+        try:
+            self.clear_requests()
+            app_logger.debug("Очередь запросов очищена")
+        except Exception as clear_requests_error:
+            app_logger.warning("Ошибка при очистке очереди запросов: %s", clear_requests_error)
+
+        # Обнуление очередей ответов
+        self._response_queues = {}
+        app_logger.debug("Очереди ответов обнулены")
+
+        # Очистка кэша портов
+        try:
+            _clear_port_cache()
+            app_logger.debug("Кэш портов очищен")
+        except Exception as clear_cache_error:
+            app_logger.warning("Ошибка при очистке кэша портов: %s", clear_cache_error)
 
     def __enter__(self) -> "ChromeRemote":
         """Контекстный менеджер: вход.

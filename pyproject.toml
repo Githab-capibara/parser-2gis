@@ -28,6 +28,7 @@ exclude = [
 # Игнорируемые правила
 ignore = [
     "PLC2801",  # unnecessary-ellipsis - используется в Protocol классах
+    "TID252",  # relative imports - допустимы в пакете
 ]
 
 [tool.ruff.format]

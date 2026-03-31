@@ -8,6 +8,13 @@
 Примечание:
     Константа MAX_UNIQUE_NAME_ATTEMPTS перемещена в constants.py
     для устранения дублирования.
+
+    ParallelParserConfig vs ParallelRunConfig:
+    - ParallelParserConfig (этот модуль): использует config: Configuration
+      (полный объект pydantic конфигурации). Используется в тестах.
+    - ParallelRunConfig (parallel/config.py): использует config: Optional[Dict]
+      (словарь конфигурации). Используется в ParallelCoordinator.
+    Это не дублирование, а разные конфигурации для разных сценариев использования.
 """
 
 from __future__ import annotations

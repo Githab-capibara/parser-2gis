@@ -34,7 +34,6 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
 import psutil
 
-from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
     MAX_LOCK_FILE_AGE,
@@ -49,7 +48,6 @@ from parser_2gis.constants import (
     PROGRESS_UPDATE_INTERVAL,
 )
 from parser_2gis.logger import log_parser_finish, logger, print_progress
-from parser_2gis.parser import get_parser
 from parser_2gis.utils.temp_file_manager import (
     MAX_TEMP_FILES_MONITORING,
     ORPHANED_TEMP_FILE_AGE,
@@ -61,10 +59,11 @@ from parser_2gis.utils.temp_file_manager import (
     unregister_temp_file,
 )
 from parser_2gis.utils.url_utils import generate_category_url
-from parser_2gis.writer import get_writer
 
+# Импорты для типизации - откладываются до времени проверки типов
+# для уменьшения связанности модуля
 if TYPE_CHECKING:
-    from .config import Configuration
+    from parser_2gis.config import Configuration
 
 
 @dataclass
@@ -428,6 +427,11 @@ class ParallelCityParser:
 
             self._browser_launch_semaphore.acquire()
             try:
+                # Локальные импорты для уменьшения связанности модуля
+                from parser_2gis.chrome.exceptions import ChromeException
+                from parser_2gis.parser import get_parser
+                from parser_2gis.writer import get_writer
+
                 # Дополнительная задержка для распределения нагрузки при запуске
                 launch_delay = random.uniform(
                     self.config.parallel.launch_delay_min, self.config.parallel.launch_delay_max
