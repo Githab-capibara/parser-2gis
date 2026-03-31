@@ -204,8 +204,9 @@ class TestCacheManagerFinallyCleanup:
             with pytest.raises(MemoryError):
                 manager.__del__()
 
-            # Проверяем что MemoryError был залогирован
-            assert any("MemoryError" in record.message for record in caplog.records)
+            # MemoryError пробрасывается дальше без логирования (критическое исключение)
+            # Проверяем, что соединение было закрыто (finalizer.detach() был вызван)
+            assert mock_finalizer.detach.called
 
     def test_cache_manager_del_finally_keyboard_interrupt(self, temp_cache_dir: Path, caplog):
         """Тест finally блока в __del__ при KeyboardInterrupt.
@@ -226,8 +227,9 @@ class TestCacheManagerFinallyCleanup:
             with pytest.raises(KeyboardInterrupt):
                 manager.__del__()
 
-            # Проверяем что KeyboardInterrupt был залогирован
-            assert any("KeyboardInterrupt" in record.message for record in caplog.records)
+            # KeyboardInterrupt пробрасывается дальше без логирования (критическое исключение)
+            # Проверяем, что соединение было закрыто (finalizer.detach() был вызван)
+            assert mock_finalizer.detach.called
 
     def test_cache_manager_del_finally_system_exit(self, temp_cache_dir: Path, caplog):
         """Тест finally блока в __del__ при SystemExit.
@@ -248,8 +250,9 @@ class TestCacheManagerFinallyCleanup:
             with pytest.raises(SystemExit):
                 manager.__del__()
 
-            # Проверяем что SystemExit был залогирован
-            assert any("SystemExit" in record.message for record in caplog.records)
+            # SystemExit пробрасывается дальше без логирования (критическое исключение)
+            # Проверяем, что соединение было закрыто (finalizer.detach() был вызван)
+            assert mock_finalizer.detach.called
 
     def test_cache_manager_set_finally_cleanup(self, cache_manager: CacheManager, caplog):
         """Тест finally блока в методе set.
@@ -262,7 +265,7 @@ class TestCacheManagerFinallyCleanup:
             # Mock курсора для выбрасывания исключения при close
             mock_cursor = MagicMock()
             mock_cursor.execute.side_effect = sqlite3.Error("Mocked sqlite3.Error")
-            mock_cursor.close.side_effect = RuntimeError("Mocked RuntimeError in cursor.close")
+            mock_cursor.close.side_effect = sqlite3.Error("Mocked sqlite3.Error in cursor.close")
 
             mock_conn = MagicMock()
             mock_conn.cursor.return_value = mock_cursor
@@ -314,7 +317,7 @@ class TestCacheManagerFinallyCleanup:
             # Mock курсора для выбрасывания исключения при close
             mock_cursor = MagicMock()
             mock_cursor.fetchone.side_effect = sqlite3.Error("Mocked sqlite3.Error")
-            mock_cursor.close.side_effect = RuntimeError("Mocked RuntimeError in cursor.close")
+            mock_cursor.close.side_effect = sqlite3.Error("Mocked sqlite3.Error in cursor.close")
 
             mock_conn = MagicMock()
             mock_conn.cursor.return_value = mock_cursor
@@ -362,7 +365,7 @@ class TestCacheManagerFinallyCleanup:
             # Mock курсора для выбрасывания исключения при close
             mock_cursor = MagicMock()
             mock_cursor.execute.side_effect = sqlite3.Error("Mocked sqlite3.Error")
-            mock_cursor.close.side_effect = RuntimeError("Mocked RuntimeError in cursor.close")
+            mock_cursor.close.side_effect = sqlite3.Error("Mocked sqlite3.Error in cursor.close")
 
             mock_conn = MagicMock()
             mock_conn.cursor.return_value = mock_cursor

@@ -170,6 +170,7 @@ persistent = true
 disable = [
     "broad-exception-caught",  # Сознательное решение для надежной обработки ошибок
     "too-many-arguments",  # Сложные функции парсера требуют много параметров
+    "too-many-positional-arguments",  # Сложные функции парсера требуют много параметров
     "too-many-return-statements",  # Функции с множеством условий выхода
     "too-many-nested-blocks",  # Сложная логика обработки
     "too-many-instance-attributes",  # Классы конфигурации имеют много полей

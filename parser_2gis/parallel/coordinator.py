@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import random
 import shutil
+import signal
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -42,6 +43,23 @@ from parser_2gis.writer import get_writer
 
 if TYPE_CHECKING:
     from parser_2gis.config import Configuration
+
+
+# Глобальная переменная для отслеживания активного координатора
+_active_coordinator: Optional["ParallelCoordinator"] = None  # noqa: E0602
+
+
+def _signal_handler(signum: int, frame) -> None:
+    """Глобальный обработчик сигналов SIGINT (Ctrl+C).
+
+    Args:
+        signum: Номер сигнала.
+        frame: Текущий фрейм.
+    """
+    global _active_coordinator  # noqa: PLW0602 - используется для установки координатора
+    if _active_coordinator is not None:
+        logger.warning("Получен сигнал прерывания (SIGINT), остановка парсинга...")
+        _active_coordinator.stop()
 
 
 class ParallelCoordinator:
@@ -416,6 +434,12 @@ class ParallelCoordinator:
         merge_callback: Optional[Callable[[str], None]] = None,
     ) -> bool:
         """Запускает параллельный парсинг всех городов и категорий."""
+        global _active_coordinator
+
+        # Установка глобального обработчика сигнала SIGINT
+        old_signal_handler = signal.signal(signal.SIGINT, _signal_handler)
+        _active_coordinator = self
+
         start_time = time.time()
         total_tasks = len(self.cities) * len(self.categories)
 
@@ -489,12 +513,29 @@ class ParallelCoordinator:
                     f.cancel()
             return False
         finally:
+            # Восстановление обработчика сигнала и очистка ресурсов
+            _active_coordinator = None
+            try:
+                signal.signal(signal.SIGINT, old_signal_handler)
+            except (ValueError, TypeError):
+                pass  # Игнорируем ошибки при восстановлении обработчика
+
             if executor is not None:
                 try:
                     executor.shutdown(wait=True, cancel_futures=True)
                     self.log("ThreadPoolExecutor корректно завершён", "debug")
                 except (OSError, RuntimeError, TypeError, ValueError) as shutdown_error:
                     self.log(f"Ошибка при shutdown ThreadPoolExecutor: {shutdown_error}", "error")
+
+            # Остановка таймера очистки временных файлов
+            if self._temp_file_cleanup_timer is not None:
+                try:
+                    self._temp_file_cleanup_timer.stop()
+                    self.log("Таймер периодической очистки остановлен", "info")
+                except (OSError, RuntimeError, TypeError, ValueError) as timer_error:
+                    self.log(f"Ошибка при остановке таймера: {timer_error}", "debug")
+
+            self.log("Ресурсы координатора освобождены", "debug")
 
         duration = time.time() - start_time
         duration_str = f"{duration:.2f} сек."
@@ -547,13 +588,6 @@ class ParallelCoordinator:
             "Ошибки": failed_count,
         }
         log_parser_finish(success=True, stats=stats, duration=duration_str)
-
-        if self._temp_file_cleanup_timer is not None:
-            try:
-                self._temp_file_cleanup_timer.stop()
-                self.log("Таймер периодической очистки остановлен", "info")
-            except (OSError, RuntimeError, TypeError, ValueError) as timer_error:
-                self.log(f"Ошибка при остановке таймера: {timer_error}", "debug")
 
         return True
 

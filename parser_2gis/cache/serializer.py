@@ -98,9 +98,9 @@ class JsonSerializer:
         """
         Десериализует JSON строку в данные с валидацией структуры.
 
-        - Выбрасываем явные исключения с контекстом вместо app_logger.warning
         - Используем orjson если установлен
         - Fallback на стандартный json если orjson недоступен
+        - Fallback на другие кодировки (latin-1, cp1251) при UnicodeDecodeError
         - ВАЛИДАЦИЯ СТРУКТУРЫ ДАННЫХ после десериализации
 
         Args:
@@ -143,7 +143,40 @@ class JsonSerializer:
 
             return deserialized
 
-        except (UnicodeDecodeError, MemoryError) as json_error:
+        except UnicodeDecodeError as unicode_error:
+            # Fallback на другие кодировки при UnicodeDecodeError
+            app_logger.debug(
+                "UnicodeDecodeError при десериализации, попытка fallback: %s", unicode_error
+            )
+
+            # Пытаемся декодировать с заменой некорректных символов
+            try:
+                if isinstance(data, bytes):
+                    # Пробуем latin-1 как универсальную кодировку
+                    data_decoded = data.decode("latin-1", errors="replace")
+                    deserialized = json.loads(data_decoded)
+                    app_logger.warning("Fallback на latin-1 успешен (с заменой символов)")
+                    return deserialized  # type: ignore
+            except (json.JSONDecodeError, AttributeError) as fallback_error:
+                app_logger.debug("Fallback на latin-1 не удался: %s", fallback_error)
+
+            # Пробуем cp1251 для кириллических данных
+            try:
+                if isinstance(data, bytes):
+                    data_decoded = data.decode("cp1251", errors="replace")
+                    deserialized = json.loads(data_decoded)
+                    app_logger.warning("Fallback на cp1251 успешен (с заменой символов)")
+                    return deserialized  # type: ignore
+            except (json.JSONDecodeError, AttributeError) as fallback_error:
+                app_logger.debug("Fallback на cp1251 не удался: %s", fallback_error)
+
+            # Если все fallback не удались, выбрасываем исключение
+            raise ValueError(
+                f"Не удалось десериализовать данные: все кодировки не подошли. "
+                f"Original error: {unicode_error}. Длина данных: {len(data) if isinstance(data, (str, bytes)) else 'N/A'}"
+            ) from unicode_error
+
+        except (MemoryError,) as json_error:
             # Обрабатываем все остальные исключения десериализации с сохранением цепочки
             if orjson is not None:
                 try:

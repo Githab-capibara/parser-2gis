@@ -47,6 +47,7 @@ from .options import MAX_TEMP_FILES, ParallelOptions
 from .parallel_parser import (
     ParallelCityParser,
     ParallelCityParserThread,
+    ParserThreadConfig,  # noqa: F401 - используется для __all__
     _cleanup_all_temp_files,
     _register_temp_file,
     _temp_files_lock,

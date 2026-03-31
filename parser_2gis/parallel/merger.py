@@ -62,6 +62,25 @@ class MergeConfig:
 
 
 # =============================================================================
+# ОБЩАЯ ФУНКЦИЯ ЛОГИРОВАНИЯ (устранение дублирования)
+# =============================================================================
+
+
+def _log_message(
+    msg: str, level: str = "debug", log_callback: Optional[Callable[[str, str], None]] = None
+) -> None:
+    """Общая функция для логирования через callback.
+
+    Args:
+        msg: Сообщение для логирования.
+        level: Уровень логирования (debug, info, warning, error).
+        log_callback: Функция обратного вызова для логирования.
+    """
+    if log_callback:
+        log_callback(msg, level)
+
+
+# =============================================================================
 # ФУНКЦИИ СЛИЯНИЯ (перемещены из file_merger.py)
 # =============================================================================
 
@@ -86,11 +105,6 @@ def _acquire_merge_lock(
     Raises:
         Exception: Если произошла ошибка при получении блокировки.
     """
-
-    def log(msg: str, level: str = "debug") -> None:
-        if log_callback:
-            log_callback(msg, level)
-
     lock_file_handle = None
     lock_acquired = False
 
@@ -99,12 +113,20 @@ def _acquire_merge_lock(
         try:
             lock_age = time.time() - lock_file_path.stat().st_mtime
             if lock_age > MAX_LOCK_FILE_AGE:
-                log(f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек)", "debug")
+                _log_message(
+                    f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек)",
+                    "debug",
+                    log_callback,
+                )
                 lock_file_path.unlink()
             else:
-                log(f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...", "warning")
+                _log_message(
+                    f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...",
+                    "warning",
+                    log_callback,
+                )
         except OSError as e:
-            log(f"Ошибка проверки lock файла: {e}", "debug")
+            _log_message(f"Ошибка проверки lock файла: {e}", "debug", log_callback)
 
     # Пытаемся получить блокировку с таймаутом
     start_time = time.time()
@@ -117,17 +139,19 @@ def _acquire_merge_lock(
             lock_file_handle.write(f"{os.getpid()}\n")
             lock_file_handle.flush()
             lock_acquired = True
-            log("Lock file получен успешно", "debug")
+            _log_message("Lock file получен успешно", "debug", log_callback)
         except (IOError, OSError):
             if lock_file_handle:
                 try:
                     lock_file_handle.close()
                 except (OSError, RuntimeError, ValueError) as close_error:
-                    log(f"Ошибка при закрытии lock файла: {close_error}", "error")
+                    _log_message(
+                        f"Ошибка при закрытии lock файла: {close_error}", "error", log_callback
+                    )
                 lock_file_handle = None
 
             if time.time() - start_time > timeout:
-                log(f"Таймаут ожидания lock файла ({timeout} сек)", "error")
+                _log_message(f"Таймаут ожидания lock файла ({timeout} сек)", "error", log_callback)
                 return None, False
 
             time.sleep(1)
@@ -175,16 +199,6 @@ def _merge_csv_files(
         cancel_event=cancel_event,
     )
 
-    def log(msg: str, level: str = "info") -> None:
-        """Выводит сообщение лога через callback.
-
-        Args:
-            msg: Сообщение для логирования.
-            level: Уровень логирования (debug, info, warning, error).
-        """
-        if merge_config.log_callback:
-            merge_config.log_callback(msg, level)
-
     files_to_delete: List[Path] = []
     total_rows = 0
     fieldnames_cache: Dict[Tuple[str, ...], List[str]] = {}
@@ -223,7 +237,9 @@ def _merge_csv_files(
                     return None, False
             return None, False
 
-    outfile, open_success = _open_outfile_with_fallback(output_path, encoding, buffer_size, log)
+    outfile, open_success = _open_outfile_with_fallback(
+        output_path, encoding, buffer_size, merge_config.log_callback
+    )
     if not open_success or outfile is None:
         return False, 0, []
 
@@ -231,7 +247,9 @@ def _merge_csv_files(
         with outfile:  # type: ignore[union-attr]
             for csv_file in merge_config.file_paths:
                 if merge_config.cancel_event is not None and merge_config.cancel_event.is_set():
-                    log("Объединение отменено пользователем", "warning")
+                    _log_message(
+                        "Объединение отменено пользователем", "warning", merge_config.log_callback
+                    )
                     return False, 0, []
 
                 if merge_config.progress_callback:
@@ -246,9 +264,10 @@ def _merge_csv_files(
                 )
 
                 if last_underscore_idx <= 0:
-                    log(
+                    _log_message(
                         f"Предупреждение: файл {csv_file.name} не содержит категорию в имени",
                         "warning",
+                        merge_config.log_callback,
                     )
 
                 infile = None
@@ -258,17 +277,33 @@ def _merge_csv_files(
                     )
                 except OSError as file_error:
                     error_type = type(file_error).__name__
-                    log(f"Ошибка доступа к файлу {csv_file} ({error_type}): {file_error}", "error")
+                    _log_message(
+                        f"Ошибка доступа к файлу {csv_file} ({error_type}): {file_error}",
+                        "error",
+                        merge_config.log_callback,
+                    )
 
                     if buffer_size > 0:
-                        log(f"Попытка fallback: читаем файл {csv_file} без буферизации", "warning")
+                        _log_message(
+                            f"Попытка fallback: читаем файл {csv_file} без буферизации",
+                            "warning",
+                            merge_config.log_callback,
+                        )
                         try:
                             infile = open(
                                 csv_file, "r", encoding="utf-8-sig", newline="", buffering=0
                             )
-                            log(f"Fallback успешен: файл {csv_file} открыт без буферизации", "info")
+                            _log_message(
+                                f"Fallback успешен: файл {csv_file} открыт без буферизации",
+                                "info",
+                                merge_config.log_callback,
+                            )
                         except OSError as fallback_error:
-                            log(f"Fallback не удался для {csv_file}: {fallback_error}", "error")
+                            _log_message(
+                                f"Fallback не удался для {csv_file}: {fallback_error}",
+                                "error",
+                                merge_config.log_callback,
+                            )
                             continue
                     else:
                         continue
@@ -277,14 +312,19 @@ def _merge_csv_files(
                     reader = csv_module.DictReader(infile)
 
                     if reader.fieldnames is None:
-                        log(
+                        _log_message(
                             f"Файл {csv_file} пуст или не имеет заголовков (fieldnames=None)",
                             "warning",
+                            merge_config.log_callback,
                         )
                         continue
 
                     if len(reader.fieldnames) == 0:
-                        log(f"Файл {csv_file} имеет пустой список заголовков", "warning")
+                        _log_message(
+                            f"Файл {csv_file} имеет пустой список заголовков",
+                            "warning",
+                            merge_config.log_callback,
+                        )
                         continue
 
                     fieldnames_key = tuple(reader.fieldnames)
@@ -317,47 +357,83 @@ def _merge_csv_files(
                         batch_total += len(batch)
 
                     total_rows += batch_total
-                    log(f"Файл {csv_file.name} обработан (строк: {batch_total})", "debug")
+                    _log_message(
+                        f"Файл {csv_file.name} обработан (строк: {batch_total})",
+                        "debug",
+                        merge_config.log_callback,
+                    )
 
                 except OSError as csv_error:
                     error_type = type(csv_error).__name__
-                    log(f"Ошибка при обработке CSV {csv_file} ({error_type}): {csv_error}", "error")
+                    _log_message(
+                        f"Ошибка при обработке CSV {csv_file} ({error_type}): {csv_error}",
+                        "error",
+                        merge_config.log_callback,
+                    )
                     continue
                 except csv.Error as csv_parse_error:
-                    log(f"Ошибка парсинга CSV {csv_file}: {csv_parse_error}", "error")
+                    _log_message(
+                        f"Ошибка парсинга CSV {csv_file}: {csv_parse_error}",
+                        "error",
+                        merge_config.log_callback,
+                    )
                     continue
                 finally:
                     if infile is not None:
                         try:
                             infile.close()
-                            log(f"Файл {csv_file.name} закрыт", "debug")
+                            _log_message(
+                                f"Файл {csv_file.name} закрыт", "debug", merge_config.log_callback
+                            )
                         except (OSError, RuntimeError, ValueError) as close_error:
-                            log(
-                                f"Ошибка при закрытии файла {csv_file.name}: {close_error}", "debug"
+                            _log_message(
+                                f"Ошибка при закрытии файла {csv_file.name}: {close_error}",
+                                "debug",
+                                merge_config.log_callback,
                             )
 
                 files_to_delete.append(csv_file)
 
             if writer is None:
-                log("Все CSV файлы пустые или не имеют заголовков", "warning")
+                _log_message(
+                    "Все CSV файлы пустые или не имеют заголовков",
+                    "warning",
+                    merge_config.log_callback,
+                )
                 return False, 0, []
 
-            log(f"Объединение завершено. Всего записей: {total_rows}", "info")
+            _log_message(
+                f"Объединение завершено. Всего записей: {total_rows}",
+                "info",
+                merge_config.log_callback,
+            )
             return True, total_rows, files_to_delete
 
     except KeyboardInterrupt:
-        log("Объединение прервано пользователем (KeyboardInterrupt)", "warning")
+        _log_message(
+            "Объединение прервано пользователем (KeyboardInterrupt)",
+            "warning",
+            merge_config.log_callback,
+        )
         return False, 0, files_to_delete
 
     except OSError as e:
         error_type = type(e).__name__
         error_details = str(e)
-        log(f"Критическая ошибка ОС при объединении CSV ({error_type}): {error_details}", "error")
+        _log_message(
+            f"Критическая ошибка ОС при объединении CSV ({error_type}): {error_details}",
+            "error",
+            merge_config.log_callback,
+        )
         return False, 0, files_to_delete
 
     except (RuntimeError, TypeError, ValueError, MemoryError) as e:
         error_type = type(e).__name__
-        log(f"Непредвиденная ошибка при объединении CSV ({error_type}): {e}", "error")
+        _log_message(
+            f"Непредвиденная ошибка при объединении CSV ({error_type}): {e}",
+            "error",
+            merge_config.log_callback,
+        )
         return False, 0, files_to_delete
 
 
@@ -373,19 +449,14 @@ def _cleanup_source_files(
     Returns:
         Количество успешно удалённых файлов.
     """
-
-    def log(msg: str, level: str = "debug") -> None:
-        if log_callback:
-            log_callback(msg, level)
-
     deleted_count = 0
     for csv_file in file_paths:
         try:
             csv_file.unlink()
-            log(f"Исходный файл удалён: {csv_file.name}")
+            _log_message(f"Исходный файл удалён: {csv_file.name}", "debug", log_callback)
             deleted_count += 1
         except (OSError, RuntimeError, TypeError, ValueError) as e:
-            log(f"Не удалось удалить файл {csv_file}: {e}", "warning")
+            _log_message(f"Не удалось удалить файл {csv_file}: {e}", "warning", log_callback)
     return deleted_count
 
 
@@ -401,21 +472,18 @@ def _validate_merged_file(
     Returns:
         True если файл валиден, False иначе.
     """
-
-    def log(msg: str, level: str = "debug") -> None:
-        if log_callback:
-            log_callback(msg, level)
-
     if not output_path.exists():
-        log(f"Объединённый файл не существует: {output_path}", "error")
+        _log_message(f"Объединённый файл не существует: {output_path}", "error", log_callback)
         return False
 
     if output_path.stat().st_size == 0:
-        log(f"Объединённый файл пуст: {output_path}", "error")
+        _log_message(f"Объединённый файл пуст: {output_path}", "error", log_callback)
         return False
 
-    log(
-        f"Объединённый файл валиден: {output_path.name} ({output_path.stat().st_size} байт)", "info"
+    _log_message(
+        f"Объединённый файл валиден: {output_path.name} ({output_path.stat().st_size} байт)",
+        "info",
+        log_callback,
     )
     return True
 

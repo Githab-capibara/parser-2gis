@@ -248,7 +248,8 @@ class ParallelErrorHandler:
         if max_retries <= 0:
             # Если max_retries=0, выполняем функцию один раз без повторных попыток
             try:
-                return func()
+                result = func()
+                return result
             except ChromeException:
                 # При max_retries=0 и наличии exception - выбрасываем его
                 raise
