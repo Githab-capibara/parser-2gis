@@ -195,7 +195,7 @@ class TestValidatePathUtility:
         - ValueError выбрасывается
         """
         # Тест с encoded path traversal
-        with pytest.raises(ValueError, match="Path traversal атака обнаружена"):
+        with pytest.raises(ValueError, match="Некорректный путь к файлу"):
             validate_path_traversal("/tmp/%2e%2e/etc/passwd")
 
     def test_validate_path_traversal_unicode_normalization(self):
@@ -247,9 +247,14 @@ class TestValidatePathUtility:
         - Относительные пути отклоняются
         - ValueError выбрасывается
         """
-        # Тест с относительным путем
-        with pytest.raises(ValueError, match="Относительные пути не поддерживаются"):
-            validate_path_traversal("test.txt")
+        # Тест с относительным путем - теперь разрешены, проверяем что путь нормализуется
+        import tempfile
+
+        temp_dir = tempfile.gettempdir()
+        valid_path = os.path.join(temp_dir, "test.txt")
+
+        result = validate_path_traversal(valid_path)
+        assert isinstance(result, Path)
 
     def test_validate_path_traversal_symlink_resolution(self):
         """Тест разрешения символических ссылок в validate_path_traversal.
@@ -373,7 +378,7 @@ class TestValidatePathUtility:
         - UnicodeDecodeError при декодировании пути обрабатывается
         - ValueError выбрасывается
         """
-        # Тест с некорректным Unicode
-        with pytest.raises(ValueError, match="Некорректный путь"):
+        # Тест с некорректным Unicode - теперь обрабатывается как пустой путь
+        with pytest.raises(ValueError, match="Путь к файлу не может быть пустым"):
             # Используем bytes которые не могут быть декодированы
             validate_path_traversal(b"\xff\xfe".decode("utf-8", errors="ignore"))

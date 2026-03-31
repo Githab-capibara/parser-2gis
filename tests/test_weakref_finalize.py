@@ -177,7 +177,7 @@ class TestWeakrefFinalize:
             # weakref и finalizer должны быть разными объектами
             assert cache._weak_ref is not None, "weakref должен существовать"
             assert cache._finalizer is not None, "finalizer должен существовать"
-            assert type(cache._weak_ref) is not type(cache._finalizer), (
+            assert not isinstance(cache._weak_ref, type(cache._finalizer)), (
                 "weakref и finalizer должны быть разными типами"
             )
 

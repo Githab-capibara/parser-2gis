@@ -74,6 +74,15 @@ class BaseParser(ABC):
         self._browser = browser
         self._stats: Dict[str, Any] = {"parsed": 0, "errors": 0, "skipped": 0}
 
+    @property
+    def _chrome_remote(self) -> BrowserService:
+        """Алиас для _browser для обратной совместимости.
+
+        Returns:
+            Объект BrowserService для работы с браузером.
+        """
+        return self._browser
+
     @abstractmethod
     def parse(self, writer: FileWriter) -> None:
         """Основной метод парсинга данных.

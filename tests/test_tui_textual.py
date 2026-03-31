@@ -21,6 +21,16 @@ except ImportError:
     TEXTUAL_AVAILABLE = False
     pytest.skip("textual not installed", allow_module_level=True)
 
+# Проверка доступности pytest-asyncio
+try:
+    import importlib.util
+
+    _spec = importlib.util.find_spec("pytest_asyncio")
+    ASYNCIO_AVAILABLE = _spec is not None
+except (ImportError, AttributeError):
+    ASYNCIO_AVAILABLE = False
+    pytest.skip("pytest-asyncio not installed", allow_module_level=True)
+
 
 class TestTUIApp:
     """Тесты для основного приложения TUI."""

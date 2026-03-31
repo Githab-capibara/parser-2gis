@@ -160,11 +160,18 @@ class MainDataProcessor:
         # Счётчик вызовов оптимизации памяти
         memory_check_counter = 0
 
+        # C5: Счётчик для периодической принудительной очистки visited_links
+        visited_links_cleanup_counter = 0
+
         # Проверка и автоматическая оптимизация памяти при больших объёмах данных
         def check_and_optimize_memory():
-            """Проверяет использование памяти и выполняет автоматическую оптимизацию."""
-            nonlocal memory_check_counter
+            """Проверяет использование памяти и выполняет автоматическую оптимизацию.
+
+            C5: Добавлена периодическая принудительная очистка visited_links.
+            """
+            nonlocal memory_check_counter, visited_links_cleanup_counter
             memory_check_counter += 1
+            visited_links_cleanup_counter += 1
 
             # Проверяем доступность psutil
             if not PSUTIL_AVAILABLE or _process_cache is None:
@@ -221,6 +228,21 @@ class MainDataProcessor:
                         logger.debug("Очищен кэш запросов Chrome")
                     except (OSError, RuntimeError, TypeError, ValueError) as cache_error:
                         logger.debug("Ошибка при очистке кэша: %s", cache_error)
+
+                # C5: Периодическая принудительная очистка visited_links (каждые 5 вызовов)
+                if visited_links_cleanup_counter >= 5:
+                    with visited_links_lock:
+                        if len(visited_links) > max_visited_links * 0.5:
+                            # Удаляем 50% старых записей
+                            target_remove = int(len(visited_links) * 0.5)
+                            if target_remove > 0:
+                                for _ in range(target_remove):
+                                    visited_links.popitem(last=False)
+                                logger.debug(
+                                    "C5: Периодическая очистка visited_links: удалено %d ссылок",
+                                    target_remove,
+                                )
+                    visited_links_cleanup_counter = 0
 
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as memory_error:
                 logger.debug("Ошибка при проверке памяти: %s", memory_error)

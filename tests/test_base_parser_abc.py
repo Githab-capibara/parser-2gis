@@ -454,6 +454,6 @@ class TestBaseParserABC:
         parser1 = TestParser1(browser=mock_browser)
         parser2 = TestParser2(browser=mock_browser)
 
-        assert type(parser1) is TestParser1
-        assert type(parser2) is TestParser2
-        assert type(parser1) is not type(parser2)
+        assert isinstance(parser1, TestParser1)
+        assert isinstance(parser2, TestParser2)
+        assert not isinstance(parser1, type(parser2))

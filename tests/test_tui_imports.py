@@ -157,10 +157,12 @@ class TestRelativeImportErrors:
         # Получаем исходный код метода _load_cache_stats
         source = inspect.getsource(CacheViewerScreen._load_cache_stats)
 
-        # Проверяем, что используется правильный импорт
-        assert "from parser_2gis.paths import" in source or "from ...paths import" in source, (
-            "CacheViewerScreen должен использовать правильный импорт paths"
-        )
+        # Проверяем, что используется правильный импорт (parser_2gis.utils.paths)
+        assert (
+            "from parser_2gis.utils.paths import" in source
+            or "from ...utils.paths import" in source
+            or "from parser_2gis.paths import" in source
+        ), "CacheViewerScreen должен использовать правильный импорт paths"
 
     def test_cache_viewer_action_clear_imports_correctly(self):
         """
@@ -178,9 +180,11 @@ class TestRelativeImportErrors:
             "action_clear_cache должен использовать правильный импорт cache"
         )
 
-        assert "from parser_2gis.paths import" in source or "from ...paths import" in source, (
-            "action_clear_cache должен использовать правильный импорт paths"
-        )
+        assert (
+            "from parser_2gis.utils.paths import" in source
+            or "from ...utils.paths import" in source
+            or "from parser_2gis.paths import" in source
+        ), "action_clear_cache должен использовать правильный импорт paths"
 
 
 class TestCriticalModuleAvailability:

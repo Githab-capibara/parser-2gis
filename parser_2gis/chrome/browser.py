@@ -297,8 +297,22 @@ class ProcessManager:
             Процесс Chrome.
 
         Raises:
+            ValueError: Если chrome_cmd пуст или некорректен.
             Exception: При ошибке запуска.
         """
+        # Валидация аргументов перед запуском subprocess
+        if not chrome_cmd:
+            app_logger.error("chrome_cmd не может быть пустым")
+            raise ValueError("chrome_cmd не может быть пустым")
+
+        if not isinstance(chrome_cmd, list):
+            app_logger.error("chrome_cmd должен быть списком")
+            raise TypeError("chrome_cmd должен быть списком")
+
+        if any(arg is None for arg in chrome_cmd):
+            app_logger.error("chrome_cmd содержит None значения")
+            raise TypeError("chrome_cmd не должен содержать None значения")
+
         self._start_time = time.time()
 
         try:
@@ -323,12 +337,16 @@ class ProcessManager:
                 app_logger.debug("Не удалось удалить профиль при ошибке запуска: %s", cleanup_error)
             raise
 
-    def terminate_process_graceful(self, process_pid: int) -> tuple[bool, str]:
+    def terminate(self, process_pid: int, timeout: int = 5) -> tuple[bool, str]:
         """
-        Пытается корректно завершить процесс через terminate().
+        Завершает процесс через terminate() (graceful shutdown).
+
+        H2: Упрощённый метод для корректного завершения процесса.
+        Объединяет логику terminate_process_graceful.
 
         Args:
             process_pid: PID процесса для завершения.
+            timeout: Таймаут ожидания завершения в секундах.
 
         Returns:
             Кортеж (process_closed, process_status):
@@ -336,7 +354,7 @@ class ProcessManager:
             - process_status: Статус завершения процесса
         """
         if self._proc is None:
-            app_logger.debug("Процесс не инициализирован для PID %d", process_pid)
+            app_logger.debug("Процесс не инициализирован (PID: %s)", process_pid)
             return False, "no_process"
 
         try:
@@ -346,7 +364,6 @@ class ProcessManager:
             # Проверка poll() для обнаружения завершения процесса
             poll_result = self._proc.poll()
             if poll_result is not None:
-                # Процесс уже завершился
                 process_status = f"terminated (exit code: {poll_result})"
                 app_logger.info(
                     "Chrome браузер корректно завершён (PID: %d, exit code: %d, время жизни: %.1f сек)",
@@ -358,26 +375,23 @@ class ProcessManager:
             else:
                 # Процесс ещё работает, ждём завершения с timeout
                 try:
-                    self._proc.wait(timeout=5)
+                    self._proc.wait(timeout=timeout)
                     app_logger.info(
-                        "Chrome браузер корректно завершён (PID: %d, время ожидания: 5 сек)",
+                        "Chrome браузер корректно завершён (PID: %d, время ожидания: %d сек)",
                         process_pid,
+                        timeout,
                     )
                     return True, "terminated"
                 except subprocess.TimeoutExpired:
                     app_logger.warning(
-                        "Таймаут (5 сек) при завершении Chrome PID %d, "
-                        "принудительное закрытие через kill()",
-                        process_pid,
+                        "Таймаут (%d сек) при завершении Chrome PID %d", timeout, process_pid
                     )
                     return False, "terminate_timeout"
 
         except ProcessLookupError as proc_error:
-            # Процесс уже завершён
             app_logger.debug("Процесс уже завершён: %s", proc_error)
             return True, "already_terminated"
         except PermissionError as perm_error:
-            # Нет прав на завершение процесса
             app_logger.error("Нет прав на завершение процесса: %s", perm_error)
             return False, "permission_denied"
         except (OSError, subprocess.SubprocessError, ValueError) as terminate_error:
@@ -389,12 +403,16 @@ class ProcessManager:
             )
             return False, "terminate_error"
 
-    def terminate_process_forceful(self, process_pid: int) -> tuple[bool, str]:
+    def kill(self, process_pid: int, timeout: int = 10) -> tuple[bool, str]:
         """
-        Пытается принудительно завершить процесс через kill().
+        Принудительно завершает процесс через kill() (forceful shutdown).
+
+        H2: Упрощённый метод для принудительного завершения процесса.
+        Объединяет логику terminate_process_forceful.
 
         Args:
             process_pid: PID процесса для завершения.
+            timeout: Таймаут ожидания завершения в секундах.
 
         Returns:
             Кортеж (process_closed, process_status):
@@ -402,7 +420,7 @@ class ProcessManager:
             - process_status: Статус завершения процесса
         """
         if self._proc is None:
-            app_logger.debug("Процесс не инициализирован для PID %d", process_pid)
+            app_logger.debug("Процесс не инициализирован (PID: %s)", process_pid)
             return False, "no_process"
 
         try:
@@ -421,27 +439,27 @@ class ProcessManager:
                 )
                 return True, process_status
             else:
-                # Процесс всё ещё работает после kill(), ждём с большим timeout
+                # Процесс всё ещё работает после kill(), ждём с timeout
                 try:
-                    self._proc.wait(timeout=10)
+                    self._proc.wait(timeout=timeout)
                     app_logger.info(
-                        "Chrome браузер принудительно завершён (PID: %d, время ожидания: 10 сек)",
+                        "Chrome браузер принудительно завершён (PID: %d, время ожидания: %d сек)",
                         process_pid,
+                        timeout,
                     )
                     return True, "killed"
                 except subprocess.TimeoutExpired:
                     app_logger.error(
-                        "Таймаут (10 сек) после SIGKILL для PID %d - возможна утечка процесса",
+                        "Таймаут (%d сек) после SIGKILL для PID %d - возможна утечка процесса",
+                        timeout,
                         process_pid,
                     )
                     return False, "kill_timeout"
 
         except ProcessLookupError as proc_error:
-            # Процесс уже завершён
             app_logger.debug("Процесс уже завершён (kill): %s", proc_error)
             return True, "already_killed"
         except PermissionError as perm_error:
-            # Нет прав на принудительное завершение процесса
             app_logger.error("Нет прав на принудительное завершение: %s", perm_error)
             return False, "kill_permission_denied"
         except (OSError, subprocess.SubprocessError, ValueError) as kill_error:
@@ -468,6 +486,47 @@ class ProcessManager:
         if self._proc is None:
             return False
         return self._proc.poll() is None
+
+    # ==========================================================================
+    # АЛИАСЫ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ
+    # ==========================================================================
+    # Эти методы предоставлены для обратной совместимости со старыми тестами.
+    # Они вызывают новые методы terminate() и kill().
+    # ==========================================================================
+
+    def terminate_process_graceful(self, process_pid: int, timeout: int = 5) -> tuple[bool, str]:
+        """
+        Алиас для метода terminate() для обратной совместимости.
+
+        Завершает процесс через terminate() (graceful shutdown).
+
+        Args:
+            process_pid: PID процесса для завершения.
+            timeout: Таймаут ожидания завершения в секундах.
+
+        Returns:
+            Кортеж (process_closed, process_status):
+            - process_closed: True если процесс завершён
+            - process_status: Статус завершения процесса
+        """
+        return self.terminate(process_pid, timeout)
+
+    def terminate_process_forceful(self, process_pid: int, timeout: int = 10) -> tuple[bool, str]:
+        """
+        Алиас для метода kill() для обратной совместимости.
+
+        Принудительно завершает процесс через kill() (forceful shutdown).
+
+        Args:
+            process_pid: PID процесса для завершения.
+            timeout: Таймаут ожидания завершения в секундах.
+
+        Returns:
+            Кортеж (process_closed, process_status):
+            - process_closed: True если процесс завершён
+            - process_status: Статус завершения процесса
+        """
+        return self.kill(process_pid, timeout)
 
 
 # =============================================================================
@@ -550,7 +609,7 @@ class BrowserLifecycleManager:
             )
 
             app_logger.info(
-                "Chrome браузер инициализирован (PID: %d, порт: %d)",
+                "Chrome браузер инициализирован (PID: %s, порт: %s)",
                 self._process_manager.pid,
                 self._remote_port,
             )
@@ -621,6 +680,8 @@ class BrowserLifecycleManager:
         """
         Закрывает браузер и удаляет временный профиль.
 
+        H2: Использует упрощённые методы terminate() и kill().
+
         Примечание:
             Функция гарантирует попытку закрытия даже при ошибках.
             Используется двухуровневая стратегия завершения:
@@ -635,17 +696,17 @@ class BrowserLifecycleManager:
         self._closed = True
 
         process_pid = self._process_manager.pid
-        app_logger.debug(f"Closing Chrome browser (PID: {process_pid})")
+        app_logger.debug("Closing Chrome browser (PID: %s)", process_pid)
 
         try:
-            # Завершаем процесс безопасно
+            # Завершаем процесс безопасно (H2: используем упрощённые методы)
             if process_pid is not None:
                 # Сначала пытаемся завершить корректно
-                success, status = self._process_manager.terminate_process_graceful(process_pid)
+                success, status = self._process_manager.terminate(process_pid, timeout=5)
 
                 # Если не удалось, пробуем принудительно
                 if not success:
-                    self._process_manager.terminate_process_forceful(process_pid)
+                    self._process_manager.kill(process_pid, timeout=10)
 
             # Очищаем профиль
             self._profile_manager.cleanup_profile()

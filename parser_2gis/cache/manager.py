@@ -166,6 +166,8 @@ class CacheManager:
         Создает директорию для кэша (если её нет) и создает
         таблицу для хранения кэшированных данных.
 
+        C4: Включает WAL режим и настраивает synchronous=NORMAL для производительности.
+
         Args:
             pool_size: Размер пула соединений.
         """
@@ -179,6 +181,12 @@ class CacheManager:
         conn = self._pool.get_connection()
 
         try:
+            # C4: Включаем WAL режим для лучшей конкурентности и защиты от потери данных
+            conn.execute("PRAGMA journal_mode=WAL")
+
+            # C4: Настраиваем synchronous=NORMAL для производительности
+            conn.execute("PRAGMA synchronous=NORMAL")
+
             # Создаем таблицу для кэша
             conn.execute(self.SQL_CREATE_TABLE)
 
@@ -187,6 +195,9 @@ class CacheManager:
 
             # Создаём составной индекс для ускорения поиска
             conn.execute(self.SQL_CREATE_CACHE_KEY_INDEX)
+
+            # Применяем изменения
+            conn.commit()
 
         except (sqlite3.Error, OSError, MemoryError) as e:
             app_logger.warning("Ошибка при инициализации кэша: %s", e)
@@ -298,6 +309,11 @@ class CacheManager:
     ) -> Optional[Dict[str, Any]]:
         """Обрабатывает ошибки базы данных при получении кэша.
 
+        H6: Упрощённая обработка ошибок до 3 категорий:
+        1. Временные ошибки (database is locked, busy) - повторная попытка
+        2. Критические ошибки (disk i/o, no such table, corrupt) - выбрасываются дальше
+        3. Остальные ошибки - логируются и возвращается None
+
         Args:
             db_error: Исключение базы данных.
             url: URL для логирования.
@@ -309,7 +325,7 @@ class CacheManager:
         """
         error_str = str(db_error).lower()
 
-        # Временные ошибки - можно повторить попытку
+        # H6 Категория 1: Временные ошибки - можно повторить попытку
         if "database is locked" in error_str or "busy" in error_str:
             app_logger.warning(
                 "База данных заблокирована (временная ошибка): %s. Повторная попытка...", db_error
@@ -327,26 +343,18 @@ class CacheManager:
                 app_logger.warning("Повторная попытка не удалась: %s", retry_error)
             return None
 
-        # Критическая ошибка диска
-        if "disk i/o error" in error_str:
+        # H6 Категория 2: Критические ошибки - выбрасываются дальше
+        if "disk i/o error" in error_str or "no such table" in error_str:
             app_logger.critical("Критическая ошибка диска при получении кэша: %s", db_error)
             raise db_error
 
-        # Таблица не существует
-        if "no such table" in error_str:
-            app_logger.critical("Таблица кэша не существует: %s", db_error)
-            raise db_error
-
-        # Повреждение базы данных
         if "corrupt" in error_str or "malformed" in error_str:
             app_logger.critical("База данных повреждена: %s", db_error)
             raise db_error
 
-        # Остальные ошибки БД
+        # H6 Категория 3: Остальные ошибки - логируются и возвращается None
         app_logger.error(
-            "Неизвестная ошибка БД при получении кэша: %s (тип: %s)",
-            db_error,
-            type(db_error).__name__,
+            "Ошибка БД при получении кэша: %s (тип: %s)", db_error, type(db_error).__name__
         )
         return None
 

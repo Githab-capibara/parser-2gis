@@ -2,6 +2,9 @@
 
 Модуль предоставляет класс ArgumentValidator для комплексной валидации
 аргументов командной строки перед использованием в приложении.
+
+H1: Использует централизованный модуль validation/path_validator.py
+для валидации путей вместо дублирования логики.
 """
 
 from __future__ import annotations
@@ -14,8 +17,8 @@ import pydantic
 
 from parser_2gis.config import Configuration
 from parser_2gis.utils import report_from_validation_error
-from parser_2gis.utils.path_utils import validate_path_safety
 from parser_2gis.validation import validate_positive_int, validate_url
+from parser_2gis.validation.path_validator import validate_path
 
 
 @dataclass
@@ -261,6 +264,9 @@ class ArgumentValidator:
     def validate_cli_paths(self, args: argparse.Namespace) -> None:
         """Валидирует все пути из CLI аргументов на безопасность.
 
+        H1: Использует централизованный модуль validation/path_validator.py
+        для валидации путей вместо дублирования логики.
+
         Комплексная валидация всех путей перед использованием:
         1. output_path - путь к выходному файлу
         2. chrome.binary_path - путь к браузеру
@@ -276,17 +282,17 @@ class ArgumentValidator:
         # Валидируем output_path
         output_path = getattr(args, "output_path", None)
         if output_path:
-            validate_path_safety(str(output_path), "Путь к выходному файлу")
+            validate_path(str(output_path), "output_path")
 
         # Валидируем chrome.binary_path если указан
         chrome_binary = getattr(args, "chrome.binary_path", None)
         if chrome_binary:
-            validate_path_safety(str(chrome_binary), "Путь к браузеру")
+            validate_path(str(chrome_binary), "chrome.binary_path")
 
         # Валидируем log.file_path если указан
         log_config = getattr(args, "log", None)
         if log_config and hasattr(log_config, "file_path") and log_config.file_path:
-            validate_path_safety(str(log_config.file_path), "Путь к файлу логов")
+            validate_path(str(log_config.file_path), "log.file_path")
 
     def handle_configuration_validation(
         self, config_args: dict[str, Any], arg_parser: argparse.ArgumentParser

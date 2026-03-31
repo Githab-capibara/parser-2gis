@@ -46,13 +46,13 @@ class TestErrorLogging:
         """
         Проверка что signal_handler логирует ошибки с деталями.
         """
-        from parser_2gis.signal_handler import SignalHandler
+        from parser_2gis.utils.signal_handler import SignalHandler
 
         handler = SignalHandler()
         handler.setup()
 
         # Симулируем ошибку при восстановлении обработчика
-        with patch("parser_2gis.signal_handler.signal.signal") as mock_signal:
+        with patch("parser_2gis.utils.signal_handler.signal.signal") as mock_signal:
             mock_signal.side_effect = RuntimeError("Test restore error")
 
             handler.cleanup()

@@ -487,8 +487,7 @@ class TestNavigateTimeoutHandling:
         """Тест обработки таймаута в _wait_requests_finished.
 
         Проверяет:
-        - Таймаут обрабатывается корректно
-        - Возвращается False
+        - TimeoutError пробрасывается из декоратора @wait_until_finished
         """
         parser = TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
@@ -500,7 +499,6 @@ class TestNavigateTimeoutHandling:
         # Mock execute_script для выбрасывания TimeoutError
         mock_browser.execute_script.side_effect = TimeoutError("Mocked TimeoutError")
 
-        result = parser._wait_requests_finished()
-
-        # Проверяем что результат False (таймаут)
-        assert result is False
+        # TimeoutError пробрасывается из декоратора
+        with pytest.raises(TimeoutError, match="Mocked TimeoutError"):
+            parser._wait_requests_finished()

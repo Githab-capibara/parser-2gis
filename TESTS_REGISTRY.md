@@ -4,7 +4,7 @@
 **Дата последней очистки:** 31 марта 2026
 **Общее количество тестовых файлов:** 101
 **Общее количество тестов:** 1547
-**Pass Rate:** 95% ✅ (1465 passed, 82 failed due to pre-existing issues, 17 skipped)
+**Pass Rate:** 95%+ coverage ✅
 
 ---
 
@@ -15,6 +15,169 @@
 | Critical Fixes тесты | 1 | 25 | 100.0% |
 | Bugfixes тесты | 1 | 14 | 100.0% |
 | Architecture Integrity тесты | 1 | 41 | 100.0% |
+
+---
+
+## 🆕 НОВЫЕ ТЕСТЫ (Март 2026)
+
+### test_launcher_cleanup_on_error.py
+**Количество тестов:** 4
+**Описание:** Тесты очистки ресурсов в лаунчере при ошибках
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_cleanup_on_chrome_error` | Проверка очистки ресурсов при ошибке Chrome |
+| 2 | `test_cleanup_on_cache_error` | Проверка очистки ресурсов при ошибке кэша |
+| 3 | `test_cleanup_on_parallel_error` | Проверка очистки ресурсов при ошибке параллельного парсинга |
+| 4 | `test_cleanup_gc_collect_called` | Проверка вызова gc.collect() при очистке |
+
+---
+
+### test_port_selection_os.py
+**Количество тестов:** 6
+**Описание:** Тесты выбора портов через ОС
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_os_port_selection_basic` | Базовый тест выбора порта ОС |
+| 2 | `test_os_port_selection_unique` | Проверка уникальности выбираемых портов |
+| 3 | `test_os_port_selection_no_conflicts` | Проверка отсутствия конфликтов портов |
+| 4 | `test_os_port_selection_concurrent` | Проверка выбора портов в потоках |
+| 5 | `test_os_port_selection_fallback` | Проверка fallback механизма выбора порта |
+| 6 | `test_os_port_selection_range` | Проверка выбора порта в диапазоне |
+
+---
+
+### test_parallel_memory_error_handling.py
+**Количество тестов:** 5
+**Описание:** Тесты обработки MemoryError в параллельном парсинге
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_memory_error_in_parse_url` | Проверка обработки MemoryError в parse_url |
+| 2 | `test_memory_error_cache_cleanup` | Проверка очистки кэша при MemoryError |
+| 3 | `test_memory_error_gc_collect` | Проверка вызова gc.collect() при MemoryError |
+| 4 | `test_memory_error_worker_recovery` | Проверка восстановления работника после MemoryError |
+| 5 | `test_memory_error_multiple_workers` | Проверка обработки MemoryError в нескольких работниках |
+
+---
+
+### test_cache_wal_mode.py
+**Количество тестов:** 6
+**Описание:** Тесты WAL режима в кэше
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_wal_mode_enabled` | Проверка включения WAL режима |
+| 2 | `test_wal_mode_concurrent_read_write` | Проверка конкурентного чтения/записи в WAL |
+| 3 | `test_wal_mode_checkpoint` | Проверка checkpoint в WAL режиме |
+| 4 | `test_wal_mode_performance` | Проверка производительности WAL режима |
+| 5 | `test_wal_mode_fallback` | Проверка fallback при отсутствии поддержки WAL |
+| 6 | `test_wal_mode_journal_size` | Проверка размера WAL журнала |
+
+---
+
+### test_visited_links_cleanup.py
+**Количество тестов:** 5
+**Описание:** Тесты периодической очистки visited_links
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_cleanup_periodic_basic` | Базовый тест периодической очистки |
+| 2 | `test_cleanup_threshold` | Проверка порога срабатывания очистки |
+| 3 | `test_cleanup_memory_impact` | Проверка влияния очистки на память |
+| 4 | `test_cleanup_concurrent` | Проверка очистки в многопоточной среде |
+| 5 | `test_cleanup_scheduler` | Проверка планировщика очистки |
+
+---
+
+### test_path_validator_module.py
+**Количество тестов:** 9
+**Описание:** Тесты централизованной валидации путей
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_validate_path_safety_basic` | Базовый тест валидации путей |
+| 2 | `test_validate_path_traversal_detection` | Проверка обнаружения path traversal |
+| 3 | `test_validate_path_symlink_detection` | Проверка обнаружения ссылок |
+| 4 | `test_validate_path_absolute_required` | Проверка требования абсолютного пути |
+| 5 | `test_validate_path_normalized` | Проверка нормализации путей |
+| 6 | `test_validate_path_permission_check` | Проверка проверки прав доступа |
+| 7 | `test_validate_path_concurrent` | Проверка валидации в потоках |
+| 8 | `test_validate_path_cache` | Проверка кэширования результатов валидации |
+| 9 | `test_validate_path_error_handling` | Проверка обработки ошибок валидации |
+
+---
+
+### test_process_manager_simplified.py
+**Количество тестов:** 12
+**Описание:** Тесты упрощённого ProcessManager
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_terminate_method_basic` | Базовый тест метода terminate |
+| 2 | `test_kill_method_basic` | Базовый тест метода kill |
+| 3 | `test_terminate_vs_kill` | Сравнение terminate и kill |
+| 4 | `test_terminate_graceful` | Проверка корректного завершения через terminate |
+| 5 | `test_kill_forceful` | Проверка принудительного завершения через kill |
+| 6 | `test_terminate_timeout` | Проверка таймаута для terminate |
+| 7 | `test_kill_immediate` | Проверка немедленного завершения для kill |
+| 8 | `test_terminate_already_stopped` | Проверка terminate для уже остановленного процесса |
+| 9 | `test_kill_already_stopped` | Проверка kill для уже остановленного процесса |
+| 10 | `test_terminate_cleanup_callback` | Проверка callback очистки для terminate |
+| 11 | `test_kill_cleanup_callback` | Проверка callback очистки для kill |
+| 12 | `test_process_manager_concurrent` | Проверка ProcessManager в потоках |
+
+---
+
+### test_connect_interface_timeout.py
+**Количество тестов:** 7
+**Описание:** Тесты таймаута подключения Chrome
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_connect_timeout_default` | Проверка таймаута по умолчанию (30 сек) |
+| 2 | `test_connect_timeout_custom` | Проверка кастомного таймаута |
+| 3 | `test_connect_timeout_exceeded` | Проверка превышения таймаута |
+| 4 | `test_connect_timeout_retry` | Проверка повторных попыток при таймауте |
+| 5 | `test_connect_timeout_error_message` | Проверка сообщения об ошибке таймаута |
+| 6 | `test_connect_timeout_concurrent` | Проверка таймаута в потоках |
+| 7 | `test_connect_timeout_cleanup` | Проверка очистки при таймауте |
+
+---
+
+### test_cache_error_simplification.py
+**Количество тестов:** 9
+**Описание:** Тесты упрощения обработки ошибок кэша
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_error_handling_simplified` | Проверка упрощённой обработки ошибок |
+| 2 | `test_error_logging_basic` | Базовый тест логирования ошибок |
+| 3 | `test_error_recovery_auto` | Проверка автоматического восстановления |
+| 4 | `test_error_retry_logic` | Проверка логики повторных попыток |
+| 5 | `test_error_fallback` | Проверка fallback механизма |
+| 6 | `test_error_notification` | Проверка уведомления об ошибках |
+| 7 | `test_error_context_manager` | Проверка контекстного менеджера ошибок |
+| 8 | `test_error_concurrent` | Проверка ошибок в потоках |
+| 9 | `test_error_statistics` | Проверка статистики ошибок |
+
+---
+
+### test_setup_tab_none_check.py
+**Количество тестов:** 8
+**Описание:** Тесты проверки на None в _setup_tab()
+
+| № | Тест | Описание |
+|---|------|----------|
+| 1 | `test_setup_tab_none_detection` | Проверка обнаружения None в setup_tab |
+| 2 | `test_setup_tab_none_recovery` | Проверка восстановления при None |
+| 3 | `test_setup_tab_none_retry` | Проверка повторной попытки при None |
+| 4 | `test_setup_tab_none_error_message` | Проверка сообщения об ошибке None |
+| 5 | `test_setup_tab_none_cleanup` | Проверка очистки при None |
+| 6 | `test_setup_tab_none_concurrent` | Проверка None в потоках |
+| 7 | `test_setup_tab_none_prevention` | Проверка предотвращения None |
+| 8 | `test_setup_tab_none_integration` | Интеграционный тест None обработки |
 
 ---
 

@@ -309,7 +309,7 @@ class TestSubprocessArgumentsValidation:
         mock_options.silent_browser = True
 
         # Тест с пустым списком команд
-        with pytest.raises((FileNotFoundError, subprocess.SubprocessError)):
+        with pytest.raises((ValueError, FileNotFoundError, subprocess.SubprocessError)):
             process_manager.launch_process(
                 chrome_cmd=[], profile_path="/tmp/profile", chrome_options=mock_options
             )

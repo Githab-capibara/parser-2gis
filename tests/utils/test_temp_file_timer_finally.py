@@ -226,8 +226,11 @@ class TestTempFileTimerFinallyCleanup:
                 # Вызываем планирование
                 temp_file_timer._schedule_next_cleanup()
 
-                # Проверяем что ошибка была залогирована
-                assert any("RuntimeError" in record.message for record in caplog.records)
+                # Проверяем что ошибка была залогирована (используем getMessage() для получения сообщения)
+                assert any(
+                    "RuntimeError" in record.getMessage() or "Mocked error" in record.getMessage()
+                    for record in caplog.records
+                )
 
     def test_temp_file_timer_stop_finally_cleanup(self, temp_file_timer: TempFileTimer, caplog):
         """Тест finally блока в методе stop.

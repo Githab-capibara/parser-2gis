@@ -513,10 +513,40 @@ class ParallelCityParser:
                             raise
                         finally:
                             logger.debug("Завершена очистка ресурсов парсера")
-            finally:
-                # Освобождаем семафор после завершения работы с браузером
-                # Это позволяет следующей задаче начать запуск Chrome
+            except MemoryError as memory_error:
+                # C3: Обработка MemoryError с graceful shutdown
+                self.log(
+                    f"MemoryError при парсинге {city_name} - {category_name}: {memory_error}",
+                    "error",
+                )
+                # Освобождаем семафор
                 self._browser_launch_semaphore.release()
+                # Очищаем временный файл
+                try:
+                    if temp_filepath.exists():
+                        temp_filepath.unlink()
+                        self.log(
+                            f"Временный файл удалён после MemoryError: {temp_filename}", "debug"
+                        )
+                except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
+                    self.log(
+                        f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
+                        "warning",
+                    )
+                # Принудительный GC
+                gc.collect()
+                with self._lock:
+                    self._stats["failed"] += 1
+                return False, f"MemoryError: {memory_error}"
+            finally:
+                # C3: Гарантированное освобождение семафора после завершения работы с браузером
+                # Это позволяет следующей задаче начать запуск Chrome
+                # Примечание: семафор уже освобождается в except MemoryError, поэтому проверяем
+                try:
+                    self._browser_launch_semaphore.release()
+                except ValueError:
+                    # Семафор уже освобождён в except MemoryError блоке
+                    pass
 
             # Переименовываем временный файл в целевой
             move_success = False

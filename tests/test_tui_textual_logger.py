@@ -17,6 +17,15 @@ except ImportError:
     TEXTUAL_AVAILABLE = False
     pytest.skip("textual not installed", allow_module_level=True)
 
+# Проверка доступности pytest-asyncio
+try:
+    import pytest_asyncio  # noqa: F401
+
+    ASYNCIO_AVAILABLE = True
+except ImportError:
+    ASYNCIO_AVAILABLE = False
+    pytest.skip("pytest-asyncio not installed", allow_module_level=True)
+
 
 class TestTUILoggerInitialization:
     """Тесты для проверки корректной инициализации логгера в TUIApp."""

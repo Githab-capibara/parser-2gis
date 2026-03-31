@@ -188,11 +188,21 @@ class ChromeRemote:
 
         Использует внутреннюю логику retry с max_attempts=3.
         Добавлено логирование попыток подключения.
+
+        H3: Общий таймаут на все попытки подключения (суммарно не более 30 сек).
         """
         max_attempts = 3
         attempt_delay = 0.05  # Максимально ускоренное подключение
+        total_timeout = 30.0  # Общий таймаут на все попытки (H3)
+        start_time = time.time()
 
         for attempt in range(max_attempts):
+            # Проверка общего таймаута (H3)
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= total_timeout:
+                app_logger.error("Превышен общий таймаут подключения (%.1f сек)", elapsed_time)
+                return False
+
             app_logger.debug("Попытка подключения к Chrome %d/%d", attempt + 1, max_attempts)
             try:
                 if self._dev_url is None:
@@ -425,11 +435,16 @@ class ChromeRemote:
         _safe_external_request("put", "%s/json/close/%s" % (self._dev_url, tab.id), verify=True)
 
     def _setup_tab(self) -> None:
-        """Скрывает следы webdriver, включает перехват запросов/ответов, исправляет UA."""
+        """Скрывает следы webdriver, включает перехват запросов/ответов, исправляет UA.
+
+        H9: Добавлена явная проверка на None перед использованием _chrome_tab.
+        """
+        # H9: Явная проверка на None перед использованием _chrome_tab
         if self._chrome_tab is None:
             error_msg = "Chrome tab не инициализирован в _setup_tab. Вкладка не была создана."
             app_logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            # H9: Выбрасываем ChromeException вместо RuntimeError
+            raise ChromeException(error_msg)
 
         original_useragent = self.execute_script("navigator.userAgent")
 

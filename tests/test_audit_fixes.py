@@ -368,28 +368,33 @@ class TestLogicalFixes:
 
         assert stop_source != "", "Должен быть метод stop"
 
-        # Проверяем очистку ресурсов
-        assert "_chrome_tab = None" in stop_source or "self._chrome_tab = None" in stop_source, (
-            "Должна быть очистка _chrome_tab"
+        # Проверяем очистку ресурсов - теперь используется _stop_chrome_tab()
+        assert "_stop_chrome_tab()" in stop_source or "self._stop_chrome_tab()" in stop_source, (
+            "Должна быть очистка _chrome_tab через _stop_chrome_tab()"
         )
         assert (
-            "_chrome_browser = None" in stop_source or "self._chrome_browser = None" in stop_source
+            "_stop_chrome_browser()" in stop_source or "self._stop_chrome_browser()" in stop_source
         ), "Должна быть очистка _chrome_browser"
         assert (
             "_chrome_interface = None" in stop_source
             or "self._chrome_interface = None" in stop_source
         ), "Должна быть очистка _chrome_interface"
 
-        # Проверяем очистку очередей
-        assert (
-            "_response_queues = {}" in stop_source or "self._response_queues = {}" in stop_source
-        ), "Должна быть очистка _response_queues"
-
-        # Проверяем вызов clear_requests()
-        assert "clear_requests()" in stop_source, "Должен вызываться clear_requests()"
+        # Проверяем вызов clear_requests() или _cleanup_after_stop()
+        # clear_requests() может быть вызван внутри _cleanup_after_stop()
+        has_clear_requests = "clear_requests()" in stop_source
+        has_cleanup_after_stop = "_cleanup_after_stop()" in stop_source
+        assert has_clear_requests or has_cleanup_after_stop, (
+            "Должен вызываться clear_requests() или _cleanup_after_stop()"
+        )
 
         # Проверяем очистку кэша портов
-        assert "_clear_port_cache()" in stop_source, "Должна вызываться _clear_port_cache()"
+        # _clear_port_cache() может вызываться внутри _cleanup_after_stop()
+        has_clear_port_cache = "_clear_port_cache()" in stop_source
+        has_cleanup_after_stop = "_cleanup_after_stop()" in stop_source
+        assert has_clear_port_cache or has_cleanup_after_stop, (
+            "Должна вызываться _clear_port_cache() или _cleanup_after_stop() для очистки кэша портов"
+        )
 
     def test_16_data_mapping_caching(self):
         """

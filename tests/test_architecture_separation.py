@@ -296,8 +296,8 @@ class TestMergerNoParsingLogic:
 
         class_names = get_class_names(merger_file)
 
-        # Ожидаемые классы в merger.py
-        expected_classes = {"ParallelFileMerger"}
+        # Ожидаемые классы в merger.py (включая dataclass для конфигурации)
+        expected_classes = {"ParallelFileMerger", "MergeConfig"}
 
         assert class_names == expected_classes, (
             f"merger.py должен содержать только классы для слияния файлов:\n"
