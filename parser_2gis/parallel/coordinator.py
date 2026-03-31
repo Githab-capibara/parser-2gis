@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import random
 import shutil
 import threading
@@ -171,6 +170,38 @@ class ParallelCoordinator:
             log_func = getattr(logger, level)
             log_func(message)
 
+    def _create_parser(self, url: str):
+        """Создаёт парсер для указанного URL.
+
+        Args:
+            url: URL для парсинга.
+
+        Returns:
+            Экземпляр парсера или None при ошибке.
+        """
+        try:
+            return get_parser(
+                url, chrome_options=self.config.chrome, parser_options=self.config.parser
+            )
+        except (ChromeException, OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
+            self.log(f"Ошибка создания парсера: {e}", "error")
+            return None
+
+    def _create_writer(self, temp_filepath: Path):
+        """Создаёт writer для временного файла.
+
+        Args:
+            temp_filepath: Путь к временному файлу.
+
+        Returns:
+            Экземпляр writer или None при ошибке.
+        """
+        try:
+            return get_writer(str(temp_filepath), "csv", self.config.writer)
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
+            self.log(f"Ошибка создания writer: {e}", "error")
+            return None
+
     def generate_all_urls(self) -> List[Tuple[str, str, str]]:
         """Генерирует все URL для парсинга."""
         all_urls = []
@@ -219,24 +250,9 @@ class ParallelCoordinator:
             self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
             time.sleep(launch_delay)
 
-            parser = None
-            writer = None
-
-            def create_parser_writer():
-                nonlocal parser, writer
-                writer = get_writer(str(temp_filepath), "csv", self.config.writer)
-                parser = get_parser(
-                    url, chrome_options=self.config.chrome, parser_options=self.config.parser
-                )
-
-            try:
-                self._error_handler.retry_with_backoff(create_parser_writer)
-            except ChromeException as chrome_error:
-                self._browser_launch_semaphore.release()
-                return self._error_handler.handle_chrome_error(chrome_error, temp_filepath)
-            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as init_error:
-                self._browser_launch_semaphore.release()
-                return self._error_handler.handle_init_error(init_error, temp_filepath, url)
+            # Вынесено в отдельные методы для устранения nonlocal
+            parser = self._create_parser(url)
+            writer = self._create_writer(temp_filepath)
 
             # Проверка что parser и writer были успешно созданы
             if parser is None or writer is None:
@@ -258,25 +274,45 @@ class ParallelCoordinator:
             finally:
                 self._browser_launch_semaphore.release()
 
-            try:
-                os.replace(str(temp_filepath), str(filepath))
-                self.log(
-                    f"Временный файл переименован: {temp_filepath.name} → {filepath.name}", "debug"
-                )
-            except OSError as replace_error:
-                self.log(
-                    f"Не удалось переименовать файл (OSError): {replace_error}. Используем shutil.move",
-                    "debug",
-                )
+            # Атомарное переименование с проверкой и retry логикой
+            max_rename_attempts = 3
+            rename_success = False
+
+            for rename_attempt in range(max_rename_attempts):
                 try:
+                    # Задержка 0.1 сек перед проверкой exists() для стабильности
+                    time.sleep(0.1)
+
+                    # Проверка существования временного файла перед переименованием
+                    if not temp_filepath.exists():
+                        self.log(f"Временный файл не существует: {temp_filepath}", "error")
+                        return False, "Временный файл не существует"
+
+                    # Используем shutil.move вместо Path.rename() для кроссплатформенности
                     shutil.move(str(temp_filepath), str(filepath))
-                except (OSError, RuntimeError, TypeError, ValueError) as move_error:
                     self.log(
-                        f"Не удалось переместить временный файл {temp_filepath.name}: {move_error}",
-                        "error",
+                        f"Временный файл перемещён: {temp_filepath.name} → {filepath.name}", "debug"
                     )
-                    self._error_handler._cleanup_temp_file(temp_filepath)
-                    raise move_error
+                    rename_success = True
+                    break
+
+                except OSError as move_error:
+                    if rename_attempt < max_rename_attempts - 1:
+                        self.log(
+                            f"Попытка {rename_attempt + 1}/{max_rename_attempts} не удалась: {move_error}. Повтор...",
+                            "warning",
+                        )
+                        time.sleep(0.1 * (rename_attempt + 1))  # Экспоненциальная задержка
+                    else:
+                        self.log(
+                            f"Не удалось переместить временный файл {temp_filepath.name}: {move_error}",
+                            "error",
+                        )
+                        self._error_handler._cleanup_temp_file(temp_filepath)
+                        raise move_error
+
+            if not rename_success:
+                return False, "Не удалось переименовать файл"
 
             self.log(f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info")
 

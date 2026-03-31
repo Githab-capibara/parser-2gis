@@ -207,6 +207,7 @@ class TUIApp(App):
         self._running = False
         self._started_at: Optional[datetime] = None
         self._last_notification: Optional[dict[str, str]] = None
+        self._cleanup_in_progress: bool = False  # Флаг для предотвращения повторной очистки
 
     def _load_config(self) -> Configuration:
         """Загрузить конфигурацию."""
@@ -564,6 +565,14 @@ class TUIApp(App):
             self.call_from_thread(self._parsing_error, str(e))
             # Вернуться в главное меню при ошибке
             self.call_from_thread(self.switch_to_main_menu)
+        finally:
+            # Гарантированная очистка ресурсов парсинга
+            if not self._cleanup_in_progress:
+                self._cleanup_in_progress = True
+                try:
+                    self.stop_parsing()
+                finally:
+                    self._cleanup_in_progress = False
 
     def _parsing_complete(self, success: bool) -> None:
         """Обработка завершения парсинга."""

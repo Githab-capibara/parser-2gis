@@ -183,13 +183,17 @@ class ChromeRemote:
         self._total_js_size: int = 0
         self._js_size_lock = threading.RLock()
 
-    @wait_until_finished(timeout=3600)  # 1 час
     def _connect_interface(self) -> bool:
-        """Устанавливает соединение с Chrome и открывает новую вкладку."""
+        """Устанавливает соединение с Chrome и открывает новую вкладку.
+
+        Использует внутреннюю логику retry с max_attempts=3.
+        Добавлено логирование попыток подключения.
+        """
         max_attempts = 3
         attempt_delay = 0.05  # Максимально ускоренное подключение
 
         for attempt in range(max_attempts):
+            app_logger.debug("Попытка подключения к Chrome %d/%d", attempt + 1, max_attempts)
             try:
                 if self._dev_url is None:
                     app_logger.error("dev_url не установлен при подключении")

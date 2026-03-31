@@ -200,6 +200,21 @@ class ConnectionPool:
         self._weak_ref = weakref.ref(self)
         self._finalizer = weakref.finalize(self, self._cleanup_pool, self._all_conns, self._lock)
 
+    def _is_connection_valid(self, conn: sqlite3.Connection) -> bool:
+        """Проверяет активность соединения через SELECT 1.
+
+        Args:
+            conn: Соединение для проверки.
+
+        Returns:
+            True если соединение активно, False иначе.
+        """
+        try:
+            conn.execute("SELECT 1")
+            return True
+        except (sqlite3.Error, OSError):
+            return False
+
     def get_connection(self) -> sqlite3.Connection:
         """
         Получает соединение для текущего потока с reuse.
@@ -229,7 +244,12 @@ class ConnectionPool:
             if conn_id in self._connection_age:
                 age = time.time() - self._connection_age[conn_id]
                 if age <= _CONNECTION_MAX_AGE_ENV:
-                    return self._local.connection
+                    # Дополнительная проверка активности соединения
+                    if self._is_connection_valid(self._local.connection):
+                        return self._local.connection
+                    app_logger.debug(
+                        "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
+                    )
 
         # Блокировка только для модификации общих структур
         with self._lock:
@@ -240,10 +260,16 @@ class ConnectionPool:
                 if age is not None:
                     age = time.time() - age
                     if age <= _CONNECTION_MAX_AGE_ENV:
-                        return self._local.connection
-                    app_logger.debug(
-                        "Соединение устарело (возраст: %.0f сек), требуется пересоздание", age
-                    )
+                        # Проверка активности соединения перед использованием
+                        if self._is_connection_valid(self._local.connection):
+                            return self._local.connection
+                        app_logger.debug(
+                            "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
+                        )
+                    else:
+                        app_logger.debug(
+                            "Соединение устарело (возраст: %.0f сек), требуется пересоздание", age
+                        )
                 else:
                     app_logger.debug(
                         "Соединение не найдено в _connection_age, требуется пересоздание"
@@ -259,8 +285,9 @@ class ConnectionPool:
 
             # Если соединения нет, создаём новое или получаем из queue
             if not hasattr(self._local, "connection") or self._local.connection is None:
+                # Инициализируем переменные до вложенной логики
                 conn: Optional[sqlite3.Connection] = None
-                need_to_create = False
+                need_to_create: bool = False
 
                 # Пытаемся получить соединение из queue
                 try:
@@ -283,6 +310,19 @@ class ConnectionPool:
                             self._connection_age.pop(conn_id, None)
                             conn = None
                             need_to_create = True
+                        else:
+                            # Проверка активности соединения из queue
+                            if not self._is_connection_valid(conn):
+                                app_logger.debug("Соединение из queue неактивно, пересоздаём")
+                                try:
+                                    conn.close()
+                                except (sqlite3.Error, OSError):
+                                    pass
+                                if conn in self._all_conns:
+                                    self._all_conns.remove(conn)
+                                self._connection_age.pop(conn_id, None)
+                                conn = None
+                                need_to_create = True
 
                     if conn is None:
                         need_to_create = True
@@ -291,11 +331,10 @@ class ConnectionPool:
                     # Queue пуста, нужно создавать новое соединение
                     need_to_create = True
 
-                # ИСПРАВЛЕНИЕ: Выносим создание соединения за пределы блокировки
-                # для предотвращения deadlock при ошибке создания
+                # Создаём соединение вне блокировки для предотвращения deadlock
                 if need_to_create:
-                    # Освобождаем блокировку перед созданием соединения
-                    pass  # Блокировка будет освобождена при выходе из with
+                    # Выходим из блокировки перед созданием соединения
+                    pass
 
             # Выходим из блокировки перед созданием соединения
             # Создаём соединение вне блокировки для предотвращения deadlock
@@ -319,6 +358,10 @@ class ConnectionPool:
                     )
                     raise
 
+            # Проверяем что conn инициализирован перед использованием
+            if conn is None:
+                raise RuntimeError("Не удалось получить соединение с БД")
+
             # Возвращаемся в блокировку для добавления в пул
             with self._lock:
                 if need_to_create:
@@ -332,7 +375,7 @@ class ConnectionPool:
                     else:
                         self._all_conns.append(self._local.connection)
                         self._connection_age[id(self._local.connection)] = time.time()
-                elif conn is not None:
+                else:
                     # Получили из queue - просто присваиваем
                     self._local.connection = conn
                     app_logger.debug("Получено соединение из queue (reuse)")

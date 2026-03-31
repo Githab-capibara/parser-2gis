@@ -244,6 +244,17 @@ class ParallelErrorHandler:
         Raises:
             Exception: Последнее исключение, если все попытки не удались.
         """
+        # Явная проверка edge case: max_retries=0
+        if max_retries <= 0:
+            # Если max_retries=0, выполняем функцию один раз без повторных попыток
+            try:
+                return func()
+            except ChromeException:
+                # При max_retries=0 и наличии exception - выбрасываем его
+                raise
+            # При max_retries=0 и отсутствии exception - возвращаем результат
+            return None
+
         retry_delay = base_delay
         last_exception = None
 
