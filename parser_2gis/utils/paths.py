@@ -41,15 +41,30 @@ def _is_relative_to(path: pathlib.Path, other: pathlib.Path) -> bool:
         return abs_path == abs_other or abs_path.startswith(abs_other + os.sep)
 
 
-def data_path() -> pathlib.Path:
-    """Получает путь к данным пакета."""
+def resources_path() -> pathlib.Path:
+    """Получает путь к ресурсам пакета.
+    
+    Note:
+        Эта функция заменяет устаревшую data_path().
+        Ресурсы перемещены в parser_2gis/resources/ для устранения дублирования.
+    """
     if "_MEIPASS2" in os.environ:
         here = os.environ["_MEIPASS2"]
     else:
         here = os.path.dirname(os.path.abspath(__file__))
 
-    path = os.path.join(here, "data")
+    path = os.path.join(here, "resources")
     return pathlib.Path(path)
+
+
+def data_path() -> pathlib.Path:
+    """Получает путь к данным пакета.
+    
+    Deprecated:
+        Используйте resources_path() вместо data_path().
+        Эта функция оставлена для обратной совместимости.
+    """
+    return resources_path()
 
 
 def user_path(is_config: bool = True) -> pathlib.Path:

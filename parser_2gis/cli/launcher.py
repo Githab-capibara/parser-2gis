@@ -183,13 +183,12 @@ class ApplicationLauncher:
         """
         try:
             # Импортируем здесь для избежания циклических зависимостей
-            from parser_2gis.data.categories_93 import CATEGORIES_93
-            from parser_2gis.data.cities_loader import load_cities_json
+            from parser_2gis.resources import CATEGORIES_93, load_cities_json
             from parser_2gis.parallel import ParallelCityParser
-            from parser_2gis.paths import data_path
+            from parser_2gis.paths import resources_path
 
             # Загружаем города
-            cities_path = data_path() / "cities.json"
+            cities_path = resources_path() / "cities.json"
             all_cities = load_cities_json(str(cities_path))
             selected_cities = [city for city in all_cities if city["code"] in args.cities]
 
@@ -272,8 +271,8 @@ class ApplicationLauncher:
         """
         try:
             from parser_2gis.cli import cli_app
-            from parser_2gis.data.cities_loader import load_cities_json
-            from parser_2gis.paths import data_path
+            from parser_2gis.resources import load_cities_json
+            from parser_2gis.paths import resources_path
             from parser_2gis.utils.url_utils import generate_city_urls
 
             urls = args.url or []
@@ -282,7 +281,7 @@ class ApplicationLauncher:
 
             # Обработка городов
             if has_cities:
-                cities_path = data_path() / "cities.json"
+                cities_path = resources_path() / "cities.json"
                 all_cities = load_cities_json(str(cities_path))
                 selected_cities = [city for city in all_cities if city["code"] in args.cities]
 

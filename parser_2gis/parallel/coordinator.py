@@ -22,8 +22,6 @@ from pathlib import Path
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
-import psutil
-
 from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
@@ -32,6 +30,7 @@ from parser_2gis.constants import (
     MIN_TIMEOUT,
     MIN_WORKERS,
 )
+from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger import log_parser_finish, logger
 from parser_2gis.parallel.error_handler import ParallelErrorHandler
 from parser_2gis.parallel.merger import ParallelFileMerger
@@ -39,6 +38,11 @@ from parser_2gis.parallel.progress import ParallelProgressReporter
 from parser_2gis.parser import get_parser
 from parser_2gis.utils.temp_file_manager import TempFileTimer, temp_file_manager
 from parser_2gis.utils.url_utils import generate_category_url
+from parser_2gis.validation import (
+    validate_categories_config,
+    validate_cities_config,
+    validate_parallel_config,
+)
 from parser_2gis.writer import get_writer
 
 if TYPE_CHECKING:
@@ -67,6 +71,8 @@ class ParallelCoordinator:
 
     Запускает несколько браузеров одновременно для парсинга разных URL.
     Результаты сохраняются в отдельную папку output/, затем объединяются.
+    
+    H3: Dependency Injection для errorHandler и fileMerger через конструктор.
     """
 
     def __init__(
@@ -77,6 +83,8 @@ class ParallelCoordinator:
         config: "Configuration",
         max_workers: int = 3,
         timeout_per_url: int = DEFAULT_TIMEOUT,
+        error_handler: Optional[ParallelErrorHandler] = None,
+        file_merger: Optional[ParallelFileMerger] = None,
     ) -> None:
         """Инициализация координатора параллельного парсинга.
 
@@ -87,6 +95,8 @@ class ParallelCoordinator:
             config: Конфигурация парсера.
             max_workers: Максимальное количество рабочих потоков.
             timeout_per_url: Таймаут на один URL в секундах.
+            error_handler: Опциональный обработчик ошибок (DI).
+            file_merger: Опциональный объединитель файлов (DI).
 
         Note:
             Для удобства можно использовать ParallelRunConfig:
@@ -98,6 +108,10 @@ class ParallelCoordinator:
             ...     max_workers=5,
             ... )
             >>> coordinator = ParallelCoordinator(**run_config.to_dict())
+            
+        H3: Dependency Injection через конструктор:
+            - error_handler и file_merger могут быть переданы извне
+            - По умолчанию создаются внутренние экземпляры для обратной совместимости
         """
         self._validate_inputs(cities, categories, max_workers, timeout_per_url, output_dir)
 
@@ -114,8 +128,9 @@ class ParallelCoordinator:
         self._stop_event = threading.Event()
         self._browser_launch_semaphore = BoundedSemaphore(max_workers + 20)
 
-        self._error_handler = ParallelErrorHandler(self.output_dir, self.config)
-        self._file_merger = ParallelFileMerger(
+        # H3: Dependency Injection с fallback на создание по умолчанию
+        self._error_handler = error_handler or ParallelErrorHandler(self.output_dir, self.config)
+        self._file_merger = file_merger or ParallelFileMerger(
             self.output_dir, self.config, self._cancel_event, self._lock
         )
         self._progress_reporter: Optional[ParallelProgressReporter] = None
@@ -158,29 +173,29 @@ class ParallelCoordinator:
         timeout_per_url: int,
         output_dir: str,
     ) -> None:
-        """Валидирует входные данные."""
-        if not cities:
-            raise ValueError("Список городов не может быть пустым")
-        if not categories:
-            raise ValueError("Список категорий не может быть пустым")
-        if max_workers < MIN_WORKERS:
-            raise ValueError(f"max_workers должен быть не менее {MIN_WORKERS}")
-        if max_workers > MAX_WORKERS:
-            raise ValueError(
-                f"max_workers слишком большой: {max_workers} (максимум: {MAX_WORKERS})"
-            )
-        if timeout_per_url < MIN_TIMEOUT:
-            raise ValueError(f"timeout_per_url должен быть не менее {MIN_TIMEOUT} секунд")
-        if timeout_per_url > MAX_TIMEOUT:
-            raise ValueError(f"timeout_per_url слишком большой: {timeout_per_url} секунд")
-
-        for idx, city in enumerate(cities):
-            if not isinstance(city, dict) or "name" not in city:
-                raise ValueError(f"Город {idx} должен быть словарём с ключом 'name'")
-
-        for idx, category in enumerate(categories):
-            if not isinstance(category, dict) or "name" not in category:
-                raise ValueError(f"Категория {idx} должна быть словарём с ключом 'name'")
+        """Валидирует входные данные с использованием централизованных функций валидации.
+        
+        H6: Централизация валидации в validation/data_validator.py
+        """
+        # Валидация городов
+        validate_cities_config(cities, "cities")
+        
+        # Валидация категорий
+        validate_categories_config(categories, "categories")
+        
+        # Валидация конфигурации параллельного парсинга
+        validate_parallel_config(
+            max_workers=max_workers,
+            timeout_per_url=timeout_per_url,
+            min_workers=MIN_WORKERS,
+            max_workers_limit=MAX_WORKERS,
+            min_timeout=MIN_TIMEOUT,
+            max_timeout=MAX_TIMEOUT,
+        )
+        
+        # Валидация output_dir
+        if not output_dir:
+            raise ValueError("output_dir не может быть пустым")
 
     def log(self, message: str, level: str = "info") -> None:
         """Потокобезопасное логгирование."""
@@ -361,7 +376,9 @@ class ParallelCoordinator:
         Returns:
             Кортеж (успех, сообщение/путь к файлу).
         """
-        available_memory = psutil.virtual_memory().available
+        # H9: Проверка доступной памяти через инфраструктурный модуль
+        memory_monitor = MemoryMonitor()
+        available_memory = memory_monitor.get_available_memory()
         if available_memory < 100 * 1024 * 1024:
             logger.warning(
                 f"Low memory ({available_memory // 1024 // 1024}MB), skipping {city_name} - {category_name}"

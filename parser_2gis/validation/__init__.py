@@ -27,10 +27,13 @@ from __future__ import annotations
 
 from .data_validator import (
     ValidationResult,
+    validate_categories_config,
+    validate_cities_config,
     validate_email,
     validate_list_length,
     validate_non_empty_list,
     validate_non_empty_string,
+    validate_parallel_config,
     validate_phone,
     validate_positive_float,
     validate_positive_int,
@@ -59,6 +62,10 @@ __all__ = [
     "validate_list_length",
     "validate_email",
     "validate_phone",
+    # Валидация конфигурации параллельного парсинга
+    "validate_cities_config",
+    "validate_categories_config",
+    "validate_parallel_config",
     # Валидация путей
     "PathValidator",
     "get_path_validator",

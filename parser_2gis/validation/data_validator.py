@@ -308,6 +308,127 @@ def validate_phone(phone: str) -> ValidationResult:
     return ValidationResult(is_valid=True, value=normalized, error=None)
 
 
+# =============================================================================
+# ВАЛИДАЦИЯ КОНФИГУРАЦИИ ПАРАЛЛЕЛЬНОГО ПАРСИНГА
+# =============================================================================
+
+
+def validate_cities_config(cities: list, field_name: str = "cities") -> list:
+    """Валидирует конфигурацию городов для параллельного парсинга.
+
+    Args:
+        cities: Список городов для валидации.
+        field_name: Имя поля для сообщения об ошибке.
+
+    Returns:
+        Валидированный список городов.
+
+    Raises:
+        ValueError: Если конфигурация городов некорректна.
+
+    Example:
+        >>> cities = [{"name": "Москва", "code": "msk", "domain": "moscow"}]
+        >>> validate_cities_config(cities)
+        [{'name': 'Москва', 'code': 'msk', 'domain': 'moscow'}]
+    """
+    if not cities:
+        raise ValueError(f"{field_name} не может быть пустым")
+
+    if not isinstance(cities, list):
+        raise ValueError(f"{field_name} должен быть списком")
+
+    for idx, city in enumerate(cities):
+        if not isinstance(city, dict):
+            raise ValueError(f"{field_name}[{idx}] должен быть словарём (dict)")
+        if "name" not in city:
+            raise ValueError(f"{field_name}[{idx}] должен содержать ключ 'name'")
+        if not isinstance(city.get("name"), str) or not city.get("name"):
+            raise ValueError(f"{field_name}[{idx}]: 'name' должен быть непустой строкой")
+
+    return cities
+
+
+def validate_categories_config(categories: list, field_name: str = "categories") -> list:
+    """Валидирует конфигурацию категорий для параллельного парсинга.
+
+    Args:
+        categories: Список категорий для валидации.
+        field_name: Имя поля для сообщения об ошибке.
+
+    Returns:
+        Валидированный список категорий.
+
+    Raises:
+        ValueError: Если конфигурация категорий некорректна.
+
+    Example:
+        >>> categories = [{"name": "Кафе", "query": "Кафе"}]
+        >>> validate_categories_config(categories)
+        [{'name': 'Кафе', 'query': 'Кафе'}]
+    """
+    if not categories:
+        raise ValueError(f"{field_name} не может быть пустым")
+
+    if not isinstance(categories, list):
+        raise ValueError(f"{field_name} должен быть списком")
+
+    for idx, category in enumerate(categories):
+        if not isinstance(category, dict):
+            raise ValueError(f"{field_name}[{idx}] должен быть словарём (dict)")
+        if "name" not in category:
+            raise ValueError(f"{field_name}[{idx}] должен содержать ключ 'name'")
+        if not isinstance(category.get("name"), str) or not category.get("name"):
+            raise ValueError(f"{field_name}[{idx}]: 'name' должен быть непустой строкой")
+
+    return categories
+
+
+def validate_parallel_config(
+    max_workers: int,
+    timeout_per_url: int,
+    min_workers: int = 1,
+    max_workers_limit: int = 100,
+    min_timeout: int = 1,
+    max_timeout: int = 7200,
+) -> dict:
+    """Валидирует конфигурацию параллельного парсинга.
+
+    Args:
+        max_workers: Максимальное количество рабочих потоков.
+        timeout_per_url: Таймаут на один URL в секундах.
+        min_workers: Минимальное количество рабочих потоков.
+        max_workers_limit: Максимально допустимое количество рабочих потоков.
+        min_timeout: Минимальный таймаут на один URL.
+        max_timeout: Максимальный таймаут на один URL.
+
+    Returns:
+        Словарь с валидированными параметрами.
+
+    Raises:
+        ValueError: Если конфигурация некорректна.
+
+    Example:
+        >>> validate_parallel_config(5, 300)
+        {'max_workers': 5, 'timeout_per_url': 300}
+    """
+    if max_workers < min_workers:
+        raise ValueError(f"max_workers должен быть не менее {min_workers} (получено {max_workers})")
+    if max_workers > max_workers_limit:
+        raise ValueError(
+            f"max_workers слишком большой: {max_workers} (максимум: {max_workers_limit})"
+        )
+    if timeout_per_url < min_timeout:
+        raise ValueError(
+            f"timeout_per_url должен быть не менее {min_timeout} секунд (получено {timeout_per_url})"
+        )
+    if timeout_per_url > max_timeout:
+        raise ValueError(
+            f"timeout_per_url слишком большой: {timeout_per_url} секунд (максимум: {max_timeout})"
+        )
+
+    return {"max_workers": max_workers, "timeout_per_url": timeout_per_url}
+
+
 __all__ = [
     "ValidationResult",
     "validate_positive_int",
@@ -318,4 +439,7 @@ __all__ = [
     "validate_list_length",
     "validate_email",
     "validate_phone",
+    "validate_cities_config",
+    "validate_categories_config",
+    "validate_parallel_config",
 ]

@@ -14,7 +14,7 @@ from parser_2gis.cli.arguments import parse_arguments
 from parser_2gis.cli.formatter import format_config_summary
 from parser_2gis.cli.launcher import ApplicationLauncher
 from parser_2gis.config import Configuration
-from parser_2gis.data.categories_93 import CATEGORIES_93
+from parser_2gis.resources import CATEGORIES_93
 from parser_2gis.logger import log_parser_start, logger, setup_cli_logger
 from parser_2gis.parser.options import ParserOptions
 from parser_2gis.version import version

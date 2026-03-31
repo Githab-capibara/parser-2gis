@@ -32,8 +32,6 @@ from pathlib import Path
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
 
-import psutil
-
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
     MAX_LOCK_FILE_AGE,
@@ -47,6 +45,7 @@ from parser_2gis.constants import (
     MIN_WORKERS,
     PROGRESS_UPDATE_INTERVAL,
 )
+from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger import log_parser_finish, logger, print_progress
 from parser_2gis.utils.temp_file_manager import (
     MAX_TEMP_FILES_MONITORING,
@@ -59,6 +58,11 @@ from parser_2gis.utils.temp_file_manager import (
     unregister_temp_file,
 )
 from parser_2gis.utils.url_utils import generate_category_url
+from parser_2gis.validation import (
+    validate_categories_config,
+    validate_cities_config,
+    validate_parallel_config,
+)
 
 # Импорты для типизации - откладываются до времени проверки типов
 # для уменьшения связанности модуля
@@ -135,55 +139,22 @@ class ParallelCityParser:
         Raises:
             ValueError: Если входные данные невалидны.
         """
-        # Валидация входных данных: проверка списка городов
-        if not cities:
-            raise ValueError("Список городов не может быть пустым")
-
-        # Валидация входных данных: проверка списка категорий
-        if not categories:
-            raise ValueError("Список категорий не может быть пустым")
-
-        # Валидация max_workers: проверка на разумные пределы
-        if max_workers < MIN_WORKERS:
-            raise ValueError(f"max_workers должен быть не менее {MIN_WORKERS}")
-        if max_workers > MAX_WORKERS:
-            raise ValueError(
-                f"max_workers слишком большой: {max_workers} (максимум: {MAX_WORKERS}). "
-                f"Превышение лимита может привести к чрезмерному потреблению "
-                f"памяти и снижению производительности."
-            )
-
-        # Валидация timeout_per_url: проверка на разумные пределы
-        if timeout_per_url < MIN_TIMEOUT:
-            raise ValueError(f"timeout_per_url должен быть не менее {MIN_TIMEOUT} секунд")
-        if timeout_per_url > MAX_TIMEOUT:
-            raise ValueError(
-                f"timeout_per_url слишком большой: {timeout_per_url} секунд "
-                f"(максимум: {MAX_TIMEOUT} секунд = {MAX_TIMEOUT // 3600} ч.). "
-                f"Превышение лимита может указывать на проблемы с сетью или зависание."
-            )
-
-        # Валидация структуры элементов cities: проверка наличия ключей name и id
-        for idx, city in enumerate(cities):
-            if not isinstance(city, dict):
-                raise ValueError(
-                    f"Город {idx} должен быть словарём (dict), получен: {type(city).__name__}"
-                )
-            if "name" not in city:
-                raise ValueError(f"Город {idx} отсутствует ключ 'name'")
-            if not isinstance(city.get("name"), str) or not city.get("name"):
-                raise ValueError(f"Город {idx}: 'name' должен быть непустой строкой")
-
-        # Валидация структуры элементов categories: проверка наличия ключей name и id
-        for idx, category in enumerate(categories):
-            if not isinstance(category, dict):
-                raise ValueError(
-                    f"Категория {idx} должна быть словарём (dict), получен: {type(category).__name__}"
-                )
-            if "name" not in category:
-                raise ValueError(f"Категория {idx} отсутствует ключ 'name'")
-            if not isinstance(category.get("name"), str) or not category.get("name"):
-                raise ValueError(f"Категория {idx}: 'name' должен быть непустой строкой")
+        # H6: Централизация валидации в validation/data_validator.py
+        # Валидация городов
+        validate_cities_config(cities, "cities")
+        
+        # Валидация категорий
+        validate_categories_config(categories, "categories")
+        
+        # Валидация конфигурации параллельного парсинга
+        validate_parallel_config(
+            max_workers=max_workers,
+            timeout_per_url=timeout_per_url,
+            min_workers=MIN_WORKERS,
+            max_workers_limit=MAX_WORKERS,
+            min_timeout=MIN_TIMEOUT,
+            max_timeout=MAX_TIMEOUT,
+        )
 
         self.cities = cities
         self.categories = categories
@@ -336,8 +307,9 @@ class ParallelCityParser:
         Returns:
             Кортеж (успех, сообщение).
         """
-        # Проверка доступной памяти перед началом парсинга
-        available_memory = psutil.virtual_memory().available
+        # H9: Проверка доступной памяти через инфраструктурный модуль
+        memory_monitor = MemoryMonitor()
+        available_memory = memory_monitor.get_available_memory()
         if available_memory < 100 * 1024 * 1024:  # Менее 100MB
             logger.warning(
                 f"Low memory ({available_memory // 1024 // 1024}MB), skipping {city_name} - {category_name}"
