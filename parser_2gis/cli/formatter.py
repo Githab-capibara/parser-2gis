@@ -22,14 +22,16 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
     Example:
         >>> parser = argparse.ArgumentParser(formatter_class=ArgumentHelpFormatter)
         >>> parser.print_help()
+
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Инициализирует форматировщик с конфигурацией по умолчанию.
 
         Args:
             *args: Позиционные аргументы для HelpFormatter.
             **kwargs: Именованные аргументы для HelpFormatter.
+
         """
         super().__init__(*args, **kwargs)
         self._default_config = get_model_dump(Configuration())
@@ -42,12 +44,13 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
 
         Returns:
             Значение по умолчанию или argparse.SUPPRESS если не найдено.
+
         """
         if dest == "version":
             return argparse.SUPPRESS
 
         fields = dest.split(".")
-        value = self._default_config
+        value: Any = self._default_config
         try:
             for field in fields:
                 value = value[field]
@@ -63,6 +66,7 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
 
         Returns:
             Строка справки с значением по умолчанию или None.
+
         """
         help_string = action.help
         if help_string:
@@ -111,10 +115,12 @@ def patch_argparse_translations() -> None:
     argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore
 
 
-__all__ = ["ArgumentHelpFormatter", "patch_argparse_translations", "format_config_summary"]
+__all__ = ["ArgumentHelpFormatter", "format_config_summary", "patch_argparse_translations"]
 
 
-def format_config_summary(config: Configuration, args=None) -> dict[str, Any]:
+def format_config_summary(
+    config: Configuration, args: argparse.Namespace | None = None
+) -> dict[str, Any]:
     """Форматирует конфигурацию для логирования.
 
     Args:
@@ -123,9 +129,10 @@ def format_config_summary(config: Configuration, args=None) -> dict[str, Any]:
 
     Returns:
         Словарь с отформатированной конфигурацией.
+
     """
     # Получаем формат из args, т.к. в config.writer нет атрибута format
-    format_value = getattr(args, "format", "csv") if args else "csv"
+    format_value: str = getattr(args, "format", "csv") if args else "csv"
 
     return {
         "chrome": {

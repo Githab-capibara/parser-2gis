@@ -1,5 +1,4 @@
-"""
-Модуль для адаптивного управления лимитами парсинга.
+"""Модуль для адаптивного управления лимитами парсинга.
 
 Этот модуль предоставляет логику для динамического определения оптимальных
 лимитов пустых страниц и таймаутов в зависимости от размера города
@@ -8,21 +7,20 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar
 
 from parser_2gis.logger import logger
 
 
 class AdaptiveLimits:
-    """
-    Менеджер адаптивных лимитов для парсинга.
+    """Менеджер адаптивных лимитов для парсинга.
 
     Автоматически определяет размер города/категории и подстраивает
     лимиты пустых страниц для оптимизации скорости парсинга.
     """
 
     # Классификация городов по количеству организаций
-    CITY_SIZE_CLASSIFICATION = {
+    CITY_SIZE_CLASSIFICATION: ClassVar[dict[str, float]] = {
         "small": 10,  # Маленький город: <= 10 организаций
         "medium": 50,  # Средний город: <= 50 организаций
         "large": 200,  # Крупный город: <= 200 организаций
@@ -30,7 +28,7 @@ class AdaptiveLimits:
     }
 
     # Адаптивные лимиты пустых страниц для каждого класса
-    ADAPTIVE_EMPTY_LIMITS = {
+    ADAPTIVE_EMPTY_LIMITS: ClassVar[dict[str, int]] = {
         "small": 2,  # Для маленьких городов: сразу после 2 пустых
         "medium": 3,  # Для средних городов: после 3 пустых
         "large": 5,  # Для крупных городов: после 5 пустых
@@ -38,28 +36,33 @@ class AdaptiveLimits:
     }
 
     # Адаптивные таймауты для навигации (секунды)
-    ADAPTIVE_TIMEOUTS = {"small": 10, "medium": 20, "large": 30, "huge": 45}
+    ADAPTIVE_TIMEOUTS: ClassVar[dict[str, int]] = {
+        "small": 10,
+        "medium": 20,
+        "large": 30,
+        "huge": 45,
+    }
 
     def __init__(self, base_limit: int = 3) -> None:
-        """
-        Инициализирует менеджер адаптивных лимитов.
+        """Инициализирует менеджер адаптивных лимитов.
 
         Args:
             base_limit: Базовый лимит пустых страниц (по умолчанию 3).
+
         """
         self._base_limit = base_limit
-        self._records_on_first_pages: List[int] = []
-        self._city_size: Optional[str] = None
+        self._records_on_first_pages: list[int] = []
+        self._city_size: str | None = None
         self._adaptive_limit = base_limit
 
         logger.debug("Инициализирован AdaptiveLimits с базовым лимитом: %d", base_limit)
 
     def add_records_count(self, count: int) -> None:
-        """
-        Добавляет количество записей на странице для анализа.
+        """Добавляет количество записей на странице для анализа.
 
         Args:
             count: Количество записей на странице.
+
         """
         self._records_on_first_pages.append(count)
         logger.debug(
@@ -71,8 +74,7 @@ class AdaptiveLimits:
             self._determine_city_size()
 
     def _determine_city_size(self) -> None:
-        """
-        Определяет размер города на основе количества записей на первых страницах.
+        """Определяет размер города на основе количества записей на первых страницах.
 
         Использует среднее значение записей на странице для классификации.
         """
@@ -104,41 +106,41 @@ class AdaptiveLimits:
         )
 
     def get_adaptive_limit(self) -> int:
-        """
-        Возвращает адаптивный лимит пустых страниц.
+        """Возвращает адаптивный лимит пустых страниц.
 
         Returns:
             Адаптивный лимит пустых страниц.
+
         """
         return self._adaptive_limit
 
     def get_adaptive_timeout(self) -> int:
-        """
-        Возвращает адаптивный таймаут для навигации.
+        """Возвращает адаптивный таймаут для навигации.
 
         Returns:
             Адаптивный таймаут в секундах.
+
         """
         if self._city_size:
             return self.ADAPTIVE_TIMEOUTS[self._city_size]
         else:
             return self._base_limit * 10  # Временное значение до определения
 
-    def get_city_size(self) -> Optional[str]:
-        """
-        Возвращает определенный размер города.
+    def get_city_size(self) -> str | None:
+        """Возвращает определенный размер города.
 
         Returns:
             Размер города ('small', 'medium', 'large', 'huge') или None.
+
         """
         return self._city_size
 
-    def get_stats(self) -> Dict[str, Any]:
-        """
-        Возвращает статистику адаптивных лимитов.
+    def get_stats(self) -> dict[str, Any]:
+        """Возвращает статистику адаптивных лимитов.
 
         Returns:
             Словарь со статистикой.
+
         """
         return {
             "city_size": self._city_size,

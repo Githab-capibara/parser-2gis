@@ -40,6 +40,7 @@ class JSONWriter(FileWriter):
 
         Args:
             catalog_doc: JSON-документ Catalog Item API.
+
         """
         if not isinstance(catalog_doc, dict):
             logger.warning("catalog_doc не является словарём, пропускаем")
@@ -79,6 +80,7 @@ class JSONWriter(FileWriter):
 
         Args:
             catalog_doc: JSON-документ Catalog Item API.
+
         """
         if not self._check_catalog_doc(catalog_doc):
             return

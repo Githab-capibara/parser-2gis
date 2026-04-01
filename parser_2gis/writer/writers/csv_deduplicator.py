@@ -12,7 +12,6 @@ import hashlib
 import os
 import sys
 import unicodedata
-from typing import Set
 
 from parser_2gis.logger import logger
 
@@ -29,19 +28,18 @@ class CSVDeduplicator:
     """Класс для удаления дубликатов из CSV файлов."""
 
     def __init__(self, file_path: str, encoding: str = "utf-8") -> None:
-        """
-        Инициализация дедупликатора.
+        """Инициализация дедупликатора.
 
         Args:
             file_path: Путь к CSV файлу.
             encoding: Кодировка файла.
+
         """
         self._file_path = file_path
         self._encoding = encoding
 
     def _hash_row(self, row: str) -> str:
-        """
-        Вычисляет хеш строки с Unicode-нормализацией.
+        """Вычисляет хеш строки с Unicode-нормализацией.
 
         Args:
             row: Строка для хеширования.
@@ -52,6 +50,7 @@ class CSVDeduplicator:
         Примечание:
             - Unicode-нормализация NFKD для корректного сравнения
             - SHA256 для большей безопасности вместо MD5
+
         """
         # Нормализуем строку: удаляем завершающие пробелы и newlines
         normalized_line = row.rstrip("\r\n")
@@ -65,8 +64,7 @@ class CSVDeduplicator:
         return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
     def remove_duplicates(self) -> None:
-        """
-        Удаляет дубликаты из CSV файла.
+        """Удаляет дубликаты из CSV файла.
 
         Оптимизация:
         - mmap для больших файлов (>10MB) вместо обычной буферизации
@@ -86,7 +84,7 @@ class CSVDeduplicator:
         """
         file_root, file_ext = os.path.splitext(self._file_path)
         tmp_csv_name = f"{file_root}.deduplicated{file_ext}"
-        seen_hashes: Set[str] = set()
+        seen_hashes: set[str] = set()
         duplicates_count = 0
 
         # ВАЖНО: Флаг для отслеживания создания временного файла
@@ -184,7 +182,7 @@ class CSVDeduplicator:
                 logger.error("Не удалось переместить файл с удалёнными дубликатами")
                 raise RuntimeError("Failed to move deduplicated file")
 
-        except (OSError, IOError) as e:
+        except OSError as e:
             logger.error("Ошибка при удалении дубликатов: %s", e)
             raise
 

@@ -1,5 +1,4 @@
-"""
-Модуль стратегии слияния файлов для параллельного парсинга.
+"""Модуль стратегии слияния файлов для параллельного парсинга.
 
 Этот модуль предоставляет класс FileMergerStrategy для:
 - Объединения CSV файлов
@@ -20,7 +19,8 @@ import typing
 import uuid
 from asyncio import CancelledError
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from parser_2gis.constants import (
     MAX_LOCK_FILE_AGE,
@@ -49,12 +49,13 @@ class FileMergerStrategy:
         config: Конфигурация парсера.
         cancel_event: Событие отмены.
         lock: Блокировка для защиты общих ресурсов.
+
     """
 
     def __init__(
         self,
         output_dir: Path,
-        config: "Configuration",
+        config: Configuration,
         cancel_event: threading.Event,
         lock: threading.Lock,
     ) -> None:
@@ -65,6 +66,7 @@ class FileMergerStrategy:
             config: Конфигурация парсера.
             cancel_event: Событие отмены.
             lock: Блокировка для защиты общих ресурсов.
+
         """
         self.output_dir = output_dir
         self.config = config
@@ -72,7 +74,7 @@ class FileMergerStrategy:
         self._lock = lock
 
         # Список для отслеживания временных файлов merge операции
-        self._merge_temp_files: List[Path] = []
+        self._merge_temp_files: list[Path] = []
         self._merge_lock = threading.Lock()
 
         logger.debug("Инициализирована стратегия слияния файлов для %s", output_dir)
@@ -84,7 +86,7 @@ class FileMergerStrategy:
             log_func(message)
 
     def merge_csv_files(
-        self, output_file: str, progress_callback: Optional[Callable[[str], None]] = None
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
         """Объединяет все CSV файлы в один с добавлением колонки "Категория".
 
@@ -94,6 +96,7 @@ class FileMergerStrategy:
 
         Returns:
             True если успешно.
+
         """
         self.log("Начало объединения CSV файлов...", "info")
 
@@ -106,7 +109,7 @@ class FileMergerStrategy:
 
         self.log(f"Найдено {len(csv_files)} CSV файлов для объединения", "info")
 
-        files_to_delete: List[Path] = []
+        files_to_delete: list[Path] = []
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
 
         register_temp_file(temp_output)
@@ -169,7 +172,7 @@ class FileMergerStrategy:
             ) as outfile:
                 writer = None
                 total_rows = 0
-                fieldnames_cache: Dict[Tuple[str, ...], List[str]] = {}
+                fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
 
                 for csv_file in csv_files:
                     if self._cancel_event.is_set():
@@ -271,7 +274,7 @@ class FileMergerStrategy:
             except (OSError, ValueError, TypeError):
                 pass
 
-    def _get_csv_files_list(self, output_file_path: Path) -> List[Path]:
+    def _get_csv_files_list(self, output_file_path: Path) -> list[Path]:
         """Получает список CSV файлов для объединения.
 
         Args:
@@ -279,6 +282,7 @@ class FileMergerStrategy:
 
         Returns:
             Отсортированный список CSV файлов.
+
         """
         csv_files = list(self.output_dir.glob("*.csv"))
 
@@ -297,6 +301,7 @@ class FileMergerStrategy:
 
         Returns:
             Название категории.
+
         """
         stem = csv_file.stem
         last_underscore_idx = stem.rfind("_")
@@ -308,7 +313,7 @@ class FileMergerStrategy:
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
         return category
 
-    def _acquire_merge_lock(self, lock_file_path: Path) -> Tuple[Optional[typing.TextIO], bool]:
+    def _acquire_merge_lock(self, lock_file_path: Path) -> tuple[typing.TextIO | None, bool]:
         """Получает блокировку merge операции.
 
         Args:
@@ -316,6 +321,7 @@ class FileMergerStrategy:
 
         Returns:
             Кортеж (lock_file_handle, lock_acquired).
+
         """
         lock_file_handle = None
         lock_acquired = False
@@ -328,23 +334,27 @@ class FileMergerStrategy:
                     if lock_age > MAX_LOCK_FILE_AGE:
                         # Проверяем, активен ли процесс, создавший lock
                         try:
-                            with open(lock_file_path, "r", encoding="utf-8") as f:
+                            with open(lock_file_path, encoding="utf-8") as f:
                                 lock_pid = int(f.read().strip())
                             # Проверяем, существует ли процесс
                             os.kill(lock_pid, 0)
                             # Процесс существует - это не осиротевший lock
                             self.log(
-                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
-                                "warning",
+                                "Lock файл существует (возраст: %.0f сек, PID: %d), ожидаем...",
+                                lock_age,
+                                lock_pid,
+                                level="warning",
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             # Процесс не существует - это осиротевший lock
                             self.log(
-                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек, PID: {lock_pid})",
-                                "debug",
+                                "Удаление осиротевшего lock файла (возраст: %.0f сек, PID: %d)",
+                                lock_age,
+                                lock_pid,
+                                level="debug",
                             )
                             lock_file_path.unlink()
-                        except (IOError, OSError) as e:
+                        except OSError as e:
                             self.log(f"Ошибка проверки lock файла: {e}", "debug")
                     else:
                         self.log(
@@ -372,7 +382,7 @@ class FileMergerStrategy:
                     lock_file_handle.flush()
                     lock_acquired = True
                     self.log("Lock file получен успешно", "debug")
-                except (IOError, OSError, FileExistsError):
+                except (OSError, FileExistsError):
                     if lock_fd is not None:
                         try:
                             os.close(lock_fd)
@@ -402,16 +412,17 @@ class FileMergerStrategy:
                     self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
             return None, False
 
-        return typing.cast(Tuple[Optional[typing.TextIO], bool], (lock_file_handle, lock_acquired))
+        return typing.cast(tuple[typing.TextIO | None, bool], (lock_file_handle, lock_acquired))
 
     def _cleanup_merge_lock(
-        self, lock_file_handle: Optional[typing.TextIO], lock_file_path: Path
+        self, lock_file_handle: typing.TextIO | None, lock_file_path: Path
     ) -> None:
         """Очищает и удаляет lock файл.
 
         Args:
             lock_file_handle: Дескриптор lock файла.
             lock_file_path: Путь к lock файлу.
+
         """
         try:
             if lock_file_handle:
@@ -425,12 +436,12 @@ class FileMergerStrategy:
     def _process_single_csv_file(
         self,
         csv_file: Path,
-        writer: Optional["csv.DictWriter"],
-        outfile: "typing.TextIO",
+        writer: csv.DictWriter | None,
+        outfile: typing.TextIO,
         buffer_size: int,
         batch_size: int,
-        fieldnames_cache: Dict[Tuple[str, ...], List[str]],
-    ) -> Tuple[Optional["csv.DictWriter"], int]:
+        fieldnames_cache: dict[tuple[str, ...], list[str]],
+    ) -> tuple[csv.DictWriter | None, int]:
         """Обрабатывает один CSV файл и добавляет данные в выходной файл.
 
         Args:
@@ -443,10 +454,11 @@ class FileMergerStrategy:
 
         Returns:
             Кортеж (writer, total_rows).
+
         """
         category_name = self._extract_category_from_filename(csv_file)
 
-        with open(csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size) as infile:
+        with open(csv_file, encoding="utf-8-sig", newline="", buffering=buffer_size) as infile:
             reader = csv.DictReader(infile)
 
             if not reader.fieldnames:

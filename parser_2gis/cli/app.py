@@ -32,6 +32,7 @@ def cli_app(urls: list[str], output_path: str, format: str, config: Configuratio
         >>> config = Configuration()
         >>> urls = ["https://2gis.ru/moscow"]
         >>> cli_app(urls, "./output", "csv", config)
+
     """
     setup_cli_logger(config.log)
 

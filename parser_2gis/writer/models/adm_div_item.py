@@ -7,7 +7,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -28,19 +27,19 @@ class Flags(BaseModel):
 
     # Заполняется только для type=city и принимает единственное значение true в случае,
     # если город является главным городом текущего проекта (например Новосибирск)
-    is_default: Optional[bool] = None
+    is_default: bool | None = None
 
     # Заполняется только для type=adm_div, subtype=city|settlement
     # и принимает единственное значение true в случае, если населённый пункт является районным центром.
-    is_district_area_center: Optional[bool] = None
+    is_district_area_center: bool | None = None
 
     # Заполняется только для type=adm_div, subtype=city|settlement
     # и принимает единственное значение true в случае, если населённый пункт является областным центром.
-    is_region_center: Optional[bool] = None
+    is_region_center: bool | None = None
 
     # Cтрока, наличие которой говорит о том, что филиал временно не работает.
     # В строке выгружается код причины закрытия.
-    temporary_closed: Optional[str] = None
+    temporary_closed: str | None = None
 
 
 class AdmDivItem(BaseModel):
@@ -60,14 +59,14 @@ class AdmDivItem(BaseModel):
     """
 
     # Идентификатор объекта административной единицы
-    id: Optional[str] = None
+    id: str | None = None
 
     # Имя объекта
     name: str
 
     # Название территории (для использования в функционале «поделиться»,
     # для конечных точек маршрута и т.д.).
-    caption: Optional[str] = None
+    caption: str | None = None
 
     # Тип объекта административной единицы.
     # Возможные значения:
@@ -83,14 +82,14 @@ class AdmDivItem(BaseModel):
     type: str
 
     # Алиас города, в котором находится объект
-    city_alias: Optional[str] = None
+    city_alias: str | None = None
 
     # Дополнительные флаги
-    flags: Optional[Flags] = None
+    flags: Flags | None = None
 
     # Заполняется только для type=city и принимает единственное значение
     # true в случае, если город является главным городом текущего проекта (например "Новосибирск")
-    is_default: Optional[bool] = None
+    is_default: bool | None = None
 
     # Детализированный тип административно-территориальной единицы.
     # Возможные значения:
@@ -121,4 +120,4 @@ class AdmDivItem(BaseModel):
     # * `territory` — территория
     # * `cooperative` — кооператив
     # * `partnership` — товарищество
-    detailed_subtype: Optional[str] = None
+    detailed_subtype: str | None = None

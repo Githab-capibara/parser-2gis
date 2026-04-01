@@ -26,6 +26,7 @@ class CLIRunner(AbstractRunner):
         output_path: Путь к результирующему файлу.
         format: Формат `csv`, `xlsx` или `json`.
         config: Конфигурация.
+
     """
 
     def start(self) -> None:

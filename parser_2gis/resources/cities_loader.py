@@ -1,5 +1,4 @@
-"""
-Загрузчик городов для парсера.
+"""Загрузчик городов для парсера.
 
 Модуль предоставляет функции для загрузки и валидации городов из JSON файла.
 """
@@ -9,15 +8,17 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from parser_2gis.constants import MAX_CITIES_COUNT, MAX_CITIES_FILE_SIZE, MMAP_CITIES_THRESHOLD
 from parser_2gis.logger import logger
 
 
 @lru_cache(maxsize=16)
-def load_cities_json(cities_path_str: str) -> List[Dict[str, Any]]:
+def load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
     """Загружает JSON файл с городами с оптимизированной загрузкой.
+
+    C019: Кэширование через lru_cache для снижения повторных загрузок.
 
     Args:
         cities_path_str: Путь к файлу cities.json как строка.
@@ -29,6 +30,7 @@ def load_cities_json(cities_path_str: str) -> List[Dict[str, Any]]:
         FileNotFoundError: Если файл не найден.
         ValueError: Если файл повреждён или содержит некорректные данные.
         OSError: Если произошла ошибка операционной системы.
+
     """
     cities_path = Path(cities_path_str)
 
@@ -57,7 +59,7 @@ def load_cities_json(cities_path_str: str) -> List[Dict[str, Any]]:
         logger.error("Ошибка получения информации о файле: %s", stat_error)
         raise OSError(f"Не удалось получить информацию о файле: {stat_error}") from stat_error
 
-    all_cities: Optional[List[Dict[str, Any]]] = None
+    all_cities: list[dict[str, Any]] | None = None
 
     try:
         use_mmap = file_size > MMAP_CITIES_THRESHOLD
@@ -77,7 +79,7 @@ def load_cities_json(cities_path_str: str) -> List[Dict[str, Any]]:
                 finally:
                     mmapped_file.close()
         else:
-            with open(cities_path, "r", encoding="utf-8") as f:
+            with open(cities_path, encoding="utf-8") as f:
                 all_cities = json.load(f)
 
         if not isinstance(all_cities, list):
@@ -126,4 +128,49 @@ def load_cities_json(cities_path_str: str) -> List[Dict[str, Any]]:
         raise OSError(f"Не удалось прочитать файл городов: {e}") from e
 
 
-__all__ = ["load_cities_json"]
+def load_cities_json_lazy(cities_path_str: str):
+    """Генератор для lazy loading городов.
+
+    C019: Lazy loading через генератор для снижения потребления памяти.
+
+    Args:
+        cities_path_str: Путь к файлу cities.json как строка.
+
+    Yields:
+        Словари городов.
+
+    """
+    cities_path = Path(cities_path_str)
+
+    if not cities_path.is_file():
+        logger.error("Файл городов не найден: %s", cities_path)
+        raise FileNotFoundError(f"Файл {cities_path} не найден")
+
+    # C019: Используем mmap для больших файлов
+    try:
+        file_size = cities_path.stat().st_size
+        use_mmap = file_size > MMAP_CITIES_THRESHOLD
+
+        if use_mmap:
+            import mmap as mmap_module
+
+            with open(cities_path, "rb") as f:
+                mmapped_file = mmap_module.mmap(f.fileno(), 0, access=mmap_module.ACCESS_READ)
+                try:
+                    json_data = mmapped_file.read().decode("utf-8")
+                    all_cities = json.loads(json_data)
+                    for city in all_cities:
+                        yield city
+                finally:
+                    mmapped_file.close()
+        else:
+            with open(cities_path, encoding="utf-8") as f:
+                all_cities = json.load(f)
+                for city in all_cities:
+                    yield city
+    except (json.JSONDecodeError, OSError) as e:
+        logger.error("Ошибка при lazy loading городов: %s", e)
+        raise
+
+
+__all__ = ["load_cities_json", "load_cities_json_lazy"]

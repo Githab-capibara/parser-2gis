@@ -13,7 +13,7 @@ import mmap
 import os
 import shutil
 from contextlib import contextmanager
-from typing import Generator, Optional, Tuple, Union
+from collections.abc import Generator
 
 from parser_2gis.constants import DEFAULT_BUFFER_SIZE
 from parser_2gis.logger import logger
@@ -59,8 +59,7 @@ MMAP_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 def _should_use_mmap(file_size_bytes: int) -> bool:
-    """
-    Определяет, следует ли использовать mmap для чтения файла.
+    """Определяет, следует ли использовать mmap для чтения файла.
 
     Args:
         file_size_bytes: Размер файла в байтах.
@@ -73,15 +72,15 @@ def _should_use_mmap(file_size_bytes: int) -> bool:
         - Не загружает весь файл в память
         - Использует виртуальную память ОС
         - Уменьшает накладные расходы на ввод-вывод
+
     """
     return file_size_bytes > MMAP_THRESHOLD_BYTES
 
 
 def _open_file_with_mmap_support(
-    file_path: str, mode: str = "r", encoding: Optional[str] = None, create_if_missing: bool = False
-) -> Tuple[Union[io.TextIOWrapper, object], bool]:
-    """
-    Открывает файл с использованием mmap для больших файлов или обычной буферизации.
+    file_path: str, mode: str = "r", encoding: str | None = None, create_if_missing: bool = False
+) -> tuple[io.TextIOWrapper | object, bool]:
+    """Открывает файл с использованием mmap для больших файлов или обычной буферизации.
 
     Args:
         file_path: Путь к файлу.
@@ -103,6 +102,7 @@ def _open_file_with_mmap_support(
         - Для файлов >10MB используется mmap.mmap()
         - Для файлов <=10MB используется обычная буферизация
         - Детальное логирование выбора метода чтения
+
     """
     # Создаём файл если он не существует и create_if_missing=True
     if create_if_missing and mode == "r":
@@ -176,10 +176,9 @@ def _open_file_with_mmap_support(
 
 
 def _close_file_with_mmap_support(
-    file_obj: Union[io.TextIOWrapper, object], is_mmap: bool, underlying_fp: Optional[object] = None
+    file_obj: io.TextIOWrapper | object, is_mmap: bool, underlying_fp: object | None = None
 ) -> None:
-    """
-    Корректно закрывает файл, открытый с mmap или обычной буферизацией.
+    """Корректно закрывает файл, открытый с mmap или обычной буферизацией.
 
     Args:
         file_obj: Объект файла или mmap.
@@ -189,6 +188,7 @@ def _close_file_with_mmap_support(
     Примечание:
         - Для mmap: закрывает TextIOWrapper, mmap и файловый дескриптор
         - Для обычной буферизации: просто закрывает файл
+
     """
     try:
         if is_mmap:
@@ -209,9 +209,8 @@ def _close_file_with_mmap_support(
 @contextmanager
 def mmap_file_context(
     file_path: str, mode: str = "r", encoding: str = "utf-8"
-) -> Generator[Tuple[Union[io.TextIOWrapper, object], bool, Optional[object]], None, None]:
-    """
-    Контекстный менеджер для безопасной работы с файлами через mmap.
+) -> Generator[tuple[io.TextIOWrapper | object, bool, object | None], None, None]:
+    """Контекстный менеджер для безопасной работы с файлами через mmap.
 
     Гарантирует закрытие всех ресурсов (mmap, файловый дескриптор, TextIOWrapper)
     даже при возникновении исключений.
@@ -237,12 +236,13 @@ def mmap_file_context(
         - Для файлов <=10MB используется обычная буферизация
         - Все ресурсы закрываются в finally блоке
         - При ошибке mmap используется fallback на обычную буферизацию
+
     """
-    underlying_fp: Optional[object] = None
-    mmapped_file: Optional[mmap.mmap] = None  # type: ignore[mmap.mmap]
-    text_file: Optional[io.TextIOWrapper] = None
+    underlying_fp: object | None = None
+    mmapped_file: mmap.mmap | None = None  # type: ignore[mmap.mmap]
+    text_file: io.TextIOWrapper | None = None
     is_mmap_mode = False
-    fallback_file: Optional[object] = None
+    fallback_file: object | None = None
 
     try:
         # Получаем размер файла
@@ -320,10 +320,9 @@ def mmap_file_context(
 
 
 def _calculate_optimal_buffer_size(
-    file_path: Optional[str] = None, file_size_bytes: Optional[int] = None
+    file_path: str | None = None, file_size_bytes: int | None = None
 ) -> int:
-    """
-    Рассчитывает оптимальный размер буфера для чтения/записи CSV файлов.
+    """Рассчитывает оптимальный размер буфера для чтения/записи CSV файлов.
 
     - Для файлов >100MB используется увеличенный буфер (1MB)
     - Для файлов <=100MB используется стандартный буфер (256KB)
@@ -342,6 +341,7 @@ def _calculate_optimal_buffer_size(
         1048576  # 1MB для файлов >100MB
         >>> _calculate_optimal_buffer_size(file_size_bytes=50_000_000)
         262144  # 256KB для файлов <=100MB
+
     """
     # Проверяем переменную окружения для переопределения размера буфера
     env_buffer_size = os.getenv("PARSER_CSV_BUFFER_SIZE")
@@ -389,8 +389,7 @@ def _calculate_optimal_buffer_size(
 
 
 def _safe_move_file(src: str, dst: str) -> bool:
-    """
-    Безопасное перемещение файла с fallback на copy+delete.
+    """Безопасное перемещение файла с fallback на copy+delete.
     - Обрабатывает ошибку shutil.move() с fallback на copy+delete
     - Проверяет существование файла после move
     - Удаляет source файл если move успешен но source остался
@@ -401,6 +400,7 @@ def _safe_move_file(src: str, dst: str) -> bool:
 
     Returns:
         True если перемещение успешно, False иначе
+
     """
     try:
         # Пытаемся атомарное перемещение

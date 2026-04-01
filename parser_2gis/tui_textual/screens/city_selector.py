@@ -1,6 +1,4 @@
-"""
-Экран выбора городов для парсинга на Textual.
-"""
+"""Экран выбора городов для парсинга на Textual."""
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -145,6 +143,7 @@ class CitySelectorScreen(Screen):
 
         Raises:
             AttributeError: Если метод get_cities недоступен в приложении.
+
         """
         self._cities = self.app.get_cities()  # type: ignore
         self._filtered_cities = self._cities.copy()
@@ -216,6 +215,7 @@ class CitySelectorScreen(Screen):
 
         Args:
             event: Событие изменения текста в Input виджете.
+
         """
         if event.input.id == "city-search":
             query = event.value.lower().strip()
@@ -238,6 +238,7 @@ class CitySelectorScreen(Screen):
 
         Args:
             event: Событие изменения состояния Checkbox.
+
         """
         # Получить city_code из атрибута виджета
         city_code = getattr(event.checkbox, "city_code", None)
@@ -270,6 +271,7 @@ class CitySelectorScreen(Screen):
 
         Args:
             event: Событие нажатия кнопки.
+
         """
         button_id = event.button.id
 

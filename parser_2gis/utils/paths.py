@@ -1,5 +1,4 @@
-"""
-Модуль путей к ресурсам парсера.
+"""Модуль путей к ресурсам парсера.
 
 Предоставляет функции для получения путей к данным, изображениям
 и пользовательским директориям.
@@ -28,6 +27,7 @@ def _is_relative_to(path: pathlib.Path, other: pathlib.Path) -> bool:
 
     Returns:
         True если path находится внутри other, False иначе.
+
     """
     try:
         # Python 3.9+ - используем встроенный метод
@@ -47,6 +47,7 @@ def resources_path() -> pathlib.Path:
     Note:
         Эта функция заменяет устаревшую data_path().
         Ресурсы перемещены в parser_2gis/resources/ для устранения дублирования.
+
     """
     if "_MEIPASS2" in os.environ:
         here = os.environ["_MEIPASS2"]
@@ -81,6 +82,7 @@ def user_path(is_config: bool = True) -> pathlib.Path:
 
     Returns:
         Путь к пользовательской директории.
+
     """
     if is_config:
         path = os.getenv("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
@@ -91,7 +93,7 @@ def user_path(is_config: bool = True) -> pathlib.Path:
     return pathlib.Path(path)
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def image_path(basename: str, ext: str | None = None) -> str:
     """Получает путь к изображению `basename`.`ext`.
     Расширение игнорируется, если `ext` установлен в `None`.
@@ -106,6 +108,7 @@ def image_path(basename: str, ext: str | None = None) -> str:
     Raises:
         ValueError: Если basename содержит недопустимые символы или path traversal.
         FileNotFoundError: Если изображение не найдено.
+
     """
     # Проверка на пустое имя
     if not basename or basename.strip() == "":
@@ -164,7 +167,7 @@ def image_path(basename: str, ext: str | None = None) -> str:
     raise FileNotFoundError(f"Изображение {basename} не найдено")
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def image_data(basename: str, ext: str | None = None) -> bytes:
     """Получает данные изображения `basename`.`ext`.
     Расширение игнорируется, если `ext` установлен в `None`.
@@ -179,17 +182,18 @@ def image_data(basename: str, ext: str | None = None) -> bytes:
     Raises:
         FileNotFoundError: Если изображение не найдено.
         IOError: Если файл не может быть прочитан.
+
     """
     img_path = image_path(basename, ext)
     try:
         with open(img_path, "rb") as f_img:
             return base64.b64encode(f_img.read())
-    except (IOError, OSError):
+    except OSError:
         # Файл не может быть прочитан - ошибка логируется и пробрасывается дальше
         raise
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def cache_path() -> pathlib.Path:
     """Получает путь к директории кэша для Linux Ubuntu.
 
@@ -199,6 +203,7 @@ def cache_path() -> pathlib.Path:
 
     Returns:
         Путь к директории кэша.
+
     """
     path = os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
     path = os.path.join(path, "parser-2gis")

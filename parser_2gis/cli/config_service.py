@@ -1,5 +1,4 @@
-"""
-Сервис для операций с конфигурацией.
+"""Сервис для операций с конфигурацией.
 
 Предоставляет класс ConfigService для сохранения и загрузки конфигураций.
 Выделен из config.py для соблюдения принципа единственной ответственности (SRP).
@@ -83,6 +82,7 @@ class ConfigService:
     Примечание:
         Методы merge_configs, _merge_models_iterative и связанные методы
         перемещены в класс Configuration для устранения Middle Man.
+
     """
 
     @staticmethod
@@ -97,6 +97,7 @@ class ConfigService:
             OSError: Если не удалось создать директорию или записать файл.
             TypeError: Если ошибка сериализации JSON.
             ValueError: Если ошибка валидации данных.
+
         """
         if not path:
             logger.warning("Путь для сохранения конфигурации не указан")
@@ -140,6 +141,7 @@ class ConfigService:
 
         Raises:
             OSError: Если не удалось создать файл конфигурации.
+
         """
         if not config_path:
             user_config_path = user_path()
@@ -160,7 +162,7 @@ class ConfigService:
             return config
 
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 config_data = f.read()
         except (FileNotFoundError, PermissionError, OSError) as file_error:
             logger.error("Ошибка чтения файла конфигурации: %s", file_error)

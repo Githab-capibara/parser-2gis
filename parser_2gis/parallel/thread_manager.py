@@ -1,5 +1,4 @@
-"""
-Модуль управления потоками для параллельного парсинга.
+"""Модуль управления потоками для параллельного парсинга.
 
 Предоставляет класс ThreadManager для управления потоками:
 - Создание и запуск потоков
@@ -13,7 +12,8 @@ from __future__ import annotations
 import logging
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 if TYPE_CHECKING:
     pass
@@ -31,6 +31,7 @@ class ThreadManager:
         max_workers: Максимальное количество одновременных потоков.
         timeout_per_task: Таймаут на одну задачу в секундах.
         executor: ThreadPoolExecutor для управления потоками.
+
     """
 
     def __init__(self, max_workers: int = 3, timeout_per_task: int = 300) -> None:
@@ -39,11 +40,12 @@ class ThreadManager:
         Args:
             max_workers: Максимальное количество одновременных потоков.
             timeout_per_task: Таймаут на одну задачу в секундах.
+
         """
         self.max_workers = max_workers
         self.timeout_per_task = timeout_per_task
-        self._executor: Optional[ThreadPoolExecutor] = None
-        self._futures: Dict[Future[Any], Tuple[str, str, str]] = {}
+        self._executor: ThreadPoolExecutor | None = None
+        self._futures: dict[Future[Any], tuple[str, str, str]] = {}
         self._cancel_event = threading.Event()
         self._lock = threading.RLock()
 
@@ -60,6 +62,7 @@ class ThreadManager:
 
         Raises:
             RuntimeError: Если executor не инициализирован.
+
         """
         if self._executor is None:
             raise RuntimeError("ThreadPoolExecutor не инициализирован")
@@ -69,10 +72,10 @@ class ThreadManager:
 
     def execute_all(
         self,
-        tasks: List[Tuple[str, str, str]],
-        task_func: Callable[..., Tuple[bool, str]],
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-    ) -> Tuple[int, int]:
+        tasks: list[tuple[str, str, str]],
+        task_func: Callable[..., tuple[bool, str]],
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> tuple[int, int]:
         """Выполняет все задачи в пуле потоков.
 
         Args:
@@ -82,6 +85,7 @@ class ThreadManager:
 
         Returns:
             Кортеж (success_count, failed_count).
+
         """
         from concurrent.futures import TimeoutError as FuturesTimeoutError
 
@@ -99,7 +103,7 @@ class ThreadManager:
                 for url, category_name, city_name in tasks
             }
 
-            for idx, future in enumerate(as_completed(self._futures), 1):
+            for _idx, future in enumerate(as_completed(self._futures), 1):
                 url, category_name, city_name = self._futures[future]
 
                 try:
@@ -143,6 +147,7 @@ class ThreadManager:
 
         Returns:
             True если задачи отменены.
+
         """
         return self._cancel_event.is_set()
 
@@ -151,6 +156,7 @@ class ThreadManager:
 
         Returns:
             Словарь со статистикой.
+
         """
         return {
             "max_workers": self.max_workers,

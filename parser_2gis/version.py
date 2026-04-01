@@ -1,5 +1,4 @@
-"""
-Информация о версии пакета parser-2gis.
+"""Информация о версии пакета parser-2gis.
 
 Содержит константы с версией пакета и версией конфигурации.
 Используется для отображения версии в CLI и логировании.
@@ -19,4 +18,4 @@ CONFIG_VERSION: str = "0.1"
 version: str = "2.1.12"
 config_version: str = CONFIG_VERSION
 
-__all__ = ["VERSION", "CONFIG_VERSION", "version", "config_version"]
+__all__ = ["CONFIG_VERSION", "VERSION", "config_version", "version"]

@@ -1,5 +1,4 @@
-"""
-Модуль конфигураций для CLI.
+"""Модуль конфигураций для CLI.
 
 Предоставляет dataclass CLIRunConfig для группировки параметров
 запуска CLI. Это устраняет нарушение Data Clumps
@@ -20,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -54,27 +53,29 @@ class CLIRunConfig:
         ...     parallel=False,
         ...     max_workers=5,
         ... )
+
     """
 
-    urls: List[str] = field(default_factory=list)
-    cities: List[Dict[str, Any]] = field(default_factory=list)
-    categories: List[Dict[str, Any]] = field(default_factory=list)
+    urls: list[str] = field(default_factory=list)
+    cities: list[dict[str, Any]] = field(default_factory=list)
+    categories: list[dict[str, Any]] = field(default_factory=list)
     output_dir: Path = field(default_factory=lambda: Path("./output"))
-    output_file: Optional[str] = None
+    output_file: str | None = None
     format: str = "csv"
     parallel: bool = False
     max_workers: int = 10
     timeout: int = 300
     log_level: str = "INFO"
-    log_file: Optional[Path] = None
+    log_file: Path | None = None
     verbose: bool = False
-    config_path: Optional[Path] = None
+    config_path: Path | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Преобразует dataclass в словарь.
 
         Returns:
             Словарь с параметрами конфигурации.
+
         """
         return {
             "urls": self.urls,
@@ -93,7 +94,7 @@ class CLIRunConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CLIRunConfig":
+    def from_dict(cls, data: dict[str, Any]) -> CLIRunConfig:
         """Создаёт конфигурацию из словаря.
 
         Args:
@@ -101,6 +102,7 @@ class CLIRunConfig:
 
         Returns:
             Экземпляр CLIRunConfig.
+
         """
         return cls(
             urls=data.get("urls", []),
@@ -119,7 +121,7 @@ class CLIRunConfig:
         )
 
     @classmethod
-    def from_args(cls, args) -> "CLIRunConfig":
+    def from_args(cls, args) -> CLIRunConfig:
         """Создаёт конфигурацию из аргументов командной строки.
 
         Args:
@@ -127,20 +129,21 @@ class CLIRunConfig:
 
         Returns:
             Экземпляр CLIRunConfig.
+
         """
         return cls(
-            urls=getattr(args, "urls", []),
-            cities=getattr(args, "cities", []),
-            categories=getattr(args, "categories", []),
-            output_dir=Path(getattr(args, "output_dir", "./output")),
-            output_file=getattr(args, "output_file"),
-            format=getattr(args, "format", "csv"),
-            parallel=getattr(args, "parallel", False),
-            max_workers=getattr(args, "max_workers", 10),
-            timeout=getattr(args, "timeout", 300),
-            log_level=getattr(args, "log_level", "INFO"),
+            urls=args.urls,
+            cities=args.cities,
+            categories=args.categories,
+            output_dir=Path(args.output_dir) if hasattr(args, "output_dir") else Path("./output"),
+            output_file=args.output_file,
+            format=args.format,
+            parallel=args.parallel,
+            max_workers=args.max_workers,
+            timeout=args.timeout,
+            log_level=args.log_level,
             log_file=Path(args.log_file) if hasattr(args, "log_file") and args.log_file else None,
-            verbose=getattr(args, "verbose", False),
+            verbose=args.verbose,
             config_path=Path(args.config) if hasattr(args, "config") and args.config else None,
         )
 

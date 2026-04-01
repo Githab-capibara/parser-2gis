@@ -1,5 +1,4 @@
-"""
-Модуль мониторинга кэшей.
+"""Модуль мониторинга кэшей.
 
 Содержит функции для получения статистики по lru_cache кэшам.
 """
@@ -7,7 +6,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 # =============================================================================
 # ЛОГГЕР
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-def get_cache_stats() -> Dict[str, Any]:
+def get_cache_stats() -> dict[str, Any]:
     """Возвращает статистику по всем кэшам lru_cache.
 
     - Мониторинг hit/miss ratio для оптимизации размеров кэшей
@@ -40,6 +39,7 @@ def get_cache_stats() -> Dict[str, Any]:
         >>> stats = get_cache_stats()
         >>> print(stats['_validate_city_cached'])
         CacheInfo(hits=100, misses=5, maxsize=256, currsize=5)
+
     """
     from .url_utils import _url_query_encode
     from .validation_utils import _validate_category_cached, _validate_city_cached
@@ -61,6 +61,7 @@ def log_cache_stats() -> None:
         >>> log_cache_stats()
         # В лог будет записано:
         # Статистика кэша %s: %s
+
     """
     stats = get_cache_stats()
     for cache_name, info in stats.items():

@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import pathlib
-from typing import Optional
 
 import psutil
 from pydantic import BaseModel, PositiveInt
@@ -23,6 +22,7 @@ def default_memory_limit() -> int:
 
     Returns:
         Лимит памяти в мегабайтах, округлённый вниз до ближайшей сотни.
+
     """
     memory_total = psutil.virtual_memory().total / 1024**2  # Конвертируем в МБ
     return floor_to_hundreds(round(0.75 * memory_total))
@@ -41,7 +41,7 @@ class ChromeOptions(BaseModel):
         startup_delay: Задержка запуска браузера в секундах.
     """
 
-    binary_path: Optional[pathlib.Path] = None
+    binary_path: pathlib.Path | None = None
     start_maximized: bool = False
     headless: bool = False
     disable_images: bool = True

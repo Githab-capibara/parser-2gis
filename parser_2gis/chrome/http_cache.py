@@ -13,12 +13,16 @@ from __future__ import annotations
 import threading
 import time
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from parser_2gis.logger.logger import logger as app_logger
 
 if TYPE_CHECKING:
     import requests
+
+# D012: Глобальная метка времени для rate limiting
+_last_request_time: float = 0.0
+_rate_limit_lock = threading.Lock()
 
 
 # =============================================================================
@@ -31,11 +35,14 @@ HTTP_CACHE_TTL_SECONDS = 120
 # Размер кэша HTTP запросов (максимальное количество записей)
 HTTP_CACHE_MAXSIZE = 1024
 
+# D012: Rate limiting для HTTP кэша — минимальная задержка между запросами
+HTTP_CACHE_RATE_LIMIT_DELAY = 0.05  # 50ms между запросами
+
 
 class _HTTPCacheEntry:
     """Запись кэша HTTP запроса с TTL."""
 
-    def __init__(self, response: "requests.Response", timestamp: float) -> None:
+    def __init__(self, response: requests.Response, timestamp: float) -> None:
         self.response = response
         self.timestamp = timestamp
 
@@ -44,6 +51,7 @@ class _HTTPCacheEntry:
 
         Returns:
             True если кэш истёк, False иначе.
+
         """
         return (time.time() - self.timestamp) > HTTP_CACHE_TTL_SECONDS
 
@@ -61,7 +69,7 @@ class _HTTPCache:
         self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
         self._maxsize = maxsize
 
-    def get(self, key: tuple) -> Optional["requests.Response"]:
+    def get(self, key: tuple) -> requests.Response | None:
         """Получает закэшированный ответ.
 
         H017: Обновляет порядок доступа для LRU.
@@ -71,6 +79,7 @@ class _HTTPCache:
 
         Returns:
             Response объект или None если не найден или истёк.
+
         """
         with self._lock:
             if key in self._cache:
@@ -80,9 +89,10 @@ class _HTTPCache:
                     self._cache.move_to_end(key)
                     return entry.response
                 del self._cache[key]
+            # D012: При промахе кэша применяем rate limiting
             return None
 
-    def set(self, key: tuple, response: "requests.Response") -> None:
+    def set(self, key: tuple, response: requests.Response) -> None:
         """Сохраняет ответ в кэш.
 
         H017: LRU eviction при превышении размера.
@@ -90,6 +100,7 @@ class _HTTPCache:
         Args:
             key: Ключ кэша.
             response: Response объект для кэширования.
+
         """
         with self._lock:
             # H017: LRU eviction - удаляем oldest записи при превышении
@@ -104,6 +115,7 @@ class _HTTPCache:
 
         Returns:
             Количество удалённых записей.
+
         """
         with self._lock:
             expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
@@ -116,16 +128,35 @@ class _HTTPCache:
 
         Returns:
             Количество записей в кэше.
+
         """
         with self._lock:
             return len(self._cache)
+
+
+def _apply_rate_limit() -> None:
+    """D012: Применяет rate limiting для HTTP запросов.
+
+    Обеспечивает минимальную задержку между запросами для предотвращения блокировок.
+    """
+    global _last_request_time
+
+    with _rate_limit_lock:
+        current_time = time.time()
+        elapsed = current_time - _last_request_time
+
+        if elapsed < HTTP_CACHE_RATE_LIMIT_DELAY:
+            delay = HTTP_CACHE_RATE_LIMIT_DELAY - elapsed
+            time.sleep(delay)
+
+        _last_request_time = time.time()
 
 
 # =============================================================================
 # СИНГЛТОН ЭКЗЕМПЛЯР КЭША
 # =============================================================================
 
-_http_cache_instance: Optional[_HTTPCache] = None
+_http_cache_instance: _HTTPCache | None = None
 _http_cache_lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
 
 
@@ -134,6 +165,7 @@ def _get_http_cache() -> _HTTPCache:
 
     Returns:
         Экземпляр _HTTPCache.
+
     """
     global _http_cache_instance
     with _http_cache_lock:
@@ -152,6 +184,7 @@ def _get_cache_key(method: str, url: str, verify_ssl: bool) -> tuple:
 
     Returns:
         Кортеж для использования в качестве ключа кэша.
+
     """
     return (method, url, verify_ssl)
 
@@ -161,6 +194,7 @@ def _cleanup_expired_cache() -> int:
 
     Returns:
         Количество удалённых записей.
+
     """
     cache = _get_http_cache()
     cleaned = cache.cleanup_expired()

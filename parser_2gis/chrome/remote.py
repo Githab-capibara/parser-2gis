@@ -23,7 +23,7 @@ import time
 import weakref
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 import pychrome
 from websocket import WebSocketException
@@ -66,8 +66,8 @@ except ImportError:
 if TYPE_CHECKING:
     from .options import ChromeOptions
 
-    Request = Dict[str, Any]
-    Response = Dict[str, Any]
+    Request = dict[str, Any]
+    Response = dict[str, Any]
 
 
 # =============================================================================
@@ -76,6 +76,9 @@ if TYPE_CHECKING:
 
 # Задержка между проверками порта в секундах
 PORT_CHECK_RETRY_DELAY: float = 0.005  # Максимально ускоренная проверка порта
+
+# D001: Вынесено в константу для предотвращения хардкода
+LOCALHOST_BASE_URL: str = "http://127.0.0.1:{port}"
 
 # Оптимизация: скомпилированный regex паттерн для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
@@ -86,9 +89,13 @@ _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
 # =============================================================================
 
 
-@lru_cache(maxsize=64)
+# C001: Увеличен размер кэша до 256 для поддержки 40+ параллельных браузеров
+@lru_cache(maxsize=256)
 def _check_port_cached(port: int) -> bool:
-    """Проверяет доступность порта с кэшированием через lru_cache."""
+    """Проверяет доступность порта с кэшированием через lru_cache.
+
+    C001: Кэширование для снижения накладных расходов при частых проверках портов.
+    """
     return _check_port_available_internal(port, timeout=0.6, retries=1)
 
 
@@ -107,7 +114,7 @@ def _check_port_available_internal(port: int, timeout: float = 0.6, retries: int
                 break
             if attempt < retries - 1:
                 time.sleep(PORT_CHECK_RETRY_DELAY)
-        except (socket.error, OSError) as e:
+        except OSError as e:
             app_logger.debug("Ошибка при проверке порта %d: %s", port, e)
             result = False
             break
@@ -158,7 +165,7 @@ patch_all()
 class ChromeRemote:
     """Обёртка для Chrome DevTools Protocol Interface."""
 
-    _active_instances: weakref.WeakSet["ChromeRemote"] = weakref.WeakSet()
+    _active_instances: weakref.WeakSet[ChromeRemote] = weakref.WeakSet()
 
     def __init__(self, chrome_options: ChromeOptions, response_patterns: list[str]) -> None:
         """Инициализирует ChromeRemote для управления браузером через CDP.
@@ -166,12 +173,13 @@ class ChromeRemote:
         Args:
             chrome_options: Опции Chrome для настройки браузера.
             response_patterns: Паттерны для фильтрации сетевых ответов.
+
         """
         self._chrome_options: ChromeOptions = chrome_options
-        self._chrome_browser: Optional[ChromeBrowser] = None
-        self._chrome_interface: Optional[pychrome.Browser] = None
-        self._chrome_tab: Optional[pychrome.Tab] = None
-        self._dev_url: Optional[str] = None
+        self._chrome_browser: ChromeBrowser | None = None
+        self._chrome_interface: pychrome.Browser | None = None
+        self._chrome_tab: pychrome.Tab | None = None
+        self._dev_url: str | None = None
         self._response_patterns: list[str] = response_patterns
         self._response_queues: dict[str, queue.Queue[Response]] = {
             x: queue.Queue() for x in response_patterns
@@ -213,7 +221,7 @@ class ChromeRemote:
                 parsed_url = urlparse(self._dev_url)
                 port = int(parsed_url.port)
 
-                if _check_port_available(port, timeout=20.0):  # Увеличено для стабильности
+                if _check_port_cached(port):  # C001: Используем кэшированную версию
                     app_logger.warning(
                         "Порт %d свободен (Chrome ещё не слушает), попытка %d/%d",
                         port,
@@ -317,7 +325,8 @@ class ChromeRemote:
             self._chrome_browser = ChromeBrowser(self._chrome_options)
 
             remote_port = _validate_remote_port(self._chrome_browser.remote_port)
-            self._dev_url = f"http://127.0.0.1:{remote_port}"
+            # D001: Используем константу вместо хардкода
+            self._dev_url = LOCALHOST_BASE_URL.format(port=remote_port)
 
             # Оптимизация: увеличены задержки для поддержки 40+ параллельных браузеров
             startup_delay = CHROME_STARTUP_DELAY
@@ -330,8 +339,8 @@ class ChromeRemote:
                 )
                 time.sleep(startup_delay)
 
-                # ИСПРАВЛЕНИЕ: Увеличено количество проверок порта и время таймаута
-                if not _check_port_available(remote_port, timeout=4.0, retries=3):
+                # C001: Используем кэшированную версию для проверки порта
+                if not _check_port_cached(remote_port):
                     app_logger.debug(
                         "Порт %d занят (Chrome запущен), готов к подключению", remote_port
                     )
@@ -340,9 +349,9 @@ class ChromeRemote:
                 # Увеличиваем задержку экспоненциально, но не более max_delay
                 startup_delay = min(startup_delay * 1.5, max_delay)
             else:
-                # ИСПРАВЛЕНИЕ: Очищаем кэш портов и пробуем ещё раз перед ошибкой
+                # C001: Очищаем кэш портов и пробуем ещё раз перед ошибкой
                 _clear_port_cache()
-                if _check_port_available(remote_port, timeout=4.0, retries=3):
+                if _check_port_cached(remote_port):
                     # Порт всё ещё свободен - Chrome не запустился
                     raise ChromeException(
                         f"Chrome не запустился после {max_startup_attempts} попыток. "
@@ -365,13 +374,14 @@ class ChromeRemote:
 
     def _start_tab_with_timeout(self, tab: pychrome.Tab, timeout: int = 300) -> None:  # 5 минут
         """Запускает вкладку с таймаутом."""
-        result: Dict[str, Optional[Exception]] = {"error": None}
+        result: dict[str, Exception | None] = {"error": None}
 
         def start_target() -> None:
             """Запускает вкладку Chrome в отдельном потоке.
 
             Note:
                 Функция выполняется в daemon потоке с таймаутом.
+
             """
             try:
                 tab.start()
@@ -415,7 +425,8 @@ class ChromeRemote:
             except (RequestException, ValueError, KeyError) as e:
                 if attempt < max_attempts - 1:
                     app_logger.warning(
-                        "Не удалось создать вкладку (попытка %d): %s. Повторная попытка через %.1f сек...",
+                        "Не удалось создать вкладку (попытка %d): %s. "
+                        "Повторная попытка через %.1f сек...",
                         attempt + 1,
                         e,
                         delay_seconds,
@@ -522,6 +533,7 @@ class ChromeRemote:
 
             Note:
                 Игнорирует Preflight запросы (OPTIONS).
+
             """
             request = kwargs.pop("request")
             request["meta"] = kwargs
@@ -612,6 +624,7 @@ class ChromeRemote:
             Raises:
                 pychrome.UserAbortException: Если вкладка была остановлена.
                 pychrome.RuntimeException: Если вкладка была остановлена (преобразованное).
+
             """
             try:
                 return original_send(*args, **kwargs)
@@ -640,7 +653,7 @@ class ChromeRemote:
             raise
 
     @wait_until_finished(timeout=7200, throw_exception=False, poll_interval=0.005)  # 2 часа
-    def wait_response(self, response_pattern: str) -> Optional[Response]:
+    def wait_response(self, response_pattern: str) -> Response | None:
         """Ждёт указанный ответ с предопределённым паттерном.
 
         Args:
@@ -651,6 +664,7 @@ class ChromeRemote:
 
         Raises:
             ChromeException: Если паттерн не зарегистрирован в _response_queues.
+
         """
         try:
             if self._chrome_tab is None:
@@ -694,7 +708,7 @@ class ChromeRemote:
                 except queue.Empty:
                     break
 
-    def _decode_response_body(self, response_data: Dict[str, Any], request_id: str) -> str:
+    def _decode_response_body(self, response_data: dict[str, Any], request_id: str) -> str:
         """Декодирует тело ответа с поддержкой base64.
 
         Args:
@@ -703,6 +717,7 @@ class ChromeRemote:
 
         Returns:
             Декодированное тело ответа в виде строки.
+
         """
         if response_data.get("base64Encoded"):
             try:
@@ -729,6 +744,7 @@ class ChromeRemote:
 
         Raises:
             ValueError: Если размер ответа превышает лимит.
+
         """
         # Guard Clause: проверка инициализации Chrome tab
         if self._chrome_tab is None:
@@ -746,7 +762,7 @@ class ChromeRemote:
             return ""
 
         request_id = response["meta"]["requestId"]
-        response_data: Optional[Dict[str, Any]] = None
+        response_data: dict[str, Any] | None = None
 
         try:
             # Получение тела ответа через CDP
@@ -798,12 +814,12 @@ class ChromeRemote:
                 response_data = None
 
     @wait_until_finished(timeout=None, throw_exception=False)
-    def get_responses(self) -> List[Response]:
+    def get_responses(self) -> list[Response]:
         """Получает собранные ответы."""
         with self._requests_lock:
             return [x["response"] for x in self._requests.values() if "response" in x]
 
-    def get_requests(self) -> List[Request]:
+    def get_requests(self) -> list[Request]:
         """Получает записанные запросы."""
         with self._requests_lock:
             return [*self._requests.values()]
@@ -841,7 +857,7 @@ class ChromeRemote:
 
         self._chrome_tab.Page.addScriptToEvaluateOnNewDocument(source=source)
 
-    def add_blocked_requests(self, urls: List[str]) -> bool:
+    def add_blocked_requests(self, urls: list[str]) -> bool:
         """Блокирует нежелательные запросы."""
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в add_blocked_requests")
@@ -869,6 +885,52 @@ class ChromeRemote:
             raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
 
         return self._execute_script_internal(expression, timeout)
+
+    def execute_script_batch(self, expressions: list[str], timeout: int = 300) -> list[Any]:
+        """Пакетное выполнение JavaScript выражений.
+
+        C018: Оптимизация через выполнение нескольких выражений в одном CDP вызове.
+
+        Args:
+            expressions: Список JavaScript выражений для выполнения.
+            timeout: Таймаут выполнения в секундах.
+
+        Returns:
+            Список результатов выполнения выражений.
+
+        """
+        if not expressions:
+            return []
+
+        if self._chrome_tab is None:
+            app_logger.error("Chrome tab не инициализирован в execute_script_batch")
+            return [None] * len(expressions)
+
+        # C018: Объединяем выражения в одно для снижения количества CDP вызовов
+        # Каждое выражение сохраняется в массиве результатов
+        wrapped_expressions = []
+        for i, expr in enumerate(expressions):
+            is_valid, error_msg = _validate_js_code(expr)
+            if not is_valid:
+                app_logger.error("Валидация выражения %d не пройдена: %s", i, error_msg)
+                wrapped_expressions.append(f"results[{i}] = null; // {error_msg}")
+            else:
+                wrapped_expressions.append(f"results[{i}] = {expr};")
+
+        # Создаём обёрнутый скрипт
+        combined_script = (
+            f"var results = new Array({len(expressions)});\n"
+            + "\n".join(wrapped_expressions)
+            + "\nresults;"
+        )
+
+        app_logger.debug(
+            "Пакетное выполнение %d JavaScript выражений (общий размер: %d байт)",
+            len(expressions),
+            len(combined_script),
+        )
+
+        return self._execute_script_internal(combined_script, timeout)
 
     def _execute_script_internal_impl(self, expression: str, timeout: int = 300) -> Any:  # 5 минут
         """Внутренний метод выполнения скрипта."""
@@ -907,16 +969,28 @@ class ChromeRemote:
             app_logger.warning("Непредвиденная ошибка при выполнении скрипта: %s", e)
             return None
 
+    # D010: Rate limiting теперь обязательный для всех внешних запросов
+    # Если ratelimit не установлен, используем fallback с предупреждением
     if _RATELIMIT_AVAILABLE:
         _execute_script_internal = sleep_and_retry(
             limits(calls=EXTERNAL_RATE_LIMIT_CALLS, period=EXTERNAL_RATE_LIMIT_PERIOD)(
                 _execute_script_internal_impl
             )
         )
+        app_logger.debug(
+            "Rate limiting включён: %d запросов за %d сек",
+            EXTERNAL_RATE_LIMIT_CALLS,
+            EXTERNAL_RATE_LIMIT_PERIOD,
+        )
     else:
+        # D010: Предупреждение об отсутствии rate limiting
+        app_logger.warning(
+            "Rate limiting недоступен (библиотека ratelimit не установлена). "
+            "Рекомендуется установить: pip install ratelimit"
+        )
         _execute_script_internal = _execute_script_internal_impl
 
-    def perform_click(self, dom_node: DOMNode, timeout: Optional[int] = None) -> None:
+    def perform_click(self, dom_node: DOMNode, timeout: int | None = None) -> None:
         """Выполняет клик мыши на DOM-узле.
 
         Оптимизировано: использует Input.dispatchMouseEvent для прямого клика
@@ -959,7 +1033,7 @@ class ChromeRemote:
         except Exception as e:
             app_logger.error("Ошибка при выполнении клика: %s", e)
 
-    def wait(self, timeout: Optional[float] = None) -> None:
+    def wait(self, timeout: float | None = None) -> None:
         """Ожидает указанное время."""
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в wait")
@@ -1067,11 +1141,12 @@ class ChromeRemote:
         except Exception as clear_cache_error:
             app_logger.warning("Ошибка при очистке кэша портов: %s", clear_cache_error)
 
-    def __enter__(self) -> "ChromeRemote":
+    def __enter__(self) -> ChromeRemote:
         """Контекстный менеджер: вход.
 
         Returns:
             Экземпляр ChromeRemote.
+
         """
         self.start()
         return self
@@ -1081,6 +1156,7 @@ class ChromeRemote:
 
         Args:
             exc_info: Информация об исключении (если было).
+
         """
         self.stop()
 
@@ -1090,7 +1166,7 @@ class ChromeRemote:
     # Эти методы предоставляют совместимость с Protocol BrowserService
     # для разрыва связи между chrome/ и parser/
 
-    def execute_js(self, js_code: str, timeout: Optional[int] = None) -> Any:
+    def execute_js(self, js_code: str, timeout: int | None = None) -> Any:
         """Выполнить JavaScript код (алиас для execute_script).
 
         Метод для совместимости с BrowserService Protocol.
@@ -1101,7 +1177,19 @@ class ChromeRemote:
 
         Returns:
             Результат выполнения JavaScript.
+
+        Raises:
+            ValueError: Если js_code не является строкой или небезопасен.
+
         """
+        # D005: Дополнительная валидация JS кода
+        if js_code is None:
+            raise ValueError("JavaScript код не может быть None")
+        if not isinstance(js_code, str):
+            raise TypeError(f"JavaScript код должен быть строкой, получен {type(js_code).__name__}")
+        if not js_code.strip():
+            raise ValueError("JavaScript код не может быть пустым")
+
         if timeout is None:
             timeout = 600  # 10 минут
         return self.execute_script(expression=js_code, timeout=timeout)
@@ -1111,6 +1199,7 @@ class ChromeRemote:
 
         Returns:
             HTML содержимое текущей страницы.
+
         """
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в get_html")
@@ -1133,6 +1222,7 @@ class ChromeRemote:
 
         Args:
             path: Путь для сохранения скриншота (PNG).
+
         """
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в screenshot")
@@ -1169,6 +1259,10 @@ class ChromeRemote:
 
         Returns:
             Строка с именем класса и параметрами.
+
         """
         classname = self.__class__.__name__
-        return f"{classname}(options={self._chrome_options!r}, response_patterns={self._response_patterns!r})"
+        return (
+            f"{classname}(options={self._chrome_options!r}, "
+            f"response_patterns={self._response_patterns!r})"
+        )

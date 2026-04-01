@@ -1,5 +1,4 @@
-"""
-Модуль отслеживания прогресса для параллельного парсинга.
+"""Модуль отслеживания прогресса для параллельного парсинга.
 
 Предоставляет класс ParallelProgressReporter для отслеживания прогресса:
 - Отслеживание прогресса парсинга
@@ -12,7 +11,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Callable, Dict, Optional
+from collections.abc import Callable
 
 from parser_2gis.logger import logger, print_progress
 
@@ -31,14 +30,15 @@ class ParallelProgressReporter:
         lock: Блокировка для потокобезопасного доступа.
         progress_callback: Функция обратного вызова для прогресса.
         merge_callback: Функция обратного вызова для объединения.
+
     """
 
     def __init__(
         self,
         total_tasks: int,
         lock: threading.RLock,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-        merge_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+        merge_callback: Callable[[str], None] | None = None,
     ) -> None:
         """Инициализация репортёра прогресса.
 
@@ -47,13 +47,14 @@ class ParallelProgressReporter:
             lock: Блокировка для потокобезопасного доступа.
             progress_callback: Функция обратного вызова для прогресса.
             merge_callback: Функция обратного вызова для объединения.
+
         """
         self.total_tasks = total_tasks
         self._lock = lock
         self._progress_callback = progress_callback
         self._merge_callback = merge_callback
         self._last_progress_time = time.time()
-        self._stats: Dict[str, int] = {"success": 0, "failed": 0, "total": total_tasks}
+        self._stats: dict[str, int] = {"success": 0, "failed": 0, "total": total_tasks}
         # H019: Throttling - минимальный интервал между обновлениями (сек)
         self._throttle_interval = 0.5  # 500ms
 
@@ -63,6 +64,7 @@ class ParallelProgressReporter:
         Args:
             message: Текст сообщения.
             level: Уровень логирования.
+
         """
         log_func = getattr(logger, level)
         log_func(message)
@@ -76,6 +78,7 @@ class ParallelProgressReporter:
             success: Была ли операция успешной.
             filename: Имя файла результата.
             force: Принудительно обновить прогресс (игнорировать интервал).
+
         """
         current_time = time.time()
         # H019: Throttling - проверяем минимальный интервал
@@ -104,15 +107,17 @@ class ParallelProgressReporter:
 
         Args:
             filename: Имя обрабатываемого файла.
+
         """
         if self._merge_callback:
             self._merge_callback(f"Обработка: {filename}")
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Возвращает текущую статистику.
 
         Returns:
             Словарь со статистикой.
+
         """
         with self._lock:
             return dict(self._stats)
@@ -122,6 +127,7 @@ class ParallelProgressReporter:
 
         Returns:
             True если все задачи завершены.
+
         """
         with self._lock:
             return (self._stats["success"] + self._stats["failed"]) >= self.total_tasks
@@ -131,6 +137,7 @@ class ParallelProgressReporter:
 
         Returns:
             Строка с краткой сводкой.
+
         """
         with self._lock:
             success = self._stats["success"]

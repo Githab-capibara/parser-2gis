@@ -1,5 +1,4 @@
-"""
-Модуль обработки ошибок базы данных.
+"""Модуль обработки ошибок базы данных.
 
 Предоставляет централизованную обработку ошибок SQLite:
 - Декоратор @handle_db_errors
@@ -11,7 +10,8 @@ from __future__ import annotations
 
 import functools
 import sqlite3
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, ClassVar, TypeVar
+from collections.abc import Callable
 
 from parser_2gis.logger.logger import logger
 
@@ -22,19 +22,20 @@ F = TypeVar("F", bound=Callable[..., Any])
 class DatabaseError(Exception):
     """Базовое исключение для ошибок базы данных."""
 
-    def __init__(self, message: str, original_error: Optional[Exception] = None) -> None:
+    def __init__(self, message: str, original_error: Exception | None = None) -> None:
         """Инициализирует исключение БД.
 
         Args:
             message: Сообщение об ошибке.
             original_error: Оригинальное исключение.
+
         """
         super().__init__(message)
         self.original_error = original_error
         self.error_type = self._classify_error(original_error)
 
     @staticmethod
-    def _classify_error(error: Optional[Exception]) -> str:
+    def _classify_error(error: Exception | None) -> str:
         """Классифицирует тип ошибки.
 
         Args:
@@ -42,6 +43,7 @@ class DatabaseError(Exception):
 
         Returns:
             Строка с типом ошибки.
+
         """
         if error is None:
             return "unknown"
@@ -74,7 +76,7 @@ class DatabaseErrorTranslator:
     """
 
     # Карта соответствия типов ошибок
-    ERROR_CLASSES = {
+    ERROR_CLASSES: ClassVar[dict[str, type[Exception]]] = {
         "disk_io": sqlite3.DatabaseError,
         "locked": sqlite3.OperationalError,
         "schema": sqlite3.OperationalError,
@@ -94,6 +96,7 @@ class DatabaseErrorTranslator:
 
         Returns:
             DatabaseError с дополнительной информацией.
+
         """
         error_str = str(error).lower()
         error_type = "general"
@@ -129,6 +132,7 @@ class DatabaseErrorTranslator:
 
         Returns:
             True если операция может быть повторена.
+
         """
         if isinstance(error, DatabaseError):
             return error.error_type in ("locked", "timeout", "busy")
@@ -150,6 +154,7 @@ class DatabaseErrorTranslator:
 
         Returns:
             True если ошибка критическая.
+
         """
         if isinstance(error, DatabaseError):
             return error.error_type in ("disk_io", "corrupt", "schema")
@@ -179,6 +184,7 @@ def handle_db_errors(
         >>> @handle_db_errors(retry_count=3, context="user_insert")
         ... def insert_user(conn, user_data):
         ...     conn.execute("INSERT INTO users VALUES (?)", (user_data,))
+
     """
 
     def decorator(func: F) -> F:
@@ -187,7 +193,7 @@ def handle_db_errors(
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             """Обертка для обработки ошибок."""
-            last_error: Optional[Exception] = None
+            last_error: Exception | None = None
             func_name = func.__name__
 
             for attempt in range(retry_count + 1):
@@ -214,7 +220,8 @@ def handle_db_errors(
                     if DatabaseErrorTranslator.is_retryable(db_error):
                         if attempt < retry_count:
                             logger.warning(
-                                "Временная ошибка БД в %s (попытка %d/%d): %s. Повтор через %.2f сек...",
+                                "Временная ошибка БД в %s (попытка %d/%d): %s. "
+                                "Повтор через %.2f сек...",
                                 func_name,
                                 attempt + 1,
                                 retry_count + 1,
@@ -269,9 +276,9 @@ DBErrorTranslator = DatabaseErrorTranslator
 
 
 __all__ = [
+    "DBError",
+    "DBErrorTranslator",
     "DatabaseError",
     "DatabaseErrorTranslator",
     "handle_db_errors",
-    "DBError",
-    "DBErrorTranslator",
 ]

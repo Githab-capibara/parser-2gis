@@ -1,5 +1,4 @@
-"""
-Главное приложение TUI Parser2GIS на Textual.
+"""Главное приложение TUI Parser2GIS на Textual.
 
 Современный интерфейс с использованием библиотеки Textual.
 """
@@ -10,7 +9,8 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, ClassVar
+from collections.abc import Mapping
 
 from textual import work
 from textual.app import App, ComposeResult
@@ -36,8 +36,7 @@ from .screens import (
 
 
 class TUIApp(App):
-    """
-    Главное приложение TUI Parser2GIS на Textual.
+    """Главное приложение TUI Parser2GIS на Textual.
 
     Управляет экранами, навигацией и состоянием приложения.
     """
@@ -174,14 +173,14 @@ class TUIApp(App):
     """
 
     # Горячие клавиши
-    BINDINGS = [
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("q", "quit", "Выход", priority=True),
         Binding("escape", "go_back", "Назад", priority=True),
         Binding("d", "toggle_dark", "Тёмная тема"),
     ]
 
     # Регистрация экранов
-    SCREENS = {
+    SCREENS: ClassVar[dict[str, type]] = {
         "main_menu": MainMenuScreen,
         "city_selector": CitySelectorScreen,
         "category_selector": CategorySelectorScreen,
@@ -198,16 +197,17 @@ class TUIApp(App):
 
         Args:
             **kwargs: Аргументы для родительского класса App.
+
         """
         super().__init__(**kwargs)
         self._config = self._load_config()
         self._state = self._init_state()
-        self._file_logger: Optional[logging.Logger] = None
-        self._log_file: Optional[Path] = None
-        self._parser: Optional[ParallelCityParser] = None
+        self._file_logger: logging.Logger | None = None
+        self._log_file: Path | None = None
+        self._parser: ParallelCityParser | None = None
         self._running = False
-        self._started_at: Optional[datetime] = None
-        self._last_notification: Optional[dict[str, str]] = None
+        self._started_at: datetime | None = None
+        self._last_notification: dict[str, str] | None = None
         self._cleanup_in_progress: bool = False  # Флаг для предотвращения повторной очистки
 
     def _load_config(self) -> Configuration:
@@ -260,7 +260,7 @@ class TUIApp(App):
         self._last_notification = None
 
     @property
-    def last_notification(self) -> Optional[dict[str, str]]:
+    def last_notification(self) -> dict[str, str] | None:
         """Последнее уведомление."""
         return self._last_notification
 
@@ -275,6 +275,7 @@ class TUIApp(App):
 
         Args:
             value: Список названий городов для выбора.
+
         """
         self._state["selected_cities"] = value
 
@@ -289,6 +290,7 @@ class TUIApp(App):
 
         Args:
             value: Список названий категорий для выбора.
+
         """
         self._state["selected_categories"] = value
 
@@ -303,6 +305,7 @@ class TUIApp(App):
 
         Args:
             value: True если приложение работает, False иначе.
+
         """
         self._running = value
 
@@ -318,7 +321,7 @@ class TUIApp(App):
         """Получить список городов."""
         cities_path = Path(__file__).parent.parent / "data" / "cities.json"
         if cities_path.exists():
-            with open(cities_path, "r", encoding="utf-8") as f:
+            with open(cities_path, encoding="utf-8") as f:
                 return json.load(f)
         return []
 
@@ -342,12 +345,12 @@ class TUIApp(App):
         return self._state.get(key)
 
     def notify_user(self, message: str, level: str = "info") -> None:
-        """
-        Показать уведомление пользователю.
+        """Показать уведомление пользователю.
 
         Args:
             message: Текст сообщения
             level: Уровень (info, success, warning, error)
+
         """
         self._last_notification = {"message": message, "level": level}
 
@@ -447,12 +450,12 @@ class TUIApp(App):
             self.notify_user("Парсинг остановлен", level="warning")
 
     def start_parsing(self, cities: list[dict], categories: list[dict]) -> None:
-        """
-        Запустить парсинг.
+        """Запустить парсинг.
 
         Args:
             cities: Список городов
             categories: Список категорий
+
         """
         # Проверка что данные выбраны перед запуском
         if not cities:
@@ -474,12 +477,12 @@ class TUIApp(App):
 
     @work(exclusive=True, thread=True)
     def _run_parsing(self, cities: list[dict], categories: list[dict]) -> None:
-        """
-        Запустить парсинг в фоне.
+        """Запустить парсинг в фоне.
 
         Args:
             cities: Список городов
             categories: Список категорий
+
         """
         try:
             self._running = True
@@ -523,6 +526,7 @@ class TUIApp(App):
                 Note:
                     Использует call_from_thread для синхронизации с главным потоком
                     и предотвращения race condition при доступе к состоянию приложения.
+
                 """
                 # Проверка флага остановки во время парсинга
                 if not self._running:

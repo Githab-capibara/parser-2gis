@@ -1,5 +1,4 @@
-"""
-Parser2GIS — парсер сайта 2GIS для сбора данных об организациях.
+"""Parser2GIS — парсер сайта 2GIS для сбора данных об организациях.
 
 Экспортируемые компоненты:
 - main: Точка входа CLI
@@ -33,21 +32,21 @@ from .validation import ValidationResult
 from .version import version as __version__
 
 __all__ = [
-    "main",
-    "__version__",
+    "CacheManager",
+    "CancelCallback",
+    "CleanupCallback",
+    "LogCallback",
+    "LoggerProtocol",
     "ParallelCityParser",
     "ParallelCityParserThread",
-    "CacheManager",
-    "ValidationResult",
-    "ProgressManager",
-    "logger",
-    "temp_file_manager",
-    "TempFileManager",
-    "ProgressCallback",
-    "LogCallback",
-    "CleanupCallback",
-    "CancelCallback",
-    "Writer",
     "Parser",
-    "LoggerProtocol",
+    "ProgressCallback",
+    "ProgressManager",
+    "TempFileManager",
+    "ValidationResult",
+    "Writer",
+    "__version__",
+    "logger",
+    "main",
+    "temp_file_manager",
 ]

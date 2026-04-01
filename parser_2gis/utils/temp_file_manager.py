@@ -1,5 +1,4 @@
-"""
-Менеджер временных файлов проекта parser-2gis.
+"""Менеджер временных файлов проекта parser-2gis.
 
 Этот модуль предоставляет классы для управления временными файлами:
 - TempFileManager: Регистрация и очистка временных файлов
@@ -23,7 +22,6 @@ import threading
 import time
 import weakref
 from pathlib import Path
-from typing import Optional
 
 from parser_2gis.constants import validate_env_int
 from parser_2gis.logger import logger
@@ -77,6 +75,7 @@ class TempFileManager:
         Отслеживается файлов: 2
         >>> manager.unregister(Path("/tmp/file1.csv"))
         >>> manager.cleanup_all()
+
     """
 
     def __init__(self, max_files: int = 1000) -> None:
@@ -84,6 +83,7 @@ class TempFileManager:
 
         Args:
             max_files: Максимальное количество отслеживаемых файлов.
+
         """
         self._registry: set[Path] = set()
         self._lock = threading.RLock()
@@ -96,9 +96,30 @@ class TempFileManager:
         Args:
             file_path: Путь к временному файлу.
 
+        Raises:
+            ValueError: Если file_path некорректен.
+            TypeError: Если file_path не является Path.
+
         Note:
             Если достигнут лимит файлов, новые файлы не регистрируются.
+
         """
+        # D015: Валидация пути перед регистрацией
+        if file_path is None:
+            raise ValueError("file_path не может быть None")
+        if not isinstance(file_path, Path):
+            raise TypeError(f"file_path должен быть Path, получен {type(file_path).__name__}")
+
+        # Проверка на path traversal
+        try:
+            resolved_path = file_path.resolve()
+            # Проверка что путь находится в допустимой директории
+            path_str = str(resolved_path)
+            if ".." in path_str:
+                raise ValueError(f"file_path содержит '..': {file_path}")
+        except (OSError, RuntimeError) as resolve_error:
+            raise ValueError(f"Некорректный file_path: {file_path}") from resolve_error
+
         with self._lock:
             if len(self._registry) >= self._max_files:
                 self._logger.warning(
@@ -114,6 +135,7 @@ class TempFileManager:
 
         Args:
             file_path: Путь к файлу для удаления из реестра.
+
         """
         with self._lock:
             if file_path in self._registry:
@@ -129,6 +151,7 @@ class TempFileManager:
 
         Note:
             После очистки реестр очищается.
+
         """
         success_count = 0
         error_count = 0
@@ -138,12 +161,32 @@ class TempFileManager:
 
         for file_path in files_to_clean:
             try:
-                if file_path.exists():
-                    file_path.unlink()
-                    success_count += 1
-                    self._logger.debug(f"Удалён временный файл: {file_path}")
-                else:
+                # D018: Проверка прав доступа перед удалением
+                if not file_path.exists():
                     self._logger.debug(f"Файл не существует: {file_path}")
+                    continue
+
+                # Проверка прав на запись (можем ли удалить файл)
+                try:
+                    # Проверяем что файл доступен для записи
+                    if not os.access(str(file_path), os.W_OK):
+                        self._logger.warning(f"Нет прав на удаление файла {file_path}, пропускаем")
+                        error_count += 1
+                        continue
+                except (OSError, RuntimeError) as access_error:
+                    self._logger.warning(
+                        f"Ошибка проверки прав доступа к {file_path}: {access_error}"
+                    )
+                    error_count += 1
+                    continue
+
+                # Безопасное удаление файла
+                file_path.unlink()
+                success_count += 1
+                self._logger.debug(f"Удалён временный файл: {file_path}")
+            except PermissionError as perm_error:
+                error_count += 1
+                self._logger.error(f"Нет прав на удаление файла {file_path}: {perm_error}")
             except OSError as e:
                 error_count += 1
                 self._logger.error(f"Ошибка удаления файла {file_path}: {e}")
@@ -166,6 +209,7 @@ class TempFileManager:
 
         Returns:
             Количество файлов в реестре.
+
         """
         with self._lock:
             return len(self._registry)
@@ -175,6 +219,7 @@ class TempFileManager:
 
         Returns:
             Список путей к файлам.
+
         """
         with self._lock:
             return list(self._registry)
@@ -194,6 +239,7 @@ def register_temp_file(file_path: Path) -> None:
     Note:
         Это функция-обёртка для обратной совместимости.
         Рекомендуется использовать temp_file_manager.register().
+
     """
     temp_file_manager.register(file_path)
 
@@ -207,6 +253,7 @@ def unregister_temp_file(file_path: Path) -> None:
     Note:
         Это функция-обёртка для обратной совместимости.
         Рекомендуется использовать temp_file_manager.unregister().
+
     """
     temp_file_manager.unregister(file_path)
 
@@ -221,6 +268,7 @@ def cleanup_all_temp_files() -> tuple[int, int]:
     Note:
         Это функция-обёртка для обратной совместимости.
         Рекомендуется использовать temp_file_manager.cleanup_all().
+
     """
     return temp_file_manager.cleanup_all()
 
@@ -234,6 +282,7 @@ def get_temp_file_count() -> int:
     Note:
         Это функция-обёртка для обратной совместимости.
         Рекомендуется использовать temp_file_manager.get_count().
+
     """
     return temp_file_manager.get_count()
 
@@ -244,8 +293,7 @@ def get_temp_file_count() -> int:
 
 
 class TempFileTimer:
-    """
-    Таймер для периодической очистки временных файлов.
+    """Таймер для периодической очистки временных файлов.
 
     Особенности:
         - Периодическая очистка через threading.Timer
@@ -264,14 +312,13 @@ class TempFileTimer:
 
     def __init__(
         self,
-        temp_dir: Optional[Path] = None,
+        temp_dir: Path | None = None,
         interval: int = TEMP_FILE_CLEANUP_INTERVAL,
         max_files: int = MAX_TEMP_FILES_MONITORING,
         orphan_age: int = ORPHANED_TEMP_FILE_AGE,
-        cleanup_interval: Optional[int] = None,
+        cleanup_interval: int | None = None,
     ) -> None:
-        """
-        Инициализация таймера очистки.
+        """Инициализация таймера очистки.
 
         Args:
             temp_dir: Директория для мониторинга временных файлов.
@@ -279,6 +326,7 @@ class TempFileTimer:
             max_files: Максимальное количество файлов для мониторинга.
             orphan_age: Возраст файла в секундах, после которого он считается осиротевшим.
             cleanup_interval: Алиас для interval (для обратной совместимости).
+
         """
         if cleanup_interval is not None:
             interval = cleanup_interval
@@ -289,7 +337,7 @@ class TempFileTimer:
         self._interval = interval
         self._max_files = max_files
         self._orphan_age = orphan_age
-        self._timer: Optional[threading.Timer] = None
+        self._timer: threading.Timer | None = None
         self._is_running = False
         self._stop_event = threading.Event()  # Событие для координации остановки
         # RLock для предотвращения гонок данных
@@ -373,11 +421,11 @@ class TempFileTimer:
             )
 
     def _cleanup_temp_files(self) -> int:
-        """
-        Выполняет очистку временных файлов.
+        """Выполняет очистку временных файлов.
 
         Returns:
             Количество удалённых файлов.
+
         """
         deleted_count = 0
         current_time = time.time()
@@ -442,17 +490,15 @@ class TempFileTimer:
         return deleted_count
 
     @staticmethod
-    def _cleanup_timer(
-        timer: Optional[threading.Timer], lock: Optional[threading.RLock] = None
-    ) -> None:
-        """
-        Статический метод для гарантированной очистки таймера.
+    def _cleanup_timer(timer: threading.Timer | None, lock: threading.RLock | None = None) -> None:
+        """Статический метод для гарантированной очистки таймера.
 
         Вызывается weakref.finalize() при уничтожении объекта сборщиком мусора.
 
         Args:
             timer: Таймер для отмены.
             lock: Блокировка (не используется, оставлена для совместимости).
+
         """
         if timer is not None:
             try:
@@ -491,7 +537,7 @@ class TempFileTimer:
         self._stop_event.set()
 
         lock_acquired = False
-        timer_to_cancel: Optional[threading.Timer] = None
+        timer_to_cancel: threading.Timer | None = None
         try:
             lock_acquired = self._lock.acquire(timeout=5.0)
             if not lock_acquired:
@@ -536,7 +582,7 @@ class TempFileTimer:
             - Критические исключения (MemoryError, KeyboardInterrupt, SystemExit) пробрасываются
         """
         cleanup_performed = False
-        timer_to_cancel: Optional[threading.Timer] = None
+        timer_to_cancel: threading.Timer | None = None
 
         try:
             if hasattr(self, "_finalizer") and self._finalizer is not None:
@@ -614,6 +660,7 @@ def create_temp_file(directory: str, prefix: str = "parser_") -> str:
         >>> temp_path = create_temp_file("/tmp", prefix="myapp_")
         >>> print(temp_path)
         /tmp/myapp_abc123.tmp
+
     """
     fd, path = tempfile.mkstemp(prefix=prefix, suffix=".tmp", dir=directory)
     os.close(fd)  # Закрываем дескриптор, файл остается

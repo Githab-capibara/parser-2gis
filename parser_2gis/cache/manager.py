@@ -1,5 +1,4 @@
-"""
-Модуль менеджера кэша для парсинга.
+"""Модуль менеджера кэша для парсинга.
 
 Предоставляет класс CacheManager для кэширования результатов парсинга
 в локальной базе данных SQLite.
@@ -22,12 +21,11 @@ import weakref
 import zlib
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
-
-from typing_extensions import TypeAlias
 
 # Импорты для типизации (для совместимости с Python 3.9)
-from typing import Dict, List, Tuple
+from typing import Any
+
+from typing import TypeAlias
 
 from ..constants import LRU_EVICT_BATCH, MAX_BATCH_SIZE, MAX_CACHE_SIZE_MB, SHA256_HASH_LENGTH
 from ..logger.logger import logger as app_logger
@@ -41,7 +39,7 @@ from .validator import CacheDataValidator
 
 CacheRow: TypeAlias = tuple[str, int, str]  # (data, checksum, expires_at_str)
 CacheItem: TypeAlias = tuple[str, dict[str, Any]]  # (url, data)
-OptionalCacheRow: TypeAlias = Optional[CacheRow]
+OptionalCacheRow: TypeAlias = CacheRow | None
 
 
 # =============================================================================
@@ -62,6 +60,7 @@ def _compute_crc32_cached(data_json_hash: str, data_json: str) -> int:
 
     Returns:
         CRC32 checksum.
+
     """
     return zlib.crc32(data_json.encode("utf-8")) & 0xFFFFFFFF
 
@@ -87,7 +86,7 @@ class CacheManager:
     Пример использования:
         >>> from pathlib import Path
         >>> from parser_2gis.cache import CacheManager
-        
+
         # Базовое использование
         >>> cache = CacheManager(Path('/tmp/cache'), ttl_hours=24)
         >>> data = cache.get('https://2gis.ru/moscow/search/Аптеки')
@@ -105,17 +104,17 @@ class CacheManager:
         ... ]
         >>> for url, data in urls_data:
         ...     cache.set(url, data)
-        
+
         # Пакетная проверка существования
         >>> for url, _ in urls_data:
         ...     if cache.exists(url):
         ...         print(f"Кэш найден для {url}")
-        
+
         # Пакетное удаление устаревших записей
         >>> old_urls = ['https://2gis.ru/url1', 'https://2gis.ru/url2']
         >>> for url in old_urls:
         ...     cache.delete(url)
-        
+
         # Пакетная очистка по условию
         >>> cache.clear()  # Очистка всего кэша
 
@@ -126,13 +125,14 @@ class CacheManager:
         ...     ttl_hours=24,
         ...     pool_size=10  # 10 соединений в пуле
         ... )
-        
+
         # Автоматическое управление соединениями
         >>> with cache._pool.get_connection() as conn:
         ...     cursor = conn.cursor()
         ...     cursor.execute("SELECT COUNT(*) FROM cache")
         ...     count = cursor.fetchone()[0]
         ...     print(f"Записей в кэше: {count}")
+
     """
 
     # Компилированные SQL запросы для оптимизации
@@ -219,6 +219,7 @@ class CacheManager:
         Raises:
             ValueError: Если ttl_hours меньше или равен нулю
             TypeError: Если ttl_hours не может быть конвертирован в int
+
         """
         # Конвертируем ttl_hours в int для защиты от строковых значений
         try:
@@ -236,9 +237,7 @@ class CacheManager:
             raise ValueError("cache_file_name должен быть непустой строкой")
         # Запрещаем пути и опасные символы
         if "/" in cache_file_name or "\\" in cache_file_name or ".." in cache_file_name:
-            raise ValueError(
-                "cache_file_name не должен содержать '/', '\\' или '..'"
-            )
+            raise ValueError("cache_file_name не должен содержать '/', '\\' или '..'")
         if not cache_file_name.endswith(".db"):
             raise ValueError("cache_file_name должен заканчиваться на '.db'")
 
@@ -248,7 +247,7 @@ class CacheManager:
         self._cache_file = cache_dir / cache_file_name
 
         # Инициализация компонентов
-        self._pool: Optional[ConnectionPool] = None
+        self._pool: ConnectionPool | None = None
         self._serializer = JsonSerializer()
         self._validator = CacheDataValidator()
 
@@ -269,6 +268,7 @@ class CacheManager:
 
         Args:
             pool_size: Размер пула соединений.
+
         """
         # Создаём директорию для кэша, если её нет
         self._cache_dir.mkdir(parents=True, exist_ok=True)
@@ -302,7 +302,7 @@ class CacheManager:
             app_logger.warning("Ошибка при инициализации кэша: %s", e)
             raise
 
-    def _get_cached_row(self, cursor: Any, url_hash: str) -> Optional[Tuple[str, int, str]]:
+    def _get_cached_row(self, cursor: Any, url_hash: str) -> tuple[str, int, str] | None:
         """Извлекает строку кэша из базы данных.
 
         Args:
@@ -311,12 +311,13 @@ class CacheManager:
 
         Returns:
             Кортеж (data, checksum, expires_at_str) или None если не найдено.
+
         """
         cursor.execute(self.SQL_SELECT, (url_hash,))
         row = cursor.fetchone()
         return row  # type: ignore[return-value]
 
-    def _parse_expires_at(self, expires_at_str: str) -> Optional[datetime]:
+    def _parse_expires_at(self, expires_at_str: str) -> datetime | None:
         """Парсит строку даты истечения кэша.
 
         Args:
@@ -324,6 +325,7 @@ class CacheManager:
 
         Returns:
             datetime объект или None при ошибке парсинга.
+
         """
         try:
             return datetime.fromisoformat(expires_at_str)
@@ -339,6 +341,7 @@ class CacheManager:
 
         Returns:
             True если кэш истёк, False иначе.
+
         """
         return datetime.now() > expires_at
 
@@ -348,11 +351,12 @@ class CacheManager:
         Args:
             cursor: Курсор базы данных.
             url_hash: Хеш URL для удаления.
+
         """
         cursor.execute(self.SQL_DELETE, (url_hash,))
 
     # ИСПРАВЛЕНИЕ: Рефакторинг метода get — выделение подметодов
-    def _get_from_db(self, cursor: Any, url_hash: str) -> Optional[Tuple[str, int, str]]:
+    def _get_from_db(self, cursor: Any, url_hash: str) -> tuple[str, int, str] | None:
         """Извлекает строку кэша из базы данных.
 
         Args:
@@ -361,13 +365,14 @@ class CacheManager:
 
         Returns:
             Кортеж (data, checksum, expires_at_str) или None если не найдено.
+
         """
         cursor.execute(self.SQL_SELECT, (url_hash,))
         return cursor.fetchone()  # type: ignore[return-value]
 
     def _handle_cache_hit(
         self, data: str, checksum: int, expires_at_str: str, cursor: Any, url_hash: str, conn: Any
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Обрабатывает попадание в кэш.
 
         Args:
@@ -380,6 +385,7 @@ class CacheManager:
 
         Returns:
             Десериализованные данные или None если кэш истёк или checksum не совпадает.
+
         """
         expires_at = self._parse_expires_at(expires_at_str)
         if expires_at is None:
@@ -416,12 +422,13 @@ class CacheManager:
             cursor: Курсор базы данных.
             url_hash: Хеш URL.
             conn: Соединение базы данных.
+
         """
         conn.rollback()
 
     def _handle_db_error(
         self, db_error: sqlite3.Error, url: str, cursor: Any, url_hash: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Обрабатывает ошибки базы данных при получении кэша.
 
         H6: Упрощённая обработка ошибок до 3 категорий:
@@ -437,6 +444,7 @@ class CacheManager:
 
         Returns:
             Данные кэша или None.
+
         """
         error_str = str(db_error).lower()
 
@@ -484,6 +492,7 @@ class CacheManager:
             cursor: Курсор базы данных.
             url_hash: Хеш URL для удаления.
             conn: Соединение базы данных.
+
         """
         error_type = type(decode_error).__name__
         app_logger.warning(
@@ -498,7 +507,7 @@ class CacheManager:
         except sqlite3.Error as cleanup_error:
             app_logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
 
-    def get(self, url: str) -> Optional[Dict[str, Any]]:
+    def get(self, url: str) -> dict[str, Any] | None:
         """Получение данных из кэша.
 
         Проверяет наличие кэша для указанного URL. Если кэш существует
@@ -512,6 +521,7 @@ class CacheManager:
 
         Raises:
             sqlite3.Error: При критической ошибке БД (disk I/O, no such table)
+
         """
         # ИСПРАВЛЕНИЕ: Рефакторинг — используется декомпозиция на подметоды
         if not self._pool:
@@ -532,7 +542,7 @@ class CacheManager:
 
         conn = self._pool.get_connection()
         # Инициализируем cursor = None перед try для безопасности в finally
-        cursor: Optional[sqlite3.Cursor] = None
+        cursor: sqlite3.Cursor | None = None
 
         try:
             cursor = conn.cursor()
@@ -583,7 +593,7 @@ class CacheManager:
             except (sqlite3.Error, OSError, MemoryError) as cursor_error:
                 app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
-    def set(self, url: str, data: Dict[str, Any]) -> None:
+    def set(self, url: str, data: dict[str, Any]) -> None:
         """Сохранение данных в кэш.
 
         Проверяет корректность данных и сохраняет их в кэш для указанного URL.
@@ -596,6 +606,7 @@ class CacheManager:
         Raises:
             TypeError: Если data является None или не является словарём.
             ValueError: Если URL некорректен.
+
         """
         if not self._pool:
             return
@@ -640,7 +651,7 @@ class CacheManager:
 
         conn = self._pool.get_connection()
         # P1-8: Гарантируем создание курсора перед try для безопасности в finally
-        cursor: Optional[sqlite3.Cursor] = None
+        cursor: sqlite3.Cursor | None = None
 
         try:
             cursor = conn.cursor()
@@ -686,9 +697,8 @@ class CacheManager:
             except (sqlite3.Error, OSError, MemoryError) as cursor_error:
                 app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
-    def get_batch(self, urls: List[str]) -> Dict[str, Optional[Dict[str, Any]]]:
-        """
-        Пакетное получение данных из кэша.
+    def get_batch(self, urls: list[str]) -> dict[str, dict[str, Any] | None]:
+        """Пакетное получение данных из кэша.
 
         C015: Оптимизация N+1 queries через пакетное получение.
 
@@ -697,13 +707,14 @@ class CacheManager:
 
         Returns:
             Словарь {url: data} где data=None если кэш не найден.
+
         """
         if not self._pool or not urls:
             return {}
 
         conn = self._pool.get_connection()
         cursor = conn.cursor()
-        results: Dict[str, Optional[Dict[str, Any]]] = {}
+        results: dict[str, dict[str, Any] | None] = {}
 
         try:
             cursor.execute("BEGIN")
@@ -742,9 +753,8 @@ class CacheManager:
 
         return results
 
-    def set_batch(self, items: List[Tuple[str, Dict[str, Any]]]) -> int:
-        """
-        Пакетное сохранение данных в кэш.
+    def set_batch(self, items: list[tuple[str, dict[str, Any]]]) -> int:
+        """Пакетное сохранение данных в кэш.
 
         Оптимизация: массовая вставка данных снижает накладные расходы
         на транзакции и коммиты, увеличивая производительность в 5-10 раз
@@ -755,6 +765,7 @@ class CacheManager:
 
         Returns:
             Количество сохранённых записей.
+
         """
         if not self._pool or not items:
             return 0
@@ -856,6 +867,7 @@ class CacheManager:
 
         Args:
             url: URL для удаления из кэша.
+
         """
         if not self._pool:
             return
@@ -884,6 +896,7 @@ class CacheManager:
 
         Returns:
             Количество удалённых записей
+
         """
         if not self._pool:
             return 0
@@ -919,9 +932,8 @@ class CacheManager:
             except (sqlite3.Error, OSError, MemoryError) as cursor_error:
                 app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
-    def clear_batch(self, url_hashes: List[str]) -> int:
-        """
-        Пакетное удаление записей по хешам URL.
+    def clear_batch(self, url_hashes: list[str]) -> int:
+        """Пакетное удаление записей по хешам URL.
 
         Args:
             url_hashes: Список хешей URL для удаления.
@@ -931,6 +943,7 @@ class CacheManager:
 
         Raises:
             ValueError: Если размер пакета превышает MAX_BATCH_SIZE.
+
         """
         if not self._pool or not url_hashes:
             return 0
@@ -982,7 +995,7 @@ class CacheManager:
             except (sqlite3.Error, OSError, MemoryError) as cursor_error:
                 app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Получение статистики кэша.
 
         Returns:
@@ -990,6 +1003,7 @@ class CacheManager:
             - total_records: Общее количество записей
             - expired_records: Количество истекших записей
             - cache_size: Размер файла базы данных в байтах
+
         """
         if not self._pool:
             return {"total_records": 0, "expired_records": 0, "cache_size": 0}
@@ -1030,8 +1044,7 @@ class CacheManager:
                 app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
     def close(self) -> None:
-        """
-        Закрывает все соединения и освобождает ресурсы.
+        """Закрывает все соединения и освобождает ресурсы.
 
         Важно: Вызывать перед завершением работы приложения.
         """
@@ -1041,8 +1054,7 @@ class CacheManager:
             app_logger.debug("Менеджер кэша закрыт")
 
     def _cleanup_cache_manager(self) -> None:
-        """
-        Метод для гарантированной очистки CacheManager.
+        """Метод для гарантированной очистки CacheManager.
 
         Вызывается weakref.finalize() при уничтожении объекта сборщиком мусора.
         Закрывает пул соединений при очистке.
@@ -1055,28 +1067,27 @@ class CacheManager:
             self._pool = None
 
     def __enter__(self) -> "CacheManager":
-        """
-        Возвращает экземпляр CacheManager для использования в контекстном менеджере.
+        """Возвращает экземпляр CacheManager для использования в контекстном менеджере.
 
         Returns:
             Экземпляр CacheManager.
+
         """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """
-        Закрывает все соединения при выходе из контекста.
+        """Закрывает все соединения при выходе из контекста.
 
         Args:
             exc_type: Тип исключения (если было выброшено).
             exc_val: Значение исключения (если было выброшено).
             exc_tb: Трассировка исключения (если было выброшено).
+
         """
         self.close()
 
     def __del__(self) -> None:
-        """
-        Гарантирует закрытие соединений при уничтожении объекта.
+        """Гарантирует закрытие соединений при уничтожении объекта.
 
         Важно:
             - Используется weakref.finalize() для гарантированной очистки
@@ -1112,8 +1123,7 @@ class CacheManager:
 
     @staticmethod
     def _hash_url(url: str) -> str:
-        """
-        Хеширование URL.
+        """Хеширование URL.
 
         Вычисляет SHA256 хеш от указанного URL для использования
         в качестве ключа в базе данных кэша.
@@ -1127,6 +1137,7 @@ class CacheManager:
         Raises:
             ValueError: Если URL является None или пустой строкой.
             TypeError: Если URL не является строкой.
+
         """
         if url is None:
             raise ValueError("URL не может быть None")
@@ -1152,6 +1163,7 @@ class CacheManager:
 
         Returns:
             True если хеш корректен, False иначе
+
         """
         if len(hash_val) != SHA256_HASH_LENGTH:
             return False
@@ -1161,15 +1173,15 @@ class CacheManager:
         except ValueError:
             return False
 
-    def _get_cache_size_mb(self, conn: Optional[sqlite3.Connection] = None) -> float:
-        """
-        Получает размер кэша в мегабайтах.
+    def _get_cache_size_mb(self, conn: sqlite3.Connection | None = None) -> float:
+        """Получает размер кэша в мегабайтах.
 
         Args:
             conn: SQLite соединение (опционально, используется для проверки целостности БД).
 
         Returns:
             Размер кэша в мегабайтах.
+
         """
         try:
             if not self._cache_file.exists():
@@ -1193,8 +1205,7 @@ class CacheManager:
             return 0.0
 
     def _enforce_cache_size_limit(self, conn: sqlite3.Connection) -> None:
-        """
-        Принудительное ограничение размера кэша.
+        """Принудительное ограничение размера кэша.
 
         C007: Оптимизация LRU eviction через увеличение размера пакета.
 
@@ -1202,6 +1213,7 @@ class CacheManager:
 
         Args:
             conn: SQLite соединение для выполнения запросов
+
         """
         try:
             cache_size_mb = self._get_cache_size_mb(conn)
@@ -1226,8 +1238,7 @@ class CacheManager:
                     # D008: Валидация размера пакета
                     if not isinstance(eviction_batch_size, int) or eviction_batch_size <= 0:
                         app_logger.error(
-                            "Некорректный размер пакета для LRU eviction: %s",
-                            eviction_batch_size,
+                            "Некорректный размер пакета для LRU eviction: %s", eviction_batch_size
                         )
                         return
 

@@ -40,6 +40,7 @@ class InBuildingParser(MainParser):
 
         Returns:
             Список DOM-узлов ссылок или None при ошибке.
+
         """
 
         def valid_link(node: DOMNode) -> bool:
@@ -58,6 +59,7 @@ class InBuildingParser(MainParser):
 
         Args:
             writer: Целевой файловый писатель.
+
         """
         # Переходим по URL с агрессивно уменьшенным таймаутом для ускорения
         self._chrome_remote.navigate(self._url, referer="https://google.com", timeout=20)

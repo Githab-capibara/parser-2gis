@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import Callable, List, Optional, Tuple
+from collections.abc import Callable
 
 from parser_2gis.logger.logger import logger as app_logger
 
@@ -82,7 +82,7 @@ _DANGEROUS_JS_PATTERNS = [
 # =============================================================================
 
 
-def _check_js_length(code: str, max_length: int) -> Tuple[bool, Optional[str]]:
+def _check_js_length(code: str, max_length: int) -> tuple[bool, str | None]:
     """Проверяет длину JavaScript кода.
 
     Args:
@@ -93,6 +93,7 @@ def _check_js_length(code: str, max_length: int) -> Tuple[bool, Optional[str]]:
         Кортеж (is_valid, error_message):
         - is_valid: True если длина в норме, False иначе
         - error_message: Сообщение об ошибке или None
+
     """
     if len(code) > max_length:
         return (
@@ -102,7 +103,7 @@ def _check_js_length(code: str, max_length: int) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _check_dangerous_encoding(code: str) -> Tuple[bool, Optional[str]]:
+def _check_dangerous_encoding(code: str) -> tuple[bool, str | None]:
     """Проверяет код на опасные кодировки (Unicode, HTML entities, octal, hex).
 
     Args:
@@ -112,6 +113,7 @@ def _check_dangerous_encoding(code: str) -> Tuple[bool, Optional[str]]:
         Кортеж (is_valid, error_message):
         - is_valid: True если кодировки безопасны, False иначе
         - error_message: Сообщение об ошибке или None
+
     """
     # Проверяем на попытки обхода через unicode кодировку (\u0065\u0076\u0061\u006C = eval)
     if re.search(r"\\u00[0-9a-fA-F]{2}", code, re.IGNORECASE):
@@ -136,7 +138,7 @@ def _check_dangerous_encoding(code: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _check_base64_functions(code: str) -> Tuple[bool, Optional[str]]:
+def _check_base64_functions(code: str) -> tuple[bool, str | None]:
     """Проверяет код на использование base64 функций (atob, btoa, Buffer.from).
 
     Args:
@@ -146,6 +148,7 @@ def _check_base64_functions(code: str) -> Tuple[bool, Optional[str]]:
         Кортеж (is_valid, error_message):
         - is_valid: True если base64 функции отсутствуют, False иначе
         - error_message: Сообщение об ошибке или None
+
     """
     # atob() - декодирование base64
     if re.search(r"\batob\s*\(\s*[^)]+\)", code, re.IGNORECASE):
@@ -162,7 +165,7 @@ def _check_base64_functions(code: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _check_string_conversion_functions(code: str) -> Tuple[bool, Optional[str]]:
+def _check_string_conversion_functions(code: str) -> tuple[bool, str | None]:
     """Проверяет код на использование String.fromCharCode и аналогов.
 
     Args:
@@ -172,6 +175,7 @@ def _check_string_conversion_functions(code: str) -> Tuple[bool, Optional[str]]:
         Кортеж (is_valid, error_message):
         - is_valid: True если функции отсутствуют, False иначе
         - error_message: Сообщение об ошибке или None
+
     """
     if re.search(r"String\s*\.\s*fromCharCode\s*\(", code, re.IGNORECASE):
         return False, "String.fromCharCode() запрещён (может использоваться для обхода)"
@@ -185,7 +189,7 @@ def _check_string_conversion_functions(code: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _check_concatenation_bypass(code: str) -> Tuple[bool, Optional[str]]:
+def _check_concatenation_bypass(code: str) -> tuple[bool, str | None]:
     """Проверяет код на конкатенацию строк для обхода фильтров.
 
     Args:
@@ -195,6 +199,7 @@ def _check_concatenation_bypass(code: str) -> Tuple[bool, Optional[str]]:
         Кортеж (is_valid, error_message):
         - is_valid: True если конкатенация безопасна, False иначе
         - error_message: Сообщение об ошибке или None
+
     """
     if "+" not in code or ('"' not in code and "'" not in code):
         return True, None
@@ -224,7 +229,7 @@ def _check_concatenation_bypass(code: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _check_obfuscation_patterns(code: str) -> Tuple[bool, Optional[str]]:
+def _check_obfuscation_patterns(code: str) -> tuple[bool, str | None]:
     """Проверяет код на паттерны обфускации.
 
     Args:
@@ -234,6 +239,7 @@ def _check_obfuscation_patterns(code: str) -> Tuple[bool, Optional[str]]:
         Кортеж (is_valid, error_message):
         - is_valid: True если обфускация отсутствует, False иначе
         - error_message: Сообщение об ошибке или None
+
     """
     # Проверка на split('').reverse().join() - техника обфускации
     if re.search(
@@ -247,7 +253,8 @@ def _check_obfuscation_patterns(code: str) -> Tuple[bool, Optional[str]]:
         if escape_count / len(code) > _MAX_ESCAPE_RATIO:
             return (
                 False,
-                "Обнаружена подозрительная обфускация кода (множественные escape-последовательности)",
+                "Обнаружена подозрительная обфускация кода "
+                "(множественные escape-последовательности)",
             )
 
     # Проверка на чрезмерное использование специальных символов
@@ -256,7 +263,8 @@ def _check_obfuscation_patterns(code: str) -> Tuple[bool, Optional[str]]:
         if len(special_chars) / len(code) > _MAX_SPECIAL_CHARS_RATIO:
             return (
                 False,
-                "Обнаружена подозрительная обфускация кода (чрезмерное использование специальных символов)",
+                "Обнаружена подозрительная обфускация кода "
+                "(чрезмерное использование специальных символов)",
             )
 
     # Проверка на подозрительные переменные с именами типа _0x1234
@@ -268,7 +276,7 @@ def _check_obfuscation_patterns(code: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _check_prototype_pollution(code: str) -> Tuple[bool, Optional[str]]:
+def _check_prototype_pollution(code: str) -> tuple[bool, str | None]:
     """Проверяет код на попытки prototype pollution.
 
     Args:
@@ -278,6 +286,7 @@ def _check_prototype_pollution(code: str) -> Tuple[bool, Optional[str]]:
         Кортеж (is_valid, error_message):
         - is_valid: True если prototype pollution отсутствует, False иначе
         - error_message: Сообщение об ошибке или None
+
     """
     # Проверка на использование Object.prototype.constructor
     if re.search(r"Object\s*\.\s*prototype\s*\.\s*constructor", code, re.IGNORECASE):
@@ -290,7 +299,7 @@ def _check_prototype_pollution(code: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _check_dangerous_constructors(code: str) -> Tuple[bool, Optional[str]]:
+def _check_dangerous_constructors(code: str) -> tuple[bool, str | None]:
     """Проверяет код на опасные конструкторы (new Function, eval).
 
     Args:
@@ -300,6 +309,7 @@ def _check_dangerous_constructors(code: str) -> Tuple[bool, Optional[str]]:
         Кортеж (is_valid, error_message):
         - is_valid: True если конструкторы безопасны, False иначе
         - error_message: Сообщение об ошибке или None
+
     """
     # Проверяем на eval()
     if re.search(r"\beval\s*\(", code, re.IGNORECASE):
@@ -320,7 +330,7 @@ def _check_dangerous_constructors(code: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _check_bracket_access(code: str) -> Tuple[bool, Optional[str]]:
+def _check_bracket_access(code: str) -> tuple[bool, str | None]:
     """Проверяет код на доступ через квадратные скобки (eval["..."]).
 
     Args:
@@ -330,6 +340,7 @@ def _check_bracket_access(code: str) -> Tuple[bool, Optional[str]]:
         Кортеж (is_valid, error_message):
         - is_valid: True если доступ безопасен, False иначе
         - error_message: Сообщение об ошибке или None
+
     """
     # Проверка на доступ к eval через квадратные скобки
     if re.search(r'\beval\s*\[\s*["\'][a-zA-Z]+["\']\s*\]', code):
@@ -346,7 +357,7 @@ def _check_bracket_access(code: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _check_reflect_and_apply(code: str) -> Tuple[bool, Optional[str]]:
+def _check_reflect_and_apply(code: str) -> tuple[bool, str | None]:
     """Проверяет код на Reflect/apply/call с умной проверкой.
 
     Блокирует только подозрительные случаи:
@@ -359,6 +370,7 @@ def _check_reflect_and_apply(code: str) -> Tuple[bool, Optional[str]]:
 
     Returns:
         Кортеж (is_valid, error_message)
+
     """
     # Проверка на использование Reflect - блокируем всё
     if re.search(r"Reflect\s*\.", code, re.IGNORECASE):
@@ -382,7 +394,7 @@ def _check_reflect_and_apply(code: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def _check_array_and_regexp(code: str) -> Tuple[bool, Optional[str]]:
+def _check_array_and_regexp(code: str) -> tuple[bool, str | None]:
     """Проверяет код на Array.from и RegExp с eval/Function.
 
     Args:
@@ -392,6 +404,7 @@ def _check_array_and_regexp(code: str) -> Tuple[bool, Optional[str]]:
         Кортеж (is_valid, error_message):
         - is_valid: True если функции безопасны, False иначе
         - error_message: Сообщение об ошибке или None
+
     """
     # Проверка на Array.from с подозрительными аргументами
     if re.search(r'Array\s*\.\s*from\s*\(\s*["\'][^"\']*["\']', code, re.IGNORECASE):
@@ -405,7 +418,7 @@ def _check_array_and_regexp(code: str) -> Tuple[bool, Optional[str]]:
 
 
 # Таблица проверок безопасности JS кода
-_JS_SECURITY_CHECKS: List[Tuple[Callable[[str], Tuple[bool, Optional[str]]], str]] = [
+_JS_SECURITY_CHECKS: list[tuple[Callable[[str], tuple[bool, str | None]], str]] = [
     (_check_dangerous_encoding, "Обнаружены опасные кодировки"),
     (_check_base64_functions, "Обнаружены base64 функции"),
     (_check_string_conversion_functions, "Обнаружены функции конвертации строк"),
@@ -419,7 +432,7 @@ _JS_SECURITY_CHECKS: List[Tuple[Callable[[str], Tuple[bool, Optional[str]]], str
 ]
 
 
-def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> Tuple[bool, str]:
+def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[bool, str]:
     """Валидирует JavaScript код на безопасность.
 
     Использует таблично-ориентированный подход для проверок безопасности.
@@ -442,6 +455,7 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> Tuple[
         - Таблица проверок безопасности (10 функций)
         - Проверка на опасные паттерны из _DANGEROUS_JS_PATTERNS
         - Нормализация Unicode (NFKC) для предотвращения обходов через Unicode эскейпы
+
     """
     if code is None:
         return False, "JavaScript код не может быть None"
@@ -478,6 +492,16 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> Tuple[
     # Проверка на пустую строку
     if not normalized_code.strip():
         return False, "JavaScript код не может быть пустым"
+
+    # D016: Дополнительная проверка на base64 кодировки для обхода фильтров
+    import re
+
+    # Проверка на потенциальные base64 строки (длинные последовательности base64 символов)
+    base64_pattern = re.compile(r"[A-Za-z0-9+/]{50,}={0,2}")
+    if base64_pattern.search(normalized_code):
+        # Проверяем не является ли это легитимными данными (например, image data)
+        if "atob" in normalized_code.lower() or "btoa" in normalized_code.lower():
+            return False, "Обнаружено использование base64 с функциями atob/btoa"
 
     # Проверка максимальной длины
     is_length_valid, length_error = _check_js_length(normalized_code, max_length)
@@ -523,6 +547,7 @@ def _sanitize_js_string(value: str) -> str:
         - Обратные кавычки (`)
         - Обратные слеши (\\)
         - Доллар ($) для предотвращения инъекций в template literals
+
     """
     if not isinstance(value, str):
         value = str(value)

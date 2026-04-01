@@ -1,5 +1,4 @@
-"""
-Модуль координации для параллельного парсинга.
+"""Модуль координации для параллельного парсинга.
 
 Предоставляет класс ParallelCoordinator для координации параллельного парсинга:
 - Координация потоков и задач
@@ -20,7 +19,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.constants import (
@@ -50,7 +50,7 @@ if TYPE_CHECKING:
 
 
 # Глобальная переменная для отслеживания активного координатора
-_active_coordinator: Optional["ParallelCoordinator"] = None  # noqa: E0602
+_active_coordinator: ParallelCoordinator | None = None  # noqa: E0602
 
 
 def _signal_handler(signum: int, frame) -> None:
@@ -59,6 +59,7 @@ def _signal_handler(signum: int, frame) -> None:
     Args:
         signum: Номер сигнала.
         frame: Текущий фрейм.
+
     """
     global _active_coordinator  # noqa: PLW0602 - используется для установки координатора
     if _active_coordinator is not None:
@@ -77,7 +78,7 @@ class ParallelCoordinator:
     Пример использования:
         >>> from parser_2gis.parallel import ParallelCoordinator
         >>> from parser_2gis.config import Configuration
-        
+
         # Базовое использование
         >>> coordinator = ParallelCoordinator(
         ...     cities=[{'code': 'msk', 'domain': '2gis.ru'}],
@@ -93,7 +94,7 @@ class ParallelCoordinator:
         >>> from parser_2gis.parallel.error_handler import ParallelErrorHandler
         >>> from parser_2gis.parallel.merger import ParallelFileMerger
         >>> from parser_2gis.parallel.progress import ParallelProgressReporter
-        
+
         # Создание кастомных компонентов
         >>> custom_error_handler = ParallelErrorHandler(
         ...     max_retries=5,
@@ -103,7 +104,7 @@ class ParallelCoordinator:
         ...     buffer_size=256 * 1024,
         ...     batch_size=500
         ... )
-        
+
         # Внедрение зависимостей через конструктор
         >>> coordinator = ParallelCoordinator(
         ...     cities=[...],
@@ -114,7 +115,7 @@ class ParallelCoordinator:
         ...     error_handler=custom_error_handler,  # DI
         ...     file_merger=custom_file_merger  # DI
         ... )
-        
+
         # Запуск с кастомными компонентами
         >>> success = coordinator.run_parsing(
         ...     progress_callback=lambda s, f, fn: print(f"Прогресс: {s}/{f}")
@@ -125,7 +126,7 @@ class ParallelCoordinator:
         >>> class CustomProgressReporter:
         ...     def update(self, success: int, failed: int, filename: str):
         ...         print(f"Файл: {filename}, Успешно: {success}, Ошибок: {failed}")
-        
+
         # Внедрение кастомного репортёра
         >>> custom_reporter = CustomProgressReporter()
         >>> coordinator = ParallelCoordinator(
@@ -137,21 +138,21 @@ class ParallelCoordinator:
         ...     error_handler=custom_error_handler,
         ...     file_merger=custom_file_merger,
         ... )
-        
+
         # Запуск с кастомным прогрессом
         >>> coordinator.run_parsing(progress_callback=custom_reporter.update)
     """
 
     def __init__(
         self,
-        cities: List[dict],
-        categories: List[dict],
+        cities: list[dict],
+        categories: list[dict],
         output_dir: str,
-        config: "Configuration",
+        config: Configuration,
         max_workers: int = 3,
         timeout_per_url: int = DEFAULT_TIMEOUT,
-        error_handler: Optional[ParallelErrorHandler] = None,
-        file_merger: Optional[ParallelFileMerger] = None,
+        error_handler: ParallelErrorHandler | None = None,
+        file_merger: ParallelFileMerger | None = None,
     ) -> None:
         """Инициализация координатора параллельного парсинга.
 
@@ -179,6 +180,7 @@ class ParallelCoordinator:
         H3: Dependency Injection через конструктор:
             - error_handler и file_merger могут быть переданы извне
             - По умолчанию создаются внутренние экземпляры для обратной совместимости
+
         """
         self._validate_inputs(cities, categories, max_workers, timeout_per_url, output_dir)
 
@@ -200,9 +202,9 @@ class ParallelCoordinator:
         self._file_merger = file_merger or ParallelFileMerger(
             self.output_dir, self.config, self._cancel_event, self._lock
         )
-        self._progress_reporter: Optional[ParallelProgressReporter] = None
+        self._progress_reporter: ParallelProgressReporter | None = None
 
-        self._temp_file_cleanup_timer: Optional[TempFileTimer] = None
+        self._temp_file_cleanup_timer: TempFileTimer | None = None
         if self.config.parallel.use_temp_file_cleanup:
             try:
                 from parser_2gis.utils.temp_file_manager import (
@@ -234,8 +236,8 @@ class ParallelCoordinator:
 
     def _validate_inputs(
         self,
-        cities: List[dict],
-        categories: List[dict],
+        cities: list[dict],
+        categories: list[dict],
         max_workers: int,
         timeout_per_url: int,
         output_dir: str,
@@ -278,6 +280,7 @@ class ParallelCoordinator:
 
         Returns:
             Экземпляр парсера или None при ошибке.
+
         """
         try:
             return get_parser(
@@ -295,6 +298,7 @@ class ParallelCoordinator:
 
         Returns:
             Экземпляр writer или None при ошибке.
+
         """
         try:
             return get_writer(str(temp_filepath), "csv", self.config.writer)
@@ -302,7 +306,7 @@ class ParallelCoordinator:
             self.log(f"Ошибка создания writer: {e}", "error")
             return None
 
-    def generate_all_urls(self) -> List[Tuple[str, str, str]]:
+    def generate_all_urls(self) -> list[tuple[str, str, str]]:
         """Генерирует все URL для парсинга.
 
         C014: Использует list() для обратной совместимости.
@@ -322,6 +326,7 @@ class ParallelCoordinator:
         C014: Lazy loading для снижения потребления памяти.
         Yield:
             Кортеж (url, category_name, city_name).
+
         """
         for city in self.cities:
             for category in self.categories:
@@ -341,8 +346,8 @@ class ParallelCoordinator:
         city_name: str,
         temp_filepath: Path,
         filepath: Path,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-    ) -> Tuple[bool, str]:
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> tuple[bool, str]:
         """Реализация парсинга одного URL."""
         self.log(
             "Начало парсинга: %s - %s (временный файл: %s)",
@@ -460,12 +465,13 @@ class ParallelCoordinator:
         url: str,
         category_name: str,
         city_name: str,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-    ) -> Tuple[bool, str]:
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> tuple[bool, str]:
         """Парсит один URL и сохраняет результат в отдельный файл.
 
         Returns:
             Кортеж (успех, сообщение/путь к файлу).
+
         """
         # H9: Проверка доступной памяти через инфраструктурный модуль
         memory_monitor = MemoryMonitor()
@@ -487,14 +493,14 @@ class ParallelCoordinator:
         filename = f"{safe_city}_{safe_category}.csv"
         filepath = self.output_dir / filename
 
-        temp_filepath: Optional[Path] = None
+        temp_filepath: Path | None = None
         try:
             temp_filepath = self._error_handler.create_unique_temp_file(city_name, category_name)
         except (OSError, RuntimeError) as e:
             self.log(f"Не удалось создать временный файл: {e}", "error")
             return False, f"Ошибка создания временного файла: {e}"
 
-        def do_parse() -> Tuple[bool, str]:
+        def do_parse() -> tuple[bool, str]:
             return self._parse_single_url_impl(
                 url, category_name, city_name, temp_filepath, filepath, progress_callback
             )
@@ -541,8 +547,8 @@ class ParallelCoordinator:
     def run(
         self,
         output_file: str,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-        merge_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+        merge_callback: Callable[[str], None] | None = None,
     ) -> bool:
         """Запускает параллельный парсинг всех городов и категорий."""
         global _active_coordinator
@@ -733,9 +739,9 @@ def _cleanup_all_temp_files() -> None:
 
 __all__ = [
     "ParallelCoordinator",
+    "_cleanup_all_temp_files",
+    "_register_temp_file",
     "_temp_files_lock",
     "_temp_files_registry",
-    "_register_temp_file",
     "_unregister_temp_file",
-    "_cleanup_all_temp_files",
 ]

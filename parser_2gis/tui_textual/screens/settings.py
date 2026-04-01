@@ -1,6 +1,4 @@
-"""
-Экраны настроек для TUI на Textual.
-"""
+"""Экраны настроек для TUI на Textual."""
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -77,6 +75,7 @@ class BrowserSettingsScreen(Screen):
 
         Returns:
             ComposeResult: Результат композиции виджетов.
+
         """
         with Container(id="browser-settings-container"):
             yield Static("🌐 Настройки браузера", classes="header")
@@ -114,6 +113,7 @@ class BrowserSettingsScreen(Screen):
 
         Args:
             event: Событие нажатия кнопки.
+
         """
         button_id = event.button.id
 
@@ -218,6 +218,7 @@ class ParserSettingsScreen(Screen):
 
         Returns:
             ComposeResult: Результат композиции виджетов.
+
         """
         with Container(id="parser-settings-container"):
             yield Static("⚙️ Настройки парсера", classes="header")
@@ -255,6 +256,7 @@ class ParserSettingsScreen(Screen):
 
         Args:
             event: Событие нажатия кнопки.
+
         """
         button_id = event.button.id
 
@@ -365,6 +367,7 @@ class OutputSettingsScreen(Screen):
 
         Returns:
             ComposeResult: Результат композиции виджетов.
+
         """
         with Container(id="output-settings-container"):
             yield Static("📤 Настройки вывода", classes="header")
@@ -398,6 +401,7 @@ class OutputSettingsScreen(Screen):
 
         Args:
             event: Событие нажатия кнопки.
+
         """
         button_id = event.button.id
 

@@ -1,5 +1,4 @@
-"""
-Модуль работы с базой данных.
+"""Модуль работы с базой данных.
 
 Предоставляет инфраструктуру для работы с SQLite:
 - Обработка ошибок БД
@@ -16,9 +15,9 @@ from .error_handler import (
 )
 
 __all__ = [
+    "DBError",
+    "DBErrorTranslator",
     "DatabaseError",
     "DatabaseErrorTranslator",
     "handle_db_errors",
-    "DBError",
-    "DBErrorTranslator",
 ]

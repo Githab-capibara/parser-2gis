@@ -25,10 +25,11 @@ class AbstractRunner(ABC):
         output_path: Путь к выходному файлу.
         format: Формат вывода (csv, xlsx, json).
         config: Конфигурация парсера.
+
     """
 
     def __init__(
-        self, urls: list[str], output_path: str, format: str, config: "Configuration"
+        self, urls: list[str], output_path: str, format: str, config: Configuration
     ) -> None:
         self._urls = urls
         self._output_path = output_path

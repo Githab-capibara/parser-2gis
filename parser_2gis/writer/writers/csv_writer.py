@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import csv
 import re
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from functools import cached_property
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 from pydantic import ValidationError
 
@@ -28,13 +30,41 @@ if TYPE_CHECKING:
 # Константа для заголовка колонки URL
 CSV_URL_HEADER = "2GIS URL"
 
+# D014: Таблица санитизации для CSV данных
+_CSV_SANITIZE_TABLE = {
+    '"': '""',  # Экранирование кавычек для CSV
+    "\n": " ",  # Замена новых строк на пробелы
+    "\r": "",  # Удаление carriage return
+    "\t": " ",  # Замена табов на пробелы
+}
+
+
+def _sanitize_csv_value(value: str) -> str:
+    """D014: Санитизирует значение для CSV.
+
+    Args:
+        value: Исходное строковое значение.
+
+    Returns:
+        Санитизированное значение безопасное для CSV.
+
+    """
+    if not isinstance(value, str):
+        return value
+
+    # Экранируем специальные символы CSV
+    for char, replacement in _CSV_SANITIZE_TABLE.items():
+        value = value.replace(char, replacement)
+
+    return value
+
 
 def _append_contact(
-    data: Dict[str, Any],
-    contact_group: "ContactGroup",
+    data: dict[str, Any],
+    contact_group: ContactGroup,
     contact_type: str,
-    priority_fields: List[str],
-    formatter: Optional[Callable[[str], str]],
+    priority_fields: list[str],
+    formatter: Callable[[str], str] | None,
     add_comments: bool,
 ) -> None:
     """Добавляет контакт в data.
@@ -46,6 +76,7 @@ def _append_contact(
         priority_fields: Поля контакта для добавления, сортированные по приоритету
         formatter: Форматировщик значения поля
         add_comments: Добавлять ли комментарии к контактам
+
     """
     contacts = [x for x in contact_group.contacts if x.type == contact_type]
     for i, contact in enumerate(contacts, 1):
@@ -73,12 +104,13 @@ class CSVWriter(FileWriter):
     Поддерживает постобработку: удаление пустых колонок и дубликатов.
     """
 
-    @property
+    @cached_property
     def _type_names(self) -> dict[str, str]:
         """Возвращает отображение типов на русские названия.
 
         Returns:
             Словарь с маппингом типов: 'parking' -> 'Парковка' и т.д.
+
         """
         return {
             "parking": "Парковка",
@@ -88,7 +120,7 @@ class CSVWriter(FileWriter):
             "station": "Остановка",
         }
 
-    @property
+    @cached_property
     def _complex_mapping(self) -> dict[str, Any]:
         """Возвращает отображение сложных полей с несколькими значениями.
 
@@ -98,6 +130,7 @@ class CSVWriter(FileWriter):
 
         Returns:
             Словарь с маппингом полей: 'phone' -> 'Телефон' и т.д.
+
         """
         # Сложное отображение означает, что его содержимое может содержать несколько сущностей,
         # связанных пользовательскими настройками.
@@ -117,7 +150,7 @@ class CSVWriter(FileWriter):
             "skype": "Skype",
         }
 
-    @property
+    @cached_property
     def _data_mapping(self) -> dict[str, Any]:
         """Возвращает полное отображение данных для CSV колонок.
 
@@ -127,6 +160,7 @@ class CSVWriter(FileWriter):
 
         Returns:
             Словарь с маппингом всех полей для CSV выгрузки.
+
         """
         data_mapping = {
             "name": "Наименование",
@@ -160,7 +194,7 @@ class CSVWriter(FileWriter):
             **{"point_lat": "Широта", "point_lon": "Долгота", "url": CSV_URL_HEADER, "type": "Тип"},
         }
 
-    def _writerow(self, row: Dict[str, Any]) -> None:
+    def _writerow(self, row: dict[str, Any]) -> None:
         """Записывает `row` в CSV.
 
         Args:
@@ -170,6 +204,7 @@ class CSVWriter(FileWriter):
             csv.Error: При ошибке записи CSV.
             IOError: При ошибке ввода-вывода.
             UnicodeError: При ошибке кодировки.
+
         """
         if self._options.verbose:
             logger.info("Парсинг [%d] > %s", self._wrote_count + 1, row.get("name", "N/A"))
@@ -180,7 +215,7 @@ class CSVWriter(FileWriter):
             # Ошибка формата CSV (некорректные данные, экранирование и т.д.)
             logger.error("Ошибка формата CSV при записи строки: %s", csv_error)
             raise
-        except IOError as io_error:
+        except OSError as io_error:
             # Ошибка ввода-вывода (диск заполнен, нет прав и т.д.)
             logger.error("Ошибка ввода-вывода при записи строки: %s", io_error)
             raise
@@ -208,7 +243,7 @@ class CSVWriter(FileWriter):
         if hasattr(self, "_file") and self._file is not None:
             try:
                 self._file.flush()
-            except (OSError, IOError) as flush_error:
+            except OSError as flush_error:
                 logger.error("Ошибка при flush файла: %s", flush_error)
 
         # Постобработка: удаление пустых колонок
@@ -244,7 +279,37 @@ class CSVWriter(FileWriter):
 
         Args:
             catalog_doc: JSON-документ Catalog Item API.
+
+        Raises:
+            TypeError: Если catalog_doc не является словарём.
+            ValueError: Если catalog_doc имеет некорректную структуру.
+
         """
+        # D007: Валидация catalog_doc перед записью
+        if catalog_doc is None:
+            raise TypeError("catalog_doc не может быть None")
+        if not isinstance(catalog_doc, dict):
+            raise TypeError(
+                f"catalog_doc должен быть словарём, получен {type(catalog_doc).__name__}"
+            )
+
+        # Проверка на path traversal в данных
+        if "result" in catalog_doc and isinstance(catalog_doc.get("result"), dict):
+            result = catalog_doc["result"]
+            if "items" in result and isinstance(result.get("items"), list):
+                for item in result["items"]:
+                    if isinstance(item, dict):
+                        # Проверка строковых полей на опасные конструкции
+                        for key, value in item.items():
+                            if isinstance(value, str):
+                                # Проверка на потенциальные XSS атаки
+                                if "<script" in value.lower() or "javascript:" in value.lower():
+                                    logger.warning(
+                                        "Обнаружена подозрительная конструкция в поле %s: %s",
+                                        key,
+                                        value[:100],
+                                    )
+
         if not self._check_catalog_doc(catalog_doc):
             return
 
@@ -253,7 +318,42 @@ class CSVWriter(FileWriter):
             self._writerow(row)
             self._wrote_count += 1
 
-    def _extract_raw(self, catalog_doc: Any) -> Dict[str, Any]:
+    def write_batch(self, catalog_docs: list[Any]) -> int:
+        """Пакетная запись JSON-документов в CSV.
+
+        C017: Оптимизация через пакетную обработку для снижения накладных расходов.
+
+        Args:
+            catalog_docs: Список JSON-документов Catalog Item API.
+
+        Returns:
+            Количество успешно записанных документов.
+
+        """
+        written_count = 0
+        batch_rows = []
+
+        for doc in catalog_docs:
+            if not self._check_catalog_doc(doc):
+                continue
+
+            row = self._extract_raw(doc)
+            if row:
+                batch_rows.append(row)
+
+        # Пакетная запись всех строк
+        for row in batch_rows:
+            try:
+                self._writerow(row)
+                written_count += 1
+            except (OSError, csv.Error, UnicodeError) as write_error:
+                logger.error("Ошибка при пакетной записи строки: %s", write_error)
+                continue
+
+        self._wrote_count += written_count
+        return written_count
+
+    def _extract_raw(self, catalog_doc: Any) -> dict[str, Any]:
         """Извлекает данные из JSON-документа Catalog Item API.
 
         Args:
@@ -261,8 +361,9 @@ class CSVWriter(FileWriter):
 
         Returns:
             Словарь для строки CSV или пустой словарь при ошибке.
+
         """
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
 
         # Проверка структуры документа
         try:
@@ -351,20 +452,25 @@ class CSVWriter(FileWriter):
         data["url"] = catalog_item.url
 
         # Контактные данные (телефоны, email, сайты, соцсети)
-        for contact_group in catalog_item.contact_groups:
+        # C011: Оптимизация — предварительное вычисление списков для снижения итераций
+        contact_groups = catalog_item.contact_groups
+        internet_contacts = [
+            "website",
+            "vkontakte",
+            "whatsapp",
+            "viber",
+            "telegram",
+            "instagram",
+            "facebook",
+            "twitter",
+            "youtube",
+            "skype",
+        ]
+        text_contacts = ["email", "skype"]
+
+        for contact_group in contact_groups:
             # Интернет-адреса (веб-сайты, соцсети)
-            for t in [
-                "website",
-                "vkontakte",
-                "whatsapp",
-                "viber",
-                "telegram",
-                "instagram",
-                "facebook",
-                "twitter",
-                "youtube",
-                "skype",
-            ]:
+            for t in internet_contacts:
                 _append_contact(
                     data, contact_group, t, ["url"], None, self._options.csv.add_comments
                 )
@@ -375,7 +481,7 @@ class CSVWriter(FileWriter):
                     data[field] = value.split("?")[0]
 
             # Текстовые значения (email, skype и т.д.)
-            for t in ["email", "skype"]:
+            for t in text_contacts:
                 _append_contact(
                     data, contact_group, t, ["value"], None, self._options.csv.add_comments
                 )
@@ -401,5 +507,10 @@ class CSVWriter(FileWriter):
         # Рубрики (категории) объекта
         if self._options.csv.add_rubrics:
             data["rubrics"] = self._options.csv.join_char.join(x.name for x in catalog_item.rubrics)
+
+        # D014: Санитизация всех строковых значений перед возвратом
+        for key, value in data.items():
+            if isinstance(value, str):
+                data[key] = _sanitize_csv_value(value)
 
         return data

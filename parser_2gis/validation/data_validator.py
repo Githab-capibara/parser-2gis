@@ -1,5 +1,4 @@
-"""
-Модуль валидации данных.
+"""Модуль валидации данных.
 
 Содержит функции для валидации числовых значений, строк, списков,
 email адресов и номеров телефонов.
@@ -18,7 +17,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Optional
 
 # =============================================================================
 # РЕЗУЛЬТАТ ВАЛИДАЦИИ
@@ -33,11 +31,12 @@ class ValidationResult:
         is_valid: Флаг успешности валидации.
         value: Валидированное значение (или None при ошибке).
         error: Сообщение об ошибке (или None при успехе).
+
     """
 
     is_valid: bool
-    value: Optional[str] = None
-    error: Optional[str] = None
+    value: str | None = None
+    error: str | None = None
 
 
 # =============================================================================
@@ -65,6 +64,7 @@ def validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str)
         5
         >>> validate_positive_int(0, 1, 100, "--parser.max-retries")
         ValueError: --parser.max-retries должен быть не менее 1 (получено 0)
+
     """
     if value < min_val:
         raise ValueError(f"{arg_name} должен быть не менее {min_val} (получено {value})")
@@ -91,6 +91,7 @@ def validate_positive_float(value: float, min_val: float, max_val: float, arg_na
     Example:
         >>> validate_positive_float(1.5, 0.0, 10.0, "--chrome.startup-delay")
         1.5
+
     """
     if value < min_val:
         raise ValueError(f"{arg_name} должен быть не менее {min_val} (получено {value})")
@@ -122,6 +123,7 @@ def validate_non_empty_string(value: str, field_name: str) -> str:
         'Москва'
         >>> validate_non_empty_string("", "city_name")
         ValueError: city_name не может быть пустым
+
     """
     if not value or not value.strip():
         raise ValueError(f"{field_name} не может быть пустым")
@@ -146,6 +148,7 @@ def validate_string_length(value: str, min_length: int, max_length: int, field_n
     Example:
         >>> validate_string_length("Москва", 2, 50, "city_name")
         'Москва'
+
     """
     if len(value) < min_length:
         raise ValueError(f"{field_name} должен быть не менее {min_length} символов")
@@ -177,6 +180,7 @@ def validate_non_empty_list(value: list, field_name: str) -> list:
         [1, 2, 3]
         >>> validate_non_empty_list([], "items")
         ValueError: items не может быть пустым
+
     """
     if not value:
         raise ValueError(f"{field_name} не может быть пустым")
@@ -201,6 +205,7 @@ def validate_list_length(value: list, min_length: int, max_length: int, field_na
     Example:
         >>> validate_list_length([1, 2, 3], 1, 10, "items")
         [1, 2, 3]
+
     """
     if len(value) < min_length:
         raise ValueError(f"{field_name} должен содержать не менее {min_length} элементов")
@@ -238,6 +243,7 @@ def validate_email(email: str) -> ValidationResult:
         >>> result = validate_email("test@пример.рф")
         >>> print(result.is_valid)
         True
+
     """
     if not email:
         return ValidationResult(is_valid=False, error="Email не может быть пустым")
@@ -282,6 +288,7 @@ def validate_phone(phone: str) -> ValidationResult:
         >>> result = validate_phone("+7 (495) 123-45-67")
         >>> print(result.is_valid)
         True
+
     """
     if not phone:
         return ValidationResult(is_valid=False, error="Телефон не может быть пустым")
@@ -312,9 +319,37 @@ def validate_phone(phone: str) -> ValidationResult:
 # ВАЛИДАЦИЯ КОНФИГУРАЦИИ ПАРАЛЛЕЛЬНОГО ПАРСИНГА
 # =============================================================================
 
+# C003: Кэш для валидации конфигурации городов на основе JSON хеша
+_CITIES_CONFIG_CACHE: dict[str, list] = {}
+_CATEGORIES_CONFIG_CACHE: dict[str, list] = {}
+_CACHE_MAX_SIZE = 256  # LRU eviction при 256 записях
+
+
+def _compute_config_hash(config: list) -> str:
+    """Вычисляет SHA256 хеш конфигурации для кэширования.
+
+    C003: Хеширование для кэширования результатов валидации.
+    """
+    import hashlib
+    import json
+
+    config_json = json.dumps(config, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(config_json.encode("utf-8")).hexdigest()
+
+
+def _evict_cache_if_needed(cache: dict[str, list], max_size: int = _CACHE_MAX_SIZE) -> None:
+    """LRU eviction для кэша конфигураций."""
+    if len(cache) >= max_size:
+        # Удаляем первые 10% записей (LRU)
+        keys_to_remove = list(cache.keys())[: max_size // 10]
+        for key in keys_to_remove:
+            del cache[key]
+
 
 def validate_cities_config(cities: list, field_name: str = "cities") -> list:
     """Валидирует конфигурацию городов для параллельного парсинга.
+
+    C003: Добавлено кэширование результатов валидации на основе JSON хеша.
 
     Args:
         cities: Список городов для валидации.
@@ -330,7 +365,13 @@ def validate_cities_config(cities: list, field_name: str = "cities") -> list:
         >>> cities = [{"name": "Москва", "code": "msk", "domain": "moscow"}]
         >>> validate_cities_config(cities)
         [{'name': 'Москва', 'code': 'msk', 'domain': 'moscow'}]
+
     """
+    # C003: Проверка кэша перед валидацией
+    config_hash = _compute_config_hash(cities)
+    if config_hash in _CITIES_CONFIG_CACHE:
+        return _CITIES_CONFIG_CACHE[config_hash]
+
     if not cities:
         raise ValueError(f"{field_name} не может быть пустым")
 
@@ -345,11 +386,16 @@ def validate_cities_config(cities: list, field_name: str = "cities") -> list:
         if not isinstance(city.get("name"), str) or not city.get("name"):
             raise ValueError(f"{field_name}[{idx}]: 'name' должен быть непустой строкой")
 
+    # C003: Сохраняем в кэш с LRU eviction
+    _evict_cache_if_needed(_CITIES_CONFIG_CACHE)
+    _CITIES_CONFIG_CACHE[config_hash] = cities
     return cities
 
 
 def validate_categories_config(categories: list, field_name: str = "categories") -> list:
     """Валидирует конфигурацию категорий для параллельного парсинга.
+
+    C003: Добавлено кэширование результатов валидации на основе JSON хеша.
 
     Args:
         categories: Список категорий для валидации.
@@ -365,7 +411,13 @@ def validate_categories_config(categories: list, field_name: str = "categories")
         >>> categories = [{"name": "Кафе", "query": "Кафе"}]
         >>> validate_categories_config(categories)
         [{'name': 'Кафе', 'query': 'Кафе'}]
+
     """
+    # C003: Проверка кэша перед валидацией
+    config_hash = _compute_config_hash(categories)
+    if config_hash in _CATEGORIES_CONFIG_CACHE:
+        return _CATEGORIES_CONFIG_CACHE[config_hash]
+
     if not categories:
         raise ValueError(f"{field_name} не может быть пустым")
 
@@ -380,6 +432,9 @@ def validate_categories_config(categories: list, field_name: str = "categories")
         if not isinstance(category.get("name"), str) or not category.get("name"):
             raise ValueError(f"{field_name}[{idx}]: 'name' должен быть непустой строкой")
 
+    # C003: Сохраняем в кэш с LRU eviction
+    _evict_cache_if_needed(_CATEGORIES_CONFIG_CACHE)
+    _CATEGORIES_CONFIG_CACHE[config_hash] = categories
     return categories
 
 
@@ -410,6 +465,7 @@ def validate_parallel_config(
     Example:
         >>> validate_parallel_config(5, 300)
         {'max_workers': 5, 'timeout_per_url': 300}
+
     """
     if max_workers < min_workers:
         raise ValueError(f"max_workers должен быть не менее {min_workers} (получено {max_workers})")
@@ -431,15 +487,15 @@ def validate_parallel_config(
 
 __all__ = [
     "ValidationResult",
-    "validate_positive_int",
-    "validate_positive_float",
-    "validate_non_empty_string",
-    "validate_string_length",
-    "validate_non_empty_list",
-    "validate_list_length",
-    "validate_email",
-    "validate_phone",
-    "validate_cities_config",
     "validate_categories_config",
+    "validate_cities_config",
+    "validate_email",
+    "validate_list_length",
+    "validate_non_empty_list",
+    "validate_non_empty_string",
     "validate_parallel_config",
+    "validate_phone",
+    "validate_positive_float",
+    "validate_positive_int",
+    "validate_string_length",
 ]

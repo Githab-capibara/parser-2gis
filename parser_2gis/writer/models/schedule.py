@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -36,7 +35,7 @@ class ScheduleDay(BaseModel):
     """
 
     # Часы работы
-    working_hours: List[WorkingHour]
+    working_hours: list[WorkingHour]
 
 
 class Schedule(BaseModel):
@@ -58,42 +57,42 @@ class Schedule(BaseModel):
     """
 
     # Понедельник
-    Mon: Optional[ScheduleDay] = None
+    Mon: ScheduleDay | None = None
 
     # Вторник
-    Tue: Optional[ScheduleDay] = None
+    Tue: ScheduleDay | None = None
 
     # Среда
-    Wed: Optional[ScheduleDay] = None
+    Wed: ScheduleDay | None = None
 
     # Четверг
-    Thu: Optional[ScheduleDay] = None
+    Thu: ScheduleDay | None = None
 
     # Пятница
-    Fri: Optional[ScheduleDay] = None
+    Fri: ScheduleDay | None = None
 
     # Суббота
-    Sat: Optional[ScheduleDay] = None
+    Sat: ScheduleDay | None = None
 
     # Воскресенье
-    Sun: Optional[ScheduleDay] = None
+    Sun: ScheduleDay | None = None
 
     # Признак того, что организация работает круглосуточно 7 дней в неделю.
     # Если поле отсутствует, то организация не считается работающей круглосуточно.
-    is_24x7: Optional[bool] = None
+    is_24x7: bool | None = None
 
     # Локализованное описание возможных изменений во времени работы.
     # Применяется для праздников, временных ограничений и т.д.
-    description: Optional[str] = None
+    description: str | None = None
 
     # Комментарий (например "Кругосуточно в праздничные дни")
-    comment: Optional[str] = None
+    comment: str | None = None
 
     # Дата начала изменений в расписании работы. Формат: "YYYY-MM-DD"
-    date_from: Optional[str] = None
+    date_from: str | None = None
 
     # Дата конца изменений в расписании работы. Формат: "YYYY-MM-DD"
-    date_to: Optional[str] = None
+    date_to: str | None = None
 
     def to_str(self, join_char: str, add_comment: bool = False) -> str:
         """Расписание как строка.
@@ -104,6 +103,7 @@ class Schedule(BaseModel):
 
         Returns:
             Расписание в виде строки.
+
         """
         # Явно указываем имена дней для совместимости с Pydantic v1 и v2
         days_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]

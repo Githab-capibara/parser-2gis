@@ -1,5 +1,4 @@
-"""
-Пакет infrastructure для Parser2GIS.
+"""Пакет infrastructure для Parser2GIS.
 
 Предоставляет инфраструктурные абстракции:
 - Мониторинг ресурсов (psutil)

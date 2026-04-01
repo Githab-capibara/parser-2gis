@@ -21,8 +21,8 @@ from .main_processor import MainDataProcessor
 __all__ = [
     "FirmParser",
     "InBuildingParser",
-    "MainParser",
-    "MainPageParser",
     "MainDataExtractor",
     "MainDataProcessor",
+    "MainPageParser",
+    "MainParser",
 ]

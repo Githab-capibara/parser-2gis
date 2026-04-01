@@ -1,6 +1,4 @@
-"""
-Главное меню TUI Parser2GIS на Textual.
-"""
+"""Главное меню TUI Parser2GIS на Textual."""
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -97,6 +95,7 @@ class MainMenuScreen(Screen):
 
         Returns:
             ComposeResult: Результат композиции виджетов.
+
         """
         with Container(id="main-menu"):
             # Логотип
@@ -148,6 +147,7 @@ class MainMenuScreen(Screen):
 
         Args:
             event: Событие нажатия кнопки.
+
         """
         button_id = event.button.id
 

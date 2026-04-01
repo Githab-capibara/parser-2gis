@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from pydantic import BaseModel, Field
 
@@ -42,7 +42,7 @@ class DOMNode(BaseModel):
     name: str = Field(..., alias="nodeName")
     local_name: str = Field(..., alias="localName")
     value: str = Field(..., alias="nodeValue")
-    children: list["DOMNode"] = []
+    children: list[DOMNode] = []
     attributes: dict[str, str] = {}
 
     @staticmethod
@@ -57,6 +57,7 @@ class DOMNode(BaseModel):
 
         Raises:
             ValueError: Если список содержит нечётное количество элементов.
+
         """
         attributes = {}
         attributes_list_count = len(attributes_list)
@@ -78,6 +79,7 @@ class DOMNode(BaseModel):
 
             Returns:
                 Словарь атрибутов {name1: value1, name2: value2, ...}.
+
             """
             return cls._validate_attributes(attributes_list)
 
@@ -92,6 +94,7 @@ class DOMNode(BaseModel):
 
             Returns:
                 Словарь атрибутов {name1: value1, name2: value2, ...}.
+
             """
             return self._validate_attributes(attributes_list)
 
@@ -114,6 +117,7 @@ class DOMNode(BaseModel):
 
         Returns:
             Текстовое содержимое узла.
+
         """
         text_parts: list[str] = []
 

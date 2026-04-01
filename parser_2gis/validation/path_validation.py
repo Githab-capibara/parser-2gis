@@ -1,5 +1,4 @@
-"""
-Модуль консолидированной валидации путей.
+"""Модуль консолидированной валидации путей.
 
 Объединяет функции валидации путей для предотвращения дублирования:
 - validate_path_traversal: Проверка на path traversal атаки
@@ -16,7 +15,6 @@ from __future__ import annotations
 import logging
 import tempfile
 from pathlib import Path
-from typing import List, Optional
 
 from parser_2gis.constants import MAX_PATH_LENGTH
 
@@ -41,24 +39,25 @@ class PathSafetyValidator:
     """
 
     # Запрещённые символы в путях для предотвращения path traversal атак
-    _FORBIDDEN_CHARS: List[str] = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
+    _FORBIDDEN_CHARS: list[str] = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
 
     # Максимальная длина пути для предотвращения переполнения буфера
     _MAX_PATH_LENGTH: int = MAX_PATH_LENGTH
 
     # Разрешённые базовые директории для записи
-    _ALLOWED_BASE_DIRS: List[Path] = [
+    _ALLOWED_BASE_DIRS: list[Path] = [
         Path.cwd(),
         Path.home() / "parser-2gis",
         Path(tempfile.gettempdir()),
     ]
 
-    def __init__(self, allowed_base_dirs: Optional[List[Path]] = None) -> None:
+    def __init__(self, allowed_base_dirs: list[Path] | None = None) -> None:
         """Инициализирует валидатор путей.
 
         Args:
             allowed_base_dirs: Список разрешённых базовых директорий.
                               Если None, используются директории по умолчанию.
+
         """
         if allowed_base_dirs is not None:
             self._allowed_base_dirs = allowed_base_dirs
@@ -76,6 +75,7 @@ class PathSafetyValidator:
 
         Raises:
             PathTraversalError: При обнаружении path traversal атаки.
+
         """
         if not path:
             return True
@@ -111,6 +111,7 @@ class PathSafetyValidator:
             PathTraversalError: При обнаружении path traversal атаки.
             ValueError: При некорректном пути.
             OSError: При ошибке работы с файловой системой.
+
         """
         if not path:
             logger.warning("Получен пустой путь для валидации, параметр: %s", path_name)
@@ -157,6 +158,7 @@ class PathSafetyValidator:
             PathTraversalError: При обнаружении path traversal атаки.
             ValueError: При некорректном пути.
             OSError: При ошибке работы с файловой системой.
+
         """
         for path_name, path_value in paths.items():
             if path_value:
@@ -164,7 +166,7 @@ class PathSafetyValidator:
 
 
 # Singleton экземпляр для глобального использования
-_path_safety_validator: Optional[PathSafetyValidator] = None
+_path_safety_validator: PathSafetyValidator | None = None
 
 
 def get_path_safety_validator() -> PathSafetyValidator:
@@ -172,6 +174,7 @@ def get_path_safety_validator() -> PathSafetyValidator:
 
     Returns:
         Экземпляр PathSafetyValidator.
+
     """
     global _path_safety_validator
     if _path_safety_validator is None:
@@ -197,6 +200,7 @@ def validate_path_traversal(path: str) -> bool:
         >>> validate_path_traversal("/safe/path/file.txt")
         True
         >>> validate_path_traversal("../etc/passwd")  # Raises PathTraversalError
+
     """
     validator = get_path_safety_validator()
     return validator.validate_traversal(path)
@@ -218,6 +222,7 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
 
     Example:
         >>> validate_path_safety("/safe/output.csv", "output_path")
+
     """
     validator = get_path_safety_validator()
     validator.validate_safety(path, path_name)
@@ -229,11 +234,11 @@ PathValidator = PathSafetyValidator
 
 
 __all__ = [
-    "PathTraversalError",
     "PathSafetyValidator",
+    "PathTraversalError",
     "PathValidator",
     "get_path_safety_validator",
-    "validate_path_traversal",
-    "validate_path_safety",
     "validate_path",
+    "validate_path_safety",
+    "validate_path_traversal",
 ]

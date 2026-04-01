@@ -1,5 +1,4 @@
-"""
-Модуль утилит для генерации URL.
+"""Модуль утилит для генерации URL.
 
 Содержит функции для генерации URL для парсинга городов и категорий 2GIS.
 """
@@ -8,7 +7,7 @@ from __future__ import annotations
 
 import urllib.parse
 from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # =============================================================================
 # ФУНКЦИИ КОДИРОВАНИЯ
@@ -31,6 +30,7 @@ def url_query_encode(query: str) -> str:
 
     Returns:
         Закодированная строка для URL.
+
     """
     return _url_query_encode(query)
 
@@ -40,14 +40,22 @@ def clear_url_query_cache() -> None:
     _url_query_encode.cache_clear()
 
 
+def clear_category_url_cache() -> None:
+    """Очищает кэш сгенерированных URL категорий.
+
+    C002: Функция для управления кэшем URL категорий.
+    """
+    _generate_category_url_cached.cache_clear()
+
+
 # =============================================================================
 # ГЕНЕРАЦИЯ URL ДЛЯ КАТЕГОРИЙ
 # =============================================================================
 
 
 # Оптимизация: кэширование сгенерированных URL
-# H007: Размер кэша увеличен до 2048 для поддержки большего количества URL
-@lru_cache(maxsize=2048)
+# C002: Размер кэша увеличен до 4096 для поддержки большего количества URL
+@lru_cache(maxsize=4096)
 def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
     """Кэшированная версия генерации URL.
 
@@ -57,6 +65,7 @@ def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
 
     Returns:
         Сгенерированный URL.
+
     """
     city_code, city_domain = city_key
     category_query, rubric_code = category_key
@@ -72,7 +81,7 @@ def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
     return base_url + rest_url
 
 
-def generate_category_url(city: Dict[str, Any], category: Dict[str, Any]) -> str:
+def generate_category_url(city: dict[str, Any], category: dict[str, Any]) -> str:
     """Генерирует URL для парсинга категории в городе.
 
     Оптимизация:
@@ -94,6 +103,7 @@ def generate_category_url(city: Dict[str, Any], category: Dict[str, Any]) -> str
     Raises:
         ValueError: Если город или категория некорректны.
         TypeError: Если типы данных некорректны.
+
     """
     from parser_2gis.utils.validation_utils import _get_logger
 
@@ -154,8 +164,8 @@ def generate_category_url(city: Dict[str, Any], category: Dict[str, Any]) -> str
 
 
 def generate_city_urls(
-    cities: List[Dict[str, Any]], query: str, rubric: Optional[Dict[str, Any]] = None
-) -> List[str]:
+    cities: list[dict[str, Any]], query: str, rubric: dict[str, Any] | None = None
+) -> list[str]:
     """Генерирует URL для парсинга по списку городов.
 
     Оптимизация:
@@ -169,8 +179,9 @@ def generate_city_urls(
 
     Returns:
         Список URL для парсинга.
+
     """
-    urls: List[str] = []
+    urls: list[str] = []
     from parser_2gis.utils.validation_utils import _get_logger
 
     local_logger = _get_logger()
@@ -218,9 +229,10 @@ def generate_city_urls(
 # =============================================================================
 
 __all__ = [
-    "url_query_encode",
+    "_generate_category_url_cached",
+    "clear_category_url_cache",
     "clear_url_query_cache",
     "generate_category_url",
     "generate_city_urls",
-    "_generate_category_url_cached",
+    "url_query_encode",
 ]

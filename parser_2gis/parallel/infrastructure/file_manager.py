@@ -1,5 +1,4 @@
-"""
-Модуль управления файлами для параллельного парсинга.
+"""Модуль управления файлами для параллельного парсинга.
 
 Предоставляет класс FileManager для:
 - Атомарного создания временных файлов
@@ -15,7 +14,6 @@ import shutil
 import time
 import uuid
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 from parser_2gis.constants import MAX_LOCK_FILE_AGE, MAX_UNIQUE_NAME_ATTEMPTS
 from parser_2gis.logger.logger import logger
@@ -32,6 +30,7 @@ class FileManager:
 
     Args:
         output_dir: Директория для работы с файлами.
+
     """
 
     def __init__(self, output_dir: Path) -> None:
@@ -39,12 +38,13 @@ class FileManager:
 
         Args:
             output_dir: Директория для работы с файлами.
+
         """
         self.output_dir = output_dir
-        self._temp_files: List[Path] = []
+        self._temp_files: list[Path] = []
         logger.debug("Инициализирован FileManager для %s", output_dir)
 
-    def create_unique_temp_file(self, city_name: str, category_name: str) -> Tuple[Path, str]:
+    def create_unique_temp_file(self, city_name: str, category_name: str) -> tuple[Path, str]:
         """Создаёт уникальный временный файл атомарно.
 
         Args:
@@ -56,6 +56,7 @@ class FileManager:
 
         Raises:
             OSError: Если не удалось создать файл.
+
         """
         safe_city = city_name.replace(" ", "_").replace("/", "_")
         safe_category = category_name.replace(" ", "_").replace("/", "_")
@@ -65,7 +66,7 @@ class FileManager:
         temp_filepath = self.output_dir / temp_filename
 
         # Атомарное создание временного файла для предотвращения race condition
-        temp_fd: Optional[int] = None
+        temp_fd: int | None = None
         for attempt in range(MAX_UNIQUE_NAME_ATTEMPTS):
             try:
                 temp_fd = os.open(
@@ -128,6 +129,7 @@ class FileManager:
 
         Raises:
             OSError: Если не удалось переименовать.
+
         """
         try:
             os.replace(str(src_path), str(dst_path))
@@ -155,6 +157,7 @@ class FileManager:
 
         Returns:
             True если файл удалён, False иначе.
+
         """
         try:
             if file_path.exists():
@@ -172,6 +175,7 @@ class FileManager:
 
         Returns:
             Количество удалённых файлов.
+
         """
         deleted_count = 0
         for temp_file in self._temp_files[:]:  # Копия списка для безопасного удаления
@@ -183,7 +187,7 @@ class FileManager:
 
     def acquire_lock(
         self, lock_file_path: Path, timeout: int = MAX_LOCK_FILE_AGE
-    ) -> Tuple[Optional[int], bool]:
+    ) -> tuple[int | None, bool]:
         """Получает блокировку файла.
 
         Args:
@@ -192,10 +196,11 @@ class FileManager:
 
         Returns:
             Кортеж (file_descriptor, lock_acquired).
+
         """
         import fcntl
 
-        lock_fd: Optional[int] = None
+        lock_fd: int | None = None
         lock_acquired = False
 
         try:
@@ -205,7 +210,7 @@ class FileManager:
                     lock_age = time.time() - lock_file_path.stat().st_mtime
                     if lock_age > MAX_LOCK_FILE_AGE:
                         try:
-                            with open(lock_file_path, "r", encoding="utf-8") as f:
+                            with open(lock_file_path, encoding="utf-8") as f:
                                 lock_pid = int(f.read().strip())
                             os.kill(lock_pid, 0)
                             logger.warning(
@@ -218,7 +223,7 @@ class FileManager:
                                 "Удаление осиротевшего lock файла (возраст: %.0f сек)", lock_age
                             )
                             lock_file_path.unlink()
-                        except (IOError, OSError) as e:
+                        except OSError as e:
                             logger.debug("Ошибка проверки lock файла: %s", e)
                     else:
                         logger.warning(
@@ -243,7 +248,7 @@ class FileManager:
                     lock_acquired = True
                     logger.debug("Lock file получен успешно")
                     return lock_fd, lock_acquired
-                except (IOError, OSError, FileExistsError):
+                except (OSError, FileExistsError):
                     if lock_fd is not None:
                         try:
                             os.close(lock_fd)
@@ -268,12 +273,13 @@ class FileManager:
 
         return lock_fd, lock_acquired
 
-    def release_lock(self, lock_fd: Optional[int], lock_file_path: Path) -> None:
+    def release_lock(self, lock_fd: int | None, lock_file_path: Path) -> None:
         """Освобождает и удаляет lock файл.
 
         Args:
             lock_fd: Дескриптор lock файла.
             lock_file_path: Путь к lock файлу.
+
         """
         import fcntl
 
@@ -287,7 +293,7 @@ class FileManager:
         except (OSError, RuntimeError, TypeError, ValueError) as lock_error:
             logger.debug("Ошибка при удалении lock файла: %s", lock_error)
 
-    def get_csv_files(self, exclude_path: Optional[Path] = None) -> List[Path]:
+    def get_csv_files(self, exclude_path: Path | None = None) -> list[Path]:
         """Получает список CSV файлов.
 
         Args:
@@ -295,6 +301,7 @@ class FileManager:
 
         Returns:
             Отсортированный список CSV файлов.
+
         """
         csv_files = list(self.output_dir.glob("*.csv"))
 
@@ -306,6 +313,6 @@ class FileManager:
         return csv_files
 
     @property
-    def temp_files(self) -> List[Path]:
+    def temp_files(self) -> list[Path]:
         """Возвращает список временных файлов."""
         return self._temp_files.copy()

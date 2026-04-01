@@ -1,5 +1,4 @@
-"""
-Модуль для парсинга URL в параллельном режиме.
+"""Модуль для парсинга URL в параллельном режиме.
 
 Этот модуль предоставляет класс ParallelUrlParser для генерации и парсинга URL
 с использованием нескольких потоков.
@@ -19,7 +18,8 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from parser_2gis.constants import DEFAULT_TIMEOUT, MAX_UNIQUE_NAME_ATTEMPTS
 from parser_2gis.infrastructure import MemoryMonitor
@@ -45,14 +45,15 @@ class ParallelUrlParser:
         output_dir: Папка для сохранения результатов.
         config: Конфигурация парсера.
         timeout_per_url: Таймаут на один URL в секундах.
+
     """
 
     def __init__(
         self,
-        cities: List[dict],
-        categories: List[dict],
+        cities: list[dict],
+        categories: list[dict],
         output_dir: Path,
-        config: "Configuration",
+        config: Configuration,
         timeout_per_url: int = DEFAULT_TIMEOUT,
     ) -> None:
         """Инициализирует парсер URL.
@@ -63,6 +64,7 @@ class ParallelUrlParser:
             output_dir: Папка для сохранения результатов.
             config: Конфигурация парсера.
             timeout_per_url: Таймаут на один URL в секундах.
+
         """
         self.cities = cities
         self.categories = categories
@@ -71,7 +73,7 @@ class ParallelUrlParser:
         self.timeout_per_url = timeout_per_url
 
         # Статистика (все операции защищены _lock)
-        self._stats: Dict[str, int] = {"total": 0, "success": 0, "failed": 0, "skipped": 0}
+        self._stats: dict[str, int] = {"total": 0, "success": 0, "failed": 0, "skipped": 0}
         self._lock = threading.Lock()
 
         # Флаг отмены
@@ -83,13 +85,14 @@ class ParallelUrlParser:
             log_func = getattr(logger, level)
             log_func(message)
 
-    def generate_all_urls(self) -> List[Tuple[str, str, str]]:
+    def generate_all_urls(self) -> list[tuple[str, str, str]]:
         """Генерирует все URL для парсинга.
 
         Returns:
             Список кортежей (url, category_name, city_name).
+
         """
-        all_urls: List[Tuple[str, str, str]] = []
+        all_urls: list[tuple[str, str, str]] = []
 
         for city in self.cities:
             for category in self.categories:
@@ -115,8 +118,8 @@ class ParallelUrlParser:
         category_name: str,
         city_name: str,
         browser_semaphore: threading.BoundedSemaphore,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-    ) -> Tuple[bool, str]:
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> tuple[bool, str]:
         """Парсит один URL и сохраняет результат в отдельный файл.
 
         Использует временный файл для защиты от race condition:
@@ -133,6 +136,7 @@ class ParallelUrlParser:
 
         Returns:
             Кортеж (успех, сообщение).
+
         """
         # Проверка доступной памяти через инфраструктурный модуль
         memory_monitor = MemoryMonitor()
@@ -158,7 +162,7 @@ class ParallelUrlParser:
         temp_filepath = self.output_dir / temp_filename
 
         # Атомарное создание временного файла для предотвращения race condition
-        temp_fd: Optional[int] = None
+        temp_fd: int | None = None
         for attempt in range(MAX_UNIQUE_NAME_ATTEMPTS):
             try:
                 temp_fd = os.open(
@@ -205,11 +209,12 @@ class ParallelUrlParser:
                     )
                     raise
 
-        def do_parse() -> Tuple[bool, str]:
+        def do_parse() -> tuple[bool, str]:
             """Выполняет парсинг внутри отдельного потока.
 
             Returns:
                 Кортеж (успех, сообщение).
+
             """
             import random
             import time
@@ -242,7 +247,7 @@ class ParallelUrlParser:
 
                 max_retries = 10
                 retry_delay = 5.0
-                parser: Optional["BaseParser"] = None
+                parser: BaseParser | None = None
 
                 for attempt in range(max_retries):
                     try:
@@ -372,6 +377,7 @@ class ParallelUrlParser:
 
         Args:
             temp_filepath: Путь к временному файлу.
+
         """
         try:
             if temp_filepath.exists():
@@ -392,6 +398,7 @@ class ParallelUrlParser:
             temp_filepath: Путь к временному файлу.
             filepath: Путь к целевому файлу.
             temp_filename: Имя временного файла.
+
         """
         import shutil
 
@@ -418,7 +425,7 @@ class ParallelUrlParser:
             self.log(f"Временный файл переименован: {temp_filename} → {filepath.name}", "debug")
 
     @property
-    def stats(self) -> Dict[str, int]:
+    def stats(self) -> dict[str, int]:
         """Возвращает статистику парсинга."""
         with self._lock:
             return self._stats.copy()

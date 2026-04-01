@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Dict, Optional
+from typing import IO, TYPE_CHECKING, Any
 
 from parser_2gis.logger import logger
 
@@ -30,8 +30,7 @@ class FileWriter(ABC):
         self._options = writer_options
 
     def _validate_file_path(self, file_path: str) -> str:
-        """
-        Валидирует путь к файлу на предмет Path traversal атак.
+        """Валидирует путь к файлу на предмет Path traversal атак.
 
         Args:
             file_path: Путь к файлу для валидации.
@@ -46,6 +45,7 @@ class FileWriter(ABC):
             - Использует os.path.basename() для извлечения имени файла
             - Проверяет на наличие '../' и '..\\' конструкций
             - Ограничивает путь только output директорией
+
         """
         if not file_path:
             raise ValueError("Путь к файлу не может быть пустым")
@@ -83,7 +83,7 @@ class FileWriter(ABC):
         """Записывает JSON-документ Catalog Item API, полученный парсером."""
 
     def _open_file(
-        self, file_path: str, mode: str = "r", newline: Optional[str] = None, **kwargs: Any
+        self, file_path: str, mode: str = "r", newline: str | None = None, **kwargs: Any
     ) -> IO[Any]:
         """Открывает файл с указанными параметрами.
 
@@ -95,8 +95,9 @@ class FileWriter(ABC):
 
         Returns:
             Файловый объект.
+
         """
-        open_kwargs: Dict[str, Any] = {"encoding": self._options.encoding, "errors": "replace"}
+        open_kwargs: dict[str, Any] = {"encoding": self._options.encoding, "errors": "replace"}
         if newline is not None:
             open_kwargs["newline"] = newline
         open_kwargs.update(kwargs)
@@ -112,6 +113,7 @@ class FileWriter(ABC):
         Returns:
             `True`, если документ прошёл все проверки.
             `False`, если в документе найдены ошибки.
+
         """
         try:
             if not isinstance(catalog_doc, dict):

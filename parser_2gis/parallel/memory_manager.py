@@ -1,5 +1,4 @@
-"""
-Модуль управления памятью для параллельного парсинга.
+"""Модуль управления памятью для параллельного парсинга.
 
 Этот модуль предоставляет класс MemoryManager для:
 - Мониторинга использования памяти
@@ -12,7 +11,7 @@ from __future__ import annotations
 
 import gc
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger.logger import logger
@@ -29,6 +28,7 @@ class MemoryManager:
 
     Attributes:
         memory_threshold_mb: Порог нехватки памяти в MB (по умолчанию 100).
+
     """
 
     def __init__(self, memory_threshold_mb: int = 100) -> None:
@@ -36,6 +36,7 @@ class MemoryManager:
 
         Args:
             memory_threshold_mb: Порог нехватки памяти в мегабайтах.
+
         """
         self._memory_threshold_mb = memory_threshold_mb
         self._memory_monitor = MemoryMonitor()
@@ -53,6 +54,7 @@ class MemoryManager:
 
         Returns:
             Доступный объем памяти в байтах.
+
         """
         current_time = time.time()
         # Возвращаем кэшированное значение если прошло меньше TTL
@@ -69,6 +71,7 @@ class MemoryManager:
 
         Returns:
             Доступный объем памяти в мегабайтах.
+
         """
         return self.get_available_memory() / (1024 * 1024)
 
@@ -77,6 +80,7 @@ class MemoryManager:
 
         Returns:
             True если доступная память ниже порога, False иначе.
+
         """
         available_mb = self.get_available_memory_mb()
         return available_mb < self._memory_threshold_mb
@@ -89,6 +93,7 @@ class MemoryManager:
 
         Returns:
             True если память низкая, False иначе.
+
         """
         if self.is_memory_low():
             available_mb = self.get_available_memory_mb()
@@ -107,6 +112,7 @@ class MemoryManager:
 
         Returns:
             Количество собранных объектов.
+
         """
         logger.debug("Выполнение принудительного сбора мусора (GC)")
         collected = gc.collect()
@@ -115,7 +121,7 @@ class MemoryManager:
         return collected
 
     def handle_memory_error(
-        self, error: MemoryError, context: str = "", cache_object: Optional[Any] = None
+        self, error: MemoryError, context: str = "", cache_object: Any | None = None
     ) -> None:
         """Обрабатывает MemoryError.
 
@@ -123,6 +129,7 @@ class MemoryManager:
             error: Исключение MemoryError.
             context: Контекст ошибки (для логирования).
             cache_object: Объект кэша для очистки (опционально).
+
         """
         logger.error("MemoryError в контексте '%s': %s", context, error)
 
@@ -142,7 +149,7 @@ class MemoryManager:
         available_mb = self.get_available_memory_mb()
         logger.info("Состояние памяти после обработки MemoryError: %.1f MB доступно", available_mb)
 
-    def get_memory_stats(self) -> Dict[str, Any]:
+    def get_memory_stats(self) -> dict[str, Any]:
         """Получает статистику использования памяти.
 
         Returns:
@@ -151,6 +158,7 @@ class MemoryManager:
             - is_low: Флаг низкой памяти
             - gc_count: Количество выполненных GC
             - memory_warnings: Количество предупреждений о памяти
+
         """
         return {
             "available_mb": self.get_available_memory_mb(),
@@ -167,7 +175,7 @@ class MemoryManager:
 
 
 # Глобальный экземпляр для удобного доступа
-_memory_manager: Optional[MemoryManager] = None
+_memory_manager: MemoryManager | None = None
 
 
 def get_memory_manager() -> MemoryManager:
@@ -175,6 +183,7 @@ def get_memory_manager() -> MemoryManager:
 
     Returns:
         Экземпляр MemoryManager.
+
     """
     global _memory_manager
     if _memory_manager is None:
@@ -190,6 +199,7 @@ def check_memory_safety(context: str = "") -> bool:
 
     Returns:
         True если память в норме, False если низкая.
+
     """
     manager = get_memory_manager()
 

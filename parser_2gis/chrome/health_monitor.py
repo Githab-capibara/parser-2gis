@@ -1,5 +1,4 @@
-"""
-Модуль для мониторинга здоровья браузера.
+"""Модуль для мониторинга здоровья браузера.
 
 Этот модуль предоставляет логику для проверки состояния браузера,
 автоматического перезапуска при критических ошибках и
@@ -10,7 +9,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import TYPE_CHECKING, Optional, TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 import psutil
 
@@ -28,12 +27,11 @@ class HealthStatusDict(TypedDict, total=False):
     cpu_percent: float
     time_since_activity: float
     critical_errors: int
-    recommendation: Optional[str]
+    recommendation: str | None
 
 
 class BrowserHealthMonitor:
-    """
-    Монитор здоровья браузера.
+    """Монитор здоровья браузера.
 
     Отслеживает состояние браузера, использование памяти и CPU,
     автоматически перезапускает браузер при критических ошибках.
@@ -44,21 +42,22 @@ class BrowserHealthMonitor:
     CPU_THRESHOLD_PERCENT = 95  # 95%
     STALL_THRESHOLD_SEC = 120  # 2 минуты без ответа
 
-    def __init__(self, browser: "ChromeBrowser", enable_auto_restart: bool = True) -> None:
-        """
-        Инициализирует монитор.
+    def __init__(self, browser: ChromeBrowser, enable_auto_restart: bool = True) -> None:
+        """Инициализирует монитор.
 
         Args:
             browser: Экземпляр браузера ChromeBrowser.
             enable_auto_restart: Включить автоматический перезапуск.
+
         """
         self._browser = browser
         self._enable_auto_restart = enable_auto_restart
         self._last_activity_time = time.time()
         self._critical_errors_count = 0
         # ИСПОЛЬЗУЕМ RLock (Reentrant Lock) для предотвращения deadlock
-        # RLock позволяет одному и тому же потоку захватывать блокировку несколько раз
-        # Это важно для методов, которые могут вызываться рекурсивно или из других методов с блокировкой
+        # RLock позволяет одному и тому же потоку захватывать
+        # блокировку несколько раз. Это важно для методов, которые
+        # могут вызываться рекурсивно или из других методов с блокировкой
         self._lock = threading.RLock()
         self._monitoring_active = False
 
@@ -72,11 +71,11 @@ class BrowserHealthMonitor:
             self._last_activity_time = time.time()
 
     def check_health(self) -> HealthStatusDict:
-        """
-        Проверяет здоровье браузера.
+        """Проверяет здоровье браузера.
 
         Returns:
             Словарь с состоянием здоровья.
+
         """
         health_status: HealthStatusDict = {
             "healthy": True,
@@ -126,7 +125,8 @@ class BrowserHealthMonitor:
 
                     if time_since_activity > self.STALL_THRESHOLD_SEC:
                         issues.append(
-                            f"Браузер завис: {time_since_activity:.1f} сек > {self.STALL_THRESHOLD_SEC} сек"
+                            "Браузер завис: %.1f сек > %d сек"
+                            % (time_since_activity, self.STALL_THRESHOLD_SEC)
                         )
                         health_status["healthy"] = False
 
@@ -165,11 +165,11 @@ class BrowserHealthMonitor:
         return health_status
 
     def should_restart(self) -> bool:
-        """
-        Определяет, нужно ли перезапустить браузер.
+        """Определяет, нужно ли перезапустить браузер.
 
         Returns:
             True если нужен перезапуск, False если нет.
+
         """
         if not self._enable_auto_restart:
             return False
@@ -197,11 +197,11 @@ class BrowserHealthMonitor:
         return False
 
     def restart_browser(self) -> bool:
-        """
-        Перезапускает браузер.
+        """Перезапускает браузер.
 
         Returns:
             True если перезапуск успешен, False если нет.
+
         """
         try:
             logger.info("Начало перезапуска браузера...")
@@ -226,11 +226,11 @@ class BrowserHealthMonitor:
             return False
 
     def get_critical_errors_count(self) -> int:
-        """
-        Возвращает количество критических ошибок.
+        """Возвращает количество критических ошибок.
 
         Returns:
             Количество критических ошибок.
+
         """
         with self._lock:
             return self._critical_errors_count
@@ -243,11 +243,11 @@ class BrowserHealthMonitor:
         logger.debug("BrowserHealthMonitor сброшен")
 
     def enable_auto_restart(self, enabled: bool) -> None:
-        """
-        Включает или отключает автоматический перезапуск.
+        """Включает или отключает автоматический перезапуск.
 
         Args:
             enabled: True для включения, False для отключения.
+
         """
         self._enable_auto_restart = enabled
         logger.info("Автоматический перезапуск: %s", "включен" if enabled else "отключен")

@@ -12,7 +12,7 @@ from __future__ import annotations
 import threading
 import time
 from collections import deque
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from .constants import DEFAULT_NETWORK_TIMEOUT
 
@@ -37,8 +37,7 @@ _max_requests_per_second = 10  # Максимум запросов в секун
 
 
 def _enforce_rate_limit() -> None:
-    """
-    HIGH 8: Принудительное применение rate limiting.
+    """HIGH 8: Принудительное применение rate limiting.
 
     Ограничивает количество запросов в секунду и минимальный интервал между запросами.
     Блокирует выполнение пока не будет разрешён следующий запрос.
@@ -76,8 +75,8 @@ def _enforce_rate_limit() -> None:
 
 
 def _safe_external_request(
-    method: str = "GET", url: str = "", timeout: Optional[int] = None, **kwargs
-) -> Optional[requests.Response]:
+    method: str = "GET", url: str = "", timeout: int | None = None, **kwargs
+) -> requests.Response | None:
     """Безопасный внешний запрос с rate limiting.
 
     HIGH 8: Принудительное применение rate limiting перед каждым запросом.
@@ -90,6 +89,7 @@ def _safe_external_request(
 
     Returns:
         requests.Response объект или None при ошибке.
+
     """
     if requests is None:
         raise ImportError("requests library is required for _safe_external_request")

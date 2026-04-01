@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Optional
 
 from parser_2gis.cli.formatter import ArgumentHelpFormatter, patch_argparse_translations
 from parser_2gis.cli.validator import ArgumentValidator
@@ -32,6 +31,7 @@ def _normalize_argv(argv: list[str]) -> list[str]:
 
     Raises:
         TypeError: Если argv не список/кортеж или содержит не строки.
+
     """
     if not isinstance(argv, (list, tuple)):
         raise TypeError(f"argv must be list or tuple, got {type(argv).__name__}")
@@ -61,6 +61,7 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     Примечание:
         Функция выделяет логику создания парсера из parse_arguments
         для уменьшения цикломатической сложности и улучшения читаемости.
+
     """
     patch_argparse_translations()
     arg_parser = argparse.ArgumentParser(
@@ -279,7 +280,7 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     return arg_parser
 
 
-def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespace, Configuration]:
+def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, Configuration]:
     """Парсит аргументы командной строки.
 
     Args:
@@ -298,6 +299,7 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
         3. ArgumentValidator.validate_numeric_arguments() - валидация чисел
         4. ArgumentValidator.validate_url_sources() - валидация URL
         5. ArgumentValidator.handle_configuration_validation() - конфигурация
+
     """
     if argv is None:
         argv = sys.argv[1:]
@@ -317,4 +319,4 @@ def parse_arguments(argv: Optional[list[str]] = None) -> tuple[argparse.Namespac
     return args, config
 
 
-__all__ = ["parse_arguments", "_normalize_argv", "_create_argument_parser"]
+__all__ = ["_create_argument_parser", "_normalize_argv", "parse_arguments"]

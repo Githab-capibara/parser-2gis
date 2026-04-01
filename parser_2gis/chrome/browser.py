@@ -1,5 +1,4 @@
-"""
-Модуль для управления браузером Chrome с временным профилем.
+"""Модуль для управления браузером Chrome с временным профилем.
 
 Предоставляет класс ChromeBrowser для запуска и управления браузером Chrome
 с временным профилем, который автоматически удаляется после закрытия.
@@ -29,7 +28,7 @@ import tempfile
 import time
 import weakref
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from parser_2gis.logger.logger import logger as app_logger
 
@@ -47,8 +46,7 @@ if TYPE_CHECKING:
 
 
 class BrowserPathResolver:
-    """
-    Класс для поиска и валидации пути к браузеру Chrome.
+    """Класс для поиска и валидации пути к браузеру Chrome.
 
     Отвечает за:
     - Поиск пути к браузеру (автоматически или заданный вручную)
@@ -61,8 +59,7 @@ class BrowserPathResolver:
     """
 
     def resolve_path(self, chrome_options: ChromeOptions) -> str:
-        """
-        Получает и валидирует путь к браузеру.
+        """Получает и валидирует путь к браузеру.
 
         Args:
             chrome_options: Опции Chrome для получения пути.
@@ -75,6 +72,7 @@ class BrowserPathResolver:
             ValueError: Если путь некорректен.
             FileNotFoundError: Если файл не существует.
             PermissionError: Если файл не исполняемый.
+
         """
         binary_path: str | None = None
 
@@ -116,8 +114,7 @@ class BrowserPathResolver:
         return binary_path
 
     def _validate_binary_path(self, binary_path: str) -> None:
-        """
-        Валидирует путь к исполняемому файлу браузера.
+        """Валидирует путь к исполняемому файлу браузера.
 
         Args:
             binary_path: Путь к браузеру для валидации.
@@ -126,6 +123,7 @@ class BrowserPathResolver:
             ValueError: Если путь не абсолютный или указывает на директорию.
             FileNotFoundError: Если файл не существует.
             PermissionError: Если файл не исполняемый (для Unix).
+
         """
         # Проверка на абсолютный путь
         if not os.path.isabs(binary_path):
@@ -154,8 +152,7 @@ class BrowserPathResolver:
 
 
 class ProfileManager:
-    """
-    Класс для управления временным профилем Chrome.
+    """Класс для управления временным профилем Chrome.
 
     Отвечает за:
     - Создание временной директории профиля
@@ -170,18 +167,18 @@ class ProfileManager:
 
     def __init__(self) -> None:
         """Инициализирует менеджер профиля."""
-        self._profile_tempdir: Optional[tempfile.TemporaryDirectory] = None
-        self._profile_path: Optional[str] = None
+        self._profile_tempdir: tempfile.TemporaryDirectory | None = None
+        self._profile_path: str | None = None
 
     def create_profile(self) -> tuple[tempfile.TemporaryDirectory, str]:
-        """
-        Создаёт временную директорию профиля.
+        """Создаёт временную директорию профиля.
 
         Returns:
             Кортеж (TemporaryDirectory, путь к профилю).
 
         Raises:
             OSError: Если не удалось создать директорию.
+
         """
         self._profile_tempdir = tempfile.TemporaryDirectory(prefix="chrome_profile_")
         self._profile_path = self._profile_tempdir.name
@@ -202,8 +199,7 @@ class ProfileManager:
         return self._profile_tempdir, self._profile_path
 
     def cleanup_profile(self) -> None:
-        """
-        Очищает временный профиль Chrome.
+        """Очищает временный профиль Chrome.
 
         Использует TemporaryDirectory.cleanup() с fallback на shutil.rmtree().
         P0-2: Добавлена проверка profile_path перед очисткой.
@@ -213,7 +209,7 @@ class ProfileManager:
             app_logger.debug("Профиль не был создан, очистка не требуется")
             return
 
-        profile_cleanup_error: Optional[Exception] = None
+        profile_cleanup_error: Exception | None = None
 
         try:
             if self._profile_tempdir is not None:
@@ -221,7 +217,7 @@ class ProfileManager:
                 app_logger.debug(
                     "Временный профиль Chrome удалён через TemporaryDirectory.cleanup()"
                 )
-        except (OSError, IOError) as profile_error:
+        except OSError as profile_error:
             app_logger.error(
                 "Ошибка ОС/IO при удалении профиля через TemporaryDirectory: %s",
                 profile_error,
@@ -241,7 +237,7 @@ class ProfileManager:
                 try:
                     shutil.rmtree(self._profile_path, ignore_errors=True)
                     app_logger.debug("Профиль удалён через fallback shutil.rmtree()")
-                except (OSError, IOError) as fallback_error:
+                except OSError as fallback_error:
                     app_logger.error(
                         "Ошибка ОС/IO при fallback очистке профиля: %s",
                         fallback_error,
@@ -255,12 +251,12 @@ class ProfileManager:
                     )
 
     @property
-    def profile_path(self) -> Optional[str]:
+    def profile_path(self) -> str | None:
         """Возвращает путь к профилю."""
         return self._profile_path
 
     @property
-    def profile_tempdir(self) -> Optional[tempfile.TemporaryDirectory]:
+    def profile_tempdir(self) -> tempfile.TemporaryDirectory | None:
         """Возвращает TemporaryDirectory профиля."""
         return self._profile_tempdir
 
@@ -271,8 +267,7 @@ class ProfileManager:
 
 
 class ProcessManager:
-    """
-    Класс для управления процессом Chrome.
+    """Класс для управления процессом Chrome.
 
     Отвечает за:
     - Запуск процесса Chrome
@@ -287,14 +282,13 @@ class ProcessManager:
 
     def __init__(self) -> None:
         """Инициализирует менеджер процесса."""
-        self._proc: Optional[subprocess.Popen] = None
+        self._proc: subprocess.Popen | None = None
         self._start_time: float = 0.0
 
     def launch_process(
         self, chrome_cmd: list[str], profile_path: str, chrome_options: ChromeOptions
     ) -> subprocess.Popen:
-        """
-        Запускает процесс Chrome.
+        """Запускает процесс Chrome.
 
         Args:
             chrome_cmd: Команда запуска Chrome.
@@ -307,6 +301,7 @@ class ProcessManager:
         Raises:
             ValueError: Если chrome_cmd пуст или некорректен.
             Exception: При ошибке запуска.
+
         """
         # Валидация аргументов перед запуском subprocess
         if not chrome_cmd:
@@ -341,13 +336,12 @@ class ProcessManager:
             # Очистка профиля при ошибке запуска
             try:
                 shutil.rmtree(profile_path, ignore_errors=True)
-            except (OSError, IOError) as cleanup_error:
+            except OSError as cleanup_error:
                 app_logger.debug("Не удалось удалить профиль при ошибке запуска: %s", cleanup_error)
             raise
 
     def terminate(self, process_pid: int, timeout: int = 5) -> tuple[bool, str]:
-        """
-        Завершает процесс через terminate() (graceful shutdown).
+        """Завершает процесс через terminate() (graceful shutdown).
 
         H2: Упрощённый метод для корректного завершения процесса.
         Объединяет логику terminate_process_graceful.
@@ -360,6 +354,7 @@ class ProcessManager:
             Кортеж (process_closed, process_status):
             - process_closed: True если процесс завершён
             - process_status: Статус завершения процесса
+
         """
         if self._proc is None:
             app_logger.debug("Процесс не инициализирован (PID: %s)", process_pid)
@@ -374,7 +369,8 @@ class ProcessManager:
             if poll_result is not None:
                 process_status = f"terminated (exit code: {poll_result})"
                 app_logger.info(
-                    "Chrome браузер корректно завершён (PID: %d, exit code: %d, время жизни: %.1f сек)",
+                    "Chrome браузер корректно завершён "
+                    "(PID: %d, exit code: %d, время жизни: %.1f сек)",
                     process_pid,
                     poll_result,
                     time.time() - self._start_time,
@@ -418,8 +414,7 @@ class ProcessManager:
             return False, "terminate_error"
 
     def kill(self, process_pid: int, timeout: int = 10) -> tuple[bool, str]:
-        """
-        Принудительно завершает процесс через kill() (forceful shutdown).
+        """Принудительно завершает процесс через kill() (forceful shutdown).
 
         H2: Упрощённый метод для принудительного завершения процесса.
         Объединяет логику terminate_process_forceful.
@@ -432,6 +427,7 @@ class ProcessManager:
             Кортеж (process_closed, process_status):
             - process_closed: True если процесс завершён
             - process_status: Статус завершения процесса
+
         """
         if self._proc is None:
             app_logger.debug("Процесс не инициализирован (PID: %s)", process_pid)
@@ -446,7 +442,8 @@ class ProcessManager:
             if poll_result is not None:
                 process_status = f"killed (exit code: {poll_result})"
                 app_logger.info(
-                    "Chrome браузер принудительно завершён (PID: %d, exit code: %d, время жизни: %.1f сек)",
+                    "Chrome браузер принудительно завершён "
+                    "(PID: %d, exit code: %d, время жизни: %.1f сек)",
                     process_pid,
                     poll_result,
                     time.time() - self._start_time,
@@ -469,7 +466,8 @@ class ProcessManager:
                 except subprocess.TimeoutExpired:
                     # P1-10: Добавляем принудительное завершение через kill() после timeout
                     app_logger.error(
-                        "Таймаут (%d сек) после SIGKILL для PID %d - применяем принудительное завершение",
+                        "Таймаут (%d сек) после SIGKILL для PID %d - "
+                        "применяем принудительное завершение",
                         timeout,
                         process_pid,
                     )
@@ -513,12 +511,12 @@ class ProcessManager:
             return False, "kill_error"
 
     @property
-    def process(self) -> Optional[subprocess.Popen]:
+    def process(self) -> subprocess.Popen | None:
         """Возвращает процесс."""
         return self._proc
 
     @property
-    def pid(self) -> Optional[int]:
+    def pid(self) -> int | None:
         """Возвращает PID процесса."""
         return self._proc.pid if self._proc else None
 
@@ -536,8 +534,7 @@ class ProcessManager:
     # ==========================================================================
 
     def terminate_process_graceful(self, process_pid: int, timeout: int = 5) -> tuple[bool, str]:
-        """
-        Алиас для метода terminate() для обратной совместимости.
+        """Алиас для метода terminate() для обратной совместимости.
 
         Завершает процесс через terminate() (graceful shutdown).
 
@@ -549,12 +546,12 @@ class ProcessManager:
             Кортеж (process_closed, process_status):
             - process_closed: True если процесс завершён
             - process_status: Статус завершения процесса
+
         """
         return self.terminate(process_pid, timeout)
 
     def terminate_process_forceful(self, process_pid: int, timeout: int = 10) -> tuple[bool, str]:
-        """
-        Алиас для метода kill() для обратной совместимости.
+        """Алиас для метода kill() для обратной совместимости.
 
         Принудительно завершает процесс через kill() (forceful shutdown).
 
@@ -566,6 +563,7 @@ class ProcessManager:
             Кортеж (process_closed, process_status):
             - process_closed: True если процесс завершён
             - process_status: Статус завершения процесса
+
         """
         return self.kill(process_pid, timeout)
 
@@ -576,8 +574,7 @@ class ProcessManager:
 
 
 class BrowserLifecycleManager:
-    """
-    Основной класс, координирующий работу остальных компонентов.
+    """Основной класс, координирующий работу остальных компонентов.
 
     Отвечает за:
     - Инициализацию всех компонентов
@@ -593,18 +590,18 @@ class BrowserLifecycleManager:
     """
 
     def __init__(self, chrome_options: ChromeOptions) -> None:
-        """
-        Инициализирует менеджер жизненного цикла браузера.
+        """Инициализирует менеджер жизненного цикла браузера.
 
         Args:
             chrome_options: Опции для настройки браузера Chrome.
+
         """
         self._chrome_options = chrome_options
         self._path_resolver = BrowserPathResolver()
         self._profile_manager = ProfileManager()
         self._process_manager = ProcessManager()
-        self._remote_port: Optional[int] = None
-        self._chrome_cmd: Optional[list[str]] = None
+        self._remote_port: int | None = None
+        self._chrome_cmd: list[str] | None = None
         self._closed: bool = False
 
         # weakref.finalize() для гарантированной очистки
@@ -618,8 +615,7 @@ class BrowserLifecycleManager:
         self._finalizer.atexit = False
 
     def init(self) -> int:
-        """
-        Инициализирует браузер Chrome.
+        """Инициализирует браузер Chrome.
 
         Returns:
             Порт remote debugging.
@@ -628,6 +624,7 @@ class BrowserLifecycleManager:
             ChromeException: При ошибке инициализации браузера.
             FileNotFoundError: Если браузер не найден.
             PermissionError: Если браузер не имеет прав на выполнение.
+
         """
         profile_created = False
         try:
@@ -673,7 +670,7 @@ class BrowserLifecycleManager:
                 try:
                     self._profile_manager.cleanup_profile()
                     app_logger.debug("Профиль Chrome очищен в finally блоке")
-                except (OSError, IOError) as cleanup_error:
+                except OSError as cleanup_error:
                     app_logger.debug("Ошибка при очистке профиля в finally: %s", cleanup_error)
 
         return self._remote_port  # type: ignore[return-value]
@@ -681,8 +678,7 @@ class BrowserLifecycleManager:
     def _build_chrome_cmd(
         self, binary_path: str, profile_path: str, remote_port: int, chrome_options: ChromeOptions
     ) -> list[str]:
-        """
-        Формирует команду запуска Chrome.
+        """Формирует команду запуска Chrome.
 
         Args:
             binary_path: Путь к браузеру.
@@ -692,6 +688,7 @@ class BrowserLifecycleManager:
 
         Returns:
             Список аргументов командной строки.
+
         """
         # Валидация memory_limit перед формированием команды
         memory_limit = (
@@ -729,8 +726,7 @@ class BrowserLifecycleManager:
         return chrome_cmd
 
     def close(self) -> None:
-        """
-        Закрывает браузер и удаляет временный профиль.
+        """Закрывает браузер и удаляет временный профиль.
 
         H2: Использует упрощённые методы terminate() и kill().
 
@@ -772,17 +768,17 @@ class BrowserLifecycleManager:
 
     @staticmethod
     def _cleanup_from_finalizer(
-        proc: Optional[subprocess.Popen],
-        profile_tempdir: Optional[tempfile.TemporaryDirectory],
-        profile_path: Optional[str],
+        proc: subprocess.Popen | None,
+        profile_tempdir: tempfile.TemporaryDirectory | None,
+        profile_path: str | None,
     ) -> None:
-        """
-        Гарантированная очистка ресурсов через weakref.finalize().
+        """Гарантированная очистка ресурсов через weakref.finalize().
 
         Args:
             proc: Процесс браузера.
             profile_tempdir: Временная директория профиля.
             profile_path: Путь к профилю.
+
         """
         try:
             if proc is not None and proc.poll() is None:
@@ -799,17 +795,17 @@ class BrowserLifecycleManager:
             app_logger.debug("Ошибка в weakref.finalize(): %s", finalizer_error)
 
     @property
-    def remote_port(self) -> Optional[int]:
+    def remote_port(self) -> int | None:
         """Порт отладки."""
         return self._remote_port
 
     @property
-    def process(self) -> Optional[subprocess.Popen]:
+    def process(self) -> subprocess.Popen | None:
         """Процесс браузера."""
         return self._process_manager.process
 
     @property
-    def profile_path(self) -> Optional[str]:
+    def profile_path(self) -> str | None:
         """Путь к профилю."""
         return self._profile_manager.profile_path
 
@@ -818,7 +814,7 @@ class BrowserLifecycleManager:
         classname = self.__class__.__name__
         return f"{classname}(arguments={self._chrome_cmd!r})"
 
-    def __enter__(self) -> "BrowserLifecycleManager":
+    def __enter__(self) -> BrowserLifecycleManager:
         """Возвращает экземпляр для использования в контекстном менеджере."""
         return self
 
@@ -843,7 +839,7 @@ class BrowserLifecycleManager:
                     "BrowserLifecycleManager уничтожается без явного закрытия. "
                     "Всегда вызывайте close() явно."
                 )
-        except (OSError, IOError, RuntimeError, AttributeError) as del_error:
+        except (OSError, RuntimeError, AttributeError) as del_error:
             app_logger.debug("BrowserLifecycleManager.__del__: ошибка: %s", del_error)
 
 
@@ -853,8 +849,7 @@ class BrowserLifecycleManager:
 
 
 class ChromeBrowser:
-    """
-    Браузер Chrome с временным профилем (backward compatibility wrapper).
+    """Браузер Chrome с временным профилем (backward compatibility wrapper).
 
     Этот класс является обёрткой над BrowserLifecycleManager для обеспечения
     обратной совместимости со старым кодом.
@@ -867,31 +862,32 @@ class ChromeBrowser:
         ValueError: Если путь к браузеру некорректен.
         FileNotFoundError: Если файл браузера не существует.
         PermissionError: Если файл браузера не исполняемый.
+
     """
 
     def __init__(self, chrome_options: ChromeOptions) -> None:
-        """
-        Инициализирует браузер Chrome с заданными опциями.
+        """Инициализирует браузер Chrome с заданными опциями.
 
         Args:
             chrome_options: Опции для настройки браузера Chrome.
+
         """
         self._lifecycle_manager = BrowserLifecycleManager(chrome_options)
         self._remote_port = self._lifecycle_manager.init()
         self._closed: bool = False
 
     @property
-    def remote_port(self) -> Optional[int]:
+    def remote_port(self) -> int | None:
         """Порт отладки."""
         return self._remote_port
 
     @property
-    def _proc(self) -> Optional[subprocess.Popen]:
+    def _proc(self) -> subprocess.Popen | None:
         """Процесс браузера (для backward compatibility)."""
         return self._lifecycle_manager.process
 
     @property
-    def _profile_path(self) -> Optional[str]:
+    def _profile_path(self) -> str | None:
         """Путь к профилю (для backward compatibility)."""
         return self._lifecycle_manager.profile_path
 
@@ -914,7 +910,7 @@ class ChromeBrowser:
         """Возвращает строковое представление объекта."""
         return repr(self._lifecycle_manager)
 
-    def __enter__(self) -> "ChromeBrowser":
+    def __enter__(self) -> ChromeBrowser:
         """Возвращает экземпляр для использования в контекстном менеджере."""
         return self
 
@@ -928,7 +924,7 @@ class ChromeBrowser:
             if hasattr(self, "_lifecycle_manager"):
                 # weakref.finalize() уже зарегистрирован в BrowserLifecycleManager
                 pass
-        except (OSError, IOError, RuntimeError, AttributeError) as del_error:
+        except (OSError, RuntimeError, AttributeError) as del_error:
             app_logger.debug("ChromeBrowser.__del__: ошибка: %s", del_error)
 
 
@@ -954,6 +950,7 @@ def _check_profile_age_and_delete(
 
     Returns:
         True если профиль удалён, False иначе.
+
     """
     try:
         marker_mtime = marker_file.stat().st_mtime
@@ -996,6 +993,7 @@ def _check_profile_age_by_dir(item: Path, current_time: float, max_age_seconds: 
 
     Returns:
         True если профиль удалён, False иначе.
+
     """
     try:
         dir_mtime = item.stat().st_mtime
@@ -1035,6 +1033,7 @@ def _process_orphaned_profile(item: Path, current_time: float, max_age_seconds: 
 
     Returns:
         True если профиль удалён, False иначе.
+
     """
     # Проверяем наличие маркера
     marker_file = item / ORPHANED_PROFILE_MARKER
@@ -1046,10 +1045,9 @@ def _process_orphaned_profile(item: Path, current_time: float, max_age_seconds: 
 
 
 def cleanup_orphaned_profiles(
-    profiles_dir: Optional[Path] = None, max_age_hours: int = ORPHANED_PROFILE_MAX_AGE_HOURS
+    profiles_dir: Path | None = None, max_age_hours: int = ORPHANED_PROFILE_MAX_AGE_HOURS
 ) -> int:
-    """
-    Очищает осиротевшие профили Chrome от предыдущих запусков.
+    """Очищает осиротевшие профили Chrome от предыдущих запусков.
 
     Профили могут оставаться после аварийного завершения приложения (KeyboardInterrupt,
     сбой питания, падение процесса). Эта функция находит и удаляет такие профили.
@@ -1068,6 +1066,7 @@ def cleanup_orphaned_profiles(
         - Использует маркер-файл для идентификации профилей Chrome
         - Логирует все действия для отладки
         - Использует атомарные операции ФС для предотвращения race condition
+
     """
     if profiles_dir is None:
         profiles_dir = Path(tempfile.gettempdir())
@@ -1102,7 +1101,7 @@ def cleanup_orphaned_profiles(
 
     except PermissionError as perm_error:
         app_logger.warning("Нет прав для доступа к директории профилей: %s", perm_error)
-    except (OSError, IOError, RuntimeError) as e:
+    except (OSError, RuntimeError) as e:
         app_logger.warning("Ошибка при очистке осиротевших профилей: %s", e)
 
     if deleted_count > 0:
@@ -1123,6 +1122,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
 
     Returns:
         True если профиль используется активным процессом, False иначе.
+
     """
     try:
         # Пытаемся использовать psutil для кроссплатформенной проверки
@@ -1180,20 +1180,20 @@ def _is_profile_in_use(profile_path: Path) -> bool:
 
             return False
 
-    except (OSError, IOError, RuntimeError) as e:
+    except (OSError, RuntimeError) as e:
         # При ошибке проверки считаем что профиль не используется
         app_logger.debug("Ошибка проверки активности профиля %s: %s", profile_path, e)
         return False
 
 
 def _safe_remove_profile(profile_path: Path) -> None:
-    """
-    Безопасно удаляет профиль Chrome с обработкой ошибок.
+    """Безопасно удаляет профиль Chrome с обработкой ошибок.
     - Проверяет активные процессы перед удалением
     - Обрабатывает ошибки удаления файлов
 
     Args:
         profile_path: Путь к директории профиля для удаления.
+
     """
     try:
         if _is_profile_in_use(profile_path):
@@ -1221,17 +1221,17 @@ def _safe_remove_profile(profile_path: Path) -> None:
         else:
             app_logger.debug("Профиль успешно удалён: %s", profile_path)
 
-    except (OSError, IOError, RuntimeError) as e:
+    except (OSError, RuntimeError) as e:
         app_logger.warning("Ошибка при удалении профиля %s: %s", profile_path, e)
 
 
 __all__ = [
-    "BrowserPathResolver",
-    "ProfileManager",
-    "ProcessManager",
-    "BrowserLifecycleManager",
-    "ChromeBrowser",
-    "cleanup_orphaned_profiles",
     "ORPHANED_PROFILE_MARKER",
     "ORPHANED_PROFILE_MAX_AGE_HOURS",
+    "BrowserLifecycleManager",
+    "BrowserPathResolver",
+    "ChromeBrowser",
+    "ProcessManager",
+    "ProfileManager",
+    "cleanup_orphaned_profiles",
 ]

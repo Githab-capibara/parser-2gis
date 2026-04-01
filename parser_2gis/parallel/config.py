@@ -1,5 +1,4 @@
-"""
-Модуль конфигураций для параллельного парсинга.
+"""Модуль конфигураций для параллельного парсинга.
 
 Предоставляет dataclass ParallelRunConfig для группировки параметров
 запуска параллельного парсинга. Это устраняет нарушение Data Clumps
@@ -20,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -49,21 +48,23 @@ class ParallelRunConfig:
         ...     timeout_per_url=300,
         ... )
         >>> parser = ParallelCoordinator(**cfg.to_dict())
+
     """
 
-    cities: List[Dict[str, Any]]
-    categories: List[Dict[str, Any]]
+    cities: list[dict[str, Any]]
+    categories: list[dict[str, Any]]
     output_dir: Path
     max_workers: int = 10
     timeout_per_url: int = 300
-    output_file: Optional[str] = None
-    config: Optional[Dict[str, Any]] = None
+    output_file: str | None = None
+    config: dict[str, Any] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Преобразует dataclass в словарь.
 
         Returns:
             Словарь с параметрами конфигурации.
+
         """
         result = {
             "cities": self.cities,
@@ -79,7 +80,7 @@ class ParallelRunConfig:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ParallelRunConfig":
+    def from_dict(cls, data: dict[str, Any]) -> ParallelRunConfig:
         """Создаёт конфигурацию из словаря.
 
         Args:
@@ -87,6 +88,7 @@ class ParallelRunConfig:
 
         Returns:
             Экземпляр ParallelRunConfig.
+
         """
         return cls(
             cities=data.get("cities", []),

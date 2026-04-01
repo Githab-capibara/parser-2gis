@@ -1,5 +1,4 @@
-"""
-Модуль слияния файлов для параллельного парсинга.
+"""Модуль слияния файлов для параллельного парсинга.
 
 Предоставляет класс ParallelFileMerger для объединения CSV файлов:
 - Потокобезопасное слияние с использованием lock файлов
@@ -24,7 +23,8 @@ import typing
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, TextIO, Tuple
+from typing import TextIO
+from collections.abc import Callable
 
 from parser_2gis.constants import (
     MAX_LOCK_FILE_AGE,
@@ -49,16 +49,17 @@ class MergeConfig:
         log_callback: Функция для логирования.
         progress_callback: Функция обновления прогресса.
         cancel_event: Событие для отмены операции.
+
     """
 
-    file_paths: List[Path]
+    file_paths: list[Path]
     output_path: Path
     encoding: str
     buffer_size: int = MERGE_BUFFER_SIZE
     batch_size: int = MERGE_BATCH_SIZE
-    log_callback: Optional[Callable[[str, str], None]] = None
-    progress_callback: Optional[Callable[[str], None]] = None
-    cancel_event: Optional[threading.Event] = None
+    log_callback: Callable[[str, str], None] | None = None
+    progress_callback: Callable[[str], None] | None = None
+    cancel_event: threading.Event | None = None
 
 
 # =============================================================================
@@ -67,7 +68,7 @@ class MergeConfig:
 
 
 def _log_message(
-    msg: str, level: str = "debug", log_callback: Optional[Callable[[str, str], None]] = None
+    msg: str, level: str = "debug", log_callback: Callable[[str, str], None] | None = None
 ) -> None:
     """Общая функция для логирования через callback.
 
@@ -75,6 +76,7 @@ def _log_message(
         msg: Сообщение для логирования.
         level: Уровень логирования (debug, info, warning, error).
         log_callback: Функция обратного вызова для логирования.
+
     """
     if log_callback:
         log_callback(msg, level)
@@ -88,8 +90,8 @@ def _log_message(
 def _acquire_merge_lock(
     lock_file_path: Path,
     timeout: int = MERGE_LOCK_TIMEOUT,
-    log_callback: Optional[Callable[[str, str], None]] = None,
-) -> Tuple[Optional[object], bool]:
+    log_callback: Callable[[str, str], None] | None = None,
+) -> tuple[object | None, bool]:
     """Получает блокировку для merge операции.
 
     Args:
@@ -104,6 +106,7 @@ def _acquire_merge_lock(
 
     Raises:
         Exception: Если произошла ошибка при получении блокировки.
+
     """
     lock_file_handle = None
     lock_acquired = False
@@ -140,7 +143,7 @@ def _acquire_merge_lock(
             lock_file_handle.flush()
             lock_acquired = True
             _log_message("Lock file получен успешно", "debug", log_callback)
-        except (IOError, OSError):
+        except OSError:
             if lock_file_handle:
                 try:
                     lock_file_handle.close()
@@ -160,15 +163,15 @@ def _acquire_merge_lock(
 
 
 def _merge_csv_files(
-    file_paths: List[Path],
+    file_paths: list[Path],
     output_path: Path,
     encoding: str,
     buffer_size: int = MERGE_BUFFER_SIZE,
     batch_size: int = MERGE_BATCH_SIZE,
-    log_callback: Optional[Callable[[str, str], None]] = None,
-    progress_callback: Optional[Callable[[str], None]] = None,
-    cancel_event: Optional[threading.Event] = None,
-) -> Tuple[bool, int, List[Path]]:
+    log_callback: Callable[[str, str], None] | None = None,
+    progress_callback: Callable[[str], None] | None = None,
+    cancel_event: threading.Event | None = None,
+) -> tuple[bool, int, list[Path]]:
     """Объединяет CSV файлы в один с добавлением колонки "Категория".
 
     Args:
@@ -186,6 +189,7 @@ def _merge_csv_files(
         - success: True если успешно.
         - total_rows: Количество объединённых строк.
         - files_to_delete: Список файлов для удаления.
+
     """
     # Группировка параметров в dataclass для удобства
     merge_config = MergeConfig(
@@ -199,22 +203,23 @@ def _merge_csv_files(
         cancel_event=cancel_event,
     )
 
-    files_to_delete: List[Path] = []
+    files_to_delete: list[Path] = []
     total_rows = 0
-    fieldnames_cache: Dict[Tuple[str, ...], List[str]] = {}
+    fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
     writer = None
-    infile: Optional[object] = None
-    outfile: Optional[object] = None
+    infile: object | None = None
+    outfile: object | None = None
 
     def _open_outfile_with_fallback(
         path: Path, enc: str, buf_size: int, log_func: Callable[[str, str], None]
-    ) -> Tuple[Optional[TextIO], bool]:
+    ) -> tuple[TextIO | None, bool]:
         """Открывает выходной файл с fallback механизмом.
 
         Returns:
             Кортеж (file_object, success):
             - file_object: объект файла или None при ошибке
             - success: True если файл успешно открыт
+
         """
         try:
             file_obj = open(path, "w", encoding=enc, newline="", buffering=buf_size)  # nosec B228
@@ -272,9 +277,7 @@ def _merge_csv_files(
 
                 infile = None
                 try:
-                    infile = open(
-                        csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size
-                    )
+                    infile = open(csv_file, encoding="utf-8-sig", newline="", buffering=buffer_size)
                 except OSError as file_error:
                     error_type = type(file_error).__name__
                     _log_message(
@@ -292,7 +295,7 @@ def _merge_csv_files(
                         try:
                             # H008: Используем минимальный буфер 4KB вместо 0 для производительности
                             infile = open(
-                                csv_file, "r", encoding="utf-8-sig", newline="", buffering=4096
+                                csv_file, encoding="utf-8-sig", newline="", buffering=4096
                             )
                             _log_message(
                                 f"Fallback успешен: файл {csv_file} открыт с буфером 4KB",
@@ -439,7 +442,7 @@ def _merge_csv_files(
 
 
 def _cleanup_source_files(
-    file_paths: List[Path], log_callback: Optional[Callable[[str, str], None]] = None
+    file_paths: list[Path], log_callback: Callable[[str, str], None] | None = None
 ) -> int:
     """Очищает исходные файлы после объединения.
 
@@ -449,6 +452,7 @@ def _cleanup_source_files(
 
     Returns:
         Количество успешно удалённых файлов.
+
     """
     deleted_count = 0
     for csv_file in file_paths:
@@ -462,7 +466,7 @@ def _cleanup_source_files(
 
 
 def _validate_merged_file(
-    output_path: Path, log_callback: Optional[Callable[[str, str], None]] = None
+    output_path: Path, log_callback: Callable[[str, str], None] | None = None
 ) -> bool:
     """Валидирует объединённый файл.
 
@@ -472,6 +476,7 @@ def _validate_merged_file(
 
     Returns:
         True если файл валиден, False иначе.
+
     """
     if not output_path.exists():
         _log_message(f"Объединённый файл не существует: {output_path}", "error", log_callback)
@@ -504,6 +509,7 @@ class ParallelFileMerger:
         cancel_event: Событие для отмены операции.
         lock: Блокировка для потокобезопасного доступа.
         merge_temp_files: Список временных файлов merge операции.
+
     """
 
     def __init__(
@@ -516,12 +522,13 @@ class ParallelFileMerger:
             config: Конфигурация парсера.
             cancel_event: Событие для отмены операции.
             lock: Блокировка для потокобезопасного доступа.
+
         """
         self.output_dir = output_dir
         self.config = config
         self._cancel_event = cancel_event
         self._lock = lock
-        self._merge_temp_files: List[Path] = []
+        self._merge_temp_files: list[Path] = []
         self._merge_lock = threading.RLock()
 
     def log(self, message: str, level: str = "info") -> None:
@@ -530,11 +537,12 @@ class ParallelFileMerger:
         Args:
             message: Текст сообщения.
             level: Уровень логирования.
+
         """
         log_func = getattr(logger, level)
         log_func(message)
 
-    def get_csv_files_list(self, output_file_path: Path) -> List[Path]:
+    def get_csv_files_list(self, output_file_path: Path) -> list[Path]:
         """Получает список CSV файлов для объединения.
 
         Args:
@@ -542,6 +550,7 @@ class ParallelFileMerger:
 
         Returns:
             Отсортированный список CSV файлов.
+
         """
         csv_files = list(self.output_dir.glob("*.csv"))
 
@@ -560,6 +569,7 @@ class ParallelFileMerger:
 
         Returns:
             Название категории.
+
         """
         stem = csv_file.stem
         last_underscore_idx = stem.rfind("_")
@@ -571,7 +581,7 @@ class ParallelFileMerger:
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
         return category
 
-    def acquire_merge_lock(self, lock_file_path: Path) -> Tuple[Optional[typing.TextIO], bool]:
+    def acquire_merge_lock(self, lock_file_path: Path) -> tuple[typing.TextIO | None, bool]:
         """Получает блокировку merge операции.
 
         Args:
@@ -579,6 +589,7 @@ class ParallelFileMerger:
 
         Returns:
             Кортеж (lock_file_handle, lock_acquired).
+
         """
         lock_file_handle = None
         lock_acquired = False
@@ -611,7 +622,7 @@ class ParallelFileMerger:
                     lock_file_handle.flush()
                     lock_acquired = True
                     self.log("Lock file получен успешно", "debug")
-                except (IOError, OSError):
+                except OSError:
                     if lock_file_handle:
                         try:
                             lock_file_handle.close()
@@ -634,16 +645,17 @@ class ParallelFileMerger:
                     self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
             return None, False
 
-        return typing.cast(Tuple[Optional[typing.TextIO], bool], (lock_file_handle, lock_acquired))
+        return typing.cast(tuple[typing.TextIO | None, bool], (lock_file_handle, lock_acquired))
 
     def cleanup_merge_lock(
-        self, lock_file_handle: Optional[typing.TextIO], lock_file_path: Path
+        self, lock_file_handle: typing.TextIO | None, lock_file_path: Path
     ) -> None:
         """Очищает и удаляет lock файл.
 
         Args:
             lock_file_handle: Дескриптор lock файла.
             lock_file_path: Путь к lock файлу.
+
         """
         try:
             if lock_file_handle:
@@ -657,12 +669,12 @@ class ParallelFileMerger:
     def process_single_csv_file(
         self,
         csv_file: Path,
-        writer: Optional["csv.DictWriter"],
-        outfile: "typing.TextIO",
+        writer: csv.DictWriter | None,
+        outfile: typing.TextIO,
         buffer_size: int,
         batch_size: int,
-        fieldnames_cache: Dict[Tuple[str, ...], List[str]],
-    ) -> Tuple[Optional["csv.DictWriter"], int]:
+        fieldnames_cache: dict[tuple[str, ...], list[str]],
+    ) -> tuple[csv.DictWriter | None, int]:
         """Обрабатывает один CSV файл и добавляет данные в выходной файл.
 
         Args:
@@ -675,10 +687,11 @@ class ParallelFileMerger:
 
         Returns:
             Кортеж (writer, total_rows).
+
         """
         category_name = self.extract_category_from_filename(csv_file)
 
-        with open(csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size) as infile:
+        with open(csv_file, encoding="utf-8-sig", newline="", buffering=buffer_size) as infile:
             reader = csv.DictReader(infile)
 
             if not reader.fieldnames:
@@ -724,7 +737,7 @@ class ParallelFileMerger:
             return writer, batch_total
 
     def merge_csv_files(
-        self, output_file: str, progress_callback: Optional[Callable[[str], None]] = None
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
         """Объединяет все CSV файлы в один с добавлением колонки "Категория".
 
@@ -734,6 +747,7 @@ class ParallelFileMerger:
 
         Returns:
             True если успешно.
+
         """
         self.log("Начало объединения CSV файлов...", "info")
 
@@ -746,7 +760,7 @@ class ParallelFileMerger:
 
         self.log(f"Найдено {len(csv_files)} CSV файлов для объединения", "info")
 
-        files_to_delete: List[Path] = []
+        files_to_delete: list[Path] = []
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
         temp_file_created = False
 
@@ -812,7 +826,7 @@ class ParallelFileMerger:
                 temp_file_created = True
                 writer = None
                 total_rows = 0
-                fieldnames_cache: Dict[Tuple[str, ...], List[str]] = {}
+                fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
 
                 for csv_file in csv_files:
                     if self._cancel_event.is_set():

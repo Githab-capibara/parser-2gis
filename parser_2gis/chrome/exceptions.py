@@ -61,8 +61,8 @@ class ChromePathNotFound(ChromeException):
 
 
 __all__ = [
-    "ChromeUserAbortException",
-    "ChromeRuntimeException",
     "ChromeException",
     "ChromePathNotFound",
+    "ChromeRuntimeException",
+    "ChromeUserAbortException",
 ]

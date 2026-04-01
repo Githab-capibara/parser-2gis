@@ -1,5 +1,4 @@
-"""
-Тесты для проверки 10 критических исправлений проекта parser-2gis.
+"""Тесты для проверки 10 критических исправлений проекта parser-2gis.
 
 Этот модуль содержит тесты для проверки следующих исправлений:
 1. SQL Injection fix в cache/manager.py
@@ -21,7 +20,6 @@ import inspect
 import os
 import tempfile
 from pathlib import Path
-from typing import Dict, List
 from unittest.mock import patch
 
 import pytest
@@ -35,8 +33,7 @@ class TestCacheSQLInjectionProtection:
     """Тесты защиты от SQL injection в CacheManager.delete_batch()."""
 
     def test_cache_delete_batch_sql_injection_protection(self, tmp_path: Path):
-        """
-        Проверка что delete_batch() использует параметризованные запросы.
+        """Проверка что delete_batch() использует параметризованные запросы.
 
         Тест проверяет:
         1. delete_batch() использует параметризованные SQL запросы
@@ -45,6 +42,7 @@ class TestCacheSQLInjectionProtection:
 
         Args:
             tmp_path: pytest fixture для временных файлов.
+
         """
         from parser_2gis.cache.manager import CacheManager
 
@@ -134,11 +132,11 @@ class TestCacheSQLInjectionProtection:
             cache.close()
 
     def test_cache_delete_batch_valid_hashes(self, tmp_path: Path):
-        """
-        Проверка что delete_batch корректно удаляет валидные хеши.
+        """Проверка что delete_batch корректно удаляет валидные хеши.
 
         Args:
             tmp_path: pytest fixture для временных файлов.
+
         """
         from parser_2gis.cache.manager import CacheManager
 
@@ -177,8 +175,7 @@ class TestParserFactoryUnusedGlobals:
     """Тесты проверки отсутствия неиспользованных global объявлений."""
 
     def test_parser_factory_no_unused_globals(self):
-        """
-        Проверка что в factory.py нет объявлений global без использования.
+        """Проверка что в factory.py нет объявлений global без использования.
 
         Тест использует AST анализ для обнаружения объявлений global
         и проверяет что каждое объявление global действительно используется.
@@ -186,6 +183,7 @@ class TestParserFactoryUnusedGlobals:
         Note:
             Глобальные переменные без использования могут привести
             к ошибкам и затрудняют поддержку кода.
+
         """
         from parser_2gis.parser import factory
 
@@ -197,8 +195,8 @@ class TestParserFactoryUnusedGlobals:
         tree = ast.parse(source_code)
 
         # Находим все объявления global
-        global_declarations: List[str] = []
-        global_usages: Dict[str, int] = {}
+        global_declarations: list[str] = []
+        global_usages: dict[str, int] = {}
 
         for node in ast.walk(tree):
             if isinstance(node, ast.Global):
@@ -234,8 +232,7 @@ class TestParserFactoryUnusedGlobals:
                             )
 
     def test_parser_factory_global_variables_usage(self):
-        """
-        Проверка что глобальные переменные в factory.py используются корректно.
+        """Проверка что глобальные переменные в factory.py используются корректно.
 
         Тест проверяет что PARSER_REGISTRY и _PARSER_PATTERNS используются.
         """
@@ -278,8 +275,7 @@ class TestApplicationLauncherResponsibility:
     """Тесты разделения ответственности в ApplicationLauncher."""
 
     def test_application_launcher_responsibility_separation(self):
-        """
-        Проверка что ApplicationLauncher имеет отдельные методы для каждого режима.
+        """Проверка что ApplicationLauncher имеет отдельные методы для каждого режима.
 
         Тест проверяет:
         1. ApplicationLauncher имеет отдельные методы для TUI, CLI, parallel режимов
@@ -325,8 +321,7 @@ class TestApplicationLauncherResponsibility:
         )
 
     def test_application_launcher_methods_are_separate(self):
-        """
-        Проверка что методы режимов независимы и не дублируют код.
+        """Проверка что методы режимов независимы и не дублируют код.
 
         Тест проверяет что каждый метод режима имеет уникальную логику.
         """
@@ -361,8 +356,7 @@ class TestCLIMainSRPCompliance:
     """Тесты проверки Single Responsibility Principle в cli/main.py."""
 
     def test_cli_main_srp_compliance(self):
-        """
-        Проверка что функция main() не содержит бизнес-логики.
+        """Проверка что функция main() не содержит бизнес-логики.
 
         Тест проверяет:
         1. main() только координирует запуск
@@ -418,8 +412,7 @@ class TestCLIMainSRPCompliance:
         )
 
     def test_cli_main_delegates_to_launcher(self):
-        """
-        Проверка что main() делегирует всю логику ApplicationLauncher.
+        """Проверка что main() делегирует всю логику ApplicationLauncher.
 
         Тест проверяет что main() только:
         1. Парсит аргументы
@@ -465,8 +458,7 @@ class TestChromeBrowserProcessCleanup:
     """Тесты корректного завершения процесса Chrome браузера."""
 
     def test_chrome_browser_process_cleanup(self):
-        """
-        Проверка что close() корректно завершает процесс.
+        """Проверка что close() корректно завершает процесс.
 
         Тест проверяет:
         1. close() завершает процесс браузера
@@ -517,8 +509,7 @@ class TestChromeBrowserProcessCleanup:
                 browser.close()
 
     def test_chrome_browser_close_idempotent(self):
-        """
-        Проверка что повторный вызов close() безопасен.
+        """Проверка что повторный вызов close() безопасен.
 
         Тест проверяет что close() можно вызывать многократно без ошибок.
         """
@@ -546,8 +537,7 @@ class TestChromeBrowserProcessCleanup:
                 browser.close()
 
     def test_chrome_browser_context_manager_cleanup(self):
-        """
-        Проверка что контекстный менеджер корректно закрывает браузер.
+        """Проверка что контекстный менеджер корректно закрывает браузер.
 
         Тест проверяет что with statement гарантирует закрытие.
         """
@@ -582,8 +572,7 @@ class TestParallelParserMemoryErrorHandling:
     """Тесты обработки MemoryError в параллельном парсере."""
 
     def test_parallel_parser_memory_error_handling(self):
-        """
-        Проверка обработки MemoryError в parallel_parser.
+        """Проверка обработки MemoryError в parallel_parser.
 
         Тест проверяет:
         1. При MemoryError происходит очистка кэша
@@ -613,8 +602,7 @@ class TestParallelParserMemoryErrorHandling:
         )
 
     def test_parallel_parser_memory_error_in_parse(self):
-        """
-        Проверка что MemoryError в parse() обрабатывается корректно.
+        """Проверка что MemoryError в parse() обрабатывается корректно.
 
         Тест с моком что вызывает MemoryError искусственно.
         """
@@ -651,8 +639,7 @@ class TestParallelParserMemoryErrorHandling:
                     pass
 
     def test_parallel_parser_gc_collect_called(self):
-        """
-        Проверка что gc.collect() вызывается при MemoryError.
+        """Проверка что gc.collect() вызывается при MemoryError.
 
         Тест проверяет исходный код на наличие вызова gc.collect().
         """
@@ -676,8 +663,7 @@ class TestTUIModelProviderProtocol:
     """Тесты использования ModelProvider protocol в TUI."""
 
     def test_tui_uses_model_provider_protocol(self):
-        """
-        Проверка что TUIApp использует ModelProvider protocol.
+        """Проверка что TUIApp использует ModelProvider protocol.
 
         Тест проверяет:
         1. TUIApp не имеет прямой зависимости от OllamaClient
@@ -710,8 +696,7 @@ class TestTUIModelProviderProtocol:
         )
 
     def test_model_provider_protocol_definition(self):
-        """
-        Проверка что ModelProvider protocol корректно определён.
+        """Проверка что ModelProvider protocol корректно определён.
 
         Тест проверяет что protocol имеет необходимые методы.
         """
@@ -744,8 +729,7 @@ class TestChromeRemoteTimeouts:
     """Тесты наличия network timeouts в ChromeRemote."""
 
     def test_chrome_remote_has_timeouts(self):
-        """
-        Проверка что все HTTP запросы имеют timeout.
+        """Проверка что все HTTP запросы имеют timeout.
 
         Тест проверяет:
         1. Все HTTP запросы имеют timeout параметр
@@ -781,8 +765,7 @@ class TestChromeRemoteTimeouts:
                 )
 
     def test_chrome_remote_timeout_configurable(self):
-        """
-        Проверка что timeout настраиваемый.
+        """Проверка что timeout настраиваемый.
 
         Тест проверяет что можно изменить timeout через параметры.
         """
@@ -809,8 +792,7 @@ class TestChromeRemoteTimeouts:
         )
 
     def test_chrome_remote_safe_external_request_timeout(self):
-        """
-        Проверка что _safe_external_request использует timeout.
+        """Проверка что _safe_external_request использует timeout.
 
         Тест проверяет исходный код функции.
         """
@@ -840,8 +822,7 @@ class TestTempFileAtomicCreation:
     """Тесты атомарного создания временных файлов."""
 
     def test_temp_file_atomic_creation(self):
-        """
-        Проверка что create_temp_file() использует tempfile.mkstemp.
+        """Проверка что create_temp_file() использует tempfile.mkstemp.
 
         Тест проверяет:
         1. create_temp_file() использует tempfile.mkstemp
@@ -878,8 +859,7 @@ class TestTempFileAtomicCreation:
             os.unlink(temp_path)
 
     def test_temp_file_creation_is_atomic(self):
-        """
-        Проверка атомарности создания временного файла.
+        """Проверка атомарности создания временного файла.
 
         Тест проверяет что mkstemp гарантирует атомарность.
         """
@@ -902,8 +882,7 @@ class TestTempFileAtomicCreation:
                 os.unlink(temp_path)
 
     def test_temp_file_manager_module_exports(self):
-        """
-        Проверка что temp_file_manager экспортирует create_temp_file.
+        """Проверка что temp_file_manager экспортирует create_temp_file.
 
         Тест проверяет наличие функции в модуле.
         """
@@ -926,8 +905,7 @@ class TestAllCriticalFixesIntegration:
     """Интеграционный тест всех критических исправлений."""
 
     def test_all_critical_fixes_integration(self):
-        """
-        Проверка что все 10 исправлений работают вместе.
+        """Проверка что все 10 исправлений работают вместе.
 
         Тест проверяет:
         1. Все модули импортируются без ошибок
@@ -964,8 +942,7 @@ class TestAllCriticalFixesIntegration:
         assert parser_2gis is not None
 
     def test_no_regression_in_core_functionality(self):
-        """
-        Проверка отсутствия регрессии в основной функциональности.
+        """Проверка отсутствия регрессии в основной функциональности.
 
         Тест проверяет что базовые функции работают корректно.
         """
@@ -989,8 +966,7 @@ class TestAllCriticalFixesIntegration:
         )
 
     def test_all_fixes_compatible_together(self):
-        """
-        Проверка совместимости всех исправлений.
+        """Проверка совместимости всех исправлений.
 
         Тест проверяет что исправления не конфликтуют друг с другом.
         """

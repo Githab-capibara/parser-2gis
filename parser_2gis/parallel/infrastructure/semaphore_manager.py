@@ -1,5 +1,4 @@
-"""
-Модуль управления семафорами для параллельного парсинга.
+"""Модуль управления семафорами для параллельного парсинга.
 
 Предоставляет класс SemaphoreManager для:
 - Управления семафорами браузеров
@@ -11,7 +10,6 @@ from __future__ import annotations
 
 import threading
 from threading import BoundedSemaphore
-from typing import Optional
 
 from parser_2gis.constants import MAX_WORKERS, MIN_WORKERS
 from parser_2gis.logger.logger import logger
@@ -29,6 +27,7 @@ class SemaphoreManager:
     Args:
         max_workers: Максимальное количество рабочих потоков.
         extra_slots: Дополнительные слоты для поддержки burst нагрузки.
+
     """
 
     def __init__(self, max_workers: int = 3, extra_slots: int = 20) -> None:
@@ -40,6 +39,7 @@ class SemaphoreManager:
 
         Raises:
             ValueError: Если max_workers некорректен.
+
         """
         self._validate_max_workers(max_workers)
 
@@ -65,6 +65,7 @@ class SemaphoreManager:
 
         Raises:
             ValueError: Если max_workers некорректен.
+
         """
         if max_workers < MIN_WORKERS:
             raise ValueError(
@@ -75,7 +76,7 @@ class SemaphoreManager:
                 f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
             )
 
-    def acquire(self, blocking: bool = True, timeout: Optional[float] = None) -> bool:
+    def acquire(self, blocking: bool = True, timeout: float | None = None) -> bool:
         """Захватывает слот семафора.
 
         Args:
@@ -84,6 +85,7 @@ class SemaphoreManager:
 
         Returns:
             True если слот захвачен, False иначе.
+
         """
         acquired = self._semaphore.acquire(blocking=blocking, timeout=timeout)
         if acquired:
@@ -101,6 +103,7 @@ class SemaphoreManager:
 
         Raises:
             ValueError: Если семафор уже полностью освобождён.
+
         """
         try:
             with self._lock:
@@ -121,6 +124,7 @@ class SemaphoreManager:
 
         Returns:
             Количество доступных слотов.
+
         """
         # BoundedSemaphore не предоставляет прямого способа получить количество доступных слотов
         # Используем счётчик
@@ -132,6 +136,7 @@ class SemaphoreManager:
 
         Returns:
             Количество захваченных слотов.
+
         """
         with self._lock:
             return self._acquired_count
@@ -141,6 +146,7 @@ class SemaphoreManager:
 
         Returns:
             True если все слоты захвачены, False иначе.
+
         """
         return self.get_available_slots() == 0
 
@@ -155,6 +161,7 @@ class SemaphoreManager:
             - acquired: Захвачено слотов
             - available: Доступно слотов
             - utilization: Процент использования
+
         """
         with self._lock:
             total = self._max_workers + self._extra_slots
@@ -194,7 +201,7 @@ class SemaphoreManager:
 
 
 # Глобальный экземпляр для удобного доступа
-_semaphore_manager: Optional[SemaphoreManager] = None
+_semaphore_manager: SemaphoreManager | None = None
 
 
 def get_semaphore_manager(max_workers: int = 3) -> SemaphoreManager:
@@ -205,6 +212,7 @@ def get_semaphore_manager(max_workers: int = 3) -> SemaphoreManager:
 
     Returns:
         Экземпляр SemaphoreManager.
+
     """
     global _semaphore_manager
     if _semaphore_manager is None or _semaphore_manager.max_workers != max_workers:

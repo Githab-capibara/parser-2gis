@@ -1,5 +1,4 @@
-"""
-Модуль для интеллектуального механизма повторных попыток.
+"""Модуль для интеллектуального механизма повторных попыток.
 
 Этот модуль предоставляет логику для принятия решений о том,
 нужно ли выполнять повторную попытку или лучше завершить парсинг.
@@ -7,14 +6,13 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from parser_2gis.logger import logger
 
 
 class SmartRetryManager:
-    """
-    Менеджер интеллектуальных повторных попыток.
+    """Менеджер интеллектуальных повторных попыток.
 
     Анализирует ситуацию и принимает решение о необходимости
     повторных попыток на основе контекста (количество записей,
@@ -22,19 +20,19 @@ class SmartRetryManager:
     """
 
     def __init__(self, max_retries: int = 3, max_delay: float = 30.0) -> None:
-        """
-        Инициализирует менеджер повторных попыток.
+        """Инициализирует менеджер повторных попыток.
 
         Args:
             max_retries: Максимальное количество повторных попыток.
             max_delay: Максимальная задержка между попытками в секундах (H020).
+
         """
         self._max_retries = max_retries
         self._max_delay = max_delay  # H020: Ограничение максимальной задержки
         self._retry_count = 0
         self._total_records_collected = 0
         self._records_on_last_page = 0
-        self._last_error: Optional[str] = None
+        self._last_error: str | None = None
 
         logger.debug(
             "Инициализирован SmartRetryManager с max_retries=%d, max_delay=%.1fсек",
@@ -43,8 +41,7 @@ class SmartRetryManager:
         )
 
     def should_retry(self, error: str, records_on_page: int = 0) -> bool:
-        """
-        Определяет, нужно ли выполнять повторную попытку.
+        """Определяет, нужно ли выполнять повторную попытку.
 
         Args:
             error: Описание ошибки.
@@ -56,6 +53,7 @@ class SmartRetryManager:
         Примечание:
             Счётчик попыток увеличивается только после принятия решения
             о необходимости повторной попытки для корректного подсчёта.
+
         """
         self._last_error = error
         self._records_on_last_page = records_on_page
@@ -120,27 +118,26 @@ class SmartRetryManager:
         return True
 
     def add_records(self, count: int) -> None:
-        """
-        Добавляет количество собранных записей.
+        """Добавляет количество собранных записей.
 
         Args:
             count: Количество новых записей.
+
         """
         self._total_records_collected += count
         logger.debug("Добавлено %d записей (всего: %d)", count, self._total_records_collected)
 
     def get_retry_count(self) -> int:
-        """
-        Возвращает текущее количество попыток.
+        """Возвращает текущее количество попыток.
 
         Returns:
             Количество попыток.
+
         """
         return self._retry_count
 
     def get_retry_delay(self, base_delay: float = 1.0) -> float:
-        """
-        Вычисляет задержку перед следующей попыткой с ограничением.
+        """Вычисляет задержку перед следующей попыткой с ограничением.
 
         H020: Ограничивает максимальную задержку для предотвращения чрезмерного ожидания.
 
@@ -149,6 +146,7 @@ class SmartRetryManager:
 
         Returns:
             Задержка в секундах (не более max_delay).
+
         """
         import random
 
@@ -161,20 +159,20 @@ class SmartRetryManager:
         return capped_delay + jitter
 
     def get_total_records(self) -> int:
-        """
-        Возвращает общее количество собранных записей.
+        """Возвращает общее количество собранных записей.
 
         Returns:
             Общее количество записей.
+
         """
         return self._total_records_collected
 
-    def get_stats(self) -> Dict[str, Any]:
-        """
-        Возвращает статистику повторных попыток.
+    def get_stats(self) -> dict[str, Any]:
+        """Возвращает статистику повторных попыток.
 
         Returns:
             Словарь со статистикой.
+
         """
         return {
             "retry_count": self._retry_count,

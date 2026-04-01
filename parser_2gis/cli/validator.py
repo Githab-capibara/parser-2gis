@@ -33,6 +33,7 @@ class ValidationArgument:
         max_val: Максимально допустимое значение.
         error_name: Имя аргумента для сообщения об ошибке.
         convert_to_int: Конвертировать значение в int перед валидацией.
+
     """
 
     args: argparse.Namespace
@@ -58,6 +59,7 @@ class ArgumentValidator:
         >>> validator = ArgumentValidator()
         >>> validator.validate_numeric_arguments(args, parser)
         >>> validator.validate_urls(args, parser)
+
     """
 
     def validate_cli_argument(
@@ -84,6 +86,7 @@ class ArgumentValidator:
         Примечание:
             Функция безопасно проверяет наличие атрибута и его значение.
             При ошибке валидации вызывает arg_parser.error().
+
         """
         # Группировка параметров в dataclass для удобства
         validation_config = ValidationArgument(
@@ -137,6 +140,7 @@ class ArgumentValidator:
         Примечание:
             Использует validate_url из validation.py для проверки каждого URL.
             При ошибке выводит список всех некорректных URL.
+
         """
         if args.url:
             url_errors = []
@@ -160,6 +164,7 @@ class ArgumentValidator:
         Примечание:
             Валидирует: parser.max_retries, timeout, max_workers,
             chrome.startup_delay, memory_limit, и другие числовые параметры.
+
         """
         self.validate_cli_argument(
             args, arg_parser, "parser.max_retries", 1, float("inf"), "--parser.max-retries"
@@ -247,6 +252,7 @@ class ArgumentValidator:
             - Проверяет наличие хотя бы одного источника URL (кроме TUI)
             - Проверяет что --categories-mode требует --cities
             - Валидирует формат URL
+
         """
         is_tui_mode = getattr(args, "tui_new", False) or getattr(args, "tui_new_omsk", False)
 
@@ -280,6 +286,7 @@ class ArgumentValidator:
         Raises:
             ValueError: При обнаружении небезопасного пути.
             OSError: При ошибке работы с файловой системой.
+
         """
         # Валидируем output_path
         output_path = getattr(args, "output_path", None)
@@ -314,6 +321,7 @@ class ArgumentValidator:
         Примечание:
             Формирует понятное сообщение об ошибках валидации.
             Использует report_from_validation_error для детализации ошибок.
+
         """
         try:
             return Configuration(**config_args)

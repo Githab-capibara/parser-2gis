@@ -11,7 +11,8 @@ from __future__ import annotations
 import csv
 import os
 import re
-from typing import Any, Dict, List, Optional, Pattern
+from typing import Any
+from re import Pattern
 
 from parser_2gis.constants import CSV_BATCH_SIZE
 from parser_2gis.logger import logger
@@ -30,18 +31,18 @@ class CSVPostProcessor:
     def __init__(
         self,
         file_path: str,
-        data_mapping: Dict[str, Any],
-        complex_mapping: Dict[str, Any],
+        data_mapping: dict[str, Any],
+        complex_mapping: dict[str, Any],
         encoding: str = "utf-8",
     ) -> None:
-        """
-        Инициализация постпроцессора.
+        """Инициализация постпроцессора.
 
         Args:
             file_path: Путь к CSV файлу.
             data_mapping: Маппинг данных CSV.
             complex_mapping: Маппинг сложных полей (phone, email, и т.д.).
             encoding: Кодировка файла.
+
         """
         self._file_path = file_path
         self._data_mapping = data_mapping
@@ -49,8 +50,7 @@ class CSVPostProcessor:
         self._encoding = encoding
 
     def remove_empty_columns(self) -> None:
-        """
-        Удаляет пустые колонки из CSV файла.
+        """Удаляет пустые колонки из CSV файла.
 
         Оптимизация:
         - Увеличенная буферизация чтения/записи (256KB)
@@ -70,10 +70,10 @@ class CSVPostProcessor:
         complex_columns = list(self._complex_mapping.keys())
 
         # Словарь для подсчёта непустых значений в сложных колонках
-        complex_columns_count: Dict[str, int] = {}
+        complex_columns_count: dict[str, int] = {}
 
         # Оптимизация: компилируем regex паттерн один раз
-        complex_columns_pattern: Optional[Pattern[str]] = None
+        complex_columns_pattern: Pattern[str] | None = None
         if complex_columns:
             # Группируем паттерны для корректной работы regex
             pattern_str = r"^(?:" + "|".join(rf"{x}_\d+" for x in complex_columns) + r")$"
@@ -83,7 +83,7 @@ class CSVPostProcessor:
                     complex_columns_count[c] = 0
 
         # Первый проход: подсчёт непустых значений в сложных колонках
-        file_size: Optional[int] = None
+        file_size: int | None = None
         try:
             optimal_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
 
@@ -151,7 +151,7 @@ class CSVPostProcessor:
             raise
 
         # Генерация нового маппинга данных
-        new_data_mapping: Dict[str, Any] = {}
+        new_data_mapping: dict[str, Any] = {}
         for k, v in self._data_mapping.items():
             if k in complex_columns_count:
                 # Оставляем только заполненные сложные колонки
@@ -200,7 +200,7 @@ class CSVPostProcessor:
                 _,  # is_mmap не используется
                 _,  # underlying_fp не используется
             ):
-                f_tmp_csv: Optional[Any] = None
+                f_tmp_csv: Any | None = None
                 try:
                     f_tmp_csv = open(
                         tmp_csv_name,
@@ -234,7 +234,7 @@ class CSVPostProcessor:
                     # Запись нового заголовка
                     csv_writer.writerow(new_data_mapping)
 
-                    batch: List[Dict[str, Any]] = []
+                    batch: list[dict[str, Any]] = []
                     batch_size = CSV_BATCH_SIZE  # Используем увеличенный размер пакета (1000 строк)
                     total_batches = 0
 
@@ -293,21 +293,20 @@ class CSVPostProcessor:
                         "Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error
                     )
 
-    def add_rubrics(self, rubrics: List[str], join_char: str = ", ") -> None:
-        """
-        Добавляет рубрики в CSV файл.
+    def add_rubrics(self, rubrics: list[str], join_char: str = ", ") -> None:
+        """Добавляет рубрики в CSV файл.
 
         Args:
             rubrics: Список рубрик для добавления.
             join_char: Разделитель для рубрик.
+
         """
         # Эта функция может быть реализована при необходимости
         # В текущей версии рубрики добавляются при записи
         logger.debug("Добавление рубрик: %s", rubrics)
 
     def add_comments_to_contacts(self) -> None:
-        """
-        Добавляет комментарии к контактам в CSV файле.
+        """Добавляет комментарии к контактам в CSV файле.
 
         Примечание:
             В текущей версии комментарии добавляются при извлечении данных.

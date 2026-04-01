@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 import sys
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set
+from typing import TYPE_CHECKING, Any
 
 from parser_2gis.logger import logger
 
@@ -23,7 +23,7 @@ MAX_INITIAL_STATE_DEPTH = 10
 MAX_INITIAL_STATE_SIZE = 5 * 1024 * 1024
 MAX_ITEMS_IN_COLLECTION = 10000
 
-_ALLOWED_KEYS: Set[str] = {
+_ALLOWED_KEYS: set[str] = {
     "data",
     "entity",
     "profile",
@@ -92,6 +92,29 @@ _DANGEROUS_KEYS = {
     "__lookupSetter__",
 }
 
+# D013: Дополнительные паттерны для санитизации строк
+_HTML_ESCAPE_TABLE = {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;"}
+
+
+def _sanitize_string_value(value: str) -> str:
+    """D013: Санитизирует строковое значение для предотвращения XSS.
+
+    Args:
+        value: Исходная строка.
+
+    Returns:
+        Санитизированная строка с экранированными HTML символами.
+
+    """
+    if not isinstance(value, str):
+        return value
+
+    # Экранируем HTML символы
+    for char, escape in _HTML_ESCAPE_TABLE.items():
+        value = value.replace(char, escape)
+
+    return value
+
 
 def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> tuple[bool, int]:
     """Рекурсивно валидирует структуру initialState на безопасность.
@@ -103,6 +126,7 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
 
     Returns:
         Кортеж (is_valid, item_count) - валидны ли данные и общее количество элементов.
+
     """
     if depth > MAX_INITIAL_STATE_DEPTH:
         logger.warning("Превышена максимальная глубина вложенности initialState: %d", depth)
@@ -171,9 +195,7 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
     return False, item_count
 
 
-def _safe_extract_initial_state(
-    raw_data: Any, required_keys: list[str]
-) -> Optional[Dict[str, Any]]:
+def _safe_extract_initial_state(raw_data: Any, required_keys: list[str]) -> dict[str, Any] | None:
     """Безопасно извлекает данные из initialState с валидацией.
 
     Args:
@@ -182,6 +204,7 @@ def _safe_extract_initial_state(
 
     Returns:
         Валидированный словарь данных или None при ошибке.
+
     """
     if not isinstance(raw_data, dict):
         logger.warning("initialState не является словарём")
@@ -230,6 +253,7 @@ class FirmParser(MainParser):
 
         Args:
             writer: Целевой файловый писатель.
+
         """
         # Переходим по URL с агрессивно ускоренным таймаутом для интенсивного парсинга
         self._chrome_remote.navigate(self._url, referer="https://google.com", timeout=15)
@@ -269,6 +293,11 @@ class FirmParser(MainParser):
             if not initial_state:
                 logger.warning("Данные организации не найдены (initialState отсутствует).")
                 return
+            # D017: Дополнительная валидация window.initialState
+            if not isinstance(initial_state, dict):
+                logger.error("window.initialState не является словарём")
+                return
+
             # Используем новую функцию валидации вместо ручной проверки
             required_keys = ["data", "entity", "profile"]
             profile_data = _safe_extract_initial_state(initial_state, required_keys)
@@ -283,6 +312,12 @@ class FirmParser(MainParser):
                 logger.warning("Данные организации не найдены (пустой профиль).")
                 return
             doc = data[0]
+
+            # D013: Санитизация строковых данных перед записью
+            if "data" in doc and isinstance(doc["data"], dict):
+                for key, value in doc["data"].items():
+                    if isinstance(value, str):
+                        doc["data"][key] = _sanitize_string_value(value)
         except (KeyError, TypeError, AttributeError) as e:
             logger.error("Ошибка при получении данных организации: %s", e)
             return

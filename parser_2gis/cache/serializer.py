@@ -1,5 +1,4 @@
-"""
-Модуль сериализации данных для кэширования.
+"""Модуль сериализации данных для кэширования.
 
 Предоставляет класс JsonSerializer для сериализации и десериализации
 данных в формат JSON с поддержкой orjson для высокой производительности.
@@ -13,7 +12,7 @@
 """
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 from ..logger.logger import logger as app_logger
 
@@ -41,15 +40,15 @@ class JsonSerializer:
         >>> data = {"key": "value"}
         >>> json_str = serializer.serialize(data)
         >>> deserialized = serializer.deserialize(json_str)
+
     """
 
     def __init__(self) -> None:
         """Инициализация сериализатора."""
         self.use_orjson = _USE_ORJSON
 
-    def serialize(self, data: Dict[str, Any]) -> str:
-        """
-        Сериализует данные в JSON формат.
+    def serialize(self, data: dict[str, Any]) -> str:
+        """Сериализует данные в JSON формат.
 
         - Выбрасываем явные исключения с контекстом вместо app_logger.warning
         - Используем orjson если установлен (в 2-3 раза быстрее)
@@ -69,6 +68,7 @@ class JsonSerializer:
             >>> serializer = JsonSerializer()
             >>> serializer.serialize({"key": "value"})
             '{"key":"value"}'
+
         """
         if self.use_orjson and orjson is not None:
             # orjson возвращает bytes, декодируем в строку
@@ -94,9 +94,8 @@ class JsonSerializer:
                 f"Data type: {type(data).__name__}, data size: {len(str(data))} bytes"
             ) from json_error
 
-    def deserialize(self, data: str) -> Dict[str, Any]:
-        """
-        Десериализует JSON строку в данные с валидацией структуры.
+    def deserialize(self, data: str) -> dict[str, Any]:
+        """Десериализует JSON строку в данные с валидацией структуры.
 
         - Используем orjson если установлен
         - Fallback на стандартный json если orjson недоступен
@@ -120,6 +119,7 @@ class JsonSerializer:
             >>> serializer = JsonSerializer()
             >>> serializer.deserialize('{"key":"value"}')
             {'key': 'value'}
+
         """
         try:
             if self.use_orjson and orjson is not None:
@@ -177,7 +177,7 @@ class JsonSerializer:
                 f"Original error: {unicode_error}. Длина данных: {data_len}"
             ) from unicode_error
 
-        except (MemoryError,) as json_error:
+        except MemoryError as json_error:
             # Обрабатываем все остальные исключения десериализации с сохранением цепочки
             if orjson is not None:
                 try:
@@ -207,9 +207,8 @@ class JsonSerializer:
 # =============================================================================
 
 
-def _serialize_json(data: Dict[str, Any]) -> str:
-    """
-    Функция-обёртка для сериализации JSON (для обратной совместимости с тестами).
+def _serialize_json(data: dict[str, Any]) -> str:
+    """Функция-обёртка для сериализации JSON (для обратной совместимости с тестами).
 
     Args:
         data: Данные для сериализации.
@@ -219,14 +218,14 @@ def _serialize_json(data: Dict[str, Any]) -> str:
 
     Raises:
         TypeError: При ошибке сериализации данных.
+
     """
     serializer = JsonSerializer()
     return serializer.serialize(data)
 
 
-def _deserialize_json(data: str) -> Dict[str, Any]:
-    """
-    Функция-обёртка для десериализации JSON (для обратной совместимости с тестами).
+def _deserialize_json(data: str) -> dict[str, Any]:
+    """Функция-обёртка для десериализации JSON (для обратной совместимости с тестами).
 
     Args:
         data: JSON строка для десериализации.
@@ -236,6 +235,7 @@ def _deserialize_json(data: str) -> Dict[str, Any]:
 
     Raises:
         ValueError: При ошибке десериализации.
+
     """
     serializer = JsonSerializer()
     return serializer.deserialize(data)

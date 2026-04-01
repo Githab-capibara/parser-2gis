@@ -1,5 +1,4 @@
-"""
-Модуль декораторов для ожидания завершения операций.
+"""Модуль декораторов для ожидания завершения операций.
 
 Содержит декораторы для синхронного и асинхронного ожидания
 завершения функций с поддержкой экспоненциальной задержки.
@@ -13,7 +12,8 @@ import logging
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ POLLING
@@ -39,13 +39,14 @@ class WaitConfig:
         throw_exception: Бросать ли исключение при таймауте.
         poll_interval: Начальный интервал опроса.
         max_retries: Максимальное количество попыток.
+
     """
 
-    timeout: Optional[int] = None
-    finished: Optional[Callable[[Any], bool]] = None
+    timeout: int | None = None
+    finished: Callable[[Any], bool] | None = None
     throw_exception: bool = False
     poll_interval: float = DEFAULT_POLL_INTERVAL
-    max_retries: Optional[int] = None
+    max_retries: int | None = None
 
 
 # =============================================================================
@@ -60,6 +61,7 @@ def _get_logger() -> Any:
 
     Returns:
         Экземпляр logger из модуля logger.
+
     """
     from parser_2gis.logger import logger as app_logger
 
@@ -79,6 +81,7 @@ def _default_predicate(value: Any) -> bool:
 
     Returns:
         True если значение истинно, False иначе.
+
     """
     return bool(value)
 
@@ -89,13 +92,13 @@ def _default_predicate(value: Any) -> bool:
 
 
 def wait_until_finished(
-    timeout: Optional[int] = None,
-    finished: Optional[Callable[[Any], bool]] = None,
+    timeout: int | None = None,
+    finished: Callable[[Any], bool] | None = None,
     throw_exception: bool = True,
     poll_interval: float = DEFAULT_POLL_INTERVAL,
     use_exponential_backoff: bool = True,
     max_poll_interval: float = MAX_POLL_INTERVAL,
-    max_retries: Optional[int] = None,
+    max_retries: int | None = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Декоратор опрашивает обёрнутую функцию до истечения времени или пока
     предикат `finished` не вернёт `True`.
@@ -129,6 +132,7 @@ def wait_until_finished(
         >>> @wait_until_finished(timeout=30, finished=lambda x: x > 0, max_retries=100)
         ... def fetch_data() -> int:
         ...     return some_api_call()
+
     """
     # Сохраняем значения декоратора в замыкании
     decorator_timeout = timeout
@@ -142,16 +146,16 @@ def wait_until_finished(
         def inner(
             *args: Any,
             # Поддерживаем оба варианта: override_* и оригинальные имена
-            override_timeout: Optional[int] = None,
-            override_finished: Optional[Callable[[Any], bool]] = None,
-            override_throw_exception: Optional[bool] = None,
-            override_poll_interval: Optional[float] = None,
-            override_max_retries: Optional[int] = None,
-            timeout: Optional[int] = None,
-            finished: Optional[Callable[[Any], bool]] = None,
-            throw_exception: Optional[bool] = None,
-            poll_interval: Optional[float] = None,
-            max_retries: Optional[int] = None,
+            override_timeout: int | None = None,
+            override_finished: Callable[[Any], bool] | None = None,
+            override_throw_exception: bool | None = None,
+            override_poll_interval: float | None = None,
+            override_max_retries: int | None = None,
+            timeout: int | None = None,
+            finished: Callable[[Any], bool] | None = None,
+            throw_exception: bool | None = None,
+            poll_interval: float | None = None,
+            max_retries: int | None = None,
             **kwargs: Any,
         ) -> Any:
             # Группировка эффективных параметров в dataclass
@@ -280,15 +284,14 @@ def wait_until_finished(
 
 
 def async_wait_until_finished(
-    timeout: Optional[int] = None,
-    finished: Optional[Callable[[Any], bool]] = None,
+    timeout: int | None = None,
+    finished: Callable[[Any], bool] | None = None,
     throw_exception: bool = True,
     poll_interval: float = DEFAULT_POLL_INTERVAL,
     use_exponential_backoff: bool = True,
     max_poll_interval: float = MAX_POLL_INTERVAL,
 ) -> Callable[..., Callable[..., Any]]:
-    """
-    Async версия декоратора wait_until_finished для asyncio.
+    """Async версия декоратора wait_until_finished для asyncio.
 
     - Использует asyncio.sleep() вместо time.sleep()
     - Совместим с asyncio event loop
@@ -312,6 +315,7 @@ def async_wait_until_finished(
         @async_wait_until_finished(timeout=30)
         async def my_async_function():
             return await some_async_operation()
+
     """
     decorator_timeout = timeout
     decorator_finished = finished
@@ -322,10 +326,10 @@ def async_wait_until_finished(
         @functools.wraps(func)
         async def inner(
             *args: Any,
-            override_timeout: Optional[int] = None,
-            override_finished: Optional[Callable[[Any], bool]] = None,
-            override_throw_exception: Optional[bool] = None,
-            override_poll_interval: Optional[float] = None,
+            override_timeout: int | None = None,
+            override_finished: Callable[[Any], bool] | None = None,
+            override_throw_exception: bool | None = None,
+            override_poll_interval: float | None = None,
             **kwargs: Any,
         ) -> Any:
             # Приоритет: override_* > значения из декоратора
@@ -390,9 +394,9 @@ def async_wait_until_finished(
 # =============================================================================
 
 __all__ = [
-    "wait_until_finished",
-    "async_wait_until_finished",
     "DEFAULT_POLL_INTERVAL",
-    "MAX_POLL_INTERVAL",
     "EXPONENTIAL_BACKOFF_MULTIPLIER",
+    "MAX_POLL_INTERVAL",
+    "async_wait_until_finished",
+    "wait_until_finished",
 ]

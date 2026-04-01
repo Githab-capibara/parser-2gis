@@ -1,5 +1,4 @@
-"""
-Модуль санитаризации данных.
+"""Модуль санитаризации данных.
 
 Содержит функции для очистки чувствительных данных из структур.
 """
@@ -9,7 +8,7 @@ from __future__ import annotations
 import logging
 import re
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from parser_2gis.constants import MAX_COLLECTION_SIZE, MAX_DATA_DEPTH, MAX_DATA_SIZE
 
@@ -25,6 +24,7 @@ def _get_logger() -> Any:
 
     Returns:
         Экземпляр logger из модуля logger.
+
     """
     from parser_2gis.logger import logger as app_logger
 
@@ -37,7 +37,7 @@ def _get_logger() -> Any:
 
 # Набор чувствительных ключей для фильтрации данных
 # БЕЗОПАСНОСТЬ: Расширенный список для предотвращения утечки чувствительных данных
-_SENSITIVE_KEYS: Set[str] = {
+_SENSITIVE_KEYS: set[str] = {
     "password",
     "passwd",
     "pwd",
@@ -107,8 +107,7 @@ _SENSITIVE_KEY_PATTERN = re.compile(
 
 @lru_cache(maxsize=None)
 def _is_sensitive_key(key: str) -> bool:
-    """
-    Проверяет, является ли ключ чувствительным.
+    """Проверяет, является ли ключ чувствительным.
 
     Args:
         key: Имя ключа для проверки.
@@ -120,6 +119,7 @@ def _is_sensitive_key(key: str) -> bool:
         Проверка включает:
         - Точное совпадение с известными чувствительными ключами
         - Совпадение по паттерну с учётом границ слов
+
     """
     key_lower = key.lower()
 
@@ -136,13 +136,12 @@ def _is_sensitive_key(key: str) -> bool:
 
 def _check_value_type_and_sensitivity(
     current_value: Any,
-    current_key: Optional[str],
-    parent: Optional[Any],
-    parent_key: Optional[Any],
-    results: Dict[int, Any],
-) -> Tuple[bool, Any]:
-    """
-    Проверяет тип значения и обрабатывает простые случаи.
+    current_key: str | None,
+    parent: Any | None,
+    parent_key: Any | None,
+    results: dict[int, Any],
+) -> tuple[bool, Any]:
+    """Проверяет тип значения и обрабатывает простые случаи.
 
     Выделена из _sanitize_value для снижения сложности основной функции.
 
@@ -155,6 +154,7 @@ def _check_value_type_and_sensitivity(
 
     Returns:
         Кортеж (handled, result) где handled указывает, было ли значение обработано.
+
     """
     # Быстрая проверка для неизменяемых типов - не требуют обработки
     if current_value is None or isinstance(current_value, (str, int, float, bool)):
@@ -176,9 +176,8 @@ def _check_value_type_and_sensitivity(
 # =============================================================================
 
 
-def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
-    """
-    Очищает чувствительные данные из значения.
+def _sanitize_value(value: Any, key: str | None = None) -> Any:
+    """Очищает чувствительные данные из значения.
 
     - Переписано на итеративный подход с явным стеком вместо рекурсии
     - Предотвращает RecursionError при обработке глубоко вложенных структур
@@ -198,6 +197,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
     Raises:
         ValueError: Если размер данных превышает MAX_DATA_SIZE или глубина превышает MAX_DATA_DEPTH.
         MemoryError: При критической нехватке памяти.
+
     """
     # _visited теперь локальная переменная, а не параметр функции
     _visited: set = set()
@@ -240,10 +240,10 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
         # Используем явный стек для итеративной обработки вместо рекурсии
         # Формат: (значение, ключ, родитель, ключ_в_родителе, глубина)
         # Добавлена глубина для контроля вложенности
-        stack: List[tuple] = [(value, key, None, None, 0)]
+        stack: list[tuple] = [(value, key, None, None, 0)]
 
         # Словарь для хранения результатов обработки
-        results: Dict[int, Any] = {}
+        results: dict[int, Any] = {}
 
         # Счётчик обработанных элементов для защиты от чрезмерной обработки
         processed_count = 0
@@ -336,7 +336,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                         )
 
                     # Создаём новый словарь для результата
-                    new_dict: Dict[str, Any] = {}
+                    new_dict: dict[str, Any] = {}
                     if parent is not None and parent_key is not None:
                         if isinstance(parent, dict):
                             parent[parent_key] = new_dict
@@ -367,7 +367,7 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
                         )
 
                     # Создаём новый список нужного размера
-                    new_list: List[Any] = [None] * len(current_value)
+                    new_list: list[Any] = [None] * len(current_value)
                     if parent is not None and parent_key is not None:
                         if isinstance(parent, dict):
                             parent[parent_key] = new_list
@@ -440,4 +440,4 @@ def _sanitize_value(value: Any, key: Optional[str] = None) -> Any:
 # ЭКСПОРТ
 # =============================================================================
 
-__all__ = ["_sanitize_value", "_is_sensitive_key", "_check_value_type_and_sensitivity"]
+__all__ = ["_check_value_type_and_sensitivity", "_is_sensitive_key", "_sanitize_value"]

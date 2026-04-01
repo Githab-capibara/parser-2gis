@@ -1,5 +1,4 @@
-"""
-Модуль валидации данных для кэширования.
+"""Модуль валидации данных для кэширования.
 
 Предоставляет класс CacheDataValidator для проверки данных кэша
 на безопасность и соответствие ограничениям.
@@ -14,7 +13,7 @@
 import math
 import re
 import urllib.parse
-from typing import Any, Set
+from typing import Any, ClassVar
 
 from ..constants import MAX_DATA_DEPTH, MAX_STRING_LENGTH
 from ..logger.logger import logger as app_logger
@@ -41,6 +40,7 @@ class CacheDataValidator:
         True
         >>> validator.validate({"__proto__": "attack"})
         False
+
     """
 
     # Паттерн для обнаружения SQL-инъекций
@@ -64,7 +64,7 @@ class CacheDataValidator:
 
     # Опасные ключи для защиты от prototype pollution
     # Расширенный набор для полной защиты от различных методов прототипного загрязнения
-    _DANGEROUS_KEYS: Set[str] = {
+    _DANGEROUS_KEYS: ClassVar[set[str]] = {
         "__proto__",
         "constructor",
         "prototype",
@@ -87,8 +87,7 @@ class CacheDataValidator:
         self.max_string_length = MAX_STRING_LENGTH
 
     def validate(self, data: Any, depth: int = 0) -> bool:
-        """
-        Валидирует данные кэша на безопасность.
+        """Валидирует данные кэша на безопасность.
 
         Проверяет тип данных, глубину вложенности, наличие опасных конструкций.
 
@@ -107,6 +106,7 @@ class CacheDataValidator:
             True
             >>> validator.validate({"__proto__": "attack"})
             False
+
         """
         # Проверяем глубину вложенности НЕМЕДЛЕННО
         # Это предотвращает обход проверки при глубокой вложенности
@@ -152,8 +152,7 @@ class CacheDataValidator:
         return False
 
     def _check_numeric(self, data: float | int) -> bool:
-        """
-        Валидирует числовые данные (int, float).
+        """Валидирует числовые данные (int, float).
 
         Args:
             data: Числовые данные для валидации.
@@ -167,6 +166,7 @@ class CacheDataValidator:
             True
             >>> validator._check_numeric(float('nan'))
             False
+
         """
         if isinstance(data, float) and (math.isnan(data) or math.isinf(data)):
             app_logger.warning("Обнаружено NaN/Infinity в данных кэша")
@@ -174,8 +174,7 @@ class CacheDataValidator:
         return True
 
     def _check_string(self, data: str) -> bool:
-        """
-        Валидирует строковые данные.
+        """Валидирует строковые данные.
 
         Args:
             data: Строка для валидации.
@@ -190,6 +189,7 @@ class CacheDataValidator:
             True
             >>> validator._check_string("SELECT * FROM users")
             False
+
         """
         if len(data) > self.max_string_length:
             app_logger.warning(
@@ -203,8 +203,7 @@ class CacheDataValidator:
         return True
 
     def _check_dict(self, data: dict, depth: int) -> bool:
-        """
-        Валидирует данные типа dict.
+        """Валидирует данные типа dict.
 
         Args:
             data: Словарь для валидации.
@@ -220,6 +219,7 @@ class CacheDataValidator:
             True
             >>> validator._check_dict({"__proto__": "attack"}, 0)
             False
+
         """
         # Проверяем на __proto__ и другие опасные ключи (prototype pollution)
         for key in data.keys():
@@ -247,8 +247,7 @@ class CacheDataValidator:
         return True
 
     def _check_list(self, data: list, depth: int) -> bool:
-        """
-        Валидирует данные типа list.
+        """Валидирует данные типа list.
 
         Args:
             data: Список для валидации.
@@ -263,6 +262,7 @@ class CacheDataValidator:
             True
             >>> validator._check_list([{"key": "value"}], 0)
             True
+
         """
         # H010: Проверяем глубину ПЕРЕД рекурсивным вызовом для оптимизации
         next_depth = depth + 1
@@ -281,8 +281,7 @@ class CacheDataValidator:
         return True
 
     def _check_sql_injection_patterns(self, value: Any) -> bool:
-        """
-        Проверяет значение на наличие SQL-инъекций.
+        """Проверяет значение на наличие SQL-инъекций.
 
         Args:
             value: Значение для проверки.
@@ -296,6 +295,7 @@ class CacheDataValidator:
             True
             >>> validator._check_sql_injection_patterns("'; DROP TABLE users; --")
             False
+
         """
         if isinstance(value, str):
             # Проверяем оригинальное значение
@@ -318,8 +318,7 @@ class CacheDataValidator:
 
 # Функция-обёртка для обратной совместимости с тестами
 def _validate_cached_data(data: Any, depth: int = 0) -> bool:
-    """
-    Валидирует данные кэша на безопасность (для обратной совместимости).
+    """Валидирует данные кэша на безопасность (для обратной совместимости).
 
     Args:
         data: Данные для валидации.
@@ -327,34 +326,35 @@ def _validate_cached_data(data: Any, depth: int = 0) -> bool:
 
     Returns:
         True если данные безопасны, False иначе.
+
     """
     validator = CacheDataValidator()
     return validator.validate(data, depth)
 
 
 def _check_sql_injection_patterns(value: Any) -> bool:
-    """
-    Проверяет значение на наличие SQL-инъекций (для обратной совместимости).
+    """Проверяет значение на наличие SQL-инъекций (для обратной совместимости).
 
     Args:
         value: Значение для проверки.
 
     Returns:
         True если значение безопасно, False если обнаружена SQL-инъекция.
+
     """
     validator = CacheDataValidator()
     return validator._check_sql_injection_patterns(value)
 
 
 def _normalize_unicode(value: str) -> str:
-    """
-    Нормализует Unicode строку в форму NFC (для обратной совместимости).
+    """Нормализует Unicode строку в форму NFC (для обратной совместимости).
 
     Args:
         value: Строка для нормализации.
 
     Returns:
         Нормализованная строка в форме NFC.
+
     """
     import unicodedata
 
@@ -367,22 +367,21 @@ def _normalize_unicode(value: str) -> str:
 
 
 def _validate_numeric_data(data: float | int) -> bool:
-    """
-    Валидирует числовые данные (для обратной совместимости).
+    """Валидирует числовые данные (для обратной совместимости).
 
     Args:
         data: Числовые данные для валидации.
 
     Returns:
         True если данные корректны, False если обнаружены NaN/Infinity.
+
     """
     validator = CacheDataValidator()
     return validator._check_numeric(data)
 
 
 def _validate_string_data(data: str) -> bool:
-    """
-    Валидирует строковые данные (для обратной совместимости).
+    """Валидирует строковые данные (для обратной совместимости).
 
     Args:
         data: Строка для валидации.
@@ -390,14 +389,14 @@ def _validate_string_data(data: str) -> bool:
     Returns:
         True если строка корректна, False если превышает лимит длины
         или содержит SQL-инъекцию.
+
     """
     validator = CacheDataValidator()
     return validator._check_string(data)
 
 
 def _validate_dict_data(data: dict, depth: int = 0) -> bool:
-    """
-    Валидирует данные типа dict (для обратной совместимости).
+    """Валидирует данные типа dict (для обратной совместимости).
 
     Args:
         data: Словарь для валидации.
@@ -406,14 +405,14 @@ def _validate_dict_data(data: dict, depth: int = 0) -> bool:
     Returns:
         True если словарь корректен, False если обнаружены опасные ключи
         или значения.
+
     """
     validator = CacheDataValidator()
     return validator._check_dict(data, depth)
 
 
 def _validate_list_data(data: list, depth: int = 0) -> bool:
-    """
-    Валидирует данные типа list (для обратной совместимости).
+    """Валидирует данные типа list (для обратной совместимости).
 
     Args:
         data: Список для валидации.
@@ -421,6 +420,7 @@ def _validate_list_data(data: list, depth: int = 0) -> bool:
 
     Returns:
         True если список корректен, False если обнаружены недопустимые элементы.
+
     """
     validator = CacheDataValidator()
     return validator._check_list(data, depth)

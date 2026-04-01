@@ -1,5 +1,4 @@
-"""
-Модуль для параллельного парсинга городов.
+"""Модуль для параллельного парсинга городов.
 
 Этот модуль предоставляет возможность одновременного парсинга нескольких URL
 с использованием нескольких экземпляров браузера Chrome.
@@ -29,15 +28,15 @@ from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass
 from pathlib import Path
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, TextIO, Tuple, cast
+from typing import TYPE_CHECKING, TextIO, cast
+from collections.abc import Callable
 
-from typing_extensions import TypeAlias
+from typing import TypeAlias
 
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
     MAX_LOCK_FILE_AGE,
     MAX_TIMEOUT,
-    MAX_UNIQUE_NAME_ATTEMPTS,
     MAX_WORKERS,
     MERGE_BATCH_SIZE,
     MERGE_BUFFER_SIZE,
@@ -95,12 +94,13 @@ class ParserThreadConfig:
         max_workers: Максимальное количество одновременных браузеров.
         timeout_per_url: Таймаут на один URL в секундах.
         output_file: Имя выходного файла (опционально).
+
     """
 
     cities: list[dict]
     categories: list[dict]
     output_dir: str
-    config: "Configuration"
+    config: Configuration
     max_workers: int = 3
     timeout_per_url: int = DEFAULT_TIMEOUT
     output_file: str | None = None
@@ -115,8 +115,7 @@ atexit.register(cleanup_all_temp_files)
 
 
 class ParallelCityParser:
-    """
-    Параллельный парсер для парсинга городов по категориям.
+    """Параллельный парсер для парсинга городов по категориям.
 
     Запускает несколько браузеров одновременно для парсинга разных URL.
     Результаты сохраняются в отдельную папку output/, затем объединяются.
@@ -128,12 +127,13 @@ class ParallelCityParser:
         config: Конфигурация.
         max_workers: Максимальное количество одновременных браузеров.
         timeout_per_url: Таймаут на один URL в секундах (по умолчанию 300).
+
     """
 
     def __init__(
         self,
-        cities: List[dict],
-        categories: List[dict],
+        cities: list[dict],
+        categories: list[dict],
         output_dir: str,
         config: Configuration,
         max_workers: int = 3,
@@ -151,7 +151,27 @@ class ParallelCityParser:
 
         Raises:
             ValueError: Если входные данные невалидны.
+
         """
+        # D006: Валидация output_dir перед использованием
+        if output_dir is None:
+            raise ValueError("output_dir не может быть None")
+        if not isinstance(output_dir, str):
+            raise TypeError(f"output_dir должен быть строкой, получен {type(output_dir).__name__}")
+        if not output_dir.strip():
+            raise ValueError("output_dir не может быть пустой строкой")
+        # Проверка на path traversal атаки
+        if ".." in output_dir:
+            raise ValueError("output_dir не должен содержать '..'")
+        # Проверка на абсолютный путь
+        output_dir_path = Path(output_dir)
+        if not output_dir_path.is_absolute():
+            # Преобразуем относительный путь в абсолютный от рабочей директории
+            import os
+
+            output_dir = os.path.abspath(output_dir)
+            output_dir_path = Path(output_dir)
+
         # H6: Централизация валидации в validation/data_validator.py
         # Валидация городов
         validate_cities_config(cities, "cities")
@@ -180,7 +200,7 @@ class ParallelCityParser:
         if self.output_dir.exists():
             if not self.output_dir.is_dir():
                 raise ValueError(f"output_dir существует, но не является директорией: {output_dir}")
-            test_file: Optional[Path] = None
+            test_file: Path | None = None
             try:
                 test_file = self.output_dir / ".write_test"
                 test_file.touch()
@@ -243,10 +263,10 @@ class ParallelCityParser:
         self._browser_launch_semaphore = BoundedSemaphore(max_workers + 20)
 
         # Список для отслеживания временных файлов merge операции
-        self._merge_temp_files: List[Path] = []
+        self._merge_temp_files: list[Path] = []
         # HIGH 13: Используем Lock вместо RLock где не нужна реентерабельность
         self._merge_lock = threading.Lock()
-        self._temp_file_cleanup_timer: Optional[TempFileTimer] = None
+        self._temp_file_cleanup_timer: TempFileTimer | None = None
         if self.config.parallel.use_temp_file_cleanup:  # type: ignore[attr-defined]
             try:
                 self._temp_file_cleanup_timer = TempFileTimer(
@@ -277,26 +297,17 @@ class ParallelCityParser:
             log_func = getattr(logger, level)
             log_func(message)
 
-    def generate_all_urls(self) -> List[Tuple[str, str, str]]:
-        """
-        Генерирует все URL для парсинга.
+    def generate_all_urls(self) -> list[tuple[str, str, str]]:
+        """Генерирует все URL для парсинга.
+
+        C020: Использует list() для обратной совместимости.
 
         Returns:
             Список кортежей (url, category_name, city_name).
-        """
-        all_urls = []
 
-        for city in self.cities:
-            for category in self.categories:
-                try:
-                    url = generate_category_url(city, category)
-                    all_urls.append((url, category["name"], city["name"]))
-                except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
-                    self.log(
-                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
-                        "error",
-                    )
-                    continue
+        """
+        # C020: Используем генератор для эффективного создания списка
+        all_urls = list(self.generate_all_urls_lazy())
 
         with self._lock:
             self._stats["total"] = len(all_urls)
@@ -305,15 +316,35 @@ class ParallelCityParser:
 
         return all_urls
 
+    def generate_all_urls_lazy(self):
+        """Генератор URL для парсинга.
+
+        C020: Lazy loading для снижения потребления памяти.
+
+        Yields:
+            Кортеж (url, category_name, city_name).
+
+        """
+        for city in self.cities:
+            for category in self.categories:
+                try:
+                    url = generate_category_url(city, category)
+                    yield (url, category["name"], city["name"])
+                except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
+                    self.log(
+                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
+                        "error",
+                    )
+                    continue
+
     def parse_single_url(
         self,
         url: str,
         category_name: str,
         city_name: str,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-    ) -> Tuple[bool, str]:
-        """
-        Парсит один URL и сохраняет результат в отдельный файл.
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> tuple[bool, str]:
+        """Парсит один URL и сохраняет результат в отдельный файл.
 
         Использует временный файл для защиты от race condition:
         - Запись происходит во временный файл с уникальным именем
@@ -331,6 +362,7 @@ class ParallelCityParser:
 
         Returns:
             Кортеж (успех, сообщение).
+
         """
         # P1-13: Проверяем флаг отмены ПЕРЕД проверкой памяти
         if self._cancel_event.is_set():
@@ -341,7 +373,10 @@ class ParallelCityParser:
         available_memory = memory_monitor.get_available_memory()
         if available_memory < MEMORY_THRESHOLD_BYTES:  # Менее 100MB
             logger.warning(
-                f"Low memory ({available_memory // 1024 // 1024}MB), skipping {city_name} - {category_name}"
+                "Low memory (%dMB), skipping %s - %s",
+                available_memory // 1024 // 1024,
+                city_name,
+                category_name,
             )
             return False, "Недостаточно памяти"
 
@@ -351,13 +386,19 @@ class ParallelCityParser:
         filename = f"{safe_city}_{safe_category}.csv"
         filepath = self.output_dir / filename
 
-        # Создаём уникальное временное имя файла
-        temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+        # C006: Оптимизация создания уникального временного файла
+        # Используем timestamp + uuid для минимизации коллизий
+        timestamp = str(int(time.time() * 1000000))[-10:]
+        temp_filename = (
+            f"{safe_city}_{safe_category}_{os.getpid()}_{timestamp}_{uuid.uuid4().hex[:8]}.tmp"
+        )
         temp_filepath = self.output_dir / temp_filename
 
-        # Атомарное создание временного файла для предотвращения race condition
+        # C006: Атомарное создание временного файла с уменьшенным количеством попыток
+        # Используем O(1) атомарную операцию вместо O(n) поиска
         temp_fd = None
-        for attempt in range(MAX_UNIQUE_NAME_ATTEMPTS):
+        max_attempts = 3  # Уменьшено с MAX_UNIQUE_NAME_ATTEMPTS благодаря лучшей генерации имён
+        for attempt in range(max_attempts):
             try:
                 temp_fd = os.open(
                     str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
@@ -367,16 +408,18 @@ class ParallelCityParser:
                 logger.log(5, "Временный файл атомарно создан: %s", temp_filename)
                 break
             except FileExistsError:
-                if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
-                    logger.log(5, "Коллизия имён (попытка %d): генерация нового имени", attempt + 1)
+                if attempt < max_attempts - 1:
+                    # C006: Генерируем новое имя с новым timestamp
+                    timestamp = str(int(time.time() * 1000000))[-10:]
                     temp_filename = (
-                        f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+                        f"{safe_city}_{safe_category}_{os.getpid()}_"
+                        f"{timestamp}_{uuid.uuid4().hex[:8]}.tmp"
                     )
                     temp_filepath = self.output_dir / temp_filename
                 else:
                     logger.error(
                         "Не удалось создать уникальный временный файл после %d попыток: %s",
-                        MAX_UNIQUE_NAME_ATTEMPTS,
+                        max_attempts,
                         temp_filename,
                     )
                     raise
@@ -387,41 +430,44 @@ class ParallelCityParser:
                     except OSError as close_error:
                         logger.log(5, "Ошибка закрытия дескриптора файла: %s", close_error)
                     temp_fd = None
-                if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
-                    logger.log(
-                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1
-                    )
+                if attempt < max_attempts - 1:
+                    # C006: Генерируем новое имя с новым timestamp
+                    timestamp = str(int(time.time() * 1000000))[-10:]
                     temp_filename = (
-                        f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+                        f"{safe_city}_{safe_category}_{os.getpid()}_"
+                        f"{timestamp}_{uuid.uuid4().hex[:8]}.tmp"
                     )
                     temp_filepath = self.output_dir / temp_filename
                 else:
                     logger.error(
                         "Не удалось создать временный файл после %d попыток: %s",
-                        MAX_UNIQUE_NAME_ATTEMPTS,
+                        max_attempts,
                         temp_filename,
                     )
                     raise
 
-        def do_parse() -> Tuple[bool, str]:
-            """
-            Выполняет парсинг внутри отдельного потока.
+        def do_parse() -> tuple[bool, str]:
+            """Выполняет парсинг внутри отдельного потока.
 
             Returns:
                 Кортеж (успех, сообщение).
+
             """
             self.log(
                 f"Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filename})",
                 "info",
             )
 
-            # H003: Добавляем случайную задержку ПЕРЕД получением семафора ТОЛЬКО если use_delays=True
-            # Для 40+ потоков нужна большая задержка для равномерного распределения
-            if getattr(self.config.parallel, "use_delays", True):
-                initial_delay = random.uniform(
-                    self.config.parallel.initial_delay_min, self.config.parallel.initial_delay_max
-                )
-                time.sleep(initial_delay)
+            # D011: Rate limiting для 2GIS — обязательная минимальная задержка
+            # Даже если use_delays=False, задержка обязательна для предотвращения блокировок
+            use_delays = getattr(self.config.parallel, "use_delays", True)
+            initial_delay_min = getattr(self.config.parallel, "initial_delay_min", 0.5)
+            initial_delay_max = getattr(self.config.parallel, "initial_delay_max", 2.0)
+
+            # Минимальная задержка всегда применяется
+            delay = random.uniform(max(0.1, initial_delay_min), initial_delay_max)
+            self.log(f"Rate limiting задержка: {delay:.2f} сек", "debug")
+            time.sleep(delay)
 
             self._browser_launch_semaphore.acquire()
             try:
@@ -430,12 +476,15 @@ class ParallelCityParser:
                 from parser_2gis.parser import get_parser
                 from parser_2gis.writer import get_writer
 
-                # H003: Дополнительная задержка для распределения нагрузки при запуске ТОЛЬКО если use_delays=True
-                if getattr(self.config.parallel, "use_delays", True):
-                    launch_delay = random.uniform(
-                        self.config.parallel.launch_delay_min, self.config.parallel.launch_delay_max
+                # H003: Дополнительная задержка для распределения нагрузки при запуске
+                if use_delays:
+                    launch_delay_min = getattr(self.config.parallel, "launch_delay_min", 0.1)
+                    launch_delay_max = getattr(self.config.parallel, "launch_delay_max", 1.0)
+                    launch_delay = random.uniform(launch_delay_min, launch_delay_max)
+                    self.log(
+                        f"Дополнительная задержка запуска Chrome: {launch_delay:.2f} сек",
+                        "debug",
                     )
-                    self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
                     time.sleep(launch_delay)
 
                 max_retries = 10
@@ -603,10 +652,12 @@ class ParallelCityParser:
                 os.replace(str(temp_filepath), str(filepath))
                 move_success = True
             except (OSError, RuntimeError, TypeError, ValueError) as replace_error:
+                error_type = type(replace_error).__name__
                 self.log(
-                    f"Не удалось переименовать файл ({type(replace_error).__name__}): {replace_error}. "
-                    f"Используем shutil.move",
-                    "debug",
+                    "Не удалось переименовать файл (%s): %s. Используем shutil.move",
+                    error_type,
+                    replace_error,
+                    level="debug",
                 )
                 try:
                     shutil.move(str(temp_filepath), str(filepath))
@@ -645,7 +696,8 @@ class ParallelCityParser:
 
             return True, str(filepath)
 
-        # Используем ThreadPoolExecutor для установки таймаута (потокобезопасная альтернатива signal.alarm)
+        # Используем ThreadPoolExecutor для установки таймаута
+        # (потокобезопасная альтернатива signal.alarm)
         try:
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(do_parse)
@@ -708,9 +760,8 @@ class ParallelCityParser:
     # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ MERGE_CSV_FILES
     # =====================================================================
 
-    def _get_csv_files_list(self, output_dir: Path, output_file_path: Path) -> List[Path]:
-        """
-        Получает список CSV файлов для объединения.
+    def _get_csv_files_list(self, output_dir: Path, output_file_path: Path) -> list[Path]:
+        """Получает список CSV файлов для объединения.
 
         Args:
             output_dir: Директория с CSV файлами.
@@ -718,6 +769,7 @@ class ParallelCityParser:
 
         Returns:
             Отсортированный список CSV файлов.
+
         """
         csv_files = list(output_dir.glob("*.csv"))
 
@@ -729,14 +781,14 @@ class ParallelCityParser:
         return csv_files
 
     def _extract_category_from_filename(self, csv_file: Path) -> str:
-        """
-        Извлекает название категории из имени CSV файла.
+        """Извлекает название категории из имени CSV файла.
 
         Args:
             csv_file: Путь к CSV файлу.
 
         Returns:
             Название категории.
+
         """
         stem = csv_file.stem
         last_underscore_idx = stem.rfind("_")
@@ -748,9 +800,8 @@ class ParallelCityParser:
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
         return category
 
-    def _acquire_merge_lock(self, lock_file_path: Path) -> Tuple[Optional[TextIO], bool]:
-        """
-        Получает блокировку merge операции.
+    def _acquire_merge_lock(self, lock_file_path: Path) -> tuple[TextIO | None, bool]:
+        """Получает блокировку merge операции.
 
         CRITICAL 3: Улучшенная обработка race condition:
         1. Проверка возраста lock файла
@@ -762,6 +813,7 @@ class ParallelCityParser:
 
         Returns:
             Кортеж (lock_file_handle, lock_acquired).
+
         """
         lock_file_handle = None
         lock_acquired = False
@@ -774,23 +826,27 @@ class ParallelCityParser:
                     if lock_age > MAX_LOCK_FILE_AGE:
                         # Проверяем, активен ли процесс, создавший lock
                         try:
-                            with open(lock_file_path, "r", encoding="utf-8") as f:
+                            with open(lock_file_path, encoding="utf-8") as f:
                                 lock_pid = int(f.read().strip())
                             # Проверяем, существует ли процесс
                             os.kill(lock_pid, 0)
                             # Процесс существует - это не осиротевший lock
                             self.log(
-                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
-                                "warning",
+                                "Lock файл существует (возраст: %.0f сек, PID: %d), ожидаем...",
+                                lock_age,
+                                lock_pid,
+                                level="warning",
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             # Процесс не существует - это осиротевший lock
                             self.log(
-                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек, PID: {lock_pid})",
-                                "debug",
+                                "Удаление осиротевшего lock файла (возраст: %.0f сек, PID: %d)",
+                                lock_age,
+                                lock_pid,
+                                level="debug",
                             )
                             lock_file_path.unlink()
-                        except (IOError, OSError) as e:
+                        except OSError as e:
                             self.log(f"Ошибка проверки lock файла: {e}", "debug")
                     else:
                         self.log(
@@ -818,7 +874,7 @@ class ParallelCityParser:
                     lock_file_handle.flush()
                     lock_acquired = True
                     self.log("Lock file получен успешно", "debug")
-                except (IOError, OSError, FileExistsError):
+                except (OSError, FileExistsError):
                     if lock_fd is not None:
                         try:
                             os.close(lock_fd)
@@ -848,15 +904,15 @@ class ParallelCityParser:
                     self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
             return None, False
 
-        return cast(Tuple[Optional[TextIO], bool], (lock_file_handle, lock_acquired))
+        return cast(tuple[TextIO | None, bool], (lock_file_handle, lock_acquired))
 
-    def _cleanup_merge_lock(self, lock_file_handle: Optional[TextIO], lock_file_path: Path) -> None:
-        """
-        Очищает и удаляет lock файл.
+    def _cleanup_merge_lock(self, lock_file_handle: TextIO | None, lock_file_path: Path) -> None:
+        """Очищает и удаляет lock файл.
 
         Args:
             lock_file_handle: Дескриптор lock файла.
             lock_file_path: Путь к lock файлу.
+
         """
         try:
             if lock_file_handle:
@@ -870,14 +926,13 @@ class ParallelCityParser:
     def _process_single_csv_file(
         self,
         csv_file: Path,
-        writer: Optional["csv.DictWriter"],
+        writer: csv.DictWriter | None,
         outfile: TextIO,
         buffer_size: int,
         batch_size: int,
-        fieldnames_cache: Dict[Tuple[str, ...], List[str]],
-    ) -> Tuple[Optional["csv.DictWriter"], int]:
-        """
-        Обрабатывает один CSV файл и добавляет данные в выходной файл.
+        fieldnames_cache: dict[tuple[str, ...], list[str]],
+    ) -> tuple[csv.DictWriter | None, int]:
+        """Обрабатывает один CSV файл и добавляет данные в выходной файл.
 
         Args:
             csv_file: Путь к исходному CSV файлу.
@@ -889,10 +944,11 @@ class ParallelCityParser:
 
         Returns:
             Кортеж (writer, total_rows).
+
         """
         category_name = self._extract_category_from_filename(csv_file)
 
-        with open(csv_file, "r", encoding="utf-8-sig", newline="", buffering=buffer_size) as infile:
+        with open(csv_file, encoding="utf-8-sig", newline="", buffering=buffer_size) as infile:
             reader = csv.DictReader(infile)
 
             if not reader.fieldnames:
@@ -942,10 +998,9 @@ class ParallelCityParser:
     # =====================================================================
 
     def merge_csv_files(
-        self, output_file: str, progress_callback: Optional[Callable[[str], None]] = None
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
-        """
-        Объединяет все CSV файлы в один с добавлением колонки "Категория".
+        """Объединяет все CSV файлы в один с добавлением колонки "Категория".
 
         Args:
             output_file: Путь к итоговому файлу.
@@ -953,6 +1008,7 @@ class ParallelCityParser:
 
         Returns:
             True если успешно.
+
         """
         self.log("Начало объединения CSV файлов...", "info")
 
@@ -965,7 +1021,7 @@ class ParallelCityParser:
 
         self.log(f"Найдено {len(csv_files)} CSV файлов для объединения", "info")
 
-        files_to_delete: List[Path] = []
+        files_to_delete: list[Path] = []
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
         temp_file_created = False
 
@@ -1030,7 +1086,7 @@ class ParallelCityParser:
                 temp_file_created = True
                 writer = None
                 total_rows = 0
-                fieldnames_cache: Dict[Tuple[str, ...], List[str]] = {}
+                fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
 
                 for csv_file in csv_files:
                     if self._cancel_event.is_set():
@@ -1159,11 +1215,10 @@ class ParallelCityParser:
     def run(
         self,
         output_file: str,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-        merge_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+        merge_callback: Callable[[str], None] | None = None,
     ) -> bool:
-        """
-        Запускает параллельный парсинг всех городов и категорий.
+        """Запускает параллельный парсинг всех городов и категорий.
 
         Args:
             output_file: Путь к итоговому файлу.
@@ -1172,6 +1227,7 @@ class ParallelCityParser:
 
         Returns:
             True если успешно.
+
         """
         start_time = time.time()
         total_tasks = len(self.cities) * len(self.categories)
@@ -1339,27 +1395,27 @@ class ParallelCityParser:
 
         Returns:
             Словарь со статистикой парсинга.
+
         """
         with self._lock:
             return dict(self._stats)
 
 
 class ParallelCityParserThread:
-    """
-    Поток для параллельного парсинга городов.
+    """Поток для параллельного парсинга городов.
 
     Использует композицию вместо наследования для избежания проблем с MRO.
     """
 
     def __init__(
         self,
-        cities: List[dict],
-        categories: List[dict],
+        cities: list[dict],
+        categories: list[dict],
         output_dir: str,
-        config: "Configuration",
+        config: Configuration,
         max_workers: int = 3,
         timeout_per_url: int = DEFAULT_TIMEOUT,
-        output_file: Optional[str] = None,
+        output_file: str | None = None,
     ) -> None:
         """Инициализирует поток для параллельного парсинга.
 
@@ -1371,6 +1427,7 @@ class ParallelCityParserThread:
             max_workers: Максимальное количество одновременных браузеров.
             timeout_per_url: Таймаут на один URL в секундах.
             output_file: Имя выходного файла (опционально).
+
         """
         # Инициализация базового класса Thread
         super().__init__()
@@ -1396,7 +1453,7 @@ class ParallelCityParserThread:
             thread_config.timeout_per_url,
         )
 
-        self._result: Optional[bool] = None
+        self._result: bool | None = None
         self._output_file = thread_config.output_file
 
     @property
@@ -1417,7 +1474,7 @@ class ParallelCityParserThread:
             self.log(f"Ошибка в потоке параллельного парсинга: {e}", "error")
             self._result = False
 
-    def get_result(self) -> Optional[bool]:
+    def get_result(self) -> bool | None:
         """Возвращает результат парсинга."""
         return self._result
 
@@ -1448,9 +1505,9 @@ def _cleanup_all_temp_files() -> None:
 __all__ = [
     "ParallelCityParser",
     "ParallelCityParserThread",
+    "_cleanup_all_temp_files",
+    "_register_temp_file",
     "_temp_files_lock",
     "_temp_files_registry",
-    "_register_temp_file",
     "_unregister_temp_file",
-    "_cleanup_all_temp_files",
 ]

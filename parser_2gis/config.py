@@ -1,5 +1,4 @@
-"""
-Модуль конфигурации парсера.
+"""Модуль конфигурации парсера.
 
 Предоставляет классы и функции для работы с конфигурацией,
 включая валидацию, загрузку и сохранение настроек.
@@ -16,14 +15,14 @@ import pathlib
 from copy import deepcopy
 
 from pydantic import BaseModel, ConfigDict, ValidationError
-
-from typing_extensions import TypeAlias
+from typing import TypeAlias
 
 from .chrome import ChromeOptions
 from .cli.config_service import ConfigService
 from .logger import LogOptions
-from .logger.logger import logger
-from .logger.logger import logger as app_logger
+
+# Убран прямой импорт logger для устранения циклической зависимости (A011)
+# Используется lazy import внутри методов
 from .parallel import ParallelOptions
 from .parser import ParserOptions
 from .version import config_version
@@ -49,7 +48,7 @@ class Configuration(BaseModel):
     path: pathlib.Path | None = None
     version: str = config_version
 
-    def merge_with(self, other_config: "Configuration", max_depth: int = 50) -> None:
+    def merge_with(self, other_config: Configuration, max_depth: int = 50) -> None:
         """Объединяет конфигурацию с другой.
 
         Рекурсивно обновляет поля текущей конфигурации значениями из other_config.
@@ -65,6 +64,7 @@ class Configuration(BaseModel):
 
         Note:
             При достижении 80% от max_depth выводится предупреждение.
+
         """
         visited_objects: set[int] = set()
         self._merge_recursive_safe(
@@ -85,7 +85,10 @@ class Configuration(BaseModel):
         """Проверяет на циклические ссылки."""
         source_id = id(source)
         if source_id in visited_objects:
-            app_logger.warning(
+            # Lazy import для устранения циклической зависимости (A011)
+            from .logger.logger import logger as lazy_logger
+
+            lazy_logger.warning(
                 "Обнаружена циклическая ссылка на объект %s (id=%d). Пропускаем.",
                 type(source).__name__,
                 source_id,
@@ -98,7 +101,10 @@ class Configuration(BaseModel):
         """Выводит предупреждение о глубине рекурсии."""
         warning_threshold = int(max_depth * 0.8)
         if current_depth >= warning_threshold:
-            logger.warning(
+            # Lazy import для устранения циклической зависимости (A011)
+            from .logger.logger import logger as lazy_logger
+
+            lazy_logger.warning(
                 "Внимание: глубина обработки достигла %d/%d (80%% от лимита)",
                 current_depth,
                 max_depth,
@@ -198,12 +204,15 @@ class Configuration(BaseModel):
         if self.path:
             ConfigService.save_config(config=self, path=self.path)
         else:
-            logger.warning("Путь для сохранения конфигурации не указан")
+            # Lazy import для устранения циклической зависимости (A011)
+            from .logger.logger import logger as lazy_logger
+
+            lazy_logger.warning("Путь для сохранения конфигурации не указан")
 
     @classmethod
     def load_config(
         cls, config_path: pathlib.Path | None = None, auto_create: bool = True
-    ) -> "Configuration":
+    ) -> Configuration:
         """Загружает конфигурацию из файла.
 
         Делегирует к ConfigService для операций save/load.
@@ -222,6 +231,9 @@ class Configuration(BaseModel):
         """Формирует детальное сообщение об ошибках валидации."""
         from parser_2gis.utils import report_from_validation_error
 
+        # Lazy import для устранения циклической зависимости (A011)
+        from .logger.logger import logger as lazy_logger
+
         errors = []
         errors_report = report_from_validation_error(ex)
         for attr_path, error in errors_report.items():
@@ -229,6 +241,6 @@ class Configuration(BaseModel):
             errors.append(f"атрибут {attr_path} ({error_msg})")
 
         if errors:
-            logger.warning("Ошибки валидации: %s", ", ".join(errors))
+            lazy_logger.warning("Ошибки валидации: %s", ", ".join(errors))
         else:
-            logger.warning("Неизвестные ошибки валидации")
+            lazy_logger.warning("Неизвестные ошибки валидации")

@@ -19,7 +19,8 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 from .parsers import FirmParser, InBuildingParser, MainParser
 from .parsers.base import BaseParser
@@ -33,10 +34,10 @@ if TYPE_CHECKING:
 # REGISTRY PATTERN ДЛЯ PARSERS
 # =============================================================================
 
-PARSER_REGISTRY: Dict[str, Type[BaseParser]] = {}
+PARSER_REGISTRY: dict[str, type[BaseParser]] = {}
 """Реестр зарегистрированных parser классов по названию."""
 
-_PARSER_PATTERNS: List[Tuple[Type[BaseParser], re.Pattern]] = []
+_PARSER_PATTERNS: list[tuple[type[BaseParser], re.Pattern]] = []
 """Список кортежей (parser_class, compiled_pattern) для сопоставления URL."""
 
 
@@ -56,9 +57,10 @@ def register_parser(priority: int = 0) -> Callable[..., Any]:
         ...     @staticmethod
         ...     def url_pattern() -> str:
         ...         return r".*custom.*"
+
     """
 
-    def decorator(cls: Type[BaseParser]) -> Type[BaseParser]:
+    def decorator(cls: type[BaseParser]) -> type[BaseParser]:
         # Регистрируем класс в реестре
         PARSER_REGISTRY[cls.__name__] = cls
 
@@ -87,7 +89,7 @@ def get_parser(
     url: str,
     chrome_options: ChromeOptions,
     parser_options: ParserOptions,
-    browser: Optional[BrowserService] = None,
+    browser: BrowserService | None = None,
 ) -> BaseParser:
     """Фабричная функция для получения парсера.
 
@@ -107,6 +109,7 @@ def get_parser(
     Example:
         >>> parser = get_parser(url, chrome_options, parser_options)
         >>> parser.parse()
+
     """
     for parser_cls, pattern in _PARSER_PATTERNS:
         if pattern.match(url):
@@ -116,11 +119,12 @@ def get_parser(
     return MainParser(url, chrome_options, parser_options, browser=browser)
 
 
-def get_registered_parsers() -> Dict[str, Type[BaseParser]]:
+def get_registered_parsers() -> dict[str, type[BaseParser]]:
     """Возвращает словарь зарегистрированных парсеров.
 
     Returns:
         Словарь {название_парсера: класс_парсера}.
+
     """
     return PARSER_REGISTRY.copy()
 
@@ -150,10 +154,10 @@ register_parser(priority=0)(MainParser)
 # =============================================================================
 
 __all__ = [
-    "get_parser",
-    "register_parser",
-    "get_registered_parsers",
-    "clear_parser_registry",
     "PARSER_REGISTRY",
     "_PARSER_PATTERNS",
+    "clear_parser_registry",
+    "get_parser",
+    "get_registered_parsers",
+    "register_parser",
 ]

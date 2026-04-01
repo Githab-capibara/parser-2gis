@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -42,7 +41,7 @@ class Rubric(BaseModel):
     short_id: int
 
     # Транслированное название страницы в web
-    alias: Optional[str] = None
+    alias: str | None = None
 
     # Идентификатор объединяющей рубрики
-    parent_id: Optional[str] = None
+    parent_id: str | None = None

@@ -1,5 +1,4 @@
-"""
-Модуль фасадов приложения Parser2GIS.
+"""Модуль фасадов приложения Parser2GIS.
 
 Предоставляет фасады для упрощения взаимодействия с основными компонентами:
 - ParserFacade: фасад для парсеров
@@ -11,7 +10,7 @@ H8: Выделение бизнес-логики и инфраструктуры
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from parser_2gis.protocols import BrowserService
 
@@ -34,15 +33,16 @@ class ParserFacade:
         >>> facade = ParserFacade()
         >>> parser = facade.create_parser(url, chrome_options, parser_options)
         >>> parser.parse(writer)
+
     """
 
     @staticmethod
     def create_parser(
         url: str,
-        chrome_options: "ChromeOptions",
-        parser_options: "ParserOptions",
-        browser: Optional[BrowserService] = None,
-    ) -> "BaseParser":
+        chrome_options: ChromeOptions,
+        parser_options: ParserOptions,
+        browser: BrowserService | None = None,
+    ) -> BaseParser:
         """Создаёт парсер для указанного URL.
 
         Args:
@@ -53,6 +53,7 @@ class ParserFacade:
 
         Returns:
             Экземпляр парсера.
+
         """
         from parser_2gis.parser.factory import get_parser
 
@@ -61,11 +62,11 @@ class ParserFacade:
     @staticmethod
     def parse_url(
         url: str,
-        writer: "FileWriter",
-        chrome_options: "ChromeOptions",
-        parser_options: "ParserOptions",
-        browser: Optional[BrowserService] = None,
-    ) -> Dict[str, Any]:
+        writer: FileWriter,
+        chrome_options: ChromeOptions,
+        parser_options: ParserOptions,
+        browser: BrowserService | None = None,
+    ) -> dict[str, Any]:
         """Выполняет парсинг URL и возвращает статистику.
 
         Args:
@@ -77,6 +78,7 @@ class ParserFacade:
 
         Returns:
             Словарь со статистикой парсинга.
+
         """
         parser = ParserFacade.create_parser(url, chrome_options, parser_options, browser)
         try:
@@ -97,6 +99,7 @@ class CacheFacade:
         >>> facade = CacheFacade(cache_path)
         >>> facade.get("key")
         >>> facade.set("key", "value", ttl=3600)
+
     """
 
     def __init__(self, cache_path: str) -> None:
@@ -104,12 +107,13 @@ class CacheFacade:
 
         Args:
             cache_path: Путь к файлу кэша.
+
         """
         from parser_2gis.cache import CacheManager
 
-        self._cache: "CacheManager" = CacheManager(cache_path)
+        self._cache: CacheManager = CacheManager(cache_path)
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Получает значение из кэша.
 
         Args:
@@ -117,6 +121,7 @@ class CacheFacade:
 
         Returns:
             Значение из кэша или None.
+
         """
         return self._cache.get(key)
 
@@ -127,6 +132,7 @@ class CacheFacade:
             key: Ключ для установки.
             value: Значение для кэширования.
             ttl: Время жизни в секундах (не используется, оставлено для обратной совместимости).
+
         """
         self._cache.set(key, value)
 
@@ -138,6 +144,7 @@ class CacheFacade:
 
         Returns:
             True если ключ существует.
+
         """
         return self._cache.get(key) is not None
 
@@ -146,6 +153,7 @@ class CacheFacade:
 
         Args:
             key: Ключ для удаления.
+
         """
         self._cache.delete(key)
 
@@ -153,7 +161,7 @@ class CacheFacade:
         """Закрывает кэш и освобождает ресурсы."""
         self._cache.close()
 
-    def __enter__(self) -> "CacheFacade":
+    def __enter__(self) -> CacheFacade:
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -171,33 +179,37 @@ class BrowserFacade:
         >>> with facade.create_browser() as browser:
         >>>     browser.navigate("https://2gis.ru")
         >>>     html = browser.get_html()
+
     """
 
-    def __init__(self, chrome_options: "ChromeOptions") -> None:
+    def __init__(self, chrome_options: ChromeOptions) -> None:
         """Инициализация браузерного фасада.
 
         Args:
             chrome_options: Опции Chrome.
+
         """
         self._chrome_options = chrome_options
-        self._response_patterns: List[str] = [r"https://catalog\.api\.2gis\.[^/]+/.*/items/byid"]
+        self._response_patterns: list[str] = [r"https://catalog\.api\.2gis\.[^/]+/.*/items/byid"]
 
-    def create_browser(self) -> "ChromeRemote":
+    def create_browser(self) -> ChromeRemote:
         """Создаёт экземпляр браузера.
 
         Returns:
             Экземпляр ChromeRemote.
+
         """
         from parser_2gis.chrome.remote import ChromeRemote
 
         return ChromeRemote(self._chrome_options, self._response_patterns)
 
-    def navigate(self, url: str, browser: Optional[BrowserService] = None) -> None:
+    def navigate(self, url: str, browser: BrowserService | None = None) -> None:
         """Выполняет навигацию по URL.
 
         Args:
             url: URL для навигации.
             browser: Опциональный браузер (если не передан, создаётся новый).
+
         """
         own_browser = browser or self.create_browser()
         own_browser.navigate(url)
@@ -210,12 +222,11 @@ class BrowserFacade:
 
         Returns:
             HTML содержимое страницы.
+
         """
         return browser.get_html()
 
-    def execute_js(
-        self, browser: BrowserService, js_code: str, timeout: Optional[int] = None
-    ) -> Any:
+    def execute_js(self, browser: BrowserService, js_code: str, timeout: int | None = None) -> Any:
         """Выполняет JavaScript код.
 
         Args:
@@ -225,6 +236,7 @@ class BrowserFacade:
 
         Returns:
             Результат выполнения JS.
+
         """
         return browser.execute_js(js_code, timeout)
 
@@ -233,9 +245,10 @@ class BrowserFacade:
 
         Args:
             browser: Браузер для закрытия.
+
         """
         if hasattr(browser, "close"):
             browser.close()
 
 
-__all__ = ["ParserFacade", "CacheFacade", "BrowserFacade"]
+__all__ = ["BrowserFacade", "CacheFacade", "ParserFacade"]

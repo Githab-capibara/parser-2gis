@@ -1,6 +1,4 @@
-"""
-Экраны просмотра кэша и информации о программе на Textual.
-"""
+"""Экраны просмотра кэша и информации о программе на Textual."""
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -77,6 +75,7 @@ class CacheViewerScreen(Screen):
 
         Returns:
             ComposeResult: Результат композиции виджетов.
+
         """
         with Container(id="cache-viewer-container"):
             yield Static("💾 Просмотр кэша", classes="header")
@@ -146,6 +145,7 @@ class CacheViewerScreen(Screen):
 
         Args:
             event: Событие нажатия кнопки.
+
         """
         button_id = event.button.id
 
@@ -253,6 +253,7 @@ class AboutScreen(Screen):
 
         Returns:
             ComposeResult: Результат композиции виджетов.
+
         """
         with Container(id="about-container"):
             yield Static("👤 О программе", classes="title")
@@ -306,6 +307,7 @@ class AboutScreen(Screen):
 
         Args:
             event: Событие нажатия кнопки.
+
         """
         if event.button.id == "back":
             self.app.pop_screen()  # type: ignore

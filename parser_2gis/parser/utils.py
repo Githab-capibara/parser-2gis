@@ -24,6 +24,7 @@ def blocked_requests(extended: bool = False) -> list[str]:
 
     Returns:
         Список блокируемых URL-шаблонов.
+
     """
     # Метрика, логирование, аналитика, счётчики, реклама и т.д.
     base_requests: list[str] = [

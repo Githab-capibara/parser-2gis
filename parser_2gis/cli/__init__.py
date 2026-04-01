@@ -24,11 +24,11 @@ from .progress import ProgressManager, ProgressStats
 from .validator import ArgumentValidator
 
 __all__ = [
-    "cli_app",
+    "ArgumentHelpFormatter",
+    "ArgumentValidator",
     "ProgressManager",
     "ProgressStats",
+    "cli_app",
     "main",
     "parse_arguments",
-    "ArgumentValidator",
-    "ArgumentHelpFormatter",
 ]

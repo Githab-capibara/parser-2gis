@@ -1,5 +1,4 @@
-"""
-Модуль координации потоков для параллельного парсинга.
+"""Модуль координации потоков для параллельного парсинга.
 
 Этот модуль предоставляет класс ThreadCoordinator для координации
 параллельного парсинга:
@@ -20,7 +19,8 @@ import threading
 from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING, Callable, Dict, List, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Literal
+from collections.abc import Callable
 
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
 
 # Глобальная переменная для отслеживания активного координатора
-_active_coordinator: Optional["ThreadCoordinator"] = None
+_active_coordinator: ThreadCoordinator | None = None
 
 
 def _signal_handler(signum: int, frame) -> None:
@@ -45,6 +45,7 @@ def _signal_handler(signum: int, frame) -> None:
     Args:
         signum: Номер сигнала.
         frame: Текущий фрейм.
+
     """
     global _active_coordinator
     if _active_coordinator is not None:
@@ -73,11 +74,12 @@ class ThreadCoordinator:
     Note:
         ProcessPoolExecutor рекомендуется для CPU-bound операций,
         но требует чтобы функции были pickleable.
+
     """
 
     def __init__(
         self,
-        url_parser: "ParallelUrlParser",
+        url_parser: ParallelUrlParser,
         max_workers: int = 3,
         timeout_per_url: int = DEFAULT_TIMEOUT,
         executor_type: ExecutorType = "thread",
@@ -93,6 +95,7 @@ class ThreadCoordinator:
         Raises:
             ValueError: Если max_workers или timeout_per_url некорректны.
             ValueError: Если executor_type некорректен.
+
         """
         self._validate_coordinator_config(max_workers, timeout_per_url)
         self._validate_executor_type(executor_type)
@@ -132,6 +135,7 @@ class ThreadCoordinator:
 
         Raises:
             ValueError: Если параметры некорректны.
+
         """
         if max_workers < MIN_WORKERS:
             raise ValueError(
@@ -159,6 +163,7 @@ class ThreadCoordinator:
 
         Raises:
             ValueError: Если тип некорректен.
+
         """
         if executor_type not in ("thread", "process"):
             raise ValueError(
@@ -173,8 +178,8 @@ class ThreadCoordinator:
 
     def run_parsing(
         self,
-        all_urls: List[Tuple[str, str, str]],
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
+        all_urls: list[tuple[str, str, str]],
+        progress_callback: Callable[[int, int, str], None] | None = None,
     ) -> bool:
         """Запускает параллельный парсинг всех URL.
 
@@ -184,6 +189,7 @@ class ThreadCoordinator:
 
         Returns:
             True если парсинг успешен, False иначе.
+
         """
         global _active_coordinator
 
@@ -194,8 +200,8 @@ class ThreadCoordinator:
         # Синхронизируем флаг отмены с url_parser
         self._url_parser._cancel_event = self._cancel_event
 
-        executor: Optional[Executor] = None
-        futures: Dict = {}
+        executor: Executor | None = None
+        futures: dict = {}
 
         try:
             # Создаём executor в зависимости от типа
@@ -266,8 +272,8 @@ class ThreadCoordinator:
         url: str,
         category_name: str,
         city_name: str,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
-    ) -> Tuple[bool, str]:
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> tuple[bool, str]:
         """Выполняет задачу парсинга одного URL.
 
         Args:
@@ -278,6 +284,7 @@ class ThreadCoordinator:
 
         Returns:
             Кортеж (успех, сообщение).
+
         """
         return self._url_parser.parse_single_url(
             url=url,
@@ -306,6 +313,6 @@ class ThreadCoordinator:
         return self._browser_semaphore
 
     @property
-    def stats(self) -> Dict[str, int]:
+    def stats(self) -> dict[str, int]:
         """Возвращает статистику парсинга."""
         return self._url_parser.stats

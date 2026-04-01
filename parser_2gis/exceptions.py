@@ -1,5 +1,4 @@
-"""
-Модуль исключений парсера.
+"""Модуль исключений парсера.
 
 Предоставляет базовый класс исключений BaseContextualException для обработки ошибок
 в различных компонентах парсера (Chrome, парсер, writer).
@@ -39,6 +38,7 @@ class ExceptionContextMixin:
 
         Returns:
             Кортеж (function_name, line_number, filename).
+
         """
         frame = inspect.currentframe()
         if frame and frame.f_back:

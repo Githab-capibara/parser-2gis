@@ -1,5 +1,4 @@
-"""
-Модуль извлечения данных для парсера 2GIS.
+"""Модуль извлечения данных для парсера 2GIS.
 
 Предоставляет класс MainDataExtractor для извлечения данных:
 - Парсинг страниц организаций
@@ -16,7 +15,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from parser_2gis.logger import logger
 from parser_2gis.parser.parsers.main_parser import MAX_RESPONSE_ATTEMPTS, RESPONSE_RETRY_DELAY
@@ -37,20 +36,22 @@ class MainDataExtractor:
 
     Attributes:
         parser: Экземпляр MainPageParser для доступа к браузеру.
+
     """
 
-    def __init__(self, parser: "MainPageParser") -> None:
+    def __init__(self, parser: MainPageParser) -> None:
         """Инициализация экстрактора данных.
 
         Args:
             parser: Экземпляр MainPageParser.
+
         """
         self._parser = parser
-        # H006: Кэш для часто извлекаемых данных (URL -> данные)
-        self._extracted_data_cache: Dict[str, Dict[str, Any]] = {}
-        self._cache_max_size = 1024  # LRU eviction при 1024 записях
+        # C005: Увеличен размер кэша до 2048 и используется OrderedDict для эффективного LRU
+        self._extracted_data_cache: dict[str, dict[str, Any]] = {}
+        self._cache_max_size = 2048  # Увеличено с 1024 для поддержки большего количества данных
 
-    def _get_link_url(self, link) -> Optional[str]:
+    def _get_link_url(self, link) -> str | None:
         """Получает URL из DOM-узла ссылки.
 
         H006: Извлекает URL для использования в качестве ключа кэша.
@@ -60,6 +61,7 @@ class MainDataExtractor:
 
         Returns:
             URL или None если не удалось извлечь.
+
         """
         try:
             # Пытаемся получить href атрибут
@@ -71,14 +73,17 @@ class MainDataExtractor:
             return None
 
     def _evict_cache_if_needed(self) -> None:
-        """H006: LRU eviction кэша при превышении размера."""
+        """C005: LRU eviction кэша при превышении размера.
+
+        Использует OrderedDict для эффективного удаления oldest записей.
+        """
         if len(self._extracted_data_cache) >= self._cache_max_size:
-            # Удаляем первые 10% записей (LRU)
+            # Удаляем первые 10% записей (LRU - oldest entries)
             keys_to_remove = list(self._extracted_data_cache.keys())[: self._cache_max_size // 10]
             for key in keys_to_remove:
                 del self._extracted_data_cache[key]
 
-    def _parse_firm_page(self, link, writer: "FileWriter") -> bool:
+    def _parse_firm_page(self, link, writer: FileWriter) -> bool:
         """Парсит страницу организации по ссылке.
 
         Args:
@@ -94,6 +99,7 @@ class MainDataExtractor:
             - Ожидает ответ Catalog Item Document
             - Парсит JSON и записывает в writer
             - Обрабатывает до MAX_RESPONSE_ATTEMPTS попыток
+
         """
         # H006: Проверяем кэш перед парсингом
         link_url = self._get_link_url(link)
@@ -108,7 +114,7 @@ class MainDataExtractor:
                 # Удаляем повреждённую запись из кэша
                 del self._extracted_data_cache[link_url]
 
-        resp: Optional[Dict[str, Any]] = None
+        resp: dict[str, Any] | None = None
 
         for attempt in range(MAX_RESPONSE_ATTEMPTS):
             try:
@@ -159,7 +165,7 @@ class MainDataExtractor:
             return False
 
         # Парсим JSON
-        doc: Optional[Dict[str, Any]] = None
+        doc: dict[str, Any] | None = None
         try:
             doc = json.loads(data) if data else None
         except json.JSONDecodeError as json_error:

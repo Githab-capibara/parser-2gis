@@ -1,5 +1,4 @@
-"""
-Модуль утилит валидации.
+"""Модуль утилит валидации.
 
 Содержит функции для валидации городов, категорий и обработки ошибок валидации.
 """
@@ -8,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import ValidationError
 
@@ -24,6 +23,7 @@ def _get_logger() -> Any:
 
     Returns:
         Экземпляр logger из модуля logger.
+
     """
     from parser_2gis.logger import logger as app_logger
 
@@ -36,8 +36,8 @@ def _get_logger() -> Any:
 
 
 def report_from_validation_error(
-    ex: ValidationError, d: Optional[Dict[str, Any]] = None
-) -> Dict[str, Dict[str, Any]]:
+    ex: ValidationError, d: dict[str, Any] | None = None
+) -> dict[str, dict[str, Any]]:
     """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
 
     Note:
@@ -63,8 +63,9 @@ def report_from_validation_error(
         ...     report = report_from_validation_error(e, {"name": "test", "age": "invalid"})
         ...     print(report)
         {'age': {'invalid_value': 'invalid', 'error_message': '...'}}
+
     """
-    error_report: Dict[str, Dict[str, Any]] = {}
+    error_report: dict[str, dict[str, Any]] = {}
 
     for error in ex.errors():
         msg = error["msg"]
@@ -98,7 +99,7 @@ def report_from_validation_error(
 # Потребление памяти увеличивается незначительно (~200-400KB), но выигрыш в
 # производительности существенный (15-20% ускорение валидации).
 @lru_cache(maxsize=2048)
-def _validate_city_cached(code: str, domain: str) -> Dict[str, Any]:
+def _validate_city_cached(code: str, domain: str) -> dict[str, Any]:
     """Кэшированная версия валидации города.
     - Размер кэша увеличен с 256 до 512 для улучшения производительности
     - Кэширование по отдельным полям (code, domain) вместо кортежа
@@ -115,12 +116,13 @@ def _validate_city_cached(code: str, domain: str) -> Dict[str, Any]:
         >>> result = _validate_city_cached("msk", "moscow.2gis.ru")
         >>> result
         {'code': 'msk', 'domain': 'moscow.2gis.ru'}
+
     """
     # Возвращаем новый словарь для предотвращения мутаций
     return {"code": code, "domain": domain}
 
 
-def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
+def _validate_city(city: Any, field_name: str = "city") -> dict[str, Any]:
     """Валидирует структуру города.
 
     Оптимизация:
@@ -143,6 +145,7 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
         >>> result = _validate_city(city)
         >>> result
         {'code': 'msk', 'domain': 'moscow.2gis.ru'}
+
     """
     local_logger = _get_logger()
 
@@ -175,7 +178,7 @@ def _validate_city(city: Any, field_name: str = "city") -> Dict[str, Any]:
 # Потребление памяти увеличивается незначительно (~100-200KB), но выигрыш в
 # производительности существенный (10-15% ускорение валидации категорий).
 @lru_cache(maxsize=2048)
-def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
+def _validate_category_cached(category_tuple: tuple) -> dict[str, Any]:
     """Кэшированная версия валидации категории.
     - Размер кэша увеличен с 256 до 2048 для улучшения производительности
     - Снижение потребления памяти без потери производительности
@@ -185,6 +188,7 @@ def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
 
     Returns:
         Валидированный словарь категории.
+
     """
     return {
         "name": category_tuple[0],
@@ -193,7 +197,7 @@ def _validate_category_cached(category_tuple: tuple) -> Dict[str, Any]:
     }
 
 
-def _validate_category(category: Any) -> Dict[str, Any]:
+def _validate_category(category: Any) -> dict[str, Any]:
     """Валидирует структуру категории.
 
     Оптимизация: используется lru_cache для кэширования результатов.
@@ -206,6 +210,7 @@ def _validate_category(category: Any) -> Dict[str, Any]:
 
     Raises:
         ValueError: Если категория некорректна.
+
     """
     local_logger = _get_logger()
 

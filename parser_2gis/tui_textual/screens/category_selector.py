@@ -1,6 +1,4 @@
-"""
-Экран выбора категорий для парсинга на Textual.
-"""
+"""Экран выбора категорий для парсинга на Textual."""
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -145,6 +143,7 @@ class CategorySelectorScreen(Screen):
 
         Raises:
             AttributeError: Если метод get_categories недоступен в приложении.
+
         """
         # Получить категории из приложения и сделать глубокую копию
         # Это предотвращает мутацию глобальной константы CATEGORIES_93
@@ -173,6 +172,7 @@ class CategorySelectorScreen(Screen):
 
         Raises:
             RuntimeError: Если категория не имеет original_index.
+
         """
         # Очищаем контейнер полностью и сбрасываем ссылки на чекбоксы
         container = self.query_one("#category-list", ScrollableContainer)
@@ -184,7 +184,7 @@ class CategorySelectorScreen(Screen):
 
         # Создать новые Checkbox виджеты БЕЗ ID - это предотвращает DuplicateIds
         # Для идентификации будем использовать атрибуты и позицию в списке
-        for idx, cat in enumerate(self._filtered_categories):
+        for _idx, cat in enumerate(self._filtered_categories):
             cat_name = cat.get("name", "Неизвестно")
 
             # Получить оригинальный индекс из категории (гарантирует уникальность)
@@ -234,6 +234,7 @@ class CategorySelectorScreen(Screen):
 
         Args:
             event: Событие изменения текста в Input виджете.
+
         """
         if event.input.id == "category-search":
             query = event.value.lower().strip()
@@ -255,6 +256,7 @@ class CategorySelectorScreen(Screen):
 
         Args:
             event: Событие изменения состояния Checkbox.
+
         """
         # Получить оригинальный индекс из атрибута виджета
         original_index = getattr(event.checkbox, "original_index", None)
@@ -273,6 +275,7 @@ class CategorySelectorScreen(Screen):
 
         Args:
             event: Событие нажатия кнопки.
+
         """
         button_id = event.button.id
 
@@ -339,5 +342,6 @@ class CategorySelectorScreen(Screen):
 
         Args:
             app: The application instance.
+
         """
         self._app = app

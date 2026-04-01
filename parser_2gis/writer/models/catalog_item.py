@@ -10,7 +10,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -57,61 +56,61 @@ class CatalogItem(BaseModel):
     id: str
 
     # Адрес объекта
-    address: Optional[Address] = None
+    address: Address | None = None
 
     # Уточнение о местоположении филиала по указанному адресу (например "офис 413")
-    address_comment: Optional[str] = None
+    address_comment: str | None = None
 
     # Представление поля address в виде одной строки (например "Димитрова проспект, 7")
-    address_name: Optional[str] = None
+    address_name: str | None = None
 
     # Принадлежность к административной территории
-    adm_div: List[AdmDivItem] = []
+    adm_div: list[AdmDivItem] = []
 
     # Алиас города, в котором находится объект (например "perm")
-    city_alias: Optional[str] = None
+    city_alias: str | None = None
 
     # Контакты филиала
-    contact_groups: List[ContactGroup] = []
+    contact_groups: list[ContactGroup] = []
 
     # Текущая локаль для региона (например "ru_RU")
     locale: str
 
     # Полное собственное название филиала или название организации (например "Солнышко, кафе")
-    name: Optional[str] = None
+    name: str | None = None
 
     # Расширеное название филиала
-    name_ex: Optional[NameEx] = None
+    name_ex: NameEx | None = None
 
     # Отзывы
-    reviews: Optional[Reviews] = None
+    reviews: Reviews | None = None
 
     # Организация
-    org: Optional[Org] = None
+    org: Org | None = None
 
     # Координаты точки поиска, заданные в системе координат WGS84 в формате lon, lat
-    point: Optional[Point] = None
+    point: Point | None = None
 
     # Уникальный идентификатор проекта
-    region_id: Optional[str] = None
+    region_id: str | None = None
 
     # Уникальный идентификатор сегмента
-    segment_id: Optional[str] = None
+    segment_id: str | None = None
 
     # Рубрики филиала
-    rubrics: List[Rubric] = []
+    rubrics: list[Rubric] = []
 
     # Время работы
-    schedule: Optional[Schedule] = None
+    schedule: Schedule | None = None
 
     # Смещение таймзоны в минутах относительно UTC0 (например "420")
-    timezone_offset: Optional[int] = None
+    timezone_offset: int | None = None
 
     # Тип объекта
     type: str
 
     # Признак удаленного объекта
-    is_deleted: Optional[bool] = None
+    is_deleted: bool | None = None
 
     @property
     def url(self) -> str:
@@ -127,6 +126,7 @@ class CatalogItem(BaseModel):
         Примечание:
             Проверяет корректность диапазона offset (-12 до +14 часов).
             Возвращает None для некорректных значений.
+
         """
         if self.timezone_offset is None:
             return None

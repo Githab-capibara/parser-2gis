@@ -1,5 +1,4 @@
-"""
-Модуль для интеллектуального определения окончания поисковой выдачи.
+"""Модуль для интеллектуального определения окончания поисковой выдачи.
 
 Этот модуль предоставляет функции для определения того, что достигнут конец
 результатов поиска на странице 2GIS, что позволяет избежать бесконечного
@@ -9,7 +8,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from parser_2gis.logger import logger
 
@@ -18,15 +17,14 @@ if TYPE_CHECKING:
 
 
 class EndOfResultsDetector:
-    """
-    Детектор окончания поисковой выдачи.
+    """Детектор окончания поисковой выдачи.
 
     Анализирует страницу на наличие паттернов, указывающих на то,
     что все результаты показаны и дальше переходить не нужно.
     """
 
     # Паттерны текста, указывающие на окончание результатов
-    END_PATTERNS = [
+    END_PATTERNS: ClassVar[list[str]] = [
         r"показан[ыо].*вс[её].*организаци[ияй]",
         r"нет.*дополнительн[ыхих].*результат[ова]",
         r"вы.*просмотрели.*вс[её].*вариант[ыов]",
@@ -35,7 +33,7 @@ class EndOfResultsDetector:
     ]
 
     # Паттерны DOM-элементов, указывающих на окончание
-    DOM_END_SELECTORS = [
+    DOM_END_SELECTORS: ClassVar[list] = [
         lambda node: (
             node.local_name == "div"
             and any(pattern in node.text.lower() for pattern in ["конец", "нет результатов"])
@@ -43,12 +41,12 @@ class EndOfResultsDetector:
         lambda node: node.local_name == "p" and "ничего не найдено" in node.text.lower(),
     ]
 
-    def __init__(self, chrome_remote: "ChromeRemote") -> None:
-        """
-        Инициализирует детектор.
+    def __init__(self, chrome_remote: ChromeRemote) -> None:
+        """Инициализирует детектор.
 
         Args:
             chrome_remote: Объект ChromeRemote для доступа к DOM.
+
         """
         self._chrome_remote = chrome_remote
         self._compiled_patterns = [
@@ -56,11 +54,11 @@ class EndOfResultsDetector:
         ]
 
     def is_end_of_results(self) -> bool:
-        """
-        Проверяет, достигнут ли конец результатов поиска.
+        """Проверяет, достигнут ли конец результатов поиска.
 
         Returns:
             True если достигнут конец, False если есть ещё результаты.
+
         """
         try:
             # Получаем DOM страницы
@@ -92,11 +90,11 @@ class EndOfResultsDetector:
             return False
 
     def has_pagination(self) -> bool:
-        """
-        Проверяет, есть ли на странице элементы пагинации.
+        """Проверяет, есть ли на странице элементы пагинации.
 
         Returns:
             True если есть пагинация, False если нет.
+
         """
         try:
             dom_tree = self._chrome_remote.get_document()

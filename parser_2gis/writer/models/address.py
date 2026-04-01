@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -26,16 +25,16 @@ class Address(BaseModel):
     """
 
     # Уникальный идентификатор дома, к которому относится данный адрес
-    building_id: Optional[str] = None
+    building_id: str | None = None
 
     # Название здания (в адресе для филиалов)
-    building_name: Optional[str] = None
+    building_name: str | None = None
 
     # Уникальный почтовый код здания
-    building_code: Optional[str] = None
+    building_code: str | None = None
 
     # Почтовый индекс
-    postcode: Optional[str] = None
+    postcode: str | None = None
 
     # Makani адрес объекта (применяется в странах Ближнего Востока)
-    makani: Optional[str] = None
+    makani: str | None = None

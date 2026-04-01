@@ -1,5 +1,4 @@
-"""
-Модуль конфигураций для парсера.
+"""Модуль конфигураций для парсера.
 
 Предоставляет dataclass ParserRunConfig для группировки параметров
 запуска парсера. Это устраняет нарушение Data Clumps
@@ -19,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass
@@ -50,6 +49,7 @@ class ParserRunConfig:
         ...     use_gc=True,
         ... )
         >>> parser = MainParser(**cfg.to_parser_kwargs())
+
     """
 
     url: str
@@ -67,11 +67,12 @@ class ParserRunConfig:
     max_consecutive_empty_pages: int = 3
     retry_on_network_errors: bool = True
 
-    def to_parser_kwargs(self) -> Dict[str, Any]:
+    def to_parser_kwargs(self) -> dict[str, Any]:
         """Преобразует в kwargs для создания ParserOptions.
 
         Returns:
             Словарь с параметрами для ParserOptions.
+
         """
         return {
             "max_records": self.max_records,
@@ -88,7 +89,7 @@ class ParserRunConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ParserRunConfig":
+    def from_dict(cls, data: dict[str, Any]) -> ParserRunConfig:
         """Создаёт конфигурацию из словаря.
 
         Args:
@@ -96,6 +97,7 @@ class ParserRunConfig:
 
         Returns:
             Экземпляр ParserRunConfig.
+
         """
         return cls(
             url=data.get("url", ""),

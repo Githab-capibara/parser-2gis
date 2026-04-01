@@ -1,5 +1,4 @@
-"""
-Модуль визуального логирования.
+"""Модуль визуального логирования.
 
 Предоставляет утилиты для красивого форматирования логов:
 - Emoji для различных типов событий
@@ -13,7 +12,7 @@ from __future__ import annotations
 import logging
 import sys
 from datetime import datetime
-from typing import Optional
+from typing import ClassVar
 
 # Получаем логгер для внутреннего использования
 _logger = logging.getLogger("parser-2gis.visual_logger")
@@ -40,7 +39,7 @@ class ColorCodes:
     RESET = "\033[0m"
 
     # Цвета для уровней логирования
-    LEVEL_COLORS = {
+    LEVEL_COLORS: ClassVar[dict[str, str]] = {
         "DEBUG": GRAY,
         "INFO": CYAN,
         "INFO_BOLD": BLUE,
@@ -94,8 +93,7 @@ class Emoji:
 
 
 class VisualLogger:
-    """
-    Визуальный логгер для красивого вывода в консоль.
+    """Визуальный логгер для красивого вывода в консоль.
 
     Поддерживает:
     - Цветной вывод (если терминал поддерживает ANSI)
@@ -104,13 +102,13 @@ class VisualLogger:
     - Прогресс-бары
     """
 
-    def __init__(self, use_colors: Optional[bool] = None, use_emoji: bool = True) -> None:
-        """
-        Инициализация визуального логгера.
+    def __init__(self, use_colors: bool | None = None, use_emoji: bool = True) -> None:
+        """Инициализация визуального логгера.
 
         Args:
             use_colors: Использовать ли цвета. Если None, определяется автоматически.
             use_emoji: Использовать ли emoji.
+
         """
         self.use_emoji = use_emoji
 
@@ -122,8 +120,7 @@ class VisualLogger:
             self.use_colors = use_colors
 
     def _colorize(self, text: str, color: str) -> str:
-        """
-        Добавляет цвет к тексту.
+        """Добавляет цвет к тексту.
 
         Args:
             text: Текст для раскраски.
@@ -131,25 +128,25 @@ class VisualLogger:
 
         Returns:
             Раскрашенный текст или оригинальный текст, если цвета отключены.
+
         """
         if self.use_colors:
             return f"{color}{text}{ColorCodes.RESET}"
         return text
 
     def _get_timestamp(self) -> str:
-        """
-        Получает текущее время в формате ЧЧ:ММ:СС.мсс.
+        """Получает текущее время в формате ЧЧ:ММ:СС.мсс.
 
         Returns:
             Строка времени.
+
         """
         return datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
     def format_message(
-        self, message: str, level: str = "INFO", emoji: Optional[str] = None, bold: bool = False
+        self, message: str, level: str = "INFO", emoji: str | None = None, bold: bool = False
     ) -> str:
-        """
-        Форматирует сообщение с цветом и emoji.
+        """Форматирует сообщение с цветом и emoji.
 
         Args:
             message: Сообщение для форматирования.
@@ -159,6 +156,7 @@ class VisualLogger:
 
         Returns:
             Отформатированное сообщение.
+
         """
         # Выбираем emoji
         if emoji is None:
@@ -172,17 +170,20 @@ class VisualLogger:
         emoji_str = f"{emoji} " if self.use_emoji and emoji else ""
         bold_code = ColorCodes.BOLD if bold else ""
 
-        return f"{timestamp} | {emoji_str}{bold_code}{self._colorize(message, color)}{ColorCodes.RESET}"
+        return (
+            f"{timestamp} | {emoji_str}{bold_code}"
+            f"{self._colorize(message, color)}{ColorCodes.RESET}"
+        )
 
-    def _get_emoji_for_level(self, level: str) -> Optional[str]:
-        """
-        Получает emoji для уровня логирования.
+    def _get_emoji_for_level(self, level: str) -> str | None:
+        """Получает emoji для уровня логирования.
 
         Args:
             level: Уровень логирования.
 
         Returns:
             Emoji или None.
+
         """
         emoji_map = {
             "DEBUG": Emoji.DEBUG,
@@ -194,9 +195,8 @@ class VisualLogger:
         }
         return emoji_map.get(level)
 
-    def print_header(self, title: str, subtitle: Optional[str] = None, width: int = 60) -> None:
-        """
-        Печатает заголовок секции.
+    def print_header(self, title: str, subtitle: str | None = None, width: int = 60) -> None:
+        """Печатает заголовок секции.
 
         Args:
             title: Заголовок.
@@ -205,6 +205,7 @@ class VisualLogger:
 
         Raises:
             Exception: При ошибке вывода в консоль.
+
         """
         try:
             border = "═" * width
@@ -229,7 +230,7 @@ class VisualLogger:
                 if subtitle:
                     print(f"{subtitle.center(width)}")
                 print(f"{'=' * width}\n")
-        except (IOError, OSError) as e:
+        except OSError as e:
             # Логгируем ошибку вывода, но не прерываем работу
             _logger.error(
                 f"Ошибка вывода заголовка в консоль: {e}. "
@@ -250,8 +251,7 @@ class VisualLogger:
             raise
 
     def print_config_section(self, title: str, items: dict[str, str], width: int = 60) -> None:
-        """
-        Печатает секцию конфигурации.
+        """Печатает секцию конфигурации.
 
         Args:
             title: Заголовок секции.
@@ -260,6 +260,7 @@ class VisualLogger:
 
         Raises:
             Exception: При ошибке вывода в консоль.
+
         """
         try:
             if self.use_colors:
@@ -275,7 +276,7 @@ class VisualLogger:
                 for key, value in items.items():
                     print(f"  {key}: {value}")
                 print(f"─{'─' * (width - 1)}\n")
-        except (IOError, OSError) as e:
+        except OSError as e:
             _logger.error(
                 f"Ошибка вывода секции конфигурации: {e}. "
                 f"Функция: {self.print_config_section.__name__}, "
@@ -304,8 +305,7 @@ class VisualLogger:
         show_percent: bool = True,
         show_count: bool = True,
     ) -> str:
-        """
-        Создаёт строку прогресс-бара.
+        """Создаёт строку прогресс-бара.
 
         Args:
             current: Текущее значение.
@@ -317,6 +317,7 @@ class VisualLogger:
 
         Returns:
             Строка прогресс-бара.
+
         """
         percent = current / total if total > 0 else 0
         filled_length = int(length * percent)
@@ -329,8 +330,7 @@ class VisualLogger:
         return " ".join(filter(None, parts))
 
     def print_stats(self, stats: dict[str, int | str], title: str = "Статистика") -> None:
-        """
-        Печатает статистику.
+        """Печатает статистику.
 
         Args:
             stats: Словарь со статистикой.
@@ -338,6 +338,7 @@ class VisualLogger:
 
         Raises:
             Exception: При ошибке вывода в консоль.
+
         """
         try:
             self.print_header(title)
@@ -357,7 +358,7 @@ class VisualLogger:
                 print(f"  {key}: {value_str}")
 
             print()
-        except (IOError, OSError) as e:
+        except OSError as e:
             _logger.error(
                 f"Ошибка вывода статистики: {e}. "
                 f"Функция: {self.print_stats.__name__}, "
@@ -381,7 +382,7 @@ class VisualLogger:
         """Печатает сообщение об успехе."""
         try:
             print(self.format_message(message, "SUCCESS", Emoji.SUCCESS))
-        except (IOError, OSError) as e:
+        except OSError as e:
             _logger.error(f"Ошибка вывода сообщения об успехе: {e}. Сообщение: {message}")
             print(f"✅ {message}")
         except Exception as e:
@@ -392,7 +393,7 @@ class VisualLogger:
         """Печатает сообщение об ошибке."""
         try:
             print(self.format_message(message, "ERROR", Emoji.ERROR))
-        except (IOError, OSError) as e:
+        except OSError as e:
             _logger.error(f"Ошибка вывода сообщения об ошибке: {e}. Сообщение: {message}")
             print(f"❌ {message}")
         except Exception as e:
@@ -403,7 +404,7 @@ class VisualLogger:
         """Печатает предупреждение."""
         try:
             print(self.format_message(message, "WARNING", Emoji.WARNING))
-        except (IOError, OSError) as e:
+        except OSError as e:
             _logger.error(f"Ошибка вывода предупреждения: {e}. Сообщение: {message}")
             print(f"⚠️ {message}")
         except Exception as e:
@@ -416,7 +417,7 @@ class VisualLogger:
         """Печатает информационное сообщение."""
         try:
             print(self.format_message(message, "INFO", Emoji.INFO, bold))
-        except (IOError, OSError) as e:
+        except OSError as e:
             _logger.error(f"Ошибка вывода информационного сообщения: {e}. Сообщение: {message}")
             print(f"ℹ️ {message}")
         except Exception as e:
@@ -429,7 +430,7 @@ class VisualLogger:
         """Печатает отладочное сообщение."""
         try:
             print(self.format_message(message, "DEBUG", Emoji.DEBUG))
-        except (IOError, OSError) as e:
+        except OSError as e:
             _logger.error(f"Ошибка вывода отладочного сообщения: {e}. Сообщение: {message}")
             print(f"🔍 {message}")
         except Exception as e:
@@ -442,7 +443,7 @@ visual_logger = VisualLogger()
 
 
 # Удобные функции для быстрого использования
-def print_header(title: str, subtitle: Optional[str] = None) -> None:
+def print_header(title: str, subtitle: str | None = None) -> None:
     """Выводит заголовок секции."""
     try:
         visual_logger.print_header(title, subtitle)

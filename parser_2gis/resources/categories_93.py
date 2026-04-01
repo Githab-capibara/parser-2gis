@@ -1,5 +1,4 @@
-"""
-Список из 93 категорий для парсинга городов.
+"""Список из 93 категорий для парсинга городов.
 
 Каждая категория содержит:
 - name: Название категории (как будет отображаться в CSV)
@@ -9,7 +8,7 @@
 Этот файл используется для автоматической генерации URL при парсинге городов.
 """
 
-from typing import List, Optional, TypedDict
+from typing import TypedDict
 
 
 class CategoryDict(TypedDict):
@@ -17,11 +16,11 @@ class CategoryDict(TypedDict):
 
     name: str
     query: str
-    rubric_code: Optional[str]
+    rubric_code: str | None
 
 
 # Полный список из 93 категорий
-CATEGORIES_93: List[CategoryDict] = [
+CATEGORIES_93: list[CategoryDict] = [
     # 1-15: Общественное питание
     {"name": "Кафе", "query": "Кафе", "rubric_code": "161"},
     {"name": "Рестораны", "query": "Рестораны", "rubric_code": "164"},
@@ -132,12 +131,12 @@ CATEGORIES_93: List[CategoryDict] = [
 ]
 
 
-def get_categories_list() -> List[CategoryDict]:
+def get_categories_list() -> list[CategoryDict]:
     """Возвращает список категорий для парсинга."""
     return CATEGORIES_93
 
 
-def get_category_by_name(name: str) -> Optional[CategoryDict]:
+def get_category_by_name(name: str) -> CategoryDict | None:
     """Возвращает категорию по названию."""
     for cat in CATEGORIES_93:
         if cat["name"].lower() == name.lower():
@@ -145,11 +144,8 @@ def get_category_by_name(name: str) -> Optional[CategoryDict]:
     return None
 
 
-def generate_urls_for_city(
-    city: dict, categories: Optional[List[CategoryDict]] = None
-) -> List[str]:
-    """
-    Генерирует URL для парсинга всех категорий для одного города.
+def generate_urls_for_city(city: dict, categories: list[CategoryDict] | None = None) -> list[str]:
+    """Генерирует URL для парсинга всех категорий для одного города.
 
     Args:
         city: Словарь города с полями code, domain.
@@ -157,6 +153,7 @@ def generate_urls_for_city(
 
     Returns:
         Список URL для парсинга.
+
     """
     from parser_2gis.utils.url_utils import url_query_encode
 

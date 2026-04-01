@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Type
+from typing import TYPE_CHECKING
 
 from parser_2gis.utils.path_utils import validate_path_traversal
 
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 # REGISTRY PATTERN ДЛЯ WRITERS
 # =============================================================================
 
-WRITER_REGISTRY: Dict[str, Type[FileWriter]] = {}
+WRITER_REGISTRY: dict[str, type[FileWriter]] = {}
 """Реестр зарегистрированных writer классов по формату файла."""
 
 
@@ -49,9 +49,10 @@ def register_writer(format_name: str) -> callable:
         >>> @register_writer("xml")
         ... class XMLWriter(FileWriter):
         ...     pass
+
     """
 
-    def decorator(cls: Type[FileWriter]) -> Type[FileWriter]:
+    def decorator(cls: type[FileWriter]) -> type[FileWriter]:
         WRITER_REGISTRY[format_name.lower()] = cls
         return cls
 
@@ -78,6 +79,7 @@ def get_writer(file_path: str, file_format: str, writer_options: WriterOptions) 
     Example:
         >>> writer = get_writer("output.json", "json", options)
         >>> writer = get_writer("output.csv", "csv", options)
+
     """
     validated_path = validate_path_traversal(file_path)
 
@@ -106,4 +108,4 @@ register_writer("xlsx")(XLSXWriter)
 # ЭКСПОРТ
 # =============================================================================
 
-__all__ = ["get_writer", "register_writer", "WRITER_REGISTRY"]
+__all__ = ["WRITER_REGISTRY", "get_writer", "register_writer"]

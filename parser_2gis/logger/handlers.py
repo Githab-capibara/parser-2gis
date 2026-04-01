@@ -1,5 +1,4 @@
-"""
-Модуль для файлового логирования.
+"""Модуль для файлового логирования.
 
 Предоставляет функциональность для записи логов в файл с поддержкой вращения логов.
 Автоматически создаёт файлы с timestamp в названии для каждой сессии.
@@ -12,7 +11,6 @@ import logging
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Optional
 
 
 class FileLogger:
@@ -38,12 +36,13 @@ class FileLogger:
     Пример использования:
         >>> logger = FileLogger(log_dir=Path('logs'), log_level='DEBUG')
         >>> logger.setup_logger(logging.getLogger('parser-2gis'))
+
     """
 
     def __init__(
         self,
-        log_file: Optional[Path] = None,
-        log_dir: Optional[Path] = None,
+        log_file: Path | None = None,
+        log_dir: Path | None = None,
         log_level: str = "DEBUG",
         max_bytes: int = 10 * 1024 * 1024,  # 10 MB
         backup_count: int = 5,
@@ -52,8 +51,10 @@ class FileLogger:
         """Инициализация файлового логгера.
 
         Args:
-            log_file: Путь к файлу логов. Если None и auto_session=True, файл создаётся автоматически.
-            log_dir: Директория для логов (по умолчанию: logs/). Используется если auto_session=True.
+            log_file: Путь к файлу логов. Если None и auto_session=True,
+                файл создаётся автоматически.
+            log_dir: Директория для логов (по умолчанию: logs/).
+                Используется если auto_session=True.
             log_level: Уровень логирования (DEBUG, INFO, WARNING, ERROR, CRITICAL).
             max_bytes: Максимальный размер файла в байтах перед вращением.
             backup_count: Количество резервных копий логов.
@@ -61,6 +62,7 @@ class FileLogger:
 
         Raises:
             ValueError: Если log_level имеет некорректное значение.
+
         """
         self._log_file = log_file
         self._log_dir = log_dir or Path("logs")
@@ -74,7 +76,7 @@ class FileLogger:
 
         self._max_bytes = max_bytes
         self._backup_count = backup_count
-        self._file_handler: Optional[RotatingFileHandler] = None
+        self._file_handler: RotatingFileHandler | None = None
 
         # Если включён автоматический режим сессий, генерируем имя файла
         if auto_session and log_file is None:
@@ -85,11 +87,11 @@ class FileLogger:
             self._setup_file_handler()
 
     def _generate_session_log_file(self) -> Path:
-        """
-        Сгенерировать имя файла лога для новой сессии.
+        """Сгенерировать имя файла лога для новой сессии.
 
         Returns:
             Путь к файлу лога с timestamp в названии
+
         """
         # Создаём директорию для логов
         self._log_dir.mkdir(parents=True, exist_ok=True)
@@ -109,6 +111,7 @@ class FileLogger:
         Raises:
             OSError: При ошибке создания директории для логов.
             IOError: При ошибке создания файлового обработчика.
+
         """
         try:
             # Создаём директорию для логов, если её нет
@@ -130,8 +133,8 @@ class FileLogger:
                     backupCount=self._backup_count,
                     encoding="utf-8",
                 )
-            except IOError as e:
-                raise IOError(
+            except OSError as e:
+                raise OSError(
                     f"Ошибка создания RotatingFileHandler: {e}. "
                     f"Файл: {self._log_file}. "
                     f"Функция: {self._setup_file_handler.__name__}"
@@ -139,7 +142,8 @@ class FileLogger:
 
             # Форматирование логов с детальной информацией
             formatter = logging.Formatter(
-                fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s",
+                fmt="%(asctime)s | %(levelname)-8s | %(name)s | "
+                "%(funcName)s:%(lineno)d | %(message)s",
                 datefmt="%Y-%m-%d %H:%M:%S",
             )
             self._file_handler.setFormatter(formatter)
@@ -177,6 +181,7 @@ class FileLogger:
 
         Raises:
             RuntimeError: При ошибке добавления обработчика.
+
         """
         try:
             if self._file_handler:
@@ -200,6 +205,7 @@ class FileLogger:
 
         Raises:
             Exception: При ошибке закрытия обработчика.
+
         """
         try:
             if self._file_handler:
@@ -236,6 +242,7 @@ class FileLogger:
 
         Returns:
             Экземпляр FileLogger для использования в with-блоке.
+
         """
         return self
 
@@ -244,11 +251,12 @@ class FileLogger:
         self.close()
 
     @property
-    def log_file(self) -> Optional[Path]:
+    def log_file(self) -> Path | None:
         """Путь к файлу логов.
 
         Returns:
             Путь к файлу логов или None, если логирование в файл отключено.
+
         """
         return self._log_file
 
@@ -258,5 +266,6 @@ class FileLogger:
 
         Returns:
             True, если логирование в файл включено, иначе False.
+
         """
         return self._file_handler is not None

@@ -1,5 +1,4 @@
-"""
-Модуль точки входа CLI для Parser2GIS.
+"""Модуль точки входа CLI для Parser2GIS.
 
 Парсит аргументы командной строки, инициализирует конфигурацию
 и запускает CLI приложение.
@@ -19,10 +18,10 @@ from parser_2gis.cli.main import Parser2GISTUI, run_new_tui_omsk
 
 # Экспортируем для backward совместимости
 __all__ = [
+    "ArgumentHelpFormatter",
+    "ArgumentValidator",
+    "Parser2GISTUI",
     "main",
     "parse_arguments",
-    "ArgumentValidator",
-    "ArgumentHelpFormatter",
-    "Parser2GISTUI",
     "run_new_tui_omsk",
 ]

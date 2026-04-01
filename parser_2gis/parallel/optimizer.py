@@ -1,5 +1,4 @@
-"""
-Модуль для оптимизации параллельного парсинга.
+"""Модуль для оптимизации параллельного парсинга.
 
 Этот модуль предоставляет логику для эффективного распределения
 ресурсов между браузерами при параллельном парсинга.
@@ -17,7 +16,8 @@ import queue
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
+from collections.abc import Callable
 
 import psutil
 
@@ -30,21 +30,21 @@ class ParallelTask:
     """Задача для параллельного парсинга."""
 
     def __init__(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
-        """
-        Инициализирует задачу.
+        """Инициализирует задачу.
 
         Args:
             url: URL для парсинга.
             category_name: Название категории.
             city_name: Название города.
             priority: Приоритет задачи (0 - обычный, 1 - высокий).
+
         """
         self.url = url
         self.category_name = category_name
         self.city_name = city_name
         self.priority = priority
-        self.start_time: Optional[float] = None
-        self.end_time: Optional[float] = None
+        self.start_time: float | None = None
+        self.end_time: float | None = None
 
     def start(self) -> None:
         """Отмечает начало выполнения задачи."""
@@ -63,11 +63,11 @@ class ParallelTask:
         )
 
     def duration(self) -> float:
-        """
-        Возвращает длительность выполнения задачи.
+        """Возвращает длительность выполнения задачи.
 
         Returns:
             Длительность в секундах или 0 если не завершена.
+
         """
         if self.start_time and self.end_time:
             return self.end_time - self.start_time
@@ -77,8 +77,7 @@ class ParallelTask:
 
 
 class ParallelOptimizer:
-    """
-    Оптимизатор для параллельного парсинга.
+    """Оптимизатор для параллельного парсинга.
 
     Оптимизация:
     - Кэширование psutil.Process объекта
@@ -89,27 +88,27 @@ class ParallelOptimizer:
     """
 
     def __init__(self, max_workers: int = 3, max_memory_mb: int = 4096) -> None:
-        """
-        Инициализирует оптимизатор.
+        """Инициализирует оптимизатор.
 
         Args:
             max_workers: Максимальное количество рабочих потоков.
             max_memory_mb: Максимальное использование памяти в МБ.
+
         """
         self._max_workers = max_workers
         self._max_memory_mb = max_memory_mb
         # Оптимизация 3.5: используем queue.Queue для потокобезопасной очереди задач
         # Queue автоматически синхронизирует доступ из разных потоков
         self._tasks: queue.Queue[ParallelTask] = queue.Queue()
-        self._active_tasks: Dict[int, ParallelTask] = {}
-        self._completed_tasks: List[ParallelTask] = []
+        self._active_tasks: dict[int, ParallelTask] = {}
+        self._completed_tasks: list[ParallelTask] = []
         # ИСПОЛЬЗУЕМ RLock (Reentrant Lock) для предотвращения deadlock
         # RLock позволяет одному и тому же потоку захватывать блокировку несколько раз
         self._lock = threading.RLock()
         self._stats = {"total_tasks": 0, "completed": 0, "failed": 0, "avg_duration": 0.0}
 
         # Оптимизация: кэшируем psutil.Process объект
-        self._process_cache: Optional[psutil.Process] = None
+        self._process_cache: psutil.Process | None = None
         try:
             self._process_cache = psutil.Process()
         except (OSError, ValueError, RuntimeError) as process_error:
@@ -117,7 +116,7 @@ class ParallelOptimizer:
             logger.debug("Не удалось создать кэш процесса psutil: %s", process_error)
 
         # Кэш для проверки ресурсов
-        self._resource_cache: Tuple[bool, float, float] = (True, 0.0, 0.0)
+        self._resource_cache: tuple[bool, float, float] = (True, 0.0, 0.0)
         self._resource_cache_time: float = 0
         self._resource_cache_ttl: float = 1.0  # TTL 1 секунда
 
@@ -128,8 +127,7 @@ class ParallelOptimizer:
         )
 
     def add_task(self, url: str, category_name: str, city_name: str, priority: int = 0) -> None:
-        """
-        Добавляет задачу в очередь.
+        """Добавляет задачу в очередь.
 
         Оптимизация 3.5:
         - Используем queue.Queue для потокобезопасной очереди
@@ -140,6 +138,7 @@ class ParallelOptimizer:
             category_name: Название категории.
             city_name: Название города.
             priority: Приоритет задачи (0 - обычный, 1 - высокий).
+
         """
         task = ParallelTask(url, category_name, city_name, priority)
 
@@ -153,9 +152,8 @@ class ParallelOptimizer:
             "Добавлена задача: %s - %s (приоритет: %d)", city_name, category_name, priority
         )
 
-    def check_resources(self) -> Tuple[bool, float]:
-        """
-        Проверяет доступность ресурсов системы.
+    def check_resources(self) -> tuple[bool, float]:
+        """Проверяет доступность ресурсов системы.
 
         Оптимизация:
         - Кэширование psutil.Process объекта
@@ -163,6 +161,7 @@ class ParallelOptimizer:
 
         Returns:
             Кортеж (доступно ли, использование_памяти_МБ).
+
         """
         current_time = time.time()
 
@@ -208,9 +207,8 @@ class ParallelOptimizer:
             logger.warning("Ошибка при проверке ресурсов: %s", e)
             return True, 0.0
 
-    def get_next_task(self) -> Optional[ParallelTask]:
-        """
-        Получает следующую задачу из очереди.
+    def get_next_task(self) -> ParallelTask | None:
+        """Получает следующую задачу из очереди.
 
         Оптимизация 3.5:
         - Используем queue.Queue для потокобезопасного извлечения
@@ -219,8 +217,9 @@ class ParallelOptimizer:
 
         Returns:
             Следующая задача или None если очередь пуста.
+
         """
-        task: Optional[ParallelTask] = None
+        task: ParallelTask | None = None
 
         try:
             # Оптимизация 3.5: Queue.get_nowait() для неблокирующего извлечения
@@ -235,12 +234,12 @@ class ParallelOptimizer:
         return task
 
     def complete_task(self, task: ParallelTask, success: bool) -> None:
-        """
-        Отмечает задачу как завершенную.
+        """Отмечает задачу как завершенную.
 
         Args:
             task: Задача.
             success: Успешно ли выполнена.
+
         """
         task.finish()
 
@@ -270,12 +269,12 @@ class ParallelOptimizer:
             task.duration(),
         )
 
-    def get_stats(self) -> Dict[str, Any]:
-        """
-        Возвращает статистику оптимизатора.
+    def get_stats(self) -> dict[str, Any]:
+        """Возвращает статистику оптимизатора.
 
         Returns:
             Словарь со статистикой.
+
         """
         with self._lock:
             stats = self._stats.copy()
@@ -306,11 +305,10 @@ class ParallelOptimizer:
 
     def run_parallel(
         self,
-        parse_func: Callable[[ParallelTask], Tuple[bool, str]],
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
+        parse_func: Callable[[ParallelTask], tuple[bool, str]],
+        progress_callback: Callable[[int, int, str], None] | None = None,
     ) -> bool:
-        """
-        Запускает параллельный парсинг с оптимизацией.
+        """Запускает параллельный парсинг с оптимизацией.
 
         Оптимизация 3.5:
         - Используем Queue.empty() для проверки очереди
@@ -322,6 +320,7 @@ class ParallelOptimizer:
 
         Returns:
             True если все задачи выполнены успешно.
+
         """
         logger.info("Запуск параллельного парсинга с оптимизацией (%d потоков)", self._max_workers)
 

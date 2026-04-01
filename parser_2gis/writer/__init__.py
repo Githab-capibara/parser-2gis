@@ -11,11 +11,11 @@ from .options import CSVOptions, WriterOptions
 from .writers import CSVWriter, FileWriter, JSONWriter, XLSXWriter
 
 __all__ = [
-    "WriterOptions",
     "CSVOptions",
     "CSVWriter",
-    "XLSXWriter",
-    "JSONWriter",
     "FileWriter",
+    "JSONWriter",
+    "WriterOptions",
+    "XLSXWriter",
     "get_writer",
 ]

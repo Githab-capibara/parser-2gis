@@ -1,5 +1,4 @@
-"""
-Модуль валидации URL.
+"""Модуль валидации URL.
 
 Содержит функции для валидации URL на корректность формата и безопасность.
 
@@ -55,6 +54,7 @@ def validate_url(url: str) -> ValidationResult:
     Примечание:
         Результаты валидации кэшируются с помощью lru_cache (maxsize=1024)
         для ускорения повторных проверок тех же URL.
+
     """
     # Проверка максимальной длины URL (2048 символов - стандартный лимит)
     if len(url) > 2048:
@@ -135,6 +135,7 @@ def is_valid_url(url: str) -> bool:
         True
         >>> is_valid_url("http://localhost:8080")
         False
+
     """
     result = validate_url(url)
     return result.is_valid
@@ -149,8 +150,9 @@ def clear_url_cache() -> None:
     Example:
         >>> validate_url("https://2gis.ru/moscow")
         >>> clear_url_cache()  # Очищает кэш
+
     """
     validate_url.cache_clear()
 
 
-__all__ = ["validate_url", "is_valid_url", "clear_url_cache"]
+__all__ = ["clear_url_cache", "is_valid_url", "validate_url"]

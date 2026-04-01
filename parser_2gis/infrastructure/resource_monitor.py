@@ -1,5 +1,4 @@
-"""
-Модуль инфраструктуры для мониторинга ресурсов.
+"""Модуль инфраструктуры для мониторинга ресурсов.
 
 Предоставляет абстракции для мониторинга системных ресурсов:
 - MemoryMonitor: мониторинг памяти
@@ -25,7 +24,7 @@ class ResourceMonitorProtocol(Protocol):
         """Получает доступный объём памяти в байтах."""
         ...
 
-    def get_memory_usage(self) -> "MemoryInfo":
+    def get_memory_usage(self) -> MemoryInfo:
         """Получает информацию об использовании памяти."""
         ...
 
@@ -39,6 +38,7 @@ class MemoryInfo:
         available: Доступный объём памяти в байтах.
         used: Использованный объём памяти в байтах.
         percent: Процент использования памяти.
+
     """
 
     total: int
@@ -71,6 +71,7 @@ class MemoryMonitor:
         >>> monitor = MemoryMonitor()
         >>> info = monitor.get_memory_usage()
         >>> print(f"Доступно: {info.available_mb:.2f} MB")
+
     """
 
     def get_available_memory(self) -> int:
@@ -78,6 +79,7 @@ class MemoryMonitor:
 
         Returns:
             Доступный объём памяти в байтах.
+
         """
         import psutil
 
@@ -88,6 +90,7 @@ class MemoryMonitor:
 
         Returns:
             MemoryInfo с информацией о памяти.
+
         """
         import psutil
 
@@ -104,6 +107,7 @@ class MemoryMonitor:
 
         Returns:
             True если памяти меньше порога.
+
         """
         return self.get_available_memory() < (threshold_mb * 1024 * 1024)
 
@@ -117,6 +121,7 @@ class ResourceMonitor:
         >>> monitor = ResourceMonitor()
         >>> if monitor.is_memory_critical():
         >>>     print("Критический уровень памяти!")
+
     """
 
     def __init__(self) -> None:
@@ -128,6 +133,7 @@ class ResourceMonitor:
 
         Returns:
             Экземпляр MemoryMonitor.
+
         """
         return self._memory_monitor
 
@@ -139,6 +145,7 @@ class ResourceMonitor:
 
         Returns:
             True если память на критическом уровне.
+
         """
         return self._memory_monitor.is_low_memory(threshold_mb)
 
@@ -153,6 +160,7 @@ class ResourceMonitor:
 
         Returns:
             True если операция может быть выполнена.
+
         """
         available_mb = self._memory_monitor.get_memory_usage().available_mb
         return available_mb >= (required_mb + threshold_mb)
@@ -174,6 +182,7 @@ class ResourceMonitorFacade:
         >>> if facade.has_enough_memory(200):
         >>>     # Выполнить операцию требующую 200MB
         >>>     pass
+
     """
 
     def __init__(self) -> None:
@@ -188,6 +197,7 @@ class ResourceMonitorFacade:
 
         Returns:
             True если памяти достаточно.
+
         """
         return self._monitor.check_memory_before_operation(required_mb)
 
@@ -196,6 +206,7 @@ class ResourceMonitorFacade:
 
         Returns:
             Доступный объём памяти в MB.
+
         """
         return self._monitor.get_memory_monitor().get_memory_usage().available_mb
 
@@ -207,6 +218,7 @@ class ResourceMonitorFacade:
 
         Returns:
             True если памяти меньше порога.
+
         """
         return self._monitor.get_memory_monitor().is_low_memory(threshold_mb)
 

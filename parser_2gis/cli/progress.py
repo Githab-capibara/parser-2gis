@@ -10,7 +10,6 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 try:
     from tqdm import tqdm
@@ -38,14 +37,15 @@ class ProgressStats:
         current_record: Текущее количество обработанных записей
         started_at: Время начала обработки (timestamp)
         finished_at: Время завершения обработки (timestamp)
+
     """
 
     total_pages: int = 0
     current_page: int = 0
     total_records: int = 0
     current_record: int = 0
-    started_at: Optional[float] = None
-    finished_at: Optional[float] = None
+    started_at: float | None = None
+    finished_at: float | None = None
 
 
 class ProgressManager:
@@ -72,6 +72,7 @@ class ProgressManager:
         ...         # Обработка записи
         ...         progress.update_record()
         >>> progress.finish()
+
     """
 
     def __init__(self, disable: bool = False):
@@ -82,6 +83,7 @@ class ProgressManager:
 
         Raises:
             ImportError: Если tqdm не установлен и disable=False
+
         """
         if not TQDM_AVAILABLE and not disable:
             raise ImportError(
@@ -91,10 +93,10 @@ class ProgressManager:
 
         self._disable = disable
         self._stats = ProgressStats()
-        self._page_bar: Optional[tqdm] = None
-        self._record_bar: Optional[tqdm] = None
+        self._page_bar: tqdm | None = None
+        self._record_bar: tqdm | None = None
 
-    def start(self, total_pages: int, total_records: Optional[int] = None) -> None:
+    def start(self, total_pages: int, total_records: int | None = None) -> None:
         """Запуск прогресс-бара.
 
         Инициализирует прогресс-бары для отображения прогресса
@@ -103,6 +105,7 @@ class ProgressManager:
         Args:
             total_pages: Общее количество страниц для обработки
             total_records: Общее количество записей (опционально)
+
         """
         self._stats.total_pages = total_pages
         self._stats.total_records = total_records or 0
@@ -133,6 +136,7 @@ class ProgressManager:
 
         Args:
             n: Количество обработанных страниц (по умолчанию 1)
+
         """
         self._stats.current_page += n
 
@@ -146,6 +150,7 @@ class ProgressManager:
 
         Args:
             n: Количество обработанных записей (по умолчанию 1)
+
         """
         self._stats.current_record += n
 
@@ -160,6 +165,7 @@ class ProgressManager:
 
         Raises:
             Exception: При ошибке закрытия прогресс-баров или вывода статистики.
+
         """
         try:
             self._stats.finished_at = time.time()
@@ -212,6 +218,7 @@ class ProgressManager:
 
         Returns:
             Объект ProgressStats с текущей статистикой
+
         """
         return self._stats
 
@@ -223,6 +230,7 @@ class ProgressManager:
 
         Raises:
             Exception: При ошибке закрытия прогресс-баров.
+
         """
         try:
             # Закрываем прогресс-бары с обработкой ошибок
@@ -259,6 +267,7 @@ class ProgressManager:
 
         Returns:
             True, если прогресс-бар запущен, иначе False
+
         """
         return self._stats.started_at is not None
 
@@ -268,5 +277,6 @@ class ProgressManager:
 
         Returns:
             True, если прогресс-бар завершен, иначе False
+
         """
         return self._stats.finished_at is not None

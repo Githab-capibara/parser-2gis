@@ -1,6 +1,4 @@
-"""
-Экран парсинга на Textual.
-"""
+"""Экран парсинга на Textual."""
 
 from datetime import datetime
 
@@ -119,6 +117,7 @@ class ParsingScreen(Screen):
 
         Returns:
             ComposeResult: Результат композиции виджетов.
+
         """
         with Container(id="parsing-container"):
             # Заголовок
@@ -201,6 +200,7 @@ class ParsingScreen(Screen):
 
         Args:
             message: Сообщение для записи в лог с поддержкой markup.
+
         """
         log_viewer = self.query_one("#log-viewer", RichLog)
         log_viewer.write(message)
@@ -238,6 +238,7 @@ class ParsingScreen(Screen):
             page_total: Общее количество страниц.
             record_completed: Количество обработанных записей.
             record_total: Общее количество записей.
+
         """
         if url_total is not None:
             url_progress = self.query_one("#url-progress", ProgressBar)
@@ -268,6 +269,7 @@ class ParsingScreen(Screen):
             current_category: Текущая обрабатываемая категория.
             success_count: Количество успешных операций.
             error_count: Количество ошибок.
+
         """
         if current_city is not None:
             self._current_city = current_city
@@ -301,6 +303,7 @@ class ParsingScreen(Screen):
 
         Args:
             event: Событие нажатия кнопки.
+
         """
         button_id = event.button.id
 
@@ -365,6 +368,7 @@ class ParsingScreen(Screen):
 
         Args:
             success: True если парсинг завершён успешно, False если с ошибками.
+
         """
         if success:
             self._add_log("[bold green]Парсинг успешно завершён![/]")
@@ -376,5 +380,6 @@ class ParsingScreen(Screen):
 
         Args:
             error: Текст ошибки для отображения в логе.
+
         """
         self._add_log(f"[bold red]Ошибка: {error}[/]")

@@ -1,5 +1,4 @@
-"""
-Модуль обработки ошибок для параллельного парсинга.
+"""Модуль обработки ошибок для параллельного парсинга.
 
 Предоставляет класс ParallelErrorHandler для обработки ошибок:
 - Обработка ошибок Chrome и таймаутов
@@ -14,7 +13,6 @@ import gc
 import os
 import time
 from pathlib import Path
-from typing import Tuple
 
 from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.constants import MAX_UNIQUE_NAME_ATTEMPTS
@@ -34,6 +32,7 @@ class ParallelErrorHandler:
         output_dir: Директория для выходных файлов.
         config: Конфигурация парсера.
         stats: Словарь со статистикой ошибок.
+
     """
 
     def __init__(self, output_dir: Path, config) -> None:
@@ -42,6 +41,7 @@ class ParallelErrorHandler:
         Args:
             output_dir: Директория для выходных файлов.
             config: Конфигурация парсера.
+
         """
         self.output_dir = output_dir
         self.config = config
@@ -59,13 +59,14 @@ class ParallelErrorHandler:
         Args:
             message: Текст сообщения.
             level: Уровень логирования.
+
         """
         log_func = getattr(logger, level)
         log_func(message)
 
     def handle_chrome_error(
         self, chrome_error: ChromeException, temp_filepath: Path, max_retries: int = 10
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Обрабатывает ошибку Chrome.
 
         Args:
@@ -75,6 +76,7 @@ class ParallelErrorHandler:
 
         Returns:
             Кортеж (success, message).
+
         """
         self.stats["chrome_errors"] += 1
         self.log(f"Ошибка Chrome после {max_retries} попыток: {chrome_error}", "error")
@@ -83,7 +85,7 @@ class ParallelErrorHandler:
 
     def handle_init_error(
         self, init_error: Exception, temp_filepath: Path, url: str
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Обрабатывает ошибку инициализации.
 
         Args:
@@ -93,6 +95,7 @@ class ParallelErrorHandler:
 
         Returns:
             Кортеж (success, message).
+
         """
         self.stats["init_errors"] += 1
         self.log(f"Ошибка инициализации для {url}: {init_error}", "error")
@@ -101,7 +104,7 @@ class ParallelErrorHandler:
 
     def handle_timeout_error(
         self, temp_filepath: Path, city_name: str, category_name: str, timeout: int
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Обрабатывает ошибку таймаута.
 
         Args:
@@ -112,6 +115,7 @@ class ParallelErrorHandler:
 
         Returns:
             Кортеж (success, message).
+
         """
         self.stats["timeout_errors"] += 1
         self.log(f"Таймаут парсинга {city_name} - {category_name} ({timeout} сек)", "error")
@@ -120,7 +124,7 @@ class ParallelErrorHandler:
 
     def handle_memory_error(
         self, memory_error: MemoryError, temp_filepath: Path, url: str
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Обрабатывает ошибку памяти.
 
         Args:
@@ -130,6 +134,7 @@ class ParallelErrorHandler:
 
         Returns:
             Кортеж (success, message).
+
         """
         self.stats["memory_errors"] += 1
         self.log(f"Memory error while parsing {url}: {memory_error}", "error")
@@ -140,7 +145,7 @@ class ParallelErrorHandler:
 
     def handle_other_error(
         self, error: Exception, temp_filepath: Path, city_name: str, category_name: str
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Обрабатывает прочие ошибки.
 
         Args:
@@ -151,6 +156,7 @@ class ParallelErrorHandler:
 
         Returns:
             Кортеж (success, message).
+
         """
         self.stats["other_errors"] += 1
         self.log(f"Ошибка парсинга {city_name} - {category_name}: {error}", "error")
@@ -162,6 +168,7 @@ class ParallelErrorHandler:
 
         Args:
             temp_filepath: Путь к временному файлу.
+
         """
         try:
             if temp_filepath.exists():
@@ -185,6 +192,7 @@ class ParallelErrorHandler:
 
         Raises:
             RuntimeError: Если не удалось создать уникальный файл.
+
         """
         safe_city = city_name.replace(" ", "_").replace("/", "_")
         safe_category = category_name.replace(" ", "_").replace("/", "_")
@@ -210,7 +218,8 @@ class ParallelErrorHandler:
                         temp_filename,
                     )
                     raise RuntimeError(
-                        f"Не удалось создать уникальный временный файл после {MAX_UNIQUE_NAME_ATTEMPTS} попыток"
+                        "Не удалось создать уникальный временный файл "
+                        f"после {MAX_UNIQUE_NAME_ATTEMPTS} попыток"
                     )
             except OSError as e:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
@@ -243,6 +252,7 @@ class ParallelErrorHandler:
 
         Raises:
             Exception: Последнее исключение, если все попытки не удались.
+
         """
         # Явная проверка edge case: max_retries=0
         if max_retries <= 0:

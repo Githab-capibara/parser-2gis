@@ -1,5 +1,4 @@
-"""
-Модуль утилит для работы с данными.
+"""Модуль утилит для работы с данными.
 
 Содержит функции для преобразования и обработки структур данных.
 """
@@ -7,7 +6,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 # =============================================================================
 # ЛОГГЕР
@@ -21,6 +20,7 @@ def _get_logger() -> Any:
 
     Returns:
         Экземпляр logger из модуля logger.
+
     """
     from parser_2gis.logger import logger as app_logger
 
@@ -32,7 +32,7 @@ def _get_logger() -> Any:
 # =============================================================================
 
 
-def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
+def unwrap_dot_dict(d: dict[str, Any]) -> dict[str, Any]:
     """Разворачивает плоский словарь с ключами в виде точечного пути к значениям.
 
     Оптимизация: используется setdefault вместо functools.reduce.
@@ -71,11 +71,12 @@ def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
         >>> result = unwrap_dot_dict(input_dict)
         >>> result
         {'a': {'b': {'c': 1}, 'd': 2}}
+
     """
     if not isinstance(d, dict):
         raise TypeError("Входные данные должны быть словарём")
 
-    output: Dict[str, Any] = {}
+    output: dict[str, Any] = {}
     for key, value in d.items():
         if not key:
             _get_logger().warning("Пустой ключ в словаре, пропускаем")
@@ -99,4 +100,4 @@ def unwrap_dot_dict(d: Dict[str, Any]) -> Dict[str, Any]:
 # ЭКСПОРТ
 # =============================================================================
 
-__all__ = ["unwrap_dot_dict", "_get_logger"]
+__all__ = ["_get_logger", "unwrap_dot_dict"]

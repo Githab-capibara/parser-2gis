@@ -1,5 +1,4 @@
-"""
-Модуль для обратной совместимости.
+"""Модуль для обратной совместимости.
 
 Этот модуль предоставляет экспорт функций валидации из новых модулей
 для обеспечения обратной совместимости со старым кодом.
@@ -33,7 +32,7 @@ __all__ = [
     "ValidationResult",
     "validate_email",
     "validate_phone",
-    "validate_url",
-    "validate_positive_int",
     "validate_positive_float",
+    "validate_positive_int",
+    "validate_url",
 ]

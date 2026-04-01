@@ -1,5 +1,4 @@
-"""
-Лаунчер приложения Parser2GIS.
+"""Лаунчер приложения Parser2GIS.
 
 Модуль предоставляет класс ApplicationLauncher для разделения режимов работы приложения
 и управления жизненным циклом.
@@ -18,7 +17,7 @@ import sqlite3
 import threading
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from parser_2gis.cache import CacheManager
 from parser_2gis.chrome.remote import ChromeRemote
@@ -46,7 +45,7 @@ class CleanupCallback(Protocol):
 class SignalHandlerFactory(Protocol):
     """Protocol для фабрики SignalHandler."""
 
-    def __call__(self, cleanup_callback: Optional[CleanupCallback] = None) -> SignalHandler:
+    def __call__(self, cleanup_callback: CleanupCallback | None = None) -> SignalHandler:
         """Создаёт SignalHandler."""
 
 
@@ -75,13 +74,14 @@ class ApplicationLauncher:
         >>> # Использование с dependency injection
         >>> launcher = ApplicationLauncher(config, options)
         >>> launcher.launch(args)
+
     """
 
     def __init__(
         self,
-        config: "Configuration",
-        options: "ParserOptions",
-        signal_handler_factory: Optional[SignalHandlerFactory] = None,
+        config: Configuration,
+        options: ParserOptions,
+        signal_handler_factory: SignalHandlerFactory | None = None,
     ):
         """Инициализация лаунчера.
 
@@ -94,10 +94,11 @@ class ApplicationLauncher:
         Note:
             По умолчанию используется SignalHandler, но для тестирования
             можно передать mock фабрику.
+
         """
         self.config = config
         self.options = options
-        self._signal_handler: Optional[SignalHandler] = None
+        self._signal_handler: SignalHandler | None = None
         self._signal_handler_lock = threading.Lock()
         self._signal_handler_factory = signal_handler_factory or SignalHandler
 
@@ -109,6 +110,7 @@ class ApplicationLauncher:
 
         Returns:
             Код завершения приложения.
+
         """
         self._setup_signal_handlers()
 
@@ -144,6 +146,7 @@ class ApplicationLauncher:
 
         Returns:
             Код завершения приложения.
+
         """
         # Опциональный импорт TUI модулей
         try:
@@ -180,6 +183,7 @@ class ApplicationLauncher:
 
         Returns:
             Код завершения приложения.
+
         """
         try:
             # Импортируем здесь для избежания циклических зависимостей
@@ -268,6 +272,7 @@ class ApplicationLauncher:
 
         Returns:
             Код завершения приложения.
+
         """
         try:
             from parser_2gis.cli import cli_app
@@ -347,7 +352,7 @@ class ApplicationLauncher:
         finally:
             self._cleanup_resources()
 
-    def _get_output_dir(self, output_path: Optional[str]) -> Path:
+    def _get_output_dir(self, output_path: str | None) -> Path:
         """Определяет директорию для результатов.
 
         Args:
@@ -355,6 +360,7 @@ class ApplicationLauncher:
 
         Returns:
             Path объект директории.
+
         """
         if output_path is None:
             return Path("output")
@@ -373,6 +379,7 @@ class ApplicationLauncher:
 
         Returns:
             Имя выходного файла.
+
         """
         output_path = getattr(args, "output_path", None)
         if output_path:
@@ -461,6 +468,7 @@ def _get_signal_handler_cached(handler_instance: SignalHandler) -> SignalHandler
 
     Returns:
         Тот же экземпляр SignalHandler.
+
     """
     return handler_instance
 

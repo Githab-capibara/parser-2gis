@@ -1,5 +1,4 @@
-"""
-Модуль опций для параллельного парсинга.
+"""Модуль опций для параллельного парсинга.
 
 Содержит классы:
 - ParallelOptions: Опции для конфигурирования параллельного парсинга
@@ -21,7 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, PositiveInt
 
@@ -42,11 +41,12 @@ class ParallelOptions(BaseModel):
         use_temp_file_cleanup: Использовать автоматическую очистку временных файлов.
         temp_file_cleanup_interval: Интервал очистки временных файлов в секундах.
         max_temp_files: Максимальное количество временных файлов для мониторинга.
-        orphaned_temp_file_age: Возраст временного файла в секундах, после которого он считается осиротевшим.
+        orphaned_temp_file_age: Возраст временного файла в секундах,
+            после которого он считается осиротевшим.
         merge_lock_timeout: Таймаут ожидания блокировки merge операции в секундах.
         max_lock_file_age: Максимальный возраст lock файла в секундах.
         max_workers: Количество параллельных работников для парсинга.
-        use_delays: Использовать задержки перед парсингом (по умолчанию True для стабильности).
+        use_delays: Использовать задержки перед парсингом (по умолчанию True).
         initial_delay_min: Минимальная начальная задержка в секундах.
         initial_delay_max: Максимальная начальная задержка в секундах.
         launch_delay_min: Минимальная задержка перед запуском Chrome.
@@ -93,14 +93,15 @@ class ParallelParserConfig:
         ...     max_workers=5,
         ... )
         >>> parser = ParallelCityParser(**cfg.__dict__)
+
     """
 
-    cities: List[Dict[str, Any]]
-    categories: List[Dict[str, Any]]
+    cities: list[dict[str, Any]]
+    categories: list[dict[str, Any]]
     output_dir: Path
     config: Configuration
     max_workers: int = 10
     timeout_per_url: int = 60
 
 
-__all__ = ["ParallelOptions", "ParallelParserConfig", "MAX_TEMP_FILES"]
+__all__ = ["MAX_TEMP_FILES", "ParallelOptions", "ParallelParserConfig"]

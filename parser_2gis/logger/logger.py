@@ -55,6 +55,7 @@ def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]], options: LogOption
 
     Args:
         log_queue: Очередь для размещения сообщений логирования.
+
     """
     formatter = logging.Formatter(options.gui_format, options.gui_datefmt)
     queue_handler = QueueHandler(log_queue)
@@ -67,6 +68,7 @@ def setup_cli_logger(options: LogOptions) -> None:
 
     Args:
         options: Опции логирования.
+
     """
     setup_logger(options.level, options.cli_format, options.cli_datefmt)
 
@@ -78,6 +80,7 @@ def setup_logger(level: str, fmt: str, datefmt: str) -> None:
         level: Уровень логгера.
         fmt: Строка формата в процентном стиле.
         datefmt: Строка формата даты.
+
     """
     if not logger.handlers:
         handler = logging.StreamHandler()
@@ -95,8 +98,7 @@ Logger = logging.Logger
 def log_parser_start(
     version: str, urls_count: int, output_path: str, format: str, config_summary: dict | None = None
 ) -> None:
-    """
-    Логирует запуск парсера с подробной информацией.
+    """Логирует запуск парсера с подробной информацией.
 
     Args:
         version: Версия парсера.
@@ -104,6 +106,7 @@ def log_parser_start(
         output_path: Путь к выходному файлу.
         format: Формат выходного файла.
         config_summary: Краткая сводка конфигурации.
+
     """
     from .visual_logger import Emoji, print_config, print_header
 
@@ -133,13 +136,13 @@ def log_parser_start(
 def log_parser_finish(
     success: bool = True, stats: dict | None = None, duration: str | None = None
 ) -> None:
-    """
-    Логирует завершение парсера.
+    """Логирует завершение парсера.
 
     Args:
         success: Успешно ли завершено.
         stats: Статистика работы.
         duration: Продолжительность работы.
+
     """
     from .visual_logger import Emoji, print_error, print_header, print_stats, print_success
 

@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from parser_2gis.logger import logger
 from parser_2gis.parser.parsers.main_extractor import MainDataExtractor
@@ -44,6 +44,7 @@ class MainParser:
         parser_options: Опции парсера.
         browser: Опциональный объект BrowserService. Если не передан,
                  создаётся внутренний ChromeRemote (для backward совместимости).
+
     """
 
     def __init__(
@@ -51,7 +52,7 @@ class MainParser:
         url: str,
         chrome_options: ChromeOptions,
         parser_options: ParserOptions,
-        browser: Optional[BrowserService] = None,
+        browser: BrowserService | None = None,
     ) -> None:
         """Инициализация основного парсера.
 
@@ -60,6 +61,7 @@ class MainParser:
             chrome_options: Опции Chrome.
             parser_options: Опции парсера.
             browser: Опциональный браузер.
+
         """
         self._options = parser_options
         self._url = url
@@ -96,6 +98,7 @@ class MainParser:
             2. _validate_document_response() — валидация ответа
             3. _parse_search_results() — парсинг выдачи
             4. _handle_pagination() — обработка пагинации (вызывается внутри)
+
         """
         from collections import OrderedDict
 
@@ -103,7 +106,7 @@ class MainParser:
         # 2GIS автоматически перенаправляет пользователя в начало (anti-bot защита).
         # Если в URL найден аргумент страницы, мы должны вручную перейти к ней сначала.
 
-        url = re.sub(r"/page/\d+", "", self._url, re.I)
+        url = re.sub(r"/page/\d+", "", self._url, flags=re.I)
 
         page_match = re.search(r"/page/(?P<page_number>\d+)", self._url, re.I)
         walk_page_number = int(page_match.group("page_number")) if page_match else None
@@ -200,13 +203,14 @@ class MainParser:
         if hasattr(self._page_parser, "_owns_browser") and self._page_parser._owns_browser:
             self._page_parser._chrome_remote.stop()
 
-    def __enter__(self) -> "MainParser":
+    def __enter__(self) -> MainParser:
         """Контекстный менеджер: вход.
 
         Запускает браузер через _page_parser.
 
         Returns:
             Экземпляр MainParser.
+
         """
         self._page_parser.__enter__()
         return self
@@ -218,6 +222,7 @@ class MainParser:
 
         Args:
             exc_info: Информация об исключении (если было).
+
         """
         self.close()
 

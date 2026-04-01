@@ -1,5 +1,4 @@
-"""
-Пакет кэширования для parser-2gis.
+"""Пакет кэширования для parser-2gis.
 
 Предоставляет функциональность для кэширования результатов парсинга
 в локальной базе данных SQLite.
@@ -53,38 +52,35 @@ except ImportError:
     psutil = None  # type: ignore
 
 __all__ = [
-    "CacheManager",
+    "CONNECTION_MAX_AGE",
+    "DEFAULT_BATCH_SIZE",
+    "LRU_EVICT_BATCH",
+    "MAX_BATCH_SIZE",
+    "MAX_CACHE_SIZE_MB",
+    "MAX_CONNECTION_AGE",
+    "MAX_DATA_DEPTH",  # Для обратной совместимости с тестами
+    "MAX_POOL_SIZE",
+    "MAX_STRING_LENGTH",  # Для обратной совместимости с тестами
+    "MIN_POOL_SIZE",
+    "SHA256_HASH_LENGTH",
+    "_PSUTIL_AVAILABLE",
     "Cache",
-    "ConnectionPool",
-    "_ConnectionPool",  # Для обратной совместимости с тестами
-    "JsonSerializer",
     "CacheDataValidator",
-    # Функции
+    "CacheManager",
+    "ConnectionPool",
+    "JsonSerializer",
+    "_ConnectionPool",  # Для обратной совместимости с тестами
     "_calculate_dynamic_pool_size",
-    "validate_env_int",
-    "_validate_pool_env_int",  # Алиас для обратной совместимости
-    "_validate_cached_data",  # Для обратной совместимости с тестами
     "_check_sql_injection_patterns",  # Для обратной совместимости с тестами
-    "_normalize_unicode",  # Для обратной совместимости с тестами
     "_deserialize_json",  # Для обратной совместимости с тестами
+    "_normalize_unicode",  # Для обратной совместимости с тестами
     "_serialize_json",  # Для обратной совместимости с тестами
+    "_validate_cached_data",  # Для обратной совместимости с тестами
     "_validate_dict_data",  # Для обратной совместимости с тестами
     "_validate_list_data",  # Для обратной совместимости с тестами
     "_validate_numeric_data",  # Для обратной совместимости с тестами
+    "_validate_pool_env_int",  # Алиас для обратной совместимости
     "_validate_string_data",  # Для обратной совместимости с тестами
-    # Константы
-    "DEFAULT_BATCH_SIZE",
-    "MAX_CONNECTION_AGE",
-    "MAX_BATCH_SIZE",
-    "MAX_CACHE_SIZE_MB",
-    "LRU_EVICT_BATCH",
-    "SHA256_HASH_LENGTH",
-    "MAX_POOL_SIZE",
-    "MIN_POOL_SIZE",
-    "CONNECTION_MAX_AGE",
-    "MAX_DATA_DEPTH",  # Для обратной совместимости с тестами
-    "MAX_STRING_LENGTH",  # Для обратной совместимости с тестами
-    # Переменные
-    "_PSUTIL_AVAILABLE",
     "psutil",  # Для тестов
+    "validate_env_int",
 ]

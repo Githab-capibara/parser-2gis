@@ -1,5 +1,4 @@
-"""
-Пакет application для Parser2GIS.
+"""Пакет application для Parser2GIS.
 
 Предоставляет фасады для упрощения взаимодействия с основными компонентами:
 - ParserFacade: фасад для парсеров
@@ -9,4 +8,4 @@
 
 from parser_2gis.application.layer import BrowserFacade, CacheFacade, ParserFacade
 
-__all__ = ["ParserFacade", "CacheFacade", "BrowserFacade"]
+__all__ = ["BrowserFacade", "CacheFacade", "ParserFacade"]

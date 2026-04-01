@@ -92,6 +92,7 @@ def _log_startup_info(args: Any, config: Configuration, start_time: datetime) ->
         args: Аргументы командной строки.
         config: Конфигурация.
         start_time: Время запуска.
+
     """
     format_value = getattr(args, "format", None)
     format_str = format_value.upper() if format_value else "CSV (по умолчанию)"
@@ -155,4 +156,4 @@ def main() -> None:
     sys.exit(exit_code)
 
 
-__all__ = ["main", "ApplicationLauncher", "Parser2GISTUI", "run_new_tui_omsk", "cleanup_resources"]
+__all__ = ["ApplicationLauncher", "Parser2GISTUI", "cleanup_resources", "main", "run_new_tui_omsk"]

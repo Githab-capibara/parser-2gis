@@ -1,5 +1,4 @@
-"""
-Модуль пула соединений для SQLite.
+"""Модуль пула соединений для SQLite.
 
 Предоставляет класс ConnectionPool для управления пулом соединений
 с базой данных SQLite с поддержкой reuse соединений.
@@ -20,7 +19,6 @@ import threading
 import time
 import weakref
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from ..constants import MAX_POOL_SIZE, MIN_POOL_SIZE, validate_env_int
 from ..logger.logger import logger as app_logger
@@ -43,6 +41,11 @@ _CONNECTION_MAX_AGE_ENV: int = validate_env_int(
     "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
 )
 
+# D009: Константы для PRAGMA настроек с валидацией
+_SQLITE_PRAGMA_JOURNAL_MODE: str = "WAL"
+_SQLITE_PRAGMA_CACHE_SIZE: int = -64000  # 64MB в страницах по 4KB
+_SQLITE_PRAGMA_SYNCHRONOUS: str = "NORMAL"
+_SQLITE_PRAGMA_BUSY_TIMEOUT: int = 60000  # 60 секунд
 
 # Попытка импортировать psutil для мониторинга памяти
 try:
@@ -56,8 +59,7 @@ except ImportError:
 
 @functools.lru_cache(maxsize=1)
 def _calculate_dynamic_pool_size() -> int:
-    """
-    Рассчитывает оптимальный размер пула соединений на основе доступной памяти.
+    """Рассчитывает оптимальный размер пула соединений на основе доступной памяти.
 
     Алгоритм расчёта:
     - Получаем доступную память системы (если возможно)
@@ -75,6 +77,7 @@ def _calculate_dynamic_pool_size() -> int:
     Примечание:
         H005: Результат кэшируется через lru_cache(maxsize=1) для предотвращения
         повторных вызовов psutil.virtual_memory() при каждом создании пула.
+
     """
     try:
         # Пытаемся получить информацию о памяти через psutil
@@ -130,8 +133,7 @@ def _calculate_dynamic_pool_size() -> int:
 
 
 class ConnectionPool:
-    """
-    Пул соединений для SQLite с reuse и queue.Queue для управления.
+    """Пул соединений для SQLite с reuse и queue.Queue для управления.
 
     Оптимизация:
     - Reuse соединений вместо создания новых
@@ -153,16 +155,16 @@ class ConnectionPool:
         >>> conn = pool.get_connection()  # Получить соединение для текущего потока
         >>> pool.return_connection(conn)  # Вернуть соединение в пул
         >>> pool.close()  # Закрыть все соединения
+
     """
 
     def __init__(
         self,
         cache_file: Path,
-        pool_size: Optional[int] = None,
+        pool_size: int | None = None,
         use_dynamic: bool = False,  # Для обратной совместимости
     ) -> None:
-        """
-        Инициализация пула соединений.
+        """Инициализация пула соединений.
 
         Args:
             cache_file: Путь к файлу базы данных SQLite.
@@ -177,6 +179,7 @@ class ConnectionPool:
             >>> pool = ConnectionPool(Path("/tmp/cache.db"))
             >>> # Или с явным размером:
             >>> pool = ConnectionPool(Path("/tmp/cache.db"), pool_size=10)
+
         """
         self._cache_file = cache_file
         # Используем фиксированный размер пула из ENV или заданный вручную
@@ -195,7 +198,7 @@ class ConnectionPool:
         self._max_size = self._pool_size
 
         self._local = threading.local()
-        self._all_conns: List[sqlite3.Connection] = []
+        self._all_conns: list[sqlite3.Connection] = []
         # ИСПРАВЛЕНИЕ CRITICAL 23: Используем Lock вместо RLock где не нужна реентерабельность
         # Lock более производительный и предотвращает случайные реентерабельные вызовы
         self._lock = threading.Lock()
@@ -204,7 +207,7 @@ class ConnectionPool:
             maxsize=self._pool_size
         )
         # Хранение возраста соединений по id(conn)
-        self._connection_age: Dict[int, float] = {}
+        self._connection_age: dict[int, float] = {}
         # weakref.finalize() для гарантированной очистки ресурсов
         self._weak_ref = weakref.ref(self)
         self._finalizer = weakref.finalize(self, self._cleanup_pool, self._all_conns, self._lock)
@@ -217,6 +220,7 @@ class ConnectionPool:
 
         Returns:
             True если соединение активно, False иначе.
+
         """
         try:
             conn.execute("SELECT 1")
@@ -225,8 +229,7 @@ class ConnectionPool:
             return False
 
     def get_connection(self) -> sqlite3.Connection:
-        """
-        Получает соединение для текущего потока с reuse.
+        """Получает соединение для текущего потока с reuse.
 
         Оптимизация:
         - Reuse соединений вместо создания новых
@@ -249,8 +252,9 @@ class ConnectionPool:
             ИСПРАВЛЕНИЕ CRITICAL 1: Перестроена логика для гарантированной инициализации conn
             ИСПРАВЛЕНИЕ CRITICAL 2: Добавлен finally блок для гарантированной очистки
             ИСПРАВЛЕНИЕ C002: Использована единая блокировка без double-checked locking
+
         """
-        conn: Optional[sqlite3.Connection] = None
+        conn: sqlite3.Connection | None = None
         created_new: bool = False
 
         try:
@@ -373,7 +377,8 @@ class ConnectionPool:
                     # Проверяем лимит соединений
                     if len(self._all_conns) >= self._pool_size:
                         app_logger.warning(
-                            "Достигнут лимит соединений (%d), новое соединение не добавляется в pool",
+                            "Достигнут лимит соединений (%d), "
+                            "новое соединение не добавляется в pool",
                             self._pool_size,
                         )
                     else:
@@ -402,8 +407,7 @@ class ConnectionPool:
                     app_logger.debug("Ошибка при закрытии соединения в finally: %s", cleanup_error)
 
     def return_connection(self, conn: sqlite3.Connection) -> None:
-        """
-        Возвращает соединение в пул для reuse.
+        """Возвращает соединение в пул для reuse.
 
         Оптимизация:
         - Возврат соединения в queue для повторного использования
@@ -411,6 +415,7 @@ class ConnectionPool:
 
         Args:
             conn: Соединение для возврата в пул.
+
         """
         try:
             # Пытаемся вернуть соединение в queue
@@ -441,8 +446,7 @@ class ConnectionPool:
                 del self._connection_age[id(conn)]
 
     def _create_connection(self) -> sqlite3.Connection:
-        """
-        Создаёт новое соединение с оптимизированными настройками.
+        """Создаёт новое соединение с оптимизированными настройками.
 
         Returns:
             Новое SQLite соединение.
@@ -452,6 +456,7 @@ class ConnectionPool:
             SQLite требует создания соединения в том же потоке, но с этой опцией
             мы можем безопасно использовать соединения в разных потоках при условии
             правильной синхронизации через RLock.
+
         """
         conn = sqlite3.connect(
             str(self._cache_file),
@@ -460,11 +465,12 @@ class ConnectionPool:
             check_same_thread=False,  # Потокобезопасность
         )
 
-        conn.executescript("""
-            PRAGMA journal_mode=WAL;
-            PRAGMA cache_size=-64000;
-            PRAGMA synchronous=NORMAL;
-            PRAGMA busy_timeout=60000;
+        # D009: Используем константы для PRAGMA настроек
+        conn.executescript(f"""
+            PRAGMA journal_mode={_SQLITE_PRAGMA_JOURNAL_MODE};
+            PRAGMA cache_size={_SQLITE_PRAGMA_CACHE_SIZE};
+            PRAGMA synchronous={_SQLITE_PRAGMA_SYNCHRONOUS};
+            PRAGMA busy_timeout={_SQLITE_PRAGMA_BUSY_TIMEOUT};
         """)
 
         return conn
@@ -516,9 +522,8 @@ class ConnectionPool:
     close_all = close
 
     @staticmethod
-    def _cleanup_pool(all_conns: List[sqlite3.Connection], lock: threading.RLock) -> None:
-        """
-        Статический метод для гарантированной очистки пула соединений.
+    def _cleanup_pool(all_conns: list[sqlite3.Connection], lock: threading.RLock) -> None:
+        """Статический метод для гарантированной очистки пула соединений.
 
         Вызывается weakref.finalize() при уничтожении объекта сборщиком мусора.
         Этот метод не зависит от состояния объекта, поэтому может быть вызван
@@ -527,6 +532,7 @@ class ConnectionPool:
         Args:
             all_conns: Список всех соединений для закрытия.
             lock: Блокировка для потокобезопасной очистки.
+
         """
         if all_conns is not None and lock is not None:
             try:
@@ -542,8 +548,7 @@ class ConnectionPool:
                 app_logger.debug("Ошибка при очистке пула соединений: %s", e)
 
     def __enter__(self) -> "ConnectionPool":
-        """
-        Контекстный менеджер: вход.
+        """Контекстный менеджер: вход.
 
         Returns:
             Экземпляр ConnectionPool для использования в контекстном менеджере.
@@ -552,12 +557,12 @@ class ConnectionPool:
             >>> with ConnectionPool(Path("cache.db")) as pool:
             ...     conn = pool.get_connection()
             ...     # работа с соединением
+
         """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """
-        Контекстный менеджер: выход.
+        """Контекстный менеджер: выход.
 
         Args:
             exc_type: Тип исключения (если произошло).
@@ -567,6 +572,7 @@ class ConnectionPool:
         Примечание:
             Гарантирует закрытие всех соединений даже при возникновении исключений.
             Все ошибки при закрытии логируются но не пробрасываются.
+
         """
         try:
             self.close()
@@ -579,8 +585,7 @@ class ConnectionPool:
         # Возвращаем None (подавляем исключения) чтобы не мешать основной логике
 
     def __del__(self) -> None:
-        """
-        Гарантирует закрытие соединений при уничтожении объекта.
+        """Гарантирует закрытие соединений при уничтожении объекта.
 
         ИСПОЛЬЗУЕТСЯ weakref.finalize() для гарантированной очистки:
         - weakref.finalize() регистрируется в __init__ и вызывается сборщиком мусора

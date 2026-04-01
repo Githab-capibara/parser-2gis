@@ -1,6 +1,4 @@
-"""
-Модуль экранов для TUI на Textual.
-"""
+"""Модуль экранов для TUI на Textual."""
 
 from .category_selector import CategorySelectorScreen
 from .city_selector import CitySelectorScreen
@@ -10,13 +8,13 @@ from .parsing_screen import ParsingScreen
 from .settings import BrowserSettingsScreen, OutputSettingsScreen, ParserSettingsScreen
 
 __all__ = [
-    "MainMenuScreen",
-    "CitySelectorScreen",
-    "CategorySelectorScreen",
-    "BrowserSettingsScreen",
-    "ParserSettingsScreen",
-    "OutputSettingsScreen",
-    "ParsingScreen",
-    "CacheViewerScreen",
     "AboutScreen",
+    "BrowserSettingsScreen",
+    "CacheViewerScreen",
+    "CategorySelectorScreen",
+    "CitySelectorScreen",
+    "MainMenuScreen",
+    "OutputSettingsScreen",
+    "ParserSettingsScreen",
+    "ParsingScreen",
 ]

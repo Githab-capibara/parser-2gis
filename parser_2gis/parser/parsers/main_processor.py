@@ -1,5 +1,4 @@
-"""
-Модуль обработки данных для парсера 2GIS.
+"""Модуль обработки данных для парсера 2GIS.
 
 Предоставляет класс MainDataProcessor для обработки данных:
 - Обработка пагинации и переходов между страницами
@@ -18,7 +17,7 @@ from __future__ import annotations
 import gc
 import threading
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 try:
     import psutil
@@ -55,20 +54,22 @@ class MainDataProcessor:
     Attributes:
         parser: Экземпляр MainPageParser для доступа к браузеру.
         extractor: Экземпляр MainDataExtractor для извлечения данных.
+
     """
 
-    def __init__(self, parser: "MainPageParser") -> None:
+    def __init__(self, parser: MainPageParser) -> None:
         """Инициализация процессора данных.
 
         Args:
             parser: Экземпляр MainPageParser.
+
         """
         self._parser = parser
         self._extractor = MainDataExtractor(parser)
 
     def _handle_pagination(
-        self, current_page_number: int, walk_page_number: Optional[int]
-    ) -> Tuple[int, bool]:
+        self, current_page_number: int, walk_page_number: int | None
+    ) -> tuple[int, bool]:
         """Обрабатывает пагинацию и переход на следующую страницу.
 
         Args:
@@ -84,6 +85,7 @@ class MainDataProcessor:
             - Вычисляет следующую страницу на основе доступных
             - Обрабатывает режим перехода к определённой странице
             - Возвращает False если достигнут конец результатов
+
         """
         # Вычисляем следующий номер страницы
         if walk_page_number is not None:
@@ -117,9 +119,9 @@ class MainDataProcessor:
 
     def _parse_search_results(
         self,
-        writer: "FileWriter",
-        walk_page_number: Optional[int],
-        visited_links: Optional[OrderedDict[str, None]] = None,
+        writer: FileWriter,
+        walk_page_number: int | None,
+        visited_links: OrderedDict[str, None] | None = None,
         max_visited_links: int = MAX_VISITED_LINKS_SIZE,
     ) -> None:
         """Парсит результаты поисковой выдачи.
@@ -135,6 +137,7 @@ class MainDataProcessor:
             - Обработка пагинации
             - Оптимизация памяти и GC
             - Подсчёт пустых страниц и лимиты
+
         """
         # Спарсенные записи
         collected_records = 0
@@ -252,7 +255,7 @@ class MainDataProcessor:
         @wait_until_finished(
             timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.01
         )
-        def get_unique_links() -> Optional[list["DOMNode"]]:
+        def get_unique_links() -> list[DOMNode] | None:
             """Получает уникальные ссылки, которые ещё не были посещены."""
             try:
                 links = self._parser._get_links()

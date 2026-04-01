@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from parser_2gis.protocols import BrowserService
@@ -60,6 +60,7 @@ class BaseParser(ABC):
     Attributes:
         _browser: Объект BrowserService для работы с браузером.
         _stats: Словарь для хранения статистики парсера.
+
     """
 
     def __init__(self, browser: BrowserService) -> None:
@@ -70,9 +71,10 @@ class BaseParser(ABC):
 
         Создаёт словарь для хранения статистики парсера.
         Дочерние классы должны расширять этот словарь своими полями.
+
         """
         self._browser = browser
-        self._stats: Dict[str, Any] = {"parsed": 0, "errors": 0, "skipped": 0}
+        self._stats: dict[str, Any] = {"parsed": 0, "errors": 0, "skipped": 0}
 
     @property
     def _chrome_remote(self) -> BrowserService:
@@ -80,6 +82,7 @@ class BaseParser(ABC):
 
         Returns:
             Объект BrowserService для работы с браузером.
+
         """
         return self._browser
 
@@ -101,11 +104,12 @@ class BaseParser(ABC):
             ...     data = self._extract_data()
             ...     writer.write(data)
             ...     self._stats["parsed"] += 1
+
         """
         pass  # pragma: no cover
 
     @abstractmethod
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Получение статистики работы парсера.
 
         Этот метод должен быть реализован в каждом конкретном парсере
@@ -127,6 +131,7 @@ class BaseParser(ABC):
             ...         "errors": self._stats["errors"],
             ...         "skipped": self._stats["skipped"],
             ...     }
+
         """
         pass  # pragma: no cover
 
@@ -135,6 +140,7 @@ class BaseParser(ABC):
 
         Returns:
             Строка с названием класса и статистикой.
+
         """
         stats_str = ", ".join(f"{k}={v}" for k, v in self._stats.items())
         return f"{self.__class__.__name__}({stats_str})"

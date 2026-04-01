@@ -1,5 +1,4 @@
-"""
-Модуль обработки сигналов для парсера.
+"""Модуль обработки сигналов для парсера.
 
 Предоставляет класс SignalHandler для обработки сигналов:
 - Обработка SIGINT (Ctrl+C)
@@ -12,7 +11,7 @@ from __future__ import annotations
 import logging
 import signal
 import threading
-from typing import Callable, Optional
+from collections.abc import Callable
 
 logger = logging.getLogger("parser_2gis.utils.signal_handler")
 
@@ -26,23 +25,25 @@ class SignalHandler:
     Attributes:
         cleanup_callback: Функция обратного вызова для очистки ресурсов.
         cancel_event: Событие для сигнализации об отмене операции.
+
     """
 
     def __init__(
         self,
-        cleanup_callback: Optional[Callable[[], None]] = None,
-        cancel_event: Optional[threading.Event] = None,
+        cleanup_callback: Callable[[], None] | None = None,
+        cancel_event: threading.Event | None = None,
     ) -> None:
         """Инициализация обработчика сигналов.
 
         Args:
             cleanup_callback: Функция для очистки ресурсов при завершении.
             cancel_event: Событие для сигнализации об отмене.
+
         """
         self._cleanup_callback = cleanup_callback
         self._cancel_event = cancel_event or threading.Event()
-        self._old_sigint_handler: Optional[Callable] = None
-        self._old_sigterm_handler: Optional[Callable] = None
+        self._old_sigint_handler: Callable | None = None
+        self._old_sigterm_handler: Callable | None = None
         self._registered = False
 
     def register(self) -> None:
@@ -80,6 +81,7 @@ class SignalHandler:
 
         Returns:
             True если операция отменена.
+
         """
         return self._cancel_event.is_set()
 

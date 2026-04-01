@@ -1,5 +1,4 @@
-"""
-Модуль валидации путей.
+"""Модуль валидации путей.
 
 Содержит класс PathValidator для валидации путей и предотвращения
 path traversal атак.
@@ -16,7 +15,6 @@ from __future__ import annotations
 import logging
 import tempfile
 from pathlib import Path
-from typing import List, Optional
 
 from parser_2gis.constants import MAX_PATH_LENGTH
 
@@ -36,27 +34,29 @@ class PathValidator:
         >>> validator = PathValidator()
         >>> validator.validate("/safe/path/file.txt")
         >>> validator.validate("../etc/passwd")  # Raises ValueError
+
     """
 
     # Запрещённые символы в путях для предотвращения path traversal атак
-    _FORBIDDEN_CHARS: List[str] = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
+    _FORBIDDEN_CHARS: list[str] = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
 
     # Максимальная длина пути для предотвращения переполнения буфера
     _MAX_PATH_LENGTH: int = MAX_PATH_LENGTH
 
     # Разрешённые базовые директории для записи
-    _ALLOWED_BASE_DIRS: List[Path] = [
+    _ALLOWED_BASE_DIRS: list[Path] = [
         Path.cwd(),
         Path.home() / "parser-2gis",
         Path(tempfile.gettempdir()),
     ]
 
-    def __init__(self, allowed_base_dirs: Optional[List[Path]] = None) -> None:
+    def __init__(self, allowed_base_dirs: list[Path] | None = None) -> None:
         """Инициализирует валидатор путей.
 
         Args:
             allowed_base_dirs: Список разрешённых базовых директорий.
                               Если None, используются директории по умолчанию.
+
         """
         if allowed_base_dirs is not None:
             self._allowed_base_dirs = allowed_base_dirs
@@ -73,6 +73,7 @@ class PathValidator:
         Raises:
             ValueError: При обнаружении небезопасного пути.
             OSError: При ошибке работы с файловой системой.
+
         """
         if not path:
             logger.warning("Получен пустой путь для валидации, параметр: %s", path_name)
@@ -130,6 +131,7 @@ class PathValidator:
             ...     "output_path": "/safe/output.csv",
             ...     "chrome_binary": "/usr/bin/google-chrome",
             ... })
+
         """
         for path_name, path_value in paths.items():
             if path_value:
@@ -137,7 +139,7 @@ class PathValidator:
 
 
 # Singleton экземпляр для глобального использования
-_path_validator: Optional[PathValidator] = None
+_path_validator: PathValidator | None = None
 
 
 def get_path_validator() -> PathValidator:
@@ -149,6 +151,7 @@ def get_path_validator() -> PathValidator:
     Example:
         >>> validator = get_path_validator()
         >>> validator.validate("/safe/path/file.txt")
+
     """
     global _path_validator
     if _path_validator is None:
@@ -171,6 +174,7 @@ def validate_path(path: str, path_name: str = "Путь") -> None:
 
     Example:
         >>> validate_path("/safe/output.csv", "output_path")
+
     """
     validator = get_path_validator()
     validator.validate(path, path_name)

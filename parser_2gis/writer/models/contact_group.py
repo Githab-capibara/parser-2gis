@@ -7,11 +7,12 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from .schedule import Schedule
+if TYPE_CHECKING:
+    from .schedule import Schedule
 
 
 class Contact(BaseModel):
@@ -56,16 +57,16 @@ class Contact(BaseModel):
     value: str
 
     # Значение контакта для вывода на экран (например "e-mail Иванова")
-    text: Optional[str] = None
+    text: str | None = None
 
     # Ссылка на сайт или социальную сеть
-    url: Optional[str] = None
+    url: str | None = None
 
     # Значение контакта для вывода на принтер (например "e-mail Иванова")
-    print_text: Optional[str] = None
+    print_text: str | None = None
 
     # Уточняющая информация о контакте (например "для деловой переписки")
-    comment: Optional[str] = None
+    comment: str | None = None
 
 
 class ContactGroup(BaseModel):
@@ -79,13 +80,13 @@ class ContactGroup(BaseModel):
     """
 
     # Список контактов
-    contacts: List[Contact] = []
+    contacts: list[Contact] = []
 
     # Расписание группы контактов
-    schedule: Optional[Schedule] = None
+    schedule: Schedule | None = None
 
     # Комментарий к группе контактов (например "Многокональный телефон")
-    comment: Optional[str] = None
+    comment: str | None = None
 
     # Имя группы контактов (например "Сервисный центр")
-    name: Optional[str] = None
+    name: str | None = None
