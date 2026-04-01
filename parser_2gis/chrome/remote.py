@@ -89,10 +89,10 @@ _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
 @lru_cache(maxsize=64)
 def _check_port_cached(port: int) -> bool:
     """Проверяет доступность порта с кэшированием через lru_cache."""
-    return _check_port_available_internal(port, timeout=0.3, retries=1)
+    return _check_port_available_internal(port, timeout=0.6, retries=1)
 
 
-def _check_port_available_internal(port: int, timeout: float = 0.3, retries: int = 2) -> bool:
+def _check_port_available_internal(port: int, timeout: float = 0.6, retries: int = 2) -> bool:
     """Внутренняя функция проверки порта без кэширования."""
     result = True
 
@@ -117,7 +117,7 @@ def _check_port_available_internal(port: int, timeout: float = 0.3, retries: int
     return result
 
 
-def _check_port_available(port: int, timeout: float = 0.3, retries: int = 2) -> bool:
+def _check_port_available(port: int, timeout: float = 0.6, retries: int = 2) -> bool:
     """Проверяет доступность порта для подключения."""
     return _check_port_available_internal(port, timeout=timeout, retries=retries)
 
@@ -189,11 +189,11 @@ class ChromeRemote:
         Использует внутреннюю логику retry с max_attempts=3.
         Добавлено логирование попыток подключения.
 
-        H3: Общий таймаут на все попытки подключения (суммарно не более 30 сек).
+        H3: Общий таймаут на все попытки подключения (суммарно не более 60 сек).
         """
         max_attempts = 3
         attempt_delay = 0.05  # Максимально ускоренное подключение
-        total_timeout = 30.0  # Общий таймаут на все попытки (H3)
+        total_timeout = 60.0  # Общий таймаут на все попытки (H3)
         start_time = time.time()
 
         for attempt in range(max_attempts):
@@ -213,7 +213,7 @@ class ChromeRemote:
                 parsed_url = urlparse(self._dev_url)
                 port = int(parsed_url.port)
 
-                if _check_port_available(port, timeout=10.0):  # Увеличено для стабильности
+                if _check_port_available(port, timeout=20.0):  # Увеличено для стабильности
                     app_logger.warning(
                         "Порт %d свободен (Chrome ещё не слушает), попытка %d/%d",
                         port,
@@ -233,8 +233,8 @@ class ChromeRemote:
                 app_logger.debug("Создание вкладки через _create_tab()...")
                 self._chrome_tab = self._create_tab()
 
-                app_logger.debug("Запуск вкладки с timeout=300...")
-                self._start_tab_with_timeout(self._chrome_tab, timeout=300)  # 5 минут
+                app_logger.debug("Запуск вкладки с timeout=600...")
+                self._start_tab_with_timeout(self._chrome_tab, timeout=600)  # 10 минут
 
                 if not self._verify_connection():
                     app_logger.warning("Проверка соединения не пройдена, повторная попытка")
@@ -273,7 +273,7 @@ class ChromeRemote:
                         _safe_external_request(
                             "put",
                             "%s/json/close/%s" % (self._dev_url, self._chrome_tab.id),
-                            timeout=5,
+                            timeout=10,
                             verify=True,
                         )
                 except Exception as e:
@@ -297,7 +297,7 @@ class ChromeRemote:
             result = self._chrome_tab.Runtime.evaluate(
                 expression="1+1",
                 returnByValue=True,
-                timeout=1000,  # Максимально ускоренный таймаут проверки соединения
+                timeout=2000,  # Увеличенный таймаут проверки соединения
             )
 
             if result and result.get("result", {}).get("value") == 2:
@@ -331,7 +331,7 @@ class ChromeRemote:
                 time.sleep(startup_delay)
 
                 # ИСПРАВЛЕНИЕ: Увеличено количество проверок порта и время таймаута
-                if not _check_port_available(remote_port, timeout=2.0, retries=3):
+                if not _check_port_available(remote_port, timeout=4.0, retries=3):
                     app_logger.debug(
                         "Порт %d занят (Chrome запущен), готов к подключению", remote_port
                     )
@@ -342,7 +342,7 @@ class ChromeRemote:
             else:
                 # ИСПРАВЛЕНИЕ: Очищаем кэш портов и пробуем ещё раз перед ошибкой
                 _clear_port_cache()
-                if _check_port_available(remote_port, timeout=2.0, retries=3):
+                if _check_port_available(remote_port, timeout=4.0, retries=3):
                     # Порт всё ещё свободен - Chrome не запустился
                     raise ChromeException(
                         f"Chrome не запустился после {max_startup_attempts} попыток. "
@@ -571,7 +571,7 @@ class ChromeRemote:
                 if current_time - last_check_time >= MONITOR_INTERVAL:
                     try:
                         ret = _safe_external_request(
-                            "get", "%s/json" % self._dev_url, timeout=3, verify=True
+                            "get", "%s/json" % self._dev_url, timeout=6, verify=True
                         )
                         # ИСПРАВЛЕНИЕ: Добавлена проверка на None перед вызовом json()
                         if ret is None:
@@ -638,7 +638,7 @@ class ChromeRemote:
             app_logger.error("Ошибка навигации по URL %s: %s", url, e)
             raise
 
-    @wait_until_finished(timeout=3600, throw_exception=False, poll_interval=0.005)  # 1 час
+    @wait_until_finished(timeout=7200, throw_exception=False, poll_interval=0.005)  # 2 часа
     def wait_response(self, response_pattern: str) -> Optional[Response]:
         """Ждёт указанный ответ с предопределённым паттерном.
 
@@ -716,7 +716,7 @@ class ChromeRemote:
             return ""
         return response_data.get("body", "")
 
-    @wait_until_finished(timeout=3600, throw_exception=False, poll_interval=0.005)  # 1 час
+    @wait_until_finished(timeout=7200, throw_exception=False, poll_interval=0.005)  # 2 часа
     def get_response_body(self, response: Response) -> str:
         """Получает тело ответа.
 
@@ -1102,7 +1102,7 @@ class ChromeRemote:
             Результат выполнения JavaScript.
         """
         if timeout is None:
-            timeout = 300  # 5 минут
+            timeout = 600  # 10 минут
         return self.execute_script(expression=js_code, timeout=timeout)
 
     def get_html(self) -> str:
@@ -1118,7 +1118,7 @@ class ChromeRemote:
         try:
             # Получаем outerHTML документа
             result = self._chrome_tab.Runtime.evaluate(
-                expression="document.documentElement.outerHTML", returnByValue=True, timeout=10000
+                expression="document.documentElement.outerHTML", returnByValue=True, timeout=20000
             )
             if result and "result" in result:
                 return result["result"].get("value", "")

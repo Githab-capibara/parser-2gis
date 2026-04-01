@@ -136,12 +136,12 @@ class EnvConfig:
             self, "max_workers", self._validate_env_int("PARSER_MAX_WORKERS", 50, 1, 100)
         )
         object.__setattr__(
-            self, "max_timeout", self._validate_env_int("PARSER_MAX_TIMEOUT", 36000, 60, 86400)
+            self, "max_timeout", self._validate_env_int("PARSER_MAX_TIMEOUT", 72000, 60, 172800)
         )
         object.__setattr__(
             self,
             "default_timeout",
-            self._validate_env_int("PARSER_DEFAULT_TIMEOUT", 3600, 60, 36000),
+            self._validate_env_int("PARSER_DEFAULT_TIMEOUT", 7200, 60, 72000),
         )
 
         # Connection Pool
@@ -154,12 +154,12 @@ class EnvConfig:
         object.__setattr__(
             self,
             "connection_max_age",
-            self._validate_env_int("PARSER_CONNECTION_MAX_AGE", 300, 60, 3600),
+            self._validate_env_int("PARSER_CONNECTION_MAX_AGE", 600, 60, 7200),
         )
         object.__setattr__(
             self,
             "max_connection_age",
-            self._validate_env_int("PARSER_MAX_CONNECTION_AGE", 300, 60, 3600),
+            self._validate_env_int("PARSER_MAX_CONNECTION_AGE", 600, 60, 7200),
         )
 
         # Кэширование
@@ -178,24 +178,24 @@ class EnvConfig:
         object.__setattr__(
             self,
             "temp_file_cleanup_interval",
-            self._validate_env_int("PARSER_TEMP_FILE_CLEANUP_INTERVAL", 60, 10, 3600),
+            self._validate_env_int("PARSER_TEMP_FILE_CLEANUP_INTERVAL", 120, 10, 7200),
         )
         object.__setattr__(
             self,
             "orphaned_temp_file_age",
-            self._validate_env_int("PARSER_ORPHANED_TEMP_FILE_AGE", 300, 60, 86400),
+            self._validate_env_int("PARSER_ORPHANED_TEMP_FILE_AGE", 600, 60, 172800),
         )
 
         # Merge операции
         object.__setattr__(
             self,
             "merge_lock_timeout",
-            self._validate_env_int("PARSER_MERGE_LOCK_TIMEOUT", 3600, 60, 7200),
+            self._validate_env_int("PARSER_MERGE_LOCK_TIMEOUT", 7200, 60, 14400),
         )
         object.__setattr__(
             self,
             "max_lock_file_age",
-            self._validate_env_int("PARSER_MAX_LOCK_FILE_AGE", 60, 10, 600),
+            self._validate_env_int("PARSER_MAX_LOCK_FILE_AGE", 120, 10, 1200),
         )
 
 
@@ -300,9 +300,9 @@ MAX_POOL_SIZE: int = env_config.max_pool_size
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
 MIN_POOL_SIZE: int = env_config.min_pool_size
 
-# Время жизни соединения в секундах (5 минут)
+# Время жизни соединения в секундах (10 минут)
 # Соединения старше этого возраста будут пересозданы
-# Допустимый диапазон: 60-3600 секунд (1 час)
+# Допустимый диапазон: 60-7200 секунд (2 часа)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
 CONNECTION_MAX_AGE: int = env_config.connection_max_age
 
@@ -322,18 +322,18 @@ MAX_WORKERS: int = env_config.max_workers
 # Минимальный таймаут на один URL в секундах
 MIN_TIMEOUT: int = env_config.min_timeout
 
-# Максимальный таймаут на один URL в секундах (10 часов - практически безлимит)
+# Максимальный таймаут на один URL в секундах (20 часов - практически безлимит)
 # Увеличено для поддержки 40+ параллельных браузеров без таймаутов
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
 MAX_TIMEOUT: int = env_config.max_timeout
 
-# Таймаут по умолчанию на один URL в секундах (1 час)
+# Таймаут по умолчанию на один URL в секундах (2 часа)
 # Увеличено для стабильной работы с большим количеством параллельных браузеров
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
 DEFAULT_TIMEOUT: int = env_config.default_timeout
 
-# Интервал периодической очистки временных файлов в секундах (60 секунд)
-# Допустимый диапазон: 10-3600 секунд (10 минут)
+# Интервал периодической очистки временных файлов в секундах (120 секунд)
+# Допустимый диапазон: 10-7200 секунд (2 часа)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
 TEMP_FILE_CLEANUP_INTERVAL: int = env_config.temp_file_cleanup_interval
 
@@ -343,7 +343,7 @@ TEMP_FILE_CLEANUP_INTERVAL: int = env_config.temp_file_cleanup_interval
 MAX_TEMP_FILES_MONITORING: int = env_config.max_temp_files_monitoring
 
 # Возраст временного файла в секундах, после которого он считается осиротевшим
-# Допустимый диапазон: 60-86400 секунд (1 день)
+# Допустимый диапазон: 60-172800 секунд (2 дня)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
 ORPHANED_TEMP_FILE_AGE: int = env_config.orphaned_temp_file_age
 
@@ -356,16 +356,16 @@ ORPHANED_TEMP_FILE_AGE: int = env_config.orphaned_temp_file_age
 MAX_TEMP_FILES: int = 1000
 
 # Таймаут ожидания блокировки merge операции в секундах
-# ОБОСНОВАНИЕ: 60 секунд выбрано исходя из:
+# ОБОСНОВАНИЕ: 120 секунд выбрано исходя из:
 # - Типичное время merge операции: 5-30 секунд
-# - 60 секунд - достаточно для обработки больших файлов
+# - 120 секунд - достаточно для обработки больших файлов
 # - Защита от зависших процессов (осиротевшие lock файлы)
 MERGE_LOCK_TIMEOUT: int = env_config.merge_lock_timeout
 
-# Максимальный возраст lock файла в секундах (1 минута)
-# ОБОСНОВАНИЕ: 60 секунд выбрано исходя из:
+# Максимальный возраст lock файла в секундах (2 минуты)
+# ОБОСНОВАНИЕ: 120 секунд выбрано исходя из:
 # - Типичное время merge: 5-30 секунд
-# - 1 минута - достаточно для завершения merge операции
+# - 2 минуты - достаточно для завершения merge операции
 # - Lock файлы старше считаются осиротевшими (процесс упал)
 MAX_LOCK_FILE_AGE: int = env_config.max_lock_file_age
 

@@ -728,8 +728,8 @@ class BrowserLifecycleManager:
             ИСПРАВЛЕНИЕ CRITICAL 8: Обернуто в try/finally для гарантии выполнения
             Функция гарантирует попытку закрытия даже при ошибках.
             Используется двухуровневая стратегия завершения:
-            1. Корректное завершение через terminate() + wait(timeout=5)
-            2. Принудительное завершение через kill() + wait(timeout=10)
+            1. Корректное завершение через terminate() + wait(timeout=10)
+            2. Принудительное завершение через kill() + wait(timeout=20)
         """
         # Проверка на повторное закрытие
         if self._closed:
@@ -745,11 +745,11 @@ class BrowserLifecycleManager:
             # Завершаем процесс безопасно (H2: используем упрощённые методы)
             if process_pid is not None:
                 # Сначала пытаемся завершить корректно
-                success, status = self._process_manager.terminate(process_pid, timeout=5)
+                success, status = self._process_manager.terminate(process_pid, timeout=10)
 
                 # Если не удалось, пробуем принудительно
                 if not success:
-                    self._process_manager.kill(process_pid, timeout=10)
+                    self._process_manager.kill(process_pid, timeout=20)
 
         except Exception as e:
             app_logger.error(f"Error closing browser: {e}")
@@ -778,10 +778,10 @@ class BrowserLifecycleManager:
             if proc is not None and proc.poll() is None:
                 proc.terminate()
                 try:
-                    proc.wait(timeout=3)
+                    proc.wait(timeout=6)
                 except subprocess.TimeoutExpired:
                     proc.kill()
-                    proc.wait(timeout=5)
+                    proc.wait(timeout=10)
 
             if profile_tempdir is not None:
                 profile_tempdir.cleanup()
@@ -1143,7 +1143,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
             if sys.platform == "win32":
                 # Windows: используем tasklist
                 result = subprocess.run(
-                    ["tasklist", "/V", "/FO", "CSV"], capture_output=True, text=True, timeout=5
+                    ["tasklist", "/V", "/FO", "CSV"], capture_output=True, text=True, timeout=10
                 )
                 profile_str = str(profile_path)
                 for line in result.stdout.splitlines():
@@ -1152,7 +1152,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
                         return True
             else:
                 # Unix-like: используем ps aux
-                result = subprocess.run(["ps", "aux"], capture_output=True, text=True, timeout=5)
+                result = subprocess.run(["ps", "aux"], capture_output=True, text=True, timeout=10)
                 profile_str = str(profile_path)
                 for line in result.stdout.splitlines():
                     if profile_str in line and "chrome" in line.lower():
