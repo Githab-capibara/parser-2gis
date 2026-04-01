@@ -229,42 +229,6 @@ class TestWriterParserCleanupOnChromeException:
                 assert mock_writer.__exit__.called, "writer.__exit__() должен быть вызван"
                 assert mock_inner_parser.__exit__.called, "parser.__exit__() должен быть вызван"
 
-    @pytest.mark.skip(reason="Тест требует длительной инициализации ParallelCityParser")
-    def test_writer_parser_cleanup_on_init_error(self):
-        """Тест: writer и parser закрываются при ошибке инициализации."""
-        from parser_2gis.parallel.parallel_parser import ParallelCityParser
-        from parser_2gis.chrome.exceptions import ChromeException
-
-        config = self._create_mock_config()
-
-        cities = [{"name": "Москва", "url": "https://2gis.ru/moscow"}]
-        categories = [{"name": "Рестораны", "id": 1}]
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            parser = ParallelCityParser(
-                cities=cities,
-                categories=categories,
-                output_dir=tmp_dir,
-                config=config,
-                max_workers=2,
-                timeout_per_url=60,
-            )
-
-            mock_semaphore = MagicMock(spec=threading.BoundedSemaphore)
-            parser._browser_launch_semaphore = mock_semaphore
-
-            # ChromeException при создании parser
-            with patch("parser_2gis.parser.get_parser", side_effect=ChromeException("Init error")):
-                result = parser.parse_single_url(
-                    url="https://2gis.ru/moscow/search/restaurants",
-                    category_name="Рестораны",
-                    city_name="Москва",
-                )
-
-                # Проверяем что ошибка обработана
-                assert result[0] is False
-                assert "Ошибка Chrome" in result[1]
-
 
 # =============================================================================
 # P0-3: ТЕСТ ДЛЯ chrome/browser.py - ОЧИСТКА ПРОФИЛЯ
@@ -506,63 +470,6 @@ class TestRollbackOnMemoryError:
 class TestParserCleanupOnAppStop:
     """Тесты для P0-7: ParallelCityParser очищается при остановке приложения."""
 
-    @pytest.mark.skip(reason="Тест требует TUI который может зависать")
-    def test_parser_cleanup_on_app_stop(self):
-        """Тест: ParallelCityParser очищается при остановке приложения.
-
-        Проверить что parser.cancel() и parser.get_stats() вызываются в finally
-        """
-        from parser_2gis.tui_textual.app import TUIApp
-
-        # Создаем mock приложение
-        app = TUIApp()
-
-        # Создаем mock парсер
-        mock_parser = MagicMock()
-        mock_parser.cancel = Mock()
-        mock_parser.get_statistics = Mock(return_value={"total": 10, "success": 8, "failed": 2})
-        mock_parser.stop = Mock()
-
-        # Создаем mock экран
-        mock_screen = MagicMock()
-        mock_screen.on_parsing_complete = Mock()
-
-        app.screen = mock_screen
-
-        # Вызываем _parsing_complete
-        app._parsing_complete(success=True)
-
-        # Проверяем что on_parsing_complete был вызван
-        assert mock_screen.on_parsing_complete.called
-
-    @pytest.mark.skip(reason="Тест требует TUI который может зависать")
-    def test_parser_cleanup_in_run_parsing(self):
-        """Тест: парсер очищается в _run_parsing()."""
-        from parser_2gis.tui_textual.app import TUIApp
-
-        app = TUIApp()
-
-        # Создаем mock парсер
-        mock_parser = MagicMock()
-        mock_parser.run = Mock(side_effect=Exception("Test error"))
-        mock_parser.cancel = Mock()
-        mock_parser.get_statistics = Mock(return_value={"total": 10})
-        mock_parser.stop = Mock()
-
-        cities = [{"name": "Москва"}]
-        categories = [{"name": "Рестораны"}]
-
-        with patch("parser_2gis.tui_textual.app.ParallelCityParser", return_value=mock_parser):
-            with patch.object(app, "call_from_thread"):
-                with patch.object(app, "switch_to_main_menu"):
-                    try:
-                        app._run_parsing(cities, categories)
-                    except Exception:
-                        pass
-
-        # Проверяем что stop() был вызван в finally
-        assert mock_parser.stop.called, "parser.stop() должен быть вызван в finally"
-
 
 # =============================================================================
 # P0-8: ТЕСТ ДЛЯ csv_writer.py - ПОРЯДОК ПОСТОБРАБОТКИ
@@ -585,71 +492,6 @@ class TestPostprocessingAfterSuperExit:
         options.encoding = "utf-8"
         return options
 
-    @pytest.mark.skip(reason="Тест требует сложной инициализации CSVWriter")
-    def test_postprocessing_after_super_exit(self):
-        """Тест: постобработка выполняется после super().__exit__().
-
-        Проверить что super().__exit__() вызывается ДО постобработки
-        Проверить что hasattr(self, '_file') проверяется перед использованием
-        """
-        from parser_2gis.writer.writers.csv_writer import CSVWriter
-
-        # Создаем mock опции
-        options = self._create_mock_options()
-
-        # Создаем временный файл
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
-            temp_path = f.name
-            f.write("col1,col2,col3\n")
-            f.write("val1,val2,val3\n")
-
-        try:
-            writer = CSVWriter(temp_path, options)
-
-            # Патчим super().__exit__ и постобработку
-            with patch.object(CSVWriter, "__exit__", wraps=writer.__exit__):
-                with patch(
-                    "parser_2gis.writer.writers.csv_writer.CSVPostProcessor"
-                ) as mock_post_processor_class:
-                    mock_post_processor = MagicMock()
-                    mock_post_processor_class.return_value = mock_post_processor
-
-                    # Вызываем __exit__
-                    writer.__exit__(None, None, None)
-
-                    # Проверяем что super().__exit__() был вызван
-                    # (в реальном коде это вызов super().__exit__())
-
-                    # Проверяем что постобработка была вызвана ПОСЛЕ
-                    assert mock_post_processor_class.called, "CSVPostProcessor должен быть создан"
-                    assert mock_post_processor.remove_empty_columns.called, (
-                        "remove_empty_columns() должен быть вызван"
-                    )
-        finally:
-            # Очищаем временный файл
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
-
-    @pytest.mark.skip(reason="Тест требует сложной инициализации CSVWriter")
-    def test_file_check_before_postprocessing(self):
-        """Тест: проверка _file перед постобработкой."""
-        from parser_2gis.writer.writers.csv_writer import CSVWriter
-
-        options = self._create_mock_options()
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
-            temp_path = f.name
-            f.write("col1,col2\n")
-
-        try:
-            writer = CSVWriter(temp_path, options)
-
-            # Проверяем что hasattr(self, '_file') работает корректно
-            assert hasattr(writer, "_file"), "writer должен иметь атрибут _file"
-        finally:
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
-
 
 # =============================================================================
 # P0-9: ТЕСТ ДЛЯ main_parser.py - JAVASCRIPT TRY-CATCH
@@ -658,54 +500,6 @@ class TestPostprocessingAfterSuperExit:
 
 class TestJavascriptTryCatch:
     """Тесты для P0-9: JavaScript код выполняется в try-catch."""
-
-    @pytest.mark.skip(reason="Тест требует сложной инициализации MainPageParser")
-    def test_javascript_try_catch(self):
-        """Тест: JavaScript код выполняется в try-catch.
-
-        Проверить что скрипт содержит try-catch блок
-        Проверить что ошибки JavaScript обрабатываются корректно
-        """
-        from parser_2gis.parser.parsers.main_parser import MainPageParser
-        from parser_2gis.chrome.options import ChromeOptions
-        from parser_2gis.parser.options import ParserOptions
-
-        # Создаем mock опции
-        chrome_options = MagicMock(spec=ChromeOptions)
-        chrome_options.disable_images = False
-        chrome_options.headless = True
-
-        parser_options = MagicMock(spec=ParserOptions)
-        parser_options.max_retries = 3
-        parser_options.retry_on_network_errors = True
-        parser_options.retry_delay_base = 1.0
-        parser_options.skip_404_response = True
-        parser_options.stop_on_first_404 = False
-
-        # Создаем mock браузер
-        mock_browser = MagicMock()
-        mock_browser.add_blocked_requests = Mock()
-        mock_browser.add_start_script = Mock()
-
-        # Создаем парсер
-        MainPageParser(
-            url="https://2gis.ru/moscow/search/restaurants",
-            chrome_options=chrome_options,
-            parser_options=parser_options,
-            browser=mock_browser,
-        )
-
-        # Проверяем что add_start_script был вызван с корректным скриптом
-        assert mock_browser.add_start_script.called
-
-        # Получаем скрипт который был передан
-        call_args = mock_browser.add_start_script.call_args
-        xhr_script = call_args[0][0] if call_args[0] else call_args[1].get("script", "")
-
-        # Проверяем что скрипт содержит try-catch
-        assert "try {" in xhr_script, "Скрипт должен содержать try блок"
-        assert "} catch (e)" in xhr_script, "Скрипт должен содержать catch блок"
-        assert "console.error" in xhr_script, "Скрипт должен логировать ошибки"
 
     def test_javascript_script_validation(self):
         """Тест: валидация JavaScript скрипта."""
