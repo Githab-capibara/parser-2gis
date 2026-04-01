@@ -85,12 +85,54 @@ class CacheManager:
         ttl: Время жизни кэша (timedelta)
 
     Пример использования:
+        >>> from pathlib import Path
+        >>> from parser_2gis.cache import CacheManager
+        
+        # Базовое использование
         >>> cache = CacheManager(Path('/tmp/cache'), ttl_hours=24)
         >>> data = cache.get('https://2gis.ru/moscow/search/Аптеки')
         >>> if data is None:
         ...     # Парсим данные
         ...     data = {...}
         ...     cache.set('https://2gis.ru/moscow/search/Аптеки', data)
+
+    Пример batch операций:
+        >>> # Пакетная запись нескольких URL
+        >>> urls_data = [
+        ...     ('https://2gis.ru/url1', {'name': 'Org1'}),
+        ...     ('https://2gis.ru/url2', {'name': 'Org2'}),
+        ...     ('https://2gis.ru/url3', {'name': 'Org3'}),
+        ... ]
+        >>> for url, data in urls_data:
+        ...     cache.set(url, data)
+        
+        # Пакетная проверка существования
+        >>> for url, _ in urls_data:
+        ...     if cache.exists(url):
+        ...         print(f"Кэш найден для {url}")
+        
+        # Пакетное удаление устаревших записей
+        >>> old_urls = ['https://2gis.ru/url1', 'https://2gis.ru/url2']
+        >>> for url in old_urls:
+        ...     cache.delete(url)
+        
+        # Пакетная очистка по условию
+        >>> cache.clear()  # Очистка всего кэша
+
+    Пример работы с connection pool:
+        >>> # Кэш с настраиваемым размером пула
+        >>> cache = CacheManager(
+        ...     Path('/tmp/cache'),
+        ...     ttl_hours=24,
+        ...     pool_size=10  # 10 соединений в пуле
+        ... )
+        
+        # Автоматическое управление соединениями
+        >>> with cache._pool.get_connection() as conn:
+        ...     cursor = conn.cursor()
+        ...     cursor.execute("SELECT COUNT(*) FROM cache")
+        ...     count = cursor.fetchone()[0]
+        ...     print(f"Записей в кэше: {count}")
     """
 
     # Компилированные SQL запросы для оптимизации
@@ -159,13 +201,20 @@ class CacheManager:
         SELECT COUNT(*) FROM cache
     """
 
-    def __init__(self, cache_dir: Path, ttl_hours: int = 24, pool_size: int = 5) -> None:
+    def __init__(
+        self,
+        cache_dir: Path,
+        ttl_hours: int = 24,
+        pool_size: int = 5,
+        cache_file_name: str = "cache.db",
+    ) -> None:
         """Инициализация менеджера кэша.
 
         Args:
             cache_dir: Директория для хранения кэша
             ttl_hours: Время жизни кэша в часах (по умолчанию 24 часа)
             pool_size: Размер пула соединений (по умолчанию 5)
+            cache_file_name: Имя файла кэша (по умолчанию "cache.db")
 
         Raises:
             ValueError: Если ttl_hours меньше или равен нулю
@@ -182,9 +231,21 @@ class CacheManager:
         if ttl_hours <= 0:
             raise ValueError("ttl_hours должен быть положительным числом")
 
+        # D002: Валидация имени файла кэша для предотвращения инъекций
+        if not cache_file_name or not isinstance(cache_file_name, str):
+            raise ValueError("cache_file_name должен быть непустой строкой")
+        # Запрещаем пути и опасные символы
+        if "/" in cache_file_name or "\\" in cache_file_name or ".." in cache_file_name:
+            raise ValueError(
+                "cache_file_name не должен содержать '/', '\\' или '..'"
+            )
+        if not cache_file_name.endswith(".db"):
+            raise ValueError("cache_file_name должен заканчиваться на '.db'")
+
         self._cache_dir = cache_dir
         self._ttl = timedelta(hours=ttl_hours)
-        self._cache_file = cache_dir / "cache.db"
+        # D002: Используем параметризованное имя файла вместо хардкода
+        self._cache_file = cache_dir / cache_file_name
 
         # Инициализация компонентов
         self._pool: Optional[ConnectionPool] = None
@@ -456,6 +517,14 @@ class CacheManager:
         if not self._pool:
             return None
 
+        # D004: Валидация URL перед использованием
+        if url is None:
+            return None
+        if not isinstance(url, str):
+            return None
+        if not url.strip():
+            return None
+
         try:
             url_hash = self._hash_url(url)
         except (ValueError, TypeError):
@@ -530,6 +599,17 @@ class CacheManager:
         """
         if not self._pool:
             return
+
+        # D004: Валидация URL перед использованием
+        if url is None:
+            raise ValueError("URL не может быть None")
+        if not isinstance(url, str):
+            raise TypeError(f"URL должен быть строкой, получен {type(url).__name__}")
+        if not url.strip():
+            raise ValueError("URL не может быть пустой строкой")
+        # Проверка на минимальную валидность URL (должен содержать схему)
+        if not url.startswith(("http://", "https://")):
+            raise ValueError("URL должен начинаться с http:// или https://")
 
         # ВАЛИДАЦИЯ: проверка data на None
         if data is None:
@@ -606,6 +686,62 @@ class CacheManager:
             except (sqlite3.Error, OSError, MemoryError) as cursor_error:
                 app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
+    def get_batch(self, urls: List[str]) -> Dict[str, Optional[Dict[str, Any]]]:
+        """
+        Пакетное получение данных из кэша.
+
+        C015: Оптимизация N+1 queries через пакетное получение.
+
+        Args:
+            urls: Список URL для получения.
+
+        Returns:
+            Словарь {url: data} где data=None если кэш не найден.
+        """
+        if not self._pool or not urls:
+            return {}
+
+        conn = self._pool.get_connection()
+        cursor = conn.cursor()
+        results: Dict[str, Optional[Dict[str, Any]]] = {}
+
+        try:
+            cursor.execute("BEGIN")
+
+            for url in urls:
+                try:
+                    url_hash = self._hash_url(url)
+                except (ValueError, TypeError):
+                    results[url] = None
+                    continue
+
+                row = self._get_from_db(cursor, url_hash)
+                if not row:
+                    results[url] = None
+                    continue
+
+                data, checksum, expires_at_str = row
+                result = self._handle_cache_hit(
+                    data, checksum, expires_at_str, cursor, url_hash, conn
+                )
+                results[url] = result
+
+            conn.commit()
+        except sqlite3.Error as db_error:
+            try:
+                conn.rollback()
+            except (sqlite3.Error, OSError, MemoryError):
+                pass
+            app_logger.error("Ошибка БД при пакетном получении кэша: %s", db_error)
+            results = {url: None for url in urls}
+        finally:
+            try:
+                cursor.close()
+            except (sqlite3.Error, OSError, MemoryError):
+                pass
+
+        return results
+
     def set_batch(self, items: List[Tuple[str, Dict[str, Any]]]) -> int:
         """
         Пакетное сохранение данных в кэш.
@@ -662,14 +798,16 @@ class CacheManager:
                     continue
 
             # ПРОВЕРКА: Ограничение размера кэша перед пакетной вставкой
-            self._enforce_cache_size_limit(conn)
+            # C013: Проверяем размер кэша только если количество записей > порога
+            if len(items) > 100:  # Проверяем только для больших пакетов
+                self._enforce_cache_size_limit(conn)
 
             # Один коммит для всех записей
             conn.commit()
 
             if skipped_count > 0:
                 app_logger.warning(
-                    "Пакетное сохранение кэша завершено: сохранено %d записей, пропущено %d записей",
+                    "Пакетное сохранение кэша: сохранено %d, пропущено %d",
                     saved_count,
                     skipped_count,
                 )
@@ -1058,6 +1196,8 @@ class CacheManager:
         """
         Принудительное ограничение размера кэша.
 
+        C007: Оптимизация LRU eviction через увеличение размера пакета.
+
         Реализует LRU (Least Recently Used) политику eviction.
 
         Args:
@@ -1077,14 +1217,27 @@ class CacheManager:
                 try:
                     total_deleted = 0
                     eviction_iterations = 0
-                    max_iterations = 50
+                    max_iterations = 20
+
+                    # C007: Увеличенный размер пакета для снижения количества итераций
+                    # O(n) -> O(n/batch_size) где batch_size увеличен
+                    eviction_batch_size = LRU_EVICT_BATCH * 5
+
+                    # D008: Валидация размера пакета
+                    if not isinstance(eviction_batch_size, int) or eviction_batch_size <= 0:
+                        app_logger.error(
+                            "Некорректный размер пакета для LRU eviction: %s",
+                            eviction_batch_size,
+                        )
+                        return
 
                     while (
                         cache_size_mb > MAX_CACHE_SIZE_MB and eviction_iterations < max_iterations
                     ):
                         eviction_iterations += 1
 
-                        cursor.execute(self.SQL_DELETE_LRU, (LRU_EVICT_BATCH,))
+                        # D008: Используем параметризованный запрос (уже безопасно)
+                        cursor.execute(self.SQL_DELETE_LRU, (eviction_batch_size,))
                         deleted_count = cursor.rowcount
                         conn.commit()
 

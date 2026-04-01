@@ -73,6 +73,73 @@ class ParallelCoordinator:
     Результаты сохраняются в отдельную папку output/, затем объединяются.
 
     H3: Dependency Injection для errorHandler и fileMerger через конструктор.
+
+    Пример использования:
+        >>> from parser_2gis.parallel import ParallelCoordinator
+        >>> from parser_2gis.config import Configuration
+        
+        # Базовое использование
+        >>> coordinator = ParallelCoordinator(
+        ...     cities=[{'code': 'msk', 'domain': '2gis.ru'}],
+        ...     categories=[{'id': '1', 'name': 'Аптеки'}],
+        ...     output_dir='./output',
+        ...     config=Configuration(),
+        ...     max_workers=5
+        ... )
+        >>> coordinator.run_parsing()
+
+    Пример Dependency Injection:
+        >>> # Внедрение кастомного обработчика ошибок
+        >>> from parser_2gis.parallel.error_handler import ParallelErrorHandler
+        >>> from parser_2gis.parallel.merger import ParallelFileMerger
+        >>> from parser_2gis.parallel.progress import ParallelProgressReporter
+        
+        # Создание кастомных компонентов
+        >>> custom_error_handler = ParallelErrorHandler(
+        ...     max_retries=5,
+        ...     retry_delay=1.0
+        ... )
+        >>> custom_file_merger = ParallelFileMerger(
+        ...     buffer_size=256 * 1024,
+        ...     batch_size=500
+        ... )
+        
+        # Внедрение зависимостей через конструктор
+        >>> coordinator = ParallelCoordinator(
+        ...     cities=[...],
+        ...     categories=[...],
+        ...     output_dir='./output',
+        ...     config=Configuration(),
+        ...     max_workers=5,
+        ...     error_handler=custom_error_handler,  # DI
+        ...     file_merger=custom_file_merger  # DI
+        ... )
+        
+        # Запуск с кастомными компонентами
+        >>> success = coordinator.run_parsing(
+        ...     progress_callback=lambda s, f, fn: print(f"Прогресс: {s}/{f}")
+        ... )
+
+    Пример с кастомным progress reporter:
+        >>> # Создание кастомного репортёра
+        >>> class CustomProgressReporter:
+        ...     def update(self, success: int, failed: int, filename: str):
+        ...         print(f"Файл: {filename}, Успешно: {success}, Ошибок: {failed}")
+        
+        # Внедрение кастомного репортёра
+        >>> custom_reporter = CustomProgressReporter()
+        >>> coordinator = ParallelCoordinator(
+        ...     cities=[...],
+        ...     categories=[...],
+        ...     output_dir='./output',
+        ...     config=Configuration(),
+        ...     max_workers=5,
+        ...     error_handler=custom_error_handler,
+        ...     file_merger=custom_file_merger,
+        ... )
+        
+        # Запуск с кастомным прогрессом
+        >>> coordinator.run_parsing(progress_callback=custom_reporter.update)
     """
 
     def __init__(
@@ -236,24 +303,36 @@ class ParallelCoordinator:
             return None
 
     def generate_all_urls(self) -> List[Tuple[str, str, str]]:
-        """Генерирует все URL для парсинга."""
-        all_urls = []
-        for city in self.cities:
-            for category in self.categories:
-                try:
-                    url = generate_category_url(city, category)
-                    all_urls.append((url, category["name"], city["name"]))
-                except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
-                    self.log(
-                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
-                        "error",
-                    )
+        """Генерирует все URL для парсинга.
+
+        C014: Использует list() для обратной совместимости.
+        """
+        # C014: Используем генератор для эффективного создания списка
+        all_urls = list(self.generate_all_urls_lazy())
 
         with self._lock:
             self._stats["total"] = len(all_urls)
 
         self.log(f"Сгенерировано {len(all_urls)} URL для парсинга", "info")
         return all_urls
+
+    def generate_all_urls_lazy(self):
+        """Генератор URL для парсинга.
+
+        C014: Lazy loading для снижения потребления памяти.
+        Yield:
+            Кортеж (url, category_name, city_name).
+        """
+        for city in self.cities:
+            for category in self.categories:
+                try:
+                    url = generate_category_url(city, category)
+                    yield (url, category["name"], city["name"])
+                except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
+                    self.log(
+                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
+                        "error",
+                    )
 
     def _parse_single_url_impl(
         self,
@@ -266,8 +345,11 @@ class ParallelCoordinator:
     ) -> Tuple[bool, str]:
         """Реализация парсинга одного URL."""
         self.log(
-            f"Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filepath.name})",
-            "info",
+            "Начало парсинга: %s - %s (временный файл: %s)",
+            city_name,
+            category_name,
+            temp_filepath.name,
+            level="info",
         )
 
         # H003: Задержка ТОЛЬКО если use_delays=True
@@ -336,14 +418,19 @@ class ParallelCoordinator:
                 except OSError as move_error:
                     if rename_attempt < max_rename_attempts - 1:
                         self.log(
-                            f"Попытка {rename_attempt + 1}/{max_rename_attempts} не удалась: {move_error}. Повтор...",
-                            "warning",
+                            "Попытка %d/%d не удалась: %s. Повтор...",
+                            rename_attempt + 1,
+                            max_rename_attempts,
+                            move_error,
+                            level="warning",
                         )
                         time.sleep(0.1 * (rename_attempt + 1))  # Экспоненциальная задержка
                     else:
                         self.log(
-                            f"Не удалось переместить временный файл {temp_filepath.name}: {move_error}",
-                            "error",
+                            "Не удалось переместить временный файл %s: %s",
+                            temp_filepath.name,
+                            move_error,
+                            level="error",
                         )
                         self._error_handler._cleanup_temp_file(temp_filepath)
                         raise move_error
@@ -385,7 +472,10 @@ class ParallelCoordinator:
         available_memory = memory_monitor.get_available_memory()
         if available_memory < 100 * 1024 * 1024:
             logger.warning(
-                f"Low memory ({available_memory // 1024 // 1024}MB), skipping {city_name} - {category_name}"
+                "Low memory (%dMB), skipping %s - %s",
+                available_memory // 1024 // 1024,
+                city_name,
+                category_name,
             )
             return False, "Недостаточно памяти"
 

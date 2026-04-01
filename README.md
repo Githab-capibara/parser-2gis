@@ -20,6 +20,9 @@
 - [Конфигурация](#конфигурация)
 - [Производительность](#производительность)
 - [Безопасность](#безопасность)
+- [Troubleshooting](#troubleshooting)
+- [Вклад в проект](#вклад-в-проект)
+- [Changelog](#changelog)
 
 ---
 
@@ -926,6 +929,115 @@ parser_2gis/
 └── py.typed             # PEP 561 marker
 ```
 
+### Архитектурные диаграммы
+
+#### Диаграмма компонентов
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        CLI / TUI Interface                       │
+├─────────────────────────────────────────────────────────────────┤
+│                         Application Layer                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │ ParserFacade │  │ CacheFacade  │  │BrowserFacade │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+├─────────────────────────────────────────────────────────────────┤
+│                      Infrastructure Layer                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │MemoryMonitor │  │ResourceMonitor│ │ TempFileManager│        │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+├─────────────────────────────────────────────────────────────────┤
+│                        Domain Layer                              │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐   │
+│  │  Parser    │ │   Cache    │ │   Writer   │ │  Validator │   │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│                     External Services                            │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐                │
+│  │ 2GIS.com   │  │Chrome CDP  │  │  SQLite    │                │
+│  └────────────┘  └────────────┘  └────────────┘                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Sequence диаграмма парсинга
+
+```
+User          CLI/TUI        ParserFacade    Browser        2GIS        Cache
+ │               │               │              │              │           │
+ │─Parse URL────>│               │              │              │           │
+ │               │─CreateParser─>│              │              │           │
+ │               │               │─CreateBrowser>│              │           │
+ │               │               │              │              │           │
+ │               │               │              │─Navigate────>│           │
+ │               │               │              │              │           │
+ │               │               │              │<─HTML────────│           │
+ │               │               │              │              │           │
+ │               │               │─CheckCache─────────────────>│           │
+ │               │               │<─CacheMiss──────────────────│           │
+ │               │               │              │              │           │
+ │               │               │─ParseData────>│              │           │
+ │               │               │<─Data─────────│              │           │
+ │               │               │              │              │           │
+ │               │               │─SaveCache──────────────────>│           │
+ │               │               │              │              │           │
+ │               │<─Results──────│              │              │           │
+ │<─Complete─────│               │              │              │           │
+```
+
+#### Диаграмма потоков данных
+
+```
+                    ┌─────────────────┐
+                    │   Input URLs    │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  UrlGenerator   │
+                    └────────┬────────┘
+                             │
+           ┌─────────────────┼─────────────────┐
+           │                 │                 │
+    ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
+    │  Thread 1   │  │  Thread 2   │  │  Thread N   │
+    │   Parser    │  │   Parser    │  │   Parser    │
+    └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+           │                 │                 │
+           └─────────────────┼─────────────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  CacheManager   │
+                    │   (SQLite)      │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  Writer (CSV)   │
+                    │  Writer (XLSX)  │
+                    │  Writer (JSON)  │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  Output Files   │
+                    └─────────────────┘
+```
+
+#### Dependency Graph
+
+```
+parser_2gis
+├── application/       # Зависит от: cache, chrome, parser
+├── cache/            # Зависит от: utils, logger, constants
+├── chrome/           # Зависит от: utils, logger, constants
+├── cli/              # Зависит от: application, validation, resources
+├── infrastructure/   # Зависит от: utils, logger
+├── parallel/         # Зависит от: chrome, parser, cache, infrastructure
+├── parser/           # Зависит от: chrome, utils, validation
+├── writer/           # Зависит от: utils, validation
+├── validation/       # Зависит от: utils, resources
+└── resources/        # Зависит от: utils (только данные)
+
+Циклические зависимости: 0
+```
+
 ### Технологический стек
 
 | Компонент | Наззначение |
@@ -1421,26 +1533,257 @@ for record in data:
 
 ---
 
+## Troubleshooting
+
+### Частые проблемы и решения
+
+#### Проблема: Chrome не запускается
+
+**Симптомы:**
+```
+ERROR: Chrome failed to start
+```
+
+**Решения:**
+1. Проверьте установку Chrome:
+   ```bash
+   google-chrome --version
+   ```
+2. Укажите путь к браузеру:
+   ```bash
+   parser-2gis --chrome.binary-path /usr/bin/google-chrome ...
+   ```
+3. Проверьте зависимости (Linux):
+   ```bash
+   sudo apt-get install -y libxss1 libappindicator1 libindicator7
+   ```
+
+#### Проблема: Таймаут подключения к Chrome
+
+**Симптомы:**
+```
+ERROR: Connection timeout to Chrome DevTools
+```
+
+**Решения:**
+1. Увеличьте таймаут:
+   ```bash
+   parser-2gis --chrome.startup-delay 5 ...
+   ```
+2. Закройте другие экземпляры Chrome
+3. Проверьте порты (49152-65535 должны быть свободны)
+
+#### Проблема: MemoryError при парсинге
+
+**Симптомы:**
+```
+MemoryError: Unable to allocate memory
+```
+
+**Решения:**
+1. Уменьшите количество потоков:
+   ```bash
+   parser-2gis --parallel-workers 3 ...
+   ```
+2. Увеличьте лимит памяти Chrome:
+   ```bash
+   parser-2gis --chrome.memory-limit 1024 ...
+   ```
+3. Включите режим без изображений:
+   ```bash
+   parser-2gis --chrome.disable-images yes ...
+   ```
+
+#### Проблема: Path traversal ошибка
+
+**Симптомы:**
+```
+ValidationError: Path traversal detected
+```
+
+**Решения:**
+1. Используйте абсолютные пути:
+   ```bash
+   parser-2gis -o /home/user/output.csv ...
+   ```
+2. Избегайте `..` в путях
+3. Проверьте права доступа к директории
+
+#### Проблема: Дубликаты в результатах
+
+**Симптомы:**
+```
+CSV файл содержит повторяющиеся записи
+```
+
+**Решения:**
+1. Включите удаление дубликатов:
+   ```bash
+   parser-2gis --writer.csv.remove-duplicates yes ...
+   ```
+2. Очистите кэш:
+   ```bash
+   parser-2gis --cache.clear ...
+   ```
+
+#### Проблема: Slow performance
+
+**Симптомы:**
+```
+Парсинг работает медленно (<10 URL/мин)
+```
+
+**Решения:**
+1. Увеличьте количество потоков:
+   ```bash
+   parser-2gis --parallel-workers 10 ...
+   ```
+2. Включите кэширование:
+   ```bash
+   parser-2gis --cache.ttl-hours 24 ...
+   ```
+3. Отключите изображения:
+   ```bash
+   parser-2gis --chrome.disable-images yes ...
+   ```
+
+### Диагностика
+
+#### Сбор логов
+
+```bash
+# Debug режим
+parser-2gis --log.level DEBUG ...
+
+# Сохранение логов
+parser-2gis --log.file parser.log ...
+```
+
+#### Проверка кэша
+
+```bash
+# Статистика кэша
+python -c "from parser_2gis import CacheManager; c = CacheManager(); print(c.get_stats())"
+
+# Очистка кэша
+parser-2gis --cache.clear
+```
+
+#### Мониторинг ресурсов
+
+```bash
+# Использование памяти
+ps aux | grep parser-2gis
+
+# Открытые порты
+lsof -i -P -n | grep Chrome
+```
+
+### Получение помощи
+
+Если проблема не решена:
+
+1. **Проверьте Issues** — https://github.com/Githab-capibara/parser-2gis/issues
+2. **Создайте Issue** — используйте шаблон Bug Report
+3. **Приложите логи** — в debug режиме
+4. **Укажите окружение** — OS, Python, версия parser-2gis
+
+---
+
+## Вклад в проект
+
+Мы приветствуем вклад от сообщества!
+
+### Как внести вклад
+
+1. **Форкните репозиторий**
+2. **Создайте ветку** (`git checkout -b feature/amazing-feature`)
+3. **Внесите изменения**
+4. **Закоммитьте** (`git commit -m 'feat: add amazing feature'`)
+5. **Запушьте** (`git push origin feature/amazing-feature`)
+6. **Создайте Pull Request**
+
+### Требования к коду
+
+- **Стиль** — PEP 8, Black форматирование
+- **Линтинг** — `ruff check .` без ошибок
+- **Тесты** — покрытие 95%+
+- **Типизация** — type hints для публичного API
+- **Документация** — docstrings для публичных функций
+
+### Быстрая проверка
+
+```bash
+# Установка зависимостей
+pip install -e .[dev]
+
+# Запуск тестов
+pytest tests/ -v --cov=parser_2gis
+
+# Линтинг
+ruff check .
+
+# Форматирование
+black .
+```
+
+Подробности см. в [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## Changelog
+
+### [2.7.0] - 2026-04-01
+
+**Архитектурные улучшения:**
+- Полное разделение ParallelCityParser (SRP)
+- Централизованная обработка ошибок БД
+- Консолидация retry логики
+- Protocol для параллельных компонентов
+- Поддержка multiprocessing
+
+**Исправления:**
+- Упрощение Configuration.merge_with
+- Композиция вместо наследования в парсерах
+- Удаление deprecated модулей
+
+**Тесты:**
+- Добавлено 23 архитектурных теста
+- Итого: 1702+ тестов (95%+ coverage)
+
+### [2.5.0] - 2026-03-15
+
+**Новые компоненты:**
+- Application Layer фасады (ParserFacade, CacheFacade, BrowserFacade)
+- Infrastructure Layer (MemoryMonitor, ResourceMonitor)
+- Resources пакет (categories_93.py, cities_loader.py)
+- Централизованная валидация конфигурации
+
+### [2.4.0] - 2026-03-01
+
+**Улучшения:**
+- WAL режим в кэше
+- Упрощённый ProcessManager
+- Централизованная валидация путей
+- Обработка MemoryError
+- Таймаут подключения Chrome
+
+Полная история изменений в [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 ## Поддержка
 
 ### Ресурсы
 
 | Ресурс | Назначение |
 |--------|------------|
-| GitHub Issues | Баг-трекинг |
-| GitHub Discussions | Вопросы и обсуждения |
-| Security | Отчёты об уязвимостях |
-| Releases | Версии и changelog |
-
-### Вклад в проект
-
-Приветствуется участие в развитии проекта:
-
-1. Форкните репозиторий
-2. Создайте ветку (`git checkout -b feature/amazing-feature`)
-3. Закоммитьте изменения (`git commit -m 'Add amazing feature'`)
-4. Запушьте (`git push origin feature/amazing-feature`)
-5. Откройте Pull Request
+| [GitHub Issues](https://github.com/Githab-capibara/parser-2gis/issues) | Баг-трекинг |
+| [GitHub Discussions](https://github.com/Githab-capibara/parser-2gis/discussions) | Вопросы и обсуждения |
+| [Security](SECURITY.md) | Отчёты об уязвимостях |
+| [Releases](https://github.com/Githab-capibara/parser-2gis/releases) | Версии и changelog |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Руководство по вкладу |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Кодекс поведения |
 
 ---
 
