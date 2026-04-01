@@ -184,8 +184,11 @@ class TestPathValidatorModule:
             tmp_path = tmp.name
 
         try:
-            # Создаём symlink
-            link_path = tempfile.mktemp()
+            # HIGH 11: Используем mkstemp() вместо mktemp() для безопасности
+            # mktemp() уязвим для race condition атак
+            fd, link_path = tempfile.mkstemp()
+            os.close(fd)  # Закрываем fd, так как нам нужен только путь
+            os.unlink(link_path)  # Удаляем файл, чтобы создать symlink
             os.symlink(tmp_path, link_path)
 
             # Путь должен быть разрешён через realpath

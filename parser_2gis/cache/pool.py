@@ -440,7 +440,7 @@ class ConnectionPool:
         """
         conn = sqlite3.connect(
             str(self._cache_file),
-            timeout=30.0,  # Увеличенный таймаут для снижения конфликтов
+            timeout=60.0,  # HIGH 14: Увеличенный таймаут для снижения конфликтов
             isolation_level=None,  # Autocommit режим для лучшей производительности
             check_same_thread=False,  # Потокобезопасность
         )
@@ -449,7 +449,7 @@ class ConnectionPool:
             PRAGMA journal_mode=WAL;
             PRAGMA cache_size=-64000;
             PRAGMA synchronous=NORMAL;
-            PRAGMA busy_timeout=30000;
+            PRAGMA busy_timeout=60000;
         """)
 
         return conn

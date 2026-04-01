@@ -515,20 +515,24 @@ class TestBrowserLifecycleManager:
         """Тест исключения при инициализации.
 
         Проверяет:
-        - Профиль очищается при ошибке
+        - Профиль очищается при ошибке ПОСЛЕ его создания
         - Исключение пробрасывается
         """
-        with patch.object(
-            BrowserPathResolver, "resolve_path", side_effect=FileNotFoundError("Mocked error")
-        ):
-            with patch.object(ProfileManager, "cleanup_profile") as mock_cleanup:
-                manager = BrowserLifecycleManager(mock_chrome_options)
+        with patch.object(BrowserPathResolver, "resolve_path", return_value="/usr/bin/chrome"):
+            with patch.object(
+                ProfileManager, "create_profile", return_value=(MagicMock(), "/tmp/profile")
+            ):
+                with patch.object(
+                    ProcessManager, "launch_process", side_effect=FileNotFoundError("Mocked error")
+                ):
+                    with patch.object(ProfileManager, "cleanup_profile") as mock_cleanup:
+                        manager = BrowserLifecycleManager(mock_chrome_options)
 
-                with pytest.raises(FileNotFoundError):
-                    manager.init()
+                        with pytest.raises(FileNotFoundError):
+                            manager.init()
 
-                # Проверяем что профиль был очищен
-                mock_cleanup.assert_called()
+                        # Проверяем что профиль был очищен
+                        mock_cleanup.assert_called()
 
     def test_browser_lifecycle_manager_close(self, mock_chrome_options: MagicMock):
         """Тест закрытия браузера.

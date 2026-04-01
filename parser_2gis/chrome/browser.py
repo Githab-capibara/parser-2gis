@@ -588,12 +588,14 @@ class BrowserLifecycleManager:
             FileNotFoundError: Если браузер не найден.
             PermissionError: Если браузер не имеет прав на выполнение.
         """
+        profile_created = False
         try:
             # Получаем и валидируем путь к браузеру
             binary_path = self._path_resolver.resolve_path(self._chrome_options)
 
             # Создаём временную директорию профиля
             _, profile_path = self._profile_manager.create_profile()
+            profile_created = True
 
             # Получаем свободный порт
             self._remote_port = free_port()
@@ -616,13 +618,22 @@ class BrowserLifecycleManager:
 
         except (subprocess.SubprocessError, OSError, FileNotFoundError, ValueError, TypeError) as e:
             app_logger.error("Ошибка инициализации Chrome: %s", e)
-            # Очистка профиля при ошибке
-            try:
-                self._profile_manager.cleanup_profile()
-                app_logger.debug("Профиль Chrome очищен при ошибке инициализации")
-            except (OSError, IOError) as cleanup_error:
-                app_logger.debug("Ошибка при очистке профиля: %s", cleanup_error)
             raise
+        except MemoryError as memory_error:
+            app_logger.critical("MemoryError при инициализации Chrome: %s", memory_error)
+            raise
+        except KeyboardInterrupt:
+            app_logger.warning("KeyboardInterrupt при инициализации Chrome")
+            raise
+        finally:
+            # HIGH 4: finally блок с очисткой при любой ошибке
+            # Очищаем профиль если он был создан, независимо от того на каком этапе произошла ошибка
+            if profile_created:
+                try:
+                    self._profile_manager.cleanup_profile()
+                    app_logger.debug("Профиль Chrome очищен в finally блоке")
+                except (OSError, IOError) as cleanup_error:
+                    app_logger.debug("Ошибка при очистке профиля в finally: %s", cleanup_error)
 
         return self._remote_port  # type: ignore[return-value]
 

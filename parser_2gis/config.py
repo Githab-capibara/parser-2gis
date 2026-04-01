@@ -19,7 +19,8 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from .chrome import ChromeOptions
 from .cli.config_service import ConfigService
-from .logger import LogOptions, logger
+from .logger.logger import logger, logger as app_logger
+from .logger import LogOptions
 from .parallel import ParallelOptions
 from .parser import ParserOptions
 from .version import config_version
@@ -56,8 +57,15 @@ class Configuration(BaseModel):
         Note:
             При достижении 80% от max_depth выводится предупреждение.
         """
+        # HIGH 7: Отслеживание посещённых объектов через id() для предотвращения циклических зависимостей
+        visited_objects: set[int] = set()
         self._merge_models_recursive(
-            source=other_config, target=self, current_depth=0, max_depth=max_depth
+            source=other_config,
+            target=self,
+            current_depth=0,
+            max_depth=max_depth,
+            visited_objects=visited_objects,
+            warning_shown=False,
         )
 
     @staticmethod
@@ -66,6 +74,7 @@ class Configuration(BaseModel):
         target: BaseModel,
         current_depth: int,
         max_depth: int,
+        visited_objects: set[int],
         warning_shown: bool = False,
     ) -> bool:
         """Рекурсивно объединяет две Pydantic модели.
@@ -75,6 +84,7 @@ class Configuration(BaseModel):
             target: Целевая модель.
             current_depth: Текущая глубина рекурсии.
             max_depth: Максимальная глубина.
+            visited_objects: Множество id посещённых объектов для предотвращения циклов.
             warning_shown: Флаг показа предупреждения.
 
         Returns:
@@ -82,11 +92,24 @@ class Configuration(BaseModel):
 
         Raises:
             RecursionError: При превышении максимальной глубины.
+            ValueError: При обнаружении циклической ссылки.
         """
         warning_threshold = int(max_depth * 0.8)
 
         if current_depth >= max_depth:
             raise RecursionError(f"Превышена максимальная глубина обработки ({max_depth})")
+
+        # HIGH 7: Проверка на циклические зависимости через id()
+        source_id = id(source)
+        if source_id in visited_objects:
+            app_logger.warning(
+                "Обнаружена циклическая ссылка на объект %s (id=%d). Пропускаем.",
+                type(source).__name__,
+                source_id,
+            )
+            return warning_shown
+
+        visited_objects.add(source_id)
 
         if current_depth >= warning_threshold and not warning_shown:
             logger.warning(
@@ -114,6 +137,7 @@ class Configuration(BaseModel):
                             target=target_value,
                             current_depth=current_depth + 1,
                             max_depth=max_depth,
+                            visited_objects=visited_objects,
                             warning_shown=warning_shown,
                         )
 
@@ -124,6 +148,8 @@ class Configuration(BaseModel):
                 logger.error("Непредвиденная ошибка при объединении поля %s: %s", field, e)
                 raise
 
+        # HIGH 7: Удаляем объект из посещённых после обработки
+        visited_objects.remove(source_id)
         return warning_shown
 
     @staticmethod

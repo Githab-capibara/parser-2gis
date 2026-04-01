@@ -27,6 +27,12 @@ from parser_2gis.constants import FORBIDDEN_PATH_CHARS, MAX_PATH_LENGTH
 # - Windows: C:\Users\...\AppData\Local\Temp
 _ALLOWED_BASE_DIRS: Optional[List[Path]] = None
 
+# Whitelist разрешенных символов для путей
+# Разрешаем только безопасные символы: буквы, цифры, _, -, ., /, \, пробел, кириллица
+_ALLOWED_PATH_PATTERN = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-. /\\абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+)
+
 
 def _get_allowed_base_dirs() -> List[Path]:
     """Получает список разрешённых базовых директорий.
@@ -156,10 +162,36 @@ def validate_path_traversal(file_path: str) -> Path:
     if not file_path:
         raise ValueError("Путь к файлу не может быть пустым")
 
-    # ИСПРАВЛЕНИЕ CRITICAL 5: Многоуровневое декодирование с проверкой
+    # ИСПРАВЛЕНИЕ CRITICAL 1: Проверка encoded паттернов ДО декодирования
+    # Это предотвращает атаки когда опасные паттерны скрыты в encoded форме
+    dangerous_encoded_patterns = ["%2e%2e", "%2f", "%5c", "%00", "%25", "%2e", "%0a", "%0d"]
+    for pattern in dangerous_encoded_patterns:
+        if pattern.lower() in file_path.lower():
+            raise ValueError(
+                f"Path traversal атака обнаружена: {file_path}. "
+                f"Обнаружен encoded опасный паттерн: {pattern}"
+            )
+
+    # ИСПРАВЛЕНИЕ HIGH 9: NFKC нормализация вместо NFC
+    # NFKC обеспечивает более строгую нормализацию с канонической декомпозицией
+    # Это предотвращает атаки через unicode-эквиваленты (например, fullwidth символы)
+    try:
+        normalized_input = unicodedata.normalize("NFKC", file_path)
+    except (ValueError, TypeError, UnicodeDecodeError) as unicode_error:
+        raise ValueError(f"Некорректный Unicode в пути к файлу: {file_path}") from unicode_error
+
+    # ИСПРАВЛЕНИЕ CRITICAL 1: Whitelist проверка символов
+    for char in normalized_input:
+        if char not in _ALLOWED_PATH_PATTERN:
+            raise ValueError(
+                f"Path содержит запрещённый символ: {char!r} (код: U+{ord(char):04X}) "
+                f"в пути {file_path}"
+            )
+
+    # ИСПРАВЛЕНИЕ CRITICAL 1: Многоуровневое декодирование с проверкой
     # Шаг 1: Многократное URL-decode до стабильного состояния
     # Это предотвращает атаки через двойное/тройное кодирование (%252e%252e -> %2e%2e -> ..)
-    decoded_path = file_path
+    decoded_path = normalized_input
     max_decode_iterations = 5  # Защита от бесконечного цикла
     decode_iteration = 0
 
@@ -183,25 +215,11 @@ def validate_path_traversal(file_path: str) -> Path:
             "Обнаружено многократное URL-кодирование (возможная атака)"
         )
 
-    # Проверка на опасные encoded паттерны в исходном пути
-    dangerous_encoded_patterns = ["%2e%2e", "%2f", "%5c", "%00", "%25"]
-    for pattern in dangerous_encoded_patterns:
-        if pattern.lower() in file_path.lower():
-            raise ValueError(
-                f"Path traversal атака обнаружена: {file_path}. "
-                f"Обнаружен encoded опасный паттерн: {pattern}"
-            )
-
-    # Шаг 2: Unicode normalization для предотвращения атак через unicode
-    try:
-        normalized_path = unicodedata.normalize("NFC", decoded_path)
-    except (ValueError, TypeError, UnicodeDecodeError) as unicode_error:
-        raise ValueError(f"Некорректный Unicode в пути к файлу: {file_path}") from unicode_error
-
-    # Шаг 3: Проверка на опасные паттерны в нормализованном пути
-    dangerous_patterns: Set[str] = {"..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"}
+    # ИСПРАВЛЕНИЕ CRITICAL 1: Проверка на опасные паттерны ПОСЛЕ декодирования
+    # Это второй уровень защиты на случай если атака прошла первый уровень
+    dangerous_patterns: Set[str] = {"..", "~", "$", "`", "|", ";", "&", ">", "<", "\n", "\r"}
     for pattern in dangerous_patterns:
-        if pattern in normalized_path:
+        if pattern in decoded_path:
             if ".." in pattern:
                 raise ValueError(
                     f"Path traversal атака обнаружена: {file_path}. "
@@ -211,7 +229,7 @@ def validate_path_traversal(file_path: str) -> Path:
 
     # Шаг 4: Резолвинг symlink через os.path.realpath
     try:
-        resolved_path = Path(normalized_path).resolve()
+        resolved_path = Path(decoded_path).resolve()
         # Используем realpath для резолвинга всех symlink
         resolved_path = Path(os.path.realpath(str(resolved_path)))
     except (OSError, RuntimeError) as resolve_error:

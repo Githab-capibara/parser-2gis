@@ -204,8 +204,9 @@ class ParallelCityParser:
 
         # Статистика (все операции защищены _lock)
         self._stats = {"total": 0, "success": 0, "failed": 0, "skipped": 0}
-        # Блокировка для потокобезопасного доступа к _stats и логгирования
-        self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
+        # HIGH 13: Используем Lock вместо RLock где не нужна реентерабельность
+        # Lock более производительный и предотвращает случайные реентерабельные вызовы
+        self._lock = threading.Lock()
 
         # Флаг отмены
         self._cancel_event = threading.Event()
@@ -213,14 +214,25 @@ class ParallelCityParser:
         # Событие для координации остановки (для тестов keyboard_interrupt_handling)
         self._stop_event = threading.Event()
 
+        # HIGH 5: Валидация max_workers ПЕРЕД созданием семафора
+        # Это предотвращает создание некорректного семафора
+        if max_workers < MIN_WORKERS:
+            raise ValueError(
+                f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}"
+            )
+        if max_workers > MAX_WORKERS:
+            raise ValueError(
+                f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
+            )
+
         # Семафор для контроля одновременного запуска браузеров
         # Большое значение для поддержки 40+ потоков
         self._browser_launch_semaphore = BoundedSemaphore(max_workers + 20)
 
         # Список для отслеживания временных файлов merge операции
         self._merge_temp_files: List[Path] = []
-        # Блокировка для потокобезопасного доступа к временным файлам
-        self._merge_lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
+        # HIGH 13: Используем Lock вместо RLock где не нужна реентерабельность
+        self._merge_lock = threading.Lock()
         self._temp_file_cleanup_timer: Optional[TempFileTimer] = None
         if self.config.parallel.use_temp_file_cleanup:  # type: ignore[attr-defined]
             try:
@@ -675,6 +687,11 @@ class ParallelCityParser:
         """
         Получает блокировку merge операции.
 
+        CRITICAL 3: Улучшенная обработка race condition:
+        1. Проверка возраста lock файла
+        2. Очистка осиротевших блокировок
+        3. Атомарное создание lock через O_CREAT | O_EXCL
+
         Args:
             lock_file_path: Путь к lock файлу.
 
@@ -685,15 +702,31 @@ class ParallelCityParser:
         lock_acquired = False
 
         try:
+            # CRITICAL 3: Проверка и очистка осиротевших lock файлов
             if lock_file_path.exists():
                 try:
                     lock_age = time.time() - lock_file_path.stat().st_mtime
                     if lock_age > MAX_LOCK_FILE_AGE:
-                        self.log(
-                            f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек)",
-                            "debug",
-                        )
-                        lock_file_path.unlink()
+                        # Проверяем, активен ли процесс, создавший lock
+                        try:
+                            with open(lock_file_path, "r", encoding="utf-8") as f:
+                                lock_pid = int(f.read().strip())
+                            # Проверяем, существует ли процесс
+                            os.kill(lock_pid, 0)
+                            # Процесс существует - это не осиротевший lock
+                            self.log(
+                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
+                                "warning",
+                            )
+                        except (ProcessLookupError, ValueError, OSError):
+                            # Процесс не существует - это осиротевший lock
+                            self.log(
+                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек, PID: {lock_pid})",
+                                "debug",
+                            )
+                            lock_file_path.unlink()
+                        except (IOError, OSError) as e:
+                            self.log(f"Ошибка проверки lock файла: {e}", "debug")
                     else:
                         self.log(
                             f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...",
@@ -702,24 +735,39 @@ class ParallelCityParser:
                 except OSError as e:
                     self.log(f"Ошибка проверки lock файла: {e}", "debug")
 
+            # CRITICAL 3: Атомарное создание lock файла через O_CREAT | O_EXCL
             start_time = time.time()
             while not lock_acquired:
-                lock_file_handle = None
+                lock_fd = None
                 try:
-                    lock_file_handle = open(lock_file_path, "w", encoding="utf-8")
+                    # Атомарное создание файла - вернёт ошибку если файл уже существует
+                    lock_fd = os.open(
+                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
+                    )
+                    lock_file_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
+                    lock_fd = None  # Теперь файл управляется через lock_file_handle
+
+                    # Получаем exclusive lock
                     fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     lock_file_handle.write(f"{os.getpid()}\n")
                     lock_file_handle.flush()
                     lock_acquired = True
                     self.log("Lock file получен успешно", "debug")
-                except (IOError, OSError):
-                    if lock_file_handle:
+                except (IOError, OSError, FileExistsError):
+                    if lock_fd is not None:
+                        try:
+                            os.close(lock_fd)
+                        except OSError:
+                            pass
+                    if lock_file_handle is not None:
                         try:
                             lock_file_handle.close()
                         except (OSError, RuntimeError, TypeError, ValueError) as close_error:
                             self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
-                        lock_file_handle = None
+                    lock_file_handle = None
+                    lock_fd = None
 
+                    # Проверяем не истёк ли таймаут
                     if time.time() - start_time > MERGE_LOCK_TIMEOUT:
                         self.log(f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error")
                         return None, False

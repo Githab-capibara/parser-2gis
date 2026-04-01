@@ -18,6 +18,7 @@ import json
 import sqlite3
 import time
 import weakref
+import zlib
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -62,6 +63,7 @@ class CacheManager:
             url_hash TEXT PRIMARY KEY,
             url TEXT NOT NULL,
             data TEXT NOT NULL,
+            checksum INTEGER NOT NULL,
             timestamp DATETIME NOT NULL,
             expires_at DATETIME NOT NULL
         )
@@ -79,15 +81,15 @@ class CacheManager:
     """
 
     SQL_SELECT = """
-        SELECT data, expires_at
+        SELECT data, checksum, expires_at
         FROM cache
         WHERE url_hash = ?
     """
 
     SQL_INSERT_OR_REPLACE = """
         INSERT OR REPLACE INTO cache
-        (url_hash, url, data, timestamp, expires_at)
-        VALUES (?, ?, ?, ?, ?)
+        (url_hash, url, data, checksum, timestamp, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?)
     """
 
     SQL_DELETE = """
@@ -203,7 +205,7 @@ class CacheManager:
             app_logger.warning("Ошибка при инициализации кэша: %s", e)
             raise
 
-    def _get_cached_row(self, cursor: Any, url_hash: str) -> Optional[Tuple[str, str]]:
+    def _get_cached_row(self, cursor: Any, url_hash: str) -> Optional[Tuple[str, int, str]]:
         """Извлекает строку кэша из базы данных.
 
         Args:
@@ -211,7 +213,7 @@ class CacheManager:
             url_hash: Хеш URL для поиска.
 
         Returns:
-            Кортеж (data, expires_at_str) или None если не найдено.
+            Кортеж (data, checksum, expires_at_str) или None если не найдено.
         """
         cursor.execute(self.SQL_SELECT, (url_hash,))
         row = cursor.fetchone()
@@ -253,7 +255,7 @@ class CacheManager:
         cursor.execute(self.SQL_DELETE, (url_hash,))
 
     # ИСПРАВЛЕНИЕ: Рефакторинг метода get — выделение подметодов
-    def _get_from_db(self, cursor: Any, url_hash: str) -> Optional[Tuple[str, str]]:
+    def _get_from_db(self, cursor: Any, url_hash: str) -> Optional[Tuple[str, int, str]]:
         """Извлекает строку кэша из базы данных.
 
         Args:
@@ -261,25 +263,26 @@ class CacheManager:
             url_hash: Хеш URL для поиска.
 
         Returns:
-            Кортеж (data, expires_at_str) или None если не найдено.
+            Кортеж (data, checksum, expires_at_str) или None если не найдено.
         """
         cursor.execute(self.SQL_SELECT, (url_hash,))
         return cursor.fetchone()  # type: ignore[return-value]
 
     def _handle_cache_hit(
-        self, data: str, expires_at_str: str, cursor: Any, url_hash: str, conn: Any
+        self, data: str, checksum: int, expires_at_str: str, cursor: Any, url_hash: str, conn: Any
     ) -> Optional[Dict[str, Any]]:
         """Обрабатывает попадание в кэш.
 
         Args:
             data: Сериализованные данные.
+            checksum: CRC32 checksum для проверки целостности.
             expires_at_str: Строка даты истечения.
             cursor: Курсор базы данных.
             url_hash: Хеш URL.
             conn: Соединение базы данных.
 
         Returns:
-            Десериализованные данные или None если кэш истёк.
+            Десериализованные данные или None если кэш истёк или checksum не совпадает.
         """
         expires_at = self._parse_expires_at(expires_at_str)
         if expires_at is None:
@@ -287,6 +290,20 @@ class CacheManager:
             return None
 
         if self._is_cache_expired(expires_at):
+            self._delete_cached_entry(cursor, url_hash)
+            conn.commit()
+            return None
+
+        # HIGH 10: Проверка CRC32 checksum для проверки целостности данных
+        computed_checksum = zlib.crc32(data.encode("utf-8")) & 0xFFFFFFFF
+        if computed_checksum != checksum:
+            app_logger.warning(
+                "CRC32 checksum не совпадает для URL %s (ожидался: %d, получен: %d). "
+                "Данные считаются повреждёнными.",
+                url_hash,
+                checksum,
+                computed_checksum,
+            )
             self._delete_cached_entry(cursor, url_hash)
             conn.commit()
             return None
@@ -423,9 +440,9 @@ class CacheManager:
                 self._handle_cache_miss(cursor, url_hash, conn)
                 return None
 
-            data, expires_at_str = row
+            data, checksum, expires_at_str = row
             # ИСПРАВЛЕНИЕ: Используем новый метод _handle_cache_hit
-            return self._handle_cache_hit(data, expires_at_str, cursor, url_hash, conn)
+            return self._handle_cache_hit(data, checksum, expires_at_str, cursor, url_hash, conn)
 
         except sqlite3.Error as db_error:
             try:
@@ -490,19 +507,37 @@ class CacheManager:
             app_logger.error("Ошибка сериализации данных для кэша: %s", e)
             return
 
+        # CRITICAL 2: Проверка размера данных перед сохранением
+        data_size = len(data_json.encode("utf-8"))
+        max_data_size = 10 * 1024 * 1024  # 10MB лимит на одну запись
+        if data_size > max_data_size:
+            raise MemoryError(
+                f"Размер данных ({data_size} байт) превышает лимит ({max_data_size} байт). "
+                "Кэширование больших данных может привести к MemoryError."
+            )
+
         conn = self._pool.get_connection()
         cursor = conn.cursor()
 
         try:
+            # CRITICAL 2: Вычисляем CRC32 checksum для проверки целостности
+            checksum = zlib.crc32(data_json.encode("utf-8")) & 0xFFFFFFFF
+
             # ПРОВЕРКА: Ограничение размера кэша перед вставкой
             self._enforce_cache_size_limit(conn)
 
             # Сохраняем данные в базу с использованием подготовленного запроса
             cursor.execute(
                 self.SQL_INSERT_OR_REPLACE,
-                (url_hash, url, data_json, now.isoformat(), expires_at.isoformat()),
+                (url_hash, url, data_json, checksum, now.isoformat(), expires_at.isoformat()),
             )
             conn.commit()
+        except MemoryError:
+            # CRITICAL 2: Graceful деградация при MemoryError
+            app_logger.warning(
+                "MemoryError при сохранении кэша для URL %s. Данные не были сохранены.", url
+            )
+            raise
         except sqlite3.Error as db_error:
             # ИСПРАВЛЕНИЕ: Унифицированный стиль обработки ошибок
             # Критические ошибки БД выбрасываются дальше
@@ -551,9 +586,18 @@ class CacheManager:
 
                 try:
                     data_json = self._serializer.serialize(data)
+                    # CRITICAL 2 + HIGH 10: Вычисляем CRC32 checksum для каждой записи
+                    checksum = zlib.crc32(data_json.encode("utf-8")) & 0xFFFFFFFF
                     cursor.execute(
                         self.SQL_INSERT_OR_REPLACE,
-                        (url_hash, url, data_json, now.isoformat(), expires_at.isoformat()),
+                        (
+                            url_hash,
+                            url,
+                            data_json,
+                            checksum,
+                            now.isoformat(),
+                            expires_at.isoformat(),
+                        ),
                     )
                     saved_count += 1
                 except (TypeError, ValueError) as serialize_error:
