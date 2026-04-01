@@ -9,6 +9,7 @@
     - url_validator: Валидация URL (validate_url, is_valid_url)
     - data_validator: Валидация данных (числа, строки, списки, email, телефоны)
     - path_validator: Валидация путей (PathValidator, validate_path)
+    - path_validation: Консолидированная валидация путей
     - legacy: Экспорт для обратной совместимости
 
 Пример использования:
@@ -42,6 +43,12 @@ from .data_validator import (
 
 # Импортируем всё из legacy для обратной совместимости
 from .legacy import *  # noqa: F401,F403
+from .path_validation import (
+    PathSafetyValidator,
+    PathTraversalError,
+    validate_path_safety,
+    validate_path_traversal,
+)
 from .path_validator import PathValidator, get_path_validator, validate_path
 
 # Импортируем всё из подмодулей для удобного доступа
@@ -66,8 +73,13 @@ __all__ = [
     "validate_cities_config",
     "validate_categories_config",
     "validate_parallel_config",
-    # Валидация путей
+    # Валидация путей (старый модуль)
     "PathValidator",
     "get_path_validator",
     "validate_path",
+    # Валидация путей (новый консолидированный модуль)
+    "PathSafetyValidator",
+    "PathTraversalError",
+    "validate_path_traversal",
+    "validate_path_safety",
 ]

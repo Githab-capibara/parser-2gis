@@ -6,10 +6,13 @@
 
 Структура модуля:
 - coordinator.py: ParallelCoordinator (координация потоков)
+- thread_coordinator.py: ThreadCoordinator (управление потоками и семафорами)
 - merger.py: ParallelFileMerger (слияние файлов) + функции слияния
+- file_merger.py: FileMergerStrategy (стратегия слияния файлов)
 - error_handler.py: ParallelErrorHandler (обработка ошибок)
 - progress.py: ParallelProgressReporter (прогресс)
-- url_parser.py: UrlParser (генерация URL)
+- url_parser.py: ParallelUrlParser (генерация и парсинг URL)
+- memory_manager.py: MemoryManager (управление памятью и GC)
 - thread_manager.py: ThreadManager (управление потоками)
 - parallel_parser.py: Устаревший класс (обратная совместимость)
 - options.py: Опции параллельного парсинга
@@ -36,6 +39,8 @@ from parser_2gis.constants import (
 from .config import ParallelRunConfig
 from .coordinator import ParallelCoordinator
 from .error_handler import ParallelErrorHandler
+from .file_merger import FileMergerStrategy
+from .memory_manager import MemoryManager, check_memory_safety, get_memory_manager
 from .merger import (
     MergeConfig,  # noqa: F401 - используется для типизации
     ParallelFileMerger,
@@ -56,19 +61,26 @@ from .parallel_parser import (
     _unregister_temp_file,
 )
 from .progress import ParallelProgressReporter
+from .thread_coordinator import ThreadCoordinator
 from .thread_manager import ThreadManager
-from .url_parser import UrlParser
+from .url_parser import ParallelUrlParser
 
 # Экспорт основного API для обратной совместимости
 __all__ = [
     # Основные классы (новые)
     "ParallelCoordinator",
+    "ThreadCoordinator",
     "ParallelFileMerger",
+    "FileMergerStrategy",
     "ParallelErrorHandler",
     "ParallelProgressReporter",
     "ParallelRunConfig",
-    "UrlParser",
+    "ParallelUrlParser",
+    "MemoryManager",
     "ThreadManager",
+    # Функции управления памятью
+    "get_memory_manager",
+    "check_memory_safety",
     # Основные классы (старые для обратной совместимости)
     "ParallelCityParser",
     "ParallelCityParserThread",

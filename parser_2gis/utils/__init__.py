@@ -10,6 +10,7 @@
 - math_utils: Математические операции
 - cache_monitor: Мониторинг статистики кэшей
 - path_utils: Валидация безопасности путей
+- retry: Повторные попытки с экспоненциальной задержкой
 """
 
 from .cache_monitor import get_cache_stats, log_cache_stats
@@ -23,6 +24,14 @@ from .decorators import (
 )
 from .math_utils import floor_to_hundreds
 from .path_utils import FORBIDDEN_PATH_CHARS, validate_path_safety, validate_path_traversal
+from .retry import (
+    RetryError,
+    is_tenacity_available,
+    retry_with_backoff,
+    retry_with_fixed_delay,
+    retry_with_jitter,
+    retry_with_tenacity,
+)
 from .sanitizers import _check_value_type_and_sensitivity, _is_sensitive_key, _sanitize_value
 from .url_utils import (
     _generate_category_url_cached,
@@ -76,4 +85,11 @@ __all__ = [
     "validate_path_safety",
     "validate_path_traversal",
     "FORBIDDEN_PATH_CHARS",
+    # Повторные попытки
+    "retry_with_backoff",
+    "retry_with_fixed_delay",
+    "retry_with_jitter",
+    "retry_with_tenacity",
+    "is_tenacity_available",
+    "RetryError",
 ]

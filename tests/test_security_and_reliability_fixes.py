@@ -43,7 +43,6 @@ from parser_2gis.parallel.helpers import FileMerger
 from parser_2gis.parallel.parallel_parser import ParallelCityParser
 from parser_2gis.utils.path_utils import validate_path_traversal
 
-
 # =============================================================================
 # CRITICAL ПРОБЛЕМЫ - ТЕСТЫ
 # =============================================================================

@@ -14,13 +14,15 @@ from __future__ import annotations
 
 import pathlib
 from copy import deepcopy
+from typing import Set
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from .chrome import ChromeOptions
 from .cli.config_service import ConfigService
-from .logger.logger import logger, logger as app_logger
 from .logger import LogOptions
+from .logger.logger import logger
+from .logger.logger import logger as app_logger
 from .parallel import ParallelOptions
 from .parser import ParserOptions
 from .version import config_version
@@ -57,9 +59,8 @@ class Configuration(BaseModel):
         Note:
             При достижении 80% от max_depth выводится предупреждение.
         """
-        # HIGH 7: Отслеживание посещённых объектов через id() для предотвращения циклических зависимостей
-        visited_objects: set[int] = set()
-        self._merge_models_recursive(
+        visited_objects: Set[int] = set()
+        self._merge_recursive_safe(
             source=other_config,
             target=self,
             current_depth=0,
@@ -68,38 +69,13 @@ class Configuration(BaseModel):
             warning_shown=False,
         )
 
-    @staticmethod
-    def _merge_models_recursive(
-        source: BaseModel,
-        target: BaseModel,
-        current_depth: int,
-        max_depth: int,
-        visited_objects: set[int],
-        warning_shown: bool = False,
-    ) -> bool:
-        """Рекурсивно объединяет две Pydantic модели.
-
-        Args:
-            source: Исходная модель.
-            target: Целевая модель.
-            current_depth: Текущая глубина рекурсии.
-            max_depth: Максимальная глубина.
-            visited_objects: Множество id посещённых объектов для предотвращения циклов.
-            warning_shown: Флаг показа предупреждения.
-
-        Returns:
-            Флаг показа предупреждения.
-
-        Raises:
-            RecursionError: При превышении максимальной глубины.
-            ValueError: При обнаружении циклической ссылки.
-        """
-        warning_threshold = int(max_depth * 0.8)
-
+    def _check_recursion_depth(self, current_depth: int, max_depth: int) -> None:
+        """Проверяет глубину рекурсии."""
         if current_depth >= max_depth:
             raise RecursionError(f"Превышена максимальная глубина обработки ({max_depth})")
 
-        # HIGH 7: Проверка на циклические зависимости через id()
+    def _check_circular_reference(self, source: BaseModel, visited_objects: Set[int]) -> bool:
+        """Проверяет на циклические ссылки."""
         source_id = id(source)
         if source_id in visited_objects:
             app_logger.warning(
@@ -107,49 +83,99 @@ class Configuration(BaseModel):
                 type(source).__name__,
                 source_id,
             )
-            return warning_shown
-
+            return True
         visited_objects.add(source_id)
+        return False
 
-        if current_depth >= warning_threshold and not warning_shown:
+    def _log_depth_warning(self, current_depth: int, max_depth: int) -> bool:
+        """Выводит предупреждение о глубине рекурсии."""
+        warning_threshold = int(max_depth * 0.8)
+        if current_depth >= warning_threshold:
             logger.warning(
                 "Внимание: глубина обработки достигла %d/%d (80%% от лимита)",
                 current_depth,
                 max_depth,
             )
-            warning_shown = True
+            return True
+        return False
 
-        fields_set = Configuration._get_fields_set(source)
+    def _merge_primitive_field(self, target: BaseModel, field: str, source: BaseModel) -> None:
+        """Объединяет примитивное поле."""
+        source_value = getattr(source, field)
+        setattr(target, field, source_value)
 
+    def _merge_nested_model(
+        self,
+        target: BaseModel,
+        field: str,
+        source: BaseModel,
+        current_depth: int,
+        max_depth: int,
+        visited_objects: Set[int],
+        warning_shown: bool,
+    ) -> bool:
+        """Объединяет вложенную модель."""
+        source_value = getattr(source, field)
+        target_value = getattr(target, field, None)
+
+        if target_value is None:
+            setattr(target, field, deepcopy(source_value))
+        else:
+            warning_shown = self._merge_recursive_safe(
+                source=source_value,
+                target=target_value,
+                current_depth=current_depth + 1,
+                max_depth=max_depth,
+                visited_objects=visited_objects,
+                warning_shown=warning_shown,
+            )
+        return warning_shown
+
+    def _merge_recursive_safe(
+        self,
+        source: BaseModel,
+        target: BaseModel,
+        current_depth: int,
+        max_depth: int,
+        visited_objects: Set[int],
+        warning_shown: bool,
+    ) -> bool:
+        """Безопасно объединяет две Pydantic модели рекурсивно с итеративным подходом."""
+        # Проверка глубины рекурсии
+        self._check_recursion_depth(current_depth, max_depth)
+
+        # Проверка на циклические ссылки
+        if self._check_circular_reference(source, visited_objects):
+            return warning_shown
+
+        # Предупреждение о глубине
+        if not warning_shown:
+            warning_shown = self._log_depth_warning(current_depth, max_depth)
+
+        # Получаем установленные поля
+        fields_set = self._get_fields_set(source)
+
+        # Обрабатываем каждое поле итеративно
         for field in fields_set:
-            try:
-                source_value = getattr(source, field)
+            source_value = getattr(source, field, None)
 
-                if not isinstance(source_value, BaseModel):
-                    setattr(target, field, source_value)
-                else:
-                    target_value = getattr(target, field, None)
-                    if target_value is None:
-                        setattr(target, field, deepcopy(source_value))
-                    else:
-                        warning_shown = Configuration._merge_models_recursive(
-                            source=source_value,
-                            target=target_value,
-                            current_depth=current_depth + 1,
-                            max_depth=max_depth,
-                            visited_objects=visited_objects,
-                            warning_shown=warning_shown,
-                        )
+            if not isinstance(source_value, BaseModel):
+                # Примитивное поле
+                self._merge_primitive_field(target, field, source)
+            else:
+                # Вложенная модель
+                warning_shown = self._merge_nested_model(
+                    target=target,
+                    field=field,
+                    source=source,
+                    current_depth=current_depth,
+                    max_depth=max_depth,
+                    visited_objects=visited_objects,
+                    warning_shown=warning_shown,
+                )
 
-            except (AttributeError, TypeError) as e:
-                logger.warning("Ошибка при объединении поля %s: %s", field, e)
-                raise
-            except (ValueError, RuntimeError, OSError) as e:
-                logger.error("Непредвиденная ошибка при объединении поля %s: %s", field, e)
-                raise
-
-        # HIGH 7: Удаляем объект из посещённых после обработки
-        visited_objects.remove(source_id)
+        # Удаляем объект из посещённых после обработки
+        visited_objects.discard(id(source))
         return warning_shown
 
     @staticmethod

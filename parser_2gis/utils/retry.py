@@ -1,0 +1,323 @@
+"""
+Модуль повторных попыток (retry logic).
+
+Предоставляет универсальные декораторы и функции для повторного выполнения операций:
+- @retry_with_backoff: Декоратор с экспоненциальной задержкой
+- Стратегии retry: fixed, exponential, jitter
+- Интеграция с tenacity (если доступна)
+
+Пример использования:
+    >>> @retry_with_backoff(max_attempts=3, delay=1.0)
+    ... def unstable_operation():
+    ...     # операция которая может упасть
+    ...     pass
+"""
+
+from __future__ import annotations
+
+import functools
+import random
+import time
+from typing import Any, Callable, Optional, Tuple, Type, TypeVar, Union
+
+from parser_2gis.logger.logger import logger
+
+# Тип для декорируемых функций
+F = TypeVar("F", bound=Callable[..., Any])
+
+# Типы исключений которые можно retry
+RetryableException = Union[Type[Exception], Tuple[Type[Exception], ...]]
+
+
+class RetryError(Exception):
+    """Исключение при исчерпании попыток повторения."""
+
+    def __init__(
+        self, message: str, last_error: Optional[Exception] = None, attempts: int = 0
+    ) -> None:
+        """Инициализирует исключение.
+
+        Args:
+            message: Сообщение об ошибке.
+            last_error: Последнее исключение.
+            attempts: Количество попыток.
+        """
+        super().__init__(message)
+        self.last_error = last_error
+        self.attempts = attempts
+
+
+def retry_with_backoff(
+    max_attempts: int = 3,
+    delay: float = 1.0,
+    backoff_factor: float = 2.0,
+    max_delay: float = 60.0,
+    jitter: bool = True,
+    exceptions: RetryableException = Exception,
+    logger_name: Optional[str] = None,
+) -> Callable[[F], F]:
+    """Декоратор для повторных попыток с экспоненциальной задержкой.
+
+    Args:
+        max_attempts: Максимальное количество попыток.
+        delay: Начальная задержка в секундах.
+        backoff_factor: Множитель задержки (экспоненциальный рост).
+        max_delay: Максимальная задержка в секундах.
+        jitter: Добавлять ли случайную задержку (для предотвращения thundering herd).
+        exceptions: Тип или кортеж типов исключений для обработки.
+        logger_name: Имя логгера (по умолчанию используется logger).
+
+    Returns:
+        Декоратор для функции.
+
+    Example:
+        >>> @retry_with_backoff(max_attempts=3, delay=0.5, exceptions=(TimeoutError,))
+        ... def fetch_data(url):
+        ...     # сетевой запрос
+        ...     pass
+    """
+    log_func = logger
+    if logger_name:
+        import logging
+
+        log_func = logging.getLogger(logger_name)
+
+    def decorator(func: F) -> F:
+        """Декоратор для функции."""
+
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            """Обертка для повторных попыток."""
+            last_error: Optional[Exception] = None
+            current_delay = delay
+            func_name = func.__name__
+
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return func(*args, **kwargs)
+
+                except exceptions as e:  # type: ignore[misc]
+                    last_error = e
+
+                    if attempt < max_attempts:
+                        # Вычисляем задержку с jitter
+                        actual_delay = current_delay
+                        if jitter:
+                            # Добавляем случайность от 0% до 50% от задержки
+                            actual_delay = current_delay * (1 + random.uniform(0, 0.5))
+
+                        log_func.warning(
+                            "Попытка %d/%d не удалась для %s: %s. Повтор через %.2f сек...",
+                            attempt,
+                            max_attempts,
+                            func_name,
+                            e,
+                            actual_delay,
+                        )
+
+                        time.sleep(actual_delay)
+
+                        # Увеличиваем задержку для следующей попытки (экспоненциальный backoff)
+                        current_delay = min(current_delay * backoff_factor, max_delay)
+                    else:
+                        log_func.error(
+                            "Исчерпаны попытки повторения для %s после %d попыток: %s",
+                            func_name,
+                            max_attempts,
+                            e,
+                        )
+                        raise RetryError(
+                            f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}",
+                            last_error=e,
+                            attempts=attempt,
+                        ) from e
+
+                except Exception as unexpected_error:
+                    # Неожиданное исключение - пробрасываем дальше без retry
+                    log_func.error(
+                        "Неожиданное исключение в %s: %s (тип: %s)",
+                        func_name,
+                        unexpected_error,
+                        type(unexpected_error).__name__,
+                    )
+                    raise
+
+            # Должны были выбросить в цикле, но на всякий случай
+            if last_error is not None:
+                raise RetryError(
+                    f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}",
+                    last_error=last_error,
+                    attempts=max_attempts,
+                ) from last_error
+
+            return None
+
+        return wrapper  # type: ignore[return-value]
+
+    return decorator
+
+
+def retry_with_fixed_delay(
+    max_attempts: int = 3, delay: float = 1.0, exceptions: RetryableException = Exception
+) -> Callable[[F], F]:
+    """Декоратор для повторных попыток с фиксированной задержкой.
+
+    Args:
+        max_attempts: Максимальное количество попыток.
+        delay: Фиксированная задержка в секундах.
+        exceptions: Тип или кортеж типов исключений для обработки.
+
+    Returns:
+        Декоратор для функции.
+    """
+    return retry_with_backoff(
+        max_attempts=max_attempts,
+        delay=delay,
+        backoff_factor=1.0,  # Фиксированная задержка
+        max_delay=delay,
+        jitter=False,
+        exceptions=exceptions,
+    )
+
+
+def retry_with_jitter(
+    max_attempts: int = 3,
+    min_delay: float = 1.0,
+    max_delay: float = 10.0,
+    exceptions: RetryableException = Exception,
+) -> Callable[[F], F]:
+    """Декоратор для повторных попыток со случайной задержкой.
+
+    Args:
+        max_attempts: Максимальное количество попыток.
+        min_delay: Минимальная задержка в секундах.
+        max_delay: Максимальная задержка в секундах.
+        exceptions: Тип или кортеж типов исключений для обработки.
+
+    Returns:
+        Декоратор для функции.
+    """
+
+    def decorator(func: F) -> F:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            last_error: Optional[Exception] = None
+            func_name = func.__name__
+
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return func(*args, **kwargs)
+
+                except exceptions as e:  # type: ignore[misc]
+                    last_error = e
+
+                    if attempt < max_attempts:
+                        # Случайная задержка между min_delay и max_delay
+                        actual_delay = random.uniform(min_delay, max_delay)
+                        logger.warning(
+                            "Попытка %d/%d не удалась для %s: %s. Повтор через %.2f сек...",
+                            attempt,
+                            max_attempts,
+                            func_name,
+                            e,
+                            actual_delay,
+                        )
+                        time.sleep(actual_delay)
+                    else:
+                        logger.error(
+                            "Исчерпаны попытки повторения для %s после %d попыток: %s",
+                            func_name,
+                            max_attempts,
+                            e,
+                        )
+                        raise RetryError(
+                            f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}",
+                            last_error=e,
+                            attempts=attempt,
+                        ) from e
+
+            if last_error is not None:
+                raise RetryError(
+                    f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}",
+                    last_error=last_error,
+                    attempts=max_attempts,
+                ) from last_error
+
+            return None
+
+        return wrapper  # type: ignore[return-value]
+
+    return decorator
+
+
+# Проверка доступности tenacity
+_TENACITY_AVAILABLE = False
+try:
+    import tenacity  # noqa: F401
+
+    _TENACITY_AVAILABLE = True
+except ImportError:
+    pass
+
+
+def retry_with_tenacity(
+    max_attempts: int = 3,
+    delay: float = 1.0,
+    max_delay: float = 60.0,
+    exceptions: RetryableException = Exception,
+) -> Callable[[F], F]:
+    """Декоратор с использованием tenacity (если доступна).
+
+    Args:
+        max_attempts: Максимальное количество попыток.
+        delay: Начальная задержка в секундах.
+        max_delay: Максимальная задержка в секундах.
+        exceptions: Тип или кортеж типов исключений для обработки.
+
+    Returns:
+        Декоратор для функции.
+
+    Raises:
+        ImportError: Если tenacity не установлена.
+    """
+    if not _TENACITY_AVAILABLE:
+        raise ImportError(
+            "tenacity не установлена. Установите: pip install tenacity "
+            "или используйте retry_with_backoff"
+        )
+
+    from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
+    def decorator(func: F) -> F:
+        @retry(
+            stop=stop_after_attempt(max_attempts),
+            wait=wait_exponential(multiplier=delay, max=max_delay),
+            retry=retry_if_exception_type(exceptions),  # type: ignore[arg-type]
+            reraise=True,
+        )
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            return func(*args, **kwargs)
+
+        return wrapper  # type: ignore[return-value]
+
+    return decorator
+
+
+def is_tenacity_available() -> bool:
+    """Проверяет доступность tenacity.
+
+    Returns:
+        True если tenacity доступна.
+    """
+    return _TENACITY_AVAILABLE
+
+
+__all__ = [
+    "retry_with_backoff",
+    "retry_with_fixed_delay",
+    "retry_with_jitter",
+    "retry_with_tenacity",
+    "is_tenacity_available",
+    "RetryError",
+]

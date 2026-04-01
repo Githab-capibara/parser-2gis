@@ -1,46 +1,87 @@
 """
-Модуль для генерации URL парсинга.
+Модуль для парсинга URL в параллельном режиме.
 
-Предоставляет класс UrlParser для генерации всех URL для парсинга:
-- Генерация URL по городам и категориям
-- Валидация сгенерированных URL
-- Обработка ошибок генерации
+Этот модуль предоставляет класс ParallelUrlParser для генерации и парсинга URL
+с использованием нескольких потоков.
+
+Оптимизации:
+- Буферизация при работе с CSV файлами
+- Улучшенная обработка прогресса
+- Оптимизация памяти при слиянии файлов
 """
 
 from __future__ import annotations
 
-import logging
-from typing import TYPE_CHECKING, List, Tuple
+import gc
+import os
+import threading
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
+from pathlib import Path
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+
+from parser_2gis.constants import DEFAULT_TIMEOUT, MAX_UNIQUE_NAME_ATTEMPTS
+from parser_2gis.infrastructure import MemoryMonitor
+from parser_2gis.logger.logger import logger
+from parser_2gis.utils.url_utils import generate_category_url
 
 if TYPE_CHECKING:
     from parser_2gis.config import Configuration
+    from parser_2gis.parser import BaseParser
 
-logger = logging.getLogger("parser_2gis.parallel.url_parser")
 
+class ParallelUrlParser:
+    """Парсер URL для параллельного парсинга городов.
 
-class UrlParser:
-    """Генератор URL для параллельного парсинга.
+    Отвечает за:
+    - Генерацию всех URL для парсинга
+    - Парсинг отдельных URL с сохранением результатов
+    - Управление временными файлами
 
-    Отвечает за генерацию всех URL для парсинга на основе
-    списка городов и категорий.
-
-    Attributes:
+    Args:
         cities: Список городов для парсинга.
         categories: Список категорий для парсинга.
+        output_dir: Папка для сохранения результатов.
         config: Конфигурация парсера.
+        timeout_per_url: Таймаут на один URL в секундах.
     """
 
-    def __init__(self, cities: List[dict], categories: List[dict], config: "Configuration") -> None:
-        """Инициализация генератора URL.
+    def __init__(
+        self,
+        cities: List[dict],
+        categories: List[dict],
+        output_dir: Path,
+        config: "Configuration",
+        timeout_per_url: int = DEFAULT_TIMEOUT,
+    ) -> None:
+        """Инициализирует парсер URL.
 
         Args:
             cities: Список городов для парсинга.
             categories: Список категорий для парсинга.
+            output_dir: Папка для сохранения результатов.
             config: Конфигурация парсера.
+            timeout_per_url: Таймаут на один URL в секундах.
         """
         self.cities = cities
         self.categories = categories
+        self.output_dir = output_dir
         self.config = config
+        self.timeout_per_url = timeout_per_url
+
+        # Статистика (все операции защищены _lock)
+        self._stats: Dict[str, int] = {"total": 0, "success": 0, "failed": 0, "skipped": 0}
+        self._lock = threading.Lock()
+
+        # Флаг отмены
+        self._cancel_event = threading.Event()
+
+    def log(self, message: str, level: str = "info") -> None:
+        """Потокобезопасное логгирование."""
+        with self._lock:
+            log_func = getattr(logger, level)
+            log_func(message)
 
     def generate_all_urls(self) -> List[Tuple[str, str, str]]:
         """Генерирует все URL для парсинга.
@@ -48,8 +89,6 @@ class UrlParser:
         Returns:
             Список кортежей (url, category_name, city_name).
         """
-        from parser_2gis.utils.url_utils import generate_category_url
-
         all_urls: List[Tuple[str, str, str]] = []
 
         for city in self.cities:
@@ -58,30 +97,330 @@ class UrlParser:
                     url = generate_category_url(city, category)
                     all_urls.append((url, category["name"], city["name"]))
                 except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
-                    logger.error(
-                        "Ошибка генерации URL для %s - %s: %s", city["name"], category["name"], e
+                    self.log(
+                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
+                        "error",
                     )
                     continue
 
-        logger.info("Сгенерировано %d URL для парсинга", len(all_urls))
+        with self._lock:
+            self._stats["total"] = len(all_urls)
+
+        self.log(f"Сгенерировано {len(all_urls)} URL для парсинга", "info")
         return all_urls
 
-    def get_url_count(self) -> int:
-        """Возвращает общее количество URL для парсинга.
+    def parse_single_url(
+        self,
+        url: str,
+        category_name: str,
+        city_name: str,
+        browser_semaphore: threading.BoundedSemaphore,
+        progress_callback: Optional[Callable[[int, int, str], None]] = None,
+    ) -> Tuple[bool, str]:
+        """Парсит один URL и сохраняет результат в отдельный файл.
+
+        Использует временный файл для защиты от race condition:
+        - Запись происходит во временный файл с уникальным именем
+        - После успешного завершения файл переименовывается в целевое имя
+        - При ошибке временный файл удаляется
+
+        Args:
+            url: URL для парсинга.
+            category_name: Название категории.
+            city_name: Название города.
+            browser_semaphore: Семафор для контроля запуска браузеров.
+            progress_callback: Функция обратного вызова для обновления прогресса.
 
         Returns:
-            Количество URL (города * категории).
+            Кортеж (успех, сообщение).
         """
-        return len(self.cities) * len(self.categories)
+        # Проверка доступной памяти через инфраструктурный модуль
+        memory_monitor = MemoryMonitor()
+        available_memory = memory_monitor.get_available_memory()
+        if available_memory < 100 * 1024 * 1024:  # Менее 100MB
+            logger.warning(
+                f"Low memory ({available_memory // 1024 // 1024}MB), skipping {city_name} - {category_name}"
+            )
+            return False, "Недостаточно памяти"
 
-    def get_statistics(self) -> dict:
-        """Возвращает статистику по URL.
+        # Проверяем флаг отмены
+        if self._cancel_event.is_set():
+            return False, "Отменено пользователем"
 
-        Returns:
-            Словарь со статистикой.
+        # Формируем целевое имя файла
+        safe_city = city_name.replace(" ", "_").replace("/", "_")
+        safe_category = category_name.replace(" ", "_").replace("/", "_")
+        filename = f"{safe_city}_{safe_category}.csv"
+        filepath = self.output_dir / filename
+
+        # Создаём уникальное временное имя файла
+        temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+        temp_filepath = self.output_dir / temp_filename
+
+        # Атомарное создание временного файла для предотвращения race condition
+        temp_fd: Optional[int] = None
+        for attempt in range(MAX_UNIQUE_NAME_ATTEMPTS):
+            try:
+                temp_fd = os.open(
+                    str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
+                )
+                os.close(temp_fd)
+                temp_fd = None
+                logger.log(5, "Временный файл атомарно создан: %s", temp_filename)
+                break
+            except FileExistsError:
+                if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
+                    logger.log(5, "Коллизия имён (попытка %d): генерация нового имени", attempt + 1)
+                    temp_filename = (
+                        f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+                    )
+                    temp_filepath = self.output_dir / temp_filename
+                else:
+                    logger.error(
+                        "Не удалось создать уникальный временный файл после %d попыток: %s",
+                        MAX_UNIQUE_NAME_ATTEMPTS,
+                        temp_filename,
+                    )
+                    raise
+            except OSError:
+                if temp_fd is not None:
+                    try:
+                        os.close(temp_fd)
+                    except OSError as close_error:
+                        logger.log(5, "Ошибка закрытия дескриптора файла: %s", close_error)
+                    temp_fd = None
+                if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
+                    logger.log(
+                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1
+                    )
+                    temp_filename = (
+                        f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+                    )
+                    temp_filepath = self.output_dir / temp_filename
+                else:
+                    logger.error(
+                        "Не удалось создать временный файл после %d попыток: %s",
+                        MAX_UNIQUE_NAME_ATTEMPTS,
+                        temp_filename,
+                    )
+                    raise
+
+        def do_parse() -> Tuple[bool, str]:
+            """Выполняет парсинг внутри отдельного потока.
+
+            Returns:
+                Кортеж (успех, сообщение).
+            """
+            import random
+            import time
+
+            from parser_2gis.chrome.exceptions import ChromeException
+            from parser_2gis.parser import get_parser
+            from parser_2gis.writer import get_writer
+
+            self.log(
+                f"Начало парсинга: {city_name} - {category_name} (временный файл: {temp_filename})",
+                "info",
+            )
+
+            # Добавляем случайную задержку ПЕРЕД получением семафора
+            initial_delay = random.uniform(
+                self.config.parallel.initial_delay_min, self.config.parallel.initial_delay_max
+            )
+            time.sleep(initial_delay)
+
+            browser_semaphore.acquire()
+            try:
+                # Дополнительная задержка для распределения нагрузки при запуске
+                launch_delay = random.uniform(
+                    self.config.parallel.launch_delay_min, self.config.parallel.launch_delay_max
+                )
+                self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
+                time.sleep(launch_delay)
+
+                max_retries = 10
+                retry_delay = 5.0
+                parser: Optional["BaseParser"] = None
+
+                for attempt in range(max_retries):
+                    try:
+                        writer = get_writer(str(temp_filepath), "csv", self.config.writer)
+                        parser = get_parser(
+                            url,
+                            chrome_options=self.config.chrome,
+                            parser_options=self.config.parser,
+                        )
+                        break
+                    except ChromeException as chrome_error:
+                        if attempt < max_retries - 1:
+                            self.log(
+                                f"Попытка {attempt + 1}/{max_retries} не удалась: {chrome_error}. "
+                                f"Повтор через {retry_delay:.1f} сек...",
+                                "warning",
+                            )
+                            time.sleep(retry_delay)
+                            retry_delay *= 2
+                        else:
+                            raise chrome_error
+
+                if parser is None:
+                    browser_semaphore.release()
+                    return False, "Ошибка инициализации парсера"
+
+            except ChromeException as chrome_error:
+                browser_semaphore.release()
+                self.log(f"Ошибка Chrome после {max_retries} попыток: {chrome_error}", "error")
+                self._cleanup_temp_file(temp_filepath)
+                with self._lock:
+                    self._stats["failed"] += 1
+                return False, f"Ошибка Chrome: {chrome_error}"
+
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as init_error:
+                browser_semaphore.release()
+                self.log(f"Ошибка инициализации для {url}: {init_error}", "error")
+                self._cleanup_temp_file(temp_filepath)
+                with self._lock:
+                    self._stats["failed"] += 1
+                return False, f"Ошибка инициализации: {init_error}"
+
+            try:
+                with parser:
+                    with get_writer(str(temp_filepath), "csv", self.config.writer) as writer:
+                        try:
+                            parser.parse(writer)
+                        except MemoryError as memory_error:
+                            logger.error(f"Memory error while parsing {url}: {memory_error}")
+                            # Освобождаем кэш если есть
+                            if hasattr(parser, "_cache"):
+                                parser._cache.clear()
+                            # Принудительный GC
+                            gc.collect()
+                            raise
+                        finally:
+                            logger.debug("Завершена очистка ресурсов парсера")
+            except MemoryError as memory_error:
+                self.log(
+                    f"MemoryError при парсинге {city_name} - {category_name}: {memory_error}",
+                    "error",
+                )
+                browser_semaphore.release()
+                self._cleanup_temp_file(temp_filepath)
+                gc.collect()
+                with self._lock:
+                    self._stats["failed"] += 1
+                return False, f"MemoryError: {memory_error}"
+            finally:
+                # Гарантированное освобождение семафора после завершения работы с браузером
+                try:
+                    browser_semaphore.release()
+                except ValueError:
+                    # Семафор уже освобождён
+                    pass
+
+            # Переименовываем временный файл в целевой
+            self._rename_temp_to_final(temp_filepath, filepath, temp_filename)
+
+            self.log(f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info")
+
+            with self._lock:
+                self._stats["success"] += 1
+                success_count = self._stats["success"]
+                failed_count = self._stats["failed"]
+
+            if progress_callback:
+                progress_callback(success_count, failed_count, filepath.name)
+
+            return True, str(filepath)
+
+        # Используем ThreadPoolExecutor для установки таймаута (потокобезопасная альтернатива signal.alarm)
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(do_parse)
+                try:
+                    # Ожидаем результат с таймаутом
+                    success, message = future.result(timeout=self.timeout_per_url)
+                    return success, message
+                except FuturesTimeoutError:
+                    self.log(
+                        f"Таймаут парсинга {city_name} - {category_name} "
+                        f"({self.timeout_per_url} сек)",
+                        "error",
+                    )
+                    self._cleanup_temp_file(temp_filepath)
+                    with self._lock:
+                        self._stats["failed"] += 1
+                        success_count = self._stats["success"]
+                        failed_count = self._stats["failed"]
+                    if progress_callback:
+                        progress_callback(success_count, failed_count, "N/A")
+                    return False, f"Таймаут: {self.timeout_per_url} сек"
+
+        except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
+            self._cleanup_temp_file(temp_filepath)
+            with self._lock:
+                self._stats["failed"] += 1
+                success_count = self._stats["success"]
+                failed_count = self._stats["failed"]
+            if progress_callback:
+                progress_callback(success_count, failed_count, "N/A")
+            return False, str(e)
+
+    def _cleanup_temp_file(self, temp_filepath: Path) -> None:
+        """Очищает временный файл.
+
+        Args:
+            temp_filepath: Путь к временному файлу.
         """
-        return {
-            "cities_count": len(self.cities),
-            "categories_count": len(self.categories),
-            "total_urls": self.get_url_count(),
-        }
+        try:
+            if temp_filepath.exists():
+                temp_filepath.unlink()
+                self.log(f"Временный файл удалён: {temp_filepath.name}", "debug")
+        except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
+            self.log(
+                f"Не удалось удалить временный файл {temp_filepath.name}: {cleanup_error}",
+                "warning",
+            )
+
+    def _rename_temp_to_final(
+        self, temp_filepath: Path, filepath: Path, temp_filename: str
+    ) -> None:
+        """Переименовывает временный файл в целевой.
+
+        Args:
+            temp_filepath: Путь к временному файлу.
+            filepath: Путь к целевому файлу.
+            temp_filename: Имя временного файла.
+        """
+        import shutil
+
+        move_success = False
+        try:
+            os.replace(str(temp_filepath), str(filepath))
+            move_success = True
+        except OSError as replace_error:
+            self.log(
+                f"Не удалось переименовать файл (OSError): {replace_error}. Используем shutil.move",
+                "debug",
+            )
+            try:
+                shutil.move(str(temp_filepath), str(filepath))
+                move_success = True
+            except (OSError, RuntimeError, TypeError, ValueError) as move_error:
+                self.log(
+                    f"Не удалось переместить временный файл {temp_filename}: {move_error}", "error"
+                )
+                self._cleanup_temp_file(temp_filepath)
+                raise move_error
+
+        if move_success:
+            self.log(f"Временный файл переименован: {temp_filename} → {filepath.name}", "debug")
+
+    @property
+    def stats(self) -> Dict[str, int]:
+        """Возвращает статистику парсинга."""
+        with self._lock:
+            return self._stats.copy()
+
+    def cancel(self) -> None:
+        """Отменяет парсинг."""
+        self._cancel_event.set()

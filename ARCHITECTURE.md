@@ -1,103 +1,124 @@
 # Архитектура проекта parser-2gis
 
-**Версия:** 2.6.0
-**Дата обновления:** 2026-03-31
+**Версия:** 2.7.0
+**Дата обновления:** 2026-04-01
 
-## Основные изменения в версии 2.6.0
+## Основные изменения в версии 2.7.0
 
 ### Архитектурные улучшения
 
-#### Разделение ParallelCityParser (SRP)
+#### Полное разделение ParallelCityParser (SRP)
 
-ParallelCityParser разделён на специализированные классы для соблюдения Single Responsibility Principle:
+ParallelCityParser (1394 строки) разделён на 4 специализированных класса:
 
 - **Пакет:** `parallel/` — Параллельный парсинг
 - **Новые компоненты:**
-  - `parallel/url_parser.py` — UrlParser для генерации URL
-  - `parallel/thread_manager.py` — ThreadManager для управления потоками
+  - `parallel/url_parser.py` — ParallelUrlParser для генерации и парсинга URL
+  - `parallel/thread_coordinator.py` — ThreadCoordinator для управления потоками и семафорами
+  - `parallel/memory_manager.py` — MemoryManager для управления памятью и GC
+  - `parallel/file_merger.py` — FileMergerStrategy для стратегии слияния файлов
+  - `parallel/infrastructure/` — Инфраструктурные компоненты
+    - `file_manager.py` — FileManager для работы с файлами
+    - `semaphore_manager.py` — SemaphoreManager для управления семафорами
 - **Преимущества:**
   - Соблюдение Single Responsibility Principle
   - Улучшенная тестируемость
-  - Снижение цикломатической сложности
+  - Снижение цикломатической сложности с ~45 до <15
+  - Поддержка multiprocessing через ProcessPoolExecutor
 
-#### Dependency Injection для логгера
+#### Централизованная обработка ошибок БД
 
-Внедрён LoggerProtocol для устранения чрезмерной зависимости от logger модуля:
+Создан модуль `database/error_handler.py` для обработки ошибок SQLite:
 
-- **Protocol:** `LoggerProtocol` в `protocols.py`
-- **Использование:** Внедрение через конструктор во всех классах
+- **Компоненты:**
+  - `DatabaseError` — базовое исключение БД
+  - `DatabaseErrorTranslator` — классификация ошибок
+  - `@handle_db_errors` — декоратор для обработки
 - **Преимущества:**
-  - Снижение связанности (43 файла → injected зависимость)
-  - Улучшенная тестируемость через mock логгера
+  - Устранение дублирования (3 файла → 1 модуль)
+  - Централизованная логика обработки
+  - Следование DRY принципу
+
+#### Консолидация retry логики
+
+Создан модуль `utils/retry.py` для универсальных retry стратегий:
+
+- **Компоненты:**
+  - `@retry_with_backoff` — декоратор с exponential backoff
+  - `retry_with_fixed_delay` — стратегия с фиксированной задержкой
+  - `retry_with_jitter` — стратегия со случайной задержкой
+  - `retry_with_tenacity` — интеграция с tenacity
+- **Преимущества:**
+  - Устранение дублирования (3 файла → 1 модуль)
+  - Гибкие стратегии повторных попыток
+  - Улучшенная тестируемость
+
+#### Разделение валидации путей
+
+Создан модуль `validation/path_validation.py` для валидации путей:
+
+- **Компоненты:**
+  - `PathSafetyValidator` — валидация безопасности путей
+  - `PathTraversalError` — исключение для path traversal
+  - `validate_path_traversal` — проверка на path traversal
+  - `validate_path_safety` — полная проверка безопасности
+- **Преимущества:**
+  - Устранение дублирования валидации
+  - Централизованная логика
+  - NFKC нормализация для Unicode
+
+#### Protocol для параллельных компонентов
+
+Добавлены Protocol абстракции в `protocols.py`:
+
+- **Новые Protocol:**
+  - `ErrorHandlerProtocol` — обработчик ошибок
+  - `MergerProtocol` — слияние файлов
+  - `ProgressReporterProtocol` — отчётность прогресса
+  - `UrlGeneratorProtocol` — генерация URL
+  - `ThreadCoordinatorProtocol` — координация потоков
+- **Преимущества:**
   - Следование Dependency Inversion Principle
+  - Улучшенная тестируемость через mock
+  - Возможность замены реализаций
 
-#### Рефакторинг ChromeRemote (God Object → Facade)
+#### Поддержка multiprocessing
 
-ChromeRemote рефакторен с выделением специализированных классов:
+ThreadCoordinator поддерживает различные типы executor:
 
-- **Выделенные классы:**
-  - `JsExecutor` — выполнение JavaScript
-  - `DomHandler` — работа с DOM
-  - `NetworkInterceptor` — перехват сетевых запросов
-  - `Screenshotter` — скриншоты
-- **ChromeRemote:** Оставлен как Facade для группировки функциональности
+- **Режимы:**
+  - `executor_type="thread"` — ThreadPoolExecutor (по умолчанию)
+  - `executor_type="process"` — ProcessPoolExecutor для CPU-bound
 - **Преимущества:**
-  - Соблюдение Single Responsibility Principle
-  - Возможность повторного использования компонентов
-  - Улучшенная тестируемость
-
-#### Централизованная валидация ENV переменных
-
-Создана EnvConfig dataclass для централизованной валидации:
-
-- **Класс:** `EnvConfig` в `constants.py`
-- **Функция:** `validate_env_int()` для валидации целочисленных значений
-- **Преимущества:**
-  - Устранение дублирования кода валидации
-  - Централизация конфигурации
-  - Информативные сообщения об ошибках
+  - Гибкость выбора стратегии
+  - Поддержка CPU-bound операций
+  - Масштабируемость
 
 #### Упрощение Configuration.merge_with
 
-Метод merge_with переписан с использованием рекурсивного алгоритма:
+Метод merge_with разбит на 5 мелких методов:
 
-- **Было:** 200+ строк итеративного кода
-- **Стало:** ~70 строк рекурсивного кода
+- **Новые методы:**
+  - `_check_recursion_depth` — проверка глубины рекурсии
+  - `_check_circular_reference` — проверка циклических ссылок
+  - `_log_depth_warning` — предупреждение о глубине
+  - `_merge_primitive_field` — слияние примитивных полей
+  - `_merge_nested_model` — слияние вложенных моделей
 - **Преимущества:**
-  - Снижение когнитивной сложности
+  - Снижение вложенности с 7 до 3 уровней
   - Улучшенная читаемость
-  - Легче поддерживать
+  - Легче тестировать
 
-#### Data Classes для групп параметров
+#### Разделение Configuration и ConfigService
 
-Созданы dataclass для группировки параметров:
+Configuration содержит только модель данных:
 
-- **Классы:** `ParseConfig`, `BrowserConfig`, `CacheConfig`
-- **Использование:** Группировка связанных параметров в функциях
+- **Configuration:** Модель Pydantic + merge_with
+- **ConfigService:** save_config/load_config
 - **Преимущества:**
-  - Устранение Data Clumps антипаттерна
-  - Упрощение сигнатур функций
-  - Улучшенная читаемость кода
-
-#### Очистка protocols.py
-
-Удалены неиспользуемые Protocol абстракции:
-
-- **Удалено:** BrowserScreenshot и другие неиспользуемые Protocol
-- **Сокращено:** Docstrings с ~400 до ~200 строк
-- **Преимущества:**
-  - Устранение Speculative Generality
-  - Упрощение кодовой базы
-  - Легче поддерживать актуальность
-
-#### Рефакторинг utils модуля
-
-Перемещены компоненты utils в соответствующие модули:
-
-- **Перемещено:**
-  - `cache_monitor` → `cache/`
-  - `statistics` → `infrastructure/`
-- **Осталось в utils:** Только общие утилиты
+  - Следование Separation of Concerns
+  - Чёткое разделение ответственности
+  - Улучшенная тестируемость
 - **Преимущества:**
   - Логичная структура проекта
   - Улучшенная навигация

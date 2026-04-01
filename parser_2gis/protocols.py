@@ -194,6 +194,77 @@ class ExecutionBackend(Protocol):
         """Останавливает executor и освобождает ресурсы."""
 
 
+# =============================================================================
+# PARALLEL PARSING PROTOCOLS
+# =============================================================================
+
+
+@runtime_checkable
+class ErrorHandlerProtocol(Protocol):
+    """Protocol для обработчика ошибок параллельного парсинга."""
+
+    def handle_memory_error(self, error: MemoryError, temp_file: Any, url: str) -> tuple[bool, str]:
+        """Обрабатывает MemoryError."""
+
+    def handle_timeout_error(
+        self, temp_file: Any, city_name: str, category_name: str, timeout: int
+    ) -> tuple[bool, str]:
+        """Обрабатывает таймаут."""
+
+    def handle_other_error(
+        self, error: Exception, temp_file: Any, city_name: str, category_name: str
+    ) -> tuple[bool, str]:
+        """Обрабатывает другие ошибки."""
+
+
+@runtime_checkable
+class MergerProtocol(Protocol):
+    """Protocol для объединителя файлов."""
+
+    def merge_csv_files(
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None
+    ) -> bool:
+        """Объединяет CSV файлы."""
+
+
+@runtime_checkable
+class ProgressReporterProtocol(Protocol):
+    """Protocol для репортёра прогресса."""
+
+    def update_progress(self, success: bool, filename: str) -> None:
+        """Обновляет прогресс."""
+
+    def get_stats(self) -> dict[str, Any]:
+        """Возвращает статистику."""
+
+
+@runtime_checkable
+class UrlGeneratorProtocol(Protocol):
+    """Protocol для генератора URL."""
+
+    def generate_all_urls(self) -> list[tuple[str, str, str]]:
+        """Генерирует все URL для парсинга."""
+
+
+@runtime_checkable
+class ThreadCoordinatorProtocol(Protocol):
+    """Protocol для координатора потоков."""
+
+    def run_parsing(
+        self,
+        all_urls: list[tuple[str, str, str]],
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> bool:
+        """Запускает параллельный парсинг."""
+
+    def stop(self) -> None:
+        """Останавливает парсинг."""
+
+    @property
+    def stats(self) -> dict[str, int]:
+        """Возвращает статистику."""
+
+
 __all__ = [
     # Callback Protocols
     "LoggerProtocol",
@@ -216,4 +287,10 @@ __all__ = [
     "CacheBackend",
     # Backend Protocols
     "ExecutionBackend",
+    # Parallel Parsing Protocols
+    "ErrorHandlerProtocol",
+    "MergerProtocol",
+    "ProgressReporterProtocol",
+    "UrlGeneratorProtocol",
+    "ThreadCoordinatorProtocol",
 ]
