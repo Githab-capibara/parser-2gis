@@ -70,6 +70,10 @@ if TYPE_CHECKING:
     from parser_2gis.config import Configuration
 
 
+# Константы
+MEMORY_THRESHOLD_BYTES = 100 * 1024 * 1024  # 100MB порог для проверки памяти
+
+
 @dataclass
 class ParserThreadConfig:
     """Конфигурация для потока параллельного парсинга.
@@ -319,18 +323,18 @@ class ParallelCityParser:
         Returns:
             Кортеж (успех, сообщение).
         """
-        # H9: Проверка доступной памяти через инфраструктурный модуль
+        # P1-13: Проверяем флаг отмены ПЕРЕД проверкой памяти
+        if self._cancel_event.is_set():
+            return False, "Отменено пользователем"
+
+        # P1-9, P2-21: Используем константу MEMORY_THRESHOLD_BYTES
         memory_monitor = MemoryMonitor()
         available_memory = memory_monitor.get_available_memory()
-        if available_memory < 100 * 1024 * 1024:  # Менее 100MB
+        if available_memory < MEMORY_THRESHOLD_BYTES:  # Менее 100MB
             logger.warning(
                 f"Low memory ({available_memory // 1024 // 1024}MB), skipping {city_name} - {category_name}"
             )
             return False, "Недостаточно памяти"
-
-        # Проверяем флаг отмены
-        if self._cancel_event.is_set():
-            return False, "Отменено пользователем"
 
         # Формируем целевое имя файла
         safe_city = city_name.replace(" ", "_").replace("/", "_")
@@ -448,7 +452,6 @@ class ParallelCityParser:
                             raise chrome_error
 
             except ChromeException as chrome_error:
-                self._browser_launch_semaphore.release()
                 self.log(f"Ошибка Chrome после {max_retries} попыток: {chrome_error}", "error")
                 try:
                     if temp_filepath.exists():
@@ -462,7 +465,6 @@ class ParallelCityParser:
                 return False, f"Ошибка Chrome: {chrome_error}"
 
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as init_error:
-                self._browser_launch_semaphore.release()
                 self.log(f"Ошибка инициализации для {url}: {init_error}", "error")
                 try:
                     if temp_filepath.exists():
@@ -482,55 +484,102 @@ class ParallelCityParser:
 
                 return False, f"Ошибка инициализации: {init_error}"
 
+            # P0-1, P0-4: Используем вложенные try-finally для каждого ресурса
+            # Гарантируем закрытие writer и parser при любой ошибке
+            parser = None
+            writer = None
+            semaphore_released = False
+
             try:
-                with parser:
-                    with writer:
+                try:
+                    parser = get_parser(
+                        url, chrome_options=self.config.chrome, parser_options=self.config.parser
+                    )
+                except ChromeException as chrome_error:
+                    self.log(f"Ошибка создания парсера: {chrome_error}", "error")
+                    raise
+
+                try:
+                    writer = get_writer(str(temp_filepath), "csv", self.config.writer)
+                except (OSError, RuntimeError, TypeError, ValueError) as writer_error:
+                    self.log(f"Ошибка создания writer: {writer_error}", "error")
+                    raise
+
+                # P0-1: Гарантированное закрытие parser и writer через вложенные finally
+                try:
+                    with parser:
                         try:
-                            parser.parse(writer)
-                        except MemoryError as memory_error:
-                            logger.error(f"Memory error while parsing {url}: {memory_error}")
-                            # Освобождаем кэш если есть
-                            if hasattr(parser, "_cache"):
-                                parser._cache.clear()
-                            # Принудительный GC
-                            gc.collect()
-                            raise
+                            with writer:
+                                try:
+                                    parser.parse(writer)
+                                except MemoryError as memory_error:
+                                    logger.error(
+                                        f"Memory error while parsing {url}: {memory_error}"
+                                    )
+                                    # Освобождаем кэш если есть
+                                    if hasattr(parser, "_cache"):
+                                        parser._cache.clear()
+                                    # Принудительный GC
+                                    gc.collect()
+                                    raise
+                                finally:
+                                    logger.debug("Завершена очистка ресурсов writer")
                         finally:
-                            logger.debug("Завершена очистка ресурсов парсера")
-            except MemoryError as memory_error:
-                # C3: Обработка MemoryError с graceful shutdown
+                            logger.debug("Завершена очистка ресурсов parser")
+                except MemoryError as memory_error:
+                    # C3: Обработка MemoryError с graceful shutdown
+                    self.log(
+                        f"MemoryError при парсинге {city_name} - {category_name}: {memory_error}",
+                        "error",
+                    )
+                    # Очищаем временный файл
+                    try:
+                        if temp_filepath.exists():
+                            temp_filepath.unlink()
+                            self.log(
+                                f"Временный файл удалён после MemoryError: {temp_filename}", "debug"
+                            )
+                    except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
+                        self.log(
+                            f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
+                            "warning",
+                        )
+                    # Принудительный GC
+                    gc.collect()
+                    with self._lock:
+                        self._stats["failed"] += 1
+                    return False, f"MemoryError: {memory_error}"
+                finally:
+                    # P0-1, P0-4: Гарантированное освобождение семафора ТОЛЬКО в finally
+                    # Это предотвращает дублирование освобождения
+                    if not semaphore_released:
+                        self._browser_launch_semaphore.release()
+                        semaphore_released = True
+
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as parse_error:
+                # Обработка ошибок парсинга
                 self.log(
-                    f"MemoryError при парсинге {city_name} - {category_name}: {memory_error}",
-                    "error",
+                    f"Ошибка при парсинге {city_name} - {category_name}: {parse_error}", "error"
                 )
-                # Освобождаем семафор
-                self._browser_launch_semaphore.release()
-                # Очищаем временный файл
                 try:
                     if temp_filepath.exists():
                         temp_filepath.unlink()
-                        self.log(
-                            f"Временный файл удалён после MemoryError: {temp_filename}", "debug"
-                        )
+                        self.log(f"Временный файл удалён после ошибки: {temp_filename}", "debug")
                 except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                     self.log(
                         f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
                         "warning",
                     )
-                # Принудительный GC
-                gc.collect()
+
                 with self._lock:
                     self._stats["failed"] += 1
-                return False, f"MemoryError: {memory_error}"
-            finally:
-                # C3: Гарантированное освобождение семафора после завершения работы с браузером
-                # Это позволяет следующей задаче начать запуск Chrome
-                # Примечание: семафор уже освобождается в except MemoryError, поэтому проверяем
-                try:
-                    self._browser_launch_semaphore.release()
-                except ValueError:
-                    # Семафор уже освобождён в except MemoryError блоке
-                    pass
+                    success_count = self._stats["success"]
+                    failed_count = self._stats["failed"]
+
+                if progress_callback:
+                    progress_callback(success_count, failed_count, "N/A")
+
+                return False, str(parse_error)
 
             # Переименовываем временный файл в целевой
             move_success = False

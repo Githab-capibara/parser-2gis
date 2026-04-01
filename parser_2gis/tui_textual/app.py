@@ -18,6 +18,7 @@ from textual.binding import Binding
 from textual.widgets import Footer, Header
 
 from parser_2gis.config import Configuration
+from parser_2gis.logger import logger
 from parser_2gis.parallel import ParallelCityParser
 from parser_2gis.resources import CATEGORIES_93
 
@@ -566,7 +567,22 @@ class TUIApp(App):
             # Вернуться в главное меню при ошибке
             self.call_from_thread(self.switch_to_main_menu)
         finally:
-            # Гарантированная очистка ресурсов парсинга
+            # P0-5: Гарантированная очистка ресурсов парсинга
+            # Вызываем parser.cancel() и get_stats() корректно
+            if "parser" in locals():
+                try:
+                    parser.stop()  # Вызываем cancel через метод stop()
+                    parser_stats = parser.get_statistics()
+                    logger.debug("Статистика парсера после завершения: %s", parser_stats)
+                except (
+                    OSError,
+                    RuntimeError,
+                    TypeError,
+                    ValueError,
+                    AttributeError,
+                ) as cleanup_error:
+                    logger.debug("Ошибка при очистке парсера: %s", cleanup_error)
+
             if not self._cleanup_in_progress:
                 self._cleanup_in_progress = True
                 try:

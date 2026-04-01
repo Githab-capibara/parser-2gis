@@ -170,24 +170,30 @@ class MainPageParser(BaseParser):
 
     def _add_xhr_counter(self) -> None:
         """Внедряет old-school обёртку вокруг XMLHttpRequest
-        для отслеживания всех ожидающих запросов к сайту 2GIS."""
+        для отслеживания всех ожидающих запросов к сайту 2GIS.
+        P1-7: Добавлен try-catch на JavaScript уровне.
+        """
         xhr_script = r"""
             (function() {
-                var oldOpen = XMLHttpRequest.prototype.open;
-                XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
-                    if (url.match(/^https?\:\/\/[^\/]*2gis\.[a-z]+/i)) {
-                        if (window.openHTTPs == undefined) {
-                            window.openHTTPs = 1;
-                        } else {
-                            window.openHTTPs++;
-                        }
-                        this.addEventListener("readystatechange", function() {
-                            if (this.readyState == 4) {
-                                window.openHTTPs--;
+                try {
+                    var oldOpen = XMLHttpRequest.prototype.open;
+                    XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
+                        if (url.match(/^https?\:\/\/[^\/]*2gis\.[a-z]+/i)) {
+                            if (window.openHTTPs == undefined) {
+                                window.openHTTPs = 1;
+                            } else {
+                                window.openHTTPs++;
                             }
-                        }, false);
-                    }
-                    oldOpen.call(this, method, url, async, user, pass);
+                            this.addEventListener("readystatechange", function() {
+                                if (this.readyState == 4) {
+                                    window.openHTTPs--;
+                                }
+                            }, false);
+                        }
+                        oldOpen.call(this, method, url, async, user, pass);
+                    };
+                } catch (e) {
+                    console.error('Ошибка при установке XHR счётчика:', e);
                 }
             })();
         """

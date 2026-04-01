@@ -463,6 +463,11 @@ class CacheManager:
                 general_error,
                 type(general_error).__name__,
             )
+            # P0-3: Добавляем rollback транзакции при MemoryError
+            try:
+                conn.rollback()
+            except (sqlite3.Error, OSError, MemoryError) as rollback_error:
+                app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
             return None
 
         finally:
@@ -517,9 +522,11 @@ class CacheManager:
             )
 
         conn = self._pool.get_connection()
-        cursor = conn.cursor()
+        # P1-8: Гарантируем создание курсора перед try для безопасности в finally
+        cursor: Optional[sqlite3.Cursor] = None
 
         try:
+            cursor = conn.cursor()
             # CRITICAL 2: Вычисляем CRC32 checksum для проверки целостности
             checksum = zlib.crc32(data_json.encode("utf-8")) & 0xFFFFFFFF
 
@@ -534,6 +541,11 @@ class CacheManager:
             conn.commit()
         except MemoryError:
             # CRITICAL 2: Graceful деградация при MemoryError
+            # P1-8: Добавляем rollback транзакции при MemoryError
+            try:
+                conn.rollback()
+            except (sqlite3.Error, OSError, MemoryError) as rollback_error:
+                app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
             app_logger.warning(
                 "MemoryError при сохранении кэша для URL %s. Данные не были сохранены.", url
             )
@@ -548,8 +560,10 @@ class CacheManager:
             # Ожидаемые ошибки логируются
             app_logger.error("Ошибка БД при сохранении кэша: %s", db_error)
         finally:
+            # P1-8: Гарантированное закрытие курсора в finally
             try:
-                cursor.close()
+                if cursor is not None:
+                    cursor.close()
             except (sqlite3.Error, OSError, MemoryError) as cursor_error:
                 app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 

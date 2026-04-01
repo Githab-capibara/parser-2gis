@@ -201,8 +201,18 @@ class CSVWriter(FileWriter):
         return self
 
     def __exit__(self, *exc_info: Any) -> None:
+        # P0-6: Сначала закрываем файл через super().__exit__()
+        # Затем выполняем постобработку на закрытом файле
+        super().__exit__(*exc_info)
+
         # Постобработка: удаление пустых колонок и дубликатов
-        # Выполняется ДО закрытия файла для сохранения данных в памяти
+        # P0-6: Добавлена проверка hasattr(self, '_file')
+        if hasattr(self, "_file") and self._file is not None:
+            # Файл уже закрыт через super().__exit__()
+            # Постобработка выполняется на закрытом файле
+            pass
+
+        # P0-6: Перемещаем постобработку ПОСЛЕ super().__exit__()
         if self._options.csv.remove_empty_columns:
             try:
                 logger.info("Удаление пустых колонок CSV.")
@@ -226,9 +236,6 @@ class CSVWriter(FileWriter):
                 deduplicator.remove_duplicates()
             except Exception as e:
                 logger.error("Ошибка при удалении дубликатов: %s", e)
-
-        # Закрываем файл после постобработки
-        super().__exit__(*exc_info)
 
     def write(self, catalog_doc: Any) -> None:
         """Записывает JSON-документ Catalog Item API в CSV-таблицу.

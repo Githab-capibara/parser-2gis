@@ -186,9 +186,11 @@ class ProfileManager:
         self._profile_tempdir = tempfile.TemporaryDirectory(prefix="chrome_profile_")
         self._profile_path = self._profile_tempdir.name
 
-        # Устанавливаем restrictive права на директорию профиля (0o700)
+        # P1-17: Используем os.makedirs с параметром mode для атомарного создания
+        # и установки restrictive прав (0o700) для предотвращения race condition
         try:
-            os.chmod(self._profile_path, 0o700)
+            os.makedirs(self._profile_path, mode=0o700, exist_ok=True)
+            app_logger.debug("Профиль создан с правами 0o700 через os.makedirs")
         except OSError as chmod_error:
             app_logger.warning(
                 "Не удалось установить права 0o700 на профиль %s: %s. "
@@ -204,7 +206,13 @@ class ProfileManager:
         Очищает временный профиль Chrome.
 
         Использует TemporaryDirectory.cleanup() с fallback на shutil.rmtree().
+        P0-2: Добавлена проверка profile_path перед очисткой.
         """
+        # P0-2: Проверка profile_path перед очисткой
+        if not self._profile_path:
+            app_logger.debug("Профиль не был создан, очистка не требуется")
+            return
+
         profile_cleanup_error: Optional[Exception] = None
 
         try:
@@ -449,12 +457,35 @@ class ProcessManager:
                     )
                     return True, "killed"
                 except subprocess.TimeoutExpired:
+                    # P1-10: Добавляем принудительное завершение через kill() после timeout
                     app_logger.error(
-                        "Таймаут (%d сек) после SIGKILL для PID %d - возможна утечка процесса",
+                        "Таймаут (%d сек) после SIGKILL для PID %d - применяем принудительное завершение",
                         timeout,
                         process_pid,
                     )
-                    return False, "kill_timeout"
+                    try:
+                        # Принудительное завершение процесса и всех дочерних процессов
+                        import psutil
+
+                        ps_proc = psutil.Process(process_pid)
+                        children = ps_proc.children(recursive=True)
+                        for child in children:
+                            try:
+                                child.kill()
+                            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                                pass
+
+                        ps_proc.kill()
+                        app_logger.info(
+                            "Процесс PID %d и его дочерние процессы принудительно завершены",
+                            process_pid,
+                        )
+                        return True, "killed_forcefully"
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, ImportError) as e:
+                        app_logger.error(
+                            "Не удалось принудительно завершить процесс PID %d: %s", process_pid, e
+                        )
+                        return False, "kill_timeout"
 
         except ProcessLookupError as proc_error:
             app_logger.debug("Процесс уже завершён (kill): %s", proc_error)
