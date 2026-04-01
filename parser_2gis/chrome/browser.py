@@ -379,6 +379,8 @@ class ProcessManager:
                     poll_result,
                     time.time() - self._start_time,
                 )
+                # H013: Очищаем ссылку на процесс после завершения
+                self._proc = None
                 return True, process_status
             else:
                 # Процесс ещё работает, ждём завершения с timeout
@@ -389,6 +391,8 @@ class ProcessManager:
                         process_pid,
                         timeout,
                     )
+                    # H013: Очищаем ссылку на процесс после завершения
+                    self._proc = None
                     return True, "terminated"
                 except subprocess.TimeoutExpired:
                     app_logger.warning(
@@ -398,6 +402,8 @@ class ProcessManager:
 
         except ProcessLookupError as proc_error:
             app_logger.debug("Процесс уже завершён: %s", proc_error)
+            # H013: Очищаем ссылку на процесс
+            self._proc = None
             return True, "already_terminated"
         except PermissionError as perm_error:
             app_logger.error("Нет прав на завершение процесса: %s", perm_error)
@@ -445,6 +451,8 @@ class ProcessManager:
                     poll_result,
                     time.time() - self._start_time,
                 )
+                # H013: Очищаем ссылку на процесс после завершения
+                self._proc = None
                 return True, process_status
             else:
                 # Процесс всё ещё работает после kill(), ждём с timeout
@@ -455,6 +463,8 @@ class ProcessManager:
                         process_pid,
                         timeout,
                     )
+                    # H013: Очищаем ссылку на процесс после завершения
+                    self._proc = None
                     return True, "killed"
                 except subprocess.TimeoutExpired:
                     # P1-10: Добавляем принудительное завершение через kill() после timeout

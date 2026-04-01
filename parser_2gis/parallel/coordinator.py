@@ -270,18 +270,22 @@ class ParallelCoordinator:
             "info",
         )
 
-        initial_delay = random.uniform(
-            self.config.parallel.initial_delay_min, self.config.parallel.initial_delay_max
-        )
-        time.sleep(initial_delay)
+        # H003: Задержка ТОЛЬКО если use_delays=True
+        if getattr(self.config.parallel, "use_delays", True):
+            initial_delay = random.uniform(
+                self.config.parallel.initial_delay_min, self.config.parallel.initial_delay_max
+            )
+            time.sleep(initial_delay)
 
         self._browser_launch_semaphore.acquire()
         try:
-            launch_delay = random.uniform(
-                self.config.parallel.launch_delay_min, self.config.parallel.launch_delay_max
-            )
-            self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
-            time.sleep(launch_delay)
+            # H003: Задержка ТОЛЬКО если use_delays=True
+            if getattr(self.config.parallel, "use_delays", True):
+                launch_delay = random.uniform(
+                    self.config.parallel.launch_delay_min, self.config.parallel.launch_delay_max
+                )
+                self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
+                time.sleep(launch_delay)
 
             # Вынесено в отдельные методы для устранения nonlocal
             parser = self._create_parser(url)

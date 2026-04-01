@@ -46,8 +46,8 @@ def clear_url_query_cache() -> None:
 
 
 # Оптимизация: кэширование сгенерированных URL
-# HIGH 12: Размер кэша уменьшен до 512 для оптимального использования памяти
-@lru_cache(maxsize=512)
+# H007: Размер кэша увеличен до 2048 для поддержки большего количества URL
+@lru_cache(maxsize=2048)
 def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
     """Кэшированная версия генерации URL.
 

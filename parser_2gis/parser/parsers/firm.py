@@ -81,6 +81,17 @@ _DANGEROUS_JS_PATTERNS = [
     (re.compile(r"fetch\s*\(", re.IGNORECASE), "функция fetch()"),
 ]
 
+# C017: Опасные ключи которые не должны присутствовать в initialState
+_DANGEROUS_KEYS = {
+    "__proto__",
+    "constructor",
+    "prototype",
+    "__defineGetter__",
+    "__defineSetter__",
+    "__lookupGetter__",
+    "__lookupSetter__",
+}
+
 
 def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> tuple[bool, int]:
     """Рекурсивно валидирует структуру initialState на безопасность.
@@ -133,6 +144,10 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
         for key, value in data.items():
             if not isinstance(key, str):
                 logger.warning("Некорректный тип ключа в initialState")
+                return False, item_count
+            # C017: Проверка на опасные ключи
+            if key in _DANGEROUS_KEYS:
+                logger.warning("Обнаружен опасный ключ в initialState: %s", key)
                 return False, item_count
             valid, item_count = _validate_initial_state(value, depth + 1, item_count + 1)
             if not valid:

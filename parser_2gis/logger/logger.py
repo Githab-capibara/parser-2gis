@@ -19,10 +19,22 @@ if TYPE_CHECKING:
 
     from .options import LogOptions
 
-# Устанавливаем уровень логирования для сторонних библиотек
-logging.getLogger("urllib3").setLevel(logging.ERROR)
-logging.getLogger("pychrome").setLevel(logging.ERROR)
-warnings.filterwarnings(action="ignore", module="pychrome")
+# H018: Флаг для однократной установки уровня urllib3
+_urllib3_level_set: bool = False
+
+
+def _setup_third_party_logging_once() -> None:
+    """H018: Устанавливает уровень логирования для сторонних библиотек один раз."""
+    global _urllib3_level_set
+    if not _urllib3_level_set:
+        logging.getLogger("urllib3").setLevel(logging.ERROR)
+        logging.getLogger("pychrome").setLevel(logging.ERROR)
+        warnings.filterwarnings(action="ignore", module="pychrome")
+        _urllib3_level_set = True
+
+
+# H018: Выполняем один раз при импорте модуля
+_setup_third_party_logging_once()
 
 _LOGGER_NAME = "parser-2gis"
 

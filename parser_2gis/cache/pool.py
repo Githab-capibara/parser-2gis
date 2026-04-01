@@ -13,6 +13,7 @@
     >>> pool.close()
 """
 
+import functools
 import queue
 import sqlite3
 import threading
@@ -53,6 +54,7 @@ except ImportError:
     psutil = None  # type: ignore
 
 
+@functools.lru_cache(maxsize=1)
 def _calculate_dynamic_pool_size() -> int:
     """
     Рассчитывает оптимальный размер пула соединений на основе доступной памяти.
@@ -69,6 +71,10 @@ def _calculate_dynamic_pool_size() -> int:
     Example:
         >>> pool_size = _calculate_dynamic_pool_size()
         >>> print(f"Рекомендуемый размер пула: {pool_size}")
+
+    Примечание:
+        H005: Результат кэшируется через lru_cache(maxsize=1) для предотвращения
+        повторных вызовов psutil.virtual_memory() при каждом создании пула.
     """
     try:
         # Пытаемся получить информацию о памяти через psutil
@@ -197,7 +203,7 @@ class ConnectionPool:
         self._connection_queue: queue.Queue[sqlite3.Connection] = queue.Queue(
             maxsize=self._pool_size
         )
-        # Кэш времени создания соединений для отслеживания возраста
+        # Хранение возраста соединений по id(conn)
         self._connection_age: Dict[int, float] = {}
         # weakref.finalize() для гарантированной очистки ресурсов
         self._weak_ref = weakref.ref(self)
@@ -242,36 +248,41 @@ class ConnectionPool:
         Примечание:
             ИСПРАВЛЕНИЕ CRITICAL 1: Перестроена логика для гарантированной инициализации conn
             ИСПРАВЛЕНИЕ CRITICAL 2: Добавлен finally блок для гарантированной очистки
+            ИСПРАВЛЕНИЕ C002: Использована единая блокировка без double-checked locking
         """
         conn: Optional[sqlite3.Connection] = None
         created_new: bool = False
 
         try:
-            # Быстрая проверка без блокировки - проверяем кэш thread-local
-            if hasattr(self._local, "connection") and self._local.connection is not None:
-                conn_id = id(self._local.connection)
-                if conn_id in self._connection_age:
-                    age = time.time() - self._connection_age[conn_id]
-                    if age <= _CONNECTION_MAX_AGE_ENV:
-                        # Дополнительная проверка активности соединения
-                        if self._is_connection_valid(self._local.connection):
-                            return self._local.connection
-                        app_logger.debug(
-                            "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
-                        )
-
-            # Блокировка для модификации общих структур
+            # C002: Используем единую блокировку вместо double-checked locking
+            # Это предотвращает race conditions и упрощает код
             with self._lock:
-                # Повторная проверка в блокировке
+                # Проверяем кэш thread-local внутри блокировки
+                # Используем id(conn) как ключ для хранения возраста
                 if hasattr(self._local, "connection") and self._local.connection is not None:
-                    conn_id = id(self._local.connection)
+                    conn_obj = self._local.connection
+                    conn_id = id(conn_obj)
+                    if conn_id in self._connection_age:
+                        age = time.time() - self._connection_age[conn_id]
+                        if age <= _CONNECTION_MAX_AGE_ENV:
+                            # Дополнительная проверка активности соединения
+                            if self._is_connection_valid(conn_obj):
+                                return conn_obj
+                            app_logger.debug(
+                                "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
+                            )
+
+                # Повторная проверка и обработка существующего соединения
+                if hasattr(self._local, "connection") and self._local.connection is not None:
+                    conn_obj = self._local.connection
+                    conn_id = id(conn_obj)
                     age = self._connection_age.get(conn_id)
                     if age is not None:
                         age = time.time() - age
                         if age <= _CONNECTION_MAX_AGE_ENV:
                             # Проверка активности соединения перед использованием
-                            if self._is_connection_valid(self._local.connection):
-                                return self._local.connection
+                            if self._is_connection_valid(conn_obj):
+                                return conn_obj
                             app_logger.debug(
                                 "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
                             )
@@ -287,22 +298,24 @@ class ConnectionPool:
 
                     # Закрываем старое соединение
                     try:
-                        self._local.connection.close()
+                        conn_obj.close()
                     except (sqlite3.Error, OSError) as close_error:
                         app_logger.debug("Ошибка при закрытии соединения: %s", close_error)
 
                     # Удаляем из пула
-                    if self._local.connection in self._all_conns:
-                        self._all_conns.remove(self._local.connection)
-                    self._connection_age.pop(conn_id, None)
+                    if conn_obj in self._all_conns:
+                        self._all_conns.remove(conn_obj)
+                    # Удаляем запись о возрасте по id
+                    if conn_id in self._connection_age:
+                        del self._connection_age[conn_id]
                     self._local.connection = None
 
                 # Пытаемся получить соединение из queue
                 try:
                     conn = self._connection_queue.get_nowait()
-                    conn_id = id(conn)
 
-                    # Проверяем возраст и активность
+                    # Проверяем возраст соединения по id
+                    conn_id = id(conn)
                     if conn_id in self._connection_age:
                         age = time.time() - self._connection_age[conn_id]
                         if age > _CONNECTION_MAX_AGE_ENV or not self._is_connection_valid(conn):
@@ -315,7 +328,8 @@ class ConnectionPool:
                                 pass
                             if conn in self._all_conns:
                                 self._all_conns.remove(conn)
-                            self._connection_age.pop(conn_id, None)
+                            if conn_id in self._connection_age:
+                                del self._connection_age[conn_id]
                             conn = None
                 except queue.Empty:
                     # Queue пуста, нужно создавать новое соединение
@@ -364,6 +378,7 @@ class ConnectionPool:
                         )
                     else:
                         self._all_conns.append(conn)
+                        # Сохраняем возраст соединения по id(conn)
                         self._connection_age[id(conn)] = time.time()
                 else:
                     # Получили из queue - просто присваиваем
@@ -421,9 +436,9 @@ class ConnectionPool:
             with self._lock:
                 if conn in self._all_conns:
                     self._all_conns.remove(conn)
-            conn_id = id(conn)
-            if conn_id in self._connection_age:
-                self._connection_age.pop(conn_id, None)
+            # Удаляем запись о возрасте по id(conn)
+            if id(conn) in self._connection_age:
+                del self._connection_age[id(conn)]
 
     def _create_connection(self) -> sqlite3.Connection:
         """
@@ -473,6 +488,7 @@ class ConnectionPool:
                 except (RuntimeError, TypeError, ValueError) as e:
                     app_logger.debug("Неожиданная ошибка при закрытии соединения: %s", e)
             self._all_conns.clear()
+            # Очищаем словарь возрастов соединений
             self._connection_age.clear()
 
         # Очищаем queue

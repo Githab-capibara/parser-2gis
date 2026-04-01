@@ -99,7 +99,7 @@ def _log_startup_info(args: Any, config: Configuration, start_time: datetime) ->
     output_path_value = getattr(args, "output_path", None)
     output_path_str = str(output_path_value) if output_path_value else "output/ (по умолчанию)"
 
-    config_summary = format_config_summary(config)
+    config_summary = format_config_summary(config, args)
 
     urls_count = len(args.url) if args.url else 0
     if hasattr(args, "cities") and args.cities:

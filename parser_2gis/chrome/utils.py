@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import functools
 import os
+import shutil
 import socket
-import subprocess
 import time
 
 
-@functools.lru_cache()
+@functools.lru_cache(maxsize=1)
 def locate_chrome_path() -> str | None:
     """Определяет путь к исполняемому файлу Chrome для Linux Ubuntu.
 
@@ -22,51 +22,38 @@ def locate_chrome_path() -> str | None:
         Путь к исполняемому файлу Chrome или None, если браузер не найден.
 
     Примечание:
-        Поиск выполняется в стандартных директориях Linux:
-        - /usr/bin, /usr/sbin, /usr/local/bin, /usr/local/sbin
-        - /opt/google/chrome
-        - /snap/bin (для Snap-версий Chromium)
-        Также используется команда 'which' для поиска.
+        H004: Оптимизированный поиск:
+        1. Сначала используется shutil.which() - быстрее чем subprocess
+        2. Затем поиск в наиболее вероятных директориях
+        3. Кэширование результата через lru_cache(maxsize=1)
     """
-    # Стандартные пути для Chrome на Linux Ubuntu
-    app_dirs = [
-        "/usr/bin",
-        "/usr/sbin",
-        "/usr/local/bin",
-        "/usr/local/sbin",
-        "/sbin",
-        "/opt/google/chrome",
-        "/snap/bin",
-    ]
+    # H004: Приоритетные исполняемые файлы (наиболее вероятные сначала)
     browser_executables = [
         "google-chrome",
-        "chrome",
-        "chrome-browser",
         "google-chrome-stable",
         "chromium",
         "chromium-browser",
+        "chrome",
+        "chrome-browser",
     ]
 
-    # Поиск в стандартных директориях
-    for d in app_dirs:
+    # H004: Сначала быстрый поиск через shutil.which() (использует PATH)
+    for f in browser_executables:
+        path = shutil.which(f)
+        if path:
+            # Валидация пути через realpath для предотвращения атак
+            return os.path.realpath(path)
+
+    # H004: Поиск только в наиболее вероятных директориях (сокращённый список)
+    # Большинство систем устанавливают Chrome в /usr/bin или /opt/google/chrome
+    priority_dirs = ["/usr/bin", "/opt/google/chrome", "/usr/local/bin"]
+
+    for d in priority_dirs:
         for f in browser_executables:
             binary_path = os.path.join(d, f)
             if os.path.isfile(binary_path):
                 # Валидация пути через realpath для предотвращения атак
                 return os.path.realpath(binary_path)
-
-    # Использование команды 'which' для поиска исполняемого файла Chrome
-    for f in browser_executables:
-        try:
-            ret_output = subprocess.check_output(["which", f])
-            binary_path = ret_output.decode("utf-8").strip()
-            if os.path.isfile(binary_path):
-                # Валидация пути через realpath для предотвращения атак
-                return os.path.realpath(binary_path)
-
-        except subprocess.CalledProcessError:
-            # Binary не найден в PATH, продолжаем поиск
-            pass
 
     return None
 

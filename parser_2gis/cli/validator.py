@@ -116,9 +116,11 @@ class ArgumentValidator:
                 else:
                     if value >= validation_config.min_val:
                         return
-                    raise ValueError(
-                        f"{validation_config.error_name} должен быть не менее {validation_config.min_val} (получено {value})"
+                    error_msg = (
+                        f"{validation_config.error_name} должен быть не менее "
+                        f"{validation_config.min_val} (получено {value})"
                     )
+                    raise ValueError(error_msg)
             except ValueError as e:
                 validation_config.arg_parser.error(str(e))
 

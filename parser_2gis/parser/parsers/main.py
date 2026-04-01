@@ -201,9 +201,24 @@ class MainParser:
             self._page_parser._chrome_remote.stop()
 
     def __enter__(self) -> "MainParser":
+        """Контекстный менеджер: вход.
+
+        Запускает браузер через _page_parser.
+
+        Returns:
+            Экземпляр MainParser.
+        """
+        self._page_parser.__enter__()
         return self
 
     def __exit__(self, *exc_info) -> None:
+        """Контекстный менеджер: выход.
+
+        Закрывает браузер через _page_parser.
+
+        Args:
+            exc_info: Информация об исключении (если было).
+        """
         self.close()
 
     def __repr__(self) -> str:

@@ -21,20 +21,26 @@ class SmartRetryManager:
     тип ошибки, история попыток).
     """
 
-    def __init__(self, max_retries: int = 3) -> None:
+    def __init__(self, max_retries: int = 3, max_delay: float = 30.0) -> None:
         """
         Инициализирует менеджер повторных попыток.
 
         Args:
             max_retries: Максимальное количество повторных попыток.
+            max_delay: Максимальная задержка между попытками в секундах (H020).
         """
         self._max_retries = max_retries
+        self._max_delay = max_delay  # H020: Ограничение максимальной задержки
         self._retry_count = 0
         self._total_records_collected = 0
         self._records_on_last_page = 0
         self._last_error: Optional[str] = None
 
-        logger.debug("Инициализирован SmartRetryManager с max_retries=%d", max_retries)
+        logger.debug(
+            "Инициализирован SmartRetryManager с max_retries=%d, max_delay=%.1fсек",
+            max_retries,
+            max_delay,
+        )
 
     def should_retry(self, error: str, records_on_page: int = 0) -> bool:
         """
@@ -131,6 +137,28 @@ class SmartRetryManager:
             Количество попыток.
         """
         return self._retry_count
+
+    def get_retry_delay(self, base_delay: float = 1.0) -> float:
+        """
+        Вычисляет задержку перед следующей попыткой с ограничением.
+
+        H020: Ограничивает максимальную задержку для предотвращения чрезмерного ожидания.
+
+        Args:
+            base_delay: Базовая задержка в секундах.
+
+        Returns:
+            Задержка в секундах (не более max_delay).
+        """
+        import random
+
+        # Экспоненциальная задержка: base_delay * (1.5 ** retry_count)
+        exponential_delay = base_delay * (1.5**self._retry_count)
+        # H020: Ограничиваем максимальной задержкой
+        capped_delay = min(exponential_delay, self._max_delay)
+        # Добавляем jitter для предотвращения thundering herd
+        jitter = random.uniform(0, 0.3)
+        return capped_delay + jitter
 
     def get_total_records(self) -> int:
         """

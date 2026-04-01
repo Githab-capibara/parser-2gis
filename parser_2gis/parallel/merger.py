@@ -285,16 +285,17 @@ def _merge_csv_files(
 
                     if buffer_size > 0:
                         _log_message(
-                            f"Попытка fallback: читаем файл {csv_file} без буферизации",
+                            f"Попытка fallback: читаем файл {csv_file} с минимальным буфером 4KB",
                             "warning",
                             merge_config.log_callback,
                         )
                         try:
+                            # H008: Используем минимальный буфер 4KB вместо 0 для производительности
                             infile = open(
-                                csv_file, "r", encoding="utf-8-sig", newline="", buffering=0
+                                csv_file, "r", encoding="utf-8-sig", newline="", buffering=4096
                             )
                             _log_message(
-                                f"Fallback успешен: файл {csv_file} открыт без буферизации",
+                                f"Fallback успешен: файл {csv_file} открыт с буфером 4KB",
                                 "info",
                                 merge_config.log_callback,
                             )

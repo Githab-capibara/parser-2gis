@@ -22,12 +22,12 @@ from typing import TYPE_CHECKING, Optional, Protocol
 
 from parser_2gis.cache import CacheManager
 from parser_2gis.chrome.remote import ChromeRemote
+from parser_2gis.config import Configuration
 from parser_2gis.logger import logger
 from parser_2gis.utils.paths import cache_path
 from parser_2gis.utils.signal_handler import SignalHandler
 
 if TYPE_CHECKING:
-    from parser_2gis.config import Configuration
     from parser_2gis.parser.options import ParserOptions
 
 
@@ -132,7 +132,7 @@ class ApplicationLauncher:
             self._signal_handler = self._signal_handler_factory(
                 cleanup_callback=self._cleanup_resources
             )
-            self._signal_handler.setup()
+            self._signal_handler.register()
         logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через ApplicationLauncher")
 
     def _run_tui_mode(self, args: argparse.Namespace, tui_type: str = "main") -> int:

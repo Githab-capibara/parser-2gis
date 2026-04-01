@@ -372,8 +372,23 @@ class MainDataProcessor:
                     # Счётчик ссылок для периодической очистки памяти
                     links_since_gc = 0
 
+                    # H015: Ранний выход при достижении лимита записей
+                    if collected_records >= self._parser._options.max_records:
+                        logger.info(
+                            "Достигнут лимит записей (%d) перед началом обработки ссылок",
+                            collected_records,
+                        )
+                        return
+
                     # Итерируемся по собранным ссылкам
                     for link in links:
+                        # H015: Проверяем лимит ПЕРЕД парсингом для раннего выхода
+                        if collected_records >= self._parser._options.max_records:
+                            logger.info(
+                                "Достигнут лимит записей (%d), завершаем парсинг", collected_records
+                            )
+                            return
+
                         # Парсим страницу организации
                         if self._extractor._parse_firm_page(link, writer):
                             collected_records += 1

@@ -13,6 +13,7 @@
     >>> cache.close()  # Закрытие соединения
 """
 
+import functools
 import hashlib
 import json
 import sqlite3
@@ -21,13 +22,48 @@ import weakref
 import zlib
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
+
+from typing_extensions import TypeAlias
+
+# Импорты для типизации (для совместимости с Python 3.9)
+from typing import Dict, List, Tuple
 
 from ..constants import LRU_EVICT_BATCH, MAX_BATCH_SIZE, MAX_CACHE_SIZE_MB, SHA256_HASH_LENGTH
 from ..logger.logger import logger as app_logger
 from .pool import ConnectionPool
 from .serializer import JsonSerializer
 from .validator import CacheDataValidator
+
+# =============================================================================
+# TYPE ALIASES FOR COMPLEX TYPES
+# =============================================================================
+
+CacheRow: TypeAlias = tuple[str, int, str]  # (data, checksum, expires_at_str)
+CacheItem: TypeAlias = tuple[str, dict[str, Any]]  # (url, data)
+OptionalCacheRow: TypeAlias = Optional[CacheRow]
+
+
+# =============================================================================
+# LRU CACHE ДЛЯ CRC32 CHECKSUM (H002)
+# =============================================================================
+
+
+@functools.lru_cache(maxsize=2048)
+def _compute_crc32_cached(data_json_hash: str, data_json: str) -> int:
+    """Вычисляет CRC32 checksum с кэшированием.
+
+    Кэширование основано на хеше данных - одинаковые данные будут
+    иметь одинаковый checksum без повторных вычислений.
+
+    Args:
+        data_json_hash: SHA256 хеш JSON данных (ключ кэша).
+        data_json: JSON строка данных.
+
+    Returns:
+        CRC32 checksum.
+    """
+    return zlib.crc32(data_json.encode("utf-8")) & 0xFFFFFFFF
 
 
 class CacheManager:
@@ -294,8 +330,9 @@ class CacheManager:
             conn.commit()
             return None
 
-        # HIGH 10: Проверка CRC32 checksum для проверки целостности данных
-        computed_checksum = zlib.crc32(data.encode("utf-8")) & 0xFFFFFFFF
+        # H002: Проверка CRC32 checksum с кэшированием для проверки целостности данных
+        data_json_hash = hashlib.sha256(data.encode("utf-8")).hexdigest()
+        computed_checksum = _compute_crc32_cached(data_json_hash, data)
         if computed_checksum != checksum:
             app_logger.warning(
                 "CRC32 checksum не совпадает для URL %s (ожидался: %d, получен: %d). "
@@ -527,8 +564,10 @@ class CacheManager:
 
         try:
             cursor = conn.cursor()
-            # CRITICAL 2: Вычисляем CRC32 checksum для проверки целостности
-            checksum = zlib.crc32(data_json.encode("utf-8")) & 0xFFFFFFFF
+            # H002: Вычисляем CRC32 checksum с кэшированием для часто используемых данных
+            # Используем hash от data_json как ключ для кэширования
+            data_json_hash = hashlib.sha256(data_json.encode("utf-8")).hexdigest()
+            checksum = _compute_crc32_cached(data_json_hash, data_json)
 
             # ПРОВЕРКА: Ограничение размера кэша перед вставкой
             self._enforce_cache_size_limit(conn)
@@ -600,8 +639,9 @@ class CacheManager:
 
                 try:
                     data_json = self._serializer.serialize(data)
-                    # CRITICAL 2 + HIGH 10: Вычисляем CRC32 checksum для каждой записи
-                    checksum = zlib.crc32(data_json.encode("utf-8")) & 0xFFFFFFFF
+                    # H002: Вычисляем CRC32 checksum с кэшированием для часто используемых данных
+                    data_json_hash = hashlib.sha256(data_json.encode("utf-8")).hexdigest()
+                    checksum = _compute_crc32_cached(data_json_hash, data_json)
                     cursor.execute(
                         self.SQL_INSERT_OR_REPLACE,
                         (

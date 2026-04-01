@@ -554,9 +554,8 @@ class ChromeRemote:
             return
 
         tab_detached = threading.Event()
-        MONITOR_INTERVAL = (
-            0.25  # Оптимизированный интервал мониторинга вкладки для быстрого обнаружения проблем
-        )
+        # H009: Увеличенный интервал мониторинга до 1 сек для снижения нагрузки на CPU
+        MONITOR_INTERVAL = 1.0
 
         def monitor_tab() -> None:
             """Мониторинг вкладки с оптимизированным интервалом."""
@@ -591,7 +590,9 @@ class ChromeRemote:
 
                 self._chrome_tab._stopped.wait(MONITOR_INTERVAL)
 
-        self._ping_thread = threading.Thread(target=monitor_tab, daemon=True)
+        # C014: Используем не-daemon поток для гарантированного завершения
+        # daemon=True может привести к незавершению потока при выходе
+        self._ping_thread = threading.Thread(target=monitor_tab, daemon=False)
         self._ping_thread.start()
 
         if self._chrome_tab is None:

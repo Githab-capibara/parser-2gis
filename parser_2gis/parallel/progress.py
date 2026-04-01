@@ -14,7 +14,6 @@ import threading
 import time
 from typing import Callable, Dict, Optional
 
-from parser_2gis.constants import PROGRESS_UPDATE_INTERVAL
 from parser_2gis.logger import logger, print_progress
 
 
@@ -55,6 +54,8 @@ class ParallelProgressReporter:
         self._merge_callback = merge_callback
         self._last_progress_time = time.time()
         self._stats: Dict[str, int] = {"success": 0, "failed": 0, "total": total_tasks}
+        # H019: Throttling - минимальный интервал между обновлениями (сек)
+        self._throttle_interval = 0.5  # 500ms
 
     def log(self, message: str, level: str = "info") -> None:
         """Логгирование сообщения.
@@ -69,15 +70,17 @@ class ParallelProgressReporter:
     def update_progress(self, success: bool, filename: str = "N/A", force: bool = False) -> None:
         """Обновляет прогресс парсинга.
 
+        H019: Throttling обновлений для снижения нагрузки на CPU.
+
         Args:
             success: Была ли операция успешной.
             filename: Имя файла результата.
             force: Принудительно обновить прогресс (игнорировать интервал).
         """
         current_time = time.time()
-        should_update = force or (
-            current_time - self._last_progress_time >= PROGRESS_UPDATE_INTERVAL
-        )
+        # H019: Throttling - проверяем минимальный интервал
+        time_since_last = current_time - self._last_progress_time
+        should_update = force or (time_since_last >= self._throttle_interval)
 
         with self._lock:
             if success:
@@ -87,6 +90,7 @@ class ParallelProgressReporter:
 
             completed = self._stats["success"] + self._stats["failed"]
 
+            # H019: Обновляем только если прошло достаточно времени или завершено
             if should_update or completed == self.total_tasks:
                 progress_bar = print_progress(completed, self.total_tasks, prefix="   Прогресс")
                 self.log(progress_bar, "info")

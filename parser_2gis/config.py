@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import pathlib
 from copy import deepcopy
-from typing import Set
 
 from pydantic import BaseModel, ConfigDict, ValidationError
+
+from typing_extensions import TypeAlias
 
 from .chrome import ChromeOptions
 from .cli.config_service import ConfigService
@@ -27,6 +28,12 @@ from .parallel import ParallelOptions
 from .parser import ParserOptions
 from .version import config_version
 from .writer import WriterOptions
+
+# =============================================================================
+# TYPE ALIASES FOR COMPLEX TYPES
+# =============================================================================
+
+ConfigFieldsSet: TypeAlias = set[str]
 
 
 class Configuration(BaseModel):
@@ -59,7 +66,7 @@ class Configuration(BaseModel):
         Note:
             При достижении 80% от max_depth выводится предупреждение.
         """
-        visited_objects: Set[int] = set()
+        visited_objects: set[int] = set()
         self._merge_recursive_safe(
             source=other_config,
             target=self,
@@ -74,7 +81,7 @@ class Configuration(BaseModel):
         if current_depth >= max_depth:
             raise RecursionError(f"Превышена максимальная глубина обработки ({max_depth})")
 
-    def _check_circular_reference(self, source: BaseModel, visited_objects: Set[int]) -> bool:
+    def _check_circular_reference(self, source: BaseModel, visited_objects: set[int]) -> bool:
         """Проверяет на циклические ссылки."""
         source_id = id(source)
         if source_id in visited_objects:
@@ -111,7 +118,7 @@ class Configuration(BaseModel):
         source: BaseModel,
         current_depth: int,
         max_depth: int,
-        visited_objects: Set[int],
+        visited_objects: set[int],
         warning_shown: bool,
     ) -> bool:
         """Объединяет вложенную модель."""
@@ -137,7 +144,7 @@ class Configuration(BaseModel):
         target: BaseModel,
         current_depth: int,
         max_depth: int,
-        visited_objects: Set[int],
+        visited_objects: set[int],
         warning_shown: bool,
     ) -> bool:
         """Безопасно объединяет две Pydantic модели рекурсивно с итеративным подходом."""

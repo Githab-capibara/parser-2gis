@@ -84,8 +84,17 @@ class MainPageParser(BaseParser):
             url: URL для парсинга.
             chrome_options: Опции Chrome.
             parser_options: Опции парсера.
-            browser: Опциональный браузер.
+            browser: Опциональный браузер. Если не передан, создаётся внутренний ChromeRemote.
         """
+        # Если браузер не передан, создаём внутренний ChromeRemote
+        self._owns_browser = browser is None
+        if self._owns_browser:
+            from parser_2gis.chrome.remote import ChromeRemote
+
+            # Паттерн ответа "Catalog Item Document" - должен совпадать с _item_response_pattern
+            response_patterns = [r"https://catalog\.api\.2gis\.[^/]+/.*/items/byid"]
+            browser = ChromeRemote(chrome_options, response_patterns)
+
         # Инициализируем базовый класс только browser аргументом
         # BaseParser принимает только browser, остальные аргументы обрабатываются здесь
         super().__init__(browser)
@@ -93,19 +102,17 @@ class MainPageParser(BaseParser):
         # Сохраняем опции для использования в дочернем классе
         self._chrome_options = chrome_options
         self._parser_options = parser_options
+        self._options = parser_options  # Алиас для backward совместимости
         self._url = url
 
         # Паттерн ответа "Catalog Item Document"
-        self._item_response_pattern = r"https://catalog\.api\.2gis.[^/]+/.*/items/byid"
+        self._item_response_pattern = r"https://catalog\.api\.2gis\.[^/]+/.*/items/byid"
 
         # Добавляем счётчик для 2GIS запросов
         self._add_xhr_counter()
 
-        # Отключаем определённые запросы
-        from parser_2gis.parser.utils import blocked_requests
-
-        blocked_urls = blocked_requests(extended=self._chrome_options.disable_images)
-        self._chrome_remote.add_blocked_requests(blocked_urls)
+        # Отключаем определённые запросы (будет вызвано в __enter__ после start())
+        self._blocked_requests_added = False
 
     @staticmethod
     def url_pattern():
@@ -226,6 +233,13 @@ class MainPageParser(BaseParser):
             r"window\.location",
             r"location\.href",
             r"XMLHttpRequest\.prototype\.setRequestHeader",
+            # C010: Дополнительные опасные паттерны
+            r"import\s*\(",
+            r"fetch\s*\(",
+            r"WebSocket",
+            r"navigator\.(sendBeacon|beacon)",
+            r"window\.open\s*\(",
+            r"postMessage",
         ]
 
         for pattern in dangerous_patterns:
@@ -526,3 +540,43 @@ class MainPageParser(BaseParser):
             Словарь со статистикой парсера.
         """
         return dict(self._stats)
+
+    def __enter__(self) -> "MainPageParser":
+        """Контекстный менеджер: вход.
+
+        Запускает браузер, если он был создан внутри парсера.
+
+        Returns:
+            Экземпляр MainPageParser.
+        """
+        if self._owns_browser:
+            self._chrome_remote.start()
+
+        # Добавляем заблокированные запросы после запуска браузера
+        if not self._blocked_requests_added:
+            from parser_2gis.parser.utils import blocked_requests
+
+            blocked_urls = blocked_requests(extended=self._chrome_options.disable_images)
+            self._chrome_remote.add_blocked_requests(blocked_urls)
+            self._blocked_requests_added = True
+
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        """Контекстный менеджер: выход.
+
+        Закрывает браузер, если он был создан внутри парсера.
+
+        Args:
+            exc_info: Информация об исключении (если было).
+        """
+        self.close()
+
+    def close(self) -> None:
+        """Закрывает браузер и освобождает ресурсы.
+
+        Закрывает только если браузер был создан внутри парсера
+        (не был передан извне через browser параметр).
+        """
+        if self._owns_browser:
+            self._chrome_remote.stop()

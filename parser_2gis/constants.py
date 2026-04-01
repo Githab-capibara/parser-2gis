@@ -17,6 +17,14 @@ import os
 from dataclasses import dataclass, field
 from typing import Optional
 
+from typing_extensions import TypeAlias
+
+# =============================================================================
+# TYPE ALIASES FOR COMPLEX TYPES
+# =============================================================================
+
+EnvValidationResult: TypeAlias = tuple[bool, Optional[str]]
+
 # =============================================================================
 # DATACLASS ДЛЯ ВАЛИДАЦИИ ENV ПЕРЕМЕННЫХ
 # =============================================================================
@@ -199,8 +207,42 @@ class EnvConfig:
         )
 
 
-# Глобальный экземпляр конфигурации ENV
-env_config: EnvConfig = EnvConfig()
+# =============================================================================
+# LAZY ИНИЦИАЛИЗАЦИЯ ENV CONFIG (SINGLETON PATTERN)
+# =============================================================================
+
+# Глобальная переменная для хранения singleton экземпляра
+_env_config_instance: Optional[EnvConfig] = None
+
+
+def get_env_config() -> EnvConfig:
+    """Получает singleton экземпляр EnvConfig с lazy инициализацией.
+
+    EnvConfig создаётся только при первом вызове функции, а не при импорте модуля.
+    Это предотвращает лишние вычисления при импорте и ускоряет запуск модуля.
+
+    Returns:
+        Singleton экземпляр EnvConfig.
+
+    Example:
+        >>> config = get_env_config()
+        >>> print(config.max_workers)  # 50 (или значение из PARSER_MAX_WORKERS)
+    """
+    global _env_config_instance
+    if _env_config_instance is None:
+        _env_config_instance = EnvConfig()
+    return _env_config_instance
+
+
+# Для обратной совместимости используем __getattr__ для ленивой инициализации
+def __getattr__(name: str) -> EnvConfig:
+    """Ленивая инициализация env_config для обратной совместимости.
+
+    EnvConfig создаётся только при первом обращении к env_config.
+    """
+    if name == "env_config":
+        return get_env_config()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # =============================================================================
@@ -225,7 +267,7 @@ def validate_env_int(
     Returns:
         Валидированное целое число.
     """
-    return env_config._validate_env_int(env_name, default, min_value, max_value)
+    return get_env_config()._validate_env_int(env_name, default, min_value, max_value)
 
 
 # =============================================================================
@@ -266,14 +308,14 @@ DEFAULT_BATCH_SIZE: int = 100
 
 # Максимальный возраст соединения в секундах (5 минут)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MAX_CONNECTION_AGE: int = env_config.max_connection_age
+MAX_CONNECTION_AGE: int = get_env_config().max_connection_age
 
 # Максимальный размер пакета для предотвращения DoS атак
 MAX_BATCH_SIZE: int = 1000
 
 # Максимальный размер кэша в мегабайтах
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MAX_CACHE_SIZE_MB: int = env_config.max_cache_size_mb
+MAX_CACHE_SIZE_MB: int = get_env_config().max_cache_size_mb
 
 # Количество записей для удаления при LRU eviction
 LRU_EVICT_BATCH: int = 100
@@ -293,59 +335,59 @@ SHA256_HASH_LENGTH: int = 64
 # - queue.Queue для управления соединениями обеспечивает потокобезопасность
 # Допустимый диапазон: 5-50 соединений
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MAX_POOL_SIZE: int = env_config.max_pool_size
+MAX_POOL_SIZE: int = get_env_config().max_pool_size
 
 # Минимальное количество соединений в пуле
 # Допустимый диапазон: 1-10 соединений
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MIN_POOL_SIZE: int = env_config.min_pool_size
+MIN_POOL_SIZE: int = get_env_config().min_pool_size
 
 # Время жизни соединения в секундах (10 минут)
 # Соединения старше этого возраста будут пересозданы
 # Допустимый диапазон: 60-7200 секунд (2 часа)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-CONNECTION_MAX_AGE: int = env_config.connection_max_age
+CONNECTION_MAX_AGE: int = get_env_config().connection_max_age
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ ПАРАЛЛЕЛЬНОГО ПАРСИНГА
 # =============================================================================
 
 # Минимальное количество рабочих потоков
-MIN_WORKERS: int = env_config.min_workers
+MIN_WORKERS: int = get_env_config().min_workers
 
 # Максимальное количество рабочих потоков (разумный предел для I/O операций)
 # ОБОСНОВАНИЕ: 50 потоков - оптимально для современных систем с 16-32+ ядрами
 # При 50 потоках с 200MB на браузер = ~10GB памяти (требуется мощная система)
 # Может быть переопределено через ENV переменную PARSER_MAX_WORKERS (диапазон: 1-100)
-MAX_WORKERS: int = env_config.max_workers
+MAX_WORKERS: int = get_env_config().max_workers
 
 # Минимальный таймаут на один URL в секундах
-MIN_TIMEOUT: int = env_config.min_timeout
+MIN_TIMEOUT: int = get_env_config().min_timeout
 
 # Максимальный таймаут на один URL в секундах (20 часов - практически безлимит)
 # Увеличено для поддержки 40+ параллельных браузеров без таймаутов
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MAX_TIMEOUT: int = env_config.max_timeout
+MAX_TIMEOUT: int = get_env_config().max_timeout
 
 # Таймаут по умолчанию на один URL в секундах (2 часа)
 # Увеличено для стабильной работы с большим количеством параллельных браузеров
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-DEFAULT_TIMEOUT: int = env_config.default_timeout
+DEFAULT_TIMEOUT: int = get_env_config().default_timeout
 
 # Интервал периодической очистки временных файлов в секундах (120 секунд)
 # Допустимый диапазон: 10-7200 секунд (2 часа)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-TEMP_FILE_CLEANUP_INTERVAL: int = env_config.temp_file_cleanup_interval
+TEMP_FILE_CLEANUP_INTERVAL: int = get_env_config().temp_file_cleanup_interval
 
 # Максимальное количество временных файлов для мониторинга
 # Допустимый диапазон: 100-10000
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-MAX_TEMP_FILES_MONITORING: int = env_config.max_temp_files_monitoring
+MAX_TEMP_FILES_MONITORING: int = get_env_config().max_temp_files_monitoring
 
 # Возраст временного файла в секундах, после которого он считается осиротевшим
 # Допустимый диапазон: 60-172800 секунд (2 дня)
 # HIGH 10: Вынесено в ENV переменную для гибкой настройки
-ORPHANED_TEMP_FILE_AGE: int = env_config.orphaned_temp_file_age
+ORPHANED_TEMP_FILE_AGE: int = get_env_config().orphaned_temp_file_age
 
 # Максимальное количество отслеживаемых временных файлов
 # ОБОСНОВАНИЕ: 1000 файлов выбрано исходя из:
@@ -360,14 +402,14 @@ MAX_TEMP_FILES: int = 1000
 # - Типичное время merge операции: 5-30 секунд
 # - 120 секунд - достаточно для обработки больших файлов
 # - Защита от зависших процессов (осиротевшие lock файлы)
-MERGE_LOCK_TIMEOUT: int = env_config.merge_lock_timeout
+MERGE_LOCK_TIMEOUT: int = get_env_config().merge_lock_timeout
 
 # Максимальный возраст lock файла в секундах (2 минуты)
 # ОБОСНОВАНИЕ: 120 секунд выбрано исходя из:
 # - Типичное время merge: 5-30 секунд
 # - 2 минуты - достаточно для завершения merge операции
 # - Lock файлы старше считаются осиротевшими (процесс упал)
-MAX_LOCK_FILE_AGE: int = env_config.max_lock_file_age
+MAX_LOCK_FILE_AGE: int = get_env_config().max_lock_file_age
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ БУФЕРИЗАЦИИ
@@ -512,8 +554,8 @@ FORBIDDEN_PATH_CHARS: list[str] = ["..", "~", "$", "`", "|", ";", "&", ">", "<",
 
 __all__ = [
     # Конфигурация ENV
-    "env_config",
     "EnvConfig",
+    "get_env_config",
     "validate_env_int",
     # Безопасность данных
     "MAX_DATA_DEPTH",

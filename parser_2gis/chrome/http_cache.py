@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import TYPE_CHECKING, Dict, Optional
+from collections import OrderedDict
+from typing import TYPE_CHECKING, Optional
 
 from parser_2gis.logger.logger import logger as app_logger
 
@@ -50,17 +51,20 @@ class _HTTPCacheEntry:
 class _HTTPCache:
     """Инкапсулированный кэш для HTTP запросов с потокобезопасностью.
 
-    Использует RLock для поддержки реентрантных вызовов.
+    H017: Использует OrderedDict для эффективного LRU eviction.
     Автоматически удаляет старые записи при превышении максимального размера.
     """
 
     def __init__(self, maxsize: int = HTTP_CACHE_MAXSIZE) -> None:
-        self._cache: Dict[tuple, _HTTPCacheEntry] = {}
+        # H017: Используем OrderedDict для LRU eviction
+        self._cache: OrderedDict[tuple, _HTTPCacheEntry] = OrderedDict()
         self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
         self._maxsize = maxsize
 
     def get(self, key: tuple) -> Optional["requests.Response"]:
         """Получает закэшированный ответ.
+
+        H017: Обновляет порядок доступа для LRU.
 
         Args:
             key: Ключ кэша.
@@ -72,6 +76,8 @@ class _HTTPCache:
             if key in self._cache:
                 entry = self._cache[key]
                 if not entry.is_expired():
+                    # H017: Перемещаем в конец для LRU (recent use)
+                    self._cache.move_to_end(key)
                     return entry.response
                 del self._cache[key]
             return None
@@ -79,15 +85,17 @@ class _HTTPCache:
     def set(self, key: tuple, response: "requests.Response") -> None:
         """Сохраняет ответ в кэш.
 
+        H017: LRU eviction при превышении размера.
+
         Args:
             key: Ключ кэша.
             response: Response объект для кэширования.
         """
         with self._lock:
-            if len(self._cache) >= self._maxsize:
-                keys_to_remove = list(self._cache.keys())[: self._maxsize // 10]
-                for k in keys_to_remove:
-                    del self._cache[k]
+            # H017: LRU eviction - удаляем oldest записи при превышении
+            while len(self._cache) >= self._maxsize:
+                # Удаляем первую (самую старую) запись
+                self._cache.popitem(last=False)
 
             self._cache[key] = _HTTPCacheEntry(response, time.time())
 

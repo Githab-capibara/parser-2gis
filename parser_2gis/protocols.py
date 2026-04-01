@@ -1,11 +1,37 @@
 """
 Protocol для callback и интерфейсов проекта parser-2gis.
+
+Определяет стандартные интерфейсы для различных компонентов системы:
+- Callback протоколы для обратных вызовов
+- Протоколы данных для writer/parser
+- Протоколы браузера для навигации и выполнения JS
+- Протоколы кэширования
+- Протоколы выполнения
+- Протоколы параллельного парсинга
+
+Пример использования:
+    >>> from parser_2gis.protocols import LoggerProtocol, ProgressCallback
+    >>> def my_logger(msg: str) -> None:
+    ...     print(msg)
+    >>> logger: LoggerProtocol = my_logger  # type: ignore
 """
 
 from __future__ import annotations
 
 from concurrent.futures import Future
 from typing import Any, Callable, Iterator, Protocol, runtime_checkable
+
+from typing_extensions import TypeAlias
+
+# =============================================================================
+# TYPE ALIASES FOR COMPLEX TYPES
+# =============================================================================
+
+UrlTuple: TypeAlias = tuple[str, str, str]  # (url, category_name, city_name)
+UrlGeneratorResult: TypeAlias = list[UrlTuple]
+ParserResult: TypeAlias = list[dict[str, Any]]
+ParserStats: TypeAlias = dict[str, Any]
+FutureResult: TypeAlias = Future[Any]
 
 # =============================================================================
 # CALLBACK PROTOCOLS
@@ -14,7 +40,17 @@ from typing import Any, Callable, Iterator, Protocol, runtime_checkable
 
 @runtime_checkable
 class LoggerProtocol(Protocol):
-    """Protocol для логгера (разрыв циклических зависимостей)."""
+    """
+    Protocol для логгера (разрыв циклических зависимостей).
+
+    Определяет стандартный интерфейс для логгеров, позволяя использовать
+    различные реализации (logging.Logger, кастомные логгеры и т.д.).
+
+    Example:
+        >>> import logging
+        >>> logger: LoggerProtocol = logging.getLogger(__name__)
+        >>> logger.info("Test message")
+    """
 
     def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Логирование debug сообщения."""
@@ -34,23 +70,59 @@ class LoggerProtocol(Protocol):
 
 @runtime_checkable
 class ProgressCallback(Protocol):
-    """Protocol для callback прогресса параллельного парсинга."""
+    """
+    Protocol для callback прогресса параллельного парсинга.
+
+    Вызывается при обновлении прогресса выполнения парсинга.
+
+    Example:
+        >>> def on_progress(success: int, failed: int, filename: str) -> None:
+        ...     print(f"Успешно: {success}, Ошибок: {failed}, Файл: {filename}")
+        >>> callback: ProgressCallback = on_progress
+    """
 
     def __call__(self, success: int, failed: int, filename: str) -> None:
-        """Вызывается при обновлении прогресса."""
+        """
+        Вызывается при обновлении прогресса.
+
+        Args:
+            success: Количество успешных операций.
+            failed: Количество неудачных операций.
+            filename: Имя текущего файла.
+        """
 
 
 @runtime_checkable
 class LogCallback(Protocol):
-    """Protocol для callback логирования."""
+    """
+    Protocol для callback логирования.
+
+    Example:
+        >>> def on_log(message: str, level: str = "INFO") -> None:
+        ...     print(f"[{level}] {message}")
+        >>> callback: LogCallback = on_log
+    """
 
     def __call__(self, message: str, level: str = "INFO") -> None:
-        """Вызывается для логирования сообщения."""
+        """
+        Вызывается для логирования сообщения.
+
+        Args:
+            message: Сообщение для логирования.
+            level: Уровень логирования (по умолчанию "INFO").
+        """
 
 
 @runtime_checkable
 class CleanupCallback(Protocol):
-    """Protocol для callback очистки ресурсов."""
+    """
+    Protocol для callback очистки ресурсов.
+
+    Example:
+        >>> def cleanup() -> None:
+        ...     print("Очистка ресурсов")
+        >>> callback: CleanupCallback = cleanup
+    """
 
     def __call__(self) -> None:
         """Вызывается для очистки ресурсов."""
@@ -58,10 +130,22 @@ class CleanupCallback(Protocol):
 
 @runtime_checkable
 class CancelCallback(Protocol):
-    """Protocol для callback проверки отмены операции."""
+    """
+    Protocol для callback проверки отмены операции.
+
+    Example:
+        >>> def should_cancel() -> bool:
+        ...     return False  # Никогда не отменять
+        >>> callback: CancelCallback = should_cancel
+    """
 
     def __call__(self) -> bool:
-        """Проверяет необходимость отмены операции."""
+        """
+        Проверяет необходимость отмены операции.
+
+        Returns:
+            True если операция должна быть отменена, False иначе.
+        """
 
 
 # =============================================================================

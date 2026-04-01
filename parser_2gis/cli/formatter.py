@@ -114,15 +114,19 @@ def patch_argparse_translations() -> None:
 __all__ = ["ArgumentHelpFormatter", "patch_argparse_translations", "format_config_summary"]
 
 
-def format_config_summary(config: Configuration) -> dict[str, Any]:
+def format_config_summary(config: Configuration, args=None) -> dict[str, Any]:
     """Форматирует конфигурацию для логирования.
 
     Args:
         config: Конфигурация приложения.
+        args: Аргументы командной строки (для получения формата).
 
     Returns:
         Словарь с отформатированной конфигурацией.
     """
+    # Получаем формат из args, т.к. в config.writer нет атрибута format
+    format_value = getattr(args, "format", "csv") if args else "csv"
+
     return {
         "chrome": {
             "Headless": "Да" if config.chrome.headless else "Нет",
@@ -135,7 +139,7 @@ def format_config_summary(config: Configuration) -> dict[str, Any]:
             "GC включен": "Да" if config.parser.use_gc else "Нет",
         },
         "writer": {
-            "Формат": config.writer.format.upper() if config.writer.format else "CSV",
+            "Формат": format_value.upper() if format_value else "CSV",
             "Кодировка": config.writer.encoding,
             "Удалить дубликаты": "Да" if config.writer.csv.remove_duplicates else "Нет",
         },

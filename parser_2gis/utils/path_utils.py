@@ -29,9 +29,9 @@ _ALLOWED_BASE_DIRS: Optional[List[Path]] = None
 
 # Whitelist разрешенных символов для путей
 # Разрешаем только безопасные символы: буквы, цифры, _, -, ., /, \, пробел, кириллица
-_ALLOWED_PATH_PATTERN = frozenset(
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-. /\\абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
-)
+_ALLOWED_CHARS_ASCII = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-. /\\"
+_ALLOWED_CHARS_CYRILLIC = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
+_ALLOWED_PATH_PATTERN = frozenset(_ALLOWED_CHARS_ASCII + _ALLOWED_CHARS_CYRILLIC)
 
 
 def _get_allowed_base_dirs() -> List[Path]:

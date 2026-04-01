@@ -1,82 +1,123 @@
 """
-Модуль совместимости с Pydantic v1 и v2.
+Модуль совместимости с Pydantic v2.
 
-Предоставляет единый интерфейс для работы с разными версиями Pydantic.
+Предоставляет упрощённый интерфейс для работы с Pydantic v2.
+Поддержка Pydantic v1 удалена.
+
+Пример использования:
+    >>> from pydantic import BaseModel
+    >>> from parser_2gis.pydantic_compat import get_model_dump, get_model_fields_set
+    >>> class MyModel(BaseModel):
+    ...     name: str
+    >>> model = MyModel(name="test")
+    >>> dump = get_model_dump(model)
+    >>> print(dump)
+    {'name': 'test'}
 """
 
 from __future__ import annotations
 
+from typing import Any
+
 import pydantic
+from typing_extensions import TypeAlias
 
-# Определяем мажорную версию Pydantic
-PYDANTIC_V2 = pydantic.VERSION.startswith("2.")
+# TypeAlias для сложных типов
+PydanticModel: TypeAlias = pydantic.BaseModel
+PydanticModelDict: TypeAlias = dict[str, Any]
 
 
-def get_model_dump(model: pydantic.BaseModel, **kwargs) -> dict:
+def get_model_dump(model: pydantic.BaseModel, **kwargs: Any) -> PydanticModelDict:
     """
     Сериализует модель Pydantic в словарь.
 
+    Использует метод model_dump() из Pydantic v2.
+
     Args:
-        model: Модель Pydantic.
-        **kwargs: Дополнительные аргументы для model_dump (Pydantic v2).
+        model: Модель Pydantic для сериализации.
+        **kwargs: Дополнительные аргументы для model_dump().
 
     Returns:
         Словарь с данными модели.
+
+    Example:
+        >>> from pydantic import BaseModel
+        >>> class User(BaseModel):
+        ...     name: str
+        ...     age: int
+        >>> user = User(name="Alice", age=30)
+        >>> get_model_dump(user)
+        {'name': 'Alice', 'age': 30}
     """
-    if PYDANTIC_V2:
-        # Pydantic v2 использует model_dump()
-        return model.model_dump(**kwargs)  # type: ignore[attr-defined]
-    # Pydantic v1 использует dict()
-    return model.dict(**kwargs)
+    return model.model_dump(**kwargs)  # type: ignore[attr-defined]
 
 
 def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
     """
     Получает набор установленных полей модели.
 
+    Использует атрибут model_fields_set из Pydantic v2.
+
     Args:
         model: Модель Pydantic.
 
     Returns:
         Набор имён установленных полей.
+
+    Example:
+        >>> from pydantic import BaseModel
+        >>> class User(BaseModel):
+        ...     name: str
+        ...     age: int
+        >>> user = User(name="Alice", age=30)
+        >>> get_model_fields_set(user)
+        {'name', 'age'}
     """
-    if PYDANTIC_V2:
-        # Pydantic v2 использует model_fields_set
-        return model.model_fields_set  # type: ignore[attr-defined]
-    # Pydantic v1 использует __fields_set__
-    return model.__fields_set__
+    return model.model_fields_set  # type: ignore[attr-defined]
 
 
 def model_validate_json(json_str: str) -> pydantic.BaseModel:
     """
     Создаёт модель из JSON строки.
 
+    Использует метод model_validate_json() из Pydantic v2.
+
     Args:
-        json_str: JSON строка.
+        json_str: JSON строка для парсинга.
 
     Returns:
         Модель Pydantic.
+
+    Example:
+        >>> from pydantic import BaseModel
+        >>> class User(BaseModel):
+        ...     name: str
+        ...     age: int
+        >>> model_validate_json('{"name": "Alice", "age": 30}')
+        User(name='Alice', age=30)
     """
-    if PYDANTIC_V2:
-        # Pydantic v2 использует model_validate_json
-        return pydantic.BaseModel.model_validate_json(json_str)  # type: ignore[attr-defined]
-    # Pydantic v1 использует parse_raw
-    return pydantic.BaseModel.parse_raw(json_str)
+    return pydantic.BaseModel.model_validate_json(json_str)  # type: ignore[attr-defined]
 
 
 def model_validate_json_class(cls: type[pydantic.BaseModel], json_str: str) -> pydantic.BaseModel:
     """
     Создаёт модель из JSON строки для указанного класса.
 
+    Использует метод model_validate_json() из Pydantic v2.
+
     Args:
         cls: Класс модели Pydantic.
-        json_str: JSON строка.
+        json_str: JSON строка для парсинга.
 
     Returns:
         Экземпляр модели Pydantic.
+
+    Example:
+        >>> from pydantic import BaseModel
+        >>> class User(BaseModel):
+        ...     name: str
+        ...     age: int
+        >>> model_validate_json_class(User, '{"name": "Alice", "age": 30}')
+        User(name='Alice', age=30)
     """
-    if PYDANTIC_V2:
-        # Pydantic v2 использует model_validate_json
-        return cls.model_validate_json(json_str)  # type: ignore[attr-defined]
-    # Pydantic v1 использует parse_raw
-    return cls.parse_raw(json_str)
+    return cls.model_validate_json(json_str)  # type: ignore[attr-defined]

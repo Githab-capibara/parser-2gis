@@ -201,18 +201,17 @@ class CSVWriter(FileWriter):
         return self
 
     def __exit__(self, *exc_info: Any) -> None:
-        # P0-6: Сначала закрываем файл через super().__exit__()
-        # Затем выполняем постобработку на закрытом файле
-        super().__exit__(*exc_info)
+        # H011: Выполняем постобработку ДО закрытия файла
+        # Постобработка требует доступа к открытому файлу
 
-        # Постобработка: удаление пустых колонок и дубликатов
-        # P0-6: Добавлена проверка hasattr(self, '_file')
+        # Сначала flush для записи всех данных на диск
         if hasattr(self, "_file") and self._file is not None:
-            # Файл уже закрыт через super().__exit__()
-            # Постобработка выполняется на закрытом файле
-            pass
+            try:
+                self._file.flush()
+            except (OSError, IOError) as flush_error:
+                logger.error("Ошибка при flush файла: %s", flush_error)
 
-        # P0-6: Перемещаем постобработку ПОСЛЕ super().__exit__()
+        # Постобработка: удаление пустых колонок
         if self._options.csv.remove_empty_columns:
             try:
                 logger.info("Удаление пустых колонок CSV.")
@@ -236,6 +235,9 @@ class CSVWriter(FileWriter):
                 deduplicator.remove_duplicates()
             except Exception as e:
                 logger.error("Ошибка при удалении дубликатов: %s", e)
+
+        # Теперь закрываем файл через super().__exit__()
+        super().__exit__(*exc_info)
 
     def write(self, catalog_doc: Any) -> None:
         """Записывает JSON-документ Catalog Item API в CSV-таблицу.

@@ -171,9 +171,10 @@ class JsonSerializer:
                 app_logger.debug("Fallback на cp1251 не удался: %s", fallback_error)
 
             # Если все fallback не удались, выбрасываем исключение
+            data_len = len(data) if isinstance(data, (str, bytes)) else "N/A"
             raise ValueError(
                 f"Не удалось десериализовать данные: все кодировки не подошли. "
-                f"Original error: {unicode_error}. Длина данных: {len(data) if isinstance(data, (str, bytes)) else 'N/A'}"
+                f"Original error: {unicode_error}. Длина данных: {data_len}"
             ) from unicode_error
 
         except (MemoryError,) as json_error:

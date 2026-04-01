@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import gc
+import time
 from typing import Any, Dict, Optional
 
 from parser_2gis.infrastructure import MemoryMonitor
@@ -40,14 +41,28 @@ class MemoryManager:
         self._memory_monitor = MemoryMonitor()
         self._memory_warnings: int = 0
         self._gc_count: int = 0
+        # H016: Кэширование результатов проверки памяти
+        self._last_memory_check: float = 0.0
+        self._last_memory_value: int = 0
+        self._memory_cache_ttl: float = 1.0  # Кэшируем на 1 секунду
 
     def get_available_memory(self) -> int:
         """Получает доступный объем памяти в байтах.
 
+        H016: Кэширует результат на 1 секунду для снижения накладных расходов.
+
         Returns:
             Доступный объем памяти в байтах.
         """
-        return self._memory_monitor.get_available_memory()
+        current_time = time.time()
+        # Возвращаем кэшированное значение если прошло меньше TTL
+        if current_time - self._last_memory_check < self._memory_cache_ttl:
+            return self._last_memory_value
+
+        # Получаем новое значение
+        self._last_memory_value = self._memory_monitor.get_available_memory()
+        self._last_memory_check = current_time
+        return self._last_memory_value
 
     def get_available_memory_mb(self) -> float:
         """Получает доступный объем памяти в мегабайтах.

@@ -46,6 +46,11 @@ class ParallelOptions(BaseModel):
         merge_lock_timeout: Таймаут ожидания блокировки merge операции в секундах.
         max_lock_file_age: Максимальный возраст lock файла в секундах.
         max_workers: Количество параллельных работников для парсинга.
+        use_delays: Использовать задержки перед парсингом (по умолчанию True для стабильности).
+        initial_delay_min: Минимальная начальная задержка в секундах.
+        initial_delay_max: Максимальная начальная задержка в секундах.
+        launch_delay_min: Минимальная задержка перед запуском Chrome.
+        launch_delay_max: Максимальная задержка перед запуском Chrome.
     """
 
     use_temp_file_cleanup: bool = True
@@ -55,10 +60,12 @@ class ParallelOptions(BaseModel):
     merge_lock_timeout: PositiveInt = 60
     max_lock_file_age: PositiveInt = 60
     max_workers: PositiveInt = 10
-    initial_delay_min: float = 0.1
-    initial_delay_max: float = 1.0
-    launch_delay_min: float = 0.1
-    launch_delay_max: float = 0.5
+    # H003: Задержки опциональны, по умолчанию минимальные для производительности
+    use_delays: bool = True
+    initial_delay_min: float = 0.0
+    initial_delay_max: float = 0.1
+    launch_delay_min: float = 0.0
+    launch_delay_max: float = 0.05
 
 
 @dataclass

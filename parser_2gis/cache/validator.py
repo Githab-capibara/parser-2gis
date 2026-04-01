@@ -227,12 +227,22 @@ class CacheDataValidator:
                 app_logger.warning("Обнаружена потенциальная __proto__ атака: ключ '%s'", key)
                 return False
 
+        # H010: Проверяем глубину ПЕРЕД рекурсивным вызовом для оптимизации
+        next_depth = depth + 1
+        if next_depth > self.max_depth:
+            app_logger.error(
+                "КРИТИЧЕСКОЕ ПРЕВЫШЕНИЕ: глубина вложенности данных кэша %d превышает лимит %d",
+                next_depth,
+                self.max_depth,
+            )
+            return False
+
         # Рекурсивно проверяем все значения словаря
         for key, value in data.items():
             if not isinstance(key, str):
                 app_logger.warning("Некорректный тип ключа в данных кэша")
                 return False
-            if not self.validate(value, depth + 1):
+            if not self.validate(value, next_depth):
                 return False
         return True
 
@@ -254,9 +264,19 @@ class CacheDataValidator:
             >>> validator._check_list([{"key": "value"}], 0)
             True
         """
+        # H010: Проверяем глубину ПЕРЕД рекурсивным вызовом для оптимизации
+        next_depth = depth + 1
+        if next_depth > self.max_depth:
+            app_logger.error(
+                "КРИТИЧЕСКОЕ ПРЕВЫШЕНИЕ: глубина вложенности данных кэша %d превышает лимит %d",
+                next_depth,
+                self.max_depth,
+            )
+            return False
+
         # Рекурсивно проверяем все элементы списка
         for item in data:
-            if not self.validate(item, depth + 1):
+            if not self.validate(item, next_depth):
                 return False
         return True
 

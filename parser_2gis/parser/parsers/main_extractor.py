@@ -46,6 +46,37 @@ class MainDataExtractor:
             parser: Экземпляр MainPageParser.
         """
         self._parser = parser
+        # H006: Кэш для часто извлекаемых данных (URL -> данные)
+        self._extracted_data_cache: Dict[str, Dict[str, Any]] = {}
+        self._cache_max_size = 1024  # LRU eviction при 1024 записях
+
+    def _get_link_url(self, link) -> Optional[str]:
+        """Получает URL из DOM-узла ссылки.
+
+        H006: Извлекает URL для использования в качестве ключа кэша.
+
+        Args:
+            link: DOM-узел ссылки.
+
+        Returns:
+            URL или None если не удалось извлечь.
+        """
+        try:
+            # Пытаемся получить href атрибут
+            if hasattr(link, "getAttribute"):
+                return link.getAttribute("href")
+            # Fallback: используем repr для создания уникального ключа
+            return str(hash(link))
+        except (OSError, RuntimeError, TypeError, ValueError):
+            return None
+
+    def _evict_cache_if_needed(self) -> None:
+        """H006: LRU eviction кэша при превышении размера."""
+        if len(self._extracted_data_cache) >= self._cache_max_size:
+            # Удаляем первые 10% записей (LRU)
+            keys_to_remove = list(self._extracted_data_cache.keys())[: self._cache_max_size // 10]
+            for key in keys_to_remove:
+                del self._extracted_data_cache[key]
 
     def _parse_firm_page(self, link, writer: "FileWriter") -> bool:
         """Парсит страницу организации по ссылке.
@@ -58,11 +89,25 @@ class MainDataExtractor:
             True если данные успешно записаны, False иначе.
 
         Примечание:
-            - Кликает на ссылку для получения API запроса
+            H006: Добавлено кэширование для часто извлекаемых данных.
+            - Кликает на ссылку, чтобы спровоцировать запрос
             - Ожидает ответ Catalog Item Document
             - Парсит JSON и записывает в writer
             - Обрабатывает до MAX_RESPONSE_ATTEMPTS попыток
         """
+        # H006: Проверяем кэш перед парсингом
+        link_url = self._get_link_url(link)
+        if link_url and link_url in self._extracted_data_cache:
+            doc = self._extracted_data_cache[link_url]
+            try:
+                writer.write(doc)
+                logger.debug("Данные получены из кэша для %s", link_url[:50] if link_url else "N/A")
+                return True
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as write_error:
+                logger.error("Ошибка записи кэшированных данных: %s", write_error)
+                # Удаляем повреждённую запись из кэша
+                del self._extracted_data_cache[link_url]
+
         resp: Optional[Dict[str, Any]] = None
 
         for attempt in range(MAX_RESPONSE_ATTEMPTS):
@@ -129,6 +174,10 @@ class MainDataExtractor:
             # Записываем API документ в файл
             try:
                 writer.write(doc)
+                # H006: Сохраняем в кэш для повторного использования
+                if link_url:
+                    self._evict_cache_if_needed()
+                    self._extracted_data_cache[link_url] = doc
                 return True
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as write_error:
                 logger.error("Ошибка записи данных: %s", write_error)

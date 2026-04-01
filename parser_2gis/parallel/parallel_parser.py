@@ -23,14 +23,15 @@ import shutil
 import signal
 import threading
 import time
-import typing
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass
 from pathlib import Path
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, TextIO, Tuple, cast
+
+from typing_extensions import TypeAlias
 
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
@@ -69,6 +70,14 @@ from parser_2gis.validation import (
 if TYPE_CHECKING:
     from parser_2gis.config import Configuration
 
+# =============================================================================
+# TYPE ALIASES FOR COMPLEX TYPES
+# =============================================================================
+
+UrlTuple: TypeAlias = tuple[str, str, str]  # (url, category_name, city_name)
+ParserResult: TypeAlias = tuple[bool, str]  # (success, message)
+ProgressCallback: TypeAlias = Callable[[int, int, str], None]
+
 
 # Константы
 MEMORY_THRESHOLD_BYTES = 100 * 1024 * 1024  # 100MB порог для проверки памяти
@@ -88,13 +97,13 @@ class ParserThreadConfig:
         output_file: Имя выходного файла (опционально).
     """
 
-    cities: List[dict]
-    categories: List[dict]
+    cities: list[dict]
+    categories: list[dict]
     output_dir: str
     config: "Configuration"
     max_workers: int = 3
     timeout_per_url: int = DEFAULT_TIMEOUT
-    output_file: Optional[str] = None
+    output_file: str | None = None
 
 
 # =============================================================================
@@ -406,12 +415,13 @@ class ParallelCityParser:
                 "info",
             )
 
-            # Добавляем случайную задержку ПЕРЕД получением семафора
+            # H003: Добавляем случайную задержку ПЕРЕД получением семафора ТОЛЬКО если use_delays=True
             # Для 40+ потоков нужна большая задержка для равномерного распределения
-            initial_delay = random.uniform(
-                self.config.parallel.initial_delay_min, self.config.parallel.initial_delay_max
-            )
-            time.sleep(initial_delay)
+            if getattr(self.config.parallel, "use_delays", True):
+                initial_delay = random.uniform(
+                    self.config.parallel.initial_delay_min, self.config.parallel.initial_delay_max
+                )
+                time.sleep(initial_delay)
 
             self._browser_launch_semaphore.acquire()
             try:
@@ -420,12 +430,13 @@ class ParallelCityParser:
                 from parser_2gis.parser import get_parser
                 from parser_2gis.writer import get_writer
 
-                # Дополнительная задержка для распределения нагрузки при запуске
-                launch_delay = random.uniform(
-                    self.config.parallel.launch_delay_min, self.config.parallel.launch_delay_max
-                )
-                self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
-                time.sleep(launch_delay)
+                # H003: Дополнительная задержка для распределения нагрузки при запуске ТОЛЬКО если use_delays=True
+                if getattr(self.config.parallel, "use_delays", True):
+                    launch_delay = random.uniform(
+                        self.config.parallel.launch_delay_min, self.config.parallel.launch_delay_max
+                    )
+                    self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
+                    time.sleep(launch_delay)
 
                 max_retries = 10
                 retry_delay = 5.0
@@ -523,9 +534,13 @@ class ParallelCityParser:
                                     gc.collect()
                                     raise
                                 finally:
-                                    logger.debug("Завершена очистка ресурсов writer")
+                                    # C003: Проверка существования writer перед закрытием
+                                    if writer is not None:
+                                        logger.debug("Завершена очистка ресурсов writer")
                         finally:
-                            logger.debug("Завершена очистка ресурсов parser")
+                            # C003: Проверка существования parser перед закрытием
+                            if parser is not None:
+                                logger.debug("Завершена очистка ресурсов parser")
                 except MemoryError as memory_error:
                     # C3: Обработка MemoryError с graceful shutdown
                     self.log(
@@ -582,13 +597,14 @@ class ParallelCityParser:
                 return False, str(parse_error)
 
             # Переименовываем временный файл в целевой
+            # C012: Обрабатываем все OSError для атомарного переименования
             move_success = False
             try:
                 os.replace(str(temp_filepath), str(filepath))
                 move_success = True
-            except OSError as replace_error:
+            except (OSError, RuntimeError, TypeError, ValueError) as replace_error:
                 self.log(
-                    f"Не удалось переименовать файл (OSError): {replace_error}. "
+                    f"Не удалось переименовать файл ({type(replace_error).__name__}): {replace_error}. "
                     f"Используем shutil.move",
                     "debug",
                 )
@@ -732,7 +748,7 @@ class ParallelCityParser:
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
         return category
 
-    def _acquire_merge_lock(self, lock_file_path: Path) -> Tuple[Optional[typing.TextIO], bool]:
+    def _acquire_merge_lock(self, lock_file_path: Path) -> Tuple[Optional[TextIO], bool]:
         """
         Получает блокировку merge операции.
 
@@ -832,11 +848,9 @@ class ParallelCityParser:
                     self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
             return None, False
 
-        return typing.cast(Tuple[Optional[typing.TextIO], bool], (lock_file_handle, lock_acquired))
+        return cast(Tuple[Optional[TextIO], bool], (lock_file_handle, lock_acquired))
 
-    def _cleanup_merge_lock(
-        self, lock_file_handle: Optional[typing.TextIO], lock_file_path: Path
-    ) -> None:
+    def _cleanup_merge_lock(self, lock_file_handle: Optional[TextIO], lock_file_path: Path) -> None:
         """
         Очищает и удаляет lock файл.
 
@@ -857,7 +871,7 @@ class ParallelCityParser:
         self,
         csv_file: Path,
         writer: Optional["csv.DictWriter"],
-        outfile: "typing.TextIO",
+        outfile: TextIO,
         buffer_size: int,
         batch_size: int,
         fieldnames_cache: Dict[Tuple[str, ...], List[str]],
