@@ -68,11 +68,11 @@ class TestExceptionHandlingInCacheManager:
         with tempfile.TemporaryDirectory() as tmp_dir:
             cache = CacheManager(cache_dir=Path(tmp_dir))
 
-            # Закрываем кэш
+            # Закрываем кэш - метод должен выполниться без ошибок
             cache.close()
 
-            # Метод должен выполниться без ошибок
-            assert True
+            # Проверяем что пул закрыт (установлен в None)
+            assert cache._pool is None
 
 
 class TestExceptionHandlingInFileLogger:
@@ -122,16 +122,16 @@ class TestExceptionHandlingInFileLogger:
 
         caplog.set_level(logging.ERROR)
 
+        exception_raised = False
         try:
             logger = FileLogger(log_file)  # Передаём Path вместо str
             logger.write("Test message", "info")
         except (PermissionError, OSError, AttributeError):
             # Проверяем что ошибка была выброшена
-            assert True
-            return  # Тест прошёл - исключение было выброшено
+            exception_raised = True
 
-        # Если исключение не было выброшено, проверяем что файл был создан
-        assert log_file.exists()
+        # Проверяем что исключение было выброшено или файл существует
+        assert exception_raised or log_file.exists()
 
 
 class TestExceptionHandlingInParallelParser:
@@ -198,9 +198,9 @@ class TestExceptionHandlingInDataValidator:
 
     def test_validate_positive_int_logs_error(self, caplog):
         """
-        Тест 4.1: Проверка логирования ошибки в validate_positive_int().
+        Тест 4.1: Проверка обработки ошибки в validate_positive_int().
 
-        Проверяет что ошибка валидации числа логируется.
+        Проверяет что ошибка валидации числа выбрасывает ValueError.
         """
         import logging
 
@@ -216,8 +216,9 @@ class TestExceptionHandlingInDataValidator:
         assert "--test.arg" in str(exc_info.value)
         assert "1" in str(exc_info.value)
 
-        # Проверяем что ValueError был выброшен (это и есть обработка ошибки)
-        assert True
+        # Проверяем что ValueError содержит правильную информацию
+        assert "не менее" in str(exc_info.value)
+        assert "-1" in str(exc_info.value)
 
     def test_validate_url_logs_warning(self, caplog):
         """

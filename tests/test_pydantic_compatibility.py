@@ -1,24 +1,21 @@
 """
-Тесты для проверки совместимости с Pydantic v1 и v2.
+Тесты для проверки работы с Pydantic v2.
 
-Эти тесты выявляют ошибки, связанные с использованием методов Pydantic,
-которые отличаются в версиях v1 и v2 (model_dump/dict, model_fields_set/__fields_set__).
+Эти тесты проверяют корректность использования API Pydantic v2.
 """
 
-import pytest
-
 from parser_2gis.config import Configuration
-from parser_2gis.pydantic_compat import PYDANTIC_V2, get_model_dump, get_model_fields_set
+from parser_2gis.pydantic_compat import get_model_dump, get_model_fields_set
 
 
 class TestPydanticCompatibility:
-    """Тесты для проверки совместимости с версиями Pydantic."""
+    """Тесты для проверки работы с Pydantic v2."""
 
-    def test_pydantic_version_detected(self):
-        """Проверка, что версия Pydantic определена корректно."""
+    def test_pydantic_v2_detected(self):
+        """Проверка, что используется Pydantic v2."""
         import pydantic
 
-        assert pydantic.VERSION.startswith("2.") == PYDANTIC_V2
+        assert pydantic.VERSION.startswith("2.")
 
     def test_get_model_dump_returns_dict(self):
         """
@@ -150,26 +147,8 @@ class TestArgumentHelpFormatterCompatibility:
         assert isinstance(config["parser"]["max_records"], int)
 
 
-class TestPydanticVersionSpecificFeatures:
-    """Тесты для проверки специфичных функций версий Pydantic."""
-
-    @pytest.mark.skipif(not PYDANTIC_V2, reason="Требуется Pydantic v2")
-    def test_pydantic_v2_model_dump_methods(self):
-        """Проверка, что model_dump доступен в Pydantic v2."""
-        config = Configuration()
-        # В Pydantic v2 должен быть доступен model_dump
-        assert hasattr(config, "model_dump")
-        result = config.model_dump()
-        assert isinstance(result, dict)
-
-    @pytest.mark.skipif(PYDANTIC_V2, reason="Требуется Pydantic v1")
-    def test_pydantic_v1_dict_method(self):
-        """Проверка, что dict доступен в Pydantic v1."""
-        config = Configuration()
-        # В Pydantic v1 должен быть доступен dict
-        assert hasattr(config, "dict")
-        result = config.dict()
-        assert isinstance(result, dict)
+# Класс TestPydanticVersionSpecificFeatures удалён - тестирование специфичных функций
+# Pydantic v1/v2 больше не требуется, так как используется только Pydantic v2
 
 
 class TestConfigurationSaveWithCompatibility:
