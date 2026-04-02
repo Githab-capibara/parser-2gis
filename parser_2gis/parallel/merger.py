@@ -190,7 +190,16 @@ def _merge_csv_files(
         - total_rows: Количество объединённых строк.
         - files_to_delete: Список файлов для удаления.
 
+    Raises:
+        ValueError: Если buffer_size или batch_size некорректны.
+
     """
+    # ISSUE-117, ISSUE-118: Валидация buffer_size и batch_size
+    if buffer_size <= 0:
+        raise ValueError(f"buffer_size должен быть положительным числом, получено {buffer_size}")
+    if batch_size <= 0:
+        raise ValueError(f"batch_size должен быть положительным числом, получено {batch_size}")
+
     # Группировка параметров в dataclass для удобства
     merge_config = MergeConfig(
         file_paths=file_paths,
@@ -263,7 +272,7 @@ def _merge_csv_files(
                 stem = csv_file.stem
                 last_underscore_idx = stem.rfind("_")
                 category_name = (
-                    stem[last_underscore_idx + 1:].replace("_", " ")
+                    stem[last_underscore_idx + 1 :].replace("_", " ")
                     if last_underscore_idx > 0
                     else stem.replace("_", " ")
                 )
@@ -575,7 +584,7 @@ class ParallelFileMerger:
         last_underscore_idx = stem.rfind("_")
 
         if last_underscore_idx > 0:
-            return stem[last_underscore_idx + 1:].replace("_", " ")
+            return stem[last_underscore_idx + 1 :].replace("_", " ")
 
         category = stem.replace("_", " ")
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")

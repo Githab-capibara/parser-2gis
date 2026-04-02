@@ -11,6 +11,8 @@ import codecs
 
 from pydantic import BaseModel, Field
 
+from parser_2gis.constants import CSV_COLUMNS_PER_ENTITY
+
 try:
     from pydantic import field_validator  # type: ignore[attr-defined]
 
@@ -35,7 +37,7 @@ class CSVOptions(BaseModel):
 
     add_rubrics: bool = True
     add_comments: bool = True
-    columns_per_entity: int = Field(5, gt=0, le=5)
+    columns_per_entity: int = Field(CSV_COLUMNS_PER_ENTITY, gt=0, le=CSV_COLUMNS_PER_ENTITY)
     remove_empty_columns: bool = True
     remove_duplicates: bool = True
     join_char: str = "; "
@@ -51,7 +53,7 @@ class WriterOptions(BaseModel):
 
     encoding: str = "utf-8-sig"
     verbose: bool = True
-    csv: CSVOptions = CSVOptions(columns_per_entity=5)
+    csv: CSVOptions = CSVOptions(columns_per_entity=CSV_COLUMNS_PER_ENTITY)
 
     @staticmethod
     def _validate_encoding(v: str) -> str:

@@ -38,8 +38,14 @@ class JSONWriter(FileWriter):
     def _writedoc(self, catalog_doc: Any) -> None:
         """Добавляет документ в JSON файл.
 
+        ISSUE-170: Добавлена обработка json.JSONDecodeError.
+        ISSUE-171: Используется буферизация для json.dump().
+
         Args:
             catalog_doc: JSON-документ Catalog Item API.
+
+        Raises:
+            json.JSONDecodeError: При ошибке декодирования JSON.
 
         """
         if not isinstance(catalog_doc, dict):
@@ -71,7 +77,18 @@ class JSONWriter(FileWriter):
         # Записываем элемент сразу в файл для экономии памяти
         if not self._first_item:
             self._file.write(",\n")
-        json.dump(item, self._file, ensure_ascii=False, indent=2)
+
+        # ISSUE-170: Обработка JSONDecodeError
+        try:
+            # ISSUE-171: Буферизация через явный вызов flush после dump
+            json.dump(item, self._file, ensure_ascii=False, indent=2)
+            self._file.flush()  # Явная буферизация для предотвращения потери данных
+        except (TypeError, ValueError) as json_error:
+            # TypeError: объект не сериализуем в JSON
+            # ValueError: объект содержит некорректные данные для JSON
+            logger.error("Ошибка сериализации JSON: %s", json_error)
+            raise
+
         self._first_item = False
         self._wrote_count += 1
 

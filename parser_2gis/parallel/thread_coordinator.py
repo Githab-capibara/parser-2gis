@@ -47,6 +47,7 @@ def _signal_handler(signum: int, frame) -> None:
         frame: Текущий фрейм.
 
     """
+    # pylint: disable=global-statement
     global _active_coordinator
     if _active_coordinator is not None:
         logger.warning("Получен сигнал прерывания (SIGINT), остановка парсинга...")

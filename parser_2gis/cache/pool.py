@@ -48,12 +48,13 @@ _SQLITE_PRAGMA_SYNCHRONOUS: str = "NORMAL"
 _SQLITE_PRAGMA_BUSY_TIMEOUT: int = 60000  # 60 секунд
 
 # Попытка импортировать psutil для мониторинга памяти
+# ISSUE-052: Переименовано из _PSUTIL_AVAILABLE в PSUTIL_AVAILABLE
 try:
     import psutil
 
-    _PSUTIL_AVAILABLE = True
+    PSUTIL_AVAILABLE = True
 except ImportError:
-    _PSUTIL_AVAILABLE = False
+    PSUTIL_AVAILABLE = False
     psutil = None  # type: ignore
 
 
@@ -81,7 +82,7 @@ def _calculate_dynamic_pool_size() -> int:
     """
     try:
         # Пытаемся получить информацию о памяти через psutil
-        if not _PSUTIL_AVAILABLE or psutil is None:
+        if not PSUTIL_AVAILABLE or psutil is None:
             raise ImportError("psutil не установлен")
 
         available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)

@@ -5,6 +5,9 @@
 - Принудительного сбора мусора
 - Обработки MemoryError
 - Управления кэшем при нехватке памяти
+
+ISSUE-019: Реализует протокол MemoryManagerProtocol из protocols.py.
+ISSUE-152: Оптимизация gc.collect() с учётом размера памяти.
 """
 
 from __future__ import annotations
@@ -13,12 +16,16 @@ import gc
 import time
 from typing import Any
 
+from parser_2gis.constants import GC_MEMORY_THRESHOLD_MB
 from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger.logger import logger
+from parser_2gis.protocols import MemoryManagerProtocol
 
 
-class MemoryManager:
+class MemoryManager(MemoryManagerProtocol):
     """Менеджер управления памятью.
+
+    ISSUE-019: Реализует протокол MemoryManagerProtocol.
 
     Отвечает за:
     - Мониторинг доступной и используемой памяти
@@ -31,14 +38,16 @@ class MemoryManager:
 
     """
 
-    def __init__(self, memory_threshold_mb: int = 100) -> None:
+    def __init__(self, memory_threshold_mb: int | None = None) -> None:
         """Инициализирует менеджер памяти.
+
+        ISSUE-152: Использует константу GC_MEMORY_THRESHOLD_MB по умолчанию.
 
         Args:
             memory_threshold_mb: Порог нехватки памяти в мегабайтах.
 
         """
-        self._memory_threshold_mb = memory_threshold_mb
+        self._memory_threshold_mb = memory_threshold_mb or GC_MEMORY_THRESHOLD_MB
         self._memory_monitor = MemoryMonitor()
         self._memory_warnings: int = 0
         self._gc_count: int = 0
@@ -110,11 +119,29 @@ class MemoryManager:
     def force_gc(self) -> int:
         """Выполняет принудительный сбор мусора.
 
+        ISSUE-152: Оптимизация - проверяет размер памяти перед вызовом GC.
+        Вызывает gc.collect() только если доступно меньше порога памяти.
+
         Returns:
-            Количество собранных объектов.
+            Количество собранных объектов (0 если GC не вызывался).
 
         """
-        logger.debug("Выполнение принудительного сбора мусора (GC)")
+        available_mb = self.get_available_memory_mb()
+
+        # ISSUE-152: Вызываем GC только если память ниже порога
+        if available_mb >= self._memory_threshold_mb:
+            logger.debug(
+                "GC пропущен: доступно %.1f MB (порог: %d MB)",
+                available_mb,
+                self._memory_threshold_mb,
+            )
+            return 0
+
+        logger.debug(
+            "Выполнение принудительного сбора мусора (GC): доступно %.1f MB (порог: %d MB)",
+            available_mb,
+            self._memory_threshold_mb,
+        )
         collected = gc.collect()
         self._gc_count += 1
         logger.debug("GC завершён: собрано %d объектов (всего GC: %d)", collected, self._gc_count)

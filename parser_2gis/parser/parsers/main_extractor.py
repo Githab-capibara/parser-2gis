@@ -20,6 +20,19 @@ from typing import TYPE_CHECKING, Any
 from parser_2gis.logger import logger
 from parser_2gis.parser.parsers.main_parser import MAX_RESPONSE_ATTEMPTS, RESPONSE_RETRY_DELAY
 
+# =============================================================================
+# КОНСТАНТЫ МОДУЛЯ
+# =============================================================================
+
+# Размер кэша извлечённых данных (увеличено с 1024 для поддержки большего количества данных)
+EXTRACTOR_CACHE_MAX_SIZE: int = 2048
+
+# Процент записей для LRU eviction при превышении размера кэша
+CACHE_EVICTION_PERCENT: int = 10
+
+# Задержка между кликами в миллисекундах (используется для вычисления задержки в секундах)
+CLICK_DELAY_DIVISOR: int = 1000
+
 if TYPE_CHECKING:
     from parser_2gis.parser.parsers.main_parser import MainPageParser
     from parser_2gis.writer import FileWriter
@@ -49,7 +62,7 @@ class MainDataExtractor:
         self._parser = parser
         # C005: Увеличен размер кэша до 2048 и используется OrderedDict для эффективного LRU
         self._extracted_data_cache: dict[str, dict[str, Any]] = {}
-        self._cache_max_size = 2048  # Увеличено с 1024 для поддержки большего количества данных
+        self._cache_max_size = EXTRACTOR_CACHE_MAX_SIZE
 
     def _get_link_url(self, link) -> str | None:
         """Получает URL из DOM-узла ссылки.
@@ -61,6 +74,12 @@ class MainDataExtractor:
 
         Returns:
             URL или None если не удалось извлечь.
+
+        Raises:
+            OSError: При ошибке доступа к атрибутам DOM-узла.
+            RuntimeError: При ошибке выполнения методов DOM-узла.
+            TypeError: При некорректном типе DOM-узла.
+            ValueError: При некорректном значении атрибута href.
 
         """
         try:
@@ -75,11 +94,20 @@ class MainDataExtractor:
     def _evict_cache_if_needed(self) -> None:
         """C005: LRU eviction кэша при превышении размера.
 
-        Использует OrderedDict для эффективного удаления oldest записей.
+        ISSUE-138: Оптимизировано с использованием islice для эффективного удаления записей.
+        Вместо создания полного списка ключей используется itertools.islice.
+
+        Raises:
+            RuntimeError: При ошибке модификации кэша.
+
         """
         if len(self._extracted_data_cache) >= self._cache_max_size:
-            # Удаляем первые 10% записей (LRU - oldest entries)
-            keys_to_remove = list(self._extracted_data_cache.keys())[: self._cache_max_size // 10]
+            # ISSUE-138: Оптимизация - удаляем первые 10% записей (LRU - oldest entries)
+            # Используем islice для эффективного получения ключей без создания полного списка
+            from itertools import islice
+
+            keys_count_to_remove = self._cache_max_size // CACHE_EVICTION_PERCENT
+            keys_to_remove = list(islice(self._extracted_data_cache.keys(), keys_count_to_remove))
             for key in keys_to_remove:
                 del self._extracted_data_cache[key]
 
@@ -92,6 +120,14 @@ class MainDataExtractor:
 
         Returns:
             True если данные успешно записаны, False иначе.
+
+        Raises:
+            OSError: При ошибке доступа к DOM или сети.
+            RuntimeError: При ошибке выполнения операций Chrome.
+            TypeError: При некорректном типе данных.
+            ValueError: При некорректных параметрах.
+            MemoryError: При нехватке памяти.
+            json.JSONDecodeError: При некорректном JSON ответе сервера.
 
         Примечание:
             H006: Добавлено кэширование для часто извлекаемых данных.
@@ -116,23 +152,33 @@ class MainDataExtractor:
 
         resp: dict[str, Any] | None = None
 
+        # ISSUE-140: Выносим вычисления за пределы цикла
+        delay_between_clicks = self._parser._options.delay_between_clicks
+        delay_seconds = delay_between_clicks / CLICK_DELAY_DIVISOR if delay_between_clicks else 0
+        item_response_pattern = self._parser._item_response_pattern
+        chrome_remote = self._parser._chrome_remote
+
         for attempt in range(MAX_RESPONSE_ATTEMPTS):
             try:
+                # ISSUE-139: Добавлено логирование номера попытки
+                if attempt > 0:
+                    logger.debug(
+                        "Попытка получения ответа %d/%d для ссылки",
+                        attempt + 1,
+                        MAX_RESPONSE_ATTEMPTS,
+                    )
+
                 # Кликаем на ссылку, чтобы спровоцировать запрос
                 # с ключом авторизации и секретными аргументами
-                self._parser._chrome_remote.perform_click(link)
+                chrome_remote.perform_click(link)
 
                 # Задержка между кликами, может быть полезна, если
                 # anti-bot сервис 2GIS станет более строгим.
-                if self._parser._options.delay_between_clicks:
-                    self._parser._chrome_remote.wait(
-                        self._parser._options.delay_between_clicks / 1000
-                    )
+                if delay_seconds:
+                    chrome_remote.wait(delay_seconds)
 
                 # Собираем ответы и собираем полезные данные.
-                resp = self._parser._chrome_remote.wait_response(
-                    self._parser._item_response_pattern
-                )
+                resp = chrome_remote.wait_response(item_response_pattern)
 
                 # Если запрос не удался - повторяем, иначе идём дальше.
                 if resp and resp.get("status", -1) >= 0:
@@ -140,14 +186,17 @@ class MainDataExtractor:
 
                 # Добавляем небольшую задержку между попытками для снижения нагрузки
                 if attempt < MAX_RESPONSE_ATTEMPTS - 1:
-                    self._parser._chrome_remote.wait(RESPONSE_RETRY_DELAY)
+                    chrome_remote.wait(RESPONSE_RETRY_DELAY)
 
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as click_error:
                 logger.warning(
-                    "Ошибка при клике на ссылку (попытка %d): %s", attempt + 1, click_error
+                    "Ошибка при клике на ссылку (попытка %d/%d): %s",
+                    attempt + 1,
+                    MAX_RESPONSE_ATTEMPTS,
+                    click_error,
                 )
                 if attempt < MAX_RESPONSE_ATTEMPTS - 1:
-                    self._parser._chrome_remote.wait(RESPONSE_RETRY_DELAY)
+                    chrome_remote.wait(RESPONSE_RETRY_DELAY)
 
         # Пропускаем позицию, если все попытки получить ответ неудачны
         if not resp or resp.get("status", -1) < 0:
@@ -159,7 +208,7 @@ class MainDataExtractor:
 
         # Получаем данные тела ответа
         try:
-            data = self._parser._chrome_remote.get_response_body(resp)
+            data = chrome_remote.get_response_body(resp)
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as body_error:
             logger.error("Ошибка при получении тела ответа: %s", body_error)
             return False

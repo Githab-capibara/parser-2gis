@@ -138,8 +138,11 @@ class ParallelErrorHandler:
         """
         self.stats["memory_errors"] += 1
         self.log(f"Memory error while parsing {url}: {memory_error}", "error")
-        # Принудительный GC
-        gc.collect()
+        # Принудительный GC через memory_manager если доступен
+        if hasattr(self, "_memory_manager"):
+            self._memory_manager.force_gc()
+        else:
+            gc.collect()
         self._cleanup_temp_file(temp_filepath)
         return False, f"Ошибка памяти: {memory_error}"
 
@@ -287,3 +290,5 @@ class ParallelErrorHandler:
 
         if last_exception:
             raise last_exception
+
+        return None

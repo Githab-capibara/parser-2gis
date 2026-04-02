@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from parser_2gis.constants import MAX_VISITED_LINKS_SIZE
 from parser_2gis.logger import logger
 from parser_2gis.parser.parsers.main_extractor import MainDataExtractor
 from parser_2gis.parser.parsers.main_parser import MainPageParser
@@ -62,7 +63,20 @@ class MainParser:
             parser_options: Опции парсера.
             browser: Опциональный браузер.
 
+        Raises:
+            ValueError: Если chrome_options или parser_options некорректны.
+
         """
+        # ISSUE-134: Валидация chrome_options и parser_options
+        if chrome_options is None:
+            raise ValueError("chrome_options не может быть None")
+        if parser_options is None:
+            raise ValueError("parser_options не может быть None")
+
+        # Валидация url
+        if not url or not isinstance(url, str):
+            raise ValueError("url должен быть непустой строкой")
+
         self._options = parser_options
         self._url = url
 
@@ -100,7 +114,7 @@ class MainParser:
             4. _handle_pagination() — обработка пагинации (вызывается внутри)
 
         """
-        from collections import OrderedDict
+        from collections import deque
 
         # Начиная со страницы 6 и далее
         # 2GIS автоматически перенаправляет пользователя в начало (anti-bot защита).
@@ -111,71 +125,18 @@ class MainParser:
         page_match = re.search(r"/page/(?P<page_number>\d+)", self._url, re.I)
         walk_page_number = int(page_match.group("page_number")) if page_match else None
 
-        # Оптимизация: используем OrderedDict для эффективного управления памятью
-        # посещённых ссылок с автоматическим удалением старых записей (LRU eviction)
-        visited_links: OrderedDict[str, None] = OrderedDict()
-        max_visited_links = 10000  # MAX_VISITED_LINKS_SIZE
+        # ISSUE-133: Используем deque с maxlen для автоматического LRU eviction
+        # deque автоматически удаляет старые записи при превышении maxlen
+        visited_links: deque[str] = deque(maxlen=MAX_VISITED_LINKS_SIZE)
 
         # Навигация к поисковой выдаче с retry logic и jitter
         max_retries = self._options.max_retries
         base_delay = self._options.retry_delay_base
 
-        navigate_success = False
         try:
-            for attempt in range(max_retries + 1):
-                try:
-                    # Первая попытка или повторная
-                    if attempt > 0:
-                        logger.info(
-                            "Повторная попытка навигации (%d/%d) для URL: %s",
-                            attempt,
-                            max_retries,
-                            url,
-                        )
+            # ISSUE-131: Упрощение вложенности try-except через выделение навигации
+            navigate_success = self._perform_navigation_with_retries(url, max_retries, base_delay)
 
-                    self._page_parser._navigate_to_search(url)
-                    navigate_success = True
-                    break
-
-                # HIGH 9: Разделяем broad exception на конкретные обработчики
-                except MemoryError as memory_error:
-                    # Критическая ошибка памяти - не повторяем
-                    logger.error("MemoryError при навигации по URL %s: %s", url, memory_error)
-                    return
-
-                except (OSError, RuntimeError) as system_error:
-                    # Системные ошибки - повторяем если разрешено
-                    if attempt < max_retries and self._options.retry_on_network_errors:
-                        # Добавляем jitter для предотвращения thundering herd эффекта
-                        # Формула: base_delay * (1.5 ** attempt) + random.uniform(0, 0.3)
-                        import random
-
-                        jitter = random.uniform(0, 0.3)
-                        delay = base_delay * (1.5**attempt) + jitter
-                        logger.warning(
-                            "Системная ошибка при навигации (попытка %d/%d): %s. "
-                            "Повторная попытка через %.1f сек...",
-                            attempt + 1,
-                            max_retries,
-                            system_error,
-                            delay,
-                        )
-                        import time
-
-                        time.sleep(delay)
-                    else:
-                        # Исчерпаны все попытки
-                        logger.error("Таймаут навигации по URL %s: %s", url, system_error)
-                        return
-
-                except (TypeError, ValueError) as validation_error:
-                    # Ошибки валидации - не повторяем, это программная ошибка
-                    logger.error(
-                        "Ошибка валидации при навигации по URL %s: %s", url, validation_error
-                    )
-                    return
-
-            # Если навигация не удалась - выходим
             if not navigate_success:
                 return
 
@@ -187,12 +148,75 @@ class MainParser:
             # Парсинг результатов поиска
             # Передаём visited_links для управления памятью с eviction policy
             self._data_processor._parse_search_results(
-                writer, walk_page_number, visited_links, max_visited_links
+                writer, walk_page_number, visited_links, MAX_VISITED_LINKS_SIZE
             )
 
         finally:
             # Гарантированная очистка ресурсов браузера при любом исходе
             self.close()
+
+    def _perform_navigation_with_retries(
+        self, url: str, max_retries: int, base_delay: float
+    ) -> bool:
+        """Выполняет навигацию с повторными попытками.
+
+        Args:
+            url: URL для навигации.
+            max_retries: Максимальное количество попыток.
+            base_delay: Базовая задержка между попытками.
+
+        Returns:
+            True если навигация успешна, False иначе.
+
+        """
+        navigate_success = False
+
+        for attempt in range(max_retries + 1):
+            try:
+                # Первая попытка или повторная
+                if attempt > 0:
+                    logger.info(
+                        "Повторная попытка навигации (%d/%d) для URL: %s", attempt, max_retries, url
+                    )
+
+                self._page_parser._navigate_to_search(url)
+                navigate_success = True
+                break
+
+            except MemoryError as memory_error:
+                # Критическая ошибка памяти - не повторяем
+                logger.error("MemoryError при навигации по URL %s: %s", url, memory_error)
+                return False
+
+            except (OSError, RuntimeError) as system_error:
+                # Системные ошибки - повторяем если разрешено
+                if attempt < max_retries and self._options.retry_on_network_errors:
+                    # Добавляем jitter для предотвращения thundering herd эффекта
+                    import random
+                    import time
+
+                    jitter = random.uniform(0, 0.3)
+                    delay = base_delay * (1.5**attempt) + jitter
+                    logger.warning(
+                        "Системная ошибка при навигации (попытка %d/%d): %s. "
+                        "Повторная попытка через %.1f сек...",
+                        attempt + 1,
+                        max_retries,
+                        system_error,
+                        delay,
+                    )
+                    time.sleep(delay)
+                else:
+                    # Исчерпаны все попытки
+                    logger.error("Таймаут навигации по URL %s: %s", url, system_error)
+                    return False
+
+            except (TypeError, ValueError) as validation_error:
+                # Ошибки валидации - не повторяем, это программная ошибка
+                logger.error("Ошибка валидации при навигации по URL %s: %s", url, validation_error)
+                return False
+
+        return navigate_success
 
     def close(self) -> None:
         """Закрывает браузер и освобождает ресурсы.
@@ -200,7 +224,9 @@ class MainParser:
         Закрывает только если браузер был создан внутри парсера
         (не был передан извне через browser параметр).
         """
-        if hasattr(self._page_parser, "_owns_browser") and self._page_parser._owns_browser:
+        # ISSUE-135: Заменяем hasattr() на явный атрибут _owns_browser
+        owns_browser = getattr(self._page_parser, "_owns_browser", False)
+        if owns_browser:
             self._page_parser._chrome_remote.stop()
 
     def __enter__(self) -> MainParser:

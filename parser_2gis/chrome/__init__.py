@@ -20,7 +20,7 @@ from .http_cache import (
     _HTTPCacheEntry,
 )
 from .js_executor import (
-    _DANGEROUS_JS_PATTERNS,
+    DANGEROUS_JS_PATTERNS,
     MAX_JS_CODE_LENGTH,
     _sanitize_js_string,
     _validate_js_code,
@@ -43,7 +43,7 @@ __all__ = [
     "HTTP_CACHE_MAXSIZE",
     "HTTP_CACHE_TTL_SECONDS",
     # Валидация JS (для backward совместимости)
-    "_DANGEROUS_JS_PATTERNS",
+    "DANGEROUS_JS_PATTERNS",
     "_sanitize_js_string",
     "_validate_js_code",
     "MAX_JS_CODE_LENGTH",

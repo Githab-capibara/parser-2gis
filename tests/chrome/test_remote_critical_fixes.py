@@ -89,7 +89,8 @@ class TestConnectInterfaceReturnValue:
             call_count += 1
             return False  # Порт свободен
 
-        with patch("parser_2gis.chrome.remote._check_port_available", mock_port_check):
+        # H3: Используем _check_port_cached вместо _check_port_available
+        with patch("parser_2gis.chrome.remote._check_port_cached", side_effect=mock_port_check):
             with patch("parser_2gis.chrome.remote.time.sleep", return_value=None):
                 result = chrome_remote._connect_interface()
 
@@ -151,7 +152,8 @@ class TestConnectInterfaceReturnValue:
         - _cleanup_interface() вызывается при ошибке
         - Ресурсы освобождаются корректно
         """
-        with patch("parser_2gis.chrome.remote._check_port_available", return_value=False):
+        # H3: Используем _check_port_cached вместо _check_port_available
+        with patch("parser_2gis.chrome.remote._check_port_cached", return_value=False):
             with patch("parser_2gis.chrome.remote.time.sleep", return_value=None):
                 with patch.object(chrome_remote, "_cleanup_interface") as mock_cleanup:
                     with patch("parser_2gis.chrome.remote.app_logger"):
@@ -167,7 +169,8 @@ class TestConnectInterfaceReturnValue:
         - app_logger.error вызывается после исчерпания попыток
         - Сообщение содержит информацию об ошибке
         """
-        with patch("parser_2gis.chrome.remote._check_port_available", return_value=False):
+        # H3: Используем _check_port_cached вместо _check_port_available
+        with patch("parser_2gis.chrome.remote._check_port_cached", return_value=False):
             with patch("parser_2gis.chrome.remote.time.sleep", return_value=None):
                 with patch("parser_2gis.chrome.remote.app_logger") as mock_logger:
                     chrome_remote._connect_interface()
@@ -189,7 +192,10 @@ class TestConnectInterfaceReturnValue:
             attempt_count += 1
             return False
 
-        with patch("parser_2gis.chrome.remote._check_port_available", mock_port_check_count):
+        # H3: Используем _check_port_cached вместо _check_port_available
+        with patch(
+            "parser_2gis.chrome.remote._check_port_cached", side_effect=mock_port_check_count
+        ):
             with patch("parser_2gis.chrome.remote.time.sleep", return_value=None):
                 result = chrome_remote._connect_interface()
 

@@ -18,9 +18,9 @@
 
 from __future__ import annotations
 
+import logging
 import re
-from typing import TYPE_CHECKING, Any
-from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from .parsers import FirmParser, InBuildingParser, MainParser
 from .parsers.base import BaseParser
@@ -40,6 +40,8 @@ PARSER_REGISTRY: dict[str, type[BaseParser]] = {}
 _PARSER_PATTERNS: list[tuple[type[BaseParser], re.Pattern]] = []
 """Список кортежей (parser_class, compiled_pattern) для сопоставления URL."""
 
+logger = logging.getLogger(__name__)
+
 
 def register_parser(priority: int = 0) -> Callable[..., Any]:
     """Декоратор для регистрации parser класса в реестре.
@@ -58,29 +60,34 @@ def register_parser(priority: int = 0) -> Callable[..., Any]:
         ...     def url_pattern() -> str:
         ...         return r".*custom.*"
 
+    Raises:
+        ValueError: Если priority отрицательный.
+
     """
 
-    def decorator(cls: type[BaseParser]) -> type[BaseParser]:
+    def decorator(parser_cls: type[BaseParser]) -> type[BaseParser]:
+        # Валидация priority
+        if priority < 0:
+            raise ValueError(f"Приоритет парсера не может быть отрицательным: {priority}")
+
         # Регистрируем класс в реестре
-        PARSER_REGISTRY[cls.__name__] = cls
+        PARSER_REGISTRY[parser_cls.__name__] = parser_cls
 
         # Компилируем паттерн и добавляем в список
         try:
-            pattern_str = cls.url_pattern()
+            pattern_str = parser_cls.url_pattern()
             compiled_pattern = re.compile(pattern_str)
-            _PARSER_PATTERNS.append((cls, compiled_pattern))
+            _PARSER_PATTERNS.append((parser_cls, compiled_pattern))
 
             # Сортируем по приоритету (убывание) и имени (возрастание)
             _PARSER_PATTERNS.sort(key=lambda x: (-getattr(x[0], "priority", 0), x[0].__name__))
         except (AttributeError, TypeError) as e:
             # Если у класса нет url_pattern, пропускаем его
-            import logging
-
-            logging.getLogger(__name__).warning(
-                "Парсер %s не имеет url_pattern, пропускаем регистрацию: %s", cls.__name__, e
+            logger.warning(
+                "Парсер %s не имеет url_pattern, пропускаем регистрацию: %s", parser_cls.__name__, e
             )
 
-        return cls
+        return parser_cls
 
     return decorator
 

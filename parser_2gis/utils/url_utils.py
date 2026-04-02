@@ -14,16 +14,16 @@ from typing import Any
 # =============================================================================
 
 
-_url_query_encode = lru_cache(maxsize=2048)(lambda query: urllib.parse.quote(query, safe=""))
+_url_query_encode = lru_cache(maxsize=1024)(lambda query: urllib.parse.quote(query, safe=""))
 
 
 def url_query_encode(query: str) -> str:
     """Кодирует строку запроса для URL.
 
-    - Размер кэша установлен в 2048 вместо 4096 (оптимально для часто используемых запросов)
-    - Снижение потребления памяти без потери производительности
-    - lru_cache для кэширования часто используемых запросов
-    - Снижение количества вызовов urllib.parse.quote
+    Кэширование:
+        - Размер кэша ограничен до 1024 для оптимального использования памяти
+        - lru_cache для кэширования часто используемых запросов
+        - Снижение количества вызовов urllib.parse.quote
 
     Args:
         query: Исходная строка запроса.
@@ -54,8 +54,8 @@ def clear_category_url_cache() -> None:
 
 
 # Оптимизация: кэширование сгенерированных URL
-# C002: Размер кэша увеличен до 4096 для поддержки большего количества URL
-@lru_cache(maxsize=4096)
+# Размер кэша уменьшен до 2048 для оптимального использования памяти
+@lru_cache(maxsize=2048)
 def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
     """Кэшированная версия генерации URL.
 
@@ -180,11 +180,20 @@ def generate_city_urls(
     Returns:
         Список URL для парсинга.
 
+    Raises:
+        ValueError: Если список городов пуст.
+
     """
-    urls: list[str] = []
     from parser_2gis.utils.validation_utils import _get_logger
 
     local_logger = _get_logger()
+
+    # Валидация пустого списка городов
+    if not cities:
+        local_logger.warning("Получен пустой список городов для генерации URL")
+        raise ValueError("Список городов не может быть пустым")
+
+    urls: list[str] = []
 
     # Предварительно вычисляем rubric_code
     rubric_code = rubric.get("code", "") if rubric else ""

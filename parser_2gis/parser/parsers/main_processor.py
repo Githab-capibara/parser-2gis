@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import gc
 import threading
-from collections import OrderedDict
+from collections import deque
 from typing import TYPE_CHECKING
 
 try:
@@ -37,6 +37,25 @@ from parser_2gis.parser.parsers.main_parser import (
     MainPageParser,
 )
 from parser_2gis.utils.decorators import wait_until_finished
+
+# =============================================================================
+# КОНСТАНТЫ МОДУЛЯ
+# =============================================================================
+
+# Коэффициент для очистки памяти при превышении порога (75%)
+MEMORY_CLEANUP_FRACTION: float = 0.75
+
+# Периодичность проверки памяти (каждые 10 вызовов)
+MEMORY_CHECK_INTERVAL: int = 10
+
+# Периодичность очистки visited_links (каждые 5 вызовов)
+VISITED_LINKS_CLEANUP_INTERVAL: int = 5
+
+# Коэффициент для агрессивной очистки visited_links (50%)
+VISITED_LINKS_CLEANUP_FRACTION: float = 0.5
+
+# Количество ссылок для вызова GC
+GC_LINKS_INTERVAL: int = 10
 
 if TYPE_CHECKING:
     from parser_2gis.writer import FileWriter
@@ -72,19 +91,30 @@ class MainDataProcessor:
     ) -> tuple[int, bool]:
         """Обрабатывает пагинацию и переход на следующую страницу.
 
+        ISSUE-148: Добавлен docstring с описанием возвращаемых значений.
+
         Args:
             current_page_number: Текущий номер страницы.
             walk_page_number: Целевой номер страницы для перехода (или None).
 
         Returns:
             Кортеж (next_page_number, should_continue):
-            - next_page_number: Номер следующей страницы
-            - should_continue: True если есть следующие страницы
+            - next_page_number: Номер следующей страницы для перехода
+            - should_continue: True если есть следующие страницы для парсинга,
+                               False если достигнут конец результатов
+
+        Raises:
+            OSError: При ошибке доступа к DOM.
+            RuntimeError: При ошибке выполнения операций Chrome.
+            TypeError: При некорректном типе данных.
+            ValueError: При некорректных параметрах.
+            MemoryError: При нехватке памяти.
 
         Примечание:
             - Вычисляет следующую страницу на основе доступных
             - Обрабатывает режим перехода к определённой странице
             - Возвращает False если достигнут конец результатов
+            - Использует min() с key функцией для нахождения ближайшей страницы
 
         """
         # Вычисляем следующий номер страницы
@@ -121,7 +151,7 @@ class MainDataProcessor:
         self,
         writer: FileWriter,
         walk_page_number: int | None,
-        visited_links: OrderedDict[str, None] | None = None,
+        visited_links: deque[str] | None = None,
         max_visited_links: int = MAX_VISITED_LINKS_SIZE,
     ) -> None:
         """Парсит результаты поисковой выдачи.
@@ -129,7 +159,7 @@ class MainDataProcessor:
         Args:
             writer: Файловый писатель для сохранения данных.
             walk_page_number: Целевой номер страницы для перехода (или None).
-            visited_links: OrderedDict для хранения посещённых ссылок (опционально).
+            visited_links: deque для хранения посещённых ссылок (опционально).
             max_visited_links: Максимальный размер visited_links.
 
         Примечание:
@@ -143,10 +173,10 @@ class MainDataProcessor:
         collected_records = 0
 
         # Уже посещённые ссылки (с оптимизацией памяти)
-        # Оптимизация 3.1: используем OrderedDict с ограничением размера для эффективного управления памятью
-        # OrderedDict автоматически удаляет старые записи при превышении maxlen
+        # ISSUE-133: Используем deque с maxlen для автоматического LRU eviction
+        # deque автоматически удаляет старые записи при превышении maxlen
         if visited_links is None:
-            visited_links = OrderedDict()
+            visited_links = deque(maxlen=max_visited_links)
         visited_links_lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
 
         # Оптимизация: кэшируем psutil.Process объект для снижения накладных расходов
@@ -188,8 +218,8 @@ class MainDataProcessor:
                 memory_mb = memory_info.rss / 1024 / 1024  # Конвертируем в МБ
 
                 # Мониторинг использования памяти в реальном времени
-                # Логируем использование памяти каждые 10 вызовов
-                if memory_check_counter % 10 == 0:
+                # ISSUE-152: Используем константу вместо магического числа
+                if memory_check_counter % MEMORY_CHECK_INTERVAL == 0:
                     logger.debug(
                         "Использование памяти: %.1f МБ (порог: %d МБ)",
                         memory_mb,
@@ -205,17 +235,17 @@ class MainDataProcessor:
                         self._parser._options.memory_threshold,
                     )
 
-                    # Оптимизация 3.1: OrderedDict автоматически управляет размером
-                    # Удаляем старые записи при превышении max_visited_links
+                    # ISSUE-133: deque автоматически управляет размером через maxlen
+                    # Но для агрессивной очистки при нехватке памяти очищаем вручную
                     with visited_links_lock:
-                        if len(visited_links) > max_visited_links:
-                            # Вычисляем количество элементов для удаления (75%)
-                            target_remove = int(len(visited_links) * 0.75)
+                        if len(visited_links) > max_visited_links // 2:
+                            # ISSUE-152: Используем константу вместо магического числа
+                            target_remove = int(len(visited_links) * MEMORY_CLEANUP_FRACTION)
 
                             if target_remove > 0:
-                                # Удаляем старые элементы из начала OrderedDict
+                                # Удаляем старые элементы из начала deque
                                 for _ in range(target_remove):
-                                    visited_links.popitem(last=False)
+                                    visited_links.popleft()
 
                                 logger.debug(
                                     "Очищено %d ссылок для освобождения памяти", target_remove
@@ -232,15 +262,16 @@ class MainDataProcessor:
                     except (OSError, RuntimeError, TypeError, ValueError) as cache_error:
                         logger.debug("Ошибка при очистке кэша: %s", cache_error)
 
-                # C5: Периодическая принудительная очистка visited_links (каждые 5 вызовов)
-                if visited_links_cleanup_counter >= 5:
+                # C5: Периодическая принудительная очистка visited_links
+                # ISSUE-152: Используем константу вместо магического числа
+                if visited_links_cleanup_counter >= VISITED_LINKS_CLEANUP_INTERVAL:
                     with visited_links_lock:
-                        if len(visited_links) > max_visited_links * 0.5:
-                            # Удаляем 50% старых записей
-                            target_remove = int(len(visited_links) * 0.5)
+                        if len(visited_links) > max_visited_links * VISITED_LINKS_CLEANUP_FRACTION:
+                            # ISSUE-152: Используем константу вместо магического числа
+                            target_remove = int(len(visited_links) * VISITED_LINKS_CLEANUP_FRACTION)
                             if target_remove > 0:
                                 for _ in range(target_remove):
-                                    visited_links.popitem(last=False)
+                                    visited_links.popleft()
                                 logger.debug(
                                     "C5: Периодическая очистка visited_links: удалено %d ссылок",
                                     target_remove,
@@ -256,7 +287,23 @@ class MainDataProcessor:
             timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.01
         )
         def get_unique_links() -> list[DOMNode] | None:
-            """Получает уникальные ссылки, которые ещё не были посещены."""
+            """Получает уникальные ссылки, которые ещё не были посещены.
+
+            ISSUE-150: Оптимизация алгоритма проверки уникальности ссылок.
+            Вместо set.intersection() в цикле используется set.difference()
+            для однократного получения уникальных ссылок.
+
+            Returns:
+                Список уникальных DOM-узлов ссылок или None при ошибке.
+
+            Raises:
+                OSError: При ошибке доступа к DOM.
+                RuntimeError: При ошибке выполнения операций Chrome.
+                TypeError: При некорректном типе данных.
+                ValueError: При некорректных параметрах.
+                MemoryError: При нехватке памяти.
+
+            """
             try:
                 links = self._parser._get_links()
                 # Проверяем, что ссылки успешно получены
@@ -269,29 +316,30 @@ class MainDataProcessor:
                 }
 
                 with visited_links_lock:
-                    # Optimization: use set.intersection for fast checking
-                    if link_hrefs.intersection(visited_links.keys()):
-                        # Возвращаем None вместо пустого списка для явного указания на повтор
+                    # ISSUE-150: Оптимизация - используем set.difference() вместо intersection()
+                    # Это позволяет получить только новые ссылки за одну операцию
+                    visited_set = set(visited_links)
+                    new_link_hrefs = link_hrefs - visited_set
+
+                    # Если нет новых ссылок - возвращаем None
+                    if not new_link_hrefs:
                         return None
 
-                    # Optimization 3.1: batch add links to OrderedDict
-                    for url in link_hrefs:
-                        visited_links[url] = None
+                    # ISSUE-133: batch add links to deque
+                    for url in new_link_hrefs:
+                        visited_links.append(url)
 
-                    # Немедленное удаление старых ссылок при превышении лимита
-                    if len(visited_links) > max_visited_links:
-                        overflow = len(visited_links) - max_visited_links
-                        for _ in range(overflow):
-                            visited_links.popitem(last=False)
-
+                    # deque автоматически удаляет старые ссылки при превышении maxlen
+                    # Логирование для отладки
+                    if len(visited_links) == max_visited_links:
                         logger.debug(
-                            "LRU eviction: удалено %d старых ссылок, осталось %d (max: %d)",
-                            overflow,
-                            len(visited_links),
+                            "LRU eviction: deque заполнен до максимума (%d ссылок)",
                             max_visited_links,
                         )
 
-                return links
+                    # Возвращаем только ссылки с новыми href
+                    return [link for link in links if link.attributes.get("href") in new_link_hrefs]
+
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
                 logger.error("Ошибка при получении уникальных ссылок: %s", e)
                 return None
@@ -403,9 +451,10 @@ class MainDataProcessor:
                                 )
                                 return
 
-                        # Периодическая очистка памяти каждые 10 ссылок
+                        # Периодическая очистка памяти
+                        # ISSUE-152: Используем константу вместо магического числа
                         links_since_gc += 1
-                        if links_since_gc >= 10:
+                        if links_since_gc >= GC_LINKS_INTERVAL:
                             gc.collect()
                             links_since_gc = 0
 

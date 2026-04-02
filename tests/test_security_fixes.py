@@ -18,7 +18,7 @@ import pytest
 
 from parser_2gis.cache.manager import CacheManager
 from parser_2gis.parser.parsers.firm import (
-    _DANGEROUS_JS_PATTERNS,
+    DANGEROUS_JS_PATTERNS,
     _sanitize_string_value,
     _validate_initial_state,
 )
@@ -195,7 +195,7 @@ class TestXSSPatterns:
 
         for pattern_str, description in test_patterns:
             pattern_compiled = None
-            for compiled, desc in _DANGEROUS_JS_PATTERNS:
+            for compiled, desc in DANGEROUS_JS_PATTERNS:
                 if desc == description:
                     pattern_compiled = compiled
                     break

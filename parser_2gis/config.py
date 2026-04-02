@@ -48,15 +48,17 @@ class Configuration(BaseModel):
     path: pathlib.Path | None = None
     version: str = config_version
 
-    def merge_with(self, other_config: Configuration, max_depth: int = 50) -> None:
+    def merge_with(self, other_config: Configuration, max_depth: int = 20) -> None:
         """Объединяет конфигурацию с другой.
 
         Рекурсивно обновляет поля текущей конфигурации значениями из other_config.
         Используются только явно установленные поля (model_fields_set / __fields_set__).
 
+        ISSUE-058: Уменьшена максимальная глубина рекурсии с 50 до 20.
+
         Args:
             other_config: Конфигурация для объединения.
-            max_depth: Максимальная глубина рекурсии при объединении (по умолчанию 50).
+            max_depth: Максимальная глубина рекурсии при объединении (по умолчанию 20).
 
         Raises:
             RecursionError: При превышении максимальной глубины.
@@ -73,16 +75,52 @@ class Configuration(BaseModel):
             current_depth=0,
             max_depth=max_depth,
             visited_objects=visited_objects,
-            warning_shown=False,
         )
 
     def _check_recursion_depth(self, current_depth: int, max_depth: int) -> None:
-        """Проверяет глубину рекурсии."""
+        """Проверяет глубину рекурсии при объединении конфигураций.
+
+        ISSUE-056: Добавлен подробный docstring.
+
+        Args:
+            current_depth: Текущая глубина рекурсии.
+            max_depth: Максимально допустимая глубина рекурсии.
+
+        Raises:
+            RecursionError: При превышении максимальной глубины обработки.
+
+        Example:
+            >>> config = Configuration()
+            >>> config._check_recursion_depth(10, 50)  # Не вызывает исключений
+            >>> config._check_recursion_depth(60, 50)  # Вызывает RecursionError
+
+        """
         if current_depth >= max_depth:
             raise RecursionError(f"Превышена максимальная глубина обработки ({max_depth})")
 
     def _check_circular_reference(self, source: BaseModel, visited_objects: set[int]) -> bool:
-        """Проверяет на циклические ссылки."""
+        """Проверяет наличие циклических ссылок в объектах конфигурации.
+
+        ISSUE-057: Добавлен подробный docstring.
+
+        Args:
+            source: Исходный объект Pydantic BaseModel для проверки.
+            visited_objects: Множество ID уже посещённых объектов для обнаружения циклов.
+
+        Returns:
+            True если обнаружена циклическая ссылка, False иначе.
+
+        Note:
+            При обнаружении циклической ссылки выводится предупреждение в лог
+            и ссылка пропускается для предотвращения бесконечной рекурсии.
+
+        Example:
+            >>> config = Configuration()
+            >>> visited: set[int] = set()
+            >>> config._check_circular_reference(some_model, visited)
+            False
+
+        """
         source_id = id(source)
         if source_id in visited_objects:
             # Lazy import для устранения циклической зависимости (A011)
@@ -125,8 +163,7 @@ class Configuration(BaseModel):
         current_depth: int,
         max_depth: int,
         visited_objects: set[int],
-        warning_shown: bool,
-    ) -> bool:
+    ) -> None:
         """Объединяет вложенную модель."""
         source_value = getattr(source, field)
         target_value = getattr(target, field, None)
@@ -134,15 +171,13 @@ class Configuration(BaseModel):
         if target_value is None:
             setattr(target, field, deepcopy(source_value))
         else:
-            warning_shown = self._merge_recursive_safe(
+            self._merge_recursive_safe(
                 source=source_value,
                 target=target_value,
                 current_depth=current_depth + 1,
                 max_depth=max_depth,
                 visited_objects=visited_objects,
-                warning_shown=warning_shown,
             )
-        return warning_shown
 
     def _merge_recursive_safe(
         self,
@@ -151,19 +186,20 @@ class Configuration(BaseModel):
         current_depth: int,
         max_depth: int,
         visited_objects: set[int],
-        warning_shown: bool,
-    ) -> bool:
-        """Безопасно объединяет две Pydantic модели рекурсивно с итеративным подходом."""
+    ) -> None:
+        """Безопасно объединяет две Pydantic модели рекурсивно с итеративным подходом.
+
+        ISSUE-048: Удалена неиспользуемая переменная warning_shown.
+        """
         # Проверка глубины рекурсии
         self._check_recursion_depth(current_depth, max_depth)
 
         # Проверка на циклические ссылки
         if self._check_circular_reference(source, visited_objects):
-            return warning_shown
+            return
 
         # Предупреждение о глубине
-        if not warning_shown:
-            warning_shown = self._log_depth_warning(current_depth, max_depth)
+        self._log_depth_warning(current_depth, max_depth)
 
         # Получаем установленные поля
         fields_set = self._get_fields_set(source)
@@ -177,19 +213,17 @@ class Configuration(BaseModel):
                 self._merge_primitive_field(target, field, source)
             else:
                 # Вложенная модель
-                warning_shown = self._merge_nested_model(
+                self._merge_nested_model(
                     target=target,
                     field=field,
                     source=source,
                     current_depth=current_depth,
                     max_depth=max_depth,
                     visited_objects=visited_objects,
-                    warning_shown=warning_shown,
                 )
 
         # Удаляем объект из посещённых после обработки
         visited_objects.discard(id(source))
-        return warning_shown
 
     @staticmethod
     def _get_fields_set(model: BaseModel) -> set[str]:

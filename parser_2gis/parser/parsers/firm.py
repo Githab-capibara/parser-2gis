@@ -12,16 +12,17 @@ import re
 import sys
 from typing import TYPE_CHECKING, Any
 
+from parser_2gis.constants import (
+    MAX_INITIAL_STATE_DEPTH,
+    MAX_INITIAL_STATE_SIZE,
+    MAX_ITEMS_IN_COLLECTION,
+)
 from parser_2gis.logger import logger
 
 from .main import MainParser
 
 if TYPE_CHECKING:
     from parser_2gis.writer import FileWriter
-
-MAX_INITIAL_STATE_DEPTH = 10
-MAX_INITIAL_STATE_SIZE = 5 * 1024 * 1024
-MAX_ITEMS_IN_COLLECTION = 10000
 
 _ALLOWED_KEYS: set[str] = {
     "data",
@@ -67,8 +68,9 @@ _ALLOWED_KEYS: set[str] = {
 }
 
 # Скомпилированные regex паттерны для JS валидации (Оптимизация: кэширование)
+# ISSUE-053: Переименовано из _DANGEROUS_JS_PATTERNS в DANGEROUS_JS_PATTERNS
 # D013: Паттерны покрывают onerror=, onload= и другие обработчики БЕЗ пробелов
-_DANGEROUS_JS_PATTERNS = [
+DANGEROUS_JS_PATTERNS = [
     (re.compile(r"<script", re.IGNORECASE), "тег <script>"),
     (re.compile(r"javascript:", re.IGNORECASE), "протокол javascript:"),
     # D013: Исправление - \s* покрывает onerror=, onerror =, onerror  = и т.д.
@@ -141,6 +143,8 @@ def _sanitize_string_value(value: str) -> str:
 def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> tuple[bool, int]:
     """Рекурсивно валидирует структуру initialState на безопасность.
 
+    ISSUE-076, ISSUE-077: Добавлена валидация depth и item_count.
+
     Args:
         data: Данные для валидации.
         depth: Текущая глубина вложенности.
@@ -149,7 +153,26 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
     Returns:
         Кортеж (is_valid, item_count) - валидны ли данные и общее количество элементов.
 
+    Raises:
+        ValueError: Если depth отрицательный или item_count переполнен.
+
     """
+    # ISSUE-076: Валидация depth на отрицательное значение
+    if depth < 0:
+        logger.warning("Отрицательная глубина вложенности initialState: %d", depth)
+        raise ValueError(f"depth не может быть отрицательным: {depth}")
+
+    # ISSUE-077: Валидация item_count на переполнение
+    if item_count < 0:
+        logger.warning("Отрицательный счётчик элементов initialState: %d", item_count)
+        raise ValueError(f"item_count не может быть отрицательным: {item_count}")
+
+    # Защита от переполнения item_count (максимум 2^31 - 1)
+    MAX_ITEM_COUNT = 2_147_483_647
+    if item_count > MAX_ITEM_COUNT:
+        logger.warning("Переполнение счётчика элементов initialState: %d", item_count)
+        return False, item_count
+
     if depth > MAX_INITIAL_STATE_DEPTH:
         logger.warning("Превышена максимальная глубина вложенности initialState: %d", depth)
         return False, item_count
@@ -170,7 +193,7 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
 
     if isinstance(data, str):
         # Проверка на опасные JS конструкции с использованием скомпилированных паттернов
-        for pattern, description in _DANGEROUS_JS_PATTERNS:
+        for pattern, description in DANGEROUS_JS_PATTERNS:
             if pattern.search(data):
                 logger.warning("Обнаружена опасная конструкция в initialState: %s", description)
                 return False, item_count
@@ -266,8 +289,13 @@ class FirmParser(MainParser):
     """
 
     @staticmethod
-    def url_pattern():
-        """URL-паттерн для парсера."""
+    def url_pattern() -> str:
+        """Возвращает URL-паттерн для парсера фирм.
+
+        Returns:
+            Regex паттерн для匹配 URL фирм 2GIS.
+
+        """
         return r"https?://2gis\.[^/]+(/[^/]+)?/firm/.*"
 
     def parse(self, writer: FileWriter) -> None:
@@ -276,73 +304,93 @@ class FirmParser(MainParser):
         Args:
             writer: Целевой файловый писатель.
 
+        Raises:
+            MemoryError: При нехватке памяти.
+
         """
-        # Переходим по URL с агрессивно ускоренным таймаутом для интенсивного парсинга
-        self._chrome_remote.navigate(self._url, referer="https://google.com", timeout=15)
-
-        # Документ загружен, получаем ответ
-        responses = self._chrome_remote.get_responses()
-        if not responses:
-            logger.error("Ошибка получения ответа сервера.")
-            return
-
-        # Безопасное получение первого ответа
         try:
-            document_response = responses[0]
-        except (IndexError, KeyError):
-            logger.error("Список ответов пуст или некорректен.")
-            return
+            # Переходим по URL с агрессивно ускоренным таймаутом для интенсивного парсинга
+            self._chrome_remote.navigate(self._url, referer="https://google.com", timeout=15)
 
-        # Обработка 404
-        if document_response.get("mimeType") != "text/html":
-            logger.error(
-                "Неверный тип MIME ответа: %s", document_response.get("mimeType", "неизвестно")
-            )
-            return
-
-        if document_response.get("status") == 404:
-            logger.warning('Сервер вернул сообщение "Организация не найдена".')
-
-            if self._options.skip_404_response:
+            # Документ загружен, получаем ответ
+            responses = self._chrome_remote.get_responses()
+            if not responses:
+                logger.error("Ошибка получения ответа сервера.")
                 return
 
-        # Ждём завершения всех запросов 2GIS
-        self._wait_requests_finished()
-
-        # Получаем ответ и собираем полезную нагрузку.
-        try:
-            initial_state = self._chrome_remote.execute_script("window.initialState")
-            if not initial_state:
-                logger.warning("Данные организации не найдены (initialState отсутствует).")
-                return
-            # D017: Дополнительная валидация window.initialState
-            if not isinstance(initial_state, dict):
-                logger.error("window.initialState не является словарём")
+            # Безопасное получение первого ответа
+            try:
+                document_response = responses[0]
+            except (IndexError, KeyError):
+                logger.error("Список ответов пуст или некорректен.")
                 return
 
-            # Используем новую функцию валидации вместо ручной проверки
-            required_keys = ["data", "entity", "profile"]
-            profile_data = _safe_extract_initial_state(initial_state, required_keys)
-
-            if not profile_data:
-                logger.warning("Данные организации не прошли валидацию.")
+            # ISSUE-129: Явная проверка mimeType на None
+            mime_type = document_response.get("mimeType")
+            if mime_type is None:
+                logger.error("MIME тип ответа отсутствует (None)")
                 return
 
-            # Извлекаем данные из валидированного профиля
-            data = list(profile_data.values())
-            if not data:
-                logger.warning("Данные организации не найдены (пустой профиль).")
+            if mime_type != "text/html":
+                logger.error(
+                    "Неверный тип MIME ответа: %s", document_response.get("mimeType", "неизвестно")
+                )
                 return
-            doc = data[0]
 
-            # D013: Санитизация строковых данных перед записью
-            if "data" in doc and isinstance(doc["data"], dict):
-                for key, value in doc["data"].items():
-                    if isinstance(value, str):
-                        doc["data"][key] = _sanitize_string_value(value)
-        except (KeyError, TypeError, AttributeError) as e:
-            logger.error("Ошибка при получении данных организации: %s", e)
-            return
+            if document_response.get("status") == 404:
+                logger.warning('Сервер вернул сообщение "Организация не найдена".')
 
-        # Записываем API документ в файл
-        writer.write({"result": {"items": [doc["data"]]}, "meta": doc.get("meta", {})})
+                if self._options.skip_404_response:
+                    return
+
+            # Ждём завершения всех запросов 2GIS
+            self._wait_requests_finished()
+
+            # Получаем ответ и собираем полезную нагрузку.
+            try:
+                initial_state = self._chrome_remote.execute_script("window.initialState")
+                if not initial_state:
+                    logger.warning("Данные организации не найдены (initialState отсутствует).")
+                    return
+                # D017: Дополнительная валидация window.initialState
+                if not isinstance(initial_state, dict):
+                    logger.error("window.initialState не является словарём")
+                    return
+
+                # Используем новую функцию валидации вместо ручной проверки
+                required_keys = ["data", "entity", "profile"]
+                profile_data = _safe_extract_initial_state(initial_state, required_keys)
+
+                if not profile_data:
+                    logger.warning("Данные организации не прошли валидацию.")
+                    return
+
+                # Извлекаем данные из валидированного профиля
+                data = list(profile_data.values())
+                if not data:
+                    logger.warning("Данные организации не найдены (пустой профиль).")
+                    return
+                doc = data[0]
+
+                # D013: Санитизация строковых данных перед записью
+                if "data" in doc and isinstance(doc["data"], dict):
+                    for key, value in doc["data"].items():
+                        if isinstance(value, str):
+                            doc["data"][key] = _sanitize_string_value(value)
+            except (KeyError, TypeError, AttributeError) as e:
+                logger.error("Ошибка при получении данных организации: %s", e)
+                return
+
+            # Записываем API документ в файл
+            writer.write({"result": {"items": [doc["data"]]}, "meta": doc.get("meta", {})})
+
+        except MemoryError as memory_error:
+            # ISSUE-128: Явная обработка MemoryError
+            logger.error("MemoryError при парсинге фирмы: %s", memory_error)
+            # Очищаем кэш и запускаем GC
+            if hasattr(self, "_cache"):
+                self._cache.clear()
+            import gc
+
+            gc.collect()
+            raise

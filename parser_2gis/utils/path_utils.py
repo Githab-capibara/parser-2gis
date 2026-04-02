@@ -16,7 +16,7 @@ import unicodedata
 import urllib.parse
 from pathlib import Path
 
-from parser_2gis.constants import FORBIDDEN_PATH_CHARS, MAX_PATH_LENGTH
+from parser_2gis.constants import FORBIDDEN_PATH_CHARS, MAX_PATH_LENGTH, MAX_URL_DECODE_ITERATIONS
 
 # Разрешённые базовые директории для записи
 # ОБОСНОВАНИЕ: Используем tempfile.gettempdir() вместо hardcoded /tmp для кроссплатформенности
@@ -62,6 +62,7 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
     4. Проверка нахождения в разрешённых директориях
     5. Проверка на абсолютный путь
     6. Проверка запрещённых директорий (/, /etc, /root, /home)
+    7. ISSUE-179: Проверка Unicode символов на недопустимые комбинации
 
     Args:
         path: Путь для валидации.
@@ -78,6 +79,17 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
     """
     if not path:
         raise ValueError(f"{path_name} не может быть пустым")
+
+    # ISSUE-179: Проверка Unicode символов на недопустимые комбинации
+    # Проверяем на наличие control characters и других опасных Unicode символов
+    for char in path:
+        category = unicodedata.category(char)
+        # Cc - control characters, Cf - format characters
+        if category in ("Cc", "Cf") and char not in ("\n", "\r", "\t"):
+            raise ValueError(
+                f"{path_name} содержит недопустимый Unicode символ: {char!r} "
+                f"(категория: {category}, код: U+{ord(char):04X})"
+            )
 
     # Проверка длины пути
     if len(path) > MAX_PATH_LENGTH:
@@ -193,24 +205,26 @@ def validate_path_traversal(file_path: str) -> Path:
     # Шаг 1: Многократное URL-decode до стабильного состояния
     # Это предотвращает атаки через двойное/тройное кодирование (%252e%252e -> %2e%2e -> ..)
     decoded_path = normalized_input
-    max_decode_iterations = 5  # Защита от бесконечного цикла
+    # ISSUE-181: Вынесение max_decode_iterations в константу
     decode_iteration = 0
 
-    while decode_iteration < max_decode_iterations:
+    # ISSUE-180: Оптимизация URL-decode - кэширование предыдущего значения
+    previous_path = None
+    while decode_iteration < MAX_URL_DECODE_ITERATIONS:
         previous_path = decoded_path
         try:
             decoded_path = urllib.parse.unquote(decoded_path)
         except (ValueError, TypeError, UnicodeDecodeError) as decode_error:
             raise ValueError(f"Некорректный путь к файлу: {file_path}") from decode_error
 
-        # Если строка не изменилась - выходим
+        # Если строка не изменилась - досрочный выход (оптимизация)
         if decoded_path == previous_path:
             break
 
         decode_iteration += 1
 
     # Проверка на бесконечное кодирование
-    if decode_iteration >= max_decode_iterations:
+    if decode_iteration >= MAX_URL_DECODE_ITERATIONS and decoded_path != previous_path:
         raise ValueError(
             f"Path traversal атака обнаружена: {file_path}. "
             "Обнаружено многократное URL-кодирование (возможная атака)"

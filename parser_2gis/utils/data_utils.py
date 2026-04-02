@@ -8,6 +8,8 @@ from __future__ import annotations
 import logging
 from typing import Any, TypeVar
 
+from parser_2gis.constants import MAX_DICT_RECURSION_DEPTH
+
 # =============================================================================
 # TYPE VARIABLES
 # =============================================================================
@@ -21,18 +23,6 @@ T = TypeVar("T")
 logger = logging.getLogger(__name__)
 
 
-def _get_logger() -> Any:
-    """Получает logger для модуля data_utils.
-
-    Returns:
-        Экземпляр logger из модуля logger.
-
-    """
-    from parser_2gis.logger import logger as app_logger
-
-    return app_logger
-
-
 # =============================================================================
 # ПРЕОБРАЗОВАНИЕ ДАННЫХ
 # =============================================================================
@@ -41,6 +31,7 @@ def _get_logger() -> Any:
 def unwrap_dot_dict(d: dict[str, Any]) -> dict[str, Any]:
     """Разворачивает плоский словарь с ключами в виде точечного пути к значениям.
 
+    ISSUE-175: Добавлено ограничение глубины рекурсии.
     Оптимизация: используется setdefault вместо functools.reduce.
 
     Example:
@@ -70,7 +61,7 @@ def unwrap_dot_dict(d: dict[str, Any]) -> dict[str, Any]:
 
     Raises:
         TypeError: Если входные данные не являются словарём.
-        ValueError: Если ключ содержит недопустимые символы.
+        ValueError: Если ключ содержит недопустимые символы или превышена глубина.
 
     Пример:
         >>> input_dict = {'a.b.c': 1, 'a.d': 2}
@@ -85,12 +76,22 @@ def unwrap_dot_dict(d: dict[str, Any]) -> dict[str, Any]:
     output: dict[str, Any] = {}
     for key, value in d.items():
         if not key:
-            _get_logger().warning("Пустой ключ в словаре, пропускаем")
+            logger.warning("Пустой ключ в словаре, пропускаем")
             continue
 
         path = key.split(".")
         if any(not p for p in path):
-            _get_logger().warning("Ключ '%s' содержит пустые сегменты, пропускаем", key)
+            logger.warning("Ключ '%s' содержит пустые сегменты, пропускаем", key)
+            continue
+
+        # ISSUE-175: Проверка глубины рекурсии
+        if len(path) > MAX_DICT_RECURSION_DEPTH:
+            logger.warning(
+                "Ключ '%s' превышает максимальную глубину вложенности (%d > %d), пропускаем",
+                key,
+                len(path),
+                MAX_DICT_RECURSION_DEPTH,
+            )
             continue
 
         # Оптимизация: используем setdefault вместо reduce
@@ -106,4 +107,4 @@ def unwrap_dot_dict(d: dict[str, Any]) -> dict[str, Any]:
 # ЭКСПОРТ
 # =============================================================================
 
-__all__ = ["_get_logger", "unwrap_dot_dict"]
+__all__ = ["unwrap_dot_dict"]

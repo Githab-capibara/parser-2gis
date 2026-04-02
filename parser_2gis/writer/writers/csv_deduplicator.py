@@ -41,15 +41,31 @@ class CSVDeduplicator:
     def _hash_row(self, row: str) -> str:
         """Вычисляет хеш строки с Unicode-нормализацией.
 
+        ISSUE-158: Добавлен docstring с описанием алгоритма хеширования.
+
+        Алгоритм хеширования:
+            1. Нормализация строки: удаление завершающих пробелов и newlines (\\r, \\n)
+            2. Unicode-нормализация NFKD (Normalization Form Compatibility Decomposition)
+               - Разлагает символы на базовые символы + диакритические знаки
+               - Обеспечивает корректное сравнение Unicode символов
+            3. Кодирование в UTF-8
+            4. Вычисление SHA256 хеша
+            5. Возврат в hex формате (64 символа)
+
         Args:
             row: Строка для хеширования.
 
         Returns:
-            SHA256 хеш строки в hex формате.
+            SHA256 хеш строки в hex формате (64 символа).
+
+        Raises:
+            UnicodeEncodeError: При ошибке кодирования строки в UTF-8.
+            TypeError: При некорректном типе входных данных.
 
         Примечание:
             - Unicode-нормализация NFKD для корректного сравнения
             - SHA256 для большей безопасности вместо MD5
+            - Время выполнения: O(n) где n - длина строки
 
         """
         # Нормализуем строку: удаляем завершающие пробелы и newlines
@@ -66,6 +82,8 @@ class CSVDeduplicator:
     def remove_duplicates(self) -> None:
         """Удаляет дубликаты из CSV файла.
 
+        ISSUE-160: Добавлена проверка на блокировку файла.
+
         Оптимизация:
         - mmap для больших файлов (>10MB) вместо обычной буферизации
         - Увеличенная буферизация чтения/записи (256KB)
@@ -73,6 +91,11 @@ class CSVDeduplicator:
         - Использование bytes для хеширования вместо str
         - Пакетная запись строк для снижения накладных расходов
         - Проверка размера файла и выбор оптимального метода чтения
+
+        Raises:
+            OSError: При ошибке доступа к файлу.
+            PermissionError: При отсутствии прав доступа к файлу.
+            IOError: При ошибке ввода-вывода.
 
         Примечание:
             Использует хеширование строк с Unicode-нормализацией для надёжного сравнения.
@@ -94,6 +117,11 @@ class CSVDeduplicator:
         if not os.path.exists(self._file_path):
             logger.error("Файл CSV не найден: %s", self._file_path)
             return
+
+        # ISSUE-160: Проверка на блокировку файла
+        if not self._is_file_accessible(self._file_path):
+            logger.error("Файл CSV заблокирован или недоступен: %s", self._file_path)
+            raise IOError(f"Файл {self._file_path} заблокирован или недоступен")
 
         try:
             optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
@@ -217,3 +245,45 @@ class CSVDeduplicator:
             if exc_info[0] is not None:
                 # Восстанавливаем оригинальное исключение
                 raise exc_info[1].with_traceback(exc_info[2])
+
+    def _is_file_accessible(self, file_path: str) -> bool:
+        """Проверяет доступность файла для чтения и записи.
+
+        ISSUE-160: Валидация на блокировку файла.
+
+        Args:
+            file_path: Путь к файлу для проверки.
+
+        Returns:
+            True если файл доступен для чтения и записи, False иначе.
+
+        Примечание:
+            - Проверяет существование файла
+            - Проверяет права доступа (чтение/запись)
+            - Пытается открыть файл в режиме чтения для проверки блокировки
+
+        """
+        try:
+            # Проверяем существование
+            if not os.path.exists(file_path):
+                return False
+
+            # Проверяем права доступа
+            if not os.access(file_path, os.R_OK | os.W_OK):
+                logger.warning("Файл %s недоступен для чтения/записи", file_path)
+                return False
+
+            # Пытаемся открыть файл для проверки на блокировку
+            with open(file_path, "rb"):
+                # Если файл открыт другим процессом с эксклюзивной блокировкой,
+                # это вызовет ошибку
+                pass
+
+            return True
+
+        except PermissionError as perm_error:
+            logger.error("Нет прав доступа к файлу %s: %s", file_path, perm_error)
+            return False
+        except OSError as os_error:
+            logger.error("OSError при проверке файла %s: %s", file_path, os_error)
+            return False

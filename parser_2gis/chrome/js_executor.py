@@ -49,8 +49,9 @@ _MIN_CODE_LENGTH_FOR_OBFUSCATION_CHECK = 100
 # СКОМПИЛИРОВАННЫЕ REGEX ПАТТЕРНЫ
 # =============================================================================
 
+# ISSUE-053: Переименовано из _DANGEROUS_JS_PATTERNS в DANGEROUS_JS_PATTERNS
 # Оптимизация: скомпилированные паттерны вместо компиляции при каждом вызове
-_DANGEROUS_JS_PATTERNS = [
+DANGEROUS_JS_PATTERNS = [
     (re.compile(r"\beval\s*\("), "eval() запрещён"),
     (re.compile(r"(?<![\w])Function\s*\("), "конструктор Function запрещён"),
     (re.compile(r'\bsetTimeout\s*\([^,]*,\s*["\']'), "setTimeout с строковым кодом запрещён"),
@@ -453,7 +454,7 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         - Проверка максимальной длины
         - Проверка типа данных
         - Таблица проверок безопасности (10 функций)
-        - Проверка на опасные паттерны из _DANGEROUS_JS_PATTERNS
+        - Проверка на опасные паттерны из DANGEROUS_JS_PATTERNS
         - Нормализация Unicode (NFKC) для предотвращения обходов через Unicode эскейпы
 
     """
@@ -515,7 +516,7 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
             return False, error or error_prefix
 
     # Проверка на опасные паттерны с использованием скомпилированных regex
-    for pattern, description in _DANGEROUS_JS_PATTERNS:
+    for pattern, description in DANGEROUS_JS_PATTERNS:
         if pattern.search(normalized_code):
             return False, f"Обнаружен опасный паттерн в JavaScript коде: {description}"
 

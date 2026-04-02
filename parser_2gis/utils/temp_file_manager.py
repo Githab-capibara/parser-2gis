@@ -23,32 +23,12 @@ import time
 import weakref
 from pathlib import Path
 
-from parser_2gis.constants import validate_env_int
+from parser_2gis.constants import (
+    MAX_TEMP_FILES_MONITORING,
+    ORPHANED_TEMP_FILE_AGE,
+    TEMP_FILE_CLEANUP_INTERVAL,
+)
 from parser_2gis.logger import logger
-
-# =============================================================================
-# КОНСТАНТЫ ДЛЯ ОЧИСТКИ ВРЕМЕННЫХ ФАЙЛОВ
-# =============================================================================
-
-# Интервал периодической очистки временных файлов в секундах (60 секунд)
-# Допустимый диапазон: 10-3600 секунд (10 минут)
-TEMP_FILE_CLEANUP_INTERVAL = validate_env_int(
-    "PARSER_TEMP_FILE_CLEANUP_INTERVAL", default=60, min_value=10, max_value=3600
-)
-
-# Максимальное количество временных файлов для мониторинга
-# Допустимый диапазон: 100-10000
-MAX_TEMP_FILES_MONITORING = validate_env_int(
-    "PARSER_MAX_TEMP_FILES_MONITORING", default=1000, min_value=100, max_value=10000
-)
-
-# Возраст временного файла в секундах, после которого он считается
-# осиротевшим (3600 секунд = 1 час)
-# Увеличено до 1 часа, чтобы файлы не удалялись во время длительного парсинга категорий
-# Допустимый диапазон: 60-86400 секунд (1 день)
-ORPHANED_TEMP_FILE_AGE = validate_env_int(
-    "PARSER_ORPHANED_TEMP_FILE_AGE", default=3600, min_value=60, max_value=86400
-)
 
 
 # =============================================================================
@@ -86,7 +66,8 @@ class TempFileManager:
 
         """
         self._registry: set[Path] = set()
-        self._lock = threading.RLock()
+        # ISSUE-098: Заменён RLock на Lock так как реентерабельность не требуется
+        self._lock = threading.Lock()
         self._max_files = max_files
         self._logger = logger
 
@@ -340,8 +321,8 @@ class TempFileTimer:
         self._timer: threading.Timer | None = None
         self._is_running = False
         self._stop_event = threading.Event()  # Событие для координации остановки
-        # RLock для предотвращения гонок данных
-        self._lock = threading.RLock()  # Блокировка для защиты общих данных
+        # ISSUE-098: Заменён RLock на Lock так как реентерабельность не требуется
+        self._lock = threading.Lock()
         self._cleanup_count = 0
         # weakref.finalize() для гарантированной очистки ресурсов
         self._weak_ref = weakref.ref(self)
@@ -361,18 +342,11 @@ class TempFileTimer:
         1. Объединение проверки _stop_event.is_set() и планирования в единую атомарную операцию
         2. Вызов _schedule_next_cleanup() внутри блокировки для предотвращения race condition
         """
-        # Проверяем флаг остановки ВНУТРИ блокировки для предотвращения гонки
+        # ISSUE-096: Используем context manager для Lock вместо ручного acquire/release
         should_stop = False
         try:
-            lock_acquired = self._lock.acquire(timeout=5.0)
-            if lock_acquired:
-                try:
-                    should_stop = self._stop_event.is_set()
-                finally:
-                    self._lock.release()
-            else:
-                logger.warning("Не удалось получить блокировку в _cleanup_callback")
-                should_stop = True
+            with self._lock:
+                should_stop = self._stop_event.is_set()
         except (RuntimeError, OSError) as lock_error:
             logger.debug("Ошибка при получении блокировки в _cleanup_callback: %s", lock_error)
             should_stop = True
@@ -393,17 +367,13 @@ class TempFileTimer:
         except BaseException as base_error:
             logger.error("Критическая ошибка в callback очистки: %s", base_error, exc_info=True)
         finally:
-            # Планируем следующую очистку ВНУТРИ блокировки
+            # ISSUE-096: Планируем следующую очистку ВНУТРИ блокировки с context manager
             should_schedule = False
             try:
-                lock_acquired = self._lock.acquire(timeout=5.0)
-                if lock_acquired:
-                    try:
-                        should_schedule = not self._stop_event.is_set()
-                        if should_schedule:
-                            self._schedule_next_cleanup()
-                    finally:
-                        self._lock.release()
+                with self._lock:
+                    should_schedule = not self._stop_event.is_set()
+                    if should_schedule:
+                        self._schedule_next_cleanup()
             except (RuntimeError, OSError):
                 should_schedule = False
 
@@ -509,25 +479,21 @@ class TempFileTimer:
 
     def start(self) -> None:
         """Запускает таймер периодической очистки."""
-        lock_acquired = False
+        # ISSUE-096: Используем context manager для Lock вместо ручного acquire/release
         try:
-            lock_acquired = self._lock.acquire(timeout=5.0)
-            if not lock_acquired:
-                logger.warning(
-                    "Не удалось получить блокировку в start() (таймаут 5 сек). "
-                    "Возможна конкуренция за ресурсы."
-                )
-                return
+            with self._lock:
+                if self._is_running:
+                    logger.warning("Таймер очистки уже запущен")
+                    return
 
-            if self._is_running:
-                logger.warning("Таймер очистки уже запущен")
-                return
-
-            self._is_running = True
-            self._stop_event.clear()
-        finally:
-            if lock_acquired:
-                self._lock.release()
+                self._is_running = True
+                self._stop_event.clear()
+        except (RuntimeError, OSError) as lock_error:
+            logger.warning(
+                "Не удалось получить блокировку в start(): %s. Возможна конкуренция за ресурсы.",
+                lock_error,
+            )
+            return
 
         self._schedule_next_cleanup()
         logger.info("Запущен таймер периодической очистки временных файлов")
@@ -536,25 +502,22 @@ class TempFileTimer:
         """Останавливает таймер периодической очистки."""
         self._stop_event.set()
 
-        lock_acquired = False
         timer_to_cancel: threading.Timer | None = None
+
+        # ISSUE-096: Используем context manager для Lock вместо ручного acquire/release
         try:
-            lock_acquired = self._lock.acquire(timeout=5.0)
-            if not lock_acquired:
-                logger.warning(
-                    "Не удалось получить блокировку в stop() (таймаут 5 сек). "
-                    "Возможна конкуренция за ресурсами."
-                )
-                return
+            with self._lock:
+                self._is_running = False
 
-            self._is_running = False
-
-            if self._timer is not None:
-                timer_to_cancel = self._timer
-                self._timer = None
-        finally:
-            if lock_acquired:
-                self._lock.release()
+                if self._timer is not None:
+                    timer_to_cancel = self._timer
+                    self._timer = None
+        except (RuntimeError, OSError) as lock_error:
+            logger.warning(
+                "Не удалось получить блокировку в stop(): %s. Возможна конкуренция за ресурсами.",
+                lock_error,
+            )
+            return
 
         if timer_to_cancel is not None:
             try:

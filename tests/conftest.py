@@ -108,7 +108,7 @@ def mock_executor() -> Generator[MagicMock, None, None]:
     # Гарантированная очистка ресурсов executor
     try:
         executor.shutdown(wait=True)
-    except Exception as shutdown_error:
+    except (RuntimeError, OSError, TimeoutError) as shutdown_error:
         # Логгируем ошибку shutdown для отладки
         import logging
 

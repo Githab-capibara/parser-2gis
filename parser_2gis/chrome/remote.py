@@ -169,10 +169,27 @@ def _validate_remote_port(port: Any) -> int:
 patch_all()
 
 
-class ChromeRemote:
-    """Обёртка для Chrome DevTools Protocol Interface."""
+class _ChromeRemoteRegistry:
+    """ISSUE-055: Класс для регистрации активных экземпляров ChromeRemote.
+
+    Обёрнуто глобальное состояние в класс вместо переменной класса.
+    """
 
     _active_instances: weakref.WeakSet[ChromeRemote] = weakref.WeakSet()
+
+    @classmethod
+    def register(cls, instance: ChromeRemote) -> None:
+        """Регистрирует экземпляр ChromeRemote."""
+        cls._active_instances.add(instance)
+
+    @classmethod
+    def get_active_count(cls) -> int:
+        """Возвращает количество активных экземпляров."""
+        return len(cls._active_instances)
+
+
+class ChromeRemote:
+    """Обёртка для Chrome DevTools Protocol Interface."""
 
     def __init__(self, chrome_options: ChromeOptions, response_patterns: list[str]) -> None:
         """Инициализирует ChromeRemote для управления браузером через CDP.
@@ -181,16 +198,41 @@ class ChromeRemote:
             chrome_options: Опции Chrome для настройки браузера.
             response_patterns: Паттерны для фильтрации сетевых ответов.
 
+        Raises:
+            ValueError: Если response_patterns некорректен.
+
         """
+        # ISSUE-102: Валидация response_patterns
+        if not isinstance(response_patterns, list):
+            raise ValueError(
+                f"response_patterns должен быть списком, получен {type(response_patterns).__name__}"
+            )
+
+        # ISSUE-103: Валидация на пустые паттерны
+        for idx, pattern in enumerate(response_patterns):
+            if not isinstance(pattern, str):
+                raise ValueError(
+                    f"response_patterns[{idx}] должен быть строкой, получен {type(pattern).__name__}"
+                )
+            if not pattern.strip():
+                raise ValueError(f"response_patterns[{idx}] не может быть пустой строкой")
+
         self._chrome_options: ChromeOptions = chrome_options
         self._chrome_browser: ChromeBrowser | None = None
         self._chrome_interface: pychrome.Browser | None = None
         self._chrome_tab: pychrome.Tab | None = None
         self._dev_url: str | None = None
         self._response_patterns: list[str] = response_patterns
+
+        # ISSUE-103: Проверка на пустые очереди после валидации
         self._response_queues: dict[str, queue.Queue[Response]] = {
             x: queue.Queue() for x in response_patterns
         }
+
+        # Дополнительная валидация что очереди не пустые
+        if not self._response_queues and response_patterns:
+            raise ValueError("Не удалось создать очереди для response_patterns")
+
         self._requests: dict[str, Request] = {}
         self._requests_lock = threading.RLock()
 
@@ -291,7 +333,7 @@ class ChromeRemote:
                             timeout=10,
                             verify=True,
                         )
-                except Exception as e:
+                except (OSError, RuntimeError, KeyError, AttributeError) as e:
                     app_logger.debug("Ошибка при очистке вкладки: %s", e)
                 finally:
                     self._chrome_tab = None
@@ -299,7 +341,7 @@ class ChromeRemote:
             if self._chrome_interface is not None:
                 self._chrome_interface = None
 
-        except Exception as e:
+        except (OSError, RuntimeError, AttributeError) as e:
             app_logger.warning("Непредвиденная ошибка при очистке ресурсов: %s", e)
 
     def _verify_connection(self) -> bool:
@@ -322,7 +364,7 @@ class ChromeRemote:
                 app_logger.warning("Проверка соединения вернула неожиданный результат: %s", result)
                 return False
 
-        except Exception as e:
+        except (OSError, RuntimeError, AttributeError, KeyError) as e:
             app_logger.warning("Ошибка при проверке соединения: %s", e)
             return False
 
@@ -372,7 +414,7 @@ class ChromeRemote:
             self._setup_tab()
             self._init_tab_monitor()
 
-        except Exception as e:
+        except (OSError, RuntimeError, ChromeException, TimeoutError) as e:
             app_logger.error("Ошибка запуска Chrome: %s", e)
             if self._chrome_browser:
                 app_logger.warning("Закрытие браузера из-за ошибки при запуске")
@@ -392,7 +434,7 @@ class ChromeRemote:
             """
             try:
                 tab.start()
-            except Exception as e:
+            except (OSError, RuntimeError, AttributeError) as e:
                 result["error"] = e
 
         thread = threading.Thread(target=start_target, daemon=True)

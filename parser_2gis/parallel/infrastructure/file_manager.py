@@ -223,8 +223,6 @@ class FileManager:
                                 "Удаление осиротевшего lock файла (возраст: %.0f сек)", lock_age
                             )
                             lock_file_path.unlink()
-                        except OSError as e:
-                            logger.debug("Ошибка проверки lock файла: %s", e)
                     else:
                         logger.warning(
                             "Lock файл существует (возраст: %.0f сек), ожидаем...", lock_age

@@ -19,83 +19,102 @@ from parser_2gis.constants import MAX_COLLECTION_SIZE, MAX_DATA_DEPTH, MAX_DATA_
 logger = logging.getLogger(__name__)
 
 
-def _get_logger() -> Any:
-    """Получает logger для модуля sanitizers.
-
-    Returns:
-        Экземпляр logger из модуля logger.
-
-    """
-    from parser_2gis.logger import logger as app_logger
-
-    return app_logger
-
-
 # =============================================================================
 # ПРОВЕРКА ЧУВСТВИТЕЛЬНЫХ КЛЮЧЕЙ
 # =============================================================================
 
-# Набор чувствительных ключей для фильтрации данных
+# Чувствительные ключи сгруппированы по категориям для лучшей организации
+# и поддержки списка
+
+# Пароли и аутентификация
+_SENSITIVE_KEYS_PASSWORDS: frozenset[str] = frozenset(
+    {
+        "password",
+        "passwd",
+        "pwd",
+        "root_password",
+        "admin_password",
+        "db_password",
+        "database_password",
+    }
+)
+
+# Токены доступа и сессии
+_SENSITIVE_KEYS_TOKENS: frozenset[str] = frozenset(
+    {
+        "token",
+        "api_key",
+        "apikey",
+        "api-key",
+        "access_token",
+        "refresh_token",
+        "session_id",
+        "session_token",
+        "auth_token",
+        "bearer_token",
+        "accesskey",
+        "access-key",
+        "secret_token",
+    }
+)
+
+# Секретные ключи и криптография
+_SENSITIVE_KEYS_SECRETS: frozenset[str] = frozenset(
+    {
+        "secret",
+        "secret_key",
+        "secretkey",
+        "api_secret",
+        "apisecret",
+        "api-secret",
+        "private_key",
+        "privatekey",
+        "private-key",
+        "signing_key",
+        "encryption_key",
+        "master_key",
+        "client_secret",
+    }
+)
+
+# Аутентификация и авторизация
+_SENSITIVE_KEYS_AUTH: frozenset[str] = frozenset(
+    {"auth", "authorization", "credential", "bearer", "jwt", "oauth", "oauth_token"}
+)
+
+# Ключи доступа к сервисам
+_SENSITIVE_KEYS_SERVICE_KEYS: frozenset[str] = frozenset(
+    {
+        "client_id",
+        "github_token",
+        "gitlab_token",
+        "ssh_key",
+        "sshkey",
+        "ssh-private-key",
+        "gpg_key",
+        "pgp_key",
+    }
+)
+
+# Сертификаты и SSL
+_SENSITIVE_KEYS_CERTIFICATES: frozenset[str] = frozenset(
+    {"certificate", "cert_key", "ssl_key", "tls_key"}
+)
+
+# Подключения к базам данных
+_SENSITIVE_KEYS_DATABASE: frozenset[str] = frozenset({"connection_string", "conn_string"})
+
+# Объединённый набор всех чувствительных ключей
 # БЕЗОПАСНОСТЬ: Расширенный список для предотвращения утечки чувствительных данных
-_SENSITIVE_KEYS: set[str] = {
-    "password",
-    "passwd",
-    "pwd",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "api-key",
-    "auth",
-    "authorization",
-    "credential",
-    "private_key",
-    "access_token",
-    "refresh_token",
-    "session_id",
-    "session_token",
-    # Дополнительные чувствительные ключи
-    "secret_key",
-    "secretkey",
-    "private-key",
-    "privatekey",
-    "client_secret",
-    "client_id",
-    "bearer",
-    "jwt",
-    "oauth",
-    "oauth_token",
-    "access-key",
-    "accesskey",
-    "signing_key",
-    "encryption_key",
-    "master_key",
-    "root_password",
-    "admin_password",
-    "db_password",
-    "database_password",
-    "connection_string",
-    "conn_string",
-    # Добавленные ключи для полноты
-    "api_secret",
-    "apisecret",
-    "api-secret",
-    "access_key",
-    "secret_token",
-    "auth_token",
-    "bearer_token",
-    "github_token",
-    "gitlab_token",
-    "ssh_key",
-    "sshkey",
-    "ssh-private-key",
-    "gpg_key",
-    "pgp_key",
-    "certificate",
-    "cert_key",
-    "ssl_key",
-    "tls_key",
-}
+_SENSITIVE_KEYS: frozenset[str] = (
+    _SENSITIVE_KEYS_PASSWORDS
+    | _SENSITIVE_KEYS_TOKENS
+    | _SENSITIVE_KEYS_SECRETS
+    | _SENSITIVE_KEYS_AUTH
+    | _SENSITIVE_KEYS_SERVICE_KEYS
+    | _SENSITIVE_KEYS_CERTIFICATES
+    | _SENSITIVE_KEYS_DATABASE
+)
 
 # Компилированный regex паттерн для проверки чувствительных ключей
 _SENSITIVE_KEY_PATTERN = re.compile(

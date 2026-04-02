@@ -67,6 +67,14 @@ class AppState(TypedDict, total=False):
 StateValue = Union[list[str], bool, int, str, list[str]]
 
 
+# =============================================================================
+# КОНСТАНТЫ ПРИЛОЖЕНИЯ
+# =============================================================================
+
+# Максимальный размер буфера логов для предотвращения утечки памяти
+MAX_LOG_BUFFER_SIZE: int = 1000
+
+
 class TUIApp(App):
     """Главное приложение TUI Parser2GIS на Textual.
 
@@ -243,7 +251,19 @@ class TUIApp(App):
         self._cleanup_in_progress: bool = False  # Флаг для предотвращения повторной очистки
 
     def _load_config(self) -> Configuration:
-        """Загрузить конфигурацию."""
+        """Загружает конфигурацию приложения.
+
+        Формат конфигурации:
+            Конфигурация загружается через Configuration.load_config() и содержит:
+            - chrome: Настройки браузера Chrome (headless, disable_images, и т.д.)
+            - parser: Настройки парсера (max_retries, timeout, и т.д.)
+            - parallel: Настройки параллельного парсинга (max_workers, и т.д.)
+            - output: Настройки вывода (format, output_dir, и т.д.)
+
+        Returns:
+            Объект Configuration с загруженными настройками.
+
+        """
         return Configuration.load_config()
 
     def _init_state(self) -> dict[str, Any]:
@@ -265,9 +285,6 @@ class TUIApp(App):
             "current_record": 0,
             "_parsing_logs": [],  # Буфер логов парсинга с ограничением размера
         }
-
-    # Максимальный размер буфера логов для предотвращения утечки памяти
-    _MAX_LOG_BUFFER_SIZE: int = 1000
 
     def _clear_state(self) -> None:
         """Очистить состояние приложения для освобождения памяти."""
@@ -365,15 +382,24 @@ class TUIApp(App):
         """Обновить состояние приложения.
 
         P1-10: Типизация kwargs для лучшей типобезопасности.
+
+        Args:
+            **kwargs: Ключ-значение для обновления состояния.
+
+        Note:
+            Для ключа "_parsing_logs" применяется ограничение размера буфера
+            до MAX_LOG_BUFFER_SIZE записей для предотвращения утечки памяти.
+
         """
-        for key, value in kwargs.items():
-            if key in self._state:
-                self._state[key] = value  # type: ignore[literal-required]
-            # Ограничиваем буфер логов для предотвращения утечки памяти
-            if key == "_parsing_logs" and isinstance(value, list):
-                if len(value) > self._MAX_LOG_BUFFER_SIZE:
-                    # Оставляем только последние записи
-                    self._state[key] = value[-self._MAX_LOG_BUFFER_SIZE:]  # type: ignore[literal-required]
+        # Обновляем только существующие ключи
+        valid_updates = {k: v for k, v in kwargs.items() if k in self._state}
+        self._state.update(valid_updates)  # type: ignore[misc]
+
+        # Ограничиваем буфер логов для предотвращения утечки памяти
+        if "_parsing_logs" in self._state and isinstance(self._state["_parsing_logs"], list):
+            logs = self._state["_parsing_logs"]
+            if len(logs) > MAX_LOG_BUFFER_SIZE:
+                self._state["_parsing_logs"] = logs[-MAX_LOG_BUFFER_SIZE:]
 
     def get_state(self, key: str) -> Any:
         """Получить значение из состояния."""

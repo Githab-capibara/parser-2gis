@@ -7,9 +7,9 @@
 from __future__ import annotations
 
 import base64
-import functools
 import os
 import pathlib
+from functools import lru_cache
 
 from parser_2gis.constants import FORBIDDEN_PATH_CHARS
 
@@ -17,16 +17,31 @@ from parser_2gis.constants import FORBIDDEN_PATH_CHARS
 def _is_relative_to(path: pathlib.Path, other: pathlib.Path) -> bool:
     """Проверяет, является ли путь относительным к другому пути.
 
-    Универсальная реализация для совместимости с Python <3.9 и >=3.9.
-    В Python 3.9+ используется встроенный метод is_relative_to().
-    В Python <3.9 используется os.path.realpath() + проверка префикса.
+    Универсальная реализация для обеспечения совместимости с Python <3.9 и >=3.9.
+
+    Совместимость:
+        - Python 3.9+: Используется встроенный метод pathlib.Path.is_relative_to()
+        - Python <3.9: Используется os.path.realpath() + проверка префикса пути
 
     Args:
         path: Путь для проверки.
-        other: Базовый путь.
+        other: Базовый путь для сравнения.
 
     Returns:
-        True если path находится внутри other, False иначе.
+        True если path находится внутри other или совпадает с ним, False иначе.
+
+    Note:
+        Функция обрабатывает оба случая: когда path совпадает с other
+        и когда path является вложенным путём внутри other.
+
+    Example:
+        >>> from pathlib import Path
+        >>> _is_relative_to(Path("/foo/bar"), Path("/foo"))
+        True
+        >>> _is_relative_to(Path("/foo"), Path("/foo"))
+        True
+        >>> _is_relative_to(Path("/bar"), Path("/foo"))
+        False
 
     """
     try:
@@ -93,10 +108,14 @@ def user_path(is_config: bool = True) -> pathlib.Path:
     return pathlib.Path(path)
 
 
-@functools.lru_cache
+@lru_cache(maxsize=256)
 def image_path(basename: str, ext: str | None = None) -> str:
     """Получает путь к изображению `basename`.`ext`.
     Расширение игнорируется, если `ext` установлен в `None`.
+
+    Кэширование:
+        Использует lru_cache(maxsize=256) для кэширования путей к часто
+        используемым изображениям, что снижает количество обращений к файловой системе.
 
     Args:
         basename: Базовое имя изображения.
@@ -167,7 +186,7 @@ def image_path(basename: str, ext: str | None = None) -> str:
     raise FileNotFoundError(f"Изображение {basename} не найдено")
 
 
-@functools.lru_cache
+@lru_cache
 def image_data(basename: str, ext: str | None = None) -> bytes:
     """Получает данные изображения `basename`.`ext`.
     Расширение игнорируется, если `ext` установлен в `None`.
@@ -193,7 +212,7 @@ def image_data(basename: str, ext: str | None = None) -> bytes:
         raise
 
 
-@functools.lru_cache
+@lru_cache
 def cache_path() -> pathlib.Path:
     """Получает путь к директории кэша для Linux Ubuntu.
 

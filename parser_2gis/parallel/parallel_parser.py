@@ -29,10 +29,8 @@ from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass
 from pathlib import Path
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING, TextIO, cast
+from typing import TYPE_CHECKING, TextIO, TypeAlias, cast
 from collections.abc import Callable
-
-from typing import TypeAlias
 
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
@@ -248,9 +246,9 @@ class ParallelCityParser:
 
         # Статистика (все операции защищены _lock)
         self._stats = {"total": 0, "success": 0, "failed": 0, "skipped": 0}
-        # HIGH 13: Используем Lock вместо RLock где не нужна реентерабельность
-        # Lock более производительный и предотвращает случайные реентерабельные вызовы
-        self._lock = threading.Lock()
+        # HIGH 13: Используем RLock для реентерабельности
+        # RLock позволяет одному потоку повторно захватывать блокировку
+        self._lock = threading.RLock()
 
         # Флаг отмены
         self._cancel_event = threading.Event()
@@ -591,8 +589,11 @@ class ParallelCityParser:
                                     # Освобождаем кэш если есть
                                     if hasattr(parser, "_cache"):
                                         parser._cache.clear()
-                                    # Принудительный GC
-                                    gc.collect()
+                                    # Принудительный GC через memory_manager
+                                    if hasattr(self, "_memory_manager"):
+                                        self._memory_manager.force_gc()
+                                    else:
+                                        gc.collect()
                                     raise
                                 finally:
                                     # C003: Проверка существования writer перед закрытием
@@ -620,8 +621,11 @@ class ParallelCityParser:
                             f"Не удалось удалить временный файл {temp_filename}: {cleanup_error}",
                             "warning",
                         )
-                    # Принудительный GC
-                    gc.collect()
+                    # Принудительный GC через memory_manager
+                    if hasattr(self, "_memory_manager"):
+                        self._memory_manager.force_gc()
+                    else:
+                        gc.collect()
                     with self._lock:
                         self._stats["failed"] += 1
                     return False, f"MemoryError: {memory_error}"
@@ -666,9 +670,7 @@ class ParallelCityParser:
             except (OSError, RuntimeError, TypeError, ValueError) as replace_error:
                 error_type = type(replace_error).__name__
                 self.log(
-                    "Не удалось переименовать файл (%s): %s. Используем shutil.move",
-                    error_type,
-                    replace_error,
+                    f"Не удалось переименовать файл ({error_type}): {replace_error}. Используем shutil.move.",
                     level="debug",
                 )
                 try:
@@ -677,7 +679,7 @@ class ParallelCityParser:
                 except (OSError, RuntimeError, TypeError, ValueError) as move_error:
                     self.log(
                         f"Не удалось переместить временный файл {temp_filename}: {move_error}",
-                        "error",
+                        level="error",
                     )
                     try:
                         if temp_filepath.exists():
@@ -806,7 +808,7 @@ class ParallelCityParser:
         last_underscore_idx = stem.rfind("_")
 
         if last_underscore_idx > 0:
-            return stem[last_underscore_idx + 1:].replace("_", " ")
+            return stem[last_underscore_idx + 1 :].replace("_", " ")
 
         category = stem.replace("_", " ")
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
@@ -844,29 +846,20 @@ class ParallelCityParser:
                             os.kill(lock_pid, 0)
                             # Процесс существует - это не осиротевший lock
                             self.log(
-                                "Lock файл существует (возраст: %.0f сек, PID: %d), ожидаем...",
-                                lock_age,
-                                lock_pid,
-                                level="warning",
+                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем..."
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             # Процесс не существует - это осиротевший lock
                             self.log(
-                                "Удаление осиротевшего lock файла (возраст: %.0f сек, PID: %d)",
-                                lock_age,
-                                lock_pid,
-                                level="debug",
+                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек, PID: {lock_pid})"
                             )
                             lock_file_path.unlink()
-                        except OSError as e:
-                            self.log(f"Ошибка проверки lock файла: {e}", "debug")
                     else:
                         self.log(
-                            f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...",
-                            "warning",
+                            "Lock файл существует (возраст: %.0f сек), ожидаем...", level="warning"
                         )
                 except OSError as e:
-                    self.log(f"Ошибка проверки lock файла: {e}", "debug")
+                    self.log(f"Ошибка проверки lock файла: {e}", level="debug")
 
             # CRITICAL 3: Атомарное создание lock файла через O_CREAT | O_EXCL
             start_time = time.time()

@@ -23,22 +23,32 @@ logger = logging.getLogger(__name__)
 def get_cache_stats() -> dict[str, Any]:
     """Возвращает статистику по всем кэшам lru_cache.
 
-    - Мониторинг hit/miss ratio для оптимизации размеров кэшей
-    - Помогает выявить узкие места производительности
-    - Возвращает информацию о размере, попаданиях и промахах
+    ISSUE-174: Добавлено подробное описание формата возвращаемого словаря.
+
+    Мониторинг hit/miss ratio для оптимизации размеров кэшей.
+    Помогает выявить узкие места производительности.
 
     Returns:
         Словарь со статистикой по каждому кэшу:
         {
-            '_validate_city_cached': CacheInfo(hits=..., misses=..., maxsize=..., currsize=...),
-            '_validate_category_cached': CacheInfo(...),
-            'url_query_encode': CacheInfo(...),
+            "_validate_city_cached": CacheInfo(
+                hits=100,      # Количество попаданий в кэш
+                misses=5,      # Количество промахов кэша
+                maxsize=256,   # Максимальный размер кэша
+                currsize=5     # Текущий размер кэша
+            ),
+            "_validate_category_cached": CacheInfo(...),
+            "url_query_encode": CacheInfo(...),
         }
+
+        CacheInfo - именованный кортеж с полями: hits, misses, maxsize, currsize
 
     Example:
         >>> stats = get_cache_stats()
-        >>> print(stats['_validate_city_cached'])
+        >>> print(stats["_validate_city_cached"])
         CacheInfo(hits=100, misses=5, maxsize=256, currsize=5)
+        >>> info = stats["url_query_encode"]
+        >>> hit_ratio = info.hits / (info.hits + info.misses) if (info.hits + info.misses) > 0 else 0
 
     """
     from .url_utils import _url_query_encode

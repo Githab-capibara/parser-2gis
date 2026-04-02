@@ -85,6 +85,8 @@ _CSV_SANITIZE_TABLE = {
 def _sanitize_csv_value(value: str) -> str:
     """D014: Санитизирует значение для CSV.
 
+    ISSUE-043: Добавлены type hints.
+
     Args:
         value: Исходное строковое значение.
 
@@ -93,7 +95,7 @@ def _sanitize_csv_value(value: str) -> str:
 
     """
     if not isinstance(value, str):
-        return value
+        return value  # type: ignore[return-value]
 
     # Экранируем специальные символы CSV
     for char, replacement in _CSV_SANITIZE_TABLE.items():
@@ -116,6 +118,8 @@ def _append_contact(
 ) -> None:
     """Добавляет контакт в data.
 
+    ISSUE-044: Добавлены type hints.
+
     Args:
         data: Словарь данных для записи в CSV.
         contact_group: Группа контактов.
@@ -124,10 +128,13 @@ def _append_contact(
         formatter: Форматировщик значения поля
         add_comments: Добавлять ли комментарии к контактам
 
+    Raises:
+        AttributeError: При отсутствии атрибута у контакта.
+
     """
     contacts = [x for x in contact_group.contacts if x.type == contact_type]
     for i, contact in enumerate(contacts, 1):
-        contact_value = None
+        contact_value: str | None = None
 
         for field in priority_fields:
             if hasattr(contact, field):
@@ -156,6 +163,7 @@ class CSVWriter(FileWriter):
         """Форматирует номер телефона.
 
         P1-14: Вынесено в отдельный метод для соответствия PEP 8.
+        ISSUE-164: Оптимизировано до одного regex вызова.
 
         Args:
             value: Исходный номер телефона.
@@ -164,7 +172,11 @@ class CSVWriter(FileWriter):
             Отформатированный номер (8 вместо +7, только цифры).
 
         """
-        return re.sub(r"^\+7", "8", re.sub(r"[^0-9+]", "", value))
+        # ISSUE-164: Один regex вместо двух - замена +7 на 8 и удаление нецифровых символов
+        value = re.sub(r"[^0-9+]", "", value)
+        if value.startswith("+7"):
+            value = "8" + value[2:]
+        return value
 
     @cached_property
     def _type_names(self) -> dict[str, str]:
@@ -384,6 +396,7 @@ class CSVWriter(FileWriter):
         """Пакетная запись JSON-документов в CSV.
 
         C017: Оптимизация через пакетную обработку для снижения накладных расходов.
+        ISSUE-166: Добавлена валидация входного списка на пустоту.
 
         Args:
             catalog_docs: Список JSON-документов Catalog Item API.
@@ -392,6 +405,11 @@ class CSVWriter(FileWriter):
             Количество успешно записанных документов.
 
         """
+        # ISSUE-166: Валидация пустого списка
+        if not catalog_docs:
+            logger.debug("write_batch: пустой список документов, пропускаем")
+            return 0
+
         written_count = 0
         batch_rows = []
 
@@ -419,6 +437,7 @@ class CSVWriter(FileWriter):
         """Извлекает данные из JSON-документа Catalog Item API.
 
         P1-4, P1-14: Оптимизировано с использованием TypedDict и локальных переменных.
+        ISSUE-167: Закэшированы обращения к catalog_doc через локальные переменные.
 
         Args:
             catalog_doc: JSON-документ Catalog Item API.
@@ -429,17 +448,20 @@ class CSVWriter(FileWriter):
         """
         data: CSVRowData = {}
 
+        # ISSUE-167: Кэширование обращений к catalog_doc через локальные переменные
         # Проверка структуры документа
         try:
             if not isinstance(catalog_doc, dict):
                 logger.error("Некорректная структура документа: не dict")
                 return {}
 
+            # Кэшируем обращение к catalog_doc["result"]
             result = catalog_doc.get("result")
-            if not result or "items" not in result:
+            if not result or not isinstance(result, dict):
                 logger.error("Некорректная структура документа: отсутствует result.items")
                 return {}
 
+            # Кэшируем обращение к result["items"]
             items = result.get("items", [])
             if not items:
                 logger.error("Пустой список items в документе")

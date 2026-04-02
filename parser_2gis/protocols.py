@@ -72,6 +72,8 @@ class LoggerProtocol(Protocol):
 class ProgressCallback(Protocol):
     """Protocol для callback прогресса параллельного парсинга.
 
+    ISSUE-112, ISSUE-113: Добавлены полные type hints.
+
     Вызывается при обновлении прогресса выполнения парсинга.
 
     Example:
@@ -90,6 +92,11 @@ class ProgressCallback(Protocol):
             filename: Имя текущего файла.
 
         """
+
+
+# ISSUE-112: Type alias для Callable с полными type hints
+ProgressCallbackType: TypeAlias = Callable[[int, int, str], None]
+"""Type alias для callback прогресса с полными type hints."""
 
 
 @runtime_checkable
@@ -349,6 +356,106 @@ class ThreadCoordinatorProtocol(Protocol):
         """Возвращает статистику."""
 
 
+@runtime_checkable
+class PathValidatorProtocol(Protocol):
+    """Protocol для валидатора путей.
+
+    ISSUE-034: Абстракция для валидации путей и предотвращения path traversal атак.
+
+    Example:
+        >>> validator: PathValidatorProtocol = PathValidator()
+        >>> validator.validate("/safe/path/file.txt", "output_path")
+
+    """
+
+    def validate(self, path: str, path_name: str = "Путь") -> None:
+        """Валидирует путь на безопасность.
+
+        Args:
+            path: Путь для валидации.
+            path_name: Имя параметра для сообщений об ошибках.
+
+        Raises:
+            ValueError: При обнаружении небезопасного пути.
+            OSError: При ошибке работы с файловой системой.
+
+        """
+
+    def validate_multiple(self, paths: dict[str, str]) -> None:
+        """Валидирует несколько путей одновременно.
+
+        Args:
+            paths: Словарь {имя_пути: значение_пути}.
+
+        Raises:
+            ValueError: При обнаружении небезопасного пути.
+            OSError: При ошибке работы с файловой системой.
+
+        """
+
+
+@runtime_checkable
+class MemoryManagerProtocol(Protocol):
+    """Protocol для менеджера памяти.
+
+    ISSUE-019: Абстракция для управления памятью и мониторинга.
+
+    Example:
+        >>> manager: MemoryManagerProtocol = MemoryManager()
+        >>> if manager.is_memory_low():
+        ...     manager.force_gc()
+
+    """
+
+    def get_available_memory(self) -> int:
+        """Получает доступный объем памяти в байтах."""
+
+    def is_memory_low(self) -> bool:
+        """Проверяет, является ли доступная память низкой."""
+
+    def force_gc(self) -> int:
+        """Выполняет принудительный сбор мусора."""
+
+    def handle_memory_error(
+        self, error: MemoryError, context: str = "", cache_object: Any | None = None
+    ) -> None:
+        """Обрабатывает MemoryError."""
+
+    def get_memory_stats(self) -> dict[str, Any]:
+        """Получает статистику использования памяти."""
+
+
+@runtime_checkable
+class FileWriterProtocol(Protocol):
+    """Protocol для файлового писателя.
+
+    ISSUE-031: Общий интерфейс для всех файловых писателей (CSV, XLSX, JSON).
+
+    Example:
+        >>> writer: FileWriterProtocol = CSVWriter("output.csv", options)
+        >>> writer.write([{"name": "Item 1"}])
+        >>> writer.close()
+
+    """
+
+    def write(self, records: list[dict[str, Any]]) -> None:
+        """Записывает данные в файл.
+
+        Args:
+            records: Список записей для записи.
+
+        """
+
+    def close(self) -> None:
+        """Закрывает файл и освобождает ресурсы."""
+
+    def __enter__(self) -> "FileWriterProtocol":
+        """Контекстный менеджер для входа."""
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Контекстный менеджер для выхода."""
+
+
 __all__ = [
     # Callback Protocols
     "LoggerProtocol",
@@ -377,4 +484,10 @@ __all__ = [
     "ProgressReporterProtocol",
     "UrlGeneratorProtocol",
     "ThreadCoordinatorProtocol",
+    # Path Validation Protocol (ISSUE-034)
+    "PathValidatorProtocol",
+    # Memory Manager Protocol (ISSUE-019)
+    "MemoryManagerProtocol",
+    # File Writer Protocol (ISSUE-031)
+    "FileWriterProtocol",
 ]

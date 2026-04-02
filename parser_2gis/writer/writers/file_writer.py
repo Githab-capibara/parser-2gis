@@ -4,6 +4,8 @@
 - Валидация пути к файлу (Path traversal защита)
 - Проверка JSON-документов Catalog Item API
 - Управление файловыми ресурсами
+
+ISSUE-031: Реализует протокол FileWriterProtocol из protocols.py.
 """
 
 from __future__ import annotations
@@ -13,14 +15,19 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any
 
+from parser_2gis.constants import HTTP_STATUS_OK
 from parser_2gis.logger import logger
+from parser_2gis.protocols import FileWriterProtocol
 
 if TYPE_CHECKING:
     from parser_2gis.writer.options import WriterOptions
 
 
-class FileWriter(ABC):
-    """Базовый писатель."""
+class FileWriter(FileWriterProtocol, ABC):
+    """Базовый писатель.
+
+    ISSUE-031: Реализует протокол FileWriterProtocol.
+    """
 
     def __init__(self, file_path: str, writer_options: WriterOptions) -> None:
         # ИСПРАВЛЕНИЕ 13: Path traversal защита
@@ -106,6 +113,8 @@ class FileWriter(ABC):
     def _check_catalog_doc(self, catalog_doc: Any, verbose: bool = True) -> bool:
         """Проверяет JSON-документ Catalog Item API на ошибки.
 
+        ISSUE-168: Добавлено описание формата ошибки в meta.
+
         Args:
             catalog_doc: JSON-документ Catalog Item API.
             verbose: Сообщать ли об найденных ошибках.
@@ -113,6 +122,15 @@ class FileWriter(ABC):
         Returns:
             `True`, если документ прошёл все проверки.
             `False`, если в документе найдены ошибки.
+
+        Примечание:
+            Формат ошибки в meta:
+            {
+                "error": {
+                    "message": "Текст ошибки",
+                    "code": "Код ошибки (опционально)"
+                }
+            }
 
         """
         try:
@@ -140,7 +158,7 @@ class FileWriter(ABC):
                 return False
 
             # Проверка кода ответа
-            if meta.get("code") != 200:
+            if meta.get("code") != HTTP_STATUS_OK:
                 if verbose:
                     logger.error("Сервер вернул код ответа: %s", meta.get("code"))
                 return False

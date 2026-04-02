@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from parser_2gis.utils.path_utils import validate_path_traversal
@@ -45,6 +46,9 @@ def register_writer(format_name: str) -> callable:
     Returns:
         Декоратор для регистрации класса.
 
+    Raises:
+        ValueError: Если format_name пустой или содержит недопустимые символы.
+
     Example:
         >>> @register_writer("xml")
         ... class XMLWriter(FileWriter):
@@ -53,6 +57,17 @@ def register_writer(format_name: str) -> callable:
     """
 
     def decorator(cls: type[FileWriter]) -> type[FileWriter]:
+        # Валидация format_name
+        if not format_name or not format_name.strip():
+            raise ValueError("Название формата не может быть пустым")
+
+        # Проверка на допустимые символы (только буквы, цифры, дефис, подчёркивание)
+        if not re.match(r"^[a-zA-Z0-9_-]+$", format_name):
+            raise ValueError(
+                f"Название формата содержит недопустимые символы: {format_name}. "
+                "Разрешены только буквы, цифры, дефис и подчёркивание."
+            )
+
         WRITER_REGISTRY[format_name.lower()] = cls
         return cls
 

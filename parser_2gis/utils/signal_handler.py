@@ -47,7 +47,26 @@ class SignalHandler:
         self._registered = False
 
     def register(self) -> None:
-        """Регистрирует обработчики сигналов."""
+        """Регистрирует обработчики сигналов для graceful shutdown.
+
+        Обрабатываемые сигналы:
+            - signal.SIGINT (Ctrl+C): Прерывание работы от пользователя
+            - signal.SIGTERM: Сигнал завершения от системы
+
+        При получении сигнала:
+            1. Устанавливается флаг отмены (cancel_event)
+            2. Вызывается функция очистки ресурсов (cleanup_callback)
+            3. Логгируется предупреждение о получении сигнала
+
+        Note:
+            Повторный вызов метода не регистрирует обработчики повторно.
+
+        Example:
+            >>> handler = SignalHandler(cleanup_callback=lambda: print("Cleanup"))
+            >>> handler.register()
+            >>> # При получении SIGINT или SIGTERM будет вызвана cleanup_callback
+
+        """
         if self._registered:
             return
 

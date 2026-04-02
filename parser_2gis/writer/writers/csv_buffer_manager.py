@@ -82,6 +82,9 @@ def _open_file_with_mmap_support(
 ) -> tuple[io.TextIOWrapper | object, bool]:
     """Открывает файл с использованием mmap для больших файлов или обычной буферизации.
 
+    ISSUE-105: Добавлен fallback кодировки utf-8 по умолчанию.
+    ISSUE-156: Добавлена обработка PermissionError.
+
     Args:
         file_path: Путь к файлу.
         mode: Режим открытия файла ('r' для чтения, 'w' для записи).
@@ -97,6 +100,7 @@ def _open_file_with_mmap_support(
         OSError: При ошибке получения размера файла или открытия mmap.
         ValueError: При некорректных параметрах.
         FileNotFoundError: Если файл не существует и create_if_missing=False.
+        PermissionError: При отсутствии прав доступа к файлу.
 
     Примечание:
         - Для файлов >10MB используется mmap.mmap()
@@ -104,6 +108,11 @@ def _open_file_with_mmap_support(
         - Детальное логирование выбора метода чтения
 
     """
+    # ISSUE-105: Fallback кодировки на utf-8 если не указана
+    if encoding is None or not encoding.strip():
+        encoding = "utf-8"
+        logger.debug("Кодировка не указана, используется fallback: utf-8")
+
     # Создаём файл если он не существует и create_if_missing=True
     if create_if_missing and mode == "r":
         try:
@@ -111,6 +120,9 @@ def _open_file_with_mmap_support(
                 # Создаём пустой файл
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write("")
+        except PermissionError as perm_error:
+            logger.error("Нет прав доступа для создания файла %s: %s", file_path, perm_error)
+            raise
         except OSError as create_error:
             logger.warning("Не удалось создать файл %s: %s.", file_path, create_error)
             raise
@@ -118,6 +130,9 @@ def _open_file_with_mmap_support(
     try:
         # Получаем размер файла
         file_size = os.path.getsize(file_path)
+    except PermissionError as perm_error:
+        logger.error("Нет прав доступа к файлу %s: %s", file_path, perm_error)
+        raise
     except OSError as size_error:
         logger.warning(
             "Не удалось получить размер файла %s: %s. Используется обычная буферизация.",
@@ -147,6 +162,9 @@ def _open_file_with_mmap_support(
                 mmapped_file, encoding=encoding or "utf-8", errors="replace"
             )  # type: ignore[arg-type]
             return text_file, True
+        except PermissionError as perm_error:
+            logger.error("Нет прав доступа для mmap файла %s: %s", file_path, perm_error)
+            raise
         except OSError as mmap_error:
             logger.warning(
                 "Не удалось открыть mmap для файла %s: %s. Используется обычная буферизация.",
@@ -215,6 +233,8 @@ def mmap_file_context(
     Гарантирует закрытие всех ресурсов (mmap, файловый дескриптор, TextIOWrapper)
     даже при возникновении исключений.
 
+    ISSUE-157: Упрощена fallback логика через выделение метода.
+
     Args:
         file_path: Путь к файлу.
         mode: Режим открытия файла ('r' для чтения, 'w' для записи).
@@ -225,6 +245,10 @@ def mmap_file_context(
         - file_object: объект файла или TextIOWrapper обёрнутый mmap
         - is_mmap: True если используется mmap
         - underlying_fp: исходный файловый дескриптор (для закрытия)
+
+    Raises:
+        OSError: При ошибке доступа к файлу.
+        PermissionError: При отсутствии прав доступа к файлу.
 
     Example:
         >>> with mmap_file_context("large_file.csv") as (f, is_mmap, underlying_fp):
@@ -270,53 +294,65 @@ def mmap_file_context(
             fallback_file = open(file_path, mode, encoding=encoding)
             yield fallback_file, False, None
 
-    except OSError as mmap_error:
+    except (OSError, Exception) as error:
+        # ISSUE-157: Упрощённая fallback логика через выделение метода
         logger.warning(
             "Не удалось открыть mmap для файла %s: %s. Используется обычная буферизация.",
             file_path,
-            mmap_error,
+            error,
         )
+        # Закрываем ресурсы если они были открыты
+        _cleanup_mmap_resources(underlying_fp, mmapped_file)
         # Fallback на обычную буферизацию
-        if underlying_fp is not None and hasattr(underlying_fp, "close"):
-            underlying_fp.close()
-        if mmapped_file is not None:
-            mmapped_file.close()
         fallback_file = open(file_path, mode, encoding=encoding)
         try:
             yield fallback_file, False, None
         finally:
-            if hasattr(fallback_file, "close"):
-                fallback_file.close()
-    except Exception as unexpected_error:
-        logger.error(
-            "Непредвиденная ошибка при открытии mmap для файла %s: %s. "
-            "Используется обычная буферизация.",
-            file_path,
-            unexpected_error,
-        )
-        # Fallback на обычную буферизацию
-        if underlying_fp is not None and hasattr(underlying_fp, "close"):
-            underlying_fp.close()
-        if mmapped_file is not None:
-            mmapped_file.close()
-        fallback_file = open(file_path, mode, encoding=encoding)
-        try:
-            yield fallback_file, False, None
-        finally:
-            if hasattr(fallback_file, "close"):
-                fallback_file.close()
+            _close_file_safely(fallback_file)
+
     finally:
         # Закрываем все ресурсы если не было fallback
         if is_mmap_mode:
-            if text_file is not None and hasattr(text_file, "close"):
-                text_file.close()
-            if mmapped_file is not None:
-                mmapped_file.close()
-            if underlying_fp is not None and hasattr(underlying_fp, "close"):
-                underlying_fp.close()
-        elif fallback_file is None and hasattr(text_file, "close"):
-            # Если не было fallback и text_file ещё открыт
-            text_file.close()
+            _cleanup_mmap_resources(underlying_fp, mmapped_file, text_file)
+
+
+def _cleanup_mmap_resources(
+    underlying_fp: object | None = None,
+    mmapped_file: mmap.mmap | None = None,  # type: ignore[mmap.mmap]
+    text_file: io.TextIOWrapper | None = None,
+) -> None:
+    """Закрывает mmap ресурсы.
+
+    ISSUE-157: Выделено для упрощения fallback логики.
+
+    Args:
+        underlying_fp: Исходный файловый дескриптор.
+        mmapped_file: mmap объект.
+        text_file: TextIOWrapper обёртка.
+
+    """
+    if text_file is not None and hasattr(text_file, "close"):
+        text_file.close()
+    if mmapped_file is not None:
+        mmapped_file.close()
+    if underlying_fp is not None and hasattr(underlying_fp, "close"):
+        underlying_fp.close()
+
+
+def _close_file_safely(file_obj: object | None) -> None:
+    """Безопасно закрывает файл.
+
+    ISSUE-157: Выделено для упрощения fallback логики.
+
+    Args:
+        file_obj: Объект файла для закрытия.
+
+    """
+    if file_obj is not None and hasattr(file_obj, "close"):
+        try:
+            file_obj.close()
+        except Exception as close_error:
+            logger.warning("Ошибка при закрытии файла: %s", close_error)
 
 
 def _calculate_optimal_buffer_size(
@@ -342,15 +378,32 @@ def _calculate_optimal_buffer_size(
         >>> _calculate_optimal_buffer_size(file_size_bytes=50_000_000)
         262144  # 256KB для файлов <=100MB
 
+    Raises:
+        ValueError: Если buffer_size некорректен.
+
     """
     # Проверяем переменную окружения для переопределения размера буфера
     env_buffer_size = os.getenv("PARSER_CSV_BUFFER_SIZE")
     if env_buffer_size is not None:
         try:
             custom_buffer = int(env_buffer_size)
-            if custom_buffer > 0:
-                logger.debug("Используется пользовательский размер буфера: %d байт", custom_buffer)
-                return custom_buffer
+            # ISSUE-117: Валидация buffer_size на разумность
+            if custom_buffer <= 0:
+                logger.warning(
+                    "Некорректное значение PARSER_CSV_BUFFER_SIZE=%d (<=0), используется дефолтное",
+                    custom_buffer,
+                )
+                return DEFAULT_BUFFER_SIZE
+            if custom_buffer > MAX_BUFFER_SIZE * 10:
+                logger.warning(
+                    "Некорректное значение PARSER_CSV_BUFFER_SIZE=%d (слишком большой), "
+                    "используется максимальное %d",
+                    custom_buffer,
+                    MAX_BUFFER_SIZE,
+                )
+                return MAX_BUFFER_SIZE
+            logger.debug("Используется пользовательский размер буфера: %d байт", custom_buffer)
+            return custom_buffer
         except ValueError:
             logger.warning("Некорректное значение PARSER_CSV_BUFFER_SIZE: %s", env_buffer_size)
 
@@ -402,6 +455,11 @@ def _safe_move_file(src: str, dst: str) -> bool:
         True если перемещение успешно, False иначе
 
     """
+    # ISSUE-117: Валидация путей
+    if not src or not dst:
+        logger.error("Пустой путь к файлу: src=%s, dst=%s", src, dst)
+        return False
+
     try:
         # Пытаемся атомарное перемещение
         shutil.move(src, dst)
@@ -418,14 +476,53 @@ def _safe_move_file(src: str, dst: str) -> bool:
                 os.remove(src)
                 logger.debug("Source файл удалён после move: %s", src)
             except OSError as remove_error:
+                # ISSUE-116: Обработка OSError при os.remove
                 logger.warning(
-                    "Не удалось удалить source файл %s после move: %s", src, remove_error
+                    "OSError при удалении source файла %s после move: %s", src, remove_error
                 )
 
         return True
 
+    except OSError as move_error:
+        # ISSUE-115: Обработка OSError при shutil.move
+        logger.warning(
+            "shutil.move не удался (OSError: %s), используем fallback copy+delete", move_error
+        )
+        try:
+            # Копируем файл с сохранением метаданных
+            shutil.copy2(src, dst)
+
+            # Проверяем что копия успешна
+            if os.path.exists(dst):
+                # Удаляем оригинал с обработкой OSError
+                try:
+                    os.remove(src)
+                    logger.info("Файл перемещён через fallback copy+delete: %s -> %s", src, dst)
+                    return True
+                except OSError as remove_error:
+                    # ISSUE-116: Обработка OSError при os.remove
+                    logger.error(
+                        "OSError при удалении оригинала %s после copy: %s", src, remove_error
+                    )
+                    return False
+            else:
+                logger.error("Fallback copy+delete не удался: файл %s не создан", dst)
+                return False
+
+        except OSError as fallback_error:
+            # ISSUE-115: Обработка OSError при shutil.copy2
+            logger.error("Fallback copy+delete не удался (OSError): %s", fallback_error)
+            return False
+        except Exception as fallback_error:
+            logger.error(
+                "Fallback copy+delete не удался: %s (%s)",
+                fallback_error,
+                type(fallback_error).__name__,
+            )
+            return False
+
     except Exception as move_error:
-        # Fallback на copy+delete
+        # Fallback на copy+delete для других исключений
         logger.warning(
             "shutil.move не удался (%s: %s), используем fallback copy+delete",
             type(move_error).__name__,
@@ -437,14 +534,23 @@ def _safe_move_file(src: str, dst: str) -> bool:
 
             # Проверяем что копия успешна
             if os.path.exists(dst):
-                # Удаляем оригинал
-                os.remove(src)
-                logger.info("Файл перемещён через fallback copy+delete: %s -> %s", src, dst)
-                return True
+                # Удаляем оригинал с обработкой OSError
+                try:
+                    os.remove(src)
+                    logger.info("Файл перемещён через fallback copy+delete: %s -> %s", src, dst)
+                    return True
+                except OSError as remove_error:
+                    logger.error(
+                        "OSError при удалении оригинала %s после copy: %s", src, remove_error
+                    )
+                    return False
             else:
                 logger.error("Fallback copy+delete не удался: файл %s не создан", dst)
                 return False
 
+        except OSError as fallback_error:
+            logger.error("Fallback copy+delete не удался (OSError): %s", fallback_error)
+            return False
         except Exception as fallback_error:
             logger.error(
                 "Fallback copy+delete не удался: %s (%s)",

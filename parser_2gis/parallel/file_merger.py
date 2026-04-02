@@ -307,7 +307,7 @@ class FileMergerStrategy:
         last_underscore_idx = stem.rfind("_")
 
         if last_underscore_idx > 0:
-            return stem[last_underscore_idx + 1:].replace("_", " ")
+            return stem[last_underscore_idx + 1 :].replace("_", " ")
 
         category = stem.replace("_", " ")
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
@@ -340,29 +340,20 @@ class FileMergerStrategy:
                             os.kill(lock_pid, 0)
                             # Процесс существует - это не осиротевший lock
                             self.log(
-                                "Lock файл существует (возраст: %.0f сек, PID: %d), ожидаем...",
-                                lock_age,
-                                lock_pid,
-                                level="warning",
+                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем..."
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             # Процесс не существует - это осиротевший lock
                             self.log(
-                                "Удаление осиротевшего lock файла (возраст: %.0f сек, PID: %d)",
-                                lock_age,
-                                lock_pid,
-                                level="debug",
+                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек, PID: {lock_pid})"
                             )
                             lock_file_path.unlink()
-                        except OSError as e:
-                            self.log(f"Ошибка проверки lock файла: {e}", "debug")
                     else:
                         self.log(
-                            f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...",
-                            "warning",
+                            "Lock файл существует (возраст: %.0f сек), ожидаем...", level="warning"
                         )
                 except OSError as e:
-                    self.log(f"Ошибка проверки lock файла: {e}", "debug")
+                    self.log(f"Ошибка проверки lock файла: {e}")
 
             # Атомарное создание lock файла через O_CREAT | O_EXCL
             start_time = time.time()

@@ -70,7 +70,8 @@ class JsonSerializer:
             '{"key":"value"}'
 
         """
-        if self.use_orjson and orjson is not None:
+        # ISSUE-104: Убрана избыточная проверка orjson is not None
+        if _USE_ORJSON:
             # orjson возвращает bytes, декодируем в строку
             try:
                 return orjson.dumps(data).decode("utf-8")
@@ -122,7 +123,8 @@ class JsonSerializer:
 
         """
         try:
-            if self.use_orjson and orjson is not None:
+            # ISSUE-104: Убрана избыточная проверка orjson is not None
+            if _USE_ORJSON:
                 deserialized = orjson.loads(data, option=orjson.OPT_NON_STR_KEYS)  # type: ignore
             else:
                 deserialized = json.loads(data)
@@ -178,18 +180,21 @@ class JsonSerializer:
             ) from unicode_error
 
         except MemoryError as json_error:
-            # Обрабатываем все остальные исключения десериализации с сохранением цепочки
-            if orjson is not None:
+            # ISSUE-093, ISSUE-095: Упрощённая обработка ошибок без избыточных try/except
+            # ISSUE-104: Убрана избыточная проверка orjson is not None
+            if _USE_ORJSON:
+                # Проверяем, это orjson.JSONDecodeError
                 try:
-                    # Проверяем, это orjson.JSONDecodeError
                     if isinstance(json_error, orjson.JSONDecodeError):  # type: ignore
                         raise ValueError(
                             f"Критическая ошибка десериализации orjson: {json_error}. "
                             f"Длина данных: {len(data)}, "
                             f"Содержимое: {data[:200]}..."
                         ) from json_error
-                except (AttributeError, TypeError) as e:
-                    app_logger.warning("Ошибка проверки orjson: %s", e)
+                except (AttributeError, TypeError):
+                    # orjson.JSONDecodeError недоступен, используем стандартную обработку
+                    pass
+
             # Стандартная обработка JSON ошибок
             raise ValueError(
                 f"Критическая ошибка десериализации: {json_error}. Длина данных: {len(data)}"

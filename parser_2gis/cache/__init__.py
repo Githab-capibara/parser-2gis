@@ -26,7 +26,7 @@ from ..constants import (
     validate_env_int,
 )
 from .manager import Cache, CacheManager
-from .pool import _PSUTIL_AVAILABLE, ConnectionPool, _calculate_dynamic_pool_size
+from .pool import PSUTIL_AVAILABLE, ConnectionPool, _calculate_dynamic_pool_size
 from .serializer import JsonSerializer, _deserialize_json, _serialize_json
 from .validator import (
     CacheDataValidator,
@@ -63,7 +63,7 @@ __all__ = [
     "MAX_STRING_LENGTH",  # Для обратной совместимости с тестами
     "MIN_POOL_SIZE",
     "SHA256_HASH_LENGTH",
-    "_PSUTIL_AVAILABLE",
+    "PSUTIL_AVAILABLE",
     "Cache",
     "CacheDataValidator",
     "CacheManager",

@@ -3,6 +3,8 @@
 Содержит класс PathValidator для валидации путей и предотвращения
 path traversal атак.
 
+ISSUE-034: Реализует протокол PathValidatorProtocol из protocols.py.
+
 Пример использования:
     >>> from parser_2gis.validation.path_validator import PathValidator, validate_path
     >>> validator = PathValidator()
@@ -17,12 +19,15 @@ import tempfile
 from pathlib import Path
 
 from parser_2gis.constants import MAX_PATH_LENGTH
+from parser_2gis.protocols import PathValidatorProtocol
 
 logger = logging.getLogger(__name__)
 
 
-class PathValidator:
+class PathValidator(PathValidatorProtocol):
     """Валидатор путей для предотвращения path traversal атак.
+
+    ISSUE-034: Реализует протокол PathValidatorProtocol.
 
     Класс инкапсулирует логику валидации путей, обеспечивая:
     - Проверку на запрещённые символы

@@ -14,18 +14,20 @@ import pathlib
 import psutil
 from pydantic import BaseModel, PositiveInt
 
+from parser_2gis.constants import MEMORY_FRACTION_FOR_V8
 from parser_2gis.utils import floor_to_hundreds
 
 
 def default_memory_limit() -> int:
-    """Лимит памяти по умолчанию для V8 — 0.75 от общей физической памяти в МБ.
+    """Лимит памяти по умолчанию для V8 — MEMORY_FRACTION_FOR_V8 от общей физической памяти в МБ.
 
     Returns:
         Лимит памяти в мегабайтах, округлённый вниз до ближайшей сотни.
 
     """
     memory_total = psutil.virtual_memory().total / 1024**2  # Конвертируем в МБ
-    return floor_to_hundreds(round(0.75 * memory_total))
+    # ISSUE-038: Вынесено магическое число 0.75 в константу MEMORY_FRACTION_FOR_V8
+    return floor_to_hundreds(round(MEMORY_FRACTION_FOR_V8 * memory_total))
 
 
 class ChromeOptions(BaseModel):

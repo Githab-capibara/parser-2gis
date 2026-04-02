@@ -30,16 +30,28 @@ class InBuildingParser(MainParser):
     """
 
     @staticmethod
-    def url_pattern():
-        """URL-паттерн для парсера."""
+    def url_pattern() -> str:
+        """Возвращает URL-паттерн для парсера вкладок "В здании".
+
+        Returns:
+            Regex паттерн для匹配 URL вкладок "В здании" 2GIS.
+
+        """
         return r"https?://2gis\.[^/]+/[^/]+/inside/.*"
 
     @wait_until_finished(timeout=1.5, throw_exception=False, poll_interval=0.01)
-    def _get_links(self) -> list[DOMNode] | None:
+    def _get_links(self, timeout: float = 1.5) -> list[DOMNode] | None:
         """Извлекает конкретные ссылки узлов DOM из текущего снимка DOM.
+
+        Args:
+            timeout: Таймаут ожидания завершения операции в секундах (по умолчанию 1.5).
 
         Returns:
             Список DOM-узлов ссылок или None при ошибке.
+
+        Примечание:
+            Функция валидирует каждую ссылку и проверяет соответствие паттерну
+            /<city_id>/firm/<firm_id>.
 
         """
 

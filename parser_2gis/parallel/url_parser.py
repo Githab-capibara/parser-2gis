@@ -3,6 +3,8 @@
 Этот модуль предоставляет класс ParallelUrlParser для генерации и парсинга URL
 с использованием нескольких потоков.
 
+ISSUE-027: Реализует протокол UrlGeneratorProtocol из protocols.py.
+
 Оптимизации:
 - Буферизация при работе с CSV файлами
 - Улучшенная обработка прогресса
@@ -24,6 +26,7 @@ from collections.abc import Callable
 from parser_2gis.constants import DEFAULT_TIMEOUT, MAX_UNIQUE_NAME_ATTEMPTS
 from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger.logger import logger
+from parser_2gis.protocols import UrlGeneratorProtocol
 from parser_2gis.utils.url_utils import generate_category_url
 
 if TYPE_CHECKING:
@@ -31,8 +34,10 @@ if TYPE_CHECKING:
     from parser_2gis.parser import BaseParser
 
 
-class ParallelUrlParser:
+class ParallelUrlParser(UrlGeneratorProtocol):
     """Парсер URL для параллельного парсинга городов.
+
+    ISSUE-027: Реализует протокол UrlGeneratorProtocol.
 
     Отвечает за:
     - Генерацию всех URL для парсинга
@@ -58,6 +63,8 @@ class ParallelUrlParser:
     ) -> None:
         """Инициализирует парсер URL.
 
+        ISSUE-106, ISSUE-107: Добавлена валидация cities и categories на пустой список.
+
         Args:
             cities: Список городов для парсинга.
             categories: Список категорий для парсинга.
@@ -65,7 +72,22 @@ class ParallelUrlParser:
             config: Конфигурация парсера.
             timeout_per_url: Таймаут на один URL в секундах.
 
+        Raises:
+            ValueError: Если cities или categories пустой.
+
         """
+        # ISSUE-106: Валидация cities на пустой список
+        if not cities:
+            raise ValueError("cities не может быть пустым списком")
+        if not isinstance(cities, list):
+            raise TypeError(f"cities должен быть списком, получен {type(cities).__name__}")
+
+        # ISSUE-107: Валидация categories на пустой список
+        if not categories:
+            raise ValueError("categories не может быть пустым списком")
+        if not isinstance(categories, list):
+            raise TypeError(f"categories должен быть списком, получен {type(categories).__name__}")
+
         self.cities = cities
         self.categories = categories
         self.output_dir = output_dir
@@ -300,8 +322,11 @@ class ParallelUrlParser:
                             # Освобождаем кэш если есть
                             if hasattr(parser, "_cache"):
                                 parser._cache.clear()
-                            # Принудительный GC
-                            gc.collect()
+                            # Принудительный GC через memory_manager
+                            if hasattr(self, "_memory_manager"):
+                                self._memory_manager.force_gc()
+                            else:
+                                gc.collect()
                             raise
                         finally:
                             logger.debug("Завершена очистка ресурсов парсера")
@@ -312,7 +337,11 @@ class ParallelUrlParser:
                 )
                 browser_semaphore.release()
                 self._cleanup_temp_file(temp_filepath)
-                gc.collect()
+                # Принудительный GC через memory_manager
+                if hasattr(self, "_memory_manager"):
+                    self._memory_manager.force_gc()
+                else:
+                    gc.collect()
                 with self._lock:
                     self._stats["failed"] += 1
                 return False, f"MemoryError: {memory_error}"

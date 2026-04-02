@@ -13,6 +13,11 @@ from __future__ import annotations
 from pydantic import BaseModel, NonNegativeInt, PositiveInt
 
 from parser_2gis.chrome.options import default_memory_limit
+from parser_2gis.constants import (
+    MAX_RECORDS_BASE_OFFSET,
+    MAX_RECORDS_MEMORY_COEFFICIENT,
+    MAX_RECORDS_MEMORY_DIVISOR,
+)
 from parser_2gis.utils import floor_to_hundreds
 
 
@@ -24,7 +29,13 @@ def default_max_records() -> int:
     if memory_limit <= 0:
         return 100
 
-    max_records = floor_to_hundreds((550 * memory_limit / 1024 - 400))
+    # ISSUE-039: Вынесены магические числа в константы
+    max_records = floor_to_hundreds(
+        (
+            MAX_RECORDS_MEMORY_COEFFICIENT * memory_limit / MAX_RECORDS_MEMORY_DIVISOR
+            - MAX_RECORDS_BASE_OFFSET
+        )
+    )
 
     # Гарантируем положительное значение
     return max(100, max_records)

@@ -51,11 +51,8 @@ class EnvConfig:
 
     """
 
-    _logger: logging.Logger = field(
-        default_factory=lambda: logging.getLogger("parser_2gis.constants.env_config"),
-        repr=False,
-        init=False,
-    )
+    # Поля инициализируются в __post_init__
+    _logger: logging.Logger = field(init=False, repr=False)
 
     def _validate_env_int(
         self,
@@ -115,8 +112,8 @@ class EnvConfig:
     max_workers: int = field(init=False)
     max_timeout: int = field(init=False)
     default_timeout: int = field(init=False)
-    min_workers: int = field(init=False, default=1)
-    min_timeout: int = field(init=False, default=1)
+    min_workers: int = field(init=False)
+    min_timeout: int = field(init=False)
 
     # Connection Pool
     max_pool_size: int = field(init=False)
@@ -128,7 +125,7 @@ class EnvConfig:
     max_cache_size_mb: int = field(init=False)
 
     # Временные файлы
-    max_temp_files: int = field(init=False, default=1000)
+    max_temp_files: int = field(init=False)
     max_temp_files_monitoring: int = field(init=False)
     temp_file_cleanup_interval: int = field(init=False)
     orphaned_temp_file_age: int = field(init=False)
@@ -139,6 +136,14 @@ class EnvConfig:
 
     def __post_init__(self) -> None:
         """Инициализация полей после создания объекта."""
+        # Инициализация logger
+        object.__setattr__(self, "_logger", logging.getLogger("parser_2gis.constants.env_config"))
+
+        # Инициализация полей со значениями по умолчанию
+        object.__setattr__(self, "min_workers", 1)
+        object.__setattr__(self, "min_timeout", 1)
+        object.__setattr__(self, "max_temp_files", 1000)
+
         # Параллельный парсинг
         object.__setattr__(
             self, "max_workers", self._validate_env_int("PARSER_MAX_WORKERS", 50, 1, 100)
@@ -208,11 +213,10 @@ class EnvConfig:
 
 
 # =============================================================================
-# LAZY ИНИЦИАЛИЗАЦИЯ ENV CONFIG (SINGLETON PATTERN)
+# LAZY ИНИЦИАЛИЗАЦИЯ ENV CONFIG (SINGLETON PATTERN БЕЗ ГЛОБАЛЬНОГО СОСТОЯНИЯ)
 # =============================================================================
-
-# Глобальная переменная для хранения singleton экземпляра
-_env_config_instance: EnvConfig | None = None
+# ISSUE-010: Устранено глобальное состояние _env_config_instance
+# Используем замыкание для хранения singleton экземпляра
 
 
 def get_env_config() -> EnvConfig:
@@ -220,6 +224,8 @@ def get_env_config() -> EnvConfig:
 
     EnvConfig создаётся только при первом вызове функции, а не при импорте модуля.
     Это предотвращает лишние вычисления при импорте и ускоряет запуск модуля.
+
+    ISSUE-010: Устранено глобальное состояние через использование замыкания.
 
     Returns:
         Singleton экземпляр EnvConfig.
@@ -229,16 +235,18 @@ def get_env_config() -> EnvConfig:
         >>> print(config.max_workers)  # 50 (или значение из PARSER_MAX_WORKERS)
 
     """
-    global _env_config_instance
-    if _env_config_instance is None:
-        _env_config_instance = EnvConfig()
-    return _env_config_instance
+    # ISSUE-010: Singleton через замыкание вместо глобальной переменной
+    # Переменная _instance видна только внутри функции, не загрязняя глобальное пространство
+    if not hasattr(get_env_config, "_instance"):
+        get_env_config._instance = EnvConfig()  # type: ignore[attr-defined]
+    return get_env_config._instance  # type: ignore[attr-defined]
 
 
 # Для обратной совместимости используем __getattr__ для ленивой инициализации
 def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
     """Ленивая инициализация констант для устранения global singleton (A034).
 
+    ISSUE-010: Устранено глобальное состояние _env_config_instance.
     Константы, зависящие от ENV переменных, создаются только при первом обращении.
     Это предотвращает инициализацию global state при импорте модуля.
     """
@@ -298,6 +306,14 @@ def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
     if name == "MAX_PATH_LENGTH":
         return 4096
 
+    # Безопасность initialState (firm_parser.py)
+    if name == "MAX_INITIAL_STATE_DEPTH":
+        return 10
+    if name == "MAX_INITIAL_STATE_SIZE":
+        return 5 * 1024 * 1024  # 5MB
+    if name == "MAX_ITEMS_IN_COLLECTION":
+        return 10000
+
     # Кэширование
     if name == "DEFAULT_BATCH_SIZE":
         return 100
@@ -307,6 +323,10 @@ def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
         return 100
     if name == "SHA256_HASH_LENGTH":
         return 64
+    if name == "EXTRACTOR_CACHE_MAX_SIZE":
+        return 2048
+    if name == "CACHE_EVICTION_PERCENT":
+        return 10
 
     # Параллельный парсинг
     if name == "MAX_TEMP_FILES":
@@ -319,8 +339,18 @@ def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
         return 131072
     if name == "CSV_BATCH_SIZE":
         return 1000
+    if name == "CSV_COLUMNS_PER_ENTITY":
+        return 5
     if name == "MERGE_BATCH_SIZE":
         return 500
+    if name == "LARGE_FILE_THRESHOLD_MB":
+        return 100
+    if name == "LARGE_FILE_BUFFER_MULTIPLIER":
+        return 4
+    if name == "MAX_BUFFER_SIZE":
+        return 1048576
+    if name == "MMAP_THRESHOLD_BYTES":
+        return 10 * 1024 * 1024
 
     # Валидация городов
     if name == "MAX_CITIES_FILE_SIZE":
@@ -360,6 +390,18 @@ def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
     if name == "EXPONENTIAL_BACKOFF_MULTIPLIER":
         return 2
 
+    # HTTP статус коды
+    if name == "HTTP_STATUS_OK":
+        return 200
+
+    # Безопасность путей - максимальная глубина декодирования
+    if name == "MAX_URL_DECODE_ITERATIONS":
+        return 5
+
+    # Максимальная глубина рекурсии для unwrap_dot_dict
+    if name == "MAX_DICT_RECURSION_DEPTH":
+        return 10
+
     # Прогресс
     if name == "PROGRESS_UPDATE_INTERVAL":
         return 3
@@ -371,6 +413,22 @@ def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
     # Таймауты и задержки
     if name == "DEFAULT_SLEEP_TIME":
         return 0.1
+
+    # Парсер - лимиты
+    if name == "MAX_VISITED_LINKS_SIZE":
+        return 10000  # Максимальное количество посещённых ссылок в памяти
+    if name == "MEMORY_FRACTION_FOR_V8":
+        return 0.75  # Доля памяти для V8 (75%)
+    if name == "MAX_RECORDS_MEMORY_COEFFICIENT":
+        return 550  # Коэффициент для расчёта max_records
+    if name == "MAX_RECORDS_MEMORY_DIVISOR":
+        return 1024  # Делитель для расчёта max_records
+    if name == "MAX_RECORDS_BASE_OFFSET":
+        return 400  # Базовое смещение для расчёта max_records
+
+    # ISSUE-152: Порог памяти для вызова gc.collect()
+    if name == "GC_MEMORY_THRESHOLD_MB":
+        return 100  # Вызывать GC только если доступно меньше 100 MB
 
     # Безопасность путей
     if name == "MAX_PATH_LENGTH_SAFE":
@@ -438,6 +496,10 @@ __all__: list[str] = [  # noqa: F822
     "MAX_DATA_SIZE",
     "MAX_COLLECTION_SIZE",
     "MAX_PATH_LENGTH",
+    # Безопасность initialState (firm_parser.py)
+    "MAX_INITIAL_STATE_DEPTH",
+    "MAX_INITIAL_STATE_SIZE",
+    "MAX_ITEMS_IN_COLLECTION",
     # Кэширование
     "DEFAULT_BATCH_SIZE",
     "MAX_CONNECTION_AGE",
@@ -465,6 +527,7 @@ __all__: list[str] = [  # noqa: F822
     "DEFAULT_BUFFER_SIZE",
     "MERGE_BUFFER_SIZE",
     "CSV_BATCH_SIZE",
+    "CSV_COLUMNS_PER_ENTITY",
     "MERGE_BATCH_SIZE",
     # Валидация городов
     "MAX_CITIES_FILE_SIZE",
@@ -485,12 +548,25 @@ __all__: list[str] = [  # noqa: F822
     "DEFAULT_POLL_INTERVAL",
     "MAX_POLL_INTERVAL",
     "EXPONENTIAL_BACKOFF_MULTIPLIER",
+    # HTTP статус коды
+    "HTTP_STATUS_OK",
+    # Безопасность путей
+    "MAX_URL_DECODE_ITERATIONS",
+    "MAX_DICT_RECURSION_DEPTH",
     # Прогресс
     "PROGRESS_UPDATE_INTERVAL",
     # Уникальные имена файлов
     "MAX_UNIQUE_NAME_ATTEMPTS",
     # Таймауты и задержки
     "DEFAULT_SLEEP_TIME",
+    # Парсер - лимиты
+    "MAX_VISITED_LINKS_SIZE",
+    "MEMORY_FRACTION_FOR_V8",
+    "MAX_RECORDS_MEMORY_COEFFICIENT",
+    "MAX_RECORDS_MEMORY_DIVISOR",
+    "MAX_RECORDS_BASE_OFFSET",
+    # ISSUE-152: Порог памяти для вызова gc.collect()
+    "GC_MEMORY_THRESHOLD_MB",
     # Безопасность путей
     "MAX_PATH_LENGTH_SAFE",
     "FORBIDDEN_PATH_CHARS",

@@ -19,18 +19,33 @@ if TYPE_CHECKING:
 
     from .options import LogOptions
 
-# H018: Флаг для однократной установки уровня urllib3
-_urllib3_level_set: bool = False
+
+class _ThirdPartyLoggingState:
+    """H018: Класс для управления состоянием логирования сторонних библиотек.
+
+    ISSUE-054: Обёрнуто глобальное состояние в класс вместо модульной переменной.
+    """
+
+    _urllib3_level_set: bool = False
+
+    @classmethod
+    def is_urllib3_level_set(cls) -> bool:
+        """Проверяет установлен ли уровень для urllib3."""
+        return cls._urllib3_level_set
+
+    @classmethod
+    def set_urllib3_level_set(cls) -> None:
+        """Устанавливает флаг urllib3 уровня."""
+        cls._urllib3_level_set = True
 
 
 def _setup_third_party_logging_once() -> None:
     """H018: Устанавливает уровень логирования для сторонних библиотек один раз."""
-    global _urllib3_level_set
-    if not _urllib3_level_set:
+    if not _ThirdPartyLoggingState.is_urllib3_level_set():
         logging.getLogger("urllib3").setLevel(logging.ERROR)
         logging.getLogger("pychrome").setLevel(logging.ERROR)
         warnings.filterwarnings(action="ignore", module="pychrome")
-        _urllib3_level_set = True
+        _ThirdPartyLoggingState.set_urllib3_level_set()
 
 
 # H018: Выполняем один раз при импорте модуля

@@ -54,15 +54,15 @@ class CursorProtocol(Protocol):
 
     def execute(self, query: str, params: tuple = ...) -> Any:
         """Выполняет SQL запрос."""
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     def fetchone(self) -> tuple | None:
         """Возвращает одну строку результата."""
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     def close(self) -> None:
         """Закрывает курсор."""
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
 
 class ConnectionProtocol(Protocol):
@@ -70,19 +70,19 @@ class ConnectionProtocol(Protocol):
 
     def cursor(self) -> Any:
         """Создаёт курсор."""
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     def commit(self) -> None:
         """Фиксирует транзакцию."""
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     def rollback(self) -> None:
         """Откатывает транзакцию."""
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     def execute(self, query: str, params: tuple = ...) -> Any:
         """Выполняет SQL запрос."""
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
 
 # =============================================================================

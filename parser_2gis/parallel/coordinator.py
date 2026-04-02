@@ -49,22 +49,61 @@ if TYPE_CHECKING:
     from parser_2gis.config import Configuration
 
 
-# Глобальная переменная для отслеживания активного координатора
-_active_coordinator: ParallelCoordinator | None = None  # noqa: E0602
+# =============================================================================
+# SIGNAL HANDLING (ISSUE-009: Устранено глобальное состояние)
+# =============================================================================
+# ISSUE-009: Вместо глобальной переменной _active_coordinator используем
+# класс-менеджер для хранения состояния координатора
+
+
+class CoordinatorContext:
+    """Контекстный менеджер для хранения активного координатора.
+
+    ISSUE-009: Устраняет глобальное состояние _active_coordinator через
+    использование контекстного менеджера с thread-local хранением.
+    """
+
+    def __init__(self) -> None:
+        """Инициализирует контекстный менеджер."""
+        self._local = threading.local()
+
+    def set_coordinator(self, coordinator: "ParallelCoordinator | None") -> None:
+        """Устанавливает активный координатор для текущего потока.
+
+        Args:
+            coordinator: Координатор или None для очистки.
+
+        """
+        self._local.active_coordinator = coordinator
+
+    def get_coordinator(self) -> "ParallelCoordinator | None":
+        """Получает активный координатор для текущего потока.
+
+        Returns:
+            Активный координатор или None.
+
+        """
+        return getattr(self._local, "active_coordinator", None)
+
+
+# Глобальный экземпляр контекста (не изменяемое состояние, а контейнер)
+_coordinator_context = CoordinatorContext()
 
 
 def _signal_handler(signum: int, frame) -> None:
     """Глобальный обработчик сигналов SIGINT (Ctrl+C).
+
+    ISSUE-009: Использует CoordinatorContext вместо глобальной переменной.
 
     Args:
         signum: Номер сигнала.
         frame: Текущий фрейм.
 
     """
-    global _active_coordinator  # noqa: PLW0602 - используется для установки координатора
-    if _active_coordinator is not None:
+    coordinator = _coordinator_context.get_coordinator()
+    if coordinator is not None:
         logger.warning("Получен сигнал прерывания (SIGINT), остановка парсинга...")
-        _active_coordinator.stop()
+        coordinator.stop()
 
 
 class ParallelCoordinator:
@@ -192,7 +231,8 @@ class ParallelCoordinator:
         self.timeout_per_url = timeout_per_url
 
         self._stats = {"total": 0, "success": 0, "failed": 0, "skipped": 0}
-        self._lock = threading.RLock()
+        # ISSUE-098: Заменён RLock на Lock так как реентерабельность не требуется
+        self._lock = threading.Lock()
         self._cancel_event = threading.Event()
         self._stop_event = threading.Event()
         self._browser_launch_semaphore = BoundedSemaphore(max_workers + 20)
@@ -245,6 +285,7 @@ class ParallelCoordinator:
         """Валидирует входные данные с использованием централизованных функций валидации.
 
         H6: Централизация валидации в validation/data_validator.py
+        ISSUE-110, ISSUE-111: Дополнительная валидация на разумность.
         """
         # Валидация городов
         validate_cities_config(cities, "cities")
@@ -261,6 +302,26 @@ class ParallelCoordinator:
             min_timeout=MIN_TIMEOUT,
             max_timeout=MAX_TIMEOUT,
         )
+
+        # ISSUE-110: Дополнительная проверка max_workers на разумность
+        if max_workers < 1:
+            raise ValueError(f"max_workers должен быть >= 1, получено {max_workers}")
+        if max_workers > 100:
+            logger.warning(
+                "max_workers=%d может быть слишком большим для стабильной работы. "
+                "Рекомендуется не более 50 потоков.",
+                max_workers,
+            )
+
+        # ISSUE-111: Дополнительная проверка timeout_per_url на разумность
+        if timeout_per_url < 1:
+            raise ValueError(f"timeout_per_url должен быть >= 1, получено {timeout_per_url}")
+        if timeout_per_url > 3600:
+            logger.warning(
+                "timeout_per_url=%d секунд может быть слишком большим. "
+                "Рекомендуется не более 600 секунд.",
+                timeout_per_url,
+            )
 
         # Валидация output_dir
         if not output_dir:
@@ -350,11 +411,7 @@ class ParallelCoordinator:
     ) -> tuple[bool, str]:
         """Реализация парсинга одного URL."""
         self.log(
-            "Начало парсинга: %s - %s (временный файл: %s)",
-            city_name,
-            category_name,
-            temp_filepath.name,
-            level="info",
+            f"Начало парсинга: {category_name} - {city_name} (временный файл: {temp_filepath.name})"
         )
 
         # H003: Задержка ТОЛЬКО если use_delays=True
@@ -415,7 +472,8 @@ class ParallelCoordinator:
                     # Используем shutil.move вместо Path.rename() для кроссплатформенности
                     shutil.move(str(temp_filepath), str(filepath))
                     self.log(
-                        f"Временный файл перемещён: {temp_filepath.name} → {filepath.name}", "debug"
+                        f"Временный файл перемещён: {temp_filepath.name} → {filepath.name}",
+                        level="debug",
                     )
                     rename_success = True
                     break
@@ -423,19 +481,12 @@ class ParallelCoordinator:
                 except OSError as move_error:
                     if rename_attempt < max_rename_attempts - 1:
                         self.log(
-                            "Попытка %d/%d не удалась: %s. Повтор...",
-                            rename_attempt + 1,
-                            max_rename_attempts,
-                            move_error,
-                            level="warning",
+                            f"Попытка {rename_attempt + 1}/{max_rename_attempts} не удалась: {move_error}. Повтор..."
                         )
                         time.sleep(0.1 * (rename_attempt + 1))  # Экспоненциальная задержка
                     else:
                         self.log(
-                            "Не удалось переместить временный файл %s: %s",
-                            temp_filepath.name,
-                            move_error,
-                            level="error",
+                            f"Не удалось переместить временный файл {temp_filepath.name}: {move_error}"
                         )
                         self._error_handler._cleanup_temp_file(temp_filepath)
                         raise move_error
@@ -443,7 +494,7 @@ class ParallelCoordinator:
             if not rename_success:
                 return False, "Не удалось переименовать файл"
 
-            self.log(f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info")
+            self.log(f"Завершён парсинг: {city_name} - {category_name} → {filepath}", level="info")
 
             with self._lock:
                 self._stats["success"] += 1
@@ -550,12 +601,26 @@ class ParallelCoordinator:
         progress_callback: Callable[[int, int, str], None] | None = None,
         merge_callback: Callable[[str], None] | None = None,
     ) -> bool:
-        """Запускает параллельный парсинг всех городов и категорий."""
-        global _active_coordinator
+        """Запускает параллельный парсинг всех городов и категорий.
+
+        ISSUE-009: Использует CoordinatorContext вместо глобальной переменной.
+        ISSUE-114: Добавлена проверка progress_callback на callable.
+        """
+        # ISSUE-114: Проверка progress_callback на callable
+        if progress_callback is not None and not callable(progress_callback):
+            raise TypeError(
+                f"progress_callback должен быть callable, получен {type(progress_callback).__name__}"
+            )
+
+        # Проверка merge_callback на callable
+        if merge_callback is not None and not callable(merge_callback):
+            raise TypeError(
+                f"merge_callback должен быть callable, получен {type(merge_callback).__name__}"
+            )
 
         # Установка глобального обработчика сигнала SIGINT
         old_signal_handler = signal.signal(signal.SIGINT, _signal_handler)
-        _active_coordinator = self
+        _coordinator_context.set_coordinator(self)  # ISSUE-009: Вместо _active_coordinator = self
 
         start_time = time.time()
         total_tasks = len(self.cities) * len(self.categories)
@@ -631,7 +696,9 @@ class ParallelCoordinator:
             return False
         finally:
             # Восстановление обработчика сигнала и очистка ресурсов
-            _active_coordinator = None
+            _coordinator_context.set_coordinator(
+                None
+            )  # ISSUE-009: Вместо _active_coordinator = None
             try:
                 signal.signal(signal.SIGINT, old_signal_handler)
             except (ValueError, TypeError):

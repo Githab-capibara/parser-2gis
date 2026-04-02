@@ -28,6 +28,13 @@ F = TypeVar("F", bound=Callable[..., Any])
 # Типы исключений которые можно retry
 RetryableException = Union[type[Exception], tuple[type[Exception], ...]]
 
+# =============================================================================
+# КОНСТАНТЫ
+# =============================================================================
+
+# Максимальная задержка по умолчанию для retry стратегий (секунды)
+DEFAULT_MAX_RETRY_DELAY: float = 60.0
+
 
 class RetryError(Exception):
     """Исключение при исчерпании попыток повторения."""
@@ -52,7 +59,7 @@ def retry_with_backoff(
     max_attempts: int = 3,
     delay: float = 1.0,
     backoff_factor: float = 2.0,
-    max_delay: float = 60.0,
+    max_delay: float = DEFAULT_MAX_RETRY_DELAY,
     jitter: bool = True,
     exceptions: RetryableException = Exception,
     logger_name: str | None = None,
@@ -257,7 +264,7 @@ except ImportError:
 def retry_with_tenacity(
     max_attempts: int = 3,
     delay: float = 1.0,
-    max_delay: float = 60.0,
+    max_delay: float = DEFAULT_MAX_RETRY_DELAY,
     exceptions: RetryableException = Exception,
 ) -> Callable[[F], F]:
     """Декоратор с использованием tenacity (если доступна).

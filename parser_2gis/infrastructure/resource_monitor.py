@@ -22,11 +22,11 @@ class ResourceMonitorProtocol(Protocol):
 
     def get_available_memory(self) -> int:
         """Получает доступный объём памяти в байтах."""
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
     def get_memory_usage(self) -> MemoryInfo:
         """Получает информацию об использовании памяти."""
-        ...
+        ...  # pylint: disable=unnecessary-ellipsis
 
 
 @dataclass
