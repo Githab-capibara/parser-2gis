@@ -17,7 +17,7 @@ from __future__ import annotations
 import functools
 import random
 import time
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 from collections.abc import Callable
 
 from parser_2gis.logger.logger import logger
@@ -26,7 +26,7 @@ from parser_2gis.logger.logger import logger
 F = TypeVar("F", bound=Callable[..., Any])
 
 # Типы исключений которые можно retry
-RetryableException = Union[type[Exception], tuple[type[Exception], ...]]
+RetryableException = type[Exception] | tuple[type[Exception], ...]
 
 # =============================================================================
 # КОНСТАНТЫ

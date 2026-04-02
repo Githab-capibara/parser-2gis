@@ -105,6 +105,7 @@ if __name__ == "__main__":
             "setuptools>=78.1.1",
             "pyyaml>=6.0",
             "ratelimit>=2.2.1",
+            "tenacity>=8.0.0",
         ],
         extras_require={
             "dev": [

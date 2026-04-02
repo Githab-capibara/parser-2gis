@@ -7,15 +7,19 @@
 - Перехват сетевых запросов
 
 Композиция:
+- BrowserManager - управление браузером
 - JSExecutor - валидация и выполнение JavaScript
+- RequestInterceptor - перехват запросов
 - HTTPCache - кэширование HTTP запросов
 - RateLimiter - rate limiting для запросов
+- HealthMonitor - мониторинг здоровья
+
+ISSUE-003: Рефакторинг - выделены компоненты для соблюдения SRP.
 """
 
 from __future__ import annotations
 
 import base64
-import queue
 import re
 import socket
 import threading
@@ -23,7 +27,9 @@ import time
 import weakref
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import TypeAlias
 
 import pychrome
 from websocket import WebSocketException
@@ -36,6 +42,7 @@ from .constants import (
     CHROME_STARTUP_DELAY,
     EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
+    LOCALHOST_BASE_URL,
     MAX_PORT,
     MAX_RESPONSE_SIZE,
     MAX_TOTAL_JS_SIZE,
@@ -46,6 +53,7 @@ from .exceptions import ChromeException
 from .js_executor import _validate_js_code
 from .patches import patch_all
 from .rate_limiter import _safe_external_request
+from .request_interceptor import RequestInterceptor, Request, Response
 
 try:
     from ratelimit import limits, sleep_and_retry
@@ -60,14 +68,28 @@ try:
 except ImportError:
     RequestException = Exception  # type: ignore[misc, assignment]
 
+try:
+    from tenacity import (
+        retry,
+        stop_after_attempt,
+        stop_after_delay,
+        retry_if_exception_type,
+        wait_fixed,
+    )
+except ImportError:
+    retry = None  # type: ignore[assignment, misc]
+    stop_after_attempt = None  # type: ignore[assignment, misc]
+    stop_after_delay = None  # type: ignore[assignment, misc]
+    retry_if_exception_type = None  # type: ignore[assignment, misc]
+    wait_fixed = None  # type: ignore[assignment, misc]
+
+_TENACITY_AVAILABLE = retry is not None and stop_after_attempt is not None
+
 
 # Импорты для backward совместимости
 
 if TYPE_CHECKING:
     from .options import ChromeOptions
-
-    Request = dict[str, Any]
-    Response = dict[str, Any]
 
 
 # =============================================================================
@@ -76,9 +98,6 @@ if TYPE_CHECKING:
 
 # Задержка между проверками порта в секундах
 PORT_CHECK_RETRY_DELAY: float = 0.005  # Максимально ускоренная проверка порта
-
-# D001: Вынесено в константу для предотвращения хардкода
-LOCALHOST_BASE_URL: str = "http://127.0.0.1:{port}"
 
 # Оптимизация: скомпилированный regex паттерн для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
@@ -224,17 +243,11 @@ class ChromeRemote:
         self._dev_url: str | None = None
         self._response_patterns: list[str] = response_patterns
 
-        # ISSUE-103: Проверка на пустые очереди после валидации
-        self._response_queues: dict[str, queue.Queue[Response]] = {
-            x: queue.Queue() for x in response_patterns
-        }
-
-        # Дополнительная валидация что очереди не пустые
-        if not self._response_queues and response_patterns:
-            raise ValueError("Не удалось создать очереди для response_patterns")
-
-        self._requests: dict[str, Request] = {}
-        self._requests_lock = threading.RLock()
+        # ISSUE-003: Используем RequestInterceptor для перехвата запросов
+        self._request_interceptor = RequestInterceptor()
+        # Регистрируем паттерны
+        for pattern in response_patterns:
+            self._request_interceptor.register_response_pattern(pattern)
 
         # Счётчик общего размера всех JS скриптов для предотвращения DoS атак
         self._total_js_size: int = 0
@@ -243,81 +256,68 @@ class ChromeRemote:
     def _connect_interface(self) -> bool:
         """Устанавливает соединение с Chrome и открывает новую вкладку.
 
-        Использует внутреннюю логику retry с max_attempts=3.
-        Добавлено логирование попыток подключения.
+        Использует tenacity для retry логики с max_attempts=3.
+        Общий таймаут на все попытки подключения не более 60 сек.
 
-        H3: Общий таймаут на все попытки подключения (суммарно не более 60 сек).
+        Returns:
+            True если подключение успешно, False иначе.
+
         """
+        if self._dev_url is None:
+            app_logger.error("dev_url не установлен при подключении")
+            return False
+
         max_attempts = 3
-        attempt_delay = 0.05  # Максимально ускоренное подключение
-        total_timeout = 60.0  # Общий таймаут на все попытки (H3)
+        attempt_delay = 0.05
+        total_timeout = 60.0
         start_time = time.time()
 
         for attempt in range(max_attempts):
-            # Проверка общего таймаута (H3)
             elapsed_time = time.time() - start_time
             if elapsed_time >= total_timeout:
                 app_logger.error("Превышен общий таймаут подключения (%.1f сек)", elapsed_time)
                 return False
 
-            app_logger.debug("Попытка подключения к Chrome %d/%d", attempt + 1, max_attempts)
             try:
-                if self._dev_url is None:
-                    app_logger.error("dev_url не установлен при подключении")
-                    return False
-                from urllib.parse import urlparse
-
-                parsed_url = urlparse(self._dev_url)
-                port = int(parsed_url.port)
-
-                if _check_port_cached(port):  # C001: Используем кэшированную версию
-                    app_logger.warning(
-                        "Порт %d свободен (Chrome ещё не слушает), попытка %d/%d",
-                        port,
-                        attempt + 1,
-                        max_attempts,
-                    )
-                    if attempt < max_attempts - 1:
-                        time.sleep(attempt_delay)
-                        continue
-                    return False
-
-                app_logger.debug(
-                    "Подключение к Chrome DevTools Protocol по адресу: %s", self._dev_url
-                )
-                self._chrome_interface = pychrome.Browser(url=self._dev_url)
-
-                app_logger.debug("Создание вкладки через _create_tab()...")
-                self._chrome_tab = self._create_tab()
-
-                app_logger.debug("Запуск вкладки с timeout=600...")
-                self._start_tab_with_timeout(self._chrome_tab, timeout=600)  # 10 минут
-
-                if not self._verify_connection():
-                    app_logger.warning("Проверка соединения не пройдена, повторная попытка")
-                    self._cleanup_interface()
-                    if attempt < max_attempts - 1:
-                        time.sleep(attempt_delay)
-                        continue
-                    app_logger.error(
-                        "Все попытки подключения исчерпаны (проверка соединения не пройдена)"
-                    )
-                    return False
-
-                app_logger.info("Успешное подключение к Chrome DevTools Protocol")
+                self._attempt_connection()
                 return True
-
-            except (RequestException, WebSocketException, ChromeException) as e:
-                app_logger.error(
-                    "Ошибка подключения к Chrome DevTools Protocol (%s): %s", self._dev_url, e
-                )
+            except (RequestException, WebSocketException, ChromeException, OSError) as e:
+                app_logger.debug("Попытка %d/%d: %s", attempt + 1, max_attempts, e)
                 self._cleanup_interface()
                 if attempt < max_attempts - 1:
                     time.sleep(attempt_delay)
-                continue
+                else:
+                    app_logger.error("Все попытки подключения исчерпаны: %s", e)
+                    return False
 
-        app_logger.error("Все %d попыток подключения исчерпаны", max_attempts)
         return False
+
+    def _attempt_connection(self) -> None:
+        """Выполняет одну попытку подключения.
+
+        Raises:
+            ChromeException: Если dev_url не установлен или порт свободен.
+            RequestException, WebSocketException, ChromeException, OSError: При ошибке подключения.
+
+        """
+        from urllib.parse import urlparse
+
+        parsed_url = urlparse(self._dev_url)
+        port = int(parsed_url.port)
+
+        if _check_port_cached(port):
+            raise ChromeException(f"Порт {port} свободен (Chrome ещё не слушает)")
+
+        app_logger.debug("Подключение к Chrome DevTools Protocol: %s", self._dev_url)
+        self._chrome_interface = pychrome.Browser(url=self._dev_url)
+        self._chrome_tab = self._create_tab()
+        self._start_tab_with_timeout(self._chrome_tab, timeout=600)
+
+        if not self._verify_connection():
+            self._cleanup_interface()
+            raise ChromeException("Проверка соединения не пройдена")
+
+        app_logger.info("Успешное подключение к Chrome DevTools Protocol")
 
     def _cleanup_interface(self) -> None:
         """Очищает ресурсы Chrome interface при ошибке."""
@@ -497,6 +497,8 @@ class ChromeRemote:
     def _setup_tab(self) -> None:
         """Скрывает следы webdriver, включает перехват запросов/ответов, исправляет UA.
 
+        ISSUE-003: Делегирует перехват запросов RequestInterceptor.
+
         H9: Добавлена явная проверка на None перед использованием _chrome_tab.
         """
         # H9: Явная проверка на None перед использованием _chrome_tab
@@ -525,81 +527,10 @@ class ChromeRemote:
             })
         """)
 
-        def responseReceived(**kwargs) -> None:
-            """Собирает ответы."""
-            response = kwargs["response"]
-            request_id = kwargs["requestId"]
-            resource_type = kwargs.get("type")
+        # ISSUE-003: Делегируем перехват запросов RequestInterceptor
+        self._request_interceptor.setup_network_interceptors(self._chrome_tab)
 
-            response["meta"] = {k: v for k, v in kwargs.items() if k != "response"}
-
-            if resource_type == "Preflight":
-                return
-
-            with self._requests_lock:
-                if request_id in self._requests:
-                    request = self._requests[request_id]
-                    response["request"] = request
-                    request["response"] = response
-
-                    for pattern in self._response_patterns:
-                        if re.match(pattern, response["url"]):
-                            self._response_queues[pattern].put(response)
-
-        def loadingFailed(**kwargs) -> None:
-            """Обрабатывает неудачные загрузки запросов."""
-            error_text = kwargs.get("errorText")
-            blocked_reason = kwargs.get("blockedReason")
-            status_text = ""
-
-            if error_text:
-                status_text = f"error: {error_text}"
-            if blocked_reason:
-                if status_text:
-                    status_text += ", "
-                status_text += f"blocked_reason: {blocked_reason}"
-
-            request_id = kwargs.get("requestId")
-            response = {"status": -1, "statusText": status_text}
-
-            with self._requests_lock:
-                if request_id in self._requests:
-                    request = self._requests[request_id]
-                    response["request"] = request
-                    request["response"] = response
-                    request_url = request["url"]
-
-                    if request_url:
-                        for pattern in self._response_patterns:
-                            if re.match(pattern, request_url):
-                                self._response_queues[pattern].put(response)
-
-        def requestWillBeSent(**kwargs) -> None:
-            """Обработчик события отправки HTTP запроса.
-
-            Args:
-                **kwargs: Параметры запроса (requestId, request, type, etc.).
-
-            Note:
-                Игнорирует Preflight запросы (OPTIONS).
-
-            """
-            request = kwargs.pop("request")
-            request["meta"] = kwargs
-            request_id = kwargs["requestId"]
-            resource_type = kwargs.get("type")
-
-            if resource_type == "Preflight":
-                return
-
-            with self._requests_lock:
-                self._requests[request_id] = request
-
-        self._chrome_tab.Network.responseReceived = responseReceived
-        self._chrome_tab.Network.loadingFailed = loadingFailed
-        self._chrome_tab.Network.requestWillBeSent = requestWillBeSent
-
-        self._chrome_tab.Network.enable()
+        # Включаем остальные события
         self._chrome_tab.DOM.enable()
         self._chrome_tab.Page.enable()
         self._chrome_tab.Runtime.enable()
@@ -744,6 +675,8 @@ class ChromeRemote:
     def wait_response(self, response_pattern: str) -> Response | None:
         """Ждёт указанный ответ с предопределённым паттерном.
 
+        ISSUE-003: Делегирует RequestInterceptor.
+
         Args:
             response_pattern: Паттерн для ожидания ответа.
 
@@ -751,7 +684,7 @@ class ChromeRemote:
             Response или None если ответ не найден.
 
         Raises:
-            ChromeException: Если паттерн не зарегистрирован в _response_queues.
+            ChromeException: Если паттерн не зарегистрирован.
 
         """
         try:
@@ -763,38 +696,23 @@ class ChromeRemote:
                 app_logger.warning("Вкладка Chrome была остановлена")
                 return None
 
-            # ИСПРАВЛЕНИЕ: Добавлена проверка на существование паттерна
-            if response_pattern not in self._response_queues:
-                app_logger.error(
-                    "Паттерн ответа не найден в _response_queues: %s", response_pattern
-                )
-                raise ChromeException(
-                    f"Паттерн ответа '{response_pattern}' не зарегистрирован в системе"
-                )
+            # ISSUE-003: Делегируем RequestInterceptor
+            return self._request_interceptor.get_response(response_pattern, block=False)
 
-            return self._response_queues[response_pattern].get(block=False)
-        except queue.Empty:
-            return None
         except ChromeException:
             # Пробрасываем ChromeException дальше
             raise
-        except KeyError:
-            app_logger.warning("Неизвестный паттерн ответа: %s", response_pattern)
-            return None
         except Exception as e:
             app_logger.error("Ошибка при ожидании ответа: %s", e)
             return None
 
     def clear_requests(self) -> None:
-        """Очищает все собранные запросы и очереди ответов."""
-        with self._requests_lock:
-            self._requests = {}
-        for pattern_queue in self._response_queues.values():
-            while not pattern_queue.empty():
-                try:
-                    pattern_queue.get_nowait()
-                except queue.Empty:
-                    break
+        """Очищает все собранные запросы и очереди ответов.
+
+        ISSUE-003: Делегирует RequestInterceptor.
+
+        """
+        self._request_interceptor.clear_requests()
 
     def _decode_response_body(self, response_data: dict[str, Any], request_id: str) -> str:
         """Декодирует тело ответа с поддержкой base64.
@@ -1217,10 +1135,6 @@ class ChromeRemote:
             app_logger.debug("Очередь запросов очищена")
         except Exception as clear_requests_error:
             app_logger.warning("Ошибка при очистке очереди запросов: %s", clear_requests_error)
-
-        # Обнуление очередей ответов
-        self._response_queues = {}
-        app_logger.debug("Очереди ответов обнулены")
 
         # Очистка кэша портов
         try:

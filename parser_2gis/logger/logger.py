@@ -54,6 +54,42 @@ _setup_third_party_logging_once()
 _LOGGER_NAME = "parser-2gis"
 
 
+def _setup_base_logger(
+    level: str | int = logging.INFO,
+    fmt: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt: str = "%Y-%m-%d %H:%M:%S",
+    logger_instance: logging.Logger | None = None,
+) -> logging.Logger:
+    """Базовая настройка логгера с устранением дублирования.
+
+    ISSUE-015: Централизованная функция для настройки логгера.
+
+    Args:
+        level: Уровень логирования (строка или int).
+        fmt: Строка формата логов.
+        datefmt: Строка формата даты.
+        logger_instance: Опциональный экземпляр логгера.
+                        По умолчанию используется logger из этого модуля.
+
+    Returns:
+        Настроенный экземпляр logging.Logger.
+
+    """
+    target_logger = (
+        logger_instance if logger_instance is not None else logging.getLogger(_LOGGER_NAME)
+    )
+
+    if not target_logger.handlers:
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(fmt, datefmt)
+        handler.setFormatter(formatter)
+
+        target_logger.addHandler(handler)
+        target_logger.setLevel(level)
+
+    return target_logger
+
+
 class QueueHandler(logging.Handler):
     def __init__(self, log_queue: queue.Queue[tuple[str, str]]) -> None:
         super().__init__()
@@ -70,8 +106,12 @@ def setup_gui_logger(log_queue: queue.Queue[tuple[str, str]], options: LogOption
 
     Args:
         log_queue: Очередь для размещения сообщений логирования.
+        options: Опции логирования.
 
     """
+    # ISSUE-015: Используем _setup_base_logger для базовой настройки
+    _setup_base_logger(level=options.level, fmt=options.cli_format, datefmt=options.cli_datefmt)
+
     formatter = logging.Formatter(options.gui_format, options.gui_datefmt)
     queue_handler = QueueHandler(log_queue)
     queue_handler.setFormatter(formatter)
@@ -85,7 +125,8 @@ def setup_cli_logger(options: LogOptions) -> None:
         options: Опции логирования.
 
     """
-    setup_logger(options.level, options.cli_format, options.cli_datefmt)
+    # ISSUE-015: Используем _setup_base_logger для устранения дублирования
+    _setup_base_logger(level=options.level, fmt=options.cli_format, datefmt=options.cli_datefmt)
 
 
 def setup_logger(level: str, fmt: str, datefmt: str) -> None:
@@ -97,13 +138,8 @@ def setup_logger(level: str, fmt: str, datefmt: str) -> None:
         datefmt: Строка формата даты.
 
     """
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(fmt, datefmt)
-        handler.setFormatter(formatter)
-
-        logger.addHandler(handler)
-        logger.setLevel(level)
+    # ISSUE-015: Используем _setup_base_logger для устранения дублирования
+    _setup_base_logger(level=level, fmt=fmt, datefmt=datefmt)
 
 
 logger = logging.getLogger(_LOGGER_NAME)

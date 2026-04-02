@@ -28,11 +28,13 @@ import tempfile
 import time
 import weakref
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING
+
+from typing_extensions import TypeAlias
 
 from parser_2gis.logger.logger import logger as app_logger
 
-from .constants import SECONDS_PER_HOUR
+from .constants import DEFAULT_FILE_PERMISSIONS, SECONDS_PER_HOUR
 from .exceptions import ChromePathNotFound
 from .utils import free_port, locate_chrome_path
 
@@ -192,9 +194,9 @@ class ProfileManager:
         self._profile_path = self._profile_tempdir.name
 
         # P1-17: Используем os.makedirs с параметром mode для атомарного создания
-        # и установки restrictive прав (0o700) для предотвращения race condition
+        # и установки restrictive прав (DEFAULT_FILE_PERMISSIONS) для предотвращения race condition
         try:
-            os.makedirs(self._profile_path, mode=0o700, exist_ok=True)
+            os.makedirs(self._profile_path, mode=DEFAULT_FILE_PERMISSIONS, exist_ok=True)
             app_logger.debug("Профиль создан с правами 0o700 через os.makedirs")
         except OSError as chmod_error:
             app_logger.warning(
@@ -348,6 +350,97 @@ class ProcessManager:
                 app_logger.debug("Не удалось удалить профиль при ошибке запуска: %s", cleanup_error)
             raise
 
+    def _terminate_process_common(
+        self,
+        process_pid: int,
+        terminate_method: str,
+        timeout: int,
+        success_status: str,
+        timeout_status: str,
+        already_terminated_status: str,
+        permission_denied_status: str,
+        error_status: str,
+    ) -> ProcessStatus:
+        """Общая логика завершения процесса для terminate и kill.
+
+        Args:
+            process_pid: PID процесса для завершения.
+            terminate_method: Метод завершения ('terminate' или 'kill').
+            timeout: Таймаут ожидания завершения в секундах.
+            success_status: Статус при успешном завершении.
+            timeout_status: Статус при таймауте.
+            already_terminated_status: Статус если процесс уже завершён.
+            permission_denied_status: Статус при отсутствии прав.
+            error_status: Статус при ошибке.
+
+        Returns:
+            Кортеж (process_closed, process_status).
+
+        """
+        if self._proc is None:
+            app_logger.debug("Процесс не инициализирован (PID: %s)", process_pid)
+            return False, "no_process"
+
+        try:
+            # Вызов метода terminate() или kill()
+            terminate_func = getattr(self._proc, terminate_method)
+            app_logger.debug("Отправка SIG%s процессу %d", terminate_method.upper(), process_pid)
+            terminate_func()
+
+            # Проверка poll() для обнаружения завершения процесса
+            poll_result = self._proc.poll()
+            if poll_result is not None:
+                process_status = f"{success_status} (exit code: {poll_result})"
+                app_logger.info(
+                    "Chrome браузер %s завершён (PID: %d, exit code: %d, время жизни: %.1f сек)",
+                    process_pid,
+                    poll_result,
+                    time.time() - self._start_time,
+                    terminate_method,
+                )
+                # H013: Очищаем ссылку на процесс после завершения
+                self._proc = None
+                return True, process_status
+            else:
+                # Процесс ещё работает, ждём завершения с timeout
+                try:
+                    self._proc.wait(timeout=timeout)
+                    app_logger.info(
+                        "Chrome браузер %s завершён (PID: %d, время ожидания: %d сек)",
+                        process_pid,
+                        timeout,
+                        terminate_method,
+                    )
+                    # H013: Очищаем ссылку на процесс после завершения
+                    self._proc = None
+                    return True, success_status
+                except subprocess.TimeoutExpired:
+                    app_logger.warning(
+                        "Таймаут (%d сек) при %s Chrome PID %d",
+                        timeout,
+                        terminate_method,
+                        process_pid,
+                    )
+                    return False, timeout_status
+
+        except ProcessLookupError as proc_error:
+            app_logger.debug("Процесс уже завершён: %s", proc_error)
+            # H013: Очищаем ссылку на процесс
+            self._proc = None
+            return True, already_terminated_status
+        except PermissionError as perm_error:
+            app_logger.error("Нет прав на завершение процесса: %s", perm_error)
+            return False, permission_denied_status
+        except (OSError, subprocess.SubprocessError, ValueError) as terminate_error:
+            app_logger.warning(
+                "Ошибка при %s Chrome (PID %d): %s (тип: %s)",
+                terminate_method,
+                process_pid,
+                terminate_error,
+                type(terminate_error).__name__,
+            )
+            return False, error_status
+
     def terminate(self, process_pid: int, timeout: int = 5) -> ProcessStatus:
         """Завершает процесс через terminate() (graceful shutdown).
 
@@ -364,62 +457,16 @@ class ProcessManager:
             - process_status: Статус завершения процесса
 
         """
-        if self._proc is None:
-            app_logger.debug("Процесс не инициализирован (PID: %s)", process_pid)
-            return False, "no_process"
-
-        try:
-            app_logger.debug("Отправка SIGTERM процессу %d", process_pid)
-            self._proc.terminate()
-
-            # Проверка poll() для обнаружения завершения процесса
-            poll_result = self._proc.poll()
-            if poll_result is not None:
-                process_status = f"terminated (exit code: {poll_result})"
-                app_logger.info(
-                    "Chrome браузер корректно завершён "
-                    "(PID: %d, exit code: %d, время жизни: %.1f сек)",
-                    process_pid,
-                    poll_result,
-                    time.time() - self._start_time,
-                )
-                # H013: Очищаем ссылку на процесс после завершения
-                self._proc = None
-                return True, process_status
-            else:
-                # Процесс ещё работает, ждём завершения с timeout
-                try:
-                    self._proc.wait(timeout=timeout)
-                    app_logger.info(
-                        "Chrome браузер корректно завершён (PID: %d, время ожидания: %d сек)",
-                        process_pid,
-                        timeout,
-                    )
-                    # H013: Очищаем ссылку на процесс после завершения
-                    self._proc = None
-                    return True, "terminated"
-                except subprocess.TimeoutExpired:
-                    app_logger.warning(
-                        "Таймаут (%d сек) при завершении Chrome PID %d", timeout, process_pid
-                    )
-                    return False, "terminate_timeout"
-
-        except ProcessLookupError as proc_error:
-            app_logger.debug("Процесс уже завершён: %s", proc_error)
-            # H013: Очищаем ссылку на процесс
-            self._proc = None
-            return True, "already_terminated"
-        except PermissionError as perm_error:
-            app_logger.error("Нет прав на завершение процесса: %s", perm_error)
-            return False, "permission_denied"
-        except (OSError, subprocess.SubprocessError, ValueError) as terminate_error:
-            app_logger.warning(
-                "Ошибка при завершении Chrome (PID %d): %s (тип: %s)",
-                process_pid,
-                terminate_error,
-                type(terminate_error).__name__,
-            )
-            return False, "terminate_error"
+        return self._terminate_process_common(
+            process_pid=process_pid,
+            terminate_method="terminate",
+            timeout=timeout,
+            success_status="terminated",
+            timeout_status="terminate_timeout",
+            already_terminated_status="already_terminated",
+            permission_denied_status="permission_denied",
+            error_status="terminate_error",
+        )
 
     def kill(self, process_pid: int, timeout: int = 10) -> ProcessStatus:
         """Принудительно завершает процесс через kill() (forceful shutdown).
@@ -533,47 +580,6 @@ class ProcessManager:
         if self._proc is None:
             return False
         return self._proc.poll() is None
-
-    # ==========================================================================
-    # АЛИАСЫ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ
-    # ==========================================================================
-    # Эти методы предоставлены для обратной совместимости со старыми тестами.
-    # Они вызывают новые методы terminate() и kill().
-    # ==========================================================================
-
-    def terminate_process_graceful(self, process_pid: int, timeout: int = 5) -> ProcessStatus:
-        """Алиас для метода terminate() для обратной совместимости.
-
-        Завершает процесс через terminate() (graceful shutdown).
-
-        Args:
-            process_pid: PID процесса для завершения.
-            timeout: Таймаут ожидания завершения в секундах.
-
-        Returns:
-            Кортеж (process_closed, process_status):
-            - process_closed: True если процесс завершён
-            - process_status: Статус завершения процесса
-
-        """
-        return self.terminate(process_pid, timeout)
-
-    def terminate_process_forceful(self, process_pid: int, timeout: int = 10) -> ProcessStatus:
-        """Алиас для метода kill() для обратной совместимости.
-
-        Принудительно завершает процесс через kill() (forceful shutdown).
-
-        Args:
-            process_pid: PID процесса для завершения.
-            timeout: Таймаут ожидания завершения в секундах.
-
-        Returns:
-            Кортеж (process_closed, process_status):
-            - process_closed: True если процесс завершён
-            - process_status: Статус завершения процесса
-
-        """
-        return self.kill(process_pid, timeout)
 
 
 # =============================================================================

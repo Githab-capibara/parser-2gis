@@ -8,11 +8,6 @@
 H9: Выделение инфраструктурных зависимостей в отдельный модуль.
 """
 
-from parser_2gis.infrastructure.resource_monitor import (
-    MemoryInfo,
-    MemoryMonitor,
-    ResourceMonitor,
-    ResourceMonitorFacade,
-)
+from parser_2gis.infrastructure.resource_monitor import MemoryInfo, MemoryMonitor, ResourceMonitor
 
-__all__ = ["MemoryInfo", "MemoryMonitor", "ResourceMonitor", "ResourceMonitorFacade"]
+__all__ = ["MemoryInfo", "MemoryMonitor", "ResourceMonitor"]

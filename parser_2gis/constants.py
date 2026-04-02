@@ -417,8 +417,6 @@ def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
     # Парсер - лимиты
     if name == "MAX_VISITED_LINKS_SIZE":
         return 10000  # Максимальное количество посещённых ссылок в памяти
-    if name == "MEMORY_FRACTION_FOR_V8":
-        return 0.75  # Доля памяти для V8 (75%)
     if name == "MAX_RECORDS_MEMORY_COEFFICIENT":
         return 550  # Коэффициент для расчёта max_records
     if name == "MAX_RECORDS_MEMORY_DIVISOR":
@@ -561,7 +559,6 @@ __all__: list[str] = [  # noqa: F822
     "DEFAULT_SLEEP_TIME",
     # Парсер - лимиты
     "MAX_VISITED_LINKS_SIZE",
-    "MEMORY_FRACTION_FOR_V8",
     "MAX_RECORDS_MEMORY_COEFFICIENT",
     "MAX_RECORDS_MEMORY_DIVISOR",
     "MAX_RECORDS_BASE_OFFSET",

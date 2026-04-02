@@ -1,0 +1,266 @@
+"""Кэш конфигураций для парсера.
+
+Модуль предоставляет класс ConfigCache для кэширования конфигураций
+городов и категорий с использованием lru_cache.
+
+Пример использования:
+    >>> from parser_2gis.cache.config_cache import ConfigCache
+    >>> cache = ConfigCache()
+    >>> cities = cache.load_cities("/path/to/cities.json")
+    >>> categories = cache.get_categories()
+"""
+
+from __future__ import annotations
+
+import json
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, TypedDict
+
+from parser_2gis.constants import MAX_CITIES_COUNT, MAX_CITIES_FILE_SIZE, MMAP_CITIES_THRESHOLD
+from parser_2gis.logger import logger
+
+
+class CategoryDict(TypedDict):
+    """Типизация словаря категории."""
+
+    name: str
+    query: str
+    rubric_code: str | None
+
+
+class ConfigCache:
+    """Кэш для конфигураций городов и категорий.
+
+    Использует lru_cache для кэширования загруженных данных
+    и предотвращения повторных загрузок.
+
+    Attributes:
+        cities_cache_size: Максимальный размер кэша городов.
+        categories_cache_size: Максимальный размер кэша категорий.
+
+    Example:
+        >>> cache = ConfigCache(cities_cache_size=16)
+        >>> cities = cache.load_cities("/path/to/cities.json")
+        >>> # Повторный вызов вернёт закэшированное значение
+        >>> cities2 = cache.load_cities("/path/to/cities.json")
+
+    """
+
+    def __init__(self, cities_cache_size: int = 16, categories_cache_size: int = 4) -> None:
+        """Инициализация кэша конфигураций.
+
+        Args:
+            cities_cache_size: Максимальный размер кэша городов.
+            categories_cache_size: Максимальный размер кэша категорий.
+
+        """
+        self._cities_cache_size = cities_cache_size
+        self._categories_cache_size = categories_cache_size
+        # Кэшированные методы создаются в __init__ для использования instance-specific cache
+        self._load_cities_cached = self._create_cities_cache()
+
+    def _create_cities_cache(self):
+        """Создаёт кэшированную версию метода загрузки городов."""
+
+        @lru_cache(maxsize=self._cities_cache_size)
+        def _cached_load(cities_path_str: str) -> tuple[tuple[dict[str, Any], ...], ...]:
+            """Внутренний кэшированный метод."""
+            result = self._load_cities_impl(cities_path_str)
+            # Конвертируем в tuple для хэшируемости (lru_cache требует hashable аргументы/результаты)
+            return tuple(tuple(city.items()) for city in result)
+
+        return _cached_load
+
+    def _load_cities_impl(self, cities_path_str: str) -> list[dict[str, Any]]:
+        """Реализация загрузки городов без кэширования.
+
+        Args:
+            cities_path_str: Путь к файлу cities.json как строка.
+
+        Returns:
+            Список городов из JSON файла.
+
+        Raises:
+            FileNotFoundError: Если файл не найден.
+            ValueError: Если файл повреждён или содержит некорректные данные.
+            OSError: Если произошла ошибка операционной системы.
+
+        """
+        cities_path = Path(cities_path_str)
+
+        if not cities_path.is_file():
+            logger.error("Файл городов не найден: %s", cities_path)
+            raise FileNotFoundError(f"Файл {cities_path} не найден")
+
+        try:
+            file_size = cities_path.stat().st_size
+            if file_size == 0:
+                logger.error("Файл городов пуст: %s", cities_path)
+                raise ValueError(f"Файл {cities_path} пуст")
+
+            if file_size > MAX_CITIES_FILE_SIZE:
+                logger.error(
+                    "Файл городов слишком большой: %d байт (макс: %d байт)",
+                    file_size,
+                    MAX_CITIES_FILE_SIZE,
+                )
+                raise ValueError(
+                    f"Файл {cities_path} слишком большой ({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
+                )
+
+            logger.debug("Размер файла городов: %d байт", file_size)
+        except OSError as stat_error:
+            logger.error("Ошибка получения информации о файле: %s", stat_error)
+            raise OSError(f"Не удалось получить информацию о файле: {stat_error}") from stat_error
+
+        all_cities: list[dict[str, Any]] | None = None
+
+        try:
+            use_mmap = file_size > MMAP_CITIES_THRESHOLD
+
+            if use_mmap:
+                logger.info(
+                    "Файл городов большой (%.2f MB), используется mmap для чтения",
+                    file_size / (1024 * 1024),
+                )
+                import mmap as mmap_module
+
+                with open(cities_path, "rb") as f:
+                    mmapped_file = mmap_module.mmap(f.fileno(), 0, access=mmap_module.ACCESS_READ)
+                    try:
+                        json_data = mmapped_file.read().decode("utf-8")
+                        all_cities = json.loads(json_data)
+                    finally:
+                        mmapped_file.close()
+            else:
+                with open(cities_path, encoding="utf-8") as f:
+                    all_cities = json.load(f)
+
+            if not isinstance(all_cities, list):
+                logger.error(
+                    "Файл городов должен содержать список, а не %s", type(all_cities).__name__
+                )
+                raise ValueError(
+                    f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
+                )
+
+            if len(all_cities) > MAX_CITIES_COUNT:
+                logger.error(
+                    "Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT
+                )
+                raise ValueError(
+                    f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}"
+                )
+
+            for i, city in enumerate(all_cities):
+                if not isinstance(city, dict):
+                    logger.error("Город %d должен быть словарём, а не %s", i, type(city).__name__)
+                    raise ValueError("Город %d должен быть словарём")
+
+                # Проверяем name, code, domain
+                if "name" not in city or "code" not in city or "domain" not in city:
+                    logger.error("Город %d должен содержать поля 'name', 'code' и 'domain'", i)
+                    raise ValueError("Город %d должен содержать поля 'name', 'code' и 'domain'")
+
+                if (
+                    not isinstance(city["name"], str)
+                    or not isinstance(city["code"], str)
+                    or not isinstance(city["domain"], str)
+                ):
+                    logger.error("Поля 'name', 'code' и 'domain' города %d должны быть строками", i)
+                    raise ValueError(
+                        f"Поля 'name', 'code' и 'domain' города {i} должны быть строками"
+                    )
+
+                # Опционально: проверяем country_code если есть
+                if "country_code" in city and not isinstance(city["country_code"], str):
+                    logger.error("Поле 'country_code' города %d должно быть строкой", i)
+                    raise ValueError(f"Поле 'country_code' города {i} должно быть строкой")
+
+            logger.debug("Файл городов валидирован: %d городов", len(all_cities))
+            return all_cities
+
+        except json.JSONDecodeError as e:
+            logger.error("Ошибка парсинга JSON в файле городов: %s", e)
+            raise ValueError(f"Некорректный формат JSON в файле городов: {e}") from e
+        except OSError as e:
+            logger.error("Ошибка ОС при чтении файла городов: %s", e)
+            raise OSError(f"Не удалось прочитать файл городов: {e}") from e
+
+    def load_cities(self, cities_path_str: str) -> list[dict[str, Any]]:
+        """Загружает JSON файл с городами с кэшированием.
+
+        Args:
+            cities_path_str: Путь к файлу cities.json как строка.
+
+        Returns:
+            Список городов из JSON файла.
+
+        Raises:
+            FileNotFoundError: Если файл не найден.
+            ValueError: Если файл повреждён или содержит некорректные данные.
+            OSError: Если произошла ошибка операционной системы.
+
+        """
+        cached_result = self._load_cities_cached(cities_path_str)
+        # Конвертируем обратно в list[dict]
+        return [dict(city_tuple) for city_tuple in cached_result]
+
+    def clear_cities_cache(self) -> None:
+        """Очищает кэш городов."""
+        self._load_cities_cached.cache_clear()
+
+    def cities_cache_info(self) -> dict[str, Any]:
+        """Возвращает информацию о кэше городов.
+
+        Returns:
+            Словарь с информацией о кэше (hits, misses, size, maxsize).
+
+        """
+        cache_info = self._load_cities_cached.cache_info()
+        return {
+            "hits": cache_info.hits,
+            "misses": cache_info.misses,
+            "size": cache_info.currsize,
+            "maxsize": cache_info.maxsize,
+        }
+
+    @staticmethod
+    @lru_cache(maxsize=4)
+    def get_categories() -> list[CategoryDict]:
+        """Возвращает список категорий с кэшированием.
+
+        Returns:
+            Список из 93 категорий.
+
+        """
+        # Импортируем здесь для избежания циклической зависимости
+        from parser_2gis.resources import CATEGORIES_93
+
+        return CATEGORIES_93
+
+    @staticmethod
+    def clear_categories_cache() -> None:
+        """Очищает кэш категорий."""
+        ConfigCache.get_categories.cache_clear()
+
+
+# Глобальный singleton экземпляр для удобства
+_config_cache: ConfigCache | None = None
+
+
+def get_config_cache() -> ConfigCache:
+    """Получает singleton экземпляр ConfigCache.
+
+    Returns:
+        Singleton экземпляр ConfigCache.
+
+    """
+    global _config_cache
+    if _config_cache is None:
+        _config_cache = ConfigCache()
+    return _config_cache
+
+
+__all__ = ["ConfigCache", "get_config_cache", "CategoryDict"]

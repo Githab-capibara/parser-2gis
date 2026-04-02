@@ -35,8 +35,9 @@ from parser_2gis.logger import log_parser_finish, logger
 from parser_2gis.parallel.error_handler import ParallelErrorHandler
 from parser_2gis.parallel.merger import ParallelFileMerger
 from parser_2gis.parallel.progress import ParallelProgressReporter
+from parser_2gis.parallel.strategies import MEMORY_THRESHOLD_BYTES
 from parser_2gis.parser import get_parser
-from parser_2gis.utils.temp_file_manager import TempFileTimer, temp_file_manager
+from parser_2gis.utils.temp_file_manager import TempFileTimer
 from parser_2gis.utils.url_utils import generate_category_url
 from parser_2gis.validation import (
     validate_categories_config,
@@ -527,7 +528,7 @@ class ParallelCoordinator:
         # H9: Проверка доступной памяти через инфраструктурный модуль
         memory_monitor = MemoryMonitor()
         available_memory = memory_monitor.get_available_memory()
-        if available_memory < 100 * 1024 * 1024:
+        if available_memory < MEMORY_THRESHOLD_BYTES:
             logger.warning(
                 "Low memory (%dMB), skipping %s - %s",
                 available_memory // 1024 // 1024,
@@ -787,28 +788,4 @@ class ParallelCoordinator:
             return dict(self._stats)
 
 
-# Функции для управления временными файлами
-_temp_files_lock = temp_file_manager._lock
-_temp_files_registry = temp_file_manager._registry
-
-
-def _register_temp_file(file_path: Path) -> None:
-    temp_file_manager.register(file_path)
-
-
-def _unregister_temp_file(file_path: Path) -> None:
-    temp_file_manager.unregister(file_path)
-
-
-def _cleanup_all_temp_files() -> None:
-    temp_file_manager.cleanup_all()
-
-
-__all__ = [
-    "ParallelCoordinator",
-    "_cleanup_all_temp_files",
-    "_register_temp_file",
-    "_temp_files_lock",
-    "_temp_files_registry",
-    "_unregister_temp_file",
-]
+__all__ = ["ParallelCoordinator"]

@@ -4,12 +4,13 @@
 - Базовая запись CSV
 - Интеграция с постобработкой (удаление пустых колонок и дубликатов)
 - Пакетная обработка для снижения накладных расходов
+
+ISSUE-005: Использует стратегии форматирования для соблюдения OCP.
 """
 
 from __future__ import annotations
 
 import csv
-import re
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, TypedDict
 from collections.abc import Callable
@@ -21,6 +22,7 @@ from parser_2gis.utils import report_from_validation_error
 from parser_2gis.writer.models import CatalogItem
 
 from .csv_deduplicator import CSVDeduplicator
+from .csv_formatter import ContactFormatter, PhoneFormatter, SanitizeFormatter, TypeFormatter
 from .csv_post_processor import CSVPostProcessor
 from .file_writer import FileWriter
 
@@ -72,41 +74,6 @@ class CSVRowData(TypedDict, total=False):
 # Константа для заголовка колонки URL
 CSV_URL_HEADER = "2GIS URL"
 
-# D014: Таблица санитизации для CSV данных
-_CSV_SANITIZE_TABLE = {
-    '"': '""',  # Экранирование кавычек для CSV
-    "\n": " ",  # Замена новых строк на пробелы
-    "\r": "",  # Удаление carriage return
-    "\t": " ",  # Замена табов на пробелы
-    "\x00": "",  # Удаление null-символов для предотвращения CSV injection
-}
-
-
-def _sanitize_csv_value(value: str) -> str:
-    """D014: Санитизирует значение для CSV.
-
-    ISSUE-043: Добавлены type hints.
-
-    Args:
-        value: Исходное строковое значение.
-
-    Returns:
-        Санитизированное значение безопасное для CSV.
-
-    """
-    if not isinstance(value, str):
-        return value  # type: ignore[return-value]
-
-    # Экранируем специальные символы CSV
-    for char, replacement in _CSV_SANITIZE_TABLE.items():
-        value = value.replace(char, replacement)
-
-    # D014: Защита от CSV injection - добавляем префикс если значение начинается с опасного символа
-    if value and value[0] in ("=", "+", "-", "@"):
-        value = "'" + value  # Префикс для предотвращения выполнения формул
-
-    return value
-
 
 def _append_contact(
     data: dict[str, Any],
@@ -156,27 +123,31 @@ class CSVWriter(FileWriter):
 
     Предназначен для записи данных парсинга в файлы формата CSV.
     Поддерживает постобработку: удаление пустых колонок и дубликатов.
+
+    ISSUE-005: Использует стратегии форматирования для соблюдения OCP.
+
+    Attributes:
+        _phone_formatter: Форматировщик телефонов.
+        _sanitize_formatter: Форматировщик санитизации.
+        _type_formatter: Форматировщик типов.
+        _contact_formatter: Форматировщик контактов.
+
     """
 
-    @staticmethod
-    def _format_phone(value: str) -> str:
-        """Форматирует номер телефона.
-
-        P1-14: Вынесено в отдельный метод для соответствия PEP 8.
-        ISSUE-164: Оптимизировано до одного regex вызова.
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Инициализирует CSVWriter.
 
         Args:
-            value: Исходный номер телефона.
-
-        Returns:
-            Отформатированный номер (8 вместо +7, только цифры).
+            *args: Позиционные аргументы.
+            **kwargs: Именованные аргументы.
 
         """
-        # ISSUE-164: Один regex вместо двух - замена +7 на 8 и удаление нецифровых символов
-        value = re.sub(r"[^0-9+]", "", value)
-        if value.startswith("+7"):
-            value = "8" + value[2:]
-        return value
+        super().__init__(*args, **kwargs)
+        # ISSUE-005: Инициализация стратегий форматирования
+        self._phone_formatter = PhoneFormatter()
+        self._sanitize_formatter = SanitizeFormatter()
+        self._type_formatter = TypeFormatter()
+        self._contact_formatter = ContactFormatter()
 
     @cached_property
     def _type_names(self) -> dict[str, str]:
@@ -186,12 +157,13 @@ class CSVWriter(FileWriter):
             Словарь с маппингом типов: 'parking' -> 'Парковка' и т.д.
 
         """
+        # Делегируем форматирование TypeFormatter
         return {
-            "parking": "Парковка",
-            "street": "Улица",
-            "road": "Дорога",
-            "crossroad": "Перекрёсток",
-            "station": "Остановка",
+            "parking": self._type_formatter.format("parking"),
+            "street": self._type_formatter.format("street"),
+            "road": self._type_formatter.format("road"),
+            "crossroad": self._type_formatter.format("crossroad"),
+            "station": self._type_formatter.format("station"),
         }
 
     @cached_property
@@ -571,7 +543,12 @@ class CSVWriter(FileWriter):
             # поэтому предпочитаем парсить поле `text`.
             # Если в контакте нет `text` - используем атрибут `value`)
             _append_contact(
-                data, contact_group, "phone", ["text", "value"], self._format_phone, add_comments
+                data,
+                contact_group,
+                "phone",
+                ["text", "value"],
+                self._phone_formatter.format,
+                add_comments,
             )
 
         # Режим работы объекта
@@ -587,6 +564,6 @@ class CSVWriter(FileWriter):
         # D014: Санитизация всех строковых значений перед возвратом
         for key, value in data.items():
             if isinstance(value, str):
-                data[key] = _sanitize_csv_value(value)
+                data[key] = self._sanitize_formatter.format(value)
 
         return data

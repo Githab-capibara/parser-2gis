@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, ClassVar, TypedDict, Union
-from collections.abc import Mapping
+from typing import Any, ClassVar
 
 from textual import work
 from textual.app import App, ComposeResult
@@ -34,37 +35,113 @@ from .screens import (
     ParsingScreen,
 )
 
-
 # =============================================================================
-# TYPE ALIASES AND TYPEDDICT (P1-10)
+# DATACLASS ДЛЯ СОСТОЯНИЯ ПРИЛОЖЕНИЯ (ISSUE-020)
 # =============================================================================
 
 
-class AppState(TypedDict, total=False):
-    """TypedDict для состояния приложения.
+@dataclass
+class AppState:
+    """Состояние приложения TUI.
 
-    P1-10: Типизация состояния приложения.
+    ISSUE-020: Замена TypedDict на dataclass для лучшей типизации и управления состоянием.
+
+    Attributes:
+        selected_cities: Выбранные города для парсинга.
+        selected_categories: Выбранные категории для парсинга.
+        parsing_active: Флаг активного парсинга.
+        parsing_progress: Прогресс парсинга в процентах.
+        total_urls: Общее количество URL для парсинга.
+        current_url: Текущий обрабатываемый URL.
+        current_city: Текущий город.
+        current_category: Текущая категория.
+        success_count: Количество успешных операций.
+        error_count: Количество ошибок.
+        total_pages: Общее количество страниц.
+        current_page: Текущая страница.
+        total_records: Общее количество записей.
+        current_record: Текущая запись.
+        _parsing_logs: Буфер логов парсинга.
+
     """
 
-    selected_cities: list[str]
-    selected_categories: list[str]
-    parsing_active: bool
-    parsing_progress: int
-    total_urls: int
-    current_url: int
-    current_city: str
-    current_category: str
-    success_count: int
-    error_count: int
-    total_pages: int
-    current_page: int
-    total_records: int
-    current_record: int
-    _parsing_logs: list[str]
+    selected_cities: list[str] = field(default_factory=list)
+    selected_categories: list[str] = field(default_factory=list)
+    parsing_active: bool = False
+    parsing_progress: int = 0
+    total_urls: int = 0
+    current_url: int = 0
+    current_city: str = ""
+    current_category: str = ""
+    success_count: int = 0
+    error_count: int = 0
+    total_pages: int = 0
+    current_page: int = 0
+    total_records: int = 0
+    current_record: int = 0
+    _parsing_logs: list[str] = field(default_factory=list)
 
+    def reset(self) -> None:
+        """Сбрасывает состояние к значениям по умолчанию."""
+        self.selected_cities = []
+        self.selected_categories = []
+        self.parsing_active = False
+        self.parsing_progress = 0
+        self.total_urls = 0
+        self.current_url = 0
+        self.current_city = ""
+        self.current_category = ""
+        self.success_count = 0
+        self.error_count = 0
+        self.total_pages = 0
+        self.current_page = 0
+        self.total_records = 0
+        self.current_record = 0
+        self._parsing_logs = []
 
-# State value type for update_state
-StateValue = Union[list[str], bool, int, str, list[str]]
+    def update(self, **kwargs: Any) -> None:
+        """Обновляет поля состояния.
+
+        Args:
+            **kwargs: Ключ-значение для обновления.
+
+        Note:
+            Для ключа "_parsing_logs" применяется ограничение размера буфера
+            до MAX_LOG_BUFFER_SIZE записей.
+
+        """
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+
+        # Ограничиваем буфер логов
+        if len(self._parsing_logs) > MAX_LOG_BUFFER_SIZE:
+            self._parsing_logs = self._parsing_logs[-MAX_LOG_BUFFER_SIZE:]
+
+    def to_dict(self) -> dict[str, Any]:
+        """Конвертирует состояние в словарь.
+
+        Returns:
+            Словарь с полями состояния.
+
+        """
+        return {
+            "selected_cities": self.selected_cities,
+            "selected_categories": self.selected_categories,
+            "parsing_active": self.parsing_active,
+            "parsing_progress": self.parsing_progress,
+            "total_urls": self.total_urls,
+            "current_url": self.current_url,
+            "current_city": self.current_city,
+            "current_category": self.current_category,
+            "success_count": self.success_count,
+            "error_count": self.error_count,
+            "total_pages": self.total_pages,
+            "current_page": self.current_page,
+            "total_records": self.total_records,
+            "current_record": self.current_record,
+            "_parsing_logs": self._parsing_logs,
+        }
 
 
 # =============================================================================
@@ -241,14 +318,14 @@ class TUIApp(App):
         """
         super().__init__(**kwargs)
         self._config = self._load_config()
-        self._state = self._init_state()
+        self._state = AppState()  # ISSUE-020: Используем dataclass
         self._file_logger: logging.Logger | None = None
         self._log_file: Path | None = None
         self._parser: ParallelCityParser | None = None
         self._running = False
         self._started_at: datetime | None = None
         self._last_notification: dict[str, str] | None = None
-        self._cleanup_in_progress: bool = False  # Флаг для предотвращения повторной очистки
+        self._cleanup_in_progress: bool = False
 
     def _load_config(self) -> Configuration:
         """Загружает конфигурацию приложения.
@@ -266,45 +343,18 @@ class TUIApp(App):
         """
         return Configuration.load_config()
 
-    def _init_state(self) -> dict[str, Any]:
-        """Инициализировать состояние приложения."""
-        return {
-            "selected_cities": [],
-            "selected_categories": [],
-            "parsing_active": False,
-            "parsing_progress": 0,
-            "total_urls": 0,
-            "current_url": 0,
-            "current_city": "",
-            "current_category": "",
-            "success_count": 0,
-            "error_count": 0,
-            "total_pages": 0,
-            "current_page": 0,
-            "total_records": 0,
-            "current_record": 0,
-            "_parsing_logs": [],  # Буфер логов парсинга с ограничением размера
-        }
+    def _init_state(self) -> AppState:
+        """Инициализировать состояние приложения.
+
+        Returns:
+            Новый экземпляр AppState.
+
+        """
+        return AppState()
 
     def _clear_state(self) -> None:
         """Очистить состояние приложения для освобождения памяти."""
-        self._state = {
-            "selected_cities": [],
-            "selected_categories": [],
-            "parsing_active": False,
-            "parsing_progress": 0,
-            "total_urls": 0,
-            "current_url": 0,
-            "current_city": "",
-            "current_category": "",
-            "success_count": 0,
-            "error_count": 0,
-            "total_pages": 0,
-            "current_page": 0,
-            "total_records": 0,
-            "current_record": 0,
-            "_parsing_logs": [],
-        }
+        self._state.reset()
         self._parser = None
         self._last_notification = None
 
@@ -316,7 +366,7 @@ class TUIApp(App):
     @property
     def selected_cities(self) -> list[str]:
         """Выбранные города."""
-        return self._state["selected_cities"]
+        return self._state.selected_cities
 
     @selected_cities.setter
     def selected_cities(self, value: list[str]) -> None:
@@ -326,12 +376,12 @@ class TUIApp(App):
             value: Список названий городов для выбора.
 
         """
-        self._state["selected_cities"] = value
+        self._state.selected_cities = value
 
     @property
     def selected_categories(self) -> list[str]:
         """Выбранные категории."""
-        return self._state["selected_categories"]
+        return self._state.selected_categories
 
     @selected_categories.setter
     def selected_categories(self, value: list[str]) -> None:
@@ -341,7 +391,7 @@ class TUIApp(App):
             value: Список названий категорий для выбора.
 
         """
-        self._state["selected_categories"] = value
+        self._state.selected_categories = value
 
     @property
     def running(self) -> bool:
@@ -378,32 +428,20 @@ class TUIApp(App):
         """Получить список категорий."""
         return CATEGORIES_93  # type: ignore[return-value]
 
-    def update_state(self, **kwargs: StateValue) -> None:
+    def update_state(self, **kwargs: Any) -> None:
         """Обновить состояние приложения.
 
-        P1-10: Типизация kwargs для лучшей типобезопасности.
+        ISSUE-020: Использует dataclass метод update().
 
         Args:
             **kwargs: Ключ-значение для обновления состояния.
 
-        Note:
-            Для ключа "_parsing_logs" применяется ограничение размера буфера
-            до MAX_LOG_BUFFER_SIZE записей для предотвращения утечки памяти.
-
         """
-        # Обновляем только существующие ключи
-        valid_updates = {k: v for k, v in kwargs.items() if k in self._state}
-        self._state.update(valid_updates)  # type: ignore[misc]
-
-        # Ограничиваем буфер логов для предотвращения утечки памяти
-        if "_parsing_logs" in self._state and isinstance(self._state["_parsing_logs"], list):
-            logs = self._state["_parsing_logs"]
-            if len(logs) > MAX_LOG_BUFFER_SIZE:
-                self._state["_parsing_logs"] = logs[-MAX_LOG_BUFFER_SIZE:]
+        self._state.update(**kwargs)
 
     def get_state(self, key: str) -> Any:
         """Получить значение из состояния."""
-        return self._state.get(key)
+        return getattr(self._state, key, None)
 
     def notify_user(self, message: str, level: str = "info") -> None:
         """Показать уведомление пользователю.
@@ -564,10 +602,12 @@ class TUIApp(App):
 
             max_workers = getattr(config.parallel, "max_workers", 10)
 
+            from parser_2gis.constants.cache import DEFAULT_OUTPUT_DIR
+
             parser = ParallelCityParser(
                 cities=cities,
                 categories=categories,
-                output_dir="output",
+                output_dir=DEFAULT_OUTPUT_DIR,
                 config=config,
                 max_workers=max_workers,
                 timeout_per_url=1800,  # 30 минут для парсинга одной категории

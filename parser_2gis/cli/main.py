@@ -31,59 +31,6 @@ except ImportError:
 from parser_2gis.chrome.remote import ChromeRemote  # noqa: F401
 
 
-def cleanup_resources() -> None:
-    """Выполняет централизованную очистку ресурсов приложения.
-
-    Backward совместимость для тестов.
-    Обрабатывает AttributeError, MemoryError, KeyboardInterrupt.
-    """
-    # Для backward совместимости создаём временный лаунчер
-    import gc
-
-    from parser_2gis.cache import CacheManager
-    from parser_2gis.logger import logger
-    from parser_2gis.utils.paths import cache_path
-
-    try:
-        logger.debug("Очистка кэша ресурсов...")
-
-        # Очистка ChromeRemote
-        try:
-            if hasattr(ChromeRemote, "_active_instances"):
-                for instance in ChromeRemote._active_instances:
-                    try:
-                        if instance is not None:
-                            instance.stop()
-                    except (AttributeError, RuntimeError, TypeError, ValueError) as e:
-                        logger.debug(
-                            "Подавлено исключение при остановке экземпляра ChromeRemote: %s", e
-                        )
-        except (AttributeError, TypeError) as chrome_iter_error:
-            logger.error("Ошибка итерации _active_instances: %s", chrome_iter_error)
-
-        # Очистка кэша
-        try:
-            cache = CacheManager(cache_path())
-            cache.close()
-        except (AttributeError, RuntimeError, TypeError, ValueError) as cache_error:
-            logger.error("Ошибка при закрытии кэша: %s", cache_error)
-
-        # Сборка мусора
-        try:
-            gc.collect()
-        except (MemoryError, RuntimeError) as gc_error:
-            logger.error("Ошибка gc.collect(): %s", gc_error)
-
-        logger.info("Очистка ресурсов завершена")
-
-    except MemoryError as e:
-        logger.critical("Критическая ошибка: нехватка памяти при очистке ресурсов: %s", e)
-    except KeyboardInterrupt:
-        logger.warning("Очистка ресурсов прервана пользователем")
-    except Exception as e:
-        logger.error("Непредвиденная ошибка при очистке ресурсов: %s", e)
-
-
 def _log_startup_info(args: Any, config: Configuration, start_time: datetime) -> None:
     """Логирует подробную информацию о запуске парсера.
 
@@ -158,4 +105,4 @@ def main() -> None:
     sys.exit(exit_code)
 
 
-__all__ = ["Parser2GISTUI", "cleanup_resources", "main", "run_new_tui_omsk"]
+__all__ = ["Parser2GISTUI", "main", "run_new_tui_omsk"]

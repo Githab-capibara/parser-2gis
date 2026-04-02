@@ -10,9 +10,10 @@
     >>> cache.get("some_key")  # Получение из кэша
     >>> cache.set("key", {"data": "value"})  # Сохранение в кэш
     >>> cache.close()  # Закрытие соединения
+
+ISSUE-004: Рефакторинг - выделены вспомогательные функции в cache_utils.py
 """
 
-import functools
 import hashlib
 import json
 import os
@@ -20,17 +21,31 @@ import re
 import sqlite3
 import time
 import weakref
-import zlib
 from datetime import datetime, timedelta
 from pathlib import Path
 
 # Импорты для типизации (для совместимости с Python 3.9)
 from typing import Any, Protocol
 
-from typing import TypeAlias
+from typing_extensions import TypeAlias
 
-from ..constants import LRU_EVICT_BATCH, MAX_BATCH_SIZE, MAX_CACHE_SIZE_MB, SHA256_HASH_LENGTH
+from ..chrome.constants import DEFAULT_TTL_HOURS, MAX_RESPONSE_SIZE
+from ..constants.cache import (
+    DEFAULT_CACHE_FILE_NAME,
+    LRU_EVICT_BATCH,
+    MAX_BATCH_SIZE,
+    MAX_CACHE_SIZE_MB,
+)
 from ..logger.logger import logger as app_logger
+from .cache_utils import (
+    compute_crc32_cached,
+    compute_data_json_hash,
+    get_cache_size_mb,
+    hash_url,
+    is_cache_expired,
+    parse_expires_at,
+    validate_hash,
+)
 from .pool import ConnectionPool
 from .serializer import JsonSerializer
 from .validator import CacheDataValidator
@@ -83,46 +98,6 @@ class ConnectionProtocol(Protocol):
     def execute(self, query: str, params: tuple = ...) -> Any:
         """Выполняет SQL запрос."""
         ...  # pylint: disable=unnecessary-ellipsis
-
-
-# =============================================================================
-# LRU CACHE ДЛЯ CRC32 CHECKSUM (H002)
-# =============================================================================
-
-
-@functools.lru_cache(maxsize=8192)
-def _compute_crc32_cached(data_json_hash: str, data_json: str) -> int:
-    """Вычисляет CRC32 checksum с кэшированием.
-
-    Кэширование основано на хеше данных - одинаковые данные будут
-    иметь одинаковый checksum без повторных вычислений.
-
-    Args:
-        data_json_hash: SHA256 хеш JSON данных (ключ кэша).
-        data_json: JSON строка данных.
-
-    Returns:
-        CRC32 checksum.
-
-    """
-    return zlib.crc32(data_json.encode("utf-8")) & 0xFFFFFFFF
-
-
-# P1-15: Кэш для data_json_hash для снижения накладных расходов
-@functools.lru_cache(maxsize=4096)
-def _compute_data_json_hash(data_json: str) -> str:
-    """Вычисляет SHA256 хеш JSON данных с кэшированием.
-
-    P1-15: Кэширование для часто используемых данных.
-
-    Args:
-        data_json: JSON строка данных.
-
-    Returns:
-        SHA256 хеш данных.
-
-    """
-    return hashlib.sha256(data_json.encode("utf-8")).hexdigest()
 
 
 class CacheManager:
@@ -264,9 +239,9 @@ class CacheManager:
     def __init__(
         self,
         cache_dir: Path,
-        ttl_hours: int = 24,
+        ttl_hours: int = DEFAULT_TTL_HOURS,
         pool_size: int = 5,
-        cache_file_name: str = "cache.db",
+        cache_file_name: str = DEFAULT_CACHE_FILE_NAME,
     ) -> None:
         """Инициализация менеджера кэша.
 
@@ -371,11 +346,11 @@ class CacheManager:
             app_logger.warning("Ошибка при инициализации кэша: %s", e)
             raise
 
-    def _get_cached_row(self, cursor: Any, url_hash: str) -> CacheRow | None:
+    def _get_cached_row(self, cursor: sqlite3.Cursor, url_hash: str) -> CacheRow | None:
         """Извлекает строку кэша из базы данных.
 
         Args:
-            cursor: Курсор базы данных.
+            cursor: Курсор базы данных sqlite3.
             url_hash: Хеш URL для поиска.
 
         Returns:
@@ -389,47 +364,33 @@ class CacheManager:
     def _parse_expires_at(self, expires_at_str: str) -> datetime | None:
         """Парсит строку даты истечения кэша.
 
-        Args:
-            expires_at_str: Строка даты в формате ISO.
-
-        Returns:
-            datetime объект или None при ошибке парсинга.
-
+        ISSUE-004: Делегирует cache_utils.parse_expires_at.
         """
-        try:
-            return datetime.fromisoformat(expires_at_str)
-        except ValueError:
-            app_logger.debug("Некорректный формат даты в кэше: %s", expires_at_str)
-            return None
+        return parse_expires_at(expires_at_str)
 
-    def _is_cache_expired(self, expires_at: datetime) -> bool:
+    def _is_cache_expired(self, expires_at: datetime | None) -> bool:
         """Проверяет истёк ли кэш.
 
-        Args:
-            expires_at: Время истечения кэша.
-
-        Returns:
-            True если кэш истёк, False иначе.
-
+        ISSUE-004: Делегирует cache_utils.is_cache_expired.
         """
-        return datetime.now() > expires_at
+        return is_cache_expired(expires_at)
 
-    def _delete_cached_entry(self, cursor: Any, url_hash: str) -> None:
+    def _delete_cached_entry(self, cursor: sqlite3.Cursor, url_hash: str) -> None:
         """Удаляет запись кэша из базы данных.
 
         Args:
-            cursor: Курсор базы данных.
+            cursor: Курсор базы данных sqlite3.
             url_hash: Хеш URL для удаления.
 
         """
         cursor.execute(self.SQL_DELETE, (url_hash,))
 
     # ИСПРАВЛЕНИЕ: Рефакторинг метода get — выделение подметодов
-    def _get_from_db(self, cursor: Any, url_hash: str) -> CacheRow | None:
+    def _get_from_db(self, cursor: sqlite3.Cursor, url_hash: str) -> CacheRow | None:
         """Извлекает строку кэша из базы данных.
 
         Args:
-            cursor: Курсор базы данных.
+            cursor: Курсор базы данных sqlite3.
             url_hash: Хеш URL для поиска.
 
         Returns:
@@ -440,7 +401,13 @@ class CacheManager:
         return cursor.fetchone()  # type: ignore[return-value]
 
     def _handle_cache_hit(
-        self, data: str, checksum: int, expires_at_str: str, cursor: Any, url_hash: str, conn: Any
+        self,
+        data: str,
+        checksum: int,
+        expires_at_str: str,
+        cursor: sqlite3.Cursor,
+        url_hash: str,
+        conn: sqlite3.Connection,
     ) -> dict[str, Any] | None:
         """Обрабатывает попадание в кэш.
 
@@ -448,9 +415,9 @@ class CacheManager:
             data: Сериализованные данные.
             checksum: CRC32 checksum для проверки целостности.
             expires_at_str: Строка даты истечения.
-            cursor: Курсор базы данных.
+            cursor: Курсор базы данных sqlite3.
             url_hash: Хеш URL.
-            conn: Соединение базы данных.
+            conn: Соединение базы данных sqlite3.
 
         Returns:
             Десериализованные данные или None если кэш истёк или checksum не совпадает.
@@ -468,7 +435,7 @@ class CacheManager:
 
         # H002: Проверка CRC32 checksum с кэшированием для проверки целостности данных
         data_json_hash = hashlib.sha256(data.encode("utf-8")).hexdigest()
-        computed_checksum = _compute_crc32_cached(data_json_hash, data)
+        computed_checksum = compute_crc32_cached(data_json_hash, data)
         if computed_checksum != checksum:
             app_logger.warning(
                 "CRC32 checksum не совпадает для URL %s (ожидался: %d, получен: %d). "
@@ -484,19 +451,21 @@ class CacheManager:
         conn.commit()
         return self._serializer.deserialize(data)
 
-    def _handle_cache_miss(self, cursor: Any, url_hash: str, conn: Any) -> None:
+    def _handle_cache_miss(
+        self, cursor: sqlite3.Cursor, url_hash: str, conn: sqlite3.Connection
+    ) -> None:
         """Обрабатывает промах кэша.
 
         Args:
-            cursor: Курсор базы данных.
+            cursor: Курсор базы данных sqlite3.
             url_hash: Хеш URL.
-            conn: Соединение базы данных.
+            conn: Соединение базы данных sqlite3.
 
         """
         conn.rollback()
 
     def _handle_db_error(
-        self, db_error: sqlite3.Error, url: str, cursor: Any, url_hash: str
+        self, db_error: sqlite3.Error, url: str, cursor: sqlite3.Cursor, url_hash: str
     ) -> dict[str, Any] | None:
         """Обрабатывает ошибки базы данных при получении кэша.
 
@@ -508,11 +477,24 @@ class CacheManager:
         Args:
             db_error: Исключение базы данных.
             url: URL для логирования.
-            cursor: Курсор базы данных.
+            cursor: Курсор базы данных sqlite3.
             url_hash: Хеш URL для повторной попытки.
 
         Returns:
-            Данные кэша или None.
+            Данные кэша или None если произошла ошибка.
+
+        Raises:
+            sqlite3.Error: При критических ошибках базы данных.
+
+        Example:
+            >>> manager = CacheManager(Path("/tmp/cache"))
+            >>> cursor = manager._pool.get().cursor()
+            >>> result = manager._handle_db_error(
+            ...     sqlite3.Error("database is locked"),
+            ...     "https://example.com",
+            ...     cursor,
+            ...     "abc123"
+            ... )
 
         """
         error_str = str(db_error).lower()
@@ -551,16 +533,36 @@ class CacheManager:
         return None
 
     def _handle_deserialize_error(
-        self, decode_error: Exception, url: str, cursor: Any, url_hash: str, conn: Any
+        self,
+        decode_error: Exception,
+        url: str,
+        cursor: sqlite3.Cursor,
+        url_hash: str,
+        conn: sqlite3.Connection,
     ) -> None:
         """Обрабатывает ошибки десериализации кэша.
 
         Args:
             decode_error: Исключение десериализации.
             url: URL для логирования.
-            cursor: Курсор базы данных.
+            cursor: Курсор базы данных sqlite3.
             url_hash: Хеш URL для удаления.
-            conn: Соединение базы данных.
+            conn: Соединение базы данных sqlite3.
+
+        Raises:
+            sqlite3.Error: При ошибке удаления повреждённой записи.
+
+        Example:
+            >>> manager = CacheManager(Path("/tmp/cache"))
+            >>> conn = manager._pool.get()
+            >>> cursor = conn.cursor()
+            >>> manager._handle_deserialize_error(
+            ...     json.JSONDecodeError("msg", "doc", 0),
+            ...     "https://example.com",
+            ...     cursor,
+            ...     "abc123",
+            ...     conn
+            ... )
 
         """
         error_type = type(decode_error).__name__
@@ -711,10 +713,9 @@ class CacheManager:
 
         # CRITICAL 2: Проверка размера данных перед сохранением
         data_size = len(data_json.encode("utf-8"))
-        max_data_size = 10 * 1024 * 1024  # 10MB лимит на одну запись
-        if data_size > max_data_size:
+        if data_size > MAX_RESPONSE_SIZE:
             raise MemoryError(
-                f"Размер данных ({data_size} байт) превышает лимит ({max_data_size} байт). "
+                f"Размер данных ({data_size} байт) превышает лимит ({MAX_RESPONSE_SIZE} байт). "
                 "Кэширование больших данных может привести к MemoryError."
             )
 
@@ -726,8 +727,8 @@ class CacheManager:
             cursor = conn.cursor()
             # H002: Вычисляем CRC32 checksum с кэшированием для часто используемых данных
             # P1-15: Используем кэшированную функцию для вычисления hash
-            data_json_hash = _compute_data_json_hash(data_json)
-            checksum = _compute_crc32_cached(data_json_hash, data_json)
+            data_json_hash = compute_data_json_hash(data_json)
+            checksum = compute_crc32_cached(data_json_hash, data_json)
 
             # ПРОВЕРКА: Ограничение размера кэша перед вставкой
             self._enforce_cache_size_limit(conn)
@@ -885,7 +886,7 @@ class CacheManager:
                     data_json = self._serializer.serialize(data)
                     # H002: Вычисляем CRC32 checksum с кэшированием для часто используемых данных
                     data_json_hash = hashlib.sha256(data_json.encode("utf-8")).hexdigest()
-                    checksum = _compute_crc32_cached(data_json_hash, data_json)
+                    checksum = compute_crc32_cached(data_json_hash, data_json)
                     cursor.execute(
                         self.SQL_INSERT_OR_REPLACE,
                         (
@@ -1218,88 +1219,26 @@ class CacheManager:
             # В __del__ нельзя выбрасывать исключения - только логируем
             app_logger.debug("Ошибка в __del__ CacheManager: %s", del_error)
 
-    @staticmethod
-    def _hash_url(url: str) -> str:
+    def _hash_url(self, url: str) -> str:
         """Хеширование URL.
 
-        Вычисляет SHA256 хеш от указанного URL для использования
-        в качестве ключа в базе данных кэша.
-
-        Args:
-            url: URL для хеширования. Должен быть непустой строкой.
-
-        Returns:
-            SHA256 хеш URL в виде шестнадцатеричной строки.
-
-        Raises:
-            ValueError: Если URL является None или пустой строкой.
-            TypeError: Если URL не является строкой.
-
+        ISSUE-004: Делегирует cache_utils.hash_url.
         """
-        if url is None:
-            raise ValueError("URL не может быть None")
+        return hash_url(url)
 
-        if not isinstance(url, str):
-            raise TypeError(f"URL должен быть строкой, получен {type(url).__name__}")
-
-        if not url.strip():
-            raise ValueError("URL не может быть пустой строкой")
-
-        return hashlib.sha256(url.encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def _validate_hash(hash_val: str) -> bool:
+    def _validate_hash(self, hash_val: str) -> bool:
         """Валидация хеша.
 
-        Проверяет, что хеш имеет корректный формат:
-        - Длина ровно 64 символа (SHA256 hex)
-        - Содержит только шестнадцатеричные символы (0-9, a-f)
-
-        Args:
-            hash_val: Хеш для валидации
-
-        Returns:
-            True если хеш корректен, False иначе
-
+        ISSUE-004: Делегирует cache_utils.validate_hash.
         """
-        if len(hash_val) != SHA256_HASH_LENGTH:
-            return False
-        try:
-            int(hash_val, 16)
-            return True
-        except ValueError:
-            return False
+        return validate_hash(hash_val)
 
     def _get_cache_size_mb(self, conn: sqlite3.Connection | None = None) -> float:
         """Получает размер кэша в мегабайтах.
 
-        Args:
-            conn: SQLite соединение (опционально, используется для проверки целостности БД).
-
-        Returns:
-            Размер кэша в мегабайтах.
-
+        ISSUE-004: Делегирует cache_utils.get_cache_size_mb.
         """
-        try:
-            if not self._cache_file.exists():
-                return 0.0
-
-            cache_size_bytes = self._cache_file.stat().st_size
-            cache_size_mb = cache_size_bytes / (1024 * 1024)
-
-            if conn is not None:
-                try:
-                    cursor = conn.cursor()
-                    cursor.execute("PRAGMA quick_check(1)")
-                    cursor.close()
-                except sqlite3.Error:
-                    app_logger.warning("База данных кэша может быть повреждена")
-
-            return cache_size_mb
-
-        except OSError as os_error:
-            app_logger.warning("Ошибка при получении размера кэша: %s", os_error)
-            return 0.0
+        return get_cache_size_mb(self._cache_file, conn)
 
     def _enforce_cache_size_limit(self, conn: sqlite3.Connection) -> None:
         """Принудительное ограничение размера кэша.

@@ -19,9 +19,9 @@ from __future__ import annotations
 
 from concurrent.futures import Future
 from typing import Any, Protocol, runtime_checkable
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 
-from typing import TypeAlias
+from typing_extensions import TypeAlias
 
 # =============================================================================
 # TYPE ALIASES FOR COMPLEX TYPES
@@ -100,27 +100,6 @@ ProgressCallbackType: TypeAlias = Callable[[int, int, str], None]
 
 
 @runtime_checkable
-class LogCallback(Protocol):
-    """Protocol для callback логирования.
-
-    Example:
-        >>> def on_log(message: str, level: str = "INFO") -> None:
-        ...     print(f"[{level}] {message}")
-        >>> callback: LogCallback = on_log
-
-    """
-
-    def __call__(self, message: str, level: str = "INFO") -> None:
-        """Вызывается для логирования сообщения.
-
-        Args:
-            message: Сообщение для логирования.
-            level: Уровень логирования (по умолчанию "INFO").
-
-        """
-
-
-@runtime_checkable
 class CleanupCallback(Protocol):
     """Protocol для callback очистки ресурсов.
 
@@ -133,26 +112,6 @@ class CleanupCallback(Protocol):
 
     def __call__(self) -> None:
         """Вызывается для очистки ресурсов."""
-
-
-@runtime_checkable
-class CancelCallback(Protocol):
-    """Protocol для callback проверки отмены операции.
-
-    Example:
-        >>> def should_cancel() -> bool:
-        ...     return False  # Никогда не отменять
-        >>> callback: CancelCallback = should_cancel
-
-    """
-
-    def __call__(self) -> bool:
-        """Проверяет необходимость отмены операции.
-
-        Returns:
-            True если операция должна быть отменена, False иначе.
-
-        """
 
 
 # =============================================================================
@@ -257,32 +216,6 @@ class CacheWriter(Protocol):
 
     def delete(self, key: str) -> None:
         """Удаляет значение из кэша."""
-
-
-@runtime_checkable
-class CacheBackend(CacheReader, CacheWriter, Protocol):
-    """Абстракция бэкенда кэширования."""
-
-
-# =============================================================================
-# EXECUTION PROTOCOLS
-# =============================================================================
-
-
-@runtime_checkable
-class ExecutionBackend(Protocol):
-    """Абстракция бэкенда для параллельного выполнения."""
-
-    def submit(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Future[Any]:
-        """Отправляет функцию на выполнение."""
-
-    def map(
-        self, fn: Callable[..., Any], *iterables: Any, timeout: float | None = None
-    ) -> Iterator[Any]:
-        """Выполняет функцию для каждого элемента итерации."""
-
-    def shutdown(self, wait: bool = True, cancel_futures: bool = False) -> None:
-        """Останавливает executor и освобождает ресурсы."""
 
 
 # =============================================================================
@@ -460,9 +393,7 @@ __all__ = [
     # Callback Protocols
     "LoggerProtocol",
     "ProgressCallback",
-    "LogCallback",
     "CleanupCallback",
-    "CancelCallback",
     # Data Protocols
     "Writer",
     "Parser",
@@ -475,9 +406,6 @@ __all__ = [
     # Cache Protocols
     "CacheReader",
     "CacheWriter",
-    "CacheBackend",
-    # Backend Protocols
-    "ExecutionBackend",
     # Parallel Parsing Protocols
     "ErrorHandlerProtocol",
     "MergerProtocol",

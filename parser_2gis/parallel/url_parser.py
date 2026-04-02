@@ -26,6 +26,7 @@ from collections.abc import Callable
 from parser_2gis.constants import DEFAULT_TIMEOUT, MAX_UNIQUE_NAME_ATTEMPTS
 from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger.logger import logger
+from parser_2gis.parallel.strategies import MEMORY_THRESHOLD_BYTES
 from parser_2gis.protocols import UrlGeneratorProtocol
 from parser_2gis.utils.url_utils import generate_category_url
 
@@ -163,9 +164,12 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         # Проверка доступной памяти через инфраструктурный модуль
         memory_monitor = MemoryMonitor()
         available_memory = memory_monitor.get_available_memory()
-        if available_memory < 100 * 1024 * 1024:  # Менее 100MB
+        if available_memory < MEMORY_THRESHOLD_BYTES:
             logger.warning(
-                f"Low memory ({available_memory // 1024 // 1024}MB), skipping {city_name} - {category_name}"
+                "Low memory (%dMB), skipping %s - %s",
+                available_memory // 1024 // 1024,
+                city_name,
+                category_name,
             )
             return False, "Недостаточно памяти"
 

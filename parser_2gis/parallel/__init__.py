@@ -53,11 +53,6 @@ from .parallel_parser import (
     ParallelCityParser,
     ParallelCityParserThread,
     ParserThreadConfig,  # noqa: F401 - используется для __all__
-    _cleanup_all_temp_files,
-    _register_temp_file,
-    _temp_files_lock,
-    _temp_files_registry,
-    _unregister_temp_file,
 )
 from .progress import ParallelProgressReporter
 from .thread_coordinator import ThreadCoordinator
@@ -101,12 +96,6 @@ __all__ = [
     "MAX_LOCK_FILE_AGE",
     # Прогресс
     "PROGRESS_UPDATE_INTERVAL",
-    # Ре-экспорт для обратной совместимости с тестами
-    "_temp_files_lock",
-    "_temp_files_registry",
-    "_register_temp_file",
-    "_unregister_temp_file",
-    "_cleanup_all_temp_files",
     # Константы
     "MIN_WORKERS",
     "MAX_WORKERS",

@@ -17,16 +17,14 @@ import sqlite3
 import threading
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
-from parser_2gis.cache import CacheManager
-from parser_2gis.chrome.remote import ChromeRemote
 from parser_2gis.config import Configuration
 from parser_2gis.logger import logger
-from parser_2gis.utils.paths import cache_path
 from parser_2gis.utils.signal_handler import SignalHandler
 
 if TYPE_CHECKING:
+    from parser_2gis.cache import CacheManager
     from parser_2gis.parser.options import ParserOptions
 
 
@@ -49,6 +47,20 @@ class SignalHandlerFactory(Protocol):
         """Создаёт SignalHandler."""
 
 
+class ChromeRemoteFactory(Protocol):
+    """Protocol для фабрики ChromeRemote."""
+
+    def __call__(self) -> Any:
+        """Создаёт или возвращает экземпляр ChromeRemote."""
+
+
+class CacheManagerFactory(Protocol):
+    """Protocol для фабрики CacheManager."""
+
+    def __call__(self, cache_path_obj: Path) -> "CacheManager":
+        """Создаёт CacheManager."""
+
+
 # =============================================================================
 # СИГНАЛЫ И ОЧИСТКА РЕСУРСОВ
 # =============================================================================
@@ -69,6 +81,8 @@ class ApplicationLauncher:
         options: Опции парсера.
         signal_handler: Обработчик сигналов.
         signal_handler_factory: Фабрика для создания SignalHandler.
+        chrome_factory: Фабрика для создания ChromeRemote.
+        cache_factory: Фабрика для создания CacheManager.
 
     Example:
         >>> # Использование с dependency injection
@@ -82,6 +96,8 @@ class ApplicationLauncher:
         config: Configuration,
         options: ParserOptions,
         signal_handler_factory: SignalHandlerFactory | None = None,
+        chrome_factory: ChromeRemoteFactory | None = None,
+        cache_factory: CacheManagerFactory | None = None,
     ):
         """Инициализация лаунчера.
 
@@ -90,10 +106,12 @@ class ApplicationLauncher:
             options: Опции парсера.
             signal_handler_factory: Опциональная фабрика SignalHandler
                                    для внедрения зависимости (тестирование).
+            chrome_factory: Опциональная фабрика ChromeRemote для DI.
+            cache_factory: Опциональная фабрика CacheManager для DI.
 
         Note:
-            По умолчанию используется SignalHandler, но для тестирования
-            можно передать mock фабрику.
+            По умолчанию используются стандартные фабрики, но для тестирования
+            можно передать mock фабрики.
 
         """
         self.config = config
@@ -101,6 +119,8 @@ class ApplicationLauncher:
         self._signal_handler: SignalHandler | None = None
         self._signal_handler_lock = threading.Lock()
         self._signal_handler_factory = signal_handler_factory or SignalHandler
+        self._chrome_factory = chrome_factory
+        self._cache_factory = cache_factory
 
     def launch(self, args: argparse.Namespace) -> int:
         """Запуск приложения в выбранном режиме.
@@ -363,8 +383,10 @@ class ApplicationLauncher:
             Path объект директории.
 
         """
+        from parser_2gis.constants.cache import DEFAULT_OUTPUT_DIR
+
         if output_path is None:
-            return Path("output")
+            return Path(DEFAULT_OUTPUT_DIR)
 
         output_path_obj = Path(output_path)
         # Если путь имеет расширение (например, .csv), это файл - возвращаем родительскую директорию
@@ -392,7 +414,30 @@ class ApplicationLauncher:
         return default
 
     def _cleanup_resources(self) -> None:
-        """Выполняет централизованную очистку ресурсов приложения."""
+        """Выполняет централизованную очистку ресурсов приложения.
+
+        Освобождает ресурсы ChromeRemote, кэш базы данных и выполняет
+        принудительную сборку мусора для предотвращения утечек памяти.
+
+        Returns:
+            None
+
+        Raises:
+            MemoryError: При критической нехватке памяти во время очистки.
+            Exception: При непредвиденных ошибках очистки ресурсов.
+
+        Example:
+            >>> launcher = ApplicationLauncher(config, options)
+            >>> try:
+            ...     launcher.launch(args)
+            ... finally:
+            ...     launcher._cleanup_resources()
+
+        Note:
+            Метод вызывается автоматически в блоках finally методов
+            _run_parallel_mode и _run_cli_mode.
+
+        """
         try:
             logger.debug("Очистка кэша ресурсов...")
 
@@ -413,15 +458,41 @@ class ApplicationLauncher:
             logger.error("Непредвиденная ошибка при очистке ресурсов: %s", e, exc_info=True)
 
     def _cleanup_chrome_remote(self) -> None:
-        """Очищает активные соединения ChromeRemote."""
-        if not hasattr(ChromeRemote, "_active_instances"):
-            return
+        """Очищает активные соединения ChromeRemote.
 
+        Закрывает все активные экземпляры ChromeRemote через вызов метода stop().
+
+        Returns:
+            None
+
+        Raises:
+            TypeError: При ошибке итерации _active_instances.
+            AttributeError: Если ChromeRemote не имеет атрибута _active_instances.
+
+        Example:
+            >>> launcher = ApplicationLauncher(config, options)
+            >>> launcher._cleanup_chrome_remote()
+
+        """
         try:
+            # Используем внедрённую зависимость или импортируем по умолчанию
+            if self._chrome_factory is not None:
+                chrome_instance = self._chrome_factory()
+                if chrome_instance is None:
+                    return
+                chrome_class = type(chrome_instance)
+            else:
+                from parser_2gis.chrome.remote import ChromeRemote
+
+                chrome_class = ChromeRemote
+
+            if not hasattr(chrome_class, "_active_instances"):
+                return
+
             chrome_instances_closed = 0
             chrome_errors = 0
 
-            for instance in ChromeRemote._active_instances:
+            for instance in chrome_class._active_instances:
                 try:
                     if instance is not None:
                         instance.stop()
@@ -440,16 +511,52 @@ class ApplicationLauncher:
             logger.error("Ошибка итерации _active_instances: %s", e, exc_info=True)
 
     def _cleanup_cache(self) -> None:
-        """Очищает кэш базы данных CacheManager."""
+        """Очищает кэш базы данных CacheManager.
+
+        Закрывает соединение с кэшем базы данных для освобождения ресурсов.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: При ошибке закрытия кэша.
+
+        Example:
+            >>> launcher = ApplicationLauncher(config, options)
+            >>> launcher._cleanup_cache()
+
+        """
         try:
-            cache = CacheManager(cache_path())
+            from parser_2gis.utils.paths import cache_path
+
+            # Используем внедрённую зависимость или создаём по умолчанию
+            if self._cache_factory is not None:
+                cache = self._cache_factory(cache_path())
+            else:
+                from parser_2gis.cache import CacheManager
+
+                cache = CacheManager(cache_path())
             cache.close()
             logger.info("Кэш базы данных успешно закрыт")
         except Exception as e:
             logger.error("Ошибка при закрытии кэша: %s", e, exc_info=True)
 
     def _cleanup_gc(self) -> None:
-        """Выполняет принудительный сборщик мусора."""
+        """Выполняет принудительный сборщик мусора.
+
+        Вызывает gc.collect() для освобождения памяти.
+
+        Returns:
+            None
+
+        Raises:
+            Exception: При ошибке выполнения gc.collect().
+
+        Example:
+            >>> launcher = ApplicationLauncher(config, options)
+            >>> launcher._cleanup_gc()
+
+        """
         try:
             gc.collect()
             logger.debug("Сборщик мусора завершён")

@@ -3,21 +3,9 @@
 Предоставляет инфраструктуру для работы с SQLite:
 - Обработка ошибок БД
 - Декораторы для обработки исключений
-- Транслятор исключений
+- Упрощённая классификация ошибок (временные/критические)
 """
 
-from .error_handler import (
-    DatabaseError,
-    DatabaseErrorTranslator,
-    DBError,
-    DBErrorTranslator,
-    handle_db_errors,
-)
+from .error_handler import DatabaseError, DBError, handle_db_errors
 
-__all__ = [
-    "DBError",
-    "DBErrorTranslator",
-    "DatabaseError",
-    "DatabaseErrorTranslator",
-    "handle_db_errors",
-]
+__all__ = ["DBError", "DatabaseError", "handle_db_errors"]

@@ -29,7 +29,7 @@ from parser_2gis.constants import (
     MERGE_LOCK_TIMEOUT,
 )
 from parser_2gis.logger.logger import logger
-from parser_2gis.utils.temp_file_manager import register_temp_file, unregister_temp_file
+from parser_2gis.utils.temp_file_manager import temp_file_manager
 
 if TYPE_CHECKING:
     from parser_2gis.config import Configuration
@@ -112,7 +112,7 @@ class FileMergerStrategy:
         files_to_delete: list[Path] = []
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
 
-        register_temp_file(temp_output)
+        temp_file_manager.register(temp_output)
 
         lock_file_path = self.output_dir / ".merge.lock"
         lock_file_handle = None
@@ -248,7 +248,7 @@ class FileMergerStrategy:
             self._cleanup_merge_lock(lock_file_handle, lock_file_path)
 
             # Отменяем регистрацию временного файла т.к. он был переименован
-            unregister_temp_file(temp_output)
+            temp_file_manager.unregister(temp_output)
 
             return True
 

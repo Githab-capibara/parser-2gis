@@ -20,7 +20,6 @@ import os
 import tempfile
 import threading
 import time
-import weakref
 from pathlib import Path
 
 from parser_2gis.constants import (
@@ -29,7 +28,6 @@ from parser_2gis.constants import (
     TEMP_FILE_CLEANUP_INTERVAL,
 )
 from parser_2gis.logger import logger
-
 
 # =============================================================================
 # КЛАСС TempFileManager
@@ -205,67 +203,76 @@ class TempFileManager:
         with self._lock:
             return list(self._registry)
 
+    def create_unique_temp_file(
+        self, directory: str | Path, prefix: str = "parser_", suffix: str = ".tmp"
+    ) -> Path:
+        """Создаёт уникальный временный файл и регистрирует его.
+
+        D015: Использует криптографически безопасную генерацию имён для предотвращения
+        атак через предсказание имени временного файла.
+
+        Args:
+            directory: Директория для создания файла.
+            prefix: Префикс имени файла.
+            suffix: Суффикс имени файла.
+
+        Returns:
+            Path к созданному временному файлу.
+
+        Raises:
+            ValueError: Если directory некорректен.
+            OSError: Если не удалось создать файл.
+
+        Example:
+            >>> temp_path = temp_file_manager.create_unique_temp_file("/tmp", prefix="myapp_")
+            >>> print(temp_path)
+            /tmp/myapp_abc123.tmp
+
+        """
+        # D015: Валидация директории
+        if directory is None:
+            raise ValueError("directory не может быть None")
+
+        if isinstance(directory, Path):
+            directory = str(directory)
+
+        if not directory or not isinstance(directory, str):
+            raise ValueError("directory должен быть непустой строкой")
+
+        # D015: Проверка на path traversal в directory
+        if ".." in directory:
+            raise ValueError(f"directory не должен содержать '..': {directory}")
+
+        # D015: Санитизация префикса - удаляем опасные символы
+        if prefix:
+            # Разрешаем только буквы, цифры, подчёркивания и дефисы
+            safe_prefix = "".join(c for c in prefix if c.isalnum() or c in "_-")
+            if not safe_prefix:
+                safe_prefix = "tmp_"
+        else:
+            safe_prefix = "tmp_"
+
+        # D015: tempfile.mkstemp использует os.urandom() для криптографически
+        # безопасной генерации случайных имён
+        import os
+        import tempfile
+
+        fd, path = tempfile.mkstemp(prefix=safe_prefix, suffix=suffix, dir=directory)
+        try:
+            # D015: Проверка прав доступа к созданному файлу
+            os.fchmod(fd, 0o600)  # Только владелец может читать/писать
+        except (OSError, AttributeError):
+            pass  # Игнорируем если система не поддерживает fchmod
+        finally:
+            os.close(fd)  # Закрываем дескриптор, файл остается
+
+        # Регистрируем файл для последующей очистки
+        self.register(Path(path))
+        return Path(path)
+
 
 # Singleton экземпляр для глобального использования
 temp_file_manager = TempFileManager()
-
-
-# Функции-обёртки для обратной совместимости
-def register_temp_file(file_path: Path) -> None:
-    """Регистрирует временный файл для последующей очистки.
-
-    Args:
-        file_path: Путь к временному файлу.
-
-    Note:
-        Это функция-обёртка для обратной совместимости.
-        Рекомендуется использовать temp_file_manager.register().
-
-    """
-    temp_file_manager.register(file_path)
-
-
-def unregister_temp_file(file_path: Path) -> None:
-    """Удаляет файл из реестра временных файлов.
-
-    Args:
-        file_path: Путь к файлу для удаления из реестра.
-
-    Note:
-        Это функция-обёртка для обратной совместимости.
-        Рекомендуется использовать temp_file_manager.unregister().
-
-    """
-    temp_file_manager.unregister(file_path)
-
-
-def cleanup_all_temp_files() -> tuple[int, int]:
-    """Очищает все зарегистрированные временные файлы.
-
-    Returns:
-        Кортеж (успешно, ошибок) - количество успешно удалённых
-        и количество файлов с ошибками.
-
-    Note:
-        Это функция-обёртка для обратной совместимости.
-        Рекомендуется использовать temp_file_manager.cleanup_all().
-
-    """
-    return temp_file_manager.cleanup_all()
-
-
-def get_temp_file_count() -> int:
-    """Возвращает количество зарегистрированных временных файлов.
-
-    Returns:
-        Количество файлов в реестре.
-
-    Note:
-        Это функция-обёртка для обратной совместимости.
-        Рекомендуется использовать temp_file_manager.get_count().
-
-    """
-    return temp_file_manager.get_count()
 
 
 # =============================================================================
@@ -276,13 +283,8 @@ def get_temp_file_count() -> int:
 class TempFileTimer:
     """Таймер для периодической очистки временных файлов.
 
-    Особенности:
-        - Периодическая очистка через threading.Timer
-        - Использование weak references для предотвращения утечек памяти
-        - Мониторинг количества временных файлов
-        - Автоматическая очистка осиротевших файлов
-        - Блокировка для защиты общих данных (_lock)
-        - Событие для координации остановки (_stop_event)
+    Упрощённая реализация на основе threading.Timer.
+    ISSUE-019: Удалены weakref/finalizer/event для упрощения.
 
     Пример использования:
         >>> cleanup_timer = TempFileTimer(temp_dir=Path('/tmp'))
@@ -320,13 +322,7 @@ class TempFileTimer:
         self._orphan_age = orphan_age
         self._timer: threading.Timer | None = None
         self._is_running = False
-        self._stop_event = threading.Event()  # Событие для координации остановки
-        # ISSUE-098: Заменён RLock на Lock так как реентерабельность не требуется
-        self._lock = threading.Lock()
         self._cleanup_count = 0
-        # weakref.finalize() для гарантированной очистки ресурсов
-        self._weak_ref = weakref.ref(self)
-        self._finalizer = weakref.finalize(self, self._cleanup_timer, self._timer, self._lock)
 
         logger.debug(
             "Инициализирован таймер очистки: интервал=%d сек, макс. файлов=%d, возраст=%d сек",
@@ -338,44 +334,24 @@ class TempFileTimer:
     def _cleanup_callback(self) -> None:
         """Callback для периодической очистки.
 
-        ИСПРАВЛЕНИЕ C-001: Устранение гонки данных через:
-        1. Объединение проверки _stop_event.is_set() и планирования в единую атомарную операцию
-        2. Вызов _schedule_next_cleanup() внутри блокировки для предотвращения race condition
+        Упрощённая версия: просто вызывает очистку и планирует следующую.
         """
-        # ISSUE-096: Используем context manager для Lock вместо ручного acquire/release
-        should_stop = False
-        try:
-            with self._lock:
-                should_stop = self._stop_event.is_set()
-        except (RuntimeError, OSError) as lock_error:
-            logger.debug("Ошибка при получении блокировки в _cleanup_callback: %s", lock_error)
-            should_stop = True
-
-        if should_stop:
+        if not self._is_running:
             return
 
         try:
             self._cleanup_temp_files()
         except (MemoryError, KeyboardInterrupt, SystemExit):
             raise
-        except (OSError, RuntimeError, TypeError) as cleanup_error:
+        except Exception as cleanup_error:
             logger.error(
                 "Ошибка при периодической очистке временных файлов: %s",
                 cleanup_error,
                 exc_info=True,
             )
-        except BaseException as base_error:
-            logger.error("Критическая ошибка в callback очистки: %s", base_error, exc_info=True)
         finally:
-            # ISSUE-096: Планируем следующую очистку ВНУТРИ блокировки с context manager
-            should_schedule = False
-            try:
-                with self._lock:
-                    should_schedule = not self._stop_event.is_set()
-                    if should_schedule:
-                        self._schedule_next_cleanup()
-            except (RuntimeError, OSError):
-                should_schedule = False
+            if self._is_running:
+                self._schedule_next_cleanup()
 
     def _schedule_next_cleanup(self) -> None:
         """Планирует следующую очистку."""
@@ -383,9 +359,7 @@ class TempFileTimer:
             self._timer = threading.Timer(self._interval, self._cleanup_callback)
             self._timer.daemon = True
             self._timer.start()
-        except (MemoryError, KeyboardInterrupt, SystemExit):
-            raise
-        except (RuntimeError, OSError, TypeError, ValueError) as schedule_error:
+        except Exception as schedule_error:
             logger.error(
                 "Ошибка при планировании следующей очистки: %s", schedule_error, exc_info=True
             )
@@ -431,25 +405,20 @@ class TempFileTimer:
 
                 except OSError as os_error:
                     logger.debug("Ошибка при удалении файла %s: %s", temp_file, os_error)
-                except (MemoryError, KeyboardInterrupt, SystemExit):
-                    raise
-                except (RuntimeError, TypeError, ValueError) as file_error:
+                except Exception as file_error:
                     logger.debug(
                         "Непредвиденная ошибка при обработке файла %s: %s", temp_file, file_error
                     )
 
             if deleted_count > 0:
-                with self._lock:
-                    self._cleanup_count += deleted_count
+                self._cleanup_count += deleted_count
                 logger.info(
                     "Периодическая очистка: удалено %d временных файлов (всего: %d)",
                     deleted_count,
                     self._cleanup_count,
                 )
 
-        except (MemoryError, KeyboardInterrupt, SystemExit):
-            raise
-        except (OSError, RuntimeError, TypeError) as cleanup_error:
+        except Exception as cleanup_error:
             logger.error(
                 "Ошибка при сканировании директории %s: %s",
                 self._temp_dir,
@@ -459,146 +428,37 @@ class TempFileTimer:
 
         return deleted_count
 
-    @staticmethod
-    def _cleanup_timer(timer: threading.Timer | None, lock: threading.RLock | None = None) -> None:
-        """Статический метод для гарантированной очистки таймера.
-
-        Вызывается weakref.finalize() при уничтожении объекта сборщиком мусора.
-
-        Args:
-            timer: Таймер для отмены.
-            lock: Блокировка (не используется, оставлена для совместимости).
-
-        """
-        if timer is not None:
-            try:
-                timer.cancel()
-            except (RuntimeError, TypeError, ValueError):
-                pass
-        # Блокировка не освобождается здесь - она управляется в _cleanup_thread
-
     def start(self) -> None:
         """Запускает таймер периодической очистки."""
-        # ISSUE-096: Используем context manager для Lock вместо ручного acquire/release
-        try:
-            with self._lock:
-                if self._is_running:
-                    logger.warning("Таймер очистки уже запущен")
-                    return
-
-                self._is_running = True
-                self._stop_event.clear()
-        except (RuntimeError, OSError) as lock_error:
-            logger.warning(
-                "Не удалось получить блокировку в start(): %s. Возможна конкуренция за ресурсы.",
-                lock_error,
-            )
+        if self._is_running:
+            logger.warning("Таймер очистки уже запущен")
             return
 
+        self._is_running = True
         self._schedule_next_cleanup()
         logger.info("Запущен таймер периодической очистки временных файлов")
 
     def stop(self) -> None:
         """Останавливает таймер периодической очистки."""
-        self._stop_event.set()
+        self._is_running = False
 
-        timer_to_cancel: threading.Timer | None = None
-
-        # ISSUE-096: Используем context manager для Lock вместо ручного acquire/release
-        try:
-            with self._lock:
-                self._is_running = False
-
-                if self._timer is not None:
-                    timer_to_cancel = self._timer
-                    self._timer = None
-        except (RuntimeError, OSError) as lock_error:
-            logger.warning(
-                "Не удалось получить блокировку в stop(): %s. Возможна конкуренция за ресурсами.",
-                lock_error,
-            )
-            return
-
-        if timer_to_cancel is not None:
+        if self._timer is not None:
             try:
-                timer_to_cancel.cancel()
-            except (RuntimeError, TypeError, ValueError) as cancel_error:
+                self._timer.cancel()
+            except Exception as cancel_error:
                 logger.debug("Ошибка при отмене таймера: %s", cancel_error)
 
-        if timer_to_cancel is not None:
             try:
-                timer_to_cancel.join(timeout=self._interval * 2)
-            except (RuntimeError, OSError, ValueError) as join_error:
+                self._timer.join(timeout=self._interval * 2)
+            except Exception as join_error:
                 logger.debug("Ошибка при ожидании таймера: %s", join_error)
+
+            self._timer = None
 
         logger.info(
             "Таймер периодической очистки остановлен (всего удалено файлов: %d)",
             self._cleanup_count,
         )
-
-    def __del__(self) -> None:
-        """Гарантирует остановку таймера при уничтожении.
-
-        Важно:
-            - Используется weakref.finalize() для гарантированной очистки
-            - Блок finally обеспечивает выполнение остановки даже при исключениях
-            - Критические исключения (MemoryError, KeyboardInterrupt, SystemExit) пробрасываются
-        """
-        cleanup_performed = False
-        timer_to_cancel: threading.Timer | None = None
-
-        try:
-            if hasattr(self, "_finalizer") and self._finalizer is not None:
-                if self._finalizer.detach():
-                    logger.debug("TempFileTimer очищен через weakref.finalize()")
-                    cleanup_performed = True
-                    return
-
-            if hasattr(self, "_is_running") and self._is_running:
-                logger.warning(
-                    "TempFileTimer уничтожается сборщиком мусора без явной остановки. "
-                    "Всегда вызывайте stop() явно."
-                )
-                # Сохраняем ссылку на таймер для очистки в finally
-                timer_to_cancel = getattr(self, "_timer", None)
-        except MemoryError:
-            # Критическая ошибка памяти - пробрасываем дальше
-            logger.critical("MemoryError в __del__ TempFileTimer")
-            raise
-        except KeyboardInterrupt:
-            # Прерывание пользователем - пробрасываем дальше
-            logger.warning("KeyboardInterrupt в __del__ TempFileTimer")
-            raise
-        except SystemExit:
-            # Выход из системы - пробрасываем дальше
-            logger.debug("SystemExit в __del__ TempFileTimer")
-            raise
-        except (RuntimeError, TypeError, ValueError, OSError) as stop_error:
-            # Ожидаемые ошибки - логируем но не пробрасываем
-            logger.debug("Ошибка при остановке таймера в __del__: %s", stop_error)
-        finally:
-            # Гарантия выполнения очистки ресурсов
-            try:
-                if not cleanup_performed:
-                    # Отменяем таймер если это не было сделано
-                    if timer_to_cancel is not None:
-                        try:
-                            timer_to_cancel.cancel()
-                        except (RuntimeError, TypeError, ValueError):
-                            pass  # Игнорируем ошибки при отмене в __del__
-
-                    # Сбрасываем флаг выполнения
-                    try:
-                        if hasattr(self, "_is_running"):
-                            object.__setattr__(self, "_is_running", False)
-                    except (AttributeError, TypeError, ValueError):
-                        pass  # Игнорируем ошибки при сбросе флага
-            except (MemoryError, KeyboardInterrupt, SystemExit):
-                # Критические исключения пробрасываем даже из finally
-                raise
-            except Exception as cleanup_error:
-                # Любые другие ошибки в finally только логируем
-                logger.debug("Ошибка в finally блоке __del__ TempFileTimer: %s", cleanup_error)
 
 
 # =============================================================================
@@ -671,10 +531,6 @@ __all__ = [
     # TempFileManager
     "TempFileManager",
     "temp_file_manager",
-    "register_temp_file",
-    "unregister_temp_file",
-    "cleanup_all_temp_files",
-    "get_temp_file_count",
     # TempFileTimer
     "TempFileTimer",
     # Helper functions

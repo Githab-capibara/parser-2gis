@@ -279,7 +279,7 @@ class TestWebSocketInjection:
 
     def test_localhost_base_url_constant(self) -> None:
         """Тест использования константы для localhost URL."""
-        from parser_2gis.chrome.remote import LOCALHOST_BASE_URL
+        from parser_2gis.chrome.constants import LOCALHOST_BASE_URL
 
         # Константа должна существовать и иметь правильный формат
         assert LOCALHOST_BASE_URL == "http://127.0.0.1:{port}"
@@ -288,7 +288,7 @@ class TestWebSocketInjection:
     def test_dev_url_format(self) -> None:
         """Тест формата dev_url."""
         # Проверяем что URL формируется через константу 127.0.0.1
-        from parser_2gis.chrome.remote import LOCALHOST_BASE_URL
+        from parser_2gis.chrome.constants import LOCALHOST_BASE_URL
 
         # Константа должна использовать 127.0.0.1 вместо localhost
         assert LOCALHOST_BASE_URL == "http://127.0.0.1:{port}"

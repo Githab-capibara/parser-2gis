@@ -28,16 +28,8 @@ from ..constants import (
 from .manager import Cache, CacheManager
 from .pool import PSUTIL_AVAILABLE, ConnectionPool, _calculate_dynamic_pool_size
 from .serializer import JsonSerializer, _deserialize_json, _serialize_json
-from .validator import (
-    CacheDataValidator,
-    _check_sql_injection_patterns,
-    _normalize_unicode,
-    _validate_cached_data,
-    _validate_dict_data,
-    _validate_list_data,
-    _validate_numeric_data,
-    _validate_string_data,
-)
+from .validator import CacheDataValidator
+from .config_cache import ConfigCache, get_config_cache, CategoryDict
 
 # Для обратной совместимости с тестами
 _ConnectionPool = ConnectionPool
@@ -67,20 +59,16 @@ __all__ = [
     "Cache",
     "CacheDataValidator",
     "CacheManager",
+    "CategoryDict",
+    "ConfigCache",
     "ConnectionPool",
     "JsonSerializer",
     "_ConnectionPool",  # Для обратной совместимости с тестами
     "_calculate_dynamic_pool_size",
-    "_check_sql_injection_patterns",  # Для обратной совместимости с тестами
     "_deserialize_json",  # Для обратной совместимости с тестами
-    "_normalize_unicode",  # Для обратной совместимости с тестами
     "_serialize_json",  # Для обратной совместимости с тестами
-    "_validate_cached_data",  # Для обратной совместимости с тестами
-    "_validate_dict_data",  # Для обратной совместимости с тестами
-    "_validate_list_data",  # Для обратной совместимости с тестами
-    "_validate_numeric_data",  # Для обратной совместимости с тестами
     "_validate_pool_env_int",  # Алиас для обратной совместимости
-    "_validate_string_data",  # Для обратной совместимости с тестами
+    "get_config_cache",
     "psutil",  # Для тестов
     "validate_env_int",
 ]

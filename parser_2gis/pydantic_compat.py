@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import Any
 
 import pydantic
-from typing import TypeAlias
+from typing_extensions import TypeAlias
 
 # TypeAlias для сложных типов
 PydanticModel: TypeAlias = pydantic.BaseModel

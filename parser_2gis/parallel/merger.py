@@ -33,7 +33,7 @@ from parser_2gis.constants import (
     MERGE_LOCK_TIMEOUT,
 )
 from parser_2gis.logger import logger
-from parser_2gis.utils.temp_file_manager import register_temp_file, unregister_temp_file
+from parser_2gis.utils.temp_file_manager import temp_file_manager
 
 
 @dataclass
@@ -773,7 +773,7 @@ class ParallelFileMerger:
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
         temp_file_created = False
 
-        register_temp_file(temp_output)
+        temp_file_manager.register(temp_output)
 
         lock_file_path = self.output_dir / ".merge.lock"
         lock_file_handle = None
@@ -946,7 +946,7 @@ class ParallelFileMerger:
                         f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
                     )
 
-            unregister_temp_file(temp_output)
+            temp_file_manager.unregister(temp_output)
 
             if temp_file_created and temp_output.exists():
                 try:

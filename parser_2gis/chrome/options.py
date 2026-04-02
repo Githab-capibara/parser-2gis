@@ -14,7 +14,7 @@ import pathlib
 import psutil
 from pydantic import BaseModel, PositiveInt
 
-from parser_2gis.constants import MEMORY_FRACTION_FOR_V8
+from parser_2gis.chrome.constants import MEMORY_FRACTION_FOR_V8
 from parser_2gis.utils import floor_to_hundreds
 
 

@@ -10,23 +10,6 @@ H9: Выделение инфраструктурных зависимостей
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
-
-
-@runtime_checkable
-class ResourceMonitorProtocol(Protocol):
-    """Protocol для монитора ресурсов.
-
-    Определяет интерфейс для всех мониторов ресурсов.
-    """
-
-    def get_available_memory(self) -> int:
-        """Получает доступный объём памяти в байтах."""
-        ...  # pylint: disable=unnecessary-ellipsis
-
-    def get_memory_usage(self) -> MemoryInfo:
-        """Получает информацию об использовании памяти."""
-        ...  # pylint: disable=unnecessary-ellipsis
 
 
 @dataclass
@@ -166,67 +149,4 @@ class ResourceMonitor:
         return available_mb >= (required_mb + threshold_mb)
 
 
-# =============================================================================
-# FACADE ДЛЯ МОНИТОРИНГА РЕСУРСОВ
-# =============================================================================
-
-
-class ResourceMonitorFacade:
-    """Фасад для мониторинга ресурсов.
-
-    Упрощает использование мониторов ресурсов, предоставляя
-    простой интерфейс для типичных операций.
-
-    Example:
-        >>> facade = ResourceMonitorFacade()
-        >>> if facade.has_enough_memory(200):
-        >>>     # Выполнить операцию требующую 200MB
-        >>>     pass
-
-    """
-
-    def __init__(self) -> None:
-        """Инициализация фасада."""
-        self._monitor = ResourceMonitor()
-
-    def has_enough_memory(self, required_mb: float = 100.0) -> bool:
-        """Проверяет достаточно ли памяти.
-
-        Args:
-            required_mb: Требуемый объём памяти в мегабайтах.
-
-        Returns:
-            True если памяти достаточно.
-
-        """
-        return self._monitor.check_memory_before_operation(required_mb)
-
-    def get_available_memory_mb(self) -> float:
-        """Получает доступный объём памяти в мегабайтах.
-
-        Returns:
-            Доступный объём памяти в MB.
-
-        """
-        return self._monitor.get_memory_monitor().get_memory_usage().available_mb
-
-    def is_memory_low(self, threshold_mb: float = 100.0) -> bool:
-        """Проверяет низкий уровень памяти.
-
-        Args:
-            threshold_mb: Порог в мегабайтах.
-
-        Returns:
-            True если памяти меньше порога.
-
-        """
-        return self._monitor.get_memory_monitor().is_low_memory(threshold_mb)
-
-
-__all__ = [
-    "MemoryInfo",
-    "MemoryMonitor",
-    "ResourceMonitor",
-    "ResourceMonitorFacade",
-    "ResourceMonitorProtocol",
-]
+__all__ = ["MemoryInfo", "MemoryMonitor", "ResourceMonitor"]
