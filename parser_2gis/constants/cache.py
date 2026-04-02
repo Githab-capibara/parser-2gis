@@ -54,6 +54,9 @@ DEFAULT_CACHE_FILE_NAME: str = "cache.db"
 # ISSUE-068: Директория output по умолчанию
 DEFAULT_OUTPUT_DIR: str = "output"
 
+# ISSUE-065: TTL кэша по умолчанию (часы)
+DEFAULT_TTL_HOURS: int = 24
+
 
 __all__ = [
     "MAX_CACHE_SIZE_MB",
@@ -67,4 +70,5 @@ __all__ = [
     "MAX_CONNECTION_AGE",
     "DEFAULT_CACHE_FILE_NAME",
     "DEFAULT_OUTPUT_DIR",
+    "DEFAULT_TTL_HOURS",
 ]
