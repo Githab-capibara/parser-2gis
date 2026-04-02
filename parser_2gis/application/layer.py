@@ -6,13 +6,12 @@
 - BrowserFacade: фасад для браузера
 
 H8: Выделение бизнес-логики и инфраструктуры через фасады.
+ISSUE-014: Dependency Injection — зависимости внедряются через конструктор.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-from parser_2gis.protocols import BrowserService
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from parser_2gis.cache import CacheManager
@@ -20,7 +19,35 @@ if TYPE_CHECKING:
     from parser_2gis.chrome.remote import ChromeRemote
     from parser_2gis.parser.options import ParserOptions
     from parser_2gis.parser.parsers.base import BaseParser
+    from parser_2gis.protocols import BrowserService
     from parser_2gis.writer import FileWriter
+
+
+# =============================================================================
+# PROTOCOLS ДЛЯ FACTORY (ISSUE-014: DIP)
+# =============================================================================
+
+
+class ParserFactoryProtocol(Protocol):
+    """Protocol для фабрики парсеров.
+
+    ISSUE-014: Позволяет внедрять mock фабрику для тестирования.
+    """
+
+    def __call__(
+        self,
+        url: str,
+        chrome_options: ChromeOptions,
+        parser_options: ParserOptions,
+        browser: BrowserService | None = None,
+    ) -> BaseParser:
+        """Создаёт парсер."""
+        ...
+
+
+# =============================================================================
+# PARSER FACADE (ISSUE-014: DIP)
+# =============================================================================
 
 
 class ParserFacade:
@@ -29,15 +56,57 @@ class ParserFacade:
     Упрощает создание и использование парсеров, предоставляя
     единый интерфейс для всех операций парсинга.
 
+    ISSUE-014: Dependency Injection — фабрика парсеров внедряется через конструктор.
+
     Example:
+        >>> # Использование по умолчанию
         >>> facade = ParserFacade()
         >>> parser = facade.create_parser(url, chrome_options, parser_options)
         >>> parser.parse(writer)
+        >>>
+        >>> # Использование с внедрённой зависимостью (для тестирования)
+        >>> mock_factory = MockParserFactory()
+        >>> facade = ParserFacade(parser_factory=mock_factory)
 
     """
 
-    @staticmethod
+    def __init__(self, parser_factory: ParserFactoryProtocol | None = None) -> None:
+        """Инициализация ParserFacade.
+
+        ISSUE-014: Фабрика парсеров внедряется через конструктор.
+
+        Args:
+            parser_factory: Опциональная фабрика парсеров для DI.
+                           Если не передана, используется по умолчанию.
+
+        """
+        self._parser_factory = parser_factory or self._default_parser_factory
+
+    def _default_parser_factory(
+        self,
+        url: str,
+        chrome_options: ChromeOptions,
+        parser_options: ParserOptions,
+        browser: BrowserService | None = None,
+    ) -> BaseParser:
+        """Фабрика парсеров по умолчанию.
+
+        Args:
+            url: URL для парсинга.
+            chrome_options: Опции Chrome.
+            parser_options: Опции парсера.
+            browser: Опциональный браузер для DI.
+
+        Returns:
+            Экземпляр парсера.
+
+        """
+        from parser_2gis.parser.factory import get_parser
+
+        return get_parser(url, chrome_options, parser_options, browser)
+
     def create_parser(
+        self,
         url: str,
         chrome_options: ChromeOptions,
         parser_options: ParserOptions,
@@ -55,12 +124,10 @@ class ParserFacade:
             Экземпляр парсера.
 
         """
-        from parser_2gis.parser.factory import get_parser
+        return self._parser_factory(url, chrome_options, parser_options, browser)
 
-        return get_parser(url, chrome_options, parser_options, browser)
-
-    @staticmethod
     def parse_url(
+        self,
         url: str,
         writer: FileWriter,
         chrome_options: ChromeOptions,
@@ -80,7 +147,7 @@ class ParserFacade:
             Словарь со статистикой парсинга.
 
         """
-        parser = ParserFacade.create_parser(url, chrome_options, parser_options, browser)
+        parser = self.create_parser(url, chrome_options, parser_options, browser)
         try:
             parser.parse(writer)
             return parser.get_stats()
@@ -89,29 +156,54 @@ class ParserFacade:
                 parser.close()
 
 
+# =============================================================================
+# CACHE FACADE (ISSUE-014: DIP)
+# =============================================================================
+
+
 class CacheFacade:
     """Фасад для работы с кэшем.
 
     Упрощает операции кэширования, предоставляя единый интерфейс
     для всех операций с кэшем.
 
+    ISSUE-014: Dependency Injection — CacheManager внедряется через конструктор.
+
     Example:
+        >>> # Использование по умолчанию
         >>> facade = CacheFacade(cache_path)
         >>> facade.get("key")
-        >>> facade.set("key", "value", ttl=3600)
+        >>>
+        >>> # Использование с внедрённой зависимостью (для тестирования)
+        >>> mock_cache = MockCacheManager()
+        >>> facade = CacheFacade(cache_manager=mock_cache)
 
     """
 
-    def __init__(self, cache_path: str) -> None:
+    def __init__(
+        self, cache_path: str | None = None, cache_manager: "CacheManager | None" = None
+    ) -> None:
         """Инициализация фасада кэша.
 
+        ISSUE-014: CacheManager внедряется через конструктор.
+
         Args:
-            cache_path: Путь к файлу кэша.
+            cache_path: Путь к файлу кэша (если cache_manager не передан).
+            cache_manager: Опциональный CacheManager для DI.
+                          Если не передан, создаётся по умолчанию.
+
+        Raises:
+            ValueError: Если не передан ни cache_path, ни cache_manager.
 
         """
         from parser_2gis.cache import CacheManager
 
-        self._cache: CacheManager = CacheManager(cache_path)
+        if cache_manager is not None:
+            self._cache: CacheManager = cache_manager
+        elif cache_path is not None:
+            self._cache = CacheManager(cache_path)
+        else:
+            raise ValueError("Необходимо передать cache_path или cache_manager")
 
     def get(self, key: str) -> Any | None:
         """Получает значение из кэша.
@@ -168,29 +260,63 @@ class CacheFacade:
         self.close()
 
 
+# =============================================================================
+# BROWSER FACADE (ISSUE-014: DIP)
+# =============================================================================
+
+
 class BrowserFacade:
     """Фасад для работы с браузером.
 
     Упрощает создание и управление браузером, предоставляя
     единый интерфейс для всех браузерных операций.
 
+    ISSUE-014: Dependency Injection — ChromeRemote factory внедряется через конструктор.
+
     Example:
+        >>> # Использование по умолчанию
         >>> facade = BrowserFacade(chrome_options)
         >>> with facade.create_browser() as browser:
         >>>     browser.navigate("https://2gis.ru")
-        >>>     html = browser.get_html()
+        >>>
+        >>> # Использование с внедрённой зависимостью (для тестирования)
+        >>> mock_browser_factory = MockBrowserFactory()
+        >>> facade = BrowserFacade(browser_factory=mock_browser_factory)
 
     """
 
-    def __init__(self, chrome_options: ChromeOptions) -> None:
+    def __init__(
+        self,
+        chrome_options: ChromeOptions | None = None,
+        browser_factory: Protocol | None = None,
+        response_patterns: list[str] | None = None,
+    ) -> None:
         """Инициализация браузерного фасада.
 
+        ISSUE-014: Browser factory внедряется через конструктор.
+
         Args:
-            chrome_options: Опции Chrome.
+            chrome_options: Опции Chrome (если browser_factory не передан).
+            browser_factory: Опциональная фабрика браузеров для DI.
+                            Если не передана, создаётся по умолчанию.
+            response_patterns: Паттерны для перехвата ответов.
+
+        Raises:
+            ValueError: Если не передан ни chrome_options, ни browser_factory.
 
         """
-        self._chrome_options = chrome_options
-        self._response_patterns: list[str] = [r"https://catalog\.api\.2gis\.[^/]+/.*/items/byid"]
+        if browser_factory is not None:
+            self._browser_factory = browser_factory
+            self._chrome_options = None
+        elif chrome_options is not None:
+            self._chrome_options = chrome_options
+            self._browser_factory = None
+        else:
+            raise ValueError("Необходимо передать chrome_options или browser_factory")
+
+        self._response_patterns = response_patterns or [
+            r"https://catalog\.api\.2gis\.[^/]+/.*/items/byid"
+        ]
 
     def create_browser(self) -> ChromeRemote:
         """Создаёт экземпляр браузера.
@@ -199,7 +325,13 @@ class BrowserFacade:
             Экземпляр ChromeRemote.
 
         """
+        if self._browser_factory is not None:
+            return self._browser_factory()  # type: ignore[no-any-return]
+
         from parser_2gis.chrome.remote import ChromeRemote
+
+        if self._chrome_options is None:
+            raise ValueError("chrome_options не передан")
 
         return ChromeRemote(self._chrome_options, self._response_patterns)
 

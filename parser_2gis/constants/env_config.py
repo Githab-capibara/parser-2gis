@@ -8,6 +8,8 @@
     >>> from parser_2gis.constants.env_config import get_env_config
     >>> config = get_env_config()
     >>> print(f"Максимальное количество workers: {config.max_workers}")
+
+ISSUE-012: Рефакторинг — вынесена валидация в отдельные методы для упрощения __post_init__.
 """
 
 from __future__ import annotations
@@ -15,6 +17,10 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 @dataclass
@@ -40,8 +46,140 @@ class EnvConfig:
 
     """
 
-    # Поля инициализируются в __post_init__
-    _logger: logging.Logger = field(init=False, repr=False)
+    # ISSUE-012: Поля сгруппированы по назначению для лучшей читаемости
+    # Параллельный парсинг
+    max_workers: int = field(init=False)
+    max_timeout: int = field(init=False)
+    default_timeout: int = field(init=False)
+    min_workers: int = field(init=False, default=1)
+    min_timeout: int = field(init=False, default=1)
+
+    # Connection Pool
+    max_pool_size: int = field(init=False)
+    min_pool_size: int = field(init=False)
+    connection_max_age: int = field(init=False)
+    max_connection_age: int = field(init=False)
+
+    # Кэширование
+    max_cache_size_mb: int = field(init=False)
+
+    # Временные файлы
+    max_temp_files: int = field(init=False, default=1000)
+    max_temp_files_monitoring: int = field(init=False)
+    temp_file_cleanup_interval: int = field(init=False)
+    orphaned_temp_file_age: int = field(init=False)
+
+    # Merge операции
+    merge_lock_timeout: int = field(init=False)
+    max_lock_file_age: int = field(init=False)
+
+    # Приватные поля
+    _logger: logging.Logger = field(
+        init=False,
+        repr=False,
+        default_factory=lambda: logging.getLogger("parser_2gis.constants.env_config"),
+    )
+
+    # ISSUE-012: Конфигурация валидации вынесена в отдельные методы
+    # Каждая группа настроек имеет свой метод инициализации
+
+    def __post_init__(self) -> None:
+        """Инициализация полей после создания объекта.
+
+        ISSUE-012: Метод упрощён — вся логика вынесена в отдельные методы.
+        """
+        self._init_parallel_settings()
+        self._init_connection_pool_settings()
+        self._init_cache_settings()
+        self._init_temp_file_settings()
+        self._init_merge_settings()
+
+    def _init_parallel_settings(self) -> None:
+        """Инициализирует настройки параллельного парсинга.
+
+        ISSUE-012: Вынесено из __post_init__ для улучшения читаемости.
+        """
+        object.__setattr__(
+            self, "max_workers", self._validate_env_int("PARSER_MAX_WORKERS", 50, 1, 100)
+        )
+        object.__setattr__(
+            self, "max_timeout", self._validate_env_int("PARSER_MAX_TIMEOUT", 72000, 60, 172800)
+        )
+        object.__setattr__(
+            self,
+            "default_timeout",
+            self._validate_env_int("PARSER_DEFAULT_TIMEOUT", 7200, 60, 72000),
+        )
+
+    def _init_connection_pool_settings(self) -> None:
+        """Инициализирует настройки пула соединений.
+
+        ISSUE-012: Вынесено из __post_init__ для улучшения читаемости.
+        """
+        object.__setattr__(
+            self, "max_pool_size", self._validate_env_int("PARSER_MAX_POOL_SIZE", 20, 5, 50)
+        )
+        object.__setattr__(
+            self, "min_pool_size", self._validate_env_int("PARSER_MIN_POOL_SIZE", 5, 1, 10)
+        )
+        object.__setattr__(
+            self,
+            "connection_max_age",
+            self._validate_env_int("PARSER_CONNECTION_MAX_AGE", 600, 60, 7200),
+        )
+        object.__setattr__(
+            self,
+            "max_connection_age",
+            self._validate_env_int("PARSER_MAX_CONNECTION_AGE", 600, 60, 7200),
+        )
+
+    def _init_cache_settings(self) -> None:
+        """Инициализирует настройки кэширования.
+
+        ISSUE-012: Вынесено из __post_init__ для улучшения читаемости.
+        """
+        object.__setattr__(
+            self,
+            "max_cache_size_mb",
+            self._validate_env_int("PARSER_MAX_CACHE_SIZE_MB", 500, 100, 2000),
+        )
+
+    def _init_temp_file_settings(self) -> None:
+        """Инициализирует настройки временных файлов.
+
+        ISSUE-012: Вынесено из __post_init__ для улучшения читаемости.
+        """
+        object.__setattr__(
+            self,
+            "max_temp_files_monitoring",
+            self._validate_env_int("PARSER_MAX_TEMP_FILES_MONITORING", 1000, 100, 10000),
+        )
+        object.__setattr__(
+            self,
+            "temp_file_cleanup_interval",
+            self._validate_env_int("PARSER_TEMP_FILE_CLEANUP_INTERVAL", 120, 10, 7200),
+        )
+        object.__setattr__(
+            self,
+            "orphaned_temp_file_age",
+            self._validate_env_int("PARSER_ORPHANED_TEMP_FILE_AGE", 600, 60, 172800),
+        )
+
+    def _init_merge_settings(self) -> None:
+        """Инициализирует настройки merge операций.
+
+        ISSUE-012: Вынесено из __post_init__ для улучшения читаемости.
+        """
+        object.__setattr__(
+            self,
+            "merge_lock_timeout",
+            self._validate_env_int("PARSER_MERGE_LOCK_TIMEOUT", 7200, 60, 14400),
+        )
+        object.__setattr__(
+            self,
+            "max_lock_file_age",
+            self._validate_env_int("PARSER_MAX_LOCK_FILE_AGE", 120, 10, 1200),
+        )
 
     def _validate_env_int(
         self,
@@ -51,6 +189,8 @@ class EnvConfig:
         max_value: int | None = None,
     ) -> int:
         """Валидирует ENV переменную как целое число в допустимом диапазоне.
+
+        ISSUE-012: Метод перемещён вниз для лучшей читаемости.
 
         Args:
             env_name: Имя ENV переменной.
@@ -97,108 +237,38 @@ class EnvConfig:
 
         return value
 
-    # Параллельный парсинг
-    max_workers: int = field(init=False)
-    max_timeout: int = field(init=False)
-    default_timeout: int = field(init=False)
-    min_workers: int = field(init=False)
-    min_timeout: int = field(init=False)
+    def to_dict(self) -> dict[str, Any]:
+        """Конвертирует конфигурацию в словарь.
 
-    # Connection Pool
-    max_pool_size: int = field(init=False)
-    min_pool_size: int = field(init=False)
-    connection_max_age: int = field(init=False)
-    max_connection_age: int = field(init=False)
+        ISSUE-012: Добавлен метод для удобной сериализации.
 
-    # Кэширование
-    max_cache_size_mb: int = field(init=False)
+        Returns:
+            Словарь с настройками конфигурации.
 
-    # Временные файлы
-    max_temp_files: int = field(init=False)
-    max_temp_files_monitoring: int = field(init=False)
-    temp_file_cleanup_interval: int = field(init=False)
-    orphaned_temp_file_age: int = field(init=False)
-
-    # Merge операции
-    merge_lock_timeout: int = field(init=False)
-    max_lock_file_age: int = field(init=False)
-
-    def __post_init__(self) -> None:
-        """Инициализация полей после создания объекта."""
-        # Инициализация logger
-        object.__setattr__(self, "_logger", logging.getLogger("parser_2gis.constants.env_config"))
-
-        # Инициализация полей со значениями по умолчанию
-        object.__setattr__(self, "min_workers", 1)
-        object.__setattr__(self, "min_timeout", 1)
-        object.__setattr__(self, "max_temp_files", 1000)
-
-        # Параллельный парсинг
-        object.__setattr__(
-            self, "max_workers", self._validate_env_int("PARSER_MAX_WORKERS", 50, 1, 100)
-        )
-        object.__setattr__(
-            self, "max_timeout", self._validate_env_int("PARSER_MAX_TIMEOUT", 72000, 60, 172800)
-        )
-        object.__setattr__(
-            self,
-            "default_timeout",
-            self._validate_env_int("PARSER_DEFAULT_TIMEOUT", 7200, 60, 72000),
-        )
-
-        # Connection Pool
-        object.__setattr__(
-            self, "max_pool_size", self._validate_env_int("PARSER_MAX_POOL_SIZE", 20, 5, 50)
-        )
-        object.__setattr__(
-            self, "min_pool_size", self._validate_env_int("PARSER_MIN_POOL_SIZE", 5, 1, 10)
-        )
-        object.__setattr__(
-            self,
-            "connection_max_age",
-            self._validate_env_int("PARSER_CONNECTION_MAX_AGE", 600, 60, 7200),
-        )
-        object.__setattr__(
-            self,
-            "max_connection_age",
-            self._validate_env_int("PARSER_MAX_CONNECTION_AGE", 600, 60, 7200),
-        )
-
-        # Кэширование
-        object.__setattr__(
-            self,
-            "max_cache_size_mb",
-            self._validate_env_int("PARSER_MAX_CACHE_SIZE_MB", 500, 100, 2000),
-        )
-
-        # Временные файлы
-        object.__setattr__(
-            self,
-            "max_temp_files_monitoring",
-            self._validate_env_int("PARSER_MAX_TEMP_FILES_MONITORING", 1000, 100, 10000),
-        )
-        object.__setattr__(
-            self,
-            "temp_file_cleanup_interval",
-            self._validate_env_int("PARSER_TEMP_FILE_CLEANUP_INTERVAL", 120, 10, 7200),
-        )
-        object.__setattr__(
-            self,
-            "orphaned_temp_file_age",
-            self._validate_env_int("PARSER_ORPHANED_TEMP_FILE_AGE", 600, 60, 172800),
-        )
-
-        # Merge операции
-        object.__setattr__(
-            self,
-            "merge_lock_timeout",
-            self._validate_env_int("PARSER_MERGE_LOCK_TIMEOUT", 7200, 60, 14400),
-        )
-        object.__setattr__(
-            self,
-            "max_lock_file_age",
-            self._validate_env_int("PARSER_MAX_LOCK_FILE_AGE", 120, 10, 1200),
-        )
+        """
+        return {
+            # Параллельный парсинг
+            "max_workers": self.max_workers,
+            "max_timeout": self.max_timeout,
+            "default_timeout": self.default_timeout,
+            "min_workers": self.min_workers,
+            "min_timeout": self.min_timeout,
+            # Connection Pool
+            "max_pool_size": self.max_pool_size,
+            "min_pool_size": self.min_pool_size,
+            "connection_max_age": self.connection_max_age,
+            "max_connection_age": self.max_connection_age,
+            # Кэширование
+            "max_cache_size_mb": self.max_cache_size_mb,
+            # Временные файлы
+            "max_temp_files": self.max_temp_files,
+            "max_temp_files_monitoring": self.max_temp_files_monitoring,
+            "temp_file_cleanup_interval": self.temp_file_cleanup_interval,
+            "orphaned_temp_file_age": self.orphaned_temp_file_age,
+            # Merge операции
+            "merge_lock_timeout": self.merge_lock_timeout,
+            "max_lock_file_age": self.max_lock_file_age,
+        }
 
 
 # =============================================================================

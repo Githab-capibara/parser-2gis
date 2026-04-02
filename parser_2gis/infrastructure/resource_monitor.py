@@ -7,6 +7,7 @@
 
 H9: Выделение инфраструктурных зависимостей (psutil) в отдельный модуль.
 ISSUE-166: Добавлено кэширование для часто вызываемых методов.
+ISSUE-019: Dependency Injection — MemoryMonitor внедряется через конструктор.
 
 Пример использования:
     >>> from parser_2gis.infrastructure.resource_monitor import ResourceMonitor
@@ -19,6 +20,10 @@ from __future__ import annotations
 
 import functools
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    pass
 
 
 @dataclass
@@ -149,6 +154,35 @@ class MemoryMonitor:
         return self.get_available_memory() < (threshold_mb * 1024 * 1024)
 
 
+# =============================================================================
+# PROTOCOL ДЛЯ MEMORY MONITOR (ISSUE-019: DIP)
+# =============================================================================
+
+
+class MemoryMonitorProtocol:
+    """Protocol для MemoryMonitor (для type checking).
+
+    ISSUE-019: Позволяет внедрять mock MemoryMonitor для тестирования.
+    """
+
+    def get_available_memory(self) -> int:
+        """Получает доступный объём памяти в байтах."""
+        ...
+
+    def get_memory_usage(self) -> MemoryInfo:
+        """Получает полную информацию об использовании памяти."""
+        ...
+
+    def is_low_memory(self, threshold_mb: float = 100.0) -> bool:
+        """Проверяет низкий уровень памяти."""
+        ...
+
+
+# =============================================================================
+# RESOURCE MONITOR (ISSUE-019: DIP)
+# =============================================================================
+
+
 class ResourceMonitor:
     """Общий монитор системных ресурсов для parser-2gis.
 
@@ -158,6 +192,7 @@ class ResourceMonitor:
     - Проверка памяти перед операциями
 
     ISSUE-166: Добавлено кэширование для часто вызываемых методов.
+    ISSUE-019: Dependency Injection — MemoryMonitor внедряется через конструктор.
 
     Example:
         >>> monitor = ResourceMonitor()
@@ -168,13 +203,25 @@ class ResourceMonitor:
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, memory_monitor: MemoryMonitor | None = None) -> None:
         """Инициализация монитора ресурсов.
 
-        Создаёт экземпляр MemoryMonitor для мониторинга памяти.
+        ISSUE-019: MemoryMonitor внедряется через конструктор для улучшения
+        тестируемости и снижения связности.
+
+        Args:
+            memory_monitor: Опциональный MemoryMonitor для DI.
+                           Если не передан, создаётся по умолчанию.
+
+        Example:
+            >>> # Использование по умолчанию
+            >>> monitor = ResourceMonitor()
+            >>> # Использование с внедрённой зависимостью (для тестирования)
+            >>> mock_monitor = MockMemoryMonitor()
+            >>> monitor = ResourceMonitor(memory_monitor=mock_monitor)
 
         """
-        self._memory_monitor = MemoryMonitor()
+        self._memory_monitor = memory_monitor or MemoryMonitor()
 
     def get_memory_monitor(self) -> MemoryMonitor:
         """Получает монитор памяти.

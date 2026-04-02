@@ -11,17 +11,7 @@ Backward совместимость:
 from __future__ import annotations
 
 # Импортируем все символы из нового пакета cli для backward совместимости
-from parser_2gis.cli import (
-    ArgumentHelpFormatter,
-    ArgumentValidator,
-    main,
-    parse_arguments,
-)
+from parser_2gis.cli import ArgumentHelpFormatter, ArgumentValidator, main, parse_arguments
 
 # Экспортируем для backward совместимости
-__all__ = [
-    "ArgumentHelpFormatter",
-    "ArgumentValidator",
-    "main",
-    "parse_arguments",
-]
+__all__ = ["ArgumentHelpFormatter", "ArgumentValidator", "main", "parse_arguments"]
