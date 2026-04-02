@@ -67,11 +67,24 @@ _ALLOWED_KEYS: set[str] = {
 }
 
 # Скомпилированные regex паттерны для JS валидации (Оптимизация: кэширование)
+# D013: Паттерны покрывают onerror=, onload= и другие обработчики БЕЗ пробелов
 _DANGEROUS_JS_PATTERNS = [
     (re.compile(r"<script", re.IGNORECASE), "тег <script>"),
     (re.compile(r"javascript:", re.IGNORECASE), "протокол javascript:"),
+    # D013: Исправление - \s* покрывает onerror=, onerror =, onerror  = и т.д.
     (re.compile(r"onerror\s*=", re.IGNORECASE), "обработчик onerror"),
     (re.compile(r"onload\s*=", re.IGNORECASE), "обработчик onload"),
+    (re.compile(r"onclick\s*=", re.IGNORECASE), "обработчик onclick"),
+    (re.compile(r"onmouseover\s*=", re.IGNORECASE), "обработчик onmouseover"),
+    (re.compile(r"onfocus\s*=", re.IGNORECASE), "обработчик onfocus"),
+    (re.compile(r"onblur\s*=", re.IGNORECASE), "обработчик onblur"),
+    (re.compile(r"onchange\s*=", re.IGNORECASE), "обработчик onchange"),
+    (re.compile(r"onsubmit\s*=", re.IGNORECASE), "обработчик onsubmit"),
+    (re.compile(r"onkeydown\s*=", re.IGNORECASE), "обработчик onkeydown"),
+    (re.compile(r"onkeyup\s*=", re.IGNORECASE), "обработчик onkeyup"),
+    (re.compile(r"onkeypress\s*=", re.IGNORECASE), "обработчик onkeypress"),
+    # D013: Общий паттерн для всех on* обработчиков
+    (re.compile(r"\bon\w+\s*=", re.IGNORECASE), "on* обработчик событий"),
     (re.compile(r"eval\s*\(", re.IGNORECASE), "функция eval()"),
     (re.compile(r"Function\s*\(", re.IGNORECASE), "конструктор Function"),
     (re.compile(r"document\.cookie", re.IGNORECASE), "доступ к document.cookie"),
@@ -79,6 +92,15 @@ _DANGEROUS_JS_PATTERNS = [
     (re.compile(r"sessionStorage", re.IGNORECASE), "доступ к sessionStorage"),
     (re.compile(r"XMLHttpRequest", re.IGNORECASE), "XMLHttpRequest"),
     (re.compile(r"fetch\s*\(", re.IGNORECASE), "функция fetch()"),
+    (re.compile(r"alert\s*\(", re.IGNORECASE), "функция alert()"),
+    (re.compile(r"confirm\s*\(", re.IGNORECASE), "функция confirm()"),
+    (re.compile(r"prompt\s*\(", re.IGNORECASE), "функция prompt()"),
+    (re.compile(r"window\.location", re.IGNORECASE), "доступ к window.location"),
+    (re.compile(r"document\.write", re.IGNORECASE), "метод document.write"),
+    (re.compile(r"document\.writeln", re.IGNORECASE), "метод document.writeln"),
+    (re.compile(r"\.innerHTML\s*=", re.IGNORECASE), "свойство innerHTML"),
+    (re.compile(r"\.outerHTML\s*=", re.IGNORECASE), "свойство outerHTML"),
+    (re.compile(r"\.insertAdjacentHTML", re.IGNORECASE), "метод insertAdjacentHTML"),
 ]
 
 # C017: Опасные ключи которые не должны присутствовать в initialState

@@ -15,6 +15,7 @@ import asyncio
 import atexit
 import csv
 import fcntl
+import functools
 import gc
 import os
 import random
@@ -80,6 +81,16 @@ ProgressCallback: TypeAlias = Callable[[int, int, str], None]
 
 # Константы
 MEMORY_THRESHOLD_BYTES = 100 * 1024 * 1024  # 100MB порог для проверки памяти
+
+
+# P1-13: Кэширование MemoryMonitor для снижения накладных расходов
+@functools.lru_cache(maxsize=1)
+def _get_memory_monitor() -> MemoryMonitor:
+    """Возвращает кэшированный экземпляр MemoryMonitor.
+
+    P1-13: Кэширование для часто используемого монитора памяти.
+    """
+    return MemoryMonitor()
 
 
 @dataclass
@@ -368,8 +379,8 @@ class ParallelCityParser:
         if self._cancel_event.is_set():
             return False, "Отменено пользователем"
 
-        # P1-9, P2-21: Используем константу MEMORY_THRESHOLD_BYTES
-        memory_monitor = MemoryMonitor()
+        # P1-9, P2-21, P1-13: Используем кэшированный MemoryMonitor
+        memory_monitor = _get_memory_monitor()
         available_memory = memory_monitor.get_available_memory()
         if available_memory < MEMORY_THRESHOLD_BYTES:  # Менее 100MB
             logger.warning(
@@ -469,7 +480,10 @@ class ParallelCityParser:
             self.log(f"Rate limiting задержка: {delay:.2f} сек", "debug")
             time.sleep(delay)
 
+            # P0-2, P0-7: Приобретаем семафор и гарантируем освобождение в finally
             self._browser_launch_semaphore.acquire()
+            semaphore_acquired = True
+
             try:
                 # Локальные импорты для уменьшения связанности модуля
                 from parser_2gis.chrome.exceptions import ChromeException
@@ -482,8 +496,7 @@ class ParallelCityParser:
                     launch_delay_max = getattr(self.config.parallel, "launch_delay_max", 1.0)
                     launch_delay = random.uniform(launch_delay_min, launch_delay_max)
                     self.log(
-                        f"Дополнительная задержка запуска Chrome: {launch_delay:.2f} сек",
-                        "debug",
+                        f"Дополнительная задержка запуска Chrome: {launch_delay:.2f} сек", "debug"
                     )
                     time.sleep(launch_delay)
 
@@ -548,7 +561,6 @@ class ParallelCityParser:
             # Гарантируем закрытие writer и parser при любой ошибке
             parser = None
             writer = None
-            semaphore_released = False
 
             try:
                 try:
@@ -613,12 +625,6 @@ class ParallelCityParser:
                     with self._lock:
                         self._stats["failed"] += 1
                     return False, f"MemoryError: {memory_error}"
-                finally:
-                    # P0-1, P0-4: Гарантированное освобождение семафора ТОЛЬКО в finally
-                    # Это предотвращает дублирование освобождения
-                    if not semaphore_released:
-                        self._browser_launch_semaphore.release()
-                        semaphore_released = True
 
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as parse_error:
                 # Обработка ошибок парсинга
@@ -644,6 +650,12 @@ class ParallelCityParser:
                     progress_callback(success_count, failed_count, "N/A")
 
                 return False, str(parse_error)
+            finally:
+                # P0-2, P0-7: Гарантированное освобождение семафора ТОЛЬКО в finally
+                # Это предотвращает утечку семафора при любой ошибке
+                if semaphore_acquired:
+                    self._browser_launch_semaphore.release()
+                    semaphore_acquired = False
 
             # Переименовываем временный файл в целевой
             # C012: Обрабатываем все OSError для атомарного переименования
@@ -794,7 +806,7 @@ class ParallelCityParser:
         last_underscore_idx = stem.rfind("_")
 
         if last_underscore_idx > 0:
-            return stem[last_underscore_idx + 1 :].replace("_", " ")
+            return stem[last_underscore_idx + 1:].replace("_", " ")
 
         category = stem.replace("_", " ")
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")

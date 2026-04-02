@@ -11,11 +11,22 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
     from parser_2gis.protocols import BrowserService
     from parser_2gis.writer import FileWriter
+
+
+class ParserStats(TypedDict):
+    """TypedDict для статистики парсера.
+
+    P1-7: Замена dict[str, Any] на TypedDict для лучшей типизации.
+    """
+
+    parsed: int
+    errors: int
+    skipped: int
 
 
 class BaseParser(ABC):
@@ -74,7 +85,7 @@ class BaseParser(ABC):
 
         """
         self._browser = browser
-        self._stats: dict[str, Any] = {"parsed": 0, "errors": 0, "skipped": 0}
+        self._stats: ParserStats = {"parsed": 0, "errors": 0, "skipped": 0}
 
     @property
     def _chrome_remote(self) -> BrowserService:
@@ -109,7 +120,7 @@ class BaseParser(ABC):
         pass  # pragma: no cover
 
     @abstractmethod
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> ParserStats:
         """Получение статистики работы парсера.
 
         Этот метод должен быть реализован в каждом конкретном парсере
@@ -125,7 +136,7 @@ class BaseParser(ABC):
             NotImplementedError: Если метод не реализован в дочернем классе.
 
         Пример реализации:
-            >>> def get_stats(self) -> Dict[str, Any]:
+            >>> def get_stats(self) -> ParserStats:
             ...     return {
             ...         "parsed": self._stats["parsed"],
             ...         "errors": self._stats["errors"],

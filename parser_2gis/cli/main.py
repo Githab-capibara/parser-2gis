@@ -12,7 +12,6 @@ from typing import Any
 
 from parser_2gis.cli.arguments import parse_arguments
 from parser_2gis.cli.formatter import format_config_summary
-from parser_2gis.cli.launcher import ApplicationLauncher
 from parser_2gis.config import Configuration
 from parser_2gis.logger import log_parser_start, logger, setup_cli_logger
 from parser_2gis.parser.options import ParserOptions
@@ -149,6 +148,9 @@ def main() -> None:
     _log_startup_info(args, command_line_config, start_datetime)
 
     # Создаём лаунчер и запускаем приложение
+    # Локальный импорт для избежания циклической зависимости
+    from parser_2gis.cli.launcher import ApplicationLauncher
+
     options = ParserOptions()
     launcher = ApplicationLauncher(config=command_line_config, options=options)
 
@@ -156,4 +158,4 @@ def main() -> None:
     sys.exit(exit_code)
 
 
-__all__ = ["ApplicationLauncher", "Parser2GISTUI", "cleanup_resources", "main", "run_new_tui_omsk"]
+__all__ = ["Parser2GISTUI", "cleanup_resources", "main", "run_new_tui_omsk"]

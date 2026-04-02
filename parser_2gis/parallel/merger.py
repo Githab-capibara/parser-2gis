@@ -263,7 +263,7 @@ def _merge_csv_files(
                 stem = csv_file.stem
                 last_underscore_idx = stem.rfind("_")
                 category_name = (
-                    stem[last_underscore_idx + 1 :].replace("_", " ")
+                    stem[last_underscore_idx + 1:].replace("_", " ")
                     if last_underscore_idx > 0
                     else stem.replace("_", " ")
                 )
@@ -575,7 +575,7 @@ class ParallelFileMerger:
         last_underscore_idx = stem.rfind("_")
 
         if last_underscore_idx > 0:
-            return stem[last_underscore_idx + 1 :].replace("_", " ")
+            return stem[last_underscore_idx + 1:].replace("_", " ")
 
         category = stem.replace("_", " ")
         self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")

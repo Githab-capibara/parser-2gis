@@ -28,7 +28,7 @@ import tempfile
 import time
 import weakref
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeAlias
 
 from parser_2gis.logger.logger import logger as app_logger
 
@@ -38,6 +38,14 @@ from .utils import free_port, locate_chrome_path
 
 if TYPE_CHECKING:
     from .options import ChromeOptions
+
+
+# =============================================================================
+# TYPE ALIASES
+# =============================================================================
+
+# Тип возврата для методов завершения процесса
+ProcessStatus: TypeAlias = tuple[bool, str]
 
 
 # =============================================================================
@@ -340,7 +348,7 @@ class ProcessManager:
                 app_logger.debug("Не удалось удалить профиль при ошибке запуска: %s", cleanup_error)
             raise
 
-    def terminate(self, process_pid: int, timeout: int = 5) -> tuple[bool, str]:
+    def terminate(self, process_pid: int, timeout: int = 5) -> ProcessStatus:
         """Завершает процесс через terminate() (graceful shutdown).
 
         H2: Упрощённый метод для корректного завершения процесса.
@@ -413,7 +421,7 @@ class ProcessManager:
             )
             return False, "terminate_error"
 
-    def kill(self, process_pid: int, timeout: int = 10) -> tuple[bool, str]:
+    def kill(self, process_pid: int, timeout: int = 10) -> ProcessStatus:
         """Принудительно завершает процесс через kill() (forceful shutdown).
 
         H2: Упрощённый метод для принудительного завершения процесса.
@@ -533,7 +541,7 @@ class ProcessManager:
     # Они вызывают новые методы terminate() и kill().
     # ==========================================================================
 
-    def terminate_process_graceful(self, process_pid: int, timeout: int = 5) -> tuple[bool, str]:
+    def terminate_process_graceful(self, process_pid: int, timeout: int = 5) -> ProcessStatus:
         """Алиас для метода terminate() для обратной совместимости.
 
         Завершает процесс через terminate() (graceful shutdown).
@@ -550,7 +558,7 @@ class ProcessManager:
         """
         return self.terminate(process_pid, timeout)
 
-    def terminate_process_forceful(self, process_pid: int, timeout: int = 10) -> tuple[bool, str]:
+    def terminate_process_forceful(self, process_pid: int, timeout: int = 10) -> ProcessStatus:
         """Алиас для метода kill() для обратной совместимости.
 
         Принудительно завершает процесс через kill() (forceful shutdown).

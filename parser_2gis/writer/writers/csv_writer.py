@@ -11,7 +11,7 @@ from __future__ import annotations
 import csv
 import re
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 from collections.abc import Callable
 
 from pydantic import ValidationError
@@ -27,6 +27,48 @@ from .file_writer import FileWriter
 if TYPE_CHECKING:
     from parser_2gis.writer.models.contact_group import ContactGroup
 
+# =============================================================================
+# TYPE ALIASES AND TYPEDDICT
+# =============================================================================
+
+
+class CSVRowData(TypedDict, total=False):
+    """TypedDict для строки CSV данных.
+
+    P1-4: Замена dict[str, Any] на TypedDict для лучшей типизации.
+    """
+
+    name: str
+    description: str
+    rubrics: str
+    address: str
+    address_comment: str
+    postcode: str
+    living_area: str
+    district: str
+    city: str
+    district_area: str
+    region: str
+    country: str
+    schedule: str
+    timezone: str
+    general_rating: float
+    general_review_count: int
+    point_lat: float
+    point_lon: float
+    url: str
+    type: str
+    # Динамические поля для контактов
+    phone_1: str
+    phone_2: str
+    phone_3: str
+    email_1: str
+    email_2: str
+    website_1: str
+    website_2: str
+    # И другие динамические поля...
+
+
 # Константа для заголовка колонки URL
 CSV_URL_HEADER = "2GIS URL"
 
@@ -36,6 +78,7 @@ _CSV_SANITIZE_TABLE = {
     "\n": " ",  # Замена новых строк на пробелы
     "\r": "",  # Удаление carriage return
     "\t": " ",  # Замена табов на пробелы
+    "\x00": "",  # Удаление null-символов для предотвращения CSV injection
 }
 
 
@@ -55,6 +98,10 @@ def _sanitize_csv_value(value: str) -> str:
     # Экранируем специальные символы CSV
     for char, replacement in _CSV_SANITIZE_TABLE.items():
         value = value.replace(char, replacement)
+
+    # D014: Защита от CSV injection - добавляем префикс если значение начинается с опасного символа
+    if value and value[0] in ("=", "+", "-", "@"):
+        value = "'" + value  # Префикс для предотвращения выполнения формул
 
     return value
 
@@ -103,6 +150,21 @@ class CSVWriter(FileWriter):
     Предназначен для записи данных парсинга в файлы формата CSV.
     Поддерживает постобработку: удаление пустых колонок и дубликатов.
     """
+
+    @staticmethod
+    def _format_phone(value: str) -> str:
+        """Форматирует номер телефона.
+
+        P1-14: Вынесено в отдельный метод для соответствия PEP 8.
+
+        Args:
+            value: Исходный номер телефона.
+
+        Returns:
+            Отформатированный номер (8 вместо +7, только цифры).
+
+        """
+        return re.sub(r"^\+7", "8", re.sub(r"[^0-9+]", "", value))
 
     @cached_property
     def _type_names(self) -> dict[str, str]:
@@ -353,8 +415,10 @@ class CSVWriter(FileWriter):
         self._wrote_count += written_count
         return written_count
 
-    def _extract_raw(self, catalog_doc: Any) -> dict[str, Any]:
+    def _extract_raw(self, catalog_doc: Any) -> CSVRowData:
         """Извлекает данные из JSON-документа Catalog Item API.
+
+        P1-4, P1-14: Оптимизировано с использованием TypedDict и локальных переменных.
 
         Args:
             catalog_doc: JSON-документ Catalog Item API.
@@ -363,7 +427,7 @@ class CSVWriter(FileWriter):
             Словарь для строки CSV или пустой словарь при ошибке.
 
         """
-        data: dict[str, Any] = {}
+        data: CSVRowData = {}
 
         # Проверка структуры документа
         try:
@@ -452,28 +516,25 @@ class CSVWriter(FileWriter):
         data["url"] = catalog_item.url
 
         # Контактные данные (телефоны, email, сайты, соцсети)
-        # C011: Оптимизация — предварительное вычисление списков для снижения итераций
+        # P1-14: Оптимизация — выносим константы за пределы цикла
         contact_groups = catalog_item.contact_groups
-        internet_contacts = [
-            "website",
-            "vkontakte",
-            "whatsapp",
-            "viber",
-            "telegram",
-            "instagram",
-            "facebook",
-            "twitter",
-            "youtube",
-            "skype",
-        ]
-        text_contacts = ["email", "skype"]
+        add_comments = self._options.csv.add_comments
 
         for contact_group in contact_groups:
             # Интернет-адреса (веб-сайты, соцсети)
-            for t in internet_contacts:
-                _append_contact(
-                    data, contact_group, t, ["url"], None, self._options.csv.add_comments
-                )
+            for t in (
+                "website",
+                "vkontakte",
+                "whatsapp",
+                "viber",
+                "telegram",
+                "instagram",
+                "facebook",
+                "twitter",
+                "youtube",
+                "skype",
+            ):
+                _append_contact(data, contact_group, t, ["url"], None, add_comments)
 
             # Удаляем параметры из URL WhatsApp
             for field, value in data.items():
@@ -481,21 +542,14 @@ class CSVWriter(FileWriter):
                     data[field] = value.split("?")[0]
 
             # Текстовые значения (email, skype и т.д.)
-            for t in text_contacts:
-                _append_contact(
-                    data, contact_group, t, ["value"], None, self._options.csv.add_comments
-                )
+            for t in ("email", "skype"):
+                _append_contact(data, contact_group, t, ["value"], None, add_comments)
 
             # Телефоны (поле `value` иногда содержит нерелевантные данные,
             # поэтому предпочитаем парсить поле `text`.
             # Если в контакте нет `text` - используем атрибут `value`)
             _append_contact(
-                data,
-                contact_group,
-                "phone",
-                ["text", "value"],
-                lambda x: re.sub(r"^\+7", "8", re.sub(r"[^0-9+]", "", x)),
-                self._options.csv.add_comments,
+                data, contact_group, "phone", ["text", "value"], self._format_phone, add_comments
             )
 
         # Режим работы объекта

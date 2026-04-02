@@ -275,7 +275,8 @@ class ApplicationLauncher:
 
         """
         try:
-            from parser_2gis.cli import cli_app
+            # Локальный импорт для избежания циклической зависимости
+            from parser_2gis.cli.app import cli_app
             from parser_2gis.resources import load_cities_json
             from parser_2gis.utils.paths import resources_path
             from parser_2gis.utils.url_utils import generate_city_urls
@@ -366,9 +367,11 @@ class ApplicationLauncher:
             return Path("output")
 
         output_path_obj = Path(output_path)
-        if output_path_obj.suffix and output_path_obj.parent.exists():
-            return output_path_obj.parent
-        return output_path_obj.parent if output_path_obj.parent != Path(".") else output_path_obj
+        # Если путь имеет расширение (например, .csv), это файл - возвращаем родительскую директорию
+        if output_path_obj.suffix:
+            return output_path_obj.parent if output_path_obj.parent != Path(".") else Path(".")
+        # Если путь не имеет расширения, считаем его директорией
+        return output_path_obj
 
     def _get_output_filename(self, args: argparse.Namespace, default: str) -> str:
         """Определяет имя выходного файла.

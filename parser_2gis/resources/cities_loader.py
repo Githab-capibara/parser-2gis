@@ -159,15 +159,13 @@ def load_cities_json_lazy(cities_path_str: str):
                 try:
                     json_data = mmapped_file.read().decode("utf-8")
                     all_cities = json.loads(json_data)
-                    for city in all_cities:
-                        yield city
+                    yield from all_cities
                 finally:
                     mmapped_file.close()
         else:
             with open(cities_path, encoding="utf-8") as f:
                 all_cities = json.load(f)
-                for city in all_cities:
-                    yield city
+                yield from all_cities
     except (json.JSONDecodeError, OSError) as e:
         logger.error("Ошибка при lazy loading городов: %s", e)
         raise

@@ -144,3 +144,7 @@ class CatalogItem(BaseModel):
         h = minutes // 60
         m = minutes % 60
         return f"{sign}{h:02d}:{m:02d}"
+
+
+# Явно перестраиваем модель для разрешения всех forward references в Pydantic v2
+CatalogItem.model_rebuild()

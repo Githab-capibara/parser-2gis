@@ -134,17 +134,7 @@ def retry_with_backoff(
                             attempts=attempt,
                         ) from e
 
-                except Exception as unexpected_error:
-                    # Неожиданное исключение - пробрасываем дальше без retry
-                    log_func.error(
-                        "Неожиданное исключение в %s: %s (тип: %s)",
-                        func_name,
-                        unexpected_error,
-                        type(unexpected_error).__name__,
-                    )
-                    raise
-
-            # Должны были выбросить в цикле, но на всякий случай
+            # Исчерпаны попытки или unexpected error - выбрасываем ошибку
             if last_error is not None:
                 raise RetryError(
                     f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}",
@@ -257,7 +247,7 @@ def retry_with_jitter(
 # Проверка доступности tenacity
 _TENACITY_AVAILABLE = False
 try:
-    import tenacity  # noqa: F401
+    import tenacity as _tenacity  # noqa: F401
 
     _TENACITY_AVAILABLE = True
 except ImportError:

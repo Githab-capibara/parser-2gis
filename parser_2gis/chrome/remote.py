@@ -23,7 +23,7 @@ import time
 import weakref
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import pychrome
 from websocket import WebSocketException
@@ -82,6 +82,13 @@ LOCALHOST_BASE_URL: str = "http://127.0.0.1:{port}"
 
 # Оптимизация: скомпилированный regex паттерн для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
+
+# =============================================================================
+# TYPE ALIASES
+# =============================================================================
+
+# Тип возврата для методов завершения процесса
+ProcessStatus: TypeAlias = tuple[bool, str]
 
 
 # =============================================================================
@@ -639,7 +646,43 @@ class ChromeRemote:
         self._chrome_tab._send = wrapped_send
 
     def navigate(self, url: str, referer: str = "", timeout: int = 3600) -> None:  # 1 час
-        """Переходит по URL."""
+        """Переходит по URL.
+
+        D001: Санитизация URL для предотвращения WebSocket injection атак.
+
+        Args:
+            url: URL для навигации.
+            referer: Referer заголовок.
+            timeout: Таймаут навигации в секундах.
+
+        Raises:
+            ValueError: Если URL некорректен или содержит опасные конструкции.
+            ChromeException: При ошибке навигации.
+
+        """
+        # D001: Валидация URL перед навигацией
+        if not url or not isinstance(url, str):
+            raise ValueError("URL должен быть непустой строкой")
+
+        # D001: Проверка на наличие опасных конструкций в URL
+        url_lower = url.lower()
+        if "javascript:" in url_lower:
+            raise ValueError("URL не может содержать javascript: протокол")
+        if "data:" in url_lower and "<" in url:
+            raise ValueError("URL не может содержать data: URI с HTML")
+        if "vbscript:" in url_lower:
+            raise ValueError("URL не может содержать vbscript: протокол")
+
+        # D001: Проверка что URL начинается с безопасного протокола
+        if not url.startswith(("http://", "https://")):
+            raise ValueError(f"URL должен начинаться с http:// или https://, получено: {url[:50]}")
+
+        # D001: Проверка на экранирование символов для предотвращения injection
+        dangerous_chars = ["\x00", "\r", "\n", "\t"]
+        for char in dangerous_chars:
+            if char in url:
+                raise ValueError(f"URL содержит недопустимый символ: {repr(char)}")
+
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в navigate")
             return
@@ -648,6 +691,9 @@ class ChromeRemote:
             error_message = ret.get("errorText", None)
             if error_message:
                 raise ChromeException(error_message)
+        except ValueError:
+            # Пробрасываем ValueError дальше
+            raise
         except Exception as e:
             app_logger.error("Ошибка навигации по URL %s: %s", url, e)
             raise

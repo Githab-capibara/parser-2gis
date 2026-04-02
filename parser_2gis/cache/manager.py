@@ -15,6 +15,8 @@
 import functools
 import hashlib
 import json
+import os
+import re
 import sqlite3
 import time
 import weakref
@@ -23,7 +25,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 # Импорты для типизации (для совместимости с Python 3.9)
-from typing import Any
+from typing import Any, Protocol
 
 from typing import TypeAlias
 
@@ -43,11 +45,52 @@ OptionalCacheRow: TypeAlias = CacheRow | None
 
 
 # =============================================================================
+# PROTOCOLS FOR DATABASE CURSOR (P1-2)
+# =============================================================================
+
+
+class CursorProtocol(Protocol):
+    """Протокол для курсора базы данных."""
+
+    def execute(self, query: str, params: tuple = ...) -> Any:
+        """Выполняет SQL запрос."""
+        ...
+
+    def fetchone(self) -> tuple | None:
+        """Возвращает одну строку результата."""
+        ...
+
+    def close(self) -> None:
+        """Закрывает курсор."""
+        ...
+
+
+class ConnectionProtocol(Protocol):
+    """Протокол для соединения базы данных."""
+
+    def cursor(self) -> Any:
+        """Создаёт курсор."""
+        ...
+
+    def commit(self) -> None:
+        """Фиксирует транзакцию."""
+        ...
+
+    def rollback(self) -> None:
+        """Откатывает транзакцию."""
+        ...
+
+    def execute(self, query: str, params: tuple = ...) -> Any:
+        """Выполняет SQL запрос."""
+        ...
+
+
+# =============================================================================
 # LRU CACHE ДЛЯ CRC32 CHECKSUM (H002)
 # =============================================================================
 
 
-@functools.lru_cache(maxsize=2048)
+@functools.lru_cache(maxsize=8192)
 def _compute_crc32_cached(data_json_hash: str, data_json: str) -> int:
     """Вычисляет CRC32 checksum с кэшированием.
 
@@ -63,6 +106,23 @@ def _compute_crc32_cached(data_json_hash: str, data_json: str) -> int:
 
     """
     return zlib.crc32(data_json.encode("utf-8")) & 0xFFFFFFFF
+
+
+# P1-15: Кэш для data_json_hash для снижения накладных расходов
+@functools.lru_cache(maxsize=4096)
+def _compute_data_json_hash(data_json: str) -> str:
+    """Вычисляет SHA256 хеш JSON данных с кэшированием.
+
+    P1-15: Кэширование для часто используемых данных.
+
+    Args:
+        data_json: JSON строка данных.
+
+    Returns:
+        SHA256 хеш данных.
+
+    """
+    return hashlib.sha256(data_json.encode("utf-8")).hexdigest()
 
 
 class CacheManager:
@@ -240,6 +300,15 @@ class CacheManager:
             raise ValueError("cache_file_name не должен содержать '/', '\\' или '..'")
         if not cache_file_name.endswith(".db"):
             raise ValueError("cache_file_name должен заканчиваться на '.db'")
+        # D002: Проверка на абсолютный путь (path traversal защита)
+        if os.path.isabs(cache_file_name):
+            raise ValueError("cache_file_name не должен быть абсолютным путём")
+        # D002: Проверка что имя файла содержит только безопасные символы
+        if not re.match(r"^[a-zA-Z0-9_-]+\.db$", cache_file_name):
+            raise ValueError(
+                f"cache_file_name должен содержать только латинские буквы, цифры, "
+                f"'-' и '_', формат: 'имя.db', получено: {cache_file_name!r}"
+            )
 
         self._cache_dir = cache_dir
         self._ttl = timedelta(hours=ttl_hours)
@@ -302,7 +371,7 @@ class CacheManager:
             app_logger.warning("Ошибка при инициализации кэша: %s", e)
             raise
 
-    def _get_cached_row(self, cursor: Any, url_hash: str) -> tuple[str, int, str] | None:
+    def _get_cached_row(self, cursor: Any, url_hash: str) -> CacheRow | None:
         """Извлекает строку кэша из базы данных.
 
         Args:
@@ -356,7 +425,7 @@ class CacheManager:
         cursor.execute(self.SQL_DELETE, (url_hash,))
 
     # ИСПРАВЛЕНИЕ: Рефакторинг метода get — выделение подметодов
-    def _get_from_db(self, cursor: Any, url_hash: str) -> tuple[str, int, str] | None:
+    def _get_from_db(self, cursor: Any, url_hash: str) -> CacheRow | None:
         """Извлекает строку кэша из базы данных.
 
         Args:
@@ -656,8 +725,8 @@ class CacheManager:
         try:
             cursor = conn.cursor()
             # H002: Вычисляем CRC32 checksum с кэшированием для часто используемых данных
-            # Используем hash от data_json как ключ для кэширования
-            data_json_hash = hashlib.sha256(data_json.encode("utf-8")).hexdigest()
+            # P1-15: Используем кэшированную функцию для вычисления hash
+            data_json_hash = _compute_data_json_hash(data_json)
             checksum = _compute_crc32_cached(data_json_hash, data_json)
 
             # ПРОВЕРКА: Ограничение размера кэша перед вставкой
@@ -701,6 +770,7 @@ class CacheManager:
         """Пакетное получение данных из кэша.
 
         C015: Оптимизация N+1 queries через пакетное получение.
+        P0-9: Устранение double hashing через однократное вычисление хешей.
 
         Args:
             urls: Список URL для получения.
@@ -716,23 +786,50 @@ class CacheManager:
         cursor = conn.cursor()
         results: dict[str, dict[str, Any] | None] = {}
 
+        # P0-9: Предварительное вычисление всех хешей (устранение double hashing)
+        url_to_hash: dict[str, str] = {}
+        valid_hashes: list[str] = []
+        for url in urls:
+            try:
+                url_hash = self._hash_url(url)
+                url_to_hash[url] = url_hash
+                valid_hashes.append(url_hash)
+            except (ValueError, TypeError):
+                results[url] = None
+                continue
+
+        if not valid_hashes:
+            return results
+
+        # C015, P0-10: Пакетный запрос вместо N+1 queries
+        # Используем параметризованный запрос для безопасности
+        placeholders = ",".join("?" * len(valid_hashes))
+        batch_query = f"""
+            SELECT url_hash, data, checksum, expires_at
+            FROM cache
+            WHERE url_hash IN ({placeholders})
+        """
+
         try:
             cursor.execute("BEGIN")
+            cursor.execute(batch_query, valid_hashes)
+            rows = cursor.fetchall()
 
-            for url in urls:
-                try:
-                    url_hash = self._hash_url(url)
-                except (ValueError, TypeError):
+            # P0-9: Используем预先 вычисленные хеши для маппинга результатов
+            hash_to_data: dict[str, tuple[str, int, str]] = {}
+            for row in rows:
+                url_hash, data, checksum, expires_at_str = row
+                hash_to_data[url_hash] = (data, checksum, expires_at_str)
+
+            # Обрабатываем результаты
+            for url, url_hash in url_to_hash.items():
+                if url_hash not in hash_to_data:
                     results[url] = None
                     continue
 
-                row = self._get_from_db(cursor, url_hash)
-                if not row:
-                    results[url] = None
-                    continue
-
-                data, checksum, expires_at_str = row
-                result = self._handle_cache_hit(
+                data, checksum, expires_at_str = hash_to_data[url_hash]
+                # P0-9: Передаём url_hash для устранения повторного вычисления
+                result = self._handle_cache_hit_with_hash(
                     data, checksum, expires_at_str, cursor, url_hash, conn
                 )
                 results[url] = result

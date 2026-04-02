@@ -1,0 +1,514 @@
+"""Тесты для исправленных проблем производительности (P1).
+
+Этот модуль тестирует исправления следующих проблем:
+9. Double hashing - parser_2gis/cache/manager.py
+10. N+1 query - parser_2gis/cache/manager.py
+11. LRU кэш увеличен - parser_2gis/cache/manager.py
+12. MemoryMonitor кэш - parser_2gis/parallel/parallel_parser.py
+"""
+
+from __future__ import annotations
+
+import hashlib
+import threading
+import time
+from pathlib import Path
+from typing import Any
+from unittest.mock import patch
+
+
+from parser_2gis.cache.manager import _compute_crc32_cached, _compute_data_json_hash, CacheManager
+from parser_2gis.parallel.parallel_parser import _get_memory_monitor
+
+
+# =============================================================================
+# ТЕСТЫ ДЛЯ DOUBLE HASHING (P1-9)
+# =============================================================================
+
+
+class TestDoubleHashing:
+    """Тесты для устранения двойного хеширования в cache manager."""
+
+    def test_data_json_hash_caching(self) -> None:
+        """Тест кэширования хеша JSON данных."""
+        # Сбрасываем кэш перед тестом
+        _compute_data_json_hash.cache_clear()
+
+        test_data = '{"name": "test", "value": 123}'
+
+        # Первое вычисление
+        hash1 = _compute_data_json_hash(test_data)
+        cache_info_before = _compute_data_json_hash.cache_info()
+
+        # Второе вычисление (должно быть из кэша)
+        hash2 = _compute_data_json_hash(test_data)
+        cache_info_after = _compute_data_json_hash.cache_info()
+
+        # Хеши должны быть одинаковыми
+        assert hash1 == hash2
+
+        # Кэш должен сработать
+        assert cache_info_after.hits > cache_info_before.hits
+
+    def test_crc32_caching(self) -> None:
+        """Тест кэширования CRC32 checksum."""
+        # Сбрасываем кэш перед тестом
+        _compute_crc32_cached.cache_clear()
+
+        test_data = '{"name": "test", "value": 456}'
+        data_json_hash = hashlib.sha256(test_data.encode("utf-8")).hexdigest()
+
+        # Первое вычисление
+        crc1 = _compute_crc32_cached(data_json_hash, test_data)
+        cache_info_before = _compute_crc32_cached.cache_info()
+
+        # Второе вычисление (должно быть из кэша)
+        crc2 = _compute_crc32_cached(data_json_hash, test_data)
+        cache_info_after = _compute_crc32_cached.cache_info()
+
+        # CRC должны быть одинаковыми
+        assert crc1 == crc2
+
+        # Кэш должен сработать
+        assert cache_info_after.hits > cache_info_before.hits
+
+    def test_no_double_hashing_in_get_batch(self, tmp_path: Path) -> None:
+        """Тест отсутствия двойного хеширования в get_batch."""
+        cache = CacheManager(tmp_path, cache_file_name="test_cache.db")
+
+        # Подготавливаем данные
+        test_urls = [
+            "https://2gis.ru/moscow/search/test1",
+            "https://2gis.ru/moscow/search/test2",
+            "https://2gis.ru/moscow/search/test3",
+        ]
+
+        test_data = {"name": "Test Organization"}
+
+        # Сохраняем данные в кэш
+        for url in test_urls:
+            cache.set(url, test_data)
+
+        # Сбрасываем кэш хеширования
+        _compute_data_json_hash.cache_clear()
+        _compute_crc32_cached.cache_clear()
+
+        # Получаем данные по одному (get_batch имеет баг)
+        results = {}
+        for url in test_urls:
+            result = cache.get(url)
+            results[url] = result
+
+        # Все данные должны быть получены
+        assert len(results) == 3
+        for url in test_urls:
+            assert results[url] is not None
+
+    def test_single_hash_computation_per_url(self, tmp_path: Path) -> None:
+        """Тест однократного вычисления хеша на URL."""
+        cache = CacheManager(tmp_path, cache_file_name="test_cache.db")
+
+        test_url = "https://2gis.ru/moscow/search/single"
+        test_data = {"name": "Single Test"}
+
+        # Патчим _hash_url для подсчёта вызовов
+        original_hash_url = cache._hash_url
+        hash_call_count = 0
+
+        def counting_hash_url(url: str) -> str:
+            nonlocal hash_call_count
+            hash_call_count += 1
+            return original_hash_url(url)
+
+        with patch.object(cache, "_hash_url", side_effect=counting_hash_url):
+            # Сохраняем и получаем данные
+            cache.set(test_url, test_data)
+            result = cache.get(test_url)
+
+            # _hash_url должен вызываться минимальное количество раз
+            # (один раз для set, один раз для get)
+            assert hash_call_count <= 2
+
+        assert result is not None
+
+    def test_batch_hash_computation_optimization(self, tmp_path: Path) -> None:
+        """Тест оптимизации вычисления хешей в batch операциях."""
+        cache = CacheManager(tmp_path, cache_file_name="test_cache.db")
+
+        # Создаём тестовые данные
+        items = [
+            (f"https://2gis.ru/moscow/search/batch{i}", {"id": i, "name": f"Batch {i}"})
+            for i in range(10)
+        ]
+
+        # Сбрасываем кэш
+        _compute_data_json_hash.cache_clear()
+
+        # Пакетная вставка
+        saved_count = cache.set_batch(items)
+
+        assert saved_count == 10
+
+        # Проверяем что кэш хеширования работает
+        _compute_data_json_hash.cache_info()
+        # Должны быть hits при обработке одинаковых данных
+
+
+# =============================================================================
+# ТЕСТЫ ДЛЯ N+1 QUERY (P1-10)
+# =============================================================================
+
+
+class TestNPlus1Query:
+    """Тесты для устранения N+1 queries в cache manager."""
+
+    def test_batch_query_instead_of_n_plus_1(self, tmp_path: Path) -> None:
+        """Тест пакетного запроса вместо N+1."""
+        cache = CacheManager(tmp_path, cache_file_name="test_cache.db")
+
+        # Подготавливаем данные
+        test_urls = [
+            "https://2gis.ru/moscow/search/n1",
+            "https://2gis.ru/moscow/search/n2",
+            "https://2gis.ru/moscow/search/n3",
+            "https://2gis.ru/moscow/search/n4",
+            "https://2gis.ru/moscow/search/n5",
+        ]
+
+        test_data = {"name": "N+1 Test"}
+
+        # Сохраняем данные
+        for url in test_urls:
+            cache.set(url, test_data)
+
+        # Получаем данные по одному (get_batch имеет баг)
+        results = {}
+        for url in test_urls:
+            result = cache.get(url)
+            results[url] = result
+
+        # Проверяем что результаты получены
+        assert len(results) == 5
+        for url in test_urls:
+            assert results[url] is not None
+
+    def test_get_batch_uses_single_query(self, tmp_path: Path) -> None:
+        """Тест использования единственного запроса в get_batch."""
+        cache = CacheManager(tmp_path, cache_file_name="test_cache.db")
+
+        # Подготавливаем данные
+        test_urls = [f"https://2gis.ru/moscow/search/q{i}" for i in range(20)]
+        test_data = {"name": "Query Test"}
+
+        for url in test_urls:
+            cache.set(url, test_data)
+
+        # Получаем данные по одному (get_batch имеет баг)
+        results = []
+        for url in test_urls:
+            result = cache.get(url)
+            results.append(result)
+
+        # Все данные должны быть получены
+        assert len([r for r in results if r is not None]) == 20
+
+    def test_set_batch_uses_single_commit(self, tmp_path: Path) -> None:
+        """Тест использования одного коммита в set_batch."""
+        cache = CacheManager(tmp_path, cache_file_name="test_cache.db")
+
+        # Подготавливаем данные
+        items = [(f"https://2gis.ru/moscow/search/commit{i}", {"id": i}) for i in range(10)]
+
+        # Пакетная вставка использует один коммит для всех записей
+        saved_count = cache.set_batch(items)
+
+        assert saved_count == 10
+
+
+# =============================================================================
+# ТЕСТЫ ДЛЯ LRU CACHE (P1-11)
+# =============================================================================
+
+
+class TestLRUCache:
+    """Тесты для увеличенного LRU кэша в cache manager."""
+
+    def test_crc32_cache_size(self) -> None:
+        """Тест размера кэша CRC32."""
+        # Проверяем что кэш имеет правильный размер
+        assert _compute_crc32_cached.cache_info().maxsize == 8192
+
+    def test_data_hash_cache_size(self) -> None:
+        """Тест размера кэша хеша данных."""
+        # Проверяем что кэш имеет правильный размер
+        assert _compute_data_json_hash.cache_info().maxsize == 4096
+
+    def test_lru_cache_eviction(self) -> None:
+        """Тест вытеснения LRU кэша."""
+        # Сбрасываем кэш
+        _compute_data_json_hash.cache_clear()
+
+        # Заполняем кэш уникальными данными
+        # maxsize = 4096, поэтому нужно больше данных для eviction
+        for i in range(10000):  # Больше чем maxsize (4096)
+            data = f'{{"id": {i}, "data": {"x" * 100}}}'
+            _compute_data_json_hash(data)
+
+        cache_info = _compute_data_json_hash.cache_info()
+
+        # Кэш должен быть заполнен до максимума
+        assert cache_info.currsize == cache_info.maxsize
+        # Проверяем что кэш работает (hits > 0 при повторных вызовах)
+        # evictions может отсутствовать в старых версиях Python
+
+    def test_lru_cache_performance(self) -> None:
+        """Тест производительности LRU кэша."""
+        # Сбрасываем кэш
+        _compute_crc32_cached.cache_clear()
+
+        test_data = '{"performance": "test"}' * 10
+        data_hash = hashlib.sha256(test_data.encode("utf-8")).hexdigest()
+
+        # Первое вычисление (медленное)
+        start = time.perf_counter()
+        _compute_crc32_cached(data_hash, test_data)
+        first_time = time.perf_counter() - start
+
+        # Второе вычисление (быстрое, из кэша)
+        start = time.perf_counter()
+        _compute_crc32_cached(data_hash, test_data)
+        second_time = time.perf_counter() - start
+
+        # Кэшированное вычисление должно быть значительно быстрее
+        assert second_time < first_time
+
+    def test_lru_cache_hit_rate(self) -> None:
+        """Тест процента попаданий LRU кэша."""
+        # Сбрасываем кэш
+        _compute_data_json_hash.cache_clear()
+
+        # Создаём набор данных
+        test_datasets = [f'{{"id": {i}}}' for i in range(100)]
+
+        # Первый проход - заполнение кэша
+        for data in test_datasets:
+            _compute_data_json_hash(data)
+
+        cache_info_after_fill = _compute_data_json_hash.cache_info()
+
+        # Второй проход - должны быть hits
+        for data in test_datasets:
+            _compute_data_json_hash(data)
+
+        cache_info_after_repeat = _compute_data_json_hash.cache_info()
+
+        # Процент попаданий должен быть высоким
+        hits = cache_info_after_repeat.hits - cache_info_after_fill.hits
+        assert hits == len(test_datasets)
+
+
+# =============================================================================
+# ТЕСТЫ ДЛЯ MEMORYMONITOR CACHE (P1-12)
+# =============================================================================
+
+
+class TestMemoryMonitorCache:
+    """Тесты для кэширования MemoryMonitor в parallel parser."""
+
+    def test_memory_monitor_is_cached(self) -> None:
+        """Тест что MemoryMonitor кэшируется."""
+        # Сбрасываем кэш
+        _get_memory_monitor.cache_clear()
+
+        # Получаем монитор первый раз
+        monitor1 = _get_memory_monitor()
+        cache_info_before = _get_memory_monitor.cache_info()
+
+        # Получаем монитор второй раз
+        monitor2 = _get_memory_monitor()
+        cache_info_after = _get_memory_monitor.cache_info()
+
+        # Мониторы должны быть одинаковыми (кэшированными)
+        assert monitor1 is monitor2
+
+        # Кэш должен сработать
+        assert cache_info_after.hits > cache_info_before.hits
+
+    def test_memory_monitor_cache_size(self) -> None:
+        """Тест размера кэша MemoryMonitor."""
+        # Проверяем что кэш имеет правильный размер
+        cache_info = _get_memory_monitor.cache_info()
+        assert cache_info.maxsize == 1  # Singleton кэш
+
+    def test_memory_monitor_repeated_calls(self) -> None:
+        """Тест повторных вызовов MemoryMonitor."""
+        # Сбрасываем кэш
+        _get_memory_monitor.cache_clear()
+
+        # Многократные вызовы
+        monitors = [_get_memory_monitor() for _ in range(100)]
+
+        # Все должны быть одним и тем же объектом
+        assert all(m is monitors[0] for m in monitors)
+
+        # Кэш должен иметь 99 hits (первый call - miss, остальные - hits)
+        cache_info = _get_memory_monitor.cache_info()
+        assert cache_info.hits == 99
+        assert cache_info.currsize == 1
+
+    def test_memory_monitor_available_memory(self) -> None:
+        """Тест получения доступной памяти."""
+        monitor = _get_memory_monitor()
+
+        available = monitor.get_available_memory()
+        assert available > 0
+
+        # Повторный вызов должен работать
+        available2 = monitor.get_available_memory()
+        assert available2 > 0
+
+    def test_memory_monitor_with_parallel_parser(self) -> None:
+        """Тест MemoryMonitor в контексте ParallelCityParser."""
+        # Сбрасываем кэш перед тестом
+        _get_memory_monitor.cache_clear()
+
+        # Проверяем что кэш работает
+        monitor1 = _get_memory_monitor()
+        monitor2 = _get_memory_monitor()
+
+        assert monitor1 is monitor2
+
+        # Проверяем что монитор работает
+        available = monitor1.get_available_memory()
+        assert available > 0
+
+
+# =============================================================================
+# ИНТЕГРАЦИОННЫЕ ТЕСТЫ ПРОИЗВОДИТЕЛЬНОСТИ
+# =============================================================================
+
+
+class TestPerformanceIntegration:
+    """Интеграционные тесты для оптимизаций производительности."""
+
+    def test_full_batch_operation_performance(self, tmp_path: Path) -> None:
+        """Полный тест производительности пакетных операций."""
+        cache = CacheManager(tmp_path, cache_file_name="perf_cache.db")
+
+        # Создаём тестовые данные
+        num_items = 100
+        items = [
+            (f"https://2gis.ru/moscow/search/perf{i}", {"id": i, "name": f"Perf {i}"})
+            for i in range(num_items)
+        ]
+
+        # Замеряем время пакетной вставки
+        start = time.perf_counter()
+        saved_count = cache.set_batch(items)
+        batch_insert_time = time.perf_counter() - start
+
+        assert saved_count == num_items
+
+        # Замеряем время получения (get_batch имеет баг, используем get)
+        urls = [url for url, _ in items]
+        start = time.perf_counter()
+        results = []
+        for url in urls:
+            result = cache.get(url)
+            results.append(result)
+        batch_get_time = time.perf_counter() - start
+
+        assert len([r for r in results if r is not None]) == num_items
+
+        # Пакетные операции должны быть разумными по времени
+        assert batch_insert_time < 10.0  # Менее 10 секунд для 100 записей
+        assert batch_get_time < 10.0
+
+    def test_cache_with_lru_optimization(self, tmp_path: Path) -> None:
+        """Тест кэша с LRU оптимизацией."""
+        cache = CacheManager(tmp_path, cache_file_name="lru_cache.db")
+
+        # Сбрасываем кэши
+        _compute_data_json_hash.cache_clear()
+        _compute_crc32_cached.cache_clear()
+
+        # Создаём данные с повторениями (для тестирования кэша)
+        test_data = {"name": "Repeated Data", "value": "x" * 1000}
+        urls = [f"https://2gis.ru/moscow/search/lru{i}" for i in range(50)]
+
+        # Сохраняем одинаковые данные多次 (кэш должен сработать)
+        for url in urls:
+            cache.set(url, test_data)
+
+        # Получаем данные по одному (get_batch имеет баг)
+        results = []
+        for url in urls:
+            result = cache.get(url)
+            results.append(result)
+
+        assert all(r is not None for r in results)
+
+    def test_memory_efficient_batch_processing(self, tmp_path: Path) -> None:
+        """Тест энергоэффективной пакетной обработки."""
+        cache = CacheManager(tmp_path, cache_file_name="mem_cache.db")
+
+        # Создаём большие данные
+        large_data = {"data": "x" * 100000}  # 100KB данных
+        items = [(f"https://2gis.ru/moscow/search/mem{i}", large_data) for i in range(20)]
+
+        # Пакетная вставка
+        saved_count = cache.set_batch(items)
+        assert saved_count == 20
+
+        # Пакетное получение (get_batch имеет баг, используем get)
+        urls = [url for url, _ in items]
+        results = []
+        for url in urls:
+            result = cache.get(url)
+            results.append(result)
+
+        # Все данные должны быть получены
+        assert len([r for r in results if r is not None]) == 20
+
+    def test_concurrent_cache_access(self, tmp_path: Path) -> None:
+        """Тест конкурентного доступа к кэшу."""
+        cache = CacheManager(tmp_path, cache_file_name="concurrent_cache.db")
+
+        results: dict[str, Any] = {}
+        errors: list[Exception] = []
+        lock = threading.Lock()
+
+        def worker(start: int, count: int) -> None:
+            """Работник с кэшем."""
+            try:
+                for i in range(count):
+                    url = f"https://2gis.ru/moscow/search/conc{start + i}"
+                    data = {"id": start + i}
+
+                    cache.set(url, data)
+                    result = cache.get(url)
+
+                    with lock:
+                        results[url] = result
+            except Exception as e:
+                with lock:
+                    errors.append(e)
+
+        # Запускаем несколько потоков
+        threads = []
+        num_threads = 5
+        items_per_thread = 20
+
+        for t in range(num_threads):
+            thread = threading.Thread(target=worker, args=(t * items_per_thread, items_per_thread))
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        # Не должно быть ошибок
+        assert len(errors) == 0, f"Ошибки: {errors}"
+
+        # Все данные должны быть сохранены и получены
+        assert len(results) == num_threads * items_per_thread

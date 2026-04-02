@@ -9,7 +9,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypedDict, Union
 from collections.abc import Mapping
 
 from textual import work
@@ -33,6 +33,38 @@ from .screens import (
     ParserSettingsScreen,
     ParsingScreen,
 )
+
+
+# =============================================================================
+# TYPE ALIASES AND TYPEDDICT (P1-10)
+# =============================================================================
+
+
+class AppState(TypedDict, total=False):
+    """TypedDict для состояния приложения.
+
+    P1-10: Типизация состояния приложения.
+    """
+
+    selected_cities: list[str]
+    selected_categories: list[str]
+    parsing_active: bool
+    parsing_progress: int
+    total_urls: int
+    current_url: int
+    current_city: str
+    current_category: str
+    success_count: int
+    error_count: int
+    total_pages: int
+    current_page: int
+    total_records: int
+    current_record: int
+    _parsing_logs: list[str]
+
+
+# State value type for update_state
+StateValue = Union[list[str], bool, int, str, list[str]]
 
 
 class TUIApp(App):
@@ -329,16 +361,19 @@ class TUIApp(App):
         """Получить список категорий."""
         return CATEGORIES_93  # type: ignore[return-value]
 
-    def update_state(self, **kwargs: Any) -> None:
-        """Обновить состояние приложения."""
+    def update_state(self, **kwargs: StateValue) -> None:
+        """Обновить состояние приложения.
+
+        P1-10: Типизация kwargs для лучшей типобезопасности.
+        """
         for key, value in kwargs.items():
             if key in self._state:
-                self._state[key] = value
+                self._state[key] = value  # type: ignore[literal-required]
             # Ограничиваем буфер логов для предотвращения утечки памяти
             if key == "_parsing_logs" and isinstance(value, list):
                 if len(value) > self._MAX_LOG_BUFFER_SIZE:
                     # Оставляем только последние записи
-                    self._state[key] = value[-self._MAX_LOG_BUFFER_SIZE :]
+                    self._state[key] = value[-self._MAX_LOG_BUFFER_SIZE:]  # type: ignore[literal-required]
 
     def get_state(self, key: str) -> Any:
         """Получить значение из состояния."""

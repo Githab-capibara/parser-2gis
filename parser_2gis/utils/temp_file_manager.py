@@ -646,8 +646,8 @@ class TempFileTimer:
 def create_temp_file(directory: str, prefix: str = "parser_") -> str:
     """Атомарное создание временного файла.
 
-    Использует tempfile.mkstemp для атомарного создания временного файла,
-    что предотвращает race condition при параллельном создании файлов.
+    D015: Использует криптографически безопасную генерацию имён для предотвращения
+    атак через предсказание имени временного файла.
 
     Args:
         directory: Директория для создания файла.
@@ -656,14 +656,43 @@ def create_temp_file(directory: str, prefix: str = "parser_") -> str:
     Returns:
         Путь к созданному временному файлу.
 
+    Raises:
+        ValueError: Если directory некорректен.
+        OSError: Если не удалось создать файл.
+
     Example:
         >>> temp_path = create_temp_file("/tmp", prefix="myapp_")
         >>> print(temp_path)
         /tmp/myapp_abc123.tmp
 
     """
-    fd, path = tempfile.mkstemp(prefix=prefix, suffix=".tmp", dir=directory)
-    os.close(fd)  # Закрываем дескриптор, файл остается
+    # D015: Валидация директории
+    if not directory or not isinstance(directory, str):
+        raise ValueError("directory должен быть непустой строкой")
+
+    # D015: Проверка на path traversal в directory
+    if ".." in directory:
+        raise ValueError(f"directory не должен содержать '..': {directory}")
+
+    # D015: Санитизация префикса - удаляем опасные символы
+    if prefix:
+        # Разрешаем только буквы, цифры, подчёркивания и дефисы
+        safe_prefix = "".join(c for c in prefix if c.isalnum() or c in "_-")
+        if not safe_prefix:
+            safe_prefix = "tmp_"
+    else:
+        safe_prefix = "tmp_"
+
+    # D015: tempfile.mkstemp использует os.urandom() для криптографически
+    # безопасной генерации случайных имён
+    fd, path = tempfile.mkstemp(prefix=safe_prefix, suffix=".tmp", dir=directory)
+    try:
+        # D015: Проверка прав доступа к созданному файлу
+        os.fchmod(fd, 0o600)  # Только владелец может читать/писать
+    except (OSError, AttributeError):
+        pass  # Игнорируем если система не поддерживает fchmod
+    finally:
+        os.close(fd)  # Закрываем дескриптор, файл остается
     return path
 
 
