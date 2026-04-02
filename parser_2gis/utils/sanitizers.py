@@ -1,6 +1,16 @@
-"""Модуль санитаризации данных.
+"""Модуль санитаризации данных для parser-2gis.
 
-Содержит функции для очистки чувствительных данных из структур.
+Содержит функции для очистки чувствительных данных из структур:
+- _is_sensitive_key: проверка ключа на чувствительность
+- _check_value_type_and_sensitivity: проверка типа и чувствительности
+- _sanitize_value: основная функция санитаризации
+
+Пример использования:
+    >>> from parser_2gis.utils.sanitizers import _sanitize_value
+    >>> data = {"password": "secret", "name": "test"}
+    >>> sanitized = _sanitize_value(data)
+    >>> sanitized
+    {'password': '<REDACTED>', 'name': 'test'}
 """
 
 from __future__ import annotations

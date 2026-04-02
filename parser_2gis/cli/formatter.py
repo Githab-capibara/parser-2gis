@@ -7,10 +7,27 @@
 from __future__ import annotations
 
 import argparse
-from typing import Any
+from typing import Any, TypedDict
 
 from parser_2gis.config import Configuration
 from parser_2gis.pydantic_compat import get_model_dump
+
+
+class ConfigSummaryDict(TypedDict):
+    """Структура словаря с отформатированной конфигурацией.
+
+    ISSUE-042: Добавлен TypedDict для документирования структуры dict.
+
+    Attributes:
+        chrome: Настройки браузера (headless, изображения, максимизация).
+        parser: Настройки парсера (макс. записей, задержка, GC).
+        writer: Настройки вывода (формат, кодировка, дубликаты).
+
+    """
+
+    chrome: dict[str, str]
+    parser: dict[str, str]
+    writer: dict[str, str]
 
 
 class ArgumentHelpFormatter(argparse.HelpFormatter):
@@ -78,11 +95,22 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
         return help_string
 
 
+# Глобальный флаг для предотвращения повторного патчинга
+_patch_installed = False
+
+
 def patch_argparse_translations() -> None:
     """Патчит gettext в argparse для перевода строк на русский язык.
 
     Заменяет стандартные сообщения argparse на русские аналоги.
+    Использует локальный gettext вместо глобального патчинга argparse._
+
+    ISSUE-040: Избегаем повторного патчинга через флаг _patch_installed.
     """
+    global _patch_installed
+    if _patch_installed:
+        return
+
     custom_translations = {
         "usage: ": "Использование: ",
         "one of the arguments %s is required": "один из аргументов %s обязателен",
@@ -97,6 +125,7 @@ def patch_argparse_translations() -> None:
     orig_gettext = argparse._  # type: ignore[attr-defined]
 
     def gettext(message: str) -> str:
+        """Локальная функция gettext для перевода сообщений argparse."""
         if message in custom_translations:
             return custom_translations[message]
         return orig_gettext(message)
@@ -114,21 +143,29 @@ def patch_argparse_translations() -> None:
 
     argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore
 
+    _patch_installed = True
+
 
 __all__ = ["ArgumentHelpFormatter", "format_config_summary", "patch_argparse_translations"]
 
 
 def format_config_summary(
     config: Configuration, args: argparse.Namespace | None = None
-) -> dict[str, Any]:
+) -> ConfigSummaryDict:
     """Форматирует конфигурацию для логирования.
+
+    ISSUE-042: Возвращаемый тип документирован через ConfigSummaryDict TypedDict.
 
     Args:
         config: Конфигурация приложения.
         args: Аргументы командной строки (для получения формата).
 
     Returns:
-        Словарь с отформатированной конфигурацией.
+        ConfigSummaryDict: Словарь с отформатированной конфигурацией.
+        Структура:
+            - chrome: {Headless, Без изображений, Максимизирован}
+            - parser: {Макс. записей, Задержка (мс), GC включен}
+            - writer: {Формат, Кодировка, Удалить дубликаты}
 
     """
     # Получаем формат из args, т.к. в config.writer нет атрибута format

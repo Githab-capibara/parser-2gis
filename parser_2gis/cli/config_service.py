@@ -97,6 +97,7 @@ class ConfigService:
             OSError: Если не удалось создать директорию или записать файл.
             TypeError: Если ошибка сериализации JSON.
             ValueError: Если ошибка валидации данных.
+            MemoryError: Если не хватает памяти для сериализации.
 
         """
         if not path:
@@ -106,7 +107,13 @@ class ConfigService:
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             config_dict: dict[str, Any] = get_model_dump(config, exclude={"path"})
-            json_str = json.dumps(config_dict, ensure_ascii=False, indent=4)
+
+            # ID:059: Обрабатываем MemoryError при json.dumps
+            try:
+                json_str = json.dumps(config_dict, ensure_ascii=False, indent=4)
+            except MemoryError as mem_error:
+                logger.error("Недостаточно памяти для сериализации конфигурации: %s", mem_error)
+                raise
 
             with open(path, "w", encoding="utf-8") as f:
                 f.write(json_str)
@@ -119,7 +126,10 @@ class ConfigService:
         except (TypeError, ValueError) as e:
             logger.error("Ошибка при сериализации конфигурации в JSON: %s", e)
             raise
-        except (RuntimeError, MemoryError, KeyboardInterrupt, SystemExit) as e:
+        except (MemoryError, KeyboardInterrupt, SystemExit) as e:
+            logger.error("Критическая ошибка при сохранении конфигурации: %s", e)
+            raise
+        except RuntimeError as e:
             logger.error("Непредвиденная ошибка при сохранении конфигурации: %s", e)
             raise
 
@@ -185,11 +195,12 @@ class ConfigService:
             logger.error("Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=e)
             return config_cls()  # type: ignore[call-arg]
 
-        return config_cls()  # type: ignore[call-arg]
-
     @staticmethod
     def _backup_corrupted_config(config_path: pathlib.Path) -> None:
-        """Создаёт резервную копию повреждённого файла конфигурации."""
+        """Создаёт резервную копию повреждённого файла конфигурации.
+
+        ID:061: Упрощённая логика без дублирования ConfigValidator.
+        """
         if not config_path.is_file():
             return
 

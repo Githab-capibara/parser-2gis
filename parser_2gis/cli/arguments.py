@@ -2,16 +2,21 @@
 
 Модуль предоставляет функцию parse_arguments для разбора и валидации
 аргументов командной строки приложения Parser2GIS.
+
+Примечание:
+    Для длинных описаний используется textwrap для улучшения читаемости.
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
+import textwrap
 
 from parser_2gis.cli.formatter import ArgumentHelpFormatter, patch_argparse_translations
 from parser_2gis.cli.validator import ArgumentValidator
 from parser_2gis.config import Configuration
+from parser_2gis.constants import get_env_config
 from parser_2gis.utils import unwrap_dot_dict
 
 
@@ -117,7 +122,11 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     # Группа: Аргументы браузера
     browser_parser = arg_parser.add_argument_group("Аргументы браузера")
     browser_parser.add_argument(
-        "--chrome.binary_path", metavar="PATH", help="Путь до исполняемого файла браузера"
+        "--chrome.binary_path",
+        metavar="PATH",
+        help=textwrap.fill(
+            "Путь до исполняемого файла браузера", width=60, subsequent_indent="    "
+        ),
     )
     browser_parser.add_argument(
         "--chrome.disable-images", metavar="{yes,no}", help="Отключить изображения"
@@ -126,42 +135,64 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     browser_parser.add_argument(
         "--chrome.silent-browser",
         metavar="{yes/no}",
-        help="Отключить отладочную информацию браузера",
+        help=textwrap.fill(
+            "Отключить отладочную информацию браузера", width=60, subsequent_indent="    "
+        ),
     )
     browser_parser.add_argument(
-        "--chrome.start-maximized", metavar="{yes/no}", help="Запустить развёрнутым"
+        "--chrome.start-maximized",
+        metavar="{yes/no}",
+        help=textwrap.fill("Запустить развёрнутым", width=60, subsequent_indent="    "),
     )
     browser_parser.add_argument(
-        "--chrome.memory-limit", metavar="{4096,5120,...}", help="Лимит памяти браузера (МБ)"
+        "--chrome.memory-limit",
+        metavar="{4096,5120,...}",
+        help=textwrap.fill("Лимит памяти браузера (МБ)", width=60, subsequent_indent="    "),
     )
     browser_parser.add_argument(
         "--chrome.startup-delay",
         type=float,
         metavar="{0,1,2,...}",
-        help="Задержка запуска браузера (секунды)",
+        help=textwrap.fill(
+            "Задержка запуска браузера (секунды)", width=60, subsequent_indent="    "
+        ),
     )
 
     # Группа: Аргументы CSV/XLSX
     csv_parser = arg_parser.add_argument_group("Аргументы CSV/XLSX")
     csv_parser.add_argument(
-        "--writer.csv.add-rubrics", metavar="{yes/no}", help='Добавить колонку "Рубрики"'
+        "--writer.csv.add-rubrics",
+        metavar="{yes/no}",
+        help=textwrap.fill('Добавить колонку "Рубрики"', width=60, subsequent_indent="    "),
     )
     csv_parser.add_argument(
-        "--writer.csv.add-comments", metavar="{yes/no}", help="Добавлять комментарии к ячейкам"
+        "--writer.csv.add-comments",
+        metavar="{yes/no}",
+        help=textwrap.fill("Добавлять комментарии к ячейкам", width=60, subsequent_indent="    "),
     )
     csv_parser.add_argument(
         "--writer.csv.columns-per-entity",
         metavar="{1,2,3,...}",
-        help="Количество колонок для множественных значений",
+        help=textwrap.fill(
+            "Количество колонок для множественных значений", width=60, subsequent_indent="    "
+        ),
     )
     csv_parser.add_argument(
-        "--writer.csv.remove-empty-columns", metavar="{yes/no}", help="Удалить пустые колонки"
+        "--writer.csv.remove-empty-columns",
+        metavar="{yes/no}",
+        help=textwrap.fill("Удалить пустые колонки", width=60, subsequent_indent="    "),
     )
     csv_parser.add_argument(
-        "--writer.csv.remove-duplicates", metavar="{yes/no}", help="Удалить дубликаты записей"
+        "--writer.csv.remove-duplicates",
+        metavar="{yes/no}",
+        help=textwrap.fill("Удалить дубликаты записей", width=60, subsequent_indent="    "),
     )
     csv_parser.add_argument(
-        "--writer.csv.join_char", metavar="{; ,% ,...}", help="Разделитель для комплексных значений"
+        "--writer.csv.join_char",
+        metavar="{; ,% ,...}",
+        help=textwrap.fill(
+            "Разделитель для комплексных значений", width=60, subsequent_indent="    "
+        ),
     )
 
     # Группа: Аргументы парсера
@@ -171,88 +202,128 @@ def _create_argument_parser() -> argparse.ArgumentParser:
         "--parser.gc-pages-interval",
         type=int,
         metavar="{5,10,...}",
-        help="Запуск GC каждую N-ую страницу",
+        help=textwrap.fill("Запуск GC каждую N-ую страницу", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
-        "--parser.max-records", type=int, metavar="{1000,2000,...}", help="Максимум записей с URL"
+        "--parser.max-records",
+        type=int,
+        metavar="{1000,2000,...}",
+        help=textwrap.fill("Максимум записей с URL", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
-        "--parser.skip-404-response", metavar="{yes/no}", help="Пропускать 404 ответы"
+        "--parser.skip-404-response",
+        metavar="{yes/no}",
+        help=textwrap.fill("Пропускать 404 ответы", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
-        "--parser.stop-on-first-404", metavar="{yes/no}", help="Останавливать при первом 404"
+        "--parser.stop-on-first-404",
+        metavar="{yes/no}",
+        help=textwrap.fill("Останавливать при первом 404", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
         "--parser.max-consecutive-empty-pages",
         type=int,
         metavar="{2,3,5,...}",
-        help="Максимум пустых страниц подряд",
+        help=textwrap.fill("Максимум пустых страниц подряд", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
         "--parser.delay-between-clicks",
         type=int,
         metavar="{0,100,...}",
-        help="Задержка между кликами (мс)",
+        help=textwrap.fill("Задержка между кликами (мс)", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
-        "--parser.max-retries", type=int, metavar="{1,2,3,...}", help="Максимум повторных попыток"
+        "--parser.max-retries",
+        type=int,
+        metavar="{1,2,3,...}",
+        help=textwrap.fill("Максимум повторных попыток", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
-        "--parser.retry-on-network-errors", metavar="{yes/no}", help="Повтор при ошибках сети"
+        "--parser.retry-on-network-errors",
+        metavar="{yes/no}",
+        help=textwrap.fill("Повтор при ошибках сети", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
         "--parser.retry-delay-base",
         type=int,
         metavar="{1,2,3,...}",
-        help="Базовая задержка повтора (сек)",
+        help=textwrap.fill("Базовая задержка повтора (сек)", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
         "--parser.memory-threshold",
         type=int,
         metavar="{512,1024,2048,...}",
-        help="Порог памяти (МБ)",
+        help=textwrap.fill("Порог памяти (МБ)", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
-        "--parser.timeout", type=int, metavar="{1,2,3,...}", help="Таймаут на URL (сек)"
+        "--parser.timeout",
+        type=int,
+        metavar="{1,2,3,...}",
+        help=textwrap.fill("Таймаут на URL (сек)", width=60, subsequent_indent="    "),
     )
     p_parser.add_argument(
-        "--parser.max-workers", type=int, metavar="{1,2,3,...}", help="Максимум работников"
+        "--parser.max-workers",
+        type=int,
+        metavar="{1,2,3,...}",
+        help=textwrap.fill("Максимум работников", width=60, subsequent_indent="    "),
     )
+    # ISSUE-034: Используем значение из config вместо хардкода default=10
     p_parser.add_argument(
-        "--parallel.max-workers", type=int, default=10, help="Потоков для параллельного парсинга"
+        "--parallel.max-workers",
+        type=int,
+        default=get_env_config().max_workers,
+        help=textwrap.fill(
+            "Потоков для параллельного парсинга", width=60, subsequent_indent="    "
+        ),
     )
     p_parser.add_argument(
         "--parallel.initial-delay-min",
         type=float,
         default=0.1,
-        help="Минимальная задержка перед получением семафора (сек)",
+        help=textwrap.fill(
+            "Минимальная задержка перед получением семафора (сек)",
+            width=60,
+            subsequent_indent="    ",
+        ),
     )
     p_parser.add_argument(
         "--parallel.initial-delay-max",
         type=float,
         default=1.0,
-        help="Максимальная задержка перед получением семафора (сек)",
+        help=textwrap.fill(
+            "Максимальная задержка перед получением семафора (сек)",
+            width=60,
+            subsequent_indent="    ",
+        ),
     )
     p_parser.add_argument(
         "--parallel.launch-delay-min",
         type=float,
         default=0.1,
-        help="Минимальная задержка перед запуском Chrome (сек)",
+        help=textwrap.fill(
+            "Минимальная задержка перед запуском Chrome (сек)", width=60, subsequent_indent="    "
+        ),
     )
     p_parser.add_argument(
         "--parallel.launch-delay-max",
         type=float,
         default=0.5,
-        help="Максимальная задержка перед запуском Chrome (сек)",
+        help=textwrap.fill(
+            "Максимальная задержка перед запуском Chrome (сек)", width=60, subsequent_indent="    "
+        ),
     )
 
     # Группа: Прочие аргументы
     other_parser = arg_parser.add_argument_group("Прочие аргументы")
     other_parser.add_argument(
-        "--writer.verbose", metavar="{yes/no}", help="Отображать позиции при парсинге"
+        "--writer.verbose",
+        metavar="{yes/no}",
+        help=textwrap.fill("Отображать позиции при парсинге", width=60, subsequent_indent="    "),
     )
     other_parser.add_argument(
-        "--writer.encoding", metavar="{utf8,1251,...}", help="Кодировка файла"
+        "--writer.encoding",
+        metavar="{utf8,1251,...}",
+        help=textwrap.fill("Кодировка файла", width=60, subsequent_indent="    "),
     )
     other_parser.add_argument(
         "--tui-new",
@@ -260,10 +331,13 @@ def _create_argument_parser() -> argparse.ArgumentParser:
         action="store_true",
         dest="tui_new",
         default=False,
-        help="Запустить TUI интерфейс",
+        help=textwrap.fill("Запустить TUI интерфейс", width=60, subsequent_indent="    "),
     )
     other_parser.add_argument(
-        "--tui-new-omsk", action="store_true", default=False, help="TUI с парсингом Омска"
+        "--tui-new-omsk",
+        action="store_true",
+        default=False,
+        help=textwrap.fill("TUI с парсингом Омска", width=60, subsequent_indent="    "),
     )
 
     # Группа: Служебные аргументы

@@ -14,8 +14,27 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
+from functools import lru_cache
 
 from typing import TypeAlias
+
+# Импорты констант из подмодулей для обратной совместимости
+from .parser import (
+    DEFAULT_SLEEP_TIME,
+    MAX_RECORDS_BASE_OFFSET,
+    MAX_RECORDS_MEMORY_COEFFICIENT,
+    MAX_RECORDS_MEMORY_DIVISOR,
+    MAX_VISITED_LINKS_SIZE,
+    PROGRESS_UPDATE_INTERVAL,
+)
+from .security import (
+    FORBIDDEN_PATH_CHARS,
+    HTTP_STATUS_OK,
+    MAX_DICT_RECURSION_DEPTH,
+    MAX_PATH_LENGTH_SAFE,
+    MAX_UNIQUE_NAME_ATTEMPTS,
+    MAX_URL_DECODE_ITERATIONS,
+)
 
 # =============================================================================
 # TYPE ALIASES FOR COMPLEX TYPES
@@ -144,71 +163,92 @@ class EnvConfig:
         object.__setattr__(self, "min_timeout", 1)
         object.__setattr__(self, "max_temp_files", 1000)
 
+        # ISSUE-012: Логирование используемых ENV переменных при инициализации
+        self._logger.info("Инициализация конфигурации ENV переменных")
+
         # Параллельный парсинг
-        object.__setattr__(
-            self, "max_workers", self._validate_env_int("PARSER_MAX_WORKERS", 50, 1, 100)
-        )
-        object.__setattr__(
-            self, "max_timeout", self._validate_env_int("PARSER_MAX_TIMEOUT", 72000, 60, 172800)
-        )
-        object.__setattr__(
-            self,
-            "default_timeout",
-            self._validate_env_int("PARSER_DEFAULT_TIMEOUT", 7200, 60, 72000),
+        max_workers_val = self._validate_env_int("PARSER_MAX_WORKERS", 50, 1, 100)
+        object.__setattr__(self, "max_workers", max_workers_val)
+        self._logger.info("PARSER_MAX_WORKERS: %d (по умолчанию: 50)", max_workers_val)
+
+        max_timeout_val = self._validate_env_int("PARSER_MAX_TIMEOUT", 72000, 60, 172800)
+        object.__setattr__(self, "max_timeout", max_timeout_val)
+        self._logger.info("PARSER_MAX_TIMEOUT: %d сек (по умолчанию: 72000)", max_timeout_val)
+
+        default_timeout_val = self._validate_env_int("PARSER_DEFAULT_TIMEOUT", 7200, 60, 72000)
+        object.__setattr__(self, "default_timeout", default_timeout_val)
+        self._logger.info(
+            "PARSER_DEFAULT_TIMEOUT: %d сек (по умолчанию: 7200)", default_timeout_val
         )
 
         # Connection Pool
-        object.__setattr__(
-            self, "max_pool_size", self._validate_env_int("PARSER_MAX_POOL_SIZE", 20, 5, 50)
+        max_pool_size_val = self._validate_env_int("PARSER_MAX_POOL_SIZE", 20, 5, 50)
+        object.__setattr__(self, "max_pool_size", max_pool_size_val)
+        self._logger.info("PARSER_MAX_POOL_SIZE: %d (по умолчанию: 20)", max_pool_size_val)
+
+        min_pool_size_val = self._validate_env_int("PARSER_MIN_POOL_SIZE", 5, 1, 10)
+        object.__setattr__(self, "min_pool_size", min_pool_size_val)
+        self._logger.info("PARSER_MIN_POOL_SIZE: %d (по умолчанию: 5)", min_pool_size_val)
+
+        connection_max_age_val = self._validate_env_int("PARSER_CONNECTION_MAX_AGE", 600, 60, 7200)
+        object.__setattr__(self, "connection_max_age", connection_max_age_val)
+        self._logger.info(
+            "PARSER_CONNECTION_MAX_AGE: %d сек (по умолчанию: 600)", connection_max_age_val
         )
-        object.__setattr__(
-            self, "min_pool_size", self._validate_env_int("PARSER_MIN_POOL_SIZE", 5, 1, 10)
-        )
-        object.__setattr__(
-            self,
-            "connection_max_age",
-            self._validate_env_int("PARSER_CONNECTION_MAX_AGE", 600, 60, 7200),
-        )
-        object.__setattr__(
-            self,
-            "max_connection_age",
-            self._validate_env_int("PARSER_MAX_CONNECTION_AGE", 600, 60, 7200),
+
+        max_connection_age_val = self._validate_env_int("PARSER_MAX_CONNECTION_AGE", 600, 60, 7200)
+        object.__setattr__(self, "max_connection_age", max_connection_age_val)
+        self._logger.info(
+            "PARSER_MAX_CONNECTION_AGE: %d сек (по умолчанию: 600)", max_connection_age_val
         )
 
         # Кэширование
-        object.__setattr__(
-            self,
-            "max_cache_size_mb",
-            self._validate_env_int("PARSER_MAX_CACHE_SIZE_MB", 500, 100, 2000),
+        max_cache_size_mb_val = self._validate_env_int("PARSER_MAX_CACHE_SIZE_MB", 500, 100, 2000)
+        object.__setattr__(self, "max_cache_size_mb", max_cache_size_mb_val)
+        self._logger.info(
+            "PARSER_MAX_CACHE_SIZE_MB: %d MB (по умолчанию: 500)", max_cache_size_mb_val
         )
 
         # Временные файлы
-        object.__setattr__(
-            self,
-            "max_temp_files_monitoring",
-            self._validate_env_int("PARSER_MAX_TEMP_FILES_MONITORING", 1000, 100, 10000),
+        max_temp_files_monitoring_val = self._validate_env_int(
+            "PARSER_MAX_TEMP_FILES_MONITORING", 1000, 100, 10000
         )
-        object.__setattr__(
-            self,
-            "temp_file_cleanup_interval",
-            self._validate_env_int("PARSER_TEMP_FILE_CLEANUP_INTERVAL", 120, 10, 7200),
+        object.__setattr__(self, "max_temp_files_monitoring", max_temp_files_monitoring_val)
+        self._logger.info(
+            "PARSER_MAX_TEMP_FILES_MONITORING: %d (по умолчанию: 1000)",
+            max_temp_files_monitoring_val,
         )
-        object.__setattr__(
-            self,
-            "orphaned_temp_file_age",
-            self._validate_env_int("PARSER_ORPHANED_TEMP_FILE_AGE", 600, 60, 172800),
+
+        temp_file_cleanup_interval_val = self._validate_env_int(
+            "PARSER_TEMP_FILE_CLEANUP_INTERVAL", 120, 10, 7200
+        )
+        object.__setattr__(self, "temp_file_cleanup_interval", temp_file_cleanup_interval_val)
+        self._logger.info(
+            "PARSER_TEMP_FILE_CLEANUP_INTERVAL: %d сек (по умолчанию: 120)",
+            temp_file_cleanup_interval_val,
+        )
+
+        orphaned_temp_file_age_val = self._validate_env_int(
+            "PARSER_ORPHANED_TEMP_FILE_AGE", 600, 60, 172800
+        )
+        object.__setattr__(self, "orphaned_temp_file_age", orphaned_temp_file_age_val)
+        self._logger.info(
+            "PARSER_ORPHANED_TEMP_FILE_AGE: %d сек (по умолчанию: 600)", orphaned_temp_file_age_val
         )
 
         # Merge операции
-        object.__setattr__(
-            self,
-            "merge_lock_timeout",
-            self._validate_env_int("PARSER_MERGE_LOCK_TIMEOUT", 7200, 60, 14400),
+        merge_lock_timeout_val = self._validate_env_int(
+            "PARSER_MERGE_LOCK_TIMEOUT", 7200, 60, 14400
         )
-        object.__setattr__(
-            self,
-            "max_lock_file_age",
-            self._validate_env_int("PARSER_MAX_LOCK_FILE_AGE", 120, 10, 1200),
+        object.__setattr__(self, "merge_lock_timeout", merge_lock_timeout_val)
+        self._logger.info(
+            "PARSER_MERGE_LOCK_TIMEOUT: %d сек (по умолчанию: 7200)", merge_lock_timeout_val
+        )
+
+        max_lock_file_age_val = self._validate_env_int("PARSER_MAX_LOCK_FILE_AGE", 120, 10, 1200)
+        object.__setattr__(self, "max_lock_file_age", max_lock_file_age_val)
+        self._logger.info(
+            "PARSER_MAX_LOCK_FILE_AGE: %d сек (по умолчанию: 120)", max_lock_file_age_val
         )
 
 
@@ -243,12 +283,22 @@ def get_env_config() -> EnvConfig:
 
 
 # Для обратной совместимости используем __getattr__ для ленивой инициализации
-def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
-    """Ленивая инициализация констант для устранения global singleton (A034).
+# ISSUE-010: Кэширование результатов __getattr__ через lru_cache для оптимизации
 
-    ISSUE-010: Устранено глобальное состояние _env_config_instance.
-    Константы, зависящие от ENV переменных, создаются только при первом обращении.
-    Это предотвращает инициализацию global state при импорте модуля.
+
+@lru_cache(maxsize=128)
+def _get_constant_value(name: str) -> int | float | list[str] | EnvConfig:
+    """Получает значение константы с кэшированием через lru_cache.
+
+    ISSUE-010: Кэширование результатов для устранения повторных вычислений.
+    Все константы кэшируются после первого обращения.
+
+    Args:
+        name: Имя константы.
+
+    Returns:
+        Значение константы.
+
     """
     # Lazy initialization для env_config
     if name == "env_config":
@@ -437,6 +487,18 @@ def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
+def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
+    """Ленивая инициализация констант для устранения global singleton (A034).
+
+    ISSUE-010: Устранено глобальное состояние _env_config_instance.
+    Константы, зависящие от ENV переменных, создаются только при первом обращении.
+    Это предотвращает инициализацию global state при импорте модуля.
+
+    ISSUE-010: Результаты кэшируются через _get_constant_value с lru_cache.
+    """
+    return _get_constant_value(name)
+
+
 # =============================================================================
 # ФУНКЦИЯ ВАЛИДАЦИИ ENV ПЕРЕМЕННЫХ (для экспорта)
 # =============================================================================
@@ -562,22 +624,7 @@ __all__: list[str] = [  # noqa: F822
     "MAX_RECORDS_MEMORY_COEFFICIENT",
     "MAX_RECORDS_MEMORY_DIVISOR",
     "MAX_RECORDS_BASE_OFFSET",
-    # ISSUE-152: Порог памяти для вызова gc.collect()
-    "GC_MEMORY_THRESHOLD_MB",
     # Безопасность путей
     "MAX_PATH_LENGTH_SAFE",
     "FORBIDDEN_PATH_CHARS",
 ]
-
-
-# =============================================================================
-# __dir__ ДЛЯ КОРРЕКТНОЙ РАБОТЫ С __all__
-# =============================================================================
-
-
-def __dir__() -> list[str]:
-    """Возвращает список экспортируемых имён для dir() и инструментов статического анализа.
-
-    Это необходимо для корректной работы с __all__ при использовании __getattr__.
-    """
-    return __all__

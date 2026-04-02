@@ -327,7 +327,9 @@ class ProcessManager:
             raise TypeError("chrome_cmd не должен содержать None значения")
 
         self._start_time = time.time()
+        proc: subprocess.Popen | None = None
 
+        # ID:103, ID:107: Используем try/finally для гарантии очистки ресурсов
         try:
             if chrome_options.silent_browser:
                 app_logger.debug("В Chrome отключён вывод отладочной информации.")
@@ -343,12 +345,18 @@ class ProcessManager:
 
         except (subprocess.SubprocessError, OSError, FileNotFoundError, ValueError, TypeError) as e:
             app_logger.error("Ошибка при запуске Chrome браузера: %s", e)
-            # Очистка профиля при ошибке запуска
+            # ID:103: Очищаем ссылку на процесс при ошибке
+            self._proc = None
+            # ID:107: Очистка профиля при ошибке запуска
             try:
                 shutil.rmtree(profile_path, ignore_errors=True)
             except OSError as cleanup_error:
                 app_logger.debug("Не удалось удалить профиль при ошибке запуска: %s", cleanup_error)
             raise
+        finally:
+            # ID:103: Гарантированная очистка _proc ссылки если процесс не был успешно создан
+            if proc is None and self._proc is not None:
+                self._proc = None
 
     def _terminate_process_common(
         self,

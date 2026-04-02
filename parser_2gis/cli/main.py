@@ -12,23 +12,12 @@ from typing import Any
 
 from parser_2gis.cli.arguments import parse_arguments
 from parser_2gis.cli.formatter import format_config_summary
+from parser_2gis.cli.launcher import run_tui_application
 from parser_2gis.config import Configuration
 from parser_2gis.logger import log_parser_start, logger, setup_cli_logger
 from parser_2gis.parser.options import ParserOptions
 from parser_2gis.resources import CATEGORIES_93
 from parser_2gis.version import version
-
-# Опциональный импорт TUI модуля
-try:
-    from parser_2gis.tui_textual import Parser2GISTUI
-    from parser_2gis.tui_textual import run_tui as run_new_tui_omsk
-except ImportError:
-    run_new_tui_omsk = None  # type: ignore[assignment]
-    Parser2GISTUI = None  # type: ignore[assignment]
-    logger.warning("TUI модуль (textual) недоступен. TUI функции будут недоступны")
-
-# Backward совместимость для тестов
-from parser_2gis.chrome.remote import ChromeRemote  # noqa: F401
 
 
 def _log_startup_info(args: Any, config: Configuration, start_time: datetime) -> None:
@@ -71,24 +60,23 @@ def main() -> None:
 
     Парсит аргументы командной строки, обрабатывает различные режимы
     работы (TUI, CLI, параллельный парсинг) и запускает приложение.
+
+    ISSUE-045: Использует общую функцию run_tui_application для устранения дублирования.
     """
     start_datetime = datetime.now()
     args, command_line_config = parse_arguments()
 
-    # Обработка TUI интерфейсов
+    # Обработка TUI интерфейсов - ISSUE-045: используем общую функцию
     if getattr(args, "tui_new_omsk", False):
-        if run_new_tui_omsk is None:
-            logger.error("TUI модуль (textual) недоступен")
-            sys.exit(1)
-        run_new_tui_omsk()
+        exit_code = run_tui_application(tui_type="omsk")
+        if exit_code != 0:
+            sys.exit(exit_code)
         return
 
     if getattr(args, "tui_new", False):
-        if Parser2GISTUI is None:
-            logger.error("TUI модуль (textual) недоступен")
-            sys.exit(1)
-        app = Parser2GISTUI()
-        app.run()
+        exit_code = run_tui_application(tui_type="main")
+        if exit_code != 0:
+            sys.exit(exit_code)
         return
 
     setup_cli_logger(command_line_config.log)
@@ -101,8 +89,16 @@ def main() -> None:
     options = ParserOptions()
     launcher = ApplicationLauncher(config=command_line_config, options=options)
 
-    exit_code = launcher.launch(args)
+    try:
+        exit_code = launcher.launch(args)
+    except (MemoryError, OSError, RuntimeError) as e:
+        logger.critical("Критическая ошибка при запуске приложения: %s", e, exc_info=True)
+        exit_code = 1
+    except Exception as e:
+        logger.error("Непредвиденная ошибка при запуске приложения: %s", e, exc_info=True)
+        exit_code = 1
+
     sys.exit(exit_code)
 
 
-__all__ = ["Parser2GISTUI", "main", "run_new_tui_omsk"]
+__all__ = ["main"]

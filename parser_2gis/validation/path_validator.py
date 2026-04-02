@@ -104,15 +104,18 @@ class PathValidator(PathValidatorProtocol):
         except (OSError, RuntimeError) as fs_error:
             raise OSError(f"Ошибка разрешения {path_name}: {fs_error}") from fs_error
 
-        # Проверка что путь находится в разрешённой директории
+        # ID:149: Используем is_relative_to() вместо startswith() для корректной проверки
+        # startswith() может дать ложные срабатывания например:
+        #   /home/user/project и /home/user/project-other
+        # is_relative_to() корректно проверяет вложенность путей
         is_allowed = any(
-            str(resolved_path).startswith(str(allowed_dir))
-            for allowed_dir in self._allowed_base_dirs
+            resolved_path.is_relative_to(allowed_dir) for allowed_dir in self._allowed_base_dirs
         )
 
         if not is_allowed:
             # Разрешаем запись в текущую рабочую директорию и её поддиректории
-            if str(resolved_path).startswith(str(Path.cwd())):
+            # ID:149: Используем is_relative_to() вместо startswith()
+            if resolved_path.is_relative_to(Path.cwd()):
                 return
 
             raise ValueError(

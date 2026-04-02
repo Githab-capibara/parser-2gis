@@ -1,26 +1,45 @@
-"""Модуль инфраструктуры для мониторинга ресурсов.
+"""Модуль инфраструктуры для мониторинга ресурсов в parser-2gis.
 
 Предоставляет абстракции для мониторинга системных ресурсов:
-- MemoryMonitor: мониторинг памяти
-- ResourceMonitor: общий мониторинг ресурсов
+- MemoryInfo: информация об использовании памяти
+- MemoryMonitor: мониторинг памяти с использованием psutil
+- ResourceMonitor: общий мониторинг ресурсов (память, CPU)
 
 H9: Выделение инфраструктурных зависимостей (psutil) в отдельный модуль.
+ISSUE-166: Добавлено кэширование для часто вызываемых методов.
+
+Пример использования:
+    >>> from parser_2gis.infrastructure.resource_monitor import ResourceMonitor
+    >>> monitor = ResourceMonitor()
+    >>> if monitor.is_memory_critical():
+    ...     print("Критический уровень памяти!")
 """
 
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass
 
 
 @dataclass
 class MemoryInfo:
-    """Информация об использовании памяти.
+    """Информация об использовании памяти в системе.
+
+    Содержит данные об общем, использованном и доступном объёме памяти,
+    а также процент использования. Предоставляет свойства для получения
+    значений в байтах и мегабайтах.
 
     Attributes:
         total: Общий объём памяти в байтах.
         available: Доступный объём памяти в байтах.
         used: Использованный объём памяти в байтах.
-        percent: Процент использования памяти.
+        percent: Процент использования памяти (0-100).
+
+    Example:
+        >>> info = MemoryInfo(total=16000000000, available=8000000000,
+        ...                   used=8000000000, percent=50.0)
+        >>> print(f"Доступно: {info.available_mb:.2f} MB")
+        Доступно: 7629.39 MB
 
     """
 
@@ -31,29 +50,48 @@ class MemoryInfo:
 
     @property
     def available_mb(self) -> float:
-        """Доступный объём памяти в мегабайтах."""
+        """Доступный объём памяти в мегабайтах.
+
+        Returns:
+            Доступная память в мегабайтах.
+
+        """
         return self.available / (1024 * 1024)
 
     @property
     def used_mb(self) -> float:
-        """Использованный объём памяти в мегабайтах."""
+        """Использованный объём памяти в мегабайтах.
+
+        Returns:
+            Использованная память в мегабайтах.
+
+        """
         return self.used / (1024 * 1024)
 
     @property
     def total_mb(self) -> float:
-        """Общий объём памяти в мегабайтах."""
+        """Общий объём памяти в мегабайтах.
+
+        Returns:
+            Общая память в мегабайтах.
+
+        """
         return self.total / (1024 * 1024)
 
 
 class MemoryMonitor:
-    """Монитор памяти на основе psutil.
+    """Монитор памяти на основе psutil для parser-2gis.
 
     H9: Инкапсуляция psutil зависимостей в инфраструктурном модуле.
+    Предоставляет методы для получения информации о памяти и проверки
+    низкого уровня доступной памяти.
 
     Example:
         >>> monitor = MemoryMonitor()
         >>> info = monitor.get_memory_usage()
         >>> print(f"Доступно: {info.available_mb:.2f} MB")
+        >>> if monitor.is_low_memory(threshold_mb=500):
+        ...     print("Низкий уровень памяти!")
 
     """
 
@@ -62,6 +100,11 @@ class MemoryMonitor:
 
         Returns:
             Доступный объём памяти в байтах.
+
+        Example:
+            >>> monitor = MemoryMonitor()
+            >>> available = monitor.get_available_memory()
+            >>> print(f"Доступно: {available / (1024*1024):.2f} MB")
 
         """
         import psutil
@@ -72,7 +115,12 @@ class MemoryMonitor:
         """Получает полную информацию об использовании памяти.
 
         Returns:
-            MemoryInfo с информацией о памяти.
+            MemoryInfo с информацией о памяти (total, available, used, percent).
+
+        Example:
+            >>> monitor = MemoryMonitor()
+            >>> info = monitor.get_memory_usage()
+            >>> print(f"Использовано: {info.used_mb:.2f} MB ({info.percent:.1f}%)")
 
         """
         import psutil
@@ -86,36 +134,53 @@ class MemoryMonitor:
         """Проверяет низкий уровень памяти.
 
         Args:
-            threshold_mb: Порог в мегабайтах для определения "низкой" памяти.
+            threshold_mb: Порог в мегабайтах для определения "низкой" памяти
+                         (по умолчанию 100.0 MB).
 
         Returns:
-            True если памяти меньше порога.
+            True если доступной памяти меньше порога.
+
+        Example:
+            >>> monitor = MemoryMonitor()
+            >>> if monitor.is_low_memory(threshold_mb=500):
+            ...     print("Меньше 500 MB доступно!")
 
         """
         return self.get_available_memory() < (threshold_mb * 1024 * 1024)
 
 
 class ResourceMonitor:
-    """Общий монитор системных ресурсов.
+    """Общий монитор системных ресурсов для parser-2gis.
 
-    Предоставляет расширенный мониторинг ресурсов системы.
+    Предоставляет расширенный мониторинг ресурсов системы:
+    - Мониторинг памяти через MemoryMonitor
+    - Мониторинг использования CPU
+    - Проверка памяти перед операциями
+
+    ISSUE-166: Добавлено кэширование для часто вызываемых методов.
 
     Example:
         >>> monitor = ResourceMonitor()
         >>> if monitor.is_memory_critical():
-        >>>     print("Критический уровень памяти!")
+        ...     print("Критический уровень памяти!")
+        >>> cpu = monitor.get_cpu_usage()
+        >>> print(f"CPU: {cpu:.1f}%")
 
     """
 
     def __init__(self) -> None:
-        """Инициализация монитора ресурсов."""
+        """Инициализация монитора ресурсов.
+
+        Создаёт экземпляр MemoryMonitor для мониторинга памяти.
+
+        """
         self._memory_monitor = MemoryMonitor()
 
     def get_memory_monitor(self) -> MemoryMonitor:
         """Получает монитор памяти.
 
         Returns:
-            Экземпляр MemoryMonitor.
+            Экземпляр MemoryMonitor для мониторинга памяти.
 
         """
         return self._memory_monitor
@@ -124,10 +189,16 @@ class ResourceMonitor:
         """Проверяет критический уровень памяти.
 
         Args:
-            threshold_mb: Порог в мегабайтах для критического уровня.
+            threshold_mb: Порог в мегабайтах для критического уровня
+                         (по умолчанию 50.0 MB).
 
         Returns:
             True если память на критическом уровне.
+
+        Example:
+            >>> monitor = ResourceMonitor()
+            >>> if monitor.is_memory_critical():
+            ...     print("Критический уровень памяти!")
 
         """
         return self._memory_monitor.is_low_memory(threshold_mb)
@@ -138,15 +209,45 @@ class ResourceMonitor:
         """Проверяет память перед операцией.
 
         Args:
-            required_mb: Требуемый объём памяти в мегабайтах.
-            threshold_mb: Минимальный порог свободной памяти.
+            required_mb: Требуемый объём памяти в мегабайтах для операции.
+            threshold_mb: Минимальный порог свободной памяти в мегабайтах.
 
         Returns:
-            True если операция может быть выполнена.
+            True если операция может быть выполнена (достаточно памяти).
+
+        Example:
+            >>> monitor = ResourceMonitor()
+            >>> if monitor.check_memory_before_operation(required_mb=500):
+            ...     perform_memory_intensive_operation()
 
         """
         available_mb = self._memory_monitor.get_memory_usage().available_mb
         return available_mb >= (required_mb + threshold_mb)
+
+    @functools.lru_cache(maxsize=1)
+    def get_cpu_usage(self, interval: float = 0.1) -> float:
+        """Получает процент использования CPU.
+
+        ISSUE-166: Кэширование результатов для предотвращения частых вызовов.
+        Кэшируется последнее значение на 1 вызов (обновляется при каждом новом вызове).
+
+        Args:
+            interval: Интервал измерения в секундах (по умолчанию 0.1 сек).
+
+        Returns:
+            Процент использования CPU (0-100).
+
+        Example:
+            >>> monitor = ResourceMonitor()
+            >>> cpu = monitor.get_cpu_usage(interval=0.5)
+            >>> print(f"CPU usage: {cpu:.1f}%")
+
+        """
+        import psutil
+
+        # Сбрасываем кэш перед новым измерением
+        self.get_cpu_usage.cache_clear()
+        return psutil.cpu_percent(interval=interval)
 
 
 __all__ = ["MemoryInfo", "MemoryMonitor", "ResourceMonitor"]

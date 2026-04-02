@@ -69,19 +69,10 @@ except ImportError:
     RequestException = Exception  # type: ignore[misc, assignment]
 
 try:
-    from tenacity import (
-        retry,
-        stop_after_attempt,
-        stop_after_delay,
-        retry_if_exception_type,
-        wait_fixed,
-    )
+    from tenacity import retry, stop_after_attempt
 except ImportError:
     retry = None  # type: ignore[assignment, misc]
     stop_after_attempt = None  # type: ignore[assignment, misc]
-    stop_after_delay = None  # type: ignore[assignment, misc]
-    retry_if_exception_type = None  # type: ignore[assignment, misc]
-    wait_fixed = None  # type: ignore[assignment, misc]
 
 _TENACITY_AVAILABLE = retry is not None and stop_after_attempt is not None
 
@@ -271,26 +262,34 @@ class ChromeRemote:
         attempt_delay = 0.05
         total_timeout = 60.0
         start_time = time.time()
+        connection_established = False
 
-        for attempt in range(max_attempts):
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= total_timeout:
-                app_logger.error("Превышен общий таймаут подключения (%.1f сек)", elapsed_time)
-                return False
-
-            try:
-                self._attempt_connection()
-                return True
-            except (RequestException, WebSocketException, ChromeException, OSError) as e:
-                app_logger.debug("Попытка %d/%d: %s", attempt + 1, max_attempts, e)
-                self._cleanup_interface()
-                if attempt < max_attempts - 1:
-                    time.sleep(attempt_delay)
-                else:
-                    app_logger.error("Все попытки подключения исчерпаны: %s", e)
+        # ID:111: Используем try/finally для гарантии очистки ресурсов
+        try:
+            for attempt in range(max_attempts):
+                elapsed_time = time.time() - start_time
+                if elapsed_time >= total_timeout:
+                    app_logger.error("Превышен общий таймаут подключения (%.1f сек)", elapsed_time)
                     return False
 
-        return False
+                try:
+                    self._attempt_connection()
+                    connection_established = True
+                    return True
+                except (RequestException, WebSocketException, ChromeException, OSError) as e:
+                    app_logger.debug("Попытка %d/%d: %s", attempt + 1, max_attempts, e)
+                    self._cleanup_interface()
+                    if attempt < max_attempts - 1:
+                        time.sleep(attempt_delay)
+                    else:
+                        app_logger.error("Все попытки подключения исчерпаны: %s", e)
+                        return False
+
+            return False
+        finally:
+            # ID:111: Гарантированная очистка при ошибке
+            if not connection_established:
+                self._cleanup_interface()
 
     def _attempt_connection(self) -> None:
         """Выполняет одну попытку подключения.
@@ -452,41 +451,60 @@ class ChromeRemote:
         app_logger.debug("Вкладка успешно запущена")
 
     def _create_tab(self) -> pychrome.Tab:
-        """Создаёт Chrome-вкладку с повторными попытками."""
+        """Создаёт Chrome-вкладку с повторными попытками.
+
+        ID:115: Используем try/finally для закрытия вкладки при ошибке создания.
+        """
         max_attempts = 10
         delay_seconds = 0.15  # Максимально ускоренное создание вкладки
+        tab: pychrome.Tab | None = None
+        tab_created = False
 
-        for attempt in range(max_attempts):
-            try:
-                app_logger.debug("Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts)
-                resp = _safe_external_request(
-                    "put", "%s/json/new" % (self._dev_url), json={}, timeout=60, verify=True
-                )
-
-                # Проверка на None перед вызовом raise_for_status()
-                if resp is None:
-                    raise ChromeException("HTTP запрос вернул None")
-
-                resp.raise_for_status()
-                app_logger.debug("Вкладка успешно создана")
-                return pychrome.Tab(**resp.json())
-
-            except (RequestException, ValueError, KeyError) as e:
-                if attempt < max_attempts - 1:
-                    app_logger.warning(
-                        "Не удалось создать вкладку (попытка %d): %s. "
-                        "Повторная попытка через %.1f сек...",
-                        attempt + 1,
-                        e,
-                        delay_seconds,
+        # ID:115: Используем try/finally для гарантии закрытия вкладки при ошибке
+        try:
+            for attempt in range(max_attempts):
+                try:
+                    app_logger.debug(
+                        "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
                     )
-                    time.sleep(delay_seconds)
-                else:
-                    raise ChromeException(
-                        f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
-                    ) from e
+                    resp = _safe_external_request(
+                        "put", "%s/json/new" % (self._dev_url), json={}, timeout=60, verify=True
+                    )
 
-        raise ChromeException("Не удалось создать вкладку")
+                    # Проверка на None перед вызовом raise_for_status()
+                    if resp is None:
+                        raise ChromeException("HTTP запрос вернул None")
+
+                    resp.raise_for_status()
+                    tab = pychrome.Tab(**resp.json())
+                    tab_created = True
+                    app_logger.debug("Вкладка успешно создана")
+                    return tab
+
+                except (RequestException, ValueError, KeyError) as e:
+                    if attempt < max_attempts - 1:
+                        app_logger.warning(
+                            "Не удалось создать вкладку (попытка %d): %s. "
+                            "Повторная попытка через %.1f сек...",
+                            attempt + 1,
+                            e,
+                            delay_seconds,
+                        )
+                        time.sleep(delay_seconds)
+                    else:
+                        raise ChromeException(
+                            f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
+                        ) from e
+
+            raise ChromeException("Не удалось создать вкладку")
+        finally:
+            # ID:115: Закрываем вкладку если она была создана но не возвращена успешно
+            if tab is not None and not tab_created:
+                try:
+                    self._close_tab(tab)
+                    app_logger.debug("Вкладка закрыта в finally (ошибка создания)")
+                except (OSError, RuntimeError, ChromeException) as cleanup_error:
+                    app_logger.debug("Ошибка при закрытии вкладки в finally: %s", cleanup_error)
 
     def _close_tab(self, tab: pychrome.Tab) -> None:
         """Закрывает Chrome-вкладку."""
@@ -582,9 +600,9 @@ class ChromeRemote:
 
                 self._chrome_tab._stopped.wait(MONITOR_INTERVAL)
 
-        # C014: Используем не-daemon поток для гарантированного завершения
-        # daemon=True может привести к незавершению потока при выходе
-        self._ping_thread = threading.Thread(target=monitor_tab, daemon=False)
+        # ID:117: Используем daemon=True для предотвращения утечки ресурсов
+        # daemon поток автоматически завершится при завершении основного приложения
+        self._ping_thread = threading.Thread(target=monitor_tab, daemon=True)
         self._ping_thread.start()
 
         if self._chrome_tab is None:

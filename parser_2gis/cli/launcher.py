@@ -29,6 +29,67 @@ if TYPE_CHECKING:
 
 
 # =============================================================================
+# ОБЩАЯ ЛОГИКА TUI (ISSUE-045: УСТРАНЕНИЕ ДУБЛИРОВАНИЯ)
+# =============================================================================
+
+
+def _import_tui_main() -> tuple[Any, Any]:
+    """Импортирует TUI модули.
+
+    ISSUE-045: Вынесена общая логика импорта TUI из launcher.py и main.py.
+
+    Returns:
+        Кортеж (Parser2GISTUI, run_tui_omsk).
+        Если модуль недоступен, возвращает (None, None).
+
+    """
+    try:
+        from parser_2gis.tui_textual import Parser2GISTUI
+        from parser_2gis.tui_textual import run_tui as run_new_tui_omsk
+
+        return Parser2GISTUI, run_new_tui_omsk
+    except ImportError as e:
+        logger.error("TUI модуль (textual) недоступен: %s", e)
+        return None, None
+
+
+def run_tui_application(tui_type: str = "main") -> int:
+    """Запускает TUI приложение.
+
+    ISSUE-045: Общая функция для запуска TUI из launcher.py и main.py.
+
+    Args:
+        tui_type: Тип TUI ("main" или "omsk").
+
+    Returns:
+        Код завершения (0 - успех, 1 - ошибка).
+
+    """
+    Parser2GISTUI, run_new_tui_omsk = _import_tui_main()
+
+    if Parser2GISTUI is None and run_new_tui_omsk is None:
+        logger.error("TUI модуль (textual) недоступен")
+        return 1
+
+    try:
+        if tui_type == "omsk":
+            if run_new_tui_omsk is None:
+                logger.error("TUI режим 'omsk' недоступен")
+                return 1
+            run_new_tui_omsk()
+        else:
+            if Parser2GISTUI is None:
+                logger.error("TUI режим 'main' недоступен")
+                return 1
+            app = Parser2GISTUI()
+            app.run()
+        return 0
+    except Exception as e:
+        logger.error("Ошибка при запуске TUI: %s", e, exc_info=True)
+        return 1
+
+
+# =============================================================================
 # PROTOCOLS ДЛЯ ВНЕШНИХ ЗАВИСИМОСТЕЙ (DIP)
 # =============================================================================
 
@@ -132,7 +193,11 @@ class ApplicationLauncher:
             Код завершения приложения.
 
         """
-        self._setup_signal_handlers()
+        try:
+            self._setup_signal_handlers()
+        except (TypeError, AttributeError, RuntimeError) as e:
+            logger.error("Ошибка при настройке обработчиков сигналов: %s", e, exc_info=True)
+            return 1
 
         # Обработка TUI режимов
         if getattr(args, "tui_new_omsk", False):
@@ -160,6 +225,8 @@ class ApplicationLauncher:
     def _run_tui_mode(self, args: argparse.Namespace, tui_type: str = "main") -> int:
         """Запуск TUI режима.
 
+        ISSUE-045: Использует общую функцию run_tui_application для устранения дублирования.
+
         Args:
             args: Аргументы командной строки.
             tui_type: Тип TUI ("main" или "omsk").
@@ -168,32 +235,7 @@ class ApplicationLauncher:
             Код завершения приложения.
 
         """
-        # Опциональный импорт TUI модулей
-        try:
-            if tui_type == "omsk":
-                from parser_2gis.tui_textual import run_tui as run_new_tui_omsk
-
-                if run_new_tui_omsk is None:
-                    logger.error("TUI модуль (textual) недоступен")
-                    return 1
-                run_new_tui_omsk()
-                return 0
-            else:
-                from parser_2gis.tui_textual import Parser2GISTUI
-
-                if Parser2GISTUI is None:
-                    logger.error("TUI модуль (textual) недоступен")
-                    return 1
-                app = Parser2GISTUI()
-                app.run()
-                return 0
-
-        except ImportError as e:
-            logger.error("TUI модуль недоступен: %s", e)
-            return 1
-        except Exception as e:
-            logger.error("Ошибка при запуске TUI: %s", e, exc_info=True)
-            return 1
+        return run_tui_application(tui_type=tui_type)
 
     def _run_parallel_mode(self, args: argparse.Namespace) -> int:
         """Запуск параллельного режима парсинга.
@@ -276,10 +318,10 @@ class ApplicationLauncher:
                 return 1
 
         except (FileNotFoundError, ValueError, OSError) as e:
-            logger.error("Ошибка при загрузке городов: %s", e)
+            logger.error("Ошибка при загрузке городов или конфигурации: %s", e)
             return 1
-        except Exception as e:
-            logger.error("Ошибка параллельного парсинга: %s", e, exc_info=True)
+        except (TypeError, KeyError, RuntimeError) as e:
+            logger.error("Критическая ошибка параллельного парсинга: %s", e, exc_info=True)
             return 1
         finally:
             self._cleanup_resources()
@@ -349,23 +391,15 @@ class ApplicationLauncher:
         except KeyboardInterrupt:
             logger.info("Работа приложения прервана пользователем (KeyboardInterrupt).")
             return 0
-        except FileNotFoundError as e:
-            logger.error("Файл не найден: %s", e)
-            return 1
-        except PermissionError as e:
-            logger.error("Ошибка доступа к файлу: %s", e)
-            return 1
-        except ValueError as e:
-            logger.error("Ошибка валидации данных: %s", e)
-            return 1
-        except TimeoutError as e:
-            logger.error("Превышено время ожидания операции: %s", e)
-            return 1
-        except ConnectionError as e:
-            logger.error("Ошибка соединения: %s", e)
-            return 1
-        except OSError as e:
-            logger.error("Ошибка операционной системы: %s", e)
+        except (
+            FileNotFoundError,
+            PermissionError,
+            ValueError,
+            TimeoutError,
+            ConnectionError,
+            OSError,
+        ) as e:
+            logger.error("Ошибка операции ввода-вывода или валидации: %s", e)
             return 1
         except (sqlite3.Error, TypeError, RuntimeError) as e:
             logger.error("Критическая ошибка приложения: %s", e, exc_info=True)
@@ -461,6 +495,7 @@ class ApplicationLauncher:
         """Очищает активные соединения ChromeRemote.
 
         Закрывает все активные экземпляры ChromeRemote через вызов метода stop().
+        Кэширует список экземпляров перед итерацией для безопасности.
 
         Returns:
             None
@@ -489,10 +524,17 @@ class ApplicationLauncher:
             if not hasattr(chrome_class, "_active_instances"):
                 return
 
+            # ID:049: Кэшируем список экземпляров перед итерацией для безопасности
+            try:
+                chrome_instances = list(chrome_class._active_instances)
+            except (TypeError, AttributeError) as list_error:
+                logger.error("Ошибка создания копии списка _active_instances: %s", list_error)
+                return
+
             chrome_instances_closed = 0
             chrome_errors = 0
 
-            for instance in chrome_class._active_instances:
+            for instance in chrome_instances:
                 try:
                     if instance is not None:
                         instance.stop()
@@ -514,6 +556,7 @@ class ApplicationLauncher:
         """Очищает кэш базы данных CacheManager.
 
         Закрывает соединение с кэшем базы данных для освобождения ресурсов.
+        Проверяет существование активного кэша перед созданием нового.
 
         Returns:
             None
@@ -529,13 +572,20 @@ class ApplicationLauncher:
         try:
             from parser_2gis.utils.paths import cache_path
 
-            # Используем внедрённую зависимость или создаём по умолчанию
+            # ID:050: Проверяем, существует ли уже активный кэш
+            # чтобы не создавать новый CacheManager только для закрытия
             if self._cache_factory is not None:
                 cache = self._cache_factory(cache_path())
             else:
                 from parser_2gis.cache import CacheManager
 
+                # Проверяем существование файла кэша перед созданием менеджера
+                cache_file = cache_path() / "cache.db"
+                if not cache_file.exists():
+                    logger.debug("Файл кэша не найден, закрытие не требуется")
+                    return
                 cache = CacheManager(cache_path())
+
             cache.close()
             logger.info("Кэш базы данных успешно закрыт")
         except Exception as e:
@@ -583,4 +633,10 @@ def _get_signal_handler_cached(handler_instance: SignalHandler) -> SignalHandler
     return handler_instance
 
 
-__all__ = ["ApplicationLauncher", "_get_signal_handler_cached"]
+__all__ = [
+    "ApplicationLauncher",
+    "_get_signal_handler_cached",
+    # ISSUE-045: Экспорт общих функций для устранения дублирования
+    "_import_tui_main",
+    "run_tui_application",
+]

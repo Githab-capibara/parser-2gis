@@ -16,6 +16,7 @@ email адресов и номеров телефонов.
 from __future__ import annotations
 
 import re
+from collections import OrderedDict
 from dataclasses import dataclass
 
 # =============================================================================
@@ -319,9 +320,11 @@ def validate_phone(phone: str) -> ValidationResult:
 # ВАЛИДАЦИЯ КОНФИГУРАЦИИ ПАРАЛЛЕЛЬНОГО ПАРСИНГА
 # =============================================================================
 
+# ISSUE-154, ISSUE-155: Используем OrderedDict для true LRU кэширования
 # C003: Кэш для валидации конфигурации городов на основе JSON хеша
-_CITIES_CONFIG_CACHE: dict[str, list] = {}
-_CATEGORIES_CONFIG_CACHE: dict[str, list] = {}
+# ISSUE-155: Используем OrderedDict для true LRU eviction
+_CITIES_CONFIG_CACHE: OrderedDict[str, list] = OrderedDict()
+_CATEGORIES_CONFIG_CACHE: OrderedDict[str, list] = OrderedDict()
 _CACHE_MAX_SIZE = 256  # LRU eviction при 256 записях
 
 
@@ -337,19 +340,22 @@ def _compute_config_hash(config: list) -> str:
     return hashlib.sha256(config_json.encode("utf-8")).hexdigest()
 
 
-def _evict_cache_if_needed(cache: dict[str, list], max_size: int = _CACHE_MAX_SIZE) -> None:
-    """LRU eviction для кэша конфигураций."""
-    if len(cache) >= max_size:
-        # Удаляем первые 10% записей (LRU)
-        keys_to_remove = list(cache.keys())[: max_size // 10]
-        for key in keys_to_remove:
-            del cache[key]
+def _evict_cache_if_needed(cache: OrderedDict[str, list], max_size: int = _CACHE_MAX_SIZE) -> None:
+    """LRU eviction для кэша конфигураций.
+
+    ISSUE-155: Используем OrderedDict для true LRU eviction.
+    При переполнении удаляется самый старый элемент (первый в OrderedDict).
+    """
+    while len(cache) >= max_size:
+        # Удаляем самый старый элемент (первый в OrderedDict - LRU)
+        cache.popitem(last=False)
 
 
 def validate_cities_config(cities: list, field_name: str = "cities") -> list:
     """Валидирует конфигурацию городов для параллельного парсинга.
 
-    C003: Добавлено кэширование результатов валидации на основе JSON хеша.
+    ISSUE-154: Использует OrderedDict для true LRU кэширования.
+    ISSUE-155: Корректная LRU eviction через OrderedDict.
 
     Args:
         cities: Список городов для валидации.
@@ -367,9 +373,11 @@ def validate_cities_config(cities: list, field_name: str = "cities") -> list:
         [{'name': 'Москва', 'code': 'msk', 'domain': 'moscow'}]
 
     """
-    # C003: Проверка кэша перед валидацией
+    # ISSUE-154: Проверка кэша перед валидацией
     config_hash = _compute_config_hash(cities)
     if config_hash in _CITIES_CONFIG_CACHE:
+        # ISSUE-155: Перемещаем в конец OrderedDict (помечаем как недавно использованный)
+        _CITIES_CONFIG_CACHE.move_to_end(config_hash)
         return _CITIES_CONFIG_CACHE[config_hash]
 
     if not cities:
@@ -386,7 +394,7 @@ def validate_cities_config(cities: list, field_name: str = "cities") -> list:
         if not isinstance(city.get("name"), str) or not city.get("name"):
             raise ValueError(f"{field_name}[{idx}]: 'name' должен быть непустой строкой")
 
-    # C003: Сохраняем в кэш с LRU eviction
+    # ISSUE-155: Сохраняем в кэш с LRU eviction и перемещаем в конец
     _evict_cache_if_needed(_CITIES_CONFIG_CACHE)
     _CITIES_CONFIG_CACHE[config_hash] = cities
     return cities
@@ -395,7 +403,8 @@ def validate_cities_config(cities: list, field_name: str = "cities") -> list:
 def validate_categories_config(categories: list, field_name: str = "categories") -> list:
     """Валидирует конфигурацию категорий для параллельного парсинга.
 
-    C003: Добавлено кэширование результатов валидации на основе JSON хеша.
+    ISSUE-154: Использует OrderedDict для true LRU кэширования.
+    ISSUE-155: Корректная LRU eviction через OrderedDict.
 
     Args:
         categories: Список категорий для валидации.
@@ -413,9 +422,11 @@ def validate_categories_config(categories: list, field_name: str = "categories")
         [{'name': 'Кафе', 'query': 'Кафе'}]
 
     """
-    # C003: Проверка кэша перед валидацией
+    # ISSUE-154: Проверка кэша перед валидацией
     config_hash = _compute_config_hash(categories)
     if config_hash in _CATEGORIES_CONFIG_CACHE:
+        # ISSUE-155: Перемещаем в конец OrderedDict (помечаем как недавно использованный)
+        _CATEGORIES_CONFIG_CACHE.move_to_end(config_hash)
         return _CATEGORIES_CONFIG_CACHE[config_hash]
 
     if not categories:
@@ -432,7 +443,7 @@ def validate_categories_config(categories: list, field_name: str = "categories")
         if not isinstance(category.get("name"), str) or not category.get("name"):
             raise ValueError(f"{field_name}[{idx}]: 'name' должен быть непустой строкой")
 
-    # C003: Сохраняем в кэш с LRU eviction
+    # ISSUE-155: Сохраняем в кэш с LRU eviction и перемещаем в конец
     _evict_cache_if_needed(_CATEGORIES_CONFIG_CACHE)
     _CATEGORIES_CONFIG_CACHE[config_hash] = categories
     return categories

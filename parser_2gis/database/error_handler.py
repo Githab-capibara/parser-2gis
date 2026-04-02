@@ -1,8 +1,17 @@
-"""Модуль обработки ошибок базы данных.
+"""Модуль обработки ошибок базы данных для parser-2gis.
 
 Предоставляет централизованную обработку ошибок SQLite:
-- Декоратор @handle_db_errors
-- Упрощённая классификация ошибок: временные и критические
+- handle_db_errors: декоратор для обработки ошибок с повторными попытками
+- DatabaseError: базовое исключение для ошибок БД
+- DBError: алиас для DatabaseError
+- _is_retryable_error: проверка ошибки на временную
+- _is_critical_error: проверка ошибки на критическую
+
+Пример использования:
+    >>> from parser_2gis.database.error_handler import handle_db_errors
+    >>> @handle_db_errors(retry_count=3)
+    ... def insert_user(conn, user_data):
+    ...     conn.execute("INSERT INTO users VALUES (?)", (user_data,))
 """
 
 from __future__ import annotations
@@ -20,7 +29,21 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 class DatabaseError(Exception):
-    """Базовое исключение для ошибок базы данных."""
+    """Базовое исключение для ошибок базы данных в parser-2gis.
+
+    Обёртывает оригинальные исключения SQLite для предоставления единого
+    интерфейса обработки ошибок базы данных.
+
+    Attributes:
+        original_error: Оригинальное исключение, вызвавшее ошибку.
+
+    Example:
+        >>> try:
+        ...     conn.execute("INVALID SQL")
+        ... except sqlite3.Error as e:
+        ...     raise DatabaseError("Ошибка выполнения SQL", original_error=e)
+
+    """
 
     def __init__(self, message: str, original_error: Exception | None = None) -> None:
         """Инициализирует исключение БД.
@@ -137,15 +160,21 @@ def handle_db_errors(
 def _is_retryable_error(error: sqlite3.Error) -> bool:
     """Проверяет, является ли ошибка временной (можно повторить).
 
-    Временные ошибки:
-    - OperationalError: блокировки БД, таймауты
-    - DatabaseError: временные проблемы с диском
+    Временные ошибки возникают из-за блокировок базы данных, таймаутов
+    или временных проблем с диском. Эти ошибки можно обработать повторной
+    попыткой выполнения операции.
 
     Args:
-        error: Исключение sqlite3.
+        error: Исключение sqlite3 для проверки.
 
     Returns:
-        True если ошибка временная.
+        True если ошибка временная и можно повторить попытку.
+
+    Example:
+        >>> import sqlite3
+        >>> error = sqlite3.OperationalError("database is locked")
+        >>> _is_retryable_error(error)
+        True
 
     """
     error_str = str(error).lower()
@@ -160,15 +189,24 @@ def _is_retryable_error(error: sqlite3.Error) -> bool:
 def _is_critical_error(error: sqlite3.Error) -> bool:
     """Проверяет, является ли ошибка критической.
 
+    Критические ошибки требуют вмешательства разработчика или изменения
+    логики приложения. Повторная попытка не поможет решить проблему.
+
     Критические ошибки:
     - IntegrityError: нарушение целостности (unique constraint, foreign key)
     - ProgrammingError: ошибки SQL синтаксиса
 
     Args:
-        error: Исключение sqlite3.
+        error: Исключение sqlite3 для проверки.
 
     Returns:
-        True если ошибка критическая.
+        True если ошибка критическая и требует вмешательства.
+
+    Example:
+        >>> import sqlite3
+        >>> error = sqlite3.IntegrityError("UNIQUE constraint failed")
+        >>> _is_critical_error(error)
+        True
 
     """
     return isinstance(error, (sqlite3.IntegrityError, sqlite3.ProgrammingError))

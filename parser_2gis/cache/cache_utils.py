@@ -23,9 +23,11 @@ from parser_2gis.constants import SHA256_HASH_LENGTH
 from parser_2gis.logger.logger import logger as app_logger
 
 
-@functools.lru_cache(maxsize=8192)
+@functools.lru_cache(maxsize=1024)
 def compute_crc32_cached(data_json_hash: str, data_json: str) -> int:
     """Вычисляет CRC32 checksum с кэшированием.
+
+    ISSUE-084: Уменьшен maxsize с 8192 до 1024 для снижения потребления памяти.
 
     Кэширование основано на хеше данных - одинаковые данные будут
     иметь одинаковый checksum без повторных вычислений.

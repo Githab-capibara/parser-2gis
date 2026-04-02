@@ -1,13 +1,15 @@
-"""Модуль консолидированной валидации путей.
+"""Модуль консолидированной валидации путей для parser-2gis.
 
 Объединяет функции валидации путей для предотвращения дублирования:
-- validate_path_traversal: Проверка на path traversal атаки
-- validate_path_safety: Полная проверка безопасности пути
-- PathValidator: Класс для валидации путей
+- validate_path_traversal: проверка на path traversal атаки
+- validate_path_safety: полная проверка безопасности пути
+- PathSafetyValidator: класс для валидации путей
+- get_path_safety_validator: получение singleton экземпляра валидатора
 
 Пример использования:
     >>> from parser_2gis.validation.path_validation import validate_path_safety
     >>> validate_path_safety("/safe/path/file.txt")
+    >>> validate_path_traversal("/safe/path/file.txt")
 """
 
 from __future__ import annotations
@@ -22,13 +24,24 @@ logger = logging.getLogger(__name__)
 
 
 class PathTraversalError(ValueError):
-    """Исключение при обнаружении path traversal атаки."""
+    """Исключение при обнаружении path traversal атаки.
+
+    Выбрасывается когда путь содержит запрещённые символы или паттерны,
+    указывающие на попытку выхода за пределы разрешённой директории.
+
+    Example:
+        >>> try:
+        ...     validate_path_traversal("../etc/passwd")
+        ... except PathTraversalError as e:
+        ...     print(f"Path traversal обнаружена: {e}")
+
+    """
 
     pass
 
 
 class PathSafetyValidator:
-    """Валидатор безопасности путей.
+    """Валидатор безопасности путей для parser-2gis.
 
     Отвечает за:
     - Проверку на запрещённые символы
@@ -36,6 +49,16 @@ class PathSafetyValidator:
     - Разрешение символьных ссылок через realpath
     - Проверку нахождения в разрешённых директориях
     - Предотвращение path traversal атак
+
+    Attributes:
+        _allowed_base_dirs: Список разрешённых базовых директорий.
+
+    Example:
+        >>> validator = PathSafetyValidator()
+        >>> validator.validate_traversal("/safe/path/file.txt")
+        True
+        >>> validator.validate_safety("/safe/output.csv", "output_path")
+
     """
 
     # Запрещённые символы в путях для предотвращения path traversal атак
@@ -170,10 +193,17 @@ _path_safety_validator: PathSafetyValidator | None = None
 
 
 def get_path_safety_validator() -> PathSafetyValidator:
-    """Получает глобальный экземпляр PathSafetyValidator.
+    """Получает глобальный singleton экземпляр PathSafetyValidator.
+
+    Использует lazy инициализацию для создания экземпляра при первом вызове.
+    Все последующие вызовы возвращают один и тот же экземпляр.
 
     Returns:
-        Экземпляр PathSafetyValidator.
+        Singleton экземпляр PathSafetyValidator.
+
+    Example:
+        >>> validator = get_path_safety_validator()
+        >>> validator.validate_safety("/tmp/output.txt", "output_path")
 
     """
     global _path_safety_validator
@@ -185,7 +215,8 @@ def get_path_safety_validator() -> PathSafetyValidator:
 def validate_path_traversal(path: str) -> bool:
     """Проверяет путь на наличие path traversal атак.
 
-    Функция-обёртка для удобной валидации.
+    Функция-обёртка для удобной валидации. Использует singleton экземпляр
+    PathSafetyValidator для проверки пути на запрещённые символы и паттерны.
 
     Args:
         path: Путь для валидации.
@@ -209,7 +240,10 @@ def validate_path_traversal(path: str) -> bool:
 def validate_path_safety(path: str, path_name: str = "Путь") -> None:
     """Выполняет полную проверку безопасности пути.
 
-    Функция-обёртка для удобной валидации.
+    Функция-обёртка для удобной валидации. Проверяет путь на:
+    - Запрещённые символы
+    - Path traversal атаки
+    - Нахождение в разрешённых директориях
 
     Args:
         path: Путь для валидации.

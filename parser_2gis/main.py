@@ -11,17 +11,17 @@ Backward совместимость:
 from __future__ import annotations
 
 # Импортируем все символы из нового пакета cli для backward совместимости
-from parser_2gis.cli import ArgumentHelpFormatter, ArgumentValidator, main, parse_arguments
-
-# Импортируем TUI символы для backward совместимости
-from parser_2gis.cli.main import Parser2GISTUI, run_new_tui_omsk
+from parser_2gis.cli import (
+    ArgumentHelpFormatter,
+    ArgumentValidator,
+    main,
+    parse_arguments,
+)
 
 # Экспортируем для backward совместимости
 __all__ = [
     "ArgumentHelpFormatter",
     "ArgumentValidator",
-    "Parser2GISTUI",
     "main",
     "parse_arguments",
-    "run_new_tui_omsk",
 ]

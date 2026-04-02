@@ -1,7 +1,16 @@
-"""Модуль декораторов для ожидания завершения операций.
+"""Модуль декораторов для ожидания завершения операций в parser-2gis.
 
 Содержит декораторы для синхронного и асинхронного ожидания
-завершения функций с поддержкой экспоненциальной задержки.
+завершения функций с поддержкой экспоненциальной задержки:
+- wait_until_finished: синхронный декоратор ожидания
+- async_wait_until_finished: асинхронный декоратор ожидания
+- WaitConfig: конфигурация для декоратора wait_until_finished
+
+Пример использования:
+    >>> from parser_2gis.utils.decorators import wait_until_finished
+    >>> @wait_until_finished(timeout=30, finished=lambda x: x > 0)
+    ... def fetch_data() -> int:
+    ...     return some_api_call()
 """
 
 from __future__ import annotations

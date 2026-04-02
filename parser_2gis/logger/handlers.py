@@ -84,7 +84,17 @@ class FileLogger:
 
         # Если указан файл логов, настраиваем обработчик
         if self._log_file:
-            self._setup_file_handler()
+            try:
+                self._setup_file_handler()
+            except OSError as e:
+                # ID:137: Обрабатываем ошибку создания директории
+                import sys
+
+                sys.stderr.write(
+                    f"Не удалось инициализировать файловый логгер: {e}. Файл: {self._log_file}\n"
+                )
+                # Не пробрасываем ошибку дальше, чтобы приложение могло работать без файлового логгера
+                self._log_file = None
 
     def _generate_session_log_file(self) -> Path:
         """Сгенерировать имя файла лога для новой сессии.
@@ -113,6 +123,9 @@ class FileLogger:
             IOError: При ошибке создания файлового обработчика.
 
         """
+        # ID:138: Используем try/finally для закрытия handler при ошибке
+        handler_created = False
+
         try:
             # Создаём директорию для логов, если её нет
             if self._log_file:
@@ -133,6 +146,7 @@ class FileLogger:
                     backupCount=self._backup_count,
                     encoding="utf-8",
                 )
+                handler_created = True
             except OSError as e:
                 raise OSError(
                     f"Ошибка создания RotatingFileHandler: {e}. "
@@ -161,6 +175,13 @@ class FileLogger:
         except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
+            # ID:138: Закрываем handler если он был создан но настройка не удалась
+            if handler_created and self._file_handler is not None:
+                try:
+                    self._file_handler.close()
+                except Exception:
+                    pass  # Игнорируем ошибку закрытия
+                self._file_handler = None
             # Логируем ошибку в stderr
             import sys
 
@@ -175,6 +196,7 @@ class FileLogger:
         """Настройка логгера для записи в файл.
 
         Добавляет файловый обработчик к указанному логгеру.
+        Проверяет, не был ли handler уже добавлен.
 
         Args:
             logger: Логгер для настройки (экземпляр logging.Logger).
@@ -185,6 +207,11 @@ class FileLogger:
         """
         try:
             if self._file_handler:
+                # ID:139: Проверяем, не был ли handler уже добавлен
+                if self._file_handler in logger.handlers:
+                    logger.debug("Файловый обработчик уже добавлен к логгеру %s", logger.name)
+                    return
+
                 logger.addHandler(self._file_handler)
                 # Устанавливаем минимальный уровень логирования
                 if logger.level == 0 or logger.level > self._log_level:

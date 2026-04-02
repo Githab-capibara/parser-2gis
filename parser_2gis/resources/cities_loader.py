@@ -1,6 +1,13 @@
-"""Загрузчик городов для парсера.
+"""Загрузчик городов для парсера parser-2gis.
 
-Модуль предоставляет функции для загрузки и валидации городов из JSON файла.
+Модуль предоставляет функции для загрузки и валидации городов из JSON файла:
+- load_cities_json: загрузка с кэшированием через lru_cache
+- load_cities_json_lazy: lazy loading через генератор для снижения памяти
+
+Пример использования:
+    >>> from parser_2gis.resources.cities_loader import load_cities_json
+    >>> cities = load_cities_json("/path/to/cities.json")
+    >>> print(f"Загружено городов: {len(cities)}")
 """
 
 from __future__ import annotations
@@ -129,15 +136,25 @@ def load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
 
 
 def load_cities_json_lazy(cities_path_str: str):
-    """Генератор для lazy loading городов.
+    """Генератор для lazy loading городов из JSON файла.
 
     C019: Lazy loading через генератор для снижения потребления памяти.
+    Вместо загрузки всех городов в память, генерирует города по одному.
 
     Args:
         cities_path_str: Путь к файлу cities.json как строка.
 
     Yields:
-        Словари городов.
+        Словари городов с полями: name, code, domain, country_code (опционально).
+
+    Raises:
+        FileNotFoundError: Если файл не найден.
+        ValueError: Если файл содержит некорректные данные.
+        OSError: Если произошла ошибка операционной системы.
+
+    Example:
+        >>> for city in load_cities_json_lazy("/path/to/cities.json"):
+        ...     print(f"Город: {city['name']}, код: {city['code']}")
 
     """
     cities_path = Path(cities_path_str)

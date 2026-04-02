@@ -1,6 +1,17 @@
-"""Модуль утилит для генерации URL.
+"""Модуль утилит для генерации URL в parser-2gis.
 
-Содержит функции для генерации URL для парсинга городов и категорий 2GIS.
+Содержит функции для генерации URL для парсинга городов и категорий 2GIS:
+- url_query_encode: кодирование строки запроса для URL
+- generate_category_url: генерация URL для категории в городе
+- generate_city_urls: генерация URL для списка городов
+- clear_url_query_cache: очистка кэша кодирования
+- clear_category_url_cache: очистка кэша URL категорий
+
+Пример использования:
+    >>> from parser_2gis.utils.url_utils import generate_category_url
+    >>> city = {"code": "msk", "domain": "moscow.2gis.ru"}
+    >>> category = {"name": "Аптеки", "query": "Аптеки"}
+    >>> url = generate_category_url(city, category)
 """
 
 from __future__ import annotations

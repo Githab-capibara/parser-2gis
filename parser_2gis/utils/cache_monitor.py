@@ -1,6 +1,13 @@
-"""Модуль мониторинга кэшей.
+"""Модуль мониторинга кэшей для parser-2gis.
 
-Содержит функции для получения статистики по lru_cache кэшам.
+Содержит функции для получения статистики по lru_cache кэшам:
+- get_cache_stats: получение статистики по всем кэшам
+- log_cache_stats: логирование статистики кэшей
+
+Пример использования:
+    >>> from parser_2gis.utils.cache_monitor import get_cache_stats, log_cache_stats
+    >>> stats = get_cache_stats()
+    >>> log_cache_stats()
 """
 
 from __future__ import annotations

@@ -47,6 +47,9 @@ _SQLITE_PRAGMA_CACHE_SIZE: int = -64000  # 64MB в страницах по 4KB
 _SQLITE_PRAGMA_SYNCHRONOUS: str = "NORMAL"
 _SQLITE_PRAGMA_BUSY_TIMEOUT: int = 60000  # 60 секунд
 
+# ISSUE-080: Кэшированные PRAGMA настройки для предотвращения executescript на каждое соединение
+_PRAGMA_SCRIPT_CACHE: str | None = None
+
 # Попытка импортировать psutil для мониторинга памяти
 # ISSUE-052: Переименовано из _PSUTIL_AVAILABLE в PSUTIL_AVAILABLE
 try:
@@ -410,15 +413,24 @@ class ConnectionPool:
     def return_connection(self, conn: sqlite3.Connection) -> None:
         """Возвращает соединение в пул для reuse.
 
+        ISSUE-079: Обновляет _connection_age при возврате соединения.
+
         Оптимизация:
         - Возврат соединения в queue для повторного использования
         - Правильная очистка соединений
+        - ISSUE-079: Сброс возраста соединения для предотвращения преждевременного закрытия
 
         Args:
             conn: Соединение для возврата в пул.
 
         """
         try:
+            # ISSUE-079: Сбрасываем возраст соединения при возврате в пул
+            # Это предотвращает преждевременное закрытие ещё полезного соединения
+            conn_id = id(conn)
+            with self._lock:
+                self._connection_age[conn_id] = time.time()
+
             # Пытаемся вернуть соединение в queue
             self._connection_queue.put_nowait(conn)
             app_logger.debug("Соединение возвращено в queue для reuse")
@@ -449,6 +461,8 @@ class ConnectionPool:
     def _create_connection(self) -> sqlite3.Connection:
         """Создаёт новое соединение с оптимизированными настройками.
 
+        ISSUE-080: Кэширует PRAGMA скрипт для предотвращения executescript на каждое соединение.
+
         Returns:
             Новое SQLite соединение.
 
@@ -459,6 +473,17 @@ class ConnectionPool:
             правильной синхронизации через RLock.
 
         """
+        global _PRAGMA_SCRIPT_CACHE
+
+        # ISSUE-080: Кэшируем PRAGMA скрипт для всех соединений
+        if _PRAGMA_SCRIPT_CACHE is None:
+            _PRAGMA_SCRIPT_CACHE = f"""
+                PRAGMA journal_mode={_SQLITE_PRAGMA_JOURNAL_MODE};
+                PRAGMA cache_size={_SQLITE_PRAGMA_CACHE_SIZE};
+                PRAGMA synchronous={_SQLITE_PRAGMA_SYNCHRONOUS};
+                PRAGMA busy_timeout={_SQLITE_PRAGMA_BUSY_TIMEOUT};
+            """
+
         conn = sqlite3.connect(
             str(self._cache_file),
             timeout=60.0,  # HIGH 14: Увеличенный таймаут для снижения конфликтов
@@ -466,13 +491,8 @@ class ConnectionPool:
             check_same_thread=False,  # Потокобезопасность
         )
 
-        # D009: Используем константы для PRAGMA настроек
-        conn.executescript(f"""
-            PRAGMA journal_mode={_SQLITE_PRAGMA_JOURNAL_MODE};
-            PRAGMA cache_size={_SQLITE_PRAGMA_CACHE_SIZE};
-            PRAGMA synchronous={_SQLITE_PRAGMA_SYNCHRONOUS};
-            PRAGMA busy_timeout={_SQLITE_PRAGMA_BUSY_TIMEOUT};
-        """)
+        # ISSUE-080: Используем кэшированный скрипт вместо executescript с форматированием
+        conn.executescript(_PRAGMA_SCRIPT_CACHE)
 
         return conn
 

@@ -1,9 +1,16 @@
-"""Модуль обработки сигналов для парсера.
+"""Модуль обработки сигналов для парсера parser-2gis.
 
 Предоставляет класс SignalHandler для обработки сигналов:
 - Обработка SIGINT (Ctrl+C)
 - Обработка SIGTERM
 - Graceful shutdown
+
+Пример использования:
+    >>> from parser_2gis.utils.signal_handler import SignalHandler
+    >>> import threading
+    >>> cancel_event = threading.Event()
+    >>> handler = SignalHandler(cleanup_callback=lambda: print("Cleanup"), cancel_event=cancel_event)
+    >>> handler.register()
 """
 
 from __future__ import annotations

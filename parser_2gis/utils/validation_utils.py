@@ -1,6 +1,17 @@
-"""Модуль утилит валидации.
+"""Модуль утилит валидации для parser-2gis.
 
-Содержит функции для валидации городов, категорий и обработки ошибок валидации.
+Содержит функции для валидации городов, категорий и обработки ошибок валидации:
+- _get_logger: получение логгера для модуля
+- report_from_validation_error: генерация отчёта об ошибке валидации
+- _validate_city: валидация структуры города
+- _validate_category: валидация структуры категории
+- _validate_city_cached: кэшированная валидация города
+- _validate_category_cached: кэшированная валидация категории
+
+Пример использования:
+    >>> from parser_2gis.utils.validation_utils import _validate_city, _validate_category
+    >>> city = {"code": "msk", "domain": "moscow.2gis.ru"}
+    >>> result = _validate_city(city)
 """
 
 from __future__ import annotations

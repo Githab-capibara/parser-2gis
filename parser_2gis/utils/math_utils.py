@@ -1,6 +1,14 @@
-"""Модуль математических утилит.
+"""Модуль математических утилит для parser-2gis.
 
-Содержит функции для математических операций и вычислений.
+Содержит функции для математических операций и вычислений:
+- floor_to_hundreds: округление вниз до ближайшей сотни
+
+Пример использования:
+    >>> from parser_2gis.utils.math_utils import floor_to_hundreds
+    >>> floor_to_hundreds(150)
+    100
+    >>> floor_to_hundreds(250)
+    200
 """
 
 from __future__ import annotations

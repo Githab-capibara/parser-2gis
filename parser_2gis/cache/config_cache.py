@@ -47,6 +47,7 @@ class ConfigCache:
 
     """
 
+    # ISSUE-087: Используем @lru_cache на методе класса вместо создания на экземпляре
     def __init__(self, cities_cache_size: int = 16, categories_cache_size: int = 4) -> None:
         """Инициализация кэша конфигураций.
 
@@ -57,36 +58,22 @@ class ConfigCache:
         """
         self._cities_cache_size = cities_cache_size
         self._categories_cache_size = categories_cache_size
-        # Кэшированные методы создаются в __init__ для использования instance-specific cache
-        self._load_cities_cached = self._create_cities_cache()
 
-    def _create_cities_cache(self):
-        """Создаёт кэшированную версию метода загрузки городов."""
+    @staticmethod
+    @lru_cache(maxsize=16)
+    def _load_cities_cached(cities_path_str: str) -> tuple[tuple[tuple[str, Any], ...], ...]:
+        """Кэшированная загрузка городов.
 
-        @lru_cache(maxsize=self._cities_cache_size)
-        def _cached_load(cities_path_str: str) -> tuple[tuple[dict[str, Any], ...], ...]:
-            """Внутренний кэшированный метод."""
-            result = self._load_cities_impl(cities_path_str)
-            # Конвертируем в tuple для хэшируемости (lru_cache требует hashable аргументы/результаты)
-            return tuple(tuple(city.items()) for city in result)
-
-        return _cached_load
-
-    def _load_cities_impl(self, cities_path_str: str) -> list[dict[str, Any]]:
-        """Реализация загрузки городов без кэширования.
+        ISSUE-087: Используем @lru_cache на статическом методе вместо создания на экземпляре.
 
         Args:
-            cities_path_str: Путь к файлу cities.json как строка.
+            cities_path_str: Путь к файлу городов как строка.
 
         Returns:
-            Список городов из JSON файла.
-
-        Raises:
-            FileNotFoundError: Если файл не найден.
-            ValueError: Если файл повреждён или содержит некорректные данные.
-            OSError: Если произошла ошибка операционной системы.
+            Кортеж кортежей (город, данные) для хэшируемости.
 
         """
+        # Внутренняя функция для загрузки
         cities_path = Path(cities_path_str)
 
         if not cities_path.is_file():
@@ -179,8 +166,15 @@ class ConfigCache:
                     raise ValueError(f"Поле 'country_code' города {i} должно быть строкой")
 
             logger.debug("Файл городов валидирован: %d городов", len(all_cities))
-            return all_cities
 
+            # Конвертируем в tuple для хэшируемости
+            return tuple(tuple(sorted(city.items())) for city in all_cities)
+
+        except UnicodeDecodeError as e:
+            logger.error("Ошибка кодировки при чтении файла городов: %s", e)
+            raise ValueError(
+                f"Файл городов имеет некорректную кодировку (ожидалась UTF-8): {e}"
+            ) from e
         except json.JSONDecodeError as e:
             logger.error("Ошибка парсинга JSON в файле городов: %s", e)
             raise ValueError(f"Некорректный формат JSON в файле городов: {e}") from e
@@ -190,6 +184,8 @@ class ConfigCache:
 
     def load_cities(self, cities_path_str: str) -> list[dict[str, Any]]:
         """Загружает JSON файл с городами с кэшированием.
+
+        ISSUE-087: Использует статический метод с @lru_cache.
 
         Args:
             cities_path_str: Путь к файлу cities.json как строка.

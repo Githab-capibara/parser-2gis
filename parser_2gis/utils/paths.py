@@ -1,7 +1,19 @@
-"""Модуль путей к ресурсам парсера.
+"""Модуль путей к ресурсам парсера parser-2gis.
 
 Предоставляет функции для получения путей к данным, изображениям
-и пользовательским директориям.
+и пользовательским директориям:
+- resources_path: путь к ресурсам пакета
+- data_path: путь к данным (устаревшая, используйте resources_path)
+- user_path: пользовательский путь для конфигурации/данных
+- image_path: путь к изображению
+- image_data: данные изображения в base64
+- cache_path: путь к директории кэша
+- _is_relative_to: проверка относительности пути
+
+Пример использования:
+    >>> from parser_2gis.utils.paths import resources_path, image_path
+    >>> res_path = resources_path()
+    >>> img = image_path("logo", "png")
 """
 
 from __future__ import annotations

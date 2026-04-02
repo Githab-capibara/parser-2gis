@@ -151,15 +151,20 @@ class JsonSerializer:
                 "UnicodeDecodeError при десериализации, попытка fallback: %s", unicode_error
             )
 
+            # ID:092: Логируем все fallback попытки
+            fallback_attempts = []
+
             # Пытаемся декодировать с заменой некорректных символов
             try:
                 if isinstance(data, bytes):
                     # Пробуем latin-1 как универсальную кодировку
                     data_decoded = data.decode("latin-1", errors="replace")
                     deserialized = json.loads(data_decoded)
-                    app_logger.warning("Fallback на latin-1 успешен (с заменой символов)")
+                    app_logger.info("Fallback на latin-1 успешен (с заменой символов)")
                     return deserialized  # type: ignore
+                fallback_attempts.append("latin-1: неудача")
             except (json.JSONDecodeError, AttributeError) as fallback_error:
+                fallback_attempts.append(f"latin-1: {fallback_error}")
                 app_logger.debug("Fallback на latin-1 не удался: %s", fallback_error)
 
             # Пробуем cp1251 для кириллических данных
@@ -167,10 +172,18 @@ class JsonSerializer:
                 if isinstance(data, bytes):
                     data_decoded = data.decode("cp1251", errors="replace")
                     deserialized = json.loads(data_decoded)
-                    app_logger.warning("Fallback на cp1251 успешен (с заменой символов)")
+                    app_logger.info("Fallback на cp1251 успешен (с заменой символов)")
                     return deserialized  # type: ignore
+                fallback_attempts.append("cp1251: неудача")
             except (json.JSONDecodeError, AttributeError) as fallback_error:
+                fallback_attempts.append(f"cp1251: {fallback_error}")
                 app_logger.debug("Fallback на cp1251 не удался: %s", fallback_error)
+
+            # Логируем все неудачные попытки перед выбрасыванием исключения
+            if fallback_attempts:
+                app_logger.warning(
+                    "Все fallback кодировки не подошли. Попытки: %s", "; ".join(fallback_attempts)
+                )
 
             # Если все fallback не удались, выбрасываем исключение
             data_len = len(data) if isinstance(data, (str, bytes)) else "N/A"

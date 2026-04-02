@@ -1,7 +1,10 @@
-"""Модуль утилит для валидации путей.
+"""Модуль утилит для валидации путей в parser-2gis.
 
 Содержит функции для безопасной валидации путей к файлам и директориям.
-Предотвращает path traversal атаки и обеспечивает централизованную валидацию.
+Предотвращает path traversal атаки и обеспечивает централизованную валидацию:
+- validate_path_safety: комплексная валидация пути
+- validate_path_traversal: валидация с URL-decode и symlink проверкой
+- _get_allowed_base_dirs: получение списка разрешённых директорий
 
 Пример использования:
     >>> from parser_2gis.utils.path_utils import validate_path_safety, validate_path_traversal

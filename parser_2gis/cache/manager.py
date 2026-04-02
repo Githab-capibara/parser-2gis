@@ -287,8 +287,13 @@ class CacheManager:
 
         self._cache_dir = cache_dir
         self._ttl = timedelta(hours=ttl_hours)
-        # D002: Используем параметризованное имя файла вместо хардкода
-        self._cache_file = cache_dir / cache_file_name
+        # ID:067: Используем pathlib.Path.with_name() для безопасности имени файла
+        # Это предотвращает path traversal атаки и обеспечивает корректную обработку имён
+        self._cache_file = (
+            cache_dir.with_name(cache_file_name)
+            if cache_dir.is_dir()
+            else cache_dir / cache_file_name
+        )
 
         # Инициализация компонентов
         self._pool: ConnectionPool | None = None
@@ -313,12 +318,26 @@ class CacheManager:
         Args:
             pool_size: Размер пула соединений.
 
+        Raises:
+            OSError: Если не удалось создать директорию для кэша.
+            sqlite3.Error: При ошибке инициализации базы данных.
+
         """
-        # Создаём директорию для кэша, если её нет
-        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        # ID:066: Обрабатываем OSError при создании директории
+        try:
+            self._cache_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as mkdir_error:
+            app_logger.error(
+                "Не удалось создать директорию для кэша %s: %s", self._cache_dir, mkdir_error
+            )
+            raise
 
         # Создаём пул соединений
-        self._pool = ConnectionPool(self._cache_file, pool_size)
+        try:
+            self._pool = ConnectionPool(self._cache_file, pool_size)
+        except (OSError, sqlite3.Error) as pool_error:
+            app_logger.error("Ошибка при создании пула соединений: %s", pool_error)
+            raise
 
         # Получаем соединение для инициализации
         conn = self._pool.get_connection()
@@ -343,22 +362,26 @@ class CacheManager:
             conn.commit()
 
         except (sqlite3.Error, OSError, MemoryError) as e:
-            app_logger.warning("Ошибка при инициализации кэша: %s", e)
+            app_logger.error("Ошибка при инициализации кэша: %s", e)
             raise
 
-    def _get_cached_row(self, cursor: sqlite3.Cursor, url_hash: str) -> CacheRow | None:
+    def _get_cached_row(self, conn: sqlite3.Connection, url_hash: str) -> CacheRow | None:
         """Извлекает строку кэша из базы данных.
 
+        ISSUE-065: Использует conn.execute() напрямую вместо создания курсора.
+
         Args:
-            cursor: Курсор базы данных sqlite3.
+            conn: Соединение базы данных sqlite3.
             url_hash: Хеш URL для поиска.
 
         Returns:
             Кортеж (data, checksum, expires_at_str) или None если не найдено.
 
         """
-        cursor.execute(self.SQL_SELECT, (url_hash,))
+        # ISSUE-065: Используем conn.execute() напрямую для простых SELECT запросов
+        cursor = conn.execute(self.SQL_SELECT, (url_hash,))
         row = cursor.fetchone()
+        cursor.close()
         return row  # type: ignore[return-value]
 
     def _parse_expires_at(self, expires_at_str: str) -> datetime | None:
@@ -386,38 +409,38 @@ class CacheManager:
         cursor.execute(self.SQL_DELETE, (url_hash,))
 
     # ИСПРАВЛЕНИЕ: Рефакторинг метода get — выделение подметодов
-    def _get_from_db(self, cursor: sqlite3.Cursor, url_hash: str) -> CacheRow | None:
+    def _get_from_db(self, conn: sqlite3.Connection, url_hash: str) -> CacheRow | None:
         """Извлекает строку кэша из базы данных.
 
+        ISSUE-065: Использует conn.execute() напрямую вместо создания курсора.
+
         Args:
-            cursor: Курсор базы данных sqlite3.
+            conn: Соединение базы данных sqlite3.
             url_hash: Хеш URL для поиска.
 
         Returns:
             Кортеж (data, checksum, expires_at_str) или None если не найдено.
 
         """
-        cursor.execute(self.SQL_SELECT, (url_hash,))
-        return cursor.fetchone()  # type: ignore[return-value]
+        # ISSUE-065: Используем conn.execute() напрямую для простых SELECT запросов
+        cursor = conn.execute(self.SQL_SELECT, (url_hash,))
+        row = cursor.fetchone()
+        cursor.close()
+        return row  # type: ignore[return-value]
 
     def _handle_cache_hit(
-        self,
-        data: str,
-        checksum: int,
-        expires_at_str: str,
-        cursor: sqlite3.Cursor,
-        url_hash: str,
-        conn: sqlite3.Connection,
+        self, data: str, checksum: int, expires_at_str: str, conn: sqlite3.Connection, url_hash: str
     ) -> dict[str, Any] | None:
         """Обрабатывает попадание в кэш.
+
+        ISSUE-071: Использует conn вместо cursor для оптимизации.
 
         Args:
             data: Сериализованные данные.
             checksum: CRC32 checksum для проверки целостности.
             expires_at_str: Строка даты истечения.
-            cursor: Курсор базы данных sqlite3.
-            url_hash: Хеш URL.
             conn: Соединение базы данных sqlite3.
+            url_hash: Хеш URL.
 
         Returns:
             Десериализованные данные или None если кэш истёк или checksum не совпадает.
@@ -429,7 +452,8 @@ class CacheManager:
             return None
 
         if self._is_cache_expired(expires_at):
-            self._delete_cached_entry(cursor, url_hash)
+            # ISSUE-065: Используем conn.execute() напрямую
+            conn.execute(self.SQL_DELETE, (url_hash,))
             conn.commit()
             return None
 
@@ -444,7 +468,8 @@ class CacheManager:
                 checksum,
                 computed_checksum,
             )
-            self._delete_cached_entry(cursor, url_hash)
+            # ISSUE-065: Используем conn.execute() напрямую
+            conn.execute(self.SQL_DELETE, (url_hash,))
             conn.commit()
             return None
 
@@ -465,9 +490,11 @@ class CacheManager:
         conn.rollback()
 
     def _handle_db_error(
-        self, db_error: sqlite3.Error, url: str, cursor: sqlite3.Cursor, url_hash: str
+        self, db_error: sqlite3.Error, url: str, url_hash: str
     ) -> dict[str, Any] | None:
         """Обрабатывает ошибки базы данных при получении кэша.
+
+        ISSUE-065, ISSUE-071: Использует conn вместо cursor для оптимизации.
 
         H6: Упрощённая обработка ошибок до 3 категорий:
         1. Временные ошибки (database is locked, busy) - повторная попытка
@@ -477,7 +504,6 @@ class CacheManager:
         Args:
             db_error: Исключение базы данных.
             url: URL для логирования.
-            cursor: Курсор базы данных sqlite3.
             url_hash: Хеш URL для повторной попытки.
 
         Returns:
@@ -485,16 +511,6 @@ class CacheManager:
 
         Raises:
             sqlite3.Error: При критических ошибках базы данных.
-
-        Example:
-            >>> manager = CacheManager(Path("/tmp/cache"))
-            >>> cursor = manager._pool.get().cursor()
-            >>> result = manager._handle_db_error(
-            ...     sqlite3.Error("database is locked"),
-            ...     "https://example.com",
-            ...     cursor,
-            ...     "abc123"
-            ... )
 
         """
         error_str = str(db_error).lower()
@@ -505,14 +521,22 @@ class CacheManager:
                 "База данных заблокирована (временная ошибка): %s. Повторная попытка...", db_error
             )
             time.sleep(0.5)
+            # ISSUE-065: Повторная попытка через conn.execute() напрямую
+            # Для этого нужно получить новое соединение
             try:
-                cursor.execute(self.SQL_SELECT, (url_hash,))
-                row = cursor.fetchone()
-                if row:
-                    data, expires_at_str = row
-                    expires_at = self._parse_expires_at(expires_at_str)
-                    if expires_at and datetime.now() <= expires_at:
-                        return self._serializer.deserialize(data)
+                retry_conn = self._pool.get_connection() if self._pool else None
+                if retry_conn:
+                    retry_cursor = retry_conn.execute(self.SQL_SELECT, (url_hash,))
+                    row = retry_cursor.fetchone()
+                    retry_cursor.close()
+                    if row:
+                        data, expires_at_str = row
+                        expires_at = self._parse_expires_at(expires_at_str)
+                        if expires_at and datetime.now() <= expires_at:
+                            result = self._serializer.deserialize(data)
+                            retry_conn.close()
+                            return result
+                    retry_conn.close()
             except sqlite3.Error as retry_error:
                 app_logger.warning("Повторная попытка не удалась: %s", retry_error)
             return None
@@ -526,43 +550,31 @@ class CacheManager:
             app_logger.critical("База данных повреждена: %s", db_error)
             raise db_error
 
-        # H6 Категория 3: Остальные ошибки - логируются и возвращается None
+        # ID:070: Категория 3 - Остальные ошибки - логируем явно перед возвратом None
+        # чтобы не скрыть потенциально важные ошибки
         app_logger.error(
-            "Ошибка БД при получении кэша: %s (тип: %s)", db_error, type(db_error).__name__
+            "Ошибка БД при получении кэша (возврат None): %s (тип: %s, URL: %s)",
+            db_error,
+            type(db_error).__name__,
+            url,
         )
         return None
 
     def _handle_deserialize_error(
-        self,
-        decode_error: Exception,
-        url: str,
-        cursor: sqlite3.Cursor,
-        url_hash: str,
-        conn: sqlite3.Connection,
+        self, decode_error: Exception, url: str, conn: sqlite3.Connection, url_hash: str
     ) -> None:
         """Обрабатывает ошибки десериализации кэша.
+
+        ISSUE-065: Использует conn.execute() напрямую вместо cursor.
 
         Args:
             decode_error: Исключение десериализации.
             url: URL для логирования.
-            cursor: Курсор базы данных sqlite3.
-            url_hash: Хеш URL для удаления.
             conn: Соединение базы данных sqlite3.
+            url_hash: Хеш URL для удаления.
 
         Raises:
             sqlite3.Error: При ошибке удаления повреждённой записи.
-
-        Example:
-            >>> manager = CacheManager(Path("/tmp/cache"))
-            >>> conn = manager._pool.get()
-            >>> cursor = conn.cursor()
-            >>> manager._handle_deserialize_error(
-            ...     json.JSONDecodeError("msg", "doc", 0),
-            ...     "https://example.com",
-            ...     cursor,
-            ...     "abc123",
-            ...     conn
-            ... )
 
         """
         error_type = type(decode_error).__name__
@@ -573,7 +585,8 @@ class CacheManager:
             decode_error,
         )
         try:
-            self._delete_cached_entry(cursor, url_hash)
+            # ISSUE-065: Используем conn.execute() напрямую
+            conn.execute(self.SQL_DELETE, (url_hash,))
             conn.commit()
         except sqlite3.Error as cleanup_error:
             app_logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
@@ -583,6 +596,8 @@ class CacheManager:
 
         Проверяет наличие кэша для указанного URL. Если кэш существует
         и не истек, возвращает кэшированные данные. Иначе возвращает None.
+
+        ISSUE-071: Оптимизация - используется conn.execute() напрямую для простых запросов.
 
         Args:
             url: URL для поиска в кэше
@@ -612,24 +627,21 @@ class CacheManager:
             return None
 
         conn = self._pool.get_connection()
-        # Инициализируем cursor = None перед try для безопасности в finally
-        cursor: sqlite3.Cursor | None = None
 
         try:
-            cursor = conn.cursor()
-            cursor.execute("BEGIN IMMEDIATE")
+            conn.execute("BEGIN IMMEDIATE")
 
-            # ИСПРАВЛЕНИЕ: Используем новый метод _get_from_db
-            row = self._get_from_db(cursor, url_hash)
+            # ISSUE-071: Используем conn.execute() напрямую для простых SELECT запросов
+            row = self._get_from_db(conn, url_hash)
 
             if not row:
-                # ИСПРАВЛЕНИЕ: Используем новый метод _handle_cache_miss
-                self._handle_cache_miss(cursor, url_hash, conn)
+                # ISSUE-071: Используем conn.rollback() напрямую
+                conn.rollback()
                 return None
 
             data, checksum, expires_at_str = row
-            # ИСПРАВЛЕНИЕ: Используем новый метод _handle_cache_hit
-            return self._handle_cache_hit(data, checksum, expires_at_str, cursor, url_hash, conn)
+            # ISSUE-071: Передаём conn вместо cursor для _handle_cache_hit
+            return self._handle_cache_hit(data, checksum, expires_at_str, conn, url_hash)
 
         except sqlite3.Error as db_error:
             try:
@@ -637,10 +649,10 @@ class CacheManager:
             except (sqlite3.Error, OSError, MemoryError) as rollback_error:
                 app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
 
-            return self._handle_db_error(db_error, url, cursor, url_hash)
+            return self._handle_db_error(db_error, url, url_hash)
 
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as decode_error:
-            self._handle_deserialize_error(decode_error, url, cursor, url_hash, conn)
+            self._handle_deserialize_error(decode_error, url, conn, url_hash)
             return None
 
         except (MemoryError, OSError, RuntimeError) as general_error:
@@ -656,13 +668,6 @@ class CacheManager:
             except (sqlite3.Error, OSError, MemoryError) as rollback_error:
                 app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
             return None
-
-        finally:
-            try:
-                if cursor is not None:
-                    cursor.close()
-            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
-                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
 
     def set(self, url: str, data: dict[str, Any]) -> None:
         """Сохранение данных в кэш.
@@ -697,6 +702,23 @@ class CacheManager:
         if data is None:
             raise TypeError("Данные кэша не могут быть None")
 
+        # ID:073: Проверка MAX_RESPONSE_SIZE до сериализации для предотвращения MemoryError
+        # Оцениваем приблизительный размер данных перед сериализацией
+        try:
+            # Быстрая оценка размера через repr() для предотвращения дорогой сериализации
+            estimated_size = len(repr(data).encode("utf-8"))
+            if estimated_size > MAX_RESPONSE_SIZE:
+                raise MemoryError(
+                    f"Приблизительный размер данных ({estimated_size} байт) превышает лимит "
+                    f"({MAX_RESPONSE_SIZE} байт). Кэширование отклонено."
+                )
+        except MemoryError:
+            # Пробрасываем MemoryError дальше
+            raise
+        except (TypeError, ValueError, AttributeError) as estimate_error:
+            # Если не удалось оценить размер, продолжаем с сериализацией
+            app_logger.debug("Не удалось оценить размер данных до сериализации: %s", estimate_error)
+
         # Вычисляем хеш URL и время истечения
         url_hash = self._hash_url(url)
 
@@ -704,14 +726,25 @@ class CacheManager:
         now = datetime.now()
         expires_at = now + self._ttl
 
-        # Сериализуем данные один раз
+        # ID:072: Обработка MemoryError при сериализации
+        data_json: str | None = None
         try:
             data_json = self._serializer.serialize(data)
-        except (TypeError, ValueError) as e:
-            app_logger.error("Ошибка сериализации данных для кэша: %s", e)
-            return
+        except MemoryError:
+            # ID:072: Graceful обработка MemoryError при сериализации
+            app_logger.error(
+                "MemoryError при сериализации данных для кэша (URL: %s). "
+                "Данные слишком большие для обработки.",
+                url,
+            )
+            raise
+        except (TypeError, ValueError) as serialize_error:
+            app_logger.error("Ошибка сериализации данных для кэша: %s", serialize_error)
+            raise TypeError(
+                f"Не удалось сериализовать данные в JSON: {serialize_error}"
+            ) from serialize_error
 
-        # CRITICAL 2: Проверка размера данных перед сохранением
+        # CRITICAL 2: Проверка размера данных после сериализации
         data_size = len(data_json.encode("utf-8"))
         if data_size > MAX_RESPONSE_SIZE:
             raise MemoryError(
@@ -1184,41 +1217,6 @@ class CacheManager:
         """
         self.close()
 
-    def __del__(self) -> None:
-        """Гарантирует закрытие соединений при уничтожении объекта.
-
-        Важно:
-            - Используется weakref.finalize() для гарантированной очистки
-            - Этот метод только логирует если объект не был закрыт явно
-            - weakref.finalize() работает даже при циклических ссылках и MemoryError
-
-        Примечание:
-            Не следует полагаться на этот метод для гарантированной очистки.
-            Всегда вызывайте close() явно или используйте контекстный менеджер.
-        """
-        # ИСПРАВЛЕНИЕ: Упрощён для предотвращения MemoryError
-        # weakref.finalize() уже зарегистрирован в __init__ и вызовет _cleanup_cache_manager
-        # Этот метод используется только для логирования
-        try:
-            if hasattr(self, "_finalizer") and self._finalizer is not None:
-                if self._finalizer.detach():
-                    # Финализатор был успешно отделён и вызван
-                    app_logger.debug("CacheManager очищен через weakref.finalize()")
-                    return
-
-            # Fallback: если финализатор не сработал, логируем предупреждение
-            if hasattr(self, "_pool") and self._pool is not None:
-                app_logger.warning(
-                    "CacheManager уничтожается сборщиком мусора без явного закрытия. "
-                    "Всегда вызывайте close() явно или используйте контекстный менеджер."
-                )
-        except (MemoryError, KeyboardInterrupt, SystemExit):
-            # Критические исключения - пробрасываем дальше
-            raise
-        except Exception as del_error:
-            # В __del__ нельзя выбрасывать исключения - только логируем
-            app_logger.debug("Ошибка в __del__ CacheManager: %s", del_error)
-
     def _hash_url(self, url: str) -> str:
         """Хеширование URL.
 
@@ -1327,6 +1325,34 @@ class CacheManager:
             app_logger.warning("Ошибка при проверке размера кэша: %s", os_error)
         except sqlite3.Error as db_error:
             app_logger.warning("Ошибка БД при LRU eviction: %s", db_error)
+
+    def __del__(self) -> None:
+        """Гарантирует закрытие ресурсов при уничтожении объекта.
+
+        ID:068: Явный __del__ как fallback для weakref.finalize().
+        weakref.finalize() может не вызваться при циклических ссылках,
+        поэтому добавляем явный __del__ для дополнительной гарантии.
+
+        Важно:
+            Не следует полагаться на этот метод для гарантированной очистки.
+            Всегда вызывайте close() явно или используйте контекстный менеджер.
+        """
+        try:
+            # Проверяем есть ли финализатор
+            if hasattr(self, "_finalizer") and self._finalizer is not None:
+                if self._finalizer.detach():
+                    # Финализатор был успешно отделён и вызван
+                    app_logger.debug("CacheManager очищен через weakref.finalize()")
+                    return
+
+            # Fallback: явная очистка если finalizer не сработал
+            if hasattr(self, "_pool") and self._pool is not None:
+                app_logger.debug("CacheManager: явная очистка пула соединений в __del__")
+                self._pool.close()
+
+        except (OSError, RuntimeError, AttributeError, sqlite3.Error) as del_error:
+            # Интерпретатор может завершаться - игнорируем ошибки
+            app_logger.debug("CacheManager.__del__: ошибка при очистке: %s", del_error)
 
 
 # Алиас для обратной совместимости

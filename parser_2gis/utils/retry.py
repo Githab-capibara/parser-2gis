@@ -1,11 +1,15 @@
-"""Модуль повторных попыток (retry logic).
+"""Модуль повторных попыток (retry logic) для parser-2gis.
 
 Предоставляет универсальные декораторы и функции для повторного выполнения операций:
-- @retry_with_backoff: Декоратор с экспоненциальной задержкой
-- Стратегии retry: fixed, exponential, jitter
-- Интеграция с tenacity (если доступна)
+- retry_with_backoff: декоратор с экспоненциальной задержкой
+- retry_with_fixed_delay: декоратор с фиксированной задержкой
+- retry_with_jitter: декоратор со случайной задержкой
+- retry_with_tenacity: декоратор с использованием tenacity (если доступна)
+- is_tenacity_available: проверка доступности tenacity
+- RetryError: исключение при исчерпании попыток
 
 Пример использования:
+    >>> from parser_2gis.utils.retry import retry_with_backoff
     >>> @retry_with_backoff(max_attempts=3, delay=1.0)
     ... def unstable_operation():
     ...     # операция которая может упасть
@@ -161,13 +165,22 @@ def retry_with_fixed_delay(
 ) -> Callable[[F], F]:
     """Декоратор для повторных попыток с фиксированной задержкой.
 
+    Использует фиксированную задержку между попытками без экспоненциального роста.
+    Подходит для операций с предсказуемым временем восстановления.
+
     Args:
-        max_attempts: Максимальное количество попыток.
-        delay: Фиксированная задержка в секундах.
-        exceptions: Тип или кортеж типов исключений для обработки.
+        max_attempts: Максимальное количество попыток (по умолчанию 3).
+        delay: Фиксированная задержка в секундах между попытками (по умолчанию 1.0).
+        exceptions: Тип или кортеж типов исключений для обработки (по умолчанию Exception).
 
     Returns:
         Декоратор для функции.
+
+    Example:
+        >>> @retry_with_fixed_delay(max_attempts=5, delay=0.5, exceptions=(TimeoutError,))
+        ... def fetch_data(url):
+        ...     # сетевой запрос с фиксированной задержкой между попытками
+        ...     pass
 
     """
     return retry_with_backoff(
@@ -188,14 +201,23 @@ def retry_with_jitter(
 ) -> Callable[[F], F]:
     """Декоратор для повторных попыток со случайной задержкой.
 
+    Использует случайную задержку между min_delay и max_delay для предотвращения
+    thundering herd problem при одновременном выполнении множества операций.
+
     Args:
-        max_attempts: Максимальное количество попыток.
-        min_delay: Минимальная задержка в секундах.
-        max_delay: Максимальная задержка в секундах.
-        exceptions: Тип или кортеж типов исключений для обработки.
+        max_attempts: Максимальное количество попыток (по умолчанию 3).
+        min_delay: Минимальная задержка в секундах (по умолчанию 1.0).
+        max_delay: Максимальная задержка в секундах (по умолчанию 10.0).
+        exceptions: Тип или кортеж типов исключений для обработки (по умолчанию Exception).
 
     Returns:
         Декоратор для функции.
+
+    Example:
+        >>> @retry_with_jitter(max_attempts=5, min_delay=0.5, max_delay=2.0)
+        ... def api_call():
+        ...     # API вызов со случайной задержкой для предотвращения thundering herd
+        ...     pass
 
     """
 
@@ -269,17 +291,26 @@ def retry_with_tenacity(
 ) -> Callable[[F], F]:
     """Декоратор с использованием tenacity (если доступна).
 
+    Использует библиотеку tenacity для более продвинутой обработки повторных попыток.
+    Требует установленной библиотеки tenacity.
+
     Args:
-        max_attempts: Максимальное количество попыток.
-        delay: Начальная задержка в секундах.
-        max_delay: Максимальная задержка в секундах.
-        exceptions: Тип или кортеж типов исключений для обработки.
+        max_attempts: Максимальное количество попыток (по умолчанию 3).
+        delay: Начальная задержка в секундах (по умолчанию 1.0).
+        max_delay: Максимальная задержка в секундах (по умолчанию DEFAULT_MAX_RETRY_DELAY).
+        exceptions: Тип или кортеж типов исключений для обработки (по умолчанию Exception).
 
     Returns:
         Декоратор для функции.
 
     Raises:
         ImportError: Если tenacity не установлена.
+
+    Example:
+        >>> @retry_with_tenacity(max_attempts=5, delay=0.5, exceptions=(ConnectionError,))
+        ... def network_request():
+        ...     # сетевой запрос с использованием tenacity
+        ...     pass
 
     """
     if not _TENACITY_AVAILABLE:
@@ -310,7 +341,13 @@ def is_tenacity_available() -> bool:
     """Проверяет доступность tenacity.
 
     Returns:
-        True если tenacity доступна.
+        True если tenacity доступна, False иначе.
+
+    Example:
+        >>> if is_tenacity_available():
+        ...     print("tenacity установлена, можно использовать retry_with_tenacity")
+        ... else:
+        ...     print("tenacity не установлена, используйте retry_with_backoff")
 
     """
     return _TENACITY_AVAILABLE
