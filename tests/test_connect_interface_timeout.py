@@ -157,6 +157,7 @@ class TestConnectInterfaceTimeout:
             nonlocal attempt_count
             attempt_count += 1
             from parser_2gis.chrome.exceptions import ChromeException
+
             raise ChromeException("Connection failed")
 
         # Используем monkeypatch для надёжного управления mock'ами
