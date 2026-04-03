@@ -36,7 +36,9 @@ class TestSQLInjectionPatterns:
 
     def test_insert_into_detected(self):
         """INSERT INTO должен быть обнаружен."""
-        assert not self.validator._check_sql_injection_patterns("INSERT INTO users VALUES ('hacker')")
+        assert not self.validator._check_sql_injection_patterns(
+            "INSERT INTO users VALUES ('hacker')"
+        )
 
     def test_delete_from_detected(self):
         """DELETE FROM должен быть обнаружен."""

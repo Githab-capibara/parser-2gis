@@ -19,10 +19,7 @@ from typing import List
 
 import pytest
 
-from parser_2gis.utils.temp_file_manager import (
-    TempFileTimer,
-    temp_file_manager,
-)
+from parser_2gis.utils.temp_file_manager import TempFileTimer, temp_file_manager
 
 
 # Вспомогательные функции для обратной совместимости
@@ -39,6 +36,7 @@ def unregister_temp_file(path):
 def cleanup_all_temp_files():
     """Очищает все временные файлы. Возвращает tuple (success, errors)."""
     return temp_file_manager.cleanup_all()
+
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
