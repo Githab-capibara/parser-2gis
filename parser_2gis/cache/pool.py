@@ -54,10 +54,8 @@ try:
     import psutil
 
     PSUTIL_AVAILABLE = True
-    _psutil_available = True
 except ImportError:
     PSUTIL_AVAILABLE = False
-    _psutil_available = False
 
 
 @functools.lru_cache(maxsize=1)
@@ -84,7 +82,7 @@ def _calculate_dynamic_pool_size() -> int:
     """
     try:
         # Пытаемся получить информацию о памяти через psutil
-        if not _psutil_available:
+        if not PSUTIL_AVAILABLE:
             raise ImportError("psutil не установлен")
 
         available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)
@@ -105,32 +103,11 @@ def _calculate_dynamic_pool_size() -> int:
 
         return dynamic_size
 
-    except ImportError:
-        # psutil не установлен, используем значение по умолчанию
-        app_logger.debug("psutil не установлен, используем размер пула по умолчанию")
-        return MIN_POOL_SIZE
-    except MemoryError:
-        # Критическая ошибка памяти - используем минимальный размер
-        app_logger.warning("MemoryError при расчёте размера пула, используем минимум")
-        return MIN_POOL_SIZE
-    except OSError as os_error:
-        # Ошибка ОС (например, недоступность системной информации)
-        app_logger.warning("OSError при расчёте размера пула: %s, используем минимум", os_error)
-        return MIN_POOL_SIZE
-    except ValueError as value_error:
-        # Ошибка значения (например, некорректные данные из ENV)
-        app_logger.warning(
-            "ValueError при расчёте размера пула: %s, используем минимум", value_error
-        )
-        return MIN_POOL_SIZE
-    except TypeError as type_error:
-        # Ошибка типа данных
-        app_logger.warning("TypeError при расчёте размера пула: %s, используем минимум", type_error)
-        return MIN_POOL_SIZE
-    except Exception as general_error:
-        # Любая другая ошибка - используем минимальный размер
-        app_logger.warning(
-            "Неожиданная ошибка при расчёте размера пула: %s, используем минимум", general_error
+    except (ImportError, MemoryError, OSError, ValueError, TypeError, Exception) as error:
+        # Объединённая обработка ошибок: все типы ошибок возвращают MIN_POOL_SIZE
+        error_type = type(error).__name__
+        app_logger.debug(
+            "%s при расчёте размера пула: %s, используем минимум", error_type, error
         )
         return MIN_POOL_SIZE
 

@@ -14,7 +14,6 @@
 ISSUE-004: Рефакторинг - выделены вспомогательные функции в cache_utils.py
 """
 
-import hashlib
 import json
 import os
 import re
@@ -75,6 +74,8 @@ def _compute_data_hash_cached(data: str) -> str:
     P0-8: LRU кеш на 1024 записи для предотвращения повторных вычислений
     SHA-256 + CRC32 при каждом чтении кэша.
     """
+    import hashlib
+
     return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 

@@ -144,19 +144,21 @@ class TempFileManager:
             try:
                 # D018: Проверка прав доступа перед удалением
                 if not file_path.exists():
-                    self._logger.debug(f"Файл не существует: {file_path}")
+                    self._logger.debug("Файл не существует: %s", file_path)
                     continue
 
                 # Проверка прав на запись (можем ли удалить файл)
                 try:
                     # Проверяем что файл доступен для записи
                     if not os.access(str(file_path), os.W_OK):
-                        self._logger.warning(f"Нет прав на удаление файла {file_path}, пропускаем")
+                        self._logger.warning(
+                            "Нет прав на удаление файла %s, пропускаем", file_path
+                        )
                         error_count += 1
                         continue
                 except (OSError, RuntimeError) as access_error:
                     self._logger.warning(
-                        f"Ошибка проверки прав доступа к {file_path}: {access_error}"
+                        "Ошибка проверки прав доступа к %s: %s", file_path, access_error
                     )
                     error_count += 1
                     # Критическая ошибка — прерываем очистку
@@ -165,13 +167,15 @@ class TempFileManager:
                 # Безопасное удаление файла
                 file_path.unlink()
                 success_count += 1
-                self._logger.debug(f"Удалён временный файл: {file_path}")
+                self._logger.debug("Удалён временный файл: %s", file_path)
             except PermissionError as perm_error:
                 error_count += 1
-                self._logger.error(f"Нет прав на удаление файла {file_path}: {perm_error}")
+                self._logger.error(
+                    "Нет прав на удаление файла %s: %s", file_path, perm_error
+                )
             except OSError as e:
                 error_count += 1
-                self._logger.error(f"Ошибка удаления файла {file_path}: {e}")
+                self._logger.error("Ошибка удаления файла %s: %s", file_path, e)
 
         with self._lock:
             self._registry.clear()

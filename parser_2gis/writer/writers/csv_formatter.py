@@ -191,6 +191,17 @@ class TypeFormatter(BaseFormatter):
         """
         return self._TYPE_NAMES.get(value, value)
 
+    def get_type_mapping(self) -> dict[str, str]:
+        """Возвращает полный словарь маппинга типов.
+
+        P0-14: Для использования в csv_writer без повторных вызовов format().
+
+        Returns:
+            Словарь маппинга типов: {'parking': 'Парковка', ...}.
+
+        """
+        return dict(self._TYPE_NAMES)
+
 
 class CompositeFormatter(BaseFormatter):
     """Композитный форматировщик для цепочки форматирования.

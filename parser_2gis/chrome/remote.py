@@ -332,7 +332,7 @@ class ChromeRemote:
                     if self._dev_url:
                         _safe_external_request(
                             "put",
-                            "%s/json/close/%s" % (self._dev_url, self._chrome_tab.id),
+                            f"{self._dev_url}/json/close/{self._chrome_tab.id}",
                             timeout=10,
                             verify=True,
                         )
@@ -472,7 +472,7 @@ class ChromeRemote:
                         "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
                     )
                     resp = _safe_external_request(
-                        "put", "%s/json/new" % (self._dev_url), json={}, timeout=60, verify=True
+                        "put", f"{self._dev_url}/json/new", json={}, timeout=60, verify=True
                     )
 
                     # Проверка на None перед вызовом raise_for_status()
@@ -514,7 +514,7 @@ class ChromeRemote:
         """Закрывает Chrome-вкладку."""
         if tab.status == pychrome.Tab.status_started:
             tab.stop()
-        _safe_external_request("put", "%s/json/close/%s" % (self._dev_url, tab.id), verify=True)
+        _safe_external_request("put", f"{self._dev_url}/json/close/{tab.id}", verify=True)
 
     def _setup_tab(self) -> None:
         """Скрывает следы webdriver, включает перехват запросов/ответов, исправляет UA.

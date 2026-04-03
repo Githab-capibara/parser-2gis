@@ -275,6 +275,10 @@ def validate_email(email: str) -> ValidationResult:
 # Скомпилированный regex паттерн для валидации российских телефонов
 _PHONE_PATTERN = re.compile(r"^\+?7[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$")
 
+# Пример ожидаемого формата телефона
+PHONE_FORMAT_EXAMPLE = "+7 (XXX) XXX-XX-XX"
+"""Пример ожидаемого формата номера телефона."""
+
 
 def validate_phone(phone: str) -> ValidationResult:
     """Валидирует российский номер телефона.
@@ -302,13 +306,13 @@ def validate_phone(phone: str) -> ValidationResult:
     if len(cleaned) < 10:
         return ValidationResult(
             is_valid=False,
-            error=f"Телефон слишком короткий: {phone}. Ожидался формат: +7 (XXX) XXX-XX-XX",
+            error=f"Телефон слишком короткий: {phone}. Ожидался формат: {PHONE_FORMAT_EXAMPLE}",
         )
 
     if not _PHONE_PATTERN.match(phone):
         return ValidationResult(
             is_valid=False,
-            error=f"Некорректный формат телефона: {phone}. Ожидался формат: +7 (XXX) XXX-XX-XX",
+            error=f"Некорректный формат телефона: {phone}. Ожидался формат: {PHONE_FORMAT_EXAMPLE}",
         )
 
     normalized = f"8 ({cleaned[1:4]}) {cleaned[4:7]}-{cleaned[7:9]}-{cleaned[9:11]}"

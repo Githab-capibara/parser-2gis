@@ -20,7 +20,6 @@ import threading
 import time
 import typing
 from typing import TYPE_CHECKING, TextIO
-import csv as csv_module
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -234,7 +233,7 @@ def _merge_csv_files(
 
         """
         try:
-            file_obj = open(path, "w", encoding=enc, newline="", buffering=buf_size)  # nosec B228
+            file_obj = open(path, "w", encoding=enc, newline="", buffering=buf_size)
             log_func(f"Выходной файл открыт с буфером {buf_size} байт", "debug")
             return file_obj, True
         except OSError as output_error:
@@ -246,7 +245,7 @@ def _merge_csv_files(
             if buf_size > 8192:
                 log_func("Fallback попытка: уменьшаем размер буфера до 8KB", "warning")
                 try:
-                    file_obj = open(path, "w", encoding=enc, newline="", buffering=8192)  # nosec B228
+                    file_obj = open(path, "w", encoding=enc, newline="", buffering=8192)
                     log_func("Fallback успешен: файл открыт с уменьшенным буфером", "info")
                     return file_obj, True
                 except OSError as fallback_error:
@@ -325,7 +324,7 @@ def _merge_csv_files(
                         continue
 
                 try:
-                    reader = csv_module.DictReader(infile)
+                    reader = csv.DictReader(infile)
 
                     if reader.fieldnames is None:
                         _log_message(

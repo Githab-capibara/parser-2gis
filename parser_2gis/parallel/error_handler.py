@@ -23,6 +23,10 @@ from parser_2gis.logger import logger
 if TYPE_CHECKING:
     from parser_2gis.config import Configuration
 
+# Константа задержки между повторными попытками
+RETRY_DELAY_SECONDS = 1.0
+"""Задержка между повторными попытками в секундах."""
+
 # Константы для повторных попыток по умолчанию
 DEFAULT_BASE_DELAY: float = 5.0
 """Базовая задержка между попытками в секундах."""
