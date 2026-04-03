@@ -125,7 +125,7 @@ class MainParser:
         url = re.sub(r"/page/\d+", "", self._url, flags=re.I)
 
         page_match = re.search(r"/page/(?P<page_number>\d+)", self._url, re.I)
-        walk_page_number = int(page_match.group("page_number")) if page_match else None
+        _start_page = int(page_match.group("page_number")) if page_match else None
 
         # ISSUE-133: Используем deque с maxlen для автоматического LRU eviction
         # deque автоматически удаляет старые записи при превышении maxlen
@@ -150,7 +150,7 @@ class MainParser:
             # Парсинг результатов поиска
             # Передаём visited_links для управления памятью с eviction policy
             self._data_processor._parse_search_results(
-                writer, walk_page_number, visited_links, MAX_VISITED_LINKS_SIZE
+                writer, _start_page, visited_links, MAX_VISITED_LINKS_SIZE
             )
 
         finally:

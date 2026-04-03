@@ -67,10 +67,11 @@ _ALLOWED_KEYS: set[str] = {
     "updated_at",
 }
 
-# Скомпилированные regex паттерны для JS валидации (Оптимизация: кэширование)
-# ISSUE-053: Переименовано из _DANGEROUS_JS_PATTERNS в DANGEROUS_JS_PATTERNS
+# Скомпилированные regex паттерны для валидации HTML/XSS данных (Оптимизация: кэширование)
+# ISSUE-053: Переименовано из _DANGEROUS_JS_PATTERNS в DANGEROUS_HTML_PATTERNS
 # D013: Паттерны покрывают onerror=, onload= и другие обработчики БЕЗ пробелов
-DANGEROUS_JS_PATTERNS = [
+# Примечание: это HTML/XSS паттерны, не путать с DANGEROUS_JS_PATTERNS из chrome/js_executor.py
+DANGEROUS_HTML_PATTERNS = [
     (re.compile(r"<script", re.IGNORECASE), "тег <script>"),
     (re.compile(r"javascript:", re.IGNORECASE), "протокол javascript:"),
     # D013: Исправление - \s* покрывает onerror=, onerror =, onerror  = и т.д.
@@ -200,7 +201,7 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
 
     if isinstance(data, str):
         # Проверка на опасные JS конструкции с использованием скомпилированных паттернов
-        for pattern, description in DANGEROUS_JS_PATTERNS:
+        for pattern, description in DANGEROUS_HTML_PATTERNS:
             if pattern.search(data):
                 logger.warning("Обнаружена опасная конструкция в initialState: %s", description)
                 return False, item_count

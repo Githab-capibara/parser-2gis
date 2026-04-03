@@ -26,9 +26,10 @@ import shutil
 import subprocess
 import tempfile
 import time
+import types
 import weakref
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from typing_extensions import TypeAlias
 
@@ -620,6 +621,12 @@ class BrowserLifecycleManager:
     - Управление жизненным циклом
     - Гарантированную очистку ресурсов
 
+    Атрибуты управления жизненным циклом:
+        _finalizer: weakref.finalize для гарантированной очистки ресурсов
+            (процесс, профиль) при сборке мусора, даже если close() не вызван.
+        _closed: флаг явно закрытого менеджера; предотвращает повторный вызов
+            close() и используется в __del__ для предупреждения о неявном закрытии.
+
     Пример использования:
         >>> manager = BrowserLifecycleManager(chrome_options)
         >>> manager.init()
@@ -802,7 +809,7 @@ class BrowserLifecycleManager:
                         )
 
         except Exception as e:
-            app_logger.error("Error closing browser: %s", e)
+            app_logger.error("Ошибка при закрытии браузера: %s", e)
         finally:
             # ИСПРАВЛЕНИЕ CRITICAL 8: Гарантированная очистка профиля в finally
             try:
@@ -874,10 +881,11 @@ class BrowserLifecycleManager:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: Any | None,
-    ) -> None:
+        exc_tb: types.TracebackType | None,
+    ) -> bool:
         """Закрывает браузер при выходе из контекста."""
         self.close()
+        return False
 
     def __del__(self) -> None:
         """Деструктор объекта."""

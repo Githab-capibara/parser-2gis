@@ -155,7 +155,13 @@ class EnvConfig:
     max_lock_file_age: int = field(init=False)
 
     def __post_init__(self) -> None:
-        """Инициализация полей после создания объекта."""
+        """Инициализация полей после создания объекта.
+
+        Note:
+            Используется object.__setattr__() вместо прямого присваивания,
+            так как dataclass может быть frozen (frozen=True), что запрещает
+            обычное присваивание атрибутов после инициализации.
+        """
         # Инициализация logger
         object.__setattr__(self, "_logger", logging.getLogger("parser_2gis.constants.env_config"))
 

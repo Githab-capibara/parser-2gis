@@ -31,7 +31,7 @@ from functools import lru_cache
 from pathlib import Path
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, TextIO, cast
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
@@ -212,6 +212,10 @@ class ParallelCityParser:
         self.max_workers = max_workers
         self.timeout_per_url = timeout_per_url
 
+        # Стратегии (аннотированы для лучшей типизации)
+        self._url_strategy: UrlGenerationStrategy
+        self._parse_strategy: ParseStrategy
+
         # Проверка существования output_dir и прав на запись
         self._validate_output_dir(self.output_dir, output_dir)
 
@@ -340,7 +344,7 @@ class ParallelCityParser:
         """
         return self._url_strategy.generate_all_urls(self._stats)
 
-    def generate_all_urls_lazy(self):
+    def generate_all_urls_lazy(self) -> Iterator[UrlTuple]:
         """Генератор URL для парсинга (lazy loading).
 
         Yields:

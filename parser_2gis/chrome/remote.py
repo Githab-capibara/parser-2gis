@@ -24,7 +24,7 @@ import re
 import socket
 import threading
 import time
-import weakref
+import types
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any
@@ -89,9 +89,6 @@ if TYPE_CHECKING:
 
 # Задержка между проверками порта в секундах (максимально ускоренная проверка)
 PORT_CHECK_RETRY_DELAY: float = 0.005
-
-# Именованная константа для задержки между проверками порта (алиас для обратной совместимости)
-PORT_CHECK_DELAY: float = PORT_CHECK_RETRY_DELAY
 
 # Максимальное количество попыток проверки доступности порта при запуске Chrome.
 # Увеличено до 20 для поддержки 40+ параллельных браузеров.
@@ -201,25 +198,6 @@ def _validate_remote_port(port: Any) -> int:
 
 # Применяем все пользовательские патчи
 patch_all()
-
-
-class _ChromeRemoteRegistry:
-    """ISSUE-055: Класс для регистрации активных экземпляров ChromeRemote.
-
-    Обёрнуто глобальное состояние в класс вместо переменной класса.
-    """
-
-    _active_instances: weakref.WeakSet[ChromeRemote] = weakref.WeakSet()
-
-    @classmethod
-    def register(cls, instance: ChromeRemote) -> None:
-        """Регистрирует экземпляр ChromeRemote."""
-        cls._active_instances.add(instance)
-
-    @classmethod
-    def get_active_count(cls) -> int:
-        """Возвращает количество активных экземпляров."""
-        return len(cls._active_instances)
 
 
 class ChromeRemote:
@@ -1228,14 +1206,22 @@ class ChromeRemote:
         self.start()
         return self
 
-    def __exit__(self, *exc_info: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> bool:
         """Контекстный менеджер: выход.
 
         Args:
-            exc_info: Информация об исключении (если было).
+            exc_type: Тип исключения (если произошло).
+            exc_val: Значение исключения (если произошло).
+            exc_tb: Трассировка исключения (если произошло).
 
         """
         self.stop()
+        return False
 
     # =============================================================================
     # МЕТОДЫ ДЛЯ BrowserService PROTOCOL

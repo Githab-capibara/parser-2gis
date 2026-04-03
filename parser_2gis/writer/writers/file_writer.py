@@ -11,6 +11,7 @@ ISSUE-031: Реализует протокол FileWriterProtocol из protocols
 from __future__ import annotations
 
 import os
+import types
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any
@@ -208,10 +209,16 @@ class FileWriter(FileWriterProtocol, ABC):
         self._file = self._open_file(self._file_path, "w")
         return self
 
-    def __exit__(self, *exc_info) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> bool:
         # Проверяем наличие атрибута _file перед закрытием
         if hasattr(self, "_file") and not self._file.closed:
             self._file.close()
+        return False
 
     def close(self) -> None:
         """Закрывает файл."""
