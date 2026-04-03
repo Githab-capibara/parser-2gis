@@ -47,9 +47,7 @@ class ParallelErrorHandler:
 
     """
 
-    def __init__(
-        self, output_dir: Path, config: "Configuration"
-    ) -> None:
+    def __init__(self, output_dir: Path, config: "Configuration") -> None:
         """Инициализация обработчика ошибок.
 
         Args:
@@ -79,7 +77,10 @@ class ParallelErrorHandler:
         log_func(message)
 
     def handle_chrome_error(
-        self, chrome_error: ChromeException, temp_filepath: Path, max_retries: int = DEFAULT_MAX_RETRIES
+        self,
+        chrome_error: ChromeException,
+        temp_filepath: Path,
+        max_retries: int = DEFAULT_MAX_RETRIES,
     ) -> tuple[bool, str]:
         """Обрабатывает ошибку Chrome.
 
@@ -238,7 +239,7 @@ class ParallelErrorHandler:
                         "Не удалось создать уникальный временный файл "
                         f"после {MAX_UNIQUE_NAME_ATTEMPTS} попыток"
                     )
-            except OSError as e:
+            except OSError:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(
                         5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1
@@ -257,7 +258,10 @@ class ParallelErrorHandler:
         raise RuntimeError("Не удалось создать временный файл")
 
     def retry_with_backoff(
-        self, func: Callable[[], Any], max_retries: int = DEFAULT_MAX_RETRIES, base_delay: float = DEFAULT_BASE_DELAY
+        self,
+        func: Callable[[], Any],
+        max_retries: int = DEFAULT_MAX_RETRIES,
+        base_delay: float = DEFAULT_BASE_DELAY,
     ) -> Any:
         """Выполняет функцию с повторными попытками и экспоненциальной задержкой.
 

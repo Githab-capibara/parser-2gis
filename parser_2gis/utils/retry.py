@@ -101,7 +101,6 @@ def retry_with_backoff(
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             """Обертка для повторных попыток."""
-            last_error: Exception | None = None
             current_delay = delay
             func_name = func.__name__
 
@@ -110,8 +109,6 @@ def retry_with_backoff(
                     return func(*args, **kwargs)
 
                 except exceptions as e:  # type: ignore[misc]
-                    last_error = e
-
                     if attempt < max_attempts:
                         # Вычисляем задержку с jitter
                         actual_delay = current_delay
@@ -214,7 +211,6 @@ def retry_with_jitter(
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            last_error: Exception | None = None
             func_name = func.__name__
 
             for attempt in range(1, max_attempts + 1):
@@ -222,8 +218,6 @@ def retry_with_jitter(
                     return func(*args, **kwargs)
 
                 except exceptions as e:  # type: ignore[misc]
-                    last_error = e
-
                     if attempt < max_attempts:
                         # Случайная задержка между min_delay и max_delay
                         actual_delay = random.uniform(min_delay, max_delay)

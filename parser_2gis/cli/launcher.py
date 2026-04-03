@@ -200,7 +200,9 @@ class ApplicationLauncher:
             return 1
         except Exception as e:
             # ID:045: Добавлен catch-all Exception для обработки непредвиденных ошибок
-            logger.error("Непредвиденная ошибка при настройке обработчиков сигналов: %s", e, exc_info=True)
+            logger.error(
+                "Непредвиденная ошибка при настройке обработчиков сигналов: %s", e, exc_info=True
+            )
             return 1
 
         # Обработка TUI режимов
@@ -286,9 +288,7 @@ class ApplicationLauncher:
                     retry_on_network_errors=self.config.parser.retry_on_network_errors,
                 ),
                 writer=WriterOptions(
-                    format=self.config.writer.format,
-                    encoding="utf-8-sig",
-                    deduplicate=True,
+                    format=self.config.writer.format, encoding="utf-8-sig", deduplicate=True
                 ),
             )
 

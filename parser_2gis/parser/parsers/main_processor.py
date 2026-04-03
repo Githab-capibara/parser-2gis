@@ -393,7 +393,10 @@ class MainDataProcessor:
                     )
 
                     # Если подряд слишком много пустых страниц - прерываем парсинг
-                    if consecutive_empty_pages >= self._parser._parser_options.max_consecutive_empty_pages:
+                    if (
+                        consecutive_empty_pages
+                        >= self._parser._parser_options.max_consecutive_empty_pages
+                    ):
                         logger.error(
                             "Достигнут лимит подряд пустых страниц (%d). Прекращаем парсинг URL.",
                             self._parser._parser_options.max_consecutive_empty_pages,

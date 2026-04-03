@@ -350,9 +350,7 @@ class CSVWriter(FileWriter):
                         for key, value in item.items():
                             if isinstance(value, str):
                                 # Проверка на потенциальные XSS атаки (regex для обходных конструкций)
-                                if re.search(
-                                    r"<\s*script|javascript\s*:", value, re.IGNORECASE
-                                ):
+                                if re.search(r"<\s*script|javascript\s*:", value, re.IGNORECASE):
                                     logger.warning(
                                         "Обнаружена подозрительная конструкция в поле %s: %s",
                                         key,

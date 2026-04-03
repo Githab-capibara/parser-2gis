@@ -16,7 +16,13 @@ from __future__ import annotations
 import asyncio
 import signal
 import threading
-from concurrent.futures import Executor, Future, ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import (
+    Executor,
+    Future,
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    as_completed,
+)
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, FrameType, Literal

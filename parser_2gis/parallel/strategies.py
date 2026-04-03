@@ -207,7 +207,9 @@ class ParseStrategy:
         temp_filepath = self.output_dir / temp_filename
         return temp_filename, temp_filepath
 
-    def _ensure_unique_temp_file(self, temp_filepath: Path, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> Path:
+    def _ensure_unique_temp_file(
+        self, temp_filepath: Path, max_attempts: int = DEFAULT_MAX_ATTEMPTS
+    ) -> Path:
         """Гарантирует создание уникального временного файла.
 
         Args:

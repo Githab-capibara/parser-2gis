@@ -18,7 +18,7 @@ from __future__ import annotations
 import random
 import re
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from parser_2gis.constants import MAX_VISITED_LINKS_SIZE
 from parser_2gis.logger import logger

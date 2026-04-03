@@ -68,10 +68,7 @@ class SmartRetryManager:
 
         # Сетевые ошибки (502, 503, 504, Timeout) - всегда retry
         if any(code in error_lower for code in ["502", "503", "504", "timeout"]):
-            logger.info(
-                "Сетевая ошибка: %s. Требуется повторная попытка",
-                error,
-            )
+            logger.info("Сетевая ошибка: %s. Требуется повторная попытка", error)
             return True
 
         # 404 ошибки - зависит от контекста
@@ -109,9 +106,7 @@ class SmartRetryManager:
         повторной попытки для корректного подсчёта.
         """
         self._retry_count += 1
-        logger.debug(
-            "Записана повторная попытка %d/%d", self._retry_count, self._max_retries
-        )
+        logger.debug("Записана повторная попытка %d/%d", self._retry_count, self._max_retries)
 
     def add_records(self, count: int) -> None:
         """Добавляет количество собранных записей.

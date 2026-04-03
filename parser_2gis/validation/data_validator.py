@@ -351,11 +351,7 @@ def _evict_cache_if_needed(cache: OrderedDict[str, list], max_size: int = _CACHE
         cache.popitem(last=False)
 
 
-def _validate_config_data(
-    config: list,
-    field_name: str,
-    cache: OrderedDict[str, list],
-) -> list:
+def _validate_config_data(config: list, field_name: str, cache: OrderedDict[str, list]) -> list:
     """Универсальная валидация конфигурации городов/категорий.
 
     ISSUE-154: Использует OrderedDict для true LRU кэширования.

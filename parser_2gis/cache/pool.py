@@ -569,10 +569,7 @@ class ConnectionPool:
         return self
 
     def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: Any,
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any
     ) -> None:
         """Контекстный менеджер: выход.
 

@@ -65,7 +65,7 @@ class CacheDataValidator:
         r"\bxp_\w+|"
         r"\b(?:TRUNCATE|ALTER|CREATE|GRANT|REVOKE)\b|"
         r"\b(?:CONCAT|GROUP_CONCAT|CAST|CONVERT)\s*\(|"
-        r"'\s*(?:OR|AND|UNION|SELECT|INSERT|UPDATE|DELETE|DROP|EXEC)\b)",
+        r"'\s*(?:OR|AND|UNION|SELECT|INSERT|UPDATE|DELETE|DROP|EXEC)\b)"
     )
 
     # Опасные ключи для защиты от prototype pollution

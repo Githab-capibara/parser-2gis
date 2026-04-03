@@ -183,10 +183,8 @@ class TempFileManager:
         except (ValueError, OSError) as log_error:
             # Логгер закрыт, игнорируем но логируем в stderr
             import sys
-            print(
-                f"[TempFileManager] Ошибка логирования: {log_error}",
-                file=sys.stderr,
-            )
+
+            print(f"[TempFileManager] Ошибка логирования: {log_error}", file=sys.stderr)
 
         return success_count, error_count
 

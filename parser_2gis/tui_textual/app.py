@@ -717,9 +717,13 @@ class TUIApp(App):
                 config.chrome.disable_images = saved_config["chrome_disable_images"]
                 config.chrome.silent_browser = saved_config["chrome_silent_browser"]
                 config.parser.stop_on_first_404 = saved_config["parser_stop_on_first_404"]
-                config.parser.max_consecutive_empty_pages = saved_config["parser_max_consecutive_empty_pages"]
+                config.parser.max_consecutive_empty_pages = saved_config[
+                    "parser_max_consecutive_empty_pages"
+                ]
                 config.parser.max_retries = saved_config["parser_max_retries"]
-                config.parser.retry_on_network_errors = saved_config["parser_retry_on_network_errors"]
+                config.parser.retry_on_network_errors = saved_config[
+                    "parser_retry_on_network_errors"
+                ]
                 logger.debug("Конфигурация восстановлена после парсинга")
 
             # P0-5: Гарантированная очистка ресурсов парсинга

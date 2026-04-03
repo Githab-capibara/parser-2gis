@@ -49,12 +49,18 @@ class ConfigValidator:
         """
         if config is None:
             raise ValidationError.from_exception_data(
-                "ConfigValidator", [{"msg": "Конфигурация не может быть None", "type": "value_error"}]
+                "ConfigValidator",
+                [{"msg": "Конфигурация не может быть None", "type": "value_error"}],
             )
         if not isinstance(config, BaseModel):
             raise ValidationError.from_exception_data(
                 "ConfigValidator",
-                [{"msg": "Конфигурация должна быть экземпляром Pydantic BaseModel", "type": "type_error"}],
+                [
+                    {
+                        "msg": "Конфигурация должна быть экземпляром Pydantic BaseModel",
+                        "type": "type_error",
+                    }
+                ],
             )
         # Pydantic валидирует автоматически при присваивании
         # Дополнительная явная валидация через model_validate

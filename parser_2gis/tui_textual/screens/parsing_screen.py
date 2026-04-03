@@ -174,10 +174,18 @@ class ParsingScreen(Screen):
         self._add_log(f"[dim]Выбрано категорий: {len(selected_categories)}[/]")
 
         cities = self.app.get_cities()  # type: ignore
-        selected_cities = [city for city in cities if isinstance(city, dict) and city.get("name") in selected_city_names]
+        selected_cities = [
+            city
+            for city in cities
+            if isinstance(city, dict) and city.get("name") in selected_city_names
+        ]
 
         all_categories = self.app.get_categories()  # type: ignore
-        selected_cats = [cat for cat in all_categories if isinstance(cat, dict) and cat.get("name") in selected_categories]
+        selected_cats = [
+            cat
+            for cat in all_categories
+            if isinstance(cat, dict) and cat.get("name") in selected_categories
+        ]
 
         # Проверка с информативным сообщением об ошибке
         if not selected_cities:

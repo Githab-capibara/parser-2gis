@@ -634,14 +634,17 @@ class CacheManager:
                     conn.execute("BEGIN IMMEDIATE")
                     break
                 except sqlite3.OperationalError as lock_error:
-                    if "database is locked" in str(lock_error).lower() and attempt < max_retries - 1:
+                    if (
+                        "database is locked" in str(lock_error).lower()
+                        and attempt < max_retries - 1
+                    ):
                         app_logger.debug(
                             "База данных заблокирована при BEGIN IMMEDIATE (попытка %d/%d): %s",
                             attempt + 1,
                             max_retries,
                             lock_error,
                         )
-                        time.sleep(retry_delay * (2 ** attempt))
+                        time.sleep(retry_delay * (2**attempt))
                     else:
                         raise
 
@@ -927,14 +930,9 @@ class CacheManager:
                 # H002: Вычисляем CRC32 checksum с кэшированием для часто используемых данных
                 data_json_hash = hashlib.sha256(data_json.encode("utf-8")).hexdigest()
                 checksum = compute_crc32_cached(data_json_hash, data_json)
-                batch_params.append((
-                    url_hash,
-                    url,
-                    data_json,
-                    checksum,
-                    now.isoformat(),
-                    expires_at.isoformat(),
-                ))
+                batch_params.append(
+                    (url_hash, url, data_json, checksum, now.isoformat(), expires_at.isoformat())
+                )
                 saved_count += 1
             except (TypeError, ValueError) as serialize_error:
                 app_logger.warning(
@@ -1203,10 +1201,7 @@ class CacheManager:
         return self
 
     def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: Any,
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any
     ) -> None:
         """Закрывает все соединения при выходе из контекста.
 
@@ -1304,7 +1299,9 @@ class CacheManager:
 
                         # Оптимизация: оцениваем размер без повторного stat()
                         remaining_records = total_records - total_deleted
-                        cache_size_mb = remaining_records * avg_record_size if remaining_records > 0 else 0.0
+                        cache_size_mb = (
+                            remaining_records * avg_record_size if remaining_records > 0 else 0.0
+                        )
                         if cache_size_mb <= MAX_CACHE_SIZE_MB:
                             break
 

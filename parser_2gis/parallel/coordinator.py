@@ -239,7 +239,9 @@ class ParallelCoordinator:
         self._lock = threading.Lock()
         self._cancel_event = threading.Event()
         self._stop_event = threading.Event()
-        self._browser_launch_semaphore = BoundedSemaphore(max_workers + BROWSER_SEMAPHORE_EXTRA_SLOTS)
+        self._browser_launch_semaphore = BoundedSemaphore(
+            max_workers + BROWSER_SEMAPHORE_EXTRA_SLOTS
+        )
 
         # H3: Dependency Injection с fallback на создание по умолчанию
         self._error_handler = error_handler or ParallelErrorHandler(self.output_dir, self.config)
