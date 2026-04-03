@@ -23,17 +23,17 @@ class AbstractRunner(ABC):
     Args:
         urls: Список URL для парсинга.
         output_path: Путь к выходному файлу.
-        format: Формат вывода (csv, xlsx, json).
+        output_format: Формат вывода (csv, xlsx, json).
         config: Конфигурация парсера.
 
     """
 
     def __init__(
-        self, urls: list[str], output_path: str, format: str, config: Configuration
+        self, urls: list[str], output_path: str, output_format: str, config: Configuration
     ) -> None:
         self._urls = urls
         self._output_path = output_path
-        self._format = format
+        self._output_format = output_format
         self._config = config
 
     @abstractmethod

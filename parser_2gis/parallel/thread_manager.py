@@ -12,11 +12,8 @@ from __future__ import annotations
 import logging
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from collections.abc import Callable
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger("parser_2gis.parallel.thread_manager")
 
@@ -133,7 +130,8 @@ class ThreadManager:
                     failed_count += 1
                     logger.error("Исключение при парсинге %s - %s: %s", city_name, category_name, e)
 
-            self._executor = None
+        # Очистка executor в finally-стиле — гарантированно при любом выходе
+        self._executor = None
 
         return success_count, failed_count
 

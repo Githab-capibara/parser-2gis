@@ -202,9 +202,17 @@ class RequestInterceptor:
 
             Note:
                 Игнорирует Preflight запросы (OPTIONS).
+                Фильтрует чувствительные заголовки Authorization и Cookie.
 
             """
             request: Request = kwargs.pop("request")
+            # Фильтрация чувствительных заголовков перед сохранением
+            if "headers" in request and isinstance(request["headers"], dict):
+                sensitive_headers = ("Authorization", "Cookie", "Set-Cookie", "Proxy-Authorization")
+                for header_name in sensitive_headers:
+                    request["headers"].pop(header_name, None)
+                    # Также удаём варианты с нижним регистром
+                    request["headers"].pop(header_name.lower(), None)
             request["meta"] = kwargs
             request_id: str = kwargs["requestId"]
             resource_type = kwargs.get("type")

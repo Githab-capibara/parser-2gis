@@ -351,6 +351,52 @@ def _evict_cache_if_needed(cache: OrderedDict[str, list], max_size: int = _CACHE
         cache.popitem(last=False)
 
 
+def _validate_config_data(
+    config: list,
+    field_name: str,
+    cache: OrderedDict[str, list],
+) -> list:
+    """Универсальная валидация конфигурации городов/категорий.
+
+    ISSUE-154: Использует OrderedDict для true LRU кэширования.
+    ISSUE-155: Корректная LRU eviction через OrderedDict.
+
+    Args:
+        config: Список конфигурации для валидации.
+        field_name: Имя поля для сообщения об ошибке.
+        cache: Кэш OrderedDict для сохранения результатов.
+
+    Returns:
+        Валидированный список конфигурации.
+
+    Raises:
+        ValueError: Если конфигурация некорректна.
+
+    """
+    config_hash = _compute_config_hash(config)
+    if config_hash in cache:
+        cache.move_to_end(config_hash)
+        return cache[config_hash]
+
+    if not config:
+        raise ValueError(f"{field_name} не может быть пустым")
+
+    if not isinstance(config, list):
+        raise ValueError(f"{field_name} должен быть списком")
+
+    for idx, item in enumerate(config):
+        if not isinstance(item, dict):
+            raise ValueError(f"{field_name}[{idx}] должен быть словарём (dict)")
+        if "name" not in item:
+            raise ValueError(f"{field_name}[{idx}] должен содержать ключ 'name'")
+        if not isinstance(item.get("name"), str) or not item.get("name"):
+            raise ValueError(f"{field_name}[{idx}]: 'name' должен быть непустой строкой")
+
+    _evict_cache_if_needed(cache)
+    cache[config_hash] = config
+    return config
+
+
 def validate_cities_config(cities: list, field_name: str = "cities") -> list:
     """Валидирует конфигурацию городов для параллельного парсинга.
 
@@ -373,31 +419,7 @@ def validate_cities_config(cities: list, field_name: str = "cities") -> list:
         [{'name': 'Москва', 'code': 'msk', 'domain': 'moscow'}]
 
     """
-    # ISSUE-154: Проверка кэша перед валидацией
-    config_hash = _compute_config_hash(cities)
-    if config_hash in _CITIES_CONFIG_CACHE:
-        # ISSUE-155: Перемещаем в конец OrderedDict (помечаем как недавно использованный)
-        _CITIES_CONFIG_CACHE.move_to_end(config_hash)
-        return _CITIES_CONFIG_CACHE[config_hash]
-
-    if not cities:
-        raise ValueError(f"{field_name} не может быть пустым")
-
-    if not isinstance(cities, list):
-        raise ValueError(f"{field_name} должен быть списком")
-
-    for idx, city in enumerate(cities):
-        if not isinstance(city, dict):
-            raise ValueError(f"{field_name}[{idx}] должен быть словарём (dict)")
-        if "name" not in city:
-            raise ValueError(f"{field_name}[{idx}] должен содержать ключ 'name'")
-        if not isinstance(city.get("name"), str) or not city.get("name"):
-            raise ValueError(f"{field_name}[{idx}]: 'name' должен быть непустой строкой")
-
-    # ISSUE-155: Сохраняем в кэш с LRU eviction и перемещаем в конец
-    _evict_cache_if_needed(_CITIES_CONFIG_CACHE)
-    _CITIES_CONFIG_CACHE[config_hash] = cities
-    return cities
+    return _validate_config_data(cities, field_name, _CITIES_CONFIG_CACHE)
 
 
 def validate_categories_config(categories: list, field_name: str = "categories") -> list:
@@ -422,31 +444,7 @@ def validate_categories_config(categories: list, field_name: str = "categories")
         [{'name': 'Кафе', 'query': 'Кафе'}]
 
     """
-    # ISSUE-154: Проверка кэша перед валидацией
-    config_hash = _compute_config_hash(categories)
-    if config_hash in _CATEGORIES_CONFIG_CACHE:
-        # ISSUE-155: Перемещаем в конец OrderedDict (помечаем как недавно использованный)
-        _CATEGORIES_CONFIG_CACHE.move_to_end(config_hash)
-        return _CATEGORIES_CONFIG_CACHE[config_hash]
-
-    if not categories:
-        raise ValueError(f"{field_name} не может быть пустым")
-
-    if not isinstance(categories, list):
-        raise ValueError(f"{field_name} должен быть списком")
-
-    for idx, category in enumerate(categories):
-        if not isinstance(category, dict):
-            raise ValueError(f"{field_name}[{idx}] должен быть словарём (dict)")
-        if "name" not in category:
-            raise ValueError(f"{field_name}[{idx}] должен содержать ключ 'name'")
-        if not isinstance(category.get("name"), str) or not category.get("name"):
-            raise ValueError(f"{field_name}[{idx}]: 'name' должен быть непустой строкой")
-
-    # ISSUE-155: Сохраняем в кэш с LRU eviction и перемещаем в конец
-    _evict_cache_if_needed(_CATEGORIES_CONFIG_CACHE)
-    _CATEGORIES_CONFIG_CACHE[config_hash] = categories
-    return categories
+    return _validate_config_data(categories, field_name, _CATEGORIES_CONFIG_CACHE)
 
 
 def validate_parallel_config(

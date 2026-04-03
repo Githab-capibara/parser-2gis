@@ -12,7 +12,6 @@ from __future__ import annotations
 import threading
 import time
 from collections import deque
-from typing import TYPE_CHECKING
 
 from .constants import DEFAULT_NETWORK_TIMEOUT
 
@@ -21,19 +20,16 @@ try:
 except ImportError:
     requests = None  # type: ignore[assignment]
 
-if TYPE_CHECKING:
-    pass
-
 
 # =============================================================================
 # RATE LIMITING ДЛЯ ВНЕШНИХ ЗАПРОСОВ
 # =============================================================================
 
 # HIGH 8: Глобальный rate limiter для всех запросов
-_rate_limit_lock = threading.Lock()
+_rate_limit_lock: threading.Lock = threading.Lock()
 _request_timestamps: deque[float] = deque()
-_min_request_interval = 0.1  # Минимальный интервал между запросами (100ms)
-_max_requests_per_second = 10  # Максимум запросов в секунду
+_min_request_interval: float = 0.1  # Минимальный интервал между запросами (100ms)
+_max_requests_per_second: int = 10  # Максимум запросов в секунду
 
 
 def _enforce_rate_limit() -> None:

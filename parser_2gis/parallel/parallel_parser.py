@@ -72,6 +72,7 @@ if TYPE_CHECKING:
 
 # Константы
 MEMORY_THRESHOLD_BYTES = 100 * 1024 * 1024  # 100MB порог для проверки памяти
+MAX_LOCK_ATTEMPTS = 50  # Максимальное число попыток получения lock файла
 
 
 @dataclass
@@ -440,28 +441,41 @@ class ParallelCityParser:
 
             # CRITICAL 3: Атомарное создание lock файла через O_CREAT | O_EXCL
             start_time = time.time()
+            lock_attempts = 0
             while not lock_acquired:
+                lock_attempts += 1
+                if lock_attempts > MAX_LOCK_ATTEMPTS:
+                    self.log(
+                        f"Превышено максимальное число попыток получения lock ({MAX_LOCK_ATTEMPTS})",
+                        "error",
+                    )
+                    raise RuntimeError(
+                        f"Не удалось получить lock файл после {MAX_LOCK_ATTEMPTS} попыток"
+                    )
                 lock_fd = None
                 try:
                     # Атомарное создание файла - вернёт ошибку если файл уже существует
                     lock_fd = os.open(
-                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
+                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
                     )
-                    lock_file_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
-                    lock_fd = None  # Теперь файл управляется через lock_file_handle
+                    try:
+                        lock_file_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
+                        lock_fd = None  # Теперь файл управляется через lock_file_handle
 
-                    # Получаем exclusive lock
-                    fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    lock_file_handle.write(f"{os.getpid()}\n")
-                    lock_file_handle.flush()
-                    lock_acquired = True
-                    self.log("Lock file получен успешно", "debug")
+                        # Получаем exclusive lock
+                        fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        lock_file_handle.write(f"{os.getpid()}\n")
+                        lock_file_handle.flush()
+                        lock_acquired = True
+                        self.log("Lock file получен успешно", "debug")
+                    finally:
+                        # Гарантированное закрыие fd при любой ошибке
+                        if lock_fd is not None:
+                            try:
+                                os.close(lock_fd)
+                            except OSError:
+                                pass
                 except (OSError, FileExistsError):
-                    if lock_fd is not None:
-                        try:
-                            os.close(lock_fd)
-                        except OSError:
-                            pass
                     if lock_file_handle is not None:
                         try:
                             lock_file_handle.close()
@@ -566,10 +580,9 @@ class ParallelCityParser:
                 writer.writerows(batch)
                 batch_total += len(batch)
 
+            batch_count = (batch_total // batch_size) + (1 if batch_total % batch_size else 0)
             self.log(
-                f"Файл {csv_file.name} обработан (строк: {batch_total}, пакетов: {
-                    (batch_total // batch_size) + (1 if batch_total % batch_size else 0)
-                })",
+                f"Файл {csv_file.name} обработан (строк: {batch_total}, пакетов: {batch_count})",
                 level="debug",
             )
 

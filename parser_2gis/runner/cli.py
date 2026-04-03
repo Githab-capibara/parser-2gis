@@ -24,7 +24,7 @@ class CLIRunner(AbstractRunner):
     Args:
         urls: URL 2GIS с элементами для сбора.
         output_path: Путь к результирующему файлу.
-        format: Формат `csv`, `xlsx` или `json`.
+        output_format: Формат `csv`, `xlsx` или `json`.
         config: Конфигурация.
 
     """
@@ -44,7 +44,7 @@ class CLIRunner(AbstractRunner):
         logger.info("🚀 Начало парсинга %d URL...", total_urls)
 
         try:
-            with get_writer(self._output_path, self._format, self._config.writer) as writer:
+            with get_writer(self._output_path, self._output_format, self._config.writer) as writer:
                 for idx, url in enumerate(self._urls, 1):
                     logger.info("📄 [%d/%d] Парсинг ссылки: %s", idx, total_urls, url)
                     with get_parser(

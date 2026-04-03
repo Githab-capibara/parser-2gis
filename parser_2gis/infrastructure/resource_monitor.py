@@ -20,10 +20,6 @@ from __future__ import annotations
 
 import functools
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
 
 
 @dataclass
@@ -292,8 +288,6 @@ class ResourceMonitor:
         """
         import psutil
 
-        # Сбрасываем кэш перед новым измерением
-        self.get_cpu_usage.cache_clear()
         return psutil.cpu_percent(interval=interval)
 
 

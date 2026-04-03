@@ -68,12 +68,9 @@ class SmartRetryManager:
 
         # Сетевые ошибки (502, 503, 504, Timeout) - всегда retry
         if any(code in error_lower for code in ["502", "503", "504", "timeout"]):
-            self._retry_count += 1  # Увеличиваем только при фактическом retry
             logger.info(
-                "Сетевая ошибка: %s. Повторная попытка %d/%d",
+                "Сетевая ошибка: %s. Требуется повторная попытка",
                 error,
-                self._retry_count,
-                self._max_retries,
             )
             return True
 
@@ -81,12 +78,9 @@ class SmartRetryManager:
         if "404" in error_lower:
             # Если были записи до 404 - возможно временная проблема, retry
             if self._total_records_collected > 0:
-                self._retry_count += 1  # Увеличиваем только при фактическом retry
                 logger.info(
-                    "404 после %d записей. Повторная попытка %d/%d",
+                    "404 после %d записей. Требуется повторная попытка",
                     self._total_records_collected,
-                    self._retry_count,
-                    self._max_retries,
                 )
                 return True
             # Если не было записей - конец категории, не нужно retry
@@ -101,21 +95,23 @@ class SmartRetryManager:
 
         # 500 ошибки (ошибка сервера) - retry
         if "500" in error_lower:
-            self._retry_count += 1  # Увеличиваем только при фактическом retry
-            logger.info(
-                "Ошибка сервера 500. Повторная попытка %d/%d", self._retry_count, self._max_retries
-            )
+            logger.info("Ошибка сервера 500. Требуется повторная попытка")
             return True
 
         # По умолчанию - retry для других ошибок (с логированием)
-        self._retry_count += 1  # Увеличиваем только при фактическом retry
-        logger.debug(
-            "Неклассифицированная ошибка: %s. Повторная попытка %d/%d",
-            error,
-            self._retry_count,
-            self._max_retries,
-        )
+        logger.debug("Неклассифицированная ошибка: %s. Требуется повторная попытка", error)
         return True
+
+    def record_retry(self) -> None:
+        """Записывает фактическую повторную попытку.
+
+        Вызывается только после принятия решения о необходимости
+        повторной попытки для корректного подсчёта.
+        """
+        self._retry_count += 1
+        logger.debug(
+            "Записана повторная попытка %d/%d", self._retry_count, self._max_retries
+        )
 
     def add_records(self, count: int) -> None:
         """Добавляет количество собранных записей.

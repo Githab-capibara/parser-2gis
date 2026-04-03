@@ -101,7 +101,7 @@ class BrowserHealthMonitor:
                     health_status["memory_mb"] = memory_mb
 
                     # Проверяем CPU
-                    cpu_percent = p.cpu_percent(interval=0.1)
+                    cpu_percent = p.cpu_percent(interval=None)
                     health_status["cpu_percent"] = cpu_percent
 
                     # Проверяем время активности
@@ -125,8 +125,7 @@ class BrowserHealthMonitor:
 
                     if time_since_activity > self.STALL_THRESHOLD_SEC:
                         issues.append(
-                            "Браузер завис: %.1f сек > %d сек"
-                            % (time_since_activity, self.STALL_THRESHOLD_SEC)
+                            f"Браузер завис: {time_since_activity:.1f} сек > {self.STALL_THRESHOLD_SEC} сек"
                         )
                         health_status["healthy"] = False
 
