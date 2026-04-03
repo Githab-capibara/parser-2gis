@@ -2,7 +2,7 @@
 
 Предоставляет универсальные декораторы и функции для повторного выполнения операций:
 - retry_with_backoff: декоратор с экспоненциальной задержкой
-- retry_with_fixed_delay: декоратор с фиксированной задержкой
+- retry_with_fixed_delay: декоратор с фиксированной задержкой (делегирует retry_with_backoff)
 - retry_with_jitter: декоратор со случайной задержкой
 - retry_with_tenacity: декоратор с использованием tenacity (если доступна)
 - is_tenacity_available: проверка доступности tenacity
@@ -21,6 +21,7 @@ from __future__ import annotations
 import functools
 import random
 import time
+from functools import partial
 from typing import Any, TypeVar
 from collections.abc import Callable
 
@@ -166,7 +167,7 @@ def retry_with_fixed_delay(
     Args:
         max_attempts: Максимальное количество попыток (по умолчанию 3).
         delay: Фиксированная задержка в секундах между попытками (по умолчанию 1.0).
-        exceptions: Тип или кортеж типов исключений для обработки (по умолчанию Exception).
+        exceptions: Тип или кортеж типов исключений для обработки (по умолчанию DEFAULT_RETRY_EXCEPTIONS).
 
     Returns:
         Декоратор для функции.
@@ -178,7 +179,8 @@ def retry_with_fixed_delay(
         ...     pass
 
     """
-    return retry_with_backoff(
+    return partial(
+        retry_with_backoff,
         max_attempts=max_attempts,
         delay=delay,
         backoff_factor=1.0,  # Фиксированная задержка

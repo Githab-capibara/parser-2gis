@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import gc
+import os
 import threading
 from collections import deque
 from typing import TYPE_CHECKING, Any
@@ -42,8 +43,8 @@ from parser_2gis.utils.decorators import wait_until_finished
 # КОНСТАНТЫ МОДУЛЯ
 # =============================================================================
 
-# Коэффициент для очистки памяти при превышении порога (75%)
-MEMORY_CLEANUP_FRACTION: float = 0.75
+# Коэффициент для очистки памяти при превышении порога (можно переопределить через PARSER_MEMORY_CLEANUP_FRACTION)
+MEMORY_CLEANUP_FRACTION: float = float(os.environ.get("PARSER_MEMORY_CLEANUP_FRACTION", "0.75"))
 
 # Периодичность проверки памяти (каждые 10 вызовов)
 MEMORY_CHECK_INTERVAL: int = 10

@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import os
 import random
 import re
 import time
@@ -38,9 +39,10 @@ if TYPE_CHECKING:
 MAX_RESPONSE_ATTEMPTS: int = (
     3  # Максимальное количество попыток получить ответ (достаточно для временных сбоев сети)
 )
-NAVIGATION_TIMEOUT: int = (
-    300  # Таймаут навигации в секундах (5 минут — достаточно для медленных страниц с тяжёлым JS)
-)
+# Таймаут навигации можно переопределить через переменную окружения PARSER_NAVIGATION_TIMEOUT
+NAVIGATION_TIMEOUT: int = int(
+    os.environ.get("PARSER_NAVIGATION_TIMEOUT", "300")
+)  # По умолчанию 5 минут
 WAIT_REQUESTS_TIMEOUT: int = 60  # Таймаут ожидания завершения запросов (1 минута)
 GET_LINKS_TIMEOUT: int = 30  # Таймаут получения ссылок (30 секунд)
 GET_UNIQUE_LINKS_TIMEOUT: int = 30  # Таймаут получения уникальных ссылок (30 секунд)
@@ -517,10 +519,9 @@ class MainPageParser(BaseParser):
 
         """
         error_msg = str(navigate_error).lower()
-        is_network_error = self._is_network_error(error_msg)
-        is_blocked_error = self._is_blocked_error(error_msg)
+        error_classification = self._classify_error(error_msg)
 
-        if is_blocked_error:
+        if error_classification == "blocked":
             logger.error(
                 "[NavigationBlockedError] Доступ заблокирован при навигации по URL %s: %s",
                 url,
@@ -528,7 +529,7 @@ class MainPageParser(BaseParser):
             )
             return False
 
-        if is_network_error:
+        if error_classification == "network":
             return self._handle_network_error(url, navigate_error, retry_attempt)
 
         # Общая ошибка - не подлежит повтору
@@ -536,6 +537,26 @@ class MainPageParser(BaseParser):
             "[NavigationGenericError] Общая ошибка навигации по URL %s: %s", url, navigate_error
         )
         return False
+
+    def _classify_error(self, error_msg: str) -> str:
+        """Классифицирует тип ошибки навигации.
+
+        Объединяет логику проверки сетевых и блокирующих ошибок.
+
+        Args:
+            error_msg: Сообщение ошибки.
+
+        Returns:
+            Тип ошибки: "network", "blocked" или "generic".
+
+        """
+        # Проверяем блокирующие ошибки (приоритетнее сетевых)
+        if any(code in error_msg for code in ("403", "429", "blocked", "forbidden")):
+            return "blocked"
+        # Проверяем сетевые ошибки
+        if any(code in error_msg for code in ("502", "503", "504", "timeout")):
+            return "network"
+        return "generic"
 
     def _is_network_error(self, error_msg: str) -> bool:
         """Проверяет является ли ошибку сетевой.
@@ -547,7 +568,7 @@ class MainPageParser(BaseParser):
             True если ошибка сетевая.
 
         """
-        return any(code in error_msg for code in ("502", "503", "504", "timeout"))
+        return self._classify_error(error_msg) == "network"
 
     def _is_blocked_error(self, error_msg: str) -> bool:
         """Проверяет является ли ошибку блокировкой.
@@ -559,7 +580,7 @@ class MainPageParser(BaseParser):
             True если ошибка блокировкой.
 
         """
-        return any(code in error_msg for code in ("403", "429", "blocked", "forbidden"))
+        return self._classify_error(error_msg) == "blocked"
 
     def _handle_network_error(
         self, url: str, navigate_error: Exception, retry_attempt: int

@@ -148,7 +148,7 @@ class Writer(Protocol):
 class Parser(Protocol):
     """Protocol для парсеров."""
 
-    def parse(self) -> list[dict]:
+    def parse(self) -> list[dict[str, Any]]:
         """Выполняет парсинг данных."""
 
     def get_stats(self) -> dict:

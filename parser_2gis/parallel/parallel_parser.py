@@ -819,6 +819,13 @@ class ParallelCityParser:
 
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             self.log(f"Ошибка при объединении CSV: {e}", "error")
+            # Гарантированная очистка lock файла при ошибке
+            try:
+                if lock_file_path.exists():
+                    lock_file_path.unlink()
+                    self.log("Lock файл удалён при ошибке объединения CSV", "debug")
+            except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
+                self.log(f"Не удалось удалить lock файл при ошибке: {cleanup_error}", "warning")
             return False
 
         finally:

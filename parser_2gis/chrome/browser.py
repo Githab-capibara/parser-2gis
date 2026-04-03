@@ -346,10 +346,14 @@ class ProcessManager:
             if chrome_options.silent_browser:
                 app_logger.debug("В Chrome отключён вывод отладочной информации.")
                 proc = subprocess.Popen(
-                    chrome_cmd, shell=False, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL
+                    chrome_cmd,
+                    shell=False,
+                    stderr=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    text=True,
                 )
             else:
-                proc = subprocess.Popen(chrome_cmd, shell=False)
+                proc = subprocess.Popen(chrome_cmd, shell=False, text=True)
 
             self._proc = proc
             app_logger.debug("Chrome браузер запущен с PID: %d", proc.pid)
@@ -610,6 +614,11 @@ class ProcessManager:
         if self._proc is None:
             return False
         return self._proc.poll() is None
+
+    @property
+    def start_time(self) -> float:
+        """Возвращает время запуска процесса."""
+        return self._start_time
 
 
 # =============================================================================

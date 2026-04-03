@@ -392,10 +392,11 @@ class CacheManager:
         try:
             cursor.close()
         except (sqlite3.Error, OSError, MemoryError) as cursor_error:
-            app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
+            # Критические ошибки логируются на уровне warning для диагностики
+            app_logger.warning("Ошибка при закрытии курсора: %s", cursor_error)
 
-    def _get_from_db(self, conn: sqlite3.Connection, url_hash: str) -> CacheRow | None:
-        """Извлекает строку кэша из базы данных.
+    def _select_from_db(self, conn: sqlite3.Connection, url_hash: str) -> CacheRow | None:
+        """Выполняет SELECT запрос к базе данных для извлечения строки кэша.
 
         ISSUE-065: Использует conn.execute() напрямую вместо создания курсора.
 
@@ -670,7 +671,7 @@ class CacheManager:
                         raise
 
             # ISSUE-071: Используем conn.execute() напрямую для простых SELECT запросов
-            row = self._get_from_db(conn, url_hash)
+            row = self._select_from_db(conn, url_hash)
 
             if not row:
                 # ISSUE-071: Используем conn.rollback() напрямую

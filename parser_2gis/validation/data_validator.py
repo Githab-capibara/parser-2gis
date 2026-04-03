@@ -18,6 +18,7 @@ from __future__ import annotations
 import re
 from collections import OrderedDict
 from dataclasses import dataclass
+from typing import Any
 
 # =============================================================================
 # РЕЗУЛЬТАТ ВАЛИДАЦИИ
@@ -163,7 +164,7 @@ def validate_string_length(value: str, min_length: int, max_length: int, field_n
 # =============================================================================
 
 
-def validate_non_empty_list(value: list, field_name: str) -> list:
+def validate_non_empty_list(value: list[Any], field_name: str) -> list[Any]:
     """Валидирует список на непустоту.
 
     Args:
@@ -188,7 +189,7 @@ def validate_non_empty_list(value: list, field_name: str) -> list:
     return value
 
 
-def validate_list_length(value: list, min_length: int, max_length: int, field_name: str) -> list:
+def validate_list_length(value: list[Any], min_length: int, max_length: int, field_name: str) -> list[Any]:
     """Валидирует длину списка.
 
     Args:
@@ -447,6 +448,37 @@ def validate_categories_config(categories: list, field_name: str = "categories")
     return _validate_config_data(categories, field_name, _CATEGORIES_CONFIG_CACHE)
 
 
+def validate_config(config: list, field_name: str, cache: OrderedDict[str, list] | None = None) -> list:
+    """Универсальная функция валидации конфигурации (города, категории и т.д.).
+
+    Объединяет логику validate_cities_config и validate_categories_config.
+
+    ISSUE-154: Использует OrderedDict для true LRU кэширования.
+    ISSUE-155: Корректная LRU eviction через OrderedDict.
+
+    Args:
+        config: Список конфигурации для валидации.
+        field_name: Имя поля для сообщения об ошибке.
+        cache: Опциональный кэш для сохранения результатов.
+               Если не указан, используется новый OrderedDict.
+
+    Returns:
+        Валидированный список конфигурации.
+
+    Raises:
+        ValueError: Если конфигурация некорректна.
+
+    Example:
+        >>> cities = [{"name": "Москва", "code": "msk"}]
+        >>> validate_config(cities, "cities", _CITIES_CONFIG_CACHE)
+        [{'name': 'Москва', 'code': 'msk'}]
+
+    """
+    if cache is None:
+        cache = OrderedDict()
+    return _validate_config_data(config, field_name, cache)
+
+
 def validate_parallel_config(
     max_workers: int,
     timeout_per_url: int,
@@ -498,6 +530,7 @@ __all__ = [
     "ValidationResult",
     "validate_categories_config",
     "validate_cities_config",
+    "validate_config",
     "validate_email",
     "validate_list_length",
     "validate_non_empty_list",

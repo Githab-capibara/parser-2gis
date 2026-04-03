@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import pathlib
-from functools import lru_cache
 
 import psutil
 from pydantic import BaseModel, PositiveInt
@@ -19,11 +18,8 @@ from parser_2gis.chrome.constants import MEMORY_FRACTION_FOR_V8
 from parser_2gis.utils import floor_to_hundreds
 
 
-@lru_cache(maxsize=1)
-def default_memory_limit() -> int:
-    """Лимит памяти по умолчанию для V8 — MEMORY_FRACTION_FOR_V8 от общей физической памяти в МБ.
-
-    Результат кэшируется через lru_cache для предотвращения повторных вычислений.
+def _compute_default_memory_limit() -> int:
+    """Вычисляет лимит памяти по умолчанию для V8.
 
     Returns:
         Лимит памяти в мегабайтах, округлённый вниз до ближайшей сотни.
@@ -32,6 +28,20 @@ def default_memory_limit() -> int:
     memory_total = psutil.virtual_memory().total / 1024**2  # Конвертируем в МБ
     # ISSUE-038: Вынесено магическое число 0.75 в константу MEMORY_FRACTION_FOR_V8
     return floor_to_hundreds(round(MEMORY_FRACTION_FOR_V8 * memory_total))
+
+
+# Лимит памяти по умолчанию — MEMORY_FRACTION_FOR_V8 от общей физической памяти в МБ
+_DEFAULT_MEMORY_LIMIT: int = _compute_default_memory_limit()
+
+
+def default_memory_limit() -> int:
+    """Возвращает лимит памяти по умолчанию (для обратной совместимости).
+
+    Returns:
+        Лимит памяти в мегабайтах.
+
+    """
+    return _DEFAULT_MEMORY_LIMIT
 
 
 class ChromeOptions(BaseModel):
@@ -52,5 +62,5 @@ class ChromeOptions(BaseModel):
     headless: bool = False
     disable_images: bool = True
     silent_browser: bool = True
-    memory_limit: PositiveInt = default_memory_limit()
+    memory_limit: PositiveInt = _DEFAULT_MEMORY_LIMIT
     startup_delay: int = 0

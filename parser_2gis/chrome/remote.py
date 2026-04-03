@@ -20,6 +20,7 @@ ISSUE-003: Рефакторинг - выделены компоненты для
 from __future__ import annotations
 
 import base64
+import os
 import re
 import socket
 import threading
@@ -83,8 +84,8 @@ if TYPE_CHECKING:
 PORT_CHECK_RETRY_DELAY: float = 0.005
 
 # Максимальное количество попыток проверки доступности порта при запуске Chrome.
-# Увеличено до 20 для поддержки 40+ параллельных браузеров.
-MAX_STARTUP_ATTEMPTS: int = 20
+# Можно переопределить через переменную окружения PARSER_CHROME_MAX_STARTUP_ATTEMPTS.
+MAX_STARTUP_ATTEMPTS: int = int(os.environ.get("PARSER_CHROME_MAX_STARTUP_ATTEMPTS", "20"))
 
 # Оптимизация: скомпилированный regex паттерн для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
