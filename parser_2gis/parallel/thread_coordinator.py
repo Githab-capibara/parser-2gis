@@ -25,7 +25,8 @@ from concurrent.futures import (
 )
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING, FrameType, Literal
+from types import FrameType
+from typing import TYPE_CHECKING, Literal
 from collections.abc import Callable
 
 from parser_2gis.constants import (
