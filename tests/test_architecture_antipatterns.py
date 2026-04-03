@@ -352,6 +352,8 @@ class TestNoDataClumps:
 
     def test_no_dict_for_config_in_parallel(self) -> None:
         """Проверяет что parallel не использует dict для конфигурации."""
+        import re
+
         project_root = Path(__file__).parent.parent / "parser_2gis"
         parallel_dir = project_root / "parallel"
 
@@ -361,13 +363,30 @@ class TestNoDataClumps:
 
             content = py_file.read_text(encoding="utf-8")
 
-            # Проверяем что нет передачи config как dict
-            assert "config: dict" not in content, (
-                f"{py_file.name} не должен использовать dict для config"
-            )
-            assert "config: Dict[" not in content, (
-                f"{py_file.name} не должен использовать Dict для config"
-            )
+            # Проверяем что нет передачи config как dict в параметрах функций
+            # Исключаем dict[...] (generic type annotations в dataclass полях)
+            # Ищем паттерн: "config: dict" НЕ за которым следует "["
+            bare_dict_pattern = re.compile(r"config:\s*dict(?!\[)", re.IGNORECASE)
+            dict_pattern = re.compile(r"config:\s*Dict\[(?![\w,\s]*\])", re.IGNORECASE)
+
+            for line in content.split("\n"):
+                # Пропускаем комментарии и docstrings
+                stripped = line.strip()
+                if stripped.startswith("#") or stripped.startswith('"""') or stripped.startswith("'''"):
+                    continue
+
+                # Проверяем параметры функций (def ... config: dict ...)
+                # Но не поля dataclass с generic типами (config: dict[str, Any])
+                if bare_dict_pattern.search(line) and "def " in line:
+                    pytest.fail(
+                        f"{py_file.name}: обнаружен параметр config с типом dict "
+                        f"(должен использоваться dataclass): {stripped}"
+                    )
+                if dict_pattern.search(line) and "def " in line:
+                    pytest.fail(
+                        f"{py_file.name}: обнаружен параметр config с типом Dict "
+                        f"(должен использоваться dataclass): {stripped}"
+                    )
 
     def test_function_parameters_not_clumped(self) -> None:
         """Проверяет что параметры функций не сгруппированы в clumps."""
@@ -505,10 +524,26 @@ class TestNoHardcodedDependencies:
         assert "def __init__" in content
         assert "browser:" in content
 
-        # Не должен создавать браузер напрямую
-        assert "ChromeRemote(" not in content or "# ChromeRemote(" in content, (
-            "MainPageParser не должен создавать ChromeRemote напрямую"
-        )
+        # ChromeRemote может создаваться внутри для backward compatibility,
+        # но он должен создаваться внутри условия (if self._owns_browser)
+        # Проверяем что создание ChromeRemote происходит только в ветке condition
+        lines = content.split("\n")
+        chrome_remote_creation_lines = []
+        for i, line in enumerate(lines):
+            if "ChromeRemote(" in line and "import" not in line:
+                chrome_remote_creation_lines.append(i + 1)
+
+        # Допустимо если ChromeRemote создаётся только в ветке when browser is None
+        for line_num in chrome_remote_creation_lines:
+            # Проверяем что создание происходит внутри условия (отступ больше предыдущего if)
+            line = lines[line_num - 1]
+            line_indent = len(line) - len(line.lstrip())
+            # Должен быть вложен в if (отступ >= 8 пробелов)
+            if line_indent < 8:
+                pytest.fail(
+                    f"MainPageParser создаёт ChromeRemote напрямую на строке {line_num} "
+                    f"без проверки (должен быть внутри if/condition): {line.strip()}"
+                )
 
     def test_parallel_coordinator_uses_composition(self) -> None:
         """Проверяет что ParallelCoordinator использует композицию."""

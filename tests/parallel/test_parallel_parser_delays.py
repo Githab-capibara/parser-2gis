@@ -61,8 +61,8 @@ class TestParallelParserDelays:
         Проверяет:
         - random.uniform вызывается с правильными аргументами из конфига
         """
-        with patch("parser_2gis.parallel.parallel_parser.time.sleep"):
-            with patch("parser_2gis.parallel.parallel_parser.random.uniform") as mock_uniform:
+        with patch("parser_2gis.parallel.strategies.time.sleep"):
+            with patch("parser_2gis.parallel.strategies.random.uniform") as mock_uniform:
                 # Устанавливаем возвращаемое значение для random.uniform
                 mock_uniform.return_value = 0.15
 
@@ -104,8 +104,8 @@ class TestParallelParserDelays:
         Проверяет:
         - random.uniform вызывается с правильными аргументами из конфига
         """
-        with patch("parser_2gis.parallel.parallel_parser.time.sleep"):
-            with patch("parser_2gis.parallel.parallel_parser.random.uniform") as mock_uniform:
+        with patch("parser_2gis.parallel.strategies.time.sleep"):
+            with patch("parser_2gis.parallel.strategies.random.uniform") as mock_uniform:
                 # Устанавливаем возвращаемое значение для random.uniform
                 mock_uniform.return_value = 0.07
 

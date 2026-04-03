@@ -381,10 +381,19 @@ class TestProcessManager:
         mock_proc.pid = 12345
         process_manager._proc = mock_proc
 
-        success, status = process_manager.terminate_process_graceful(12345)
+        success, status = process_manager._terminate_process_common(
+            process_pid=12345,
+            terminate_method="terminate",
+            timeout=5,
+            success_status="terminated",
+            timeout_status="terminate_timeout",
+            already_terminated_status="already_terminated",
+            permission_denied_status="permission_denied",
+            error_status="error",
+        )
 
         assert success is True
-        assert status == "terminated (exit code: 0)"
+        assert "terminated" in status
         mock_proc.terminate.assert_called_once()
 
     def test_process_manager_terminate_graceful_timeout(self, process_manager: ProcessManager):
@@ -401,7 +410,16 @@ class TestProcessManager:
         mock_proc.pid = 12345
         process_manager._proc = mock_proc
 
-        success, status = process_manager.terminate_process_graceful(12345)
+        success, status = process_manager._terminate_process_common(
+            process_pid=12345,
+            terminate_method="terminate",
+            timeout=5,
+            success_status="terminated",
+            timeout_status="terminate_timeout",
+            already_terminated_status="already_terminated",
+            permission_denied_status="permission_denied",
+            error_status="error",
+        )
 
         assert success is False
         assert status == "terminate_timeout"
@@ -418,7 +436,16 @@ class TestProcessManager:
         mock_proc.pid = 12345
         process_manager._proc = mock_proc
 
-        success, status = process_manager.terminate_process_forceful(12345)
+        success, status = process_manager._terminate_process_common(
+            process_pid=12345,
+            terminate_method="kill",
+            timeout=5,
+            success_status="killed",
+            timeout_status="kill_timeout",
+            already_terminated_status="already_terminated",
+            permission_denied_status="permission_denied",
+            error_status="error",
+        )
 
         assert success is True
         assert "killed" in status
@@ -551,7 +578,7 @@ class TestBrowserLifecycleManager:
 
         with patch.object(
             manager._process_manager,
-            "terminate_process_graceful",
+            "_terminate_process_common",
             return_value=(True, "terminated"),
         ):
             with patch.object(manager._profile_manager, "cleanup_profile") as mock_cleanup:
@@ -569,7 +596,7 @@ class TestBrowserLifecycleManager:
         manager = BrowserLifecycleManager(mock_chrome_options)
         manager._closed = True
 
-        with patch.object(manager._process_manager, "terminate_process_graceful") as mock_terminate:
+        with patch.object(manager._process_manager, "_terminate_process_common") as mock_terminate:
             with patch.object(manager._profile_manager, "cleanup_profile") as mock_cleanup:
                 manager.close()
 

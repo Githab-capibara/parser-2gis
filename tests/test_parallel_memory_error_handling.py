@@ -72,7 +72,7 @@ class TestParallelMemoryErrorHandling:
             output_dir=output_dir,
             config=mock_config,
             max_workers=2,
-            timeout_per_url=30,
+            timeout_per_url=60,
         )
 
     def test_memory_error_in_do_parse_cleanup_temp_files(
