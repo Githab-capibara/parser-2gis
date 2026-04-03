@@ -23,6 +23,13 @@ import psutil
 
 from parser_2gis.logger import logger
 
+# Интервалы мониторинга ресурсов
+MONITOR_INTERVAL = 5.0
+"""Интервал проверки ресурсов в секундах."""
+
+SHORT_CHECK_INTERVAL = 0.1
+"""Короткий интервал проверки в секундах."""
+
 _task_counter = itertools.count()
 
 
@@ -362,7 +369,7 @@ class ParallelOptimizer:
 
                 if not available:
                     logger.warning("Ожидание освобождения ресурсов...")
-                    time.sleep(5)
+                    time.sleep(MONITOR_INTERVAL)
                     continue
 
                 # Запускаем новые задачи если есть ресурсы
@@ -413,7 +420,7 @@ class ParallelOptimizer:
 
                 # Небольшая пауза если нет активных задач
                 if not self._active_tasks:
-                    time.sleep(0.1)
+                    time.sleep(SHORT_CHECK_INTERVAL)
 
         logger.info(
             "Параллельный парсинг завершен. Успешно: %d, Ошибок: %d", success_count, failed_count
