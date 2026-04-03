@@ -91,11 +91,28 @@ def _setup_base_logger(
 
 
 class QueueHandler(logging.Handler):
+    """Обработчик логирования через очередь.
+
+    Перенаправляет записи логов в очередь для безопасной передачи
+    между потоками. Используется в GUI для отображения логов
+    в пользовательском интерфейсе.
+
+    Args:
+        log_queue: Очередь для передачи записей логов.
+
+    """
+
     def __init__(self, log_queue: queue.Queue[tuple[str, str]]) -> None:
         super().__init__()
-        self._log_queue = log_queue
+        self._log_queue: queue.Queue[tuple[str, str]] = log_queue
 
     def emit(self, record: logging.LogRecord) -> None:
+        """Отправляет запись лога в очередь.
+
+        Args:
+            record: Запись лога для обработки.
+
+        """
         log_message = (record.levelname, self.format(record) + os.linesep)
         self._log_queue.put(log_message)
 

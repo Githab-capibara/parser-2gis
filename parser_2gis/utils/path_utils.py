@@ -19,7 +19,7 @@ import unicodedata
 import urllib.parse
 from pathlib import Path
 
-from parser_2gis.constants import FORBIDDEN_PATH_CHARS, MAX_PATH_LENGTH, MAX_URL_DECODE_ITERATIONS
+from parser_2gis.constants import FORBIDDEN_PATH_CHARS, MAX_PATH_LENGTH
 
 # Разрешённые базовые директории для записи
 # ОБОСНОВАНИЕ: Используем tempfile.gettempdir() вместо hardcoded /tmp для кроссплатформенности
@@ -226,12 +226,13 @@ def validate_path_traversal(file_path: str) -> Path:
     # Шаг 1: Многократное URL-decode до стабильного состояния
     # Это предотвращает атаки через двойное/тройное кодирование (%252e%252e -> %2e%2e -> ..)
     decoded_path = normalized_input
-    # ISSUE-181: Вынесение max_decode_iterations в константу
+    # Оптимизация: ограничиваем разумным максимумом 3 итерации
+    max_decode_iterations = 3
     decode_iteration = 0
 
     # ISSUE-180: Оптимизация URL-decode - кэширование предыдущего значения
     previous_path = None
-    while decode_iteration < MAX_URL_DECODE_ITERATIONS:
+    while decode_iteration < max_decode_iterations:
         previous_path = decoded_path
         try:
             decoded_path = urllib.parse.unquote(decoded_path)
@@ -245,7 +246,7 @@ def validate_path_traversal(file_path: str) -> Path:
         decode_iteration += 1
 
     # Проверка на бесконечное кодирование
-    if decode_iteration >= MAX_URL_DECODE_ITERATIONS and decoded_path != previous_path:
+    if decode_iteration >= max_decode_iterations and decoded_path != previous_path:
         raise ValueError(
             f"Path traversal атака обнаружена: {file_path}. "
             "Обнаружено многократное URL-кодирование (возможная атака)"

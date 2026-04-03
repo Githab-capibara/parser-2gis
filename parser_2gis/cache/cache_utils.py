@@ -14,6 +14,7 @@ from __future__ import annotations
 import functools
 import hashlib
 import zlib
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -141,7 +142,7 @@ def get_cache_size_mb(cache_file: Path, conn: sqlite3.Connection | None = None) 
         return 0.0
 
 
-def parse_expires_at(expires_at_str: str) -> Any:
+def parse_expires_at(expires_at_str: str) -> datetime | None:
     """Парсит строку даты истечения кэша.
 
     Args:
@@ -151,8 +152,6 @@ def parse_expires_at(expires_at_str: str) -> Any:
         datetime объект или None при ошибке парсинга.
 
     """
-    from datetime import datetime
-
     try:
         return datetime.fromisoformat(expires_at_str)
     except ValueError:
@@ -160,7 +159,7 @@ def parse_expires_at(expires_at_str: str) -> Any:
         return None
 
 
-def is_cache_expired(expires_at: Any) -> bool:
+def is_cache_expired(expires_at: datetime | None) -> bool:
     """Проверяет истёк ли кэш.
 
     Args:
@@ -170,8 +169,6 @@ def is_cache_expired(expires_at: Any) -> bool:
         True если кэш истёк, False иначе.
 
     """
-    from datetime import datetime
-
     if expires_at is None:
         return True
 

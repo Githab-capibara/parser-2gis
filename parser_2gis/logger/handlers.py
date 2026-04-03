@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Any
 
 
 class FileLogger:
@@ -273,7 +274,12 @@ class FileLogger:
         """
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
         """Автоматическое закрытие при выходе из контекста."""
         self.close()
 

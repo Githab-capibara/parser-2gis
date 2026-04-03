@@ -20,6 +20,45 @@ from typing import Any, TypedDict
 from parser_2gis.constants import MAX_CITIES_COUNT, MAX_CITIES_FILE_SIZE, MMAP_CITIES_THRESHOLD
 from parser_2gis.logger import logger
 
+# Константа размера кэша городов
+CITIES_CACHE_SIZE: int = 16
+
+
+def _validate_city(city: dict[str, Any], index: int) -> None:
+    """Валидирует отдельный город.
+
+    Args:
+        city: Словарь с данными города.
+        index: Индекс города в списке (для сообщений об ошибках).
+
+    Raises:
+        ValueError: Если город некорректен.
+
+    """
+    if not isinstance(city, dict):
+        logger.error("Город %d должен быть словарём, а не %s", index, type(city).__name__)
+        raise ValueError("Город %d должен быть словарём")
+
+    # Проверяем name, code, domain
+    if "name" not in city or "code" not in city or "domain" not in city:
+        logger.error("Город %d должен содержать поля 'name', 'code' и 'domain'", index)
+        raise ValueError("Город %d должен содержать поля 'name', 'code' и 'domain'")
+
+    if (
+        not isinstance(city["name"], str)
+        or not isinstance(city["code"], str)
+        or not isinstance(city["domain"], str)
+    ):
+        logger.error("Поля 'name', 'code' и 'domain' города %d должны быть строками", index)
+        raise ValueError(
+            f"Поля 'name', 'code' и 'domain' города {index} должны быть строками"
+        )
+
+    # Опционально: проверяем country_code если есть
+    if "country_code" in city and not isinstance(city["country_code"], str):
+        logger.error("Поле 'country_code' города %d должно быть строкой", index)
+        raise ValueError(f"Поле 'country_code' города {index} должно быть строкой")
+
 
 class CategoryDict(TypedDict):
     """Типизация словаря категории."""
@@ -48,7 +87,9 @@ class ConfigCache:
     """
 
     # ISSUE-087: Используем @lru_cache на методе класса вместо создания на экземпляре
-    def __init__(self, cities_cache_size: int = 16, categories_cache_size: int = 4) -> None:
+    def __init__(
+        self, cities_cache_size: int = CITIES_CACHE_SIZE, categories_cache_size: int = 4
+    ) -> None:
         """Инициализация кэша конфигураций.
 
         Args:
@@ -141,29 +182,7 @@ class ConfigCache:
                 )
 
             for i, city in enumerate(all_cities):
-                if not isinstance(city, dict):
-                    logger.error("Город %d должен быть словарём, а не %s", i, type(city).__name__)
-                    raise ValueError("Город %d должен быть словарём")
-
-                # Проверяем name, code, domain
-                if "name" not in city or "code" not in city or "domain" not in city:
-                    logger.error("Город %d должен содержать поля 'name', 'code' и 'domain'", i)
-                    raise ValueError("Город %d должен содержать поля 'name', 'code' и 'domain'")
-
-                if (
-                    not isinstance(city["name"], str)
-                    or not isinstance(city["code"], str)
-                    or not isinstance(city["domain"], str)
-                ):
-                    logger.error("Поля 'name', 'code' и 'domain' города %d должны быть строками", i)
-                    raise ValueError(
-                        f"Поля 'name', 'code' и 'domain' города {i} должны быть строками"
-                    )
-
-                # Опционально: проверяем country_code если есть
-                if "country_code" in city and not isinstance(city["country_code"], str):
-                    logger.error("Поле 'country_code' города %d должно быть строкой", i)
-                    raise ValueError(f"Поле 'country_code' города {i} должно быть строкой")
+                _validate_city(city, i)
 
             logger.debug("Файл городов валидирован: %d городов", len(all_cities))
 

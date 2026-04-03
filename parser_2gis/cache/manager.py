@@ -54,9 +54,10 @@ from .validator import CacheDataValidator
 # TYPE ALIASES FOR COMPLEX TYPES
 # =============================================================================
 
-CacheRow: TypeAlias = tuple[str, int, str]  # (data, checksum, expires_at_str)
-CacheItem: TypeAlias = tuple[str, dict[str, Any]]  # (url, data)
-OptionalCacheRow: TypeAlias = CacheRow | None
+# Кортеж строки кэша: (data, checksum, expires_at_str)
+CacheRow: TypeAlias = tuple[str, int, str]
+# Пара элемента кэша: (url, data)
+CacheItem: TypeAlias = tuple[str, dict[str, Any]]
 
 
 # =============================================================================
@@ -365,7 +366,21 @@ class CacheManager:
             app_logger.error("Ошибка при инициализации кэша: %s", e)
             raise
 
-    def _get_cached_row(self, conn: sqlite3.Connection, url_hash: str) -> CacheRow | None:
+    def _safe_close_cursor(self, cursor: sqlite3.Cursor | None) -> None:
+        """Безопасно закрывает курсор с обработкой ошибок.
+
+        Args:
+            cursor: Курсор для закрытия (может быть None).
+
+        """
+        if cursor is None:
+            return
+        try:
+            cursor.close()
+        except (sqlite3.Error, OSError, MemoryError) as cursor_error:
+            app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
+
+    def _get_from_db(self, conn: sqlite3.Connection, url_hash: str) -> CacheRow | None:
         """Извлекает строку кэша из базы данных.
 
         ISSUE-065: Использует conn.execute() напрямую вместо создания курсора.
@@ -407,26 +422,6 @@ class CacheManager:
 
         """
         cursor.execute(self.SQL_DELETE, (url_hash,))
-
-    # ИСПРАВЛЕНИЕ: Рефакторинг метода get — выделение подметодов
-    def _get_from_db(self, conn: sqlite3.Connection, url_hash: str) -> CacheRow | None:
-        """Извлекает строку кэша из базы данных.
-
-        ISSUE-065: Использует conn.execute() напрямую вместо создания курсора.
-
-        Args:
-            conn: Соединение базы данных sqlite3.
-            url_hash: Хеш URL для поиска.
-
-        Returns:
-            Кортеж (data, checksum, expires_at_str) или None если не найдено.
-
-        """
-        # ISSUE-065: Используем conn.execute() напрямую для простых SELECT запросов
-        cursor = conn.execute(self.SQL_SELECT, (url_hash,))
-        row = cursor.fetchone()
-        cursor.close()
-        return row  # type: ignore[return-value]
 
     def _handle_cache_hit(
         self, data: str, checksum: int, expires_at_str: str, conn: sqlite3.Connection, url_hash: str
@@ -813,11 +808,7 @@ class CacheManager:
             app_logger.error("Ошибка БД при сохранении кэша: %s", db_error)
         finally:
             # P1-8: Гарантированное закрытие курсора в finally
-            try:
-                if cursor is not None:
-                    cursor.close()
-            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
-                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
+            self._safe_close_cursor(cursor)
 
     def get_batch(self, urls: list[str]) -> dict[str, dict[str, Any] | None]:
         """Пакетное получение данных из кэша.
@@ -896,10 +887,7 @@ class CacheManager:
             app_logger.error("Ошибка БД при пакетном получении кэша: %s", db_error)
             results = {url: None for url in urls}
         finally:
-            try:
-                cursor.close()
-            except (sqlite3.Error, OSError, MemoryError) as close_error:
-                app_logger.debug("Ошибка при закрытии курсора пакетной операции: %s", close_error)
+            self._safe_close_cursor(cursor)
 
         return results
 
@@ -930,41 +918,43 @@ class CacheManager:
         now = datetime.now()
         expires_at = now + self._ttl
 
-        try:
-            for url, data in items:
+        # Оптимизация: сериализация в один проход, затем пакетная вставка
+        batch_params: list[tuple[str, str, str, int, str, str]] = []
+        for url, data in items:
+            try:
                 url_hash = self._hash_url(url)
+                data_json = self._serializer.serialize(data)
+                # H002: Вычисляем CRC32 checksum с кэшированием для часто используемых данных
+                data_json_hash = hashlib.sha256(data_json.encode("utf-8")).hexdigest()
+                checksum = compute_crc32_cached(data_json_hash, data_json)
+                batch_params.append((
+                    url_hash,
+                    url,
+                    data_json,
+                    checksum,
+                    now.isoformat(),
+                    expires_at.isoformat(),
+                ))
+                saved_count += 1
+            except (TypeError, ValueError) as serialize_error:
+                app_logger.warning(
+                    "Ошибка сериализации данных для кэша (%s): %s", url, serialize_error
+                )
+                skipped_count += 1
+                continue
 
-                try:
-                    data_json = self._serializer.serialize(data)
-                    # H002: Вычисляем CRC32 checksum с кэшированием для часто используемых данных
-                    data_json_hash = hashlib.sha256(data_json.encode("utf-8")).hexdigest()
-                    checksum = compute_crc32_cached(data_json_hash, data_json)
-                    cursor.execute(
-                        self.SQL_INSERT_OR_REPLACE,
-                        (
-                            url_hash,
-                            url,
-                            data_json,
-                            checksum,
-                            now.isoformat(),
-                            expires_at.isoformat(),
-                        ),
-                    )
-                    saved_count += 1
-                except (TypeError, ValueError) as serialize_error:
-                    app_logger.warning(
-                        "Ошибка сериализации данных для кэша (%s): %s", url, serialize_error
-                    )
-                    skipped_count += 1
-                    continue
+        try:
+            # Пакетная вставка через executemany для снижения накладных расходов
+            if batch_params:
+                cursor.executemany(self.SQL_INSERT_OR_REPLACE, batch_params)
 
-            # ПРОВЕРКА: Ограничение размера кэша перед пакетной вставкой
-            # C013: Проверяем размер кэша только если количество записей > порога
-            if len(items) > 100:  # Проверяем только для больших пакетов
-                self._enforce_cache_size_limit(conn)
+                # ПРОВЕРКА: Ограничение размера кэша перед пакетной вставкой
+                # C013: Проверяем размер кэша только если количество записей > порога
+                if len(items) > 100:  # Проверяем только для больших пакетов
+                    self._enforce_cache_size_limit(conn)
 
-            # Один коммит для всех записей
-            conn.commit()
+                # Один коммит для всех записей
+                conn.commit()
 
             if skipped_count > 0:
                 app_logger.warning(
@@ -983,10 +973,7 @@ class CacheManager:
                 raise
             app_logger.error("Ошибка БД при пакетном сохранении кэша: %s", db_error)
         finally:
-            try:
-                cursor.close()
-            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
-                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
+            self._safe_close_cursor(cursor)
 
         return saved_count
 
@@ -1077,10 +1064,7 @@ class CacheManager:
             app_logger.warning("Ошибка БД при очистке истекшего кэша: %s", db_error)
             return 0
         finally:
-            try:
-                cursor.close()
-            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
-                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
+            self._safe_close_cursor(cursor)
 
     def clear_batch(self, url_hashes: list[str]) -> int:
         """Пакетное удаление записей по хешам URL.
@@ -1113,20 +1097,19 @@ class CacheManager:
         cursor = conn.cursor()
 
         try:
-            # Создаем временную таблицу для безопасного batch удаления
+            # Переиспользуем временную таблицу вместо создания каждый раз
             cursor.execute("CREATE TEMP TABLE IF NOT EXISTS temp_hashes (hash TEXT PRIMARY KEY)")
+            # Очищаем таблицу перед вставкой для повторного использования
+            cursor.execute("DELETE FROM temp_hashes")
 
             # Вставляем хеши безопасно через параметризованный запрос
             cursor.executemany(
-                "INSERT OR IGNORE INTO temp_hashes VALUES (?)", [(h,) for h in validated_hashes]
+                "INSERT INTO temp_hashes VALUES (?)", [(h,) for h in validated_hashes]
             )
 
             # Удаляем через JOIN с временной таблицей
             cursor.execute("DELETE FROM cache WHERE url_hash IN (SELECT hash FROM temp_hashes)")
             deleted_count = cursor.rowcount
-
-            # Очищаем временную таблицу
-            cursor.execute("DROP TABLE IF EXISTS temp_hashes")
 
             conn.commit()
             return deleted_count
@@ -1140,10 +1123,7 @@ class CacheManager:
             app_logger.warning("Ошибка БД при пакетном удалении: %s", db_error)
             return 0
         finally:
-            try:
-                cursor.close()
-            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
-                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
+            self._safe_close_cursor(cursor)
 
     def get_stats(self) -> dict[str, Any]:
         """Получение статистики кэша.
@@ -1188,10 +1168,7 @@ class CacheManager:
             app_logger.warning("Ошибка при получении статистики кэша: %s", db_error)
             return {"total_records": 0, "expired_records": 0, "cache_size": 0}
         finally:
-            try:
-                cursor.close()
-            except (sqlite3.Error, OSError, MemoryError) as cursor_error:
-                app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
+            self._safe_close_cursor(cursor)
 
     def close(self) -> None:
         """Закрывает все соединения и освобождает ресурсы.
@@ -1225,7 +1202,12 @@ class CacheManager:
         """
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
         """Закрывает все соединения при выходе из контекста.
 
         Args:
@@ -1295,9 +1277,13 @@ class CacheManager:
                         )
                         return
 
-                    while (
-                        cache_size_mb > MAX_CACHE_SIZE_MB and eviction_iterations < max_iterations
-                    ):
+                    # Оптимизация: выполняем COUNT один раз в начале
+                    cursor.execute("SELECT COUNT(*) FROM cache")
+                    total_records = cursor.fetchone()[0]
+                    # Оцениваем средний размер записи и общий размер после удалений
+                    avg_record_size = cache_size_mb / total_records if total_records > 0 else 0.001
+
+                    while eviction_iterations < max_iterations:
                         eviction_iterations += 1
 
                         # D008: Используем параметризованный запрос (уже безопасно)
@@ -1316,7 +1302,11 @@ class CacheManager:
                             total_deleted,
                         )
 
-                        cache_size_mb = self._get_cache_size_mb(conn)
+                        # Оптимизация: оцениваем размер без повторного stat()
+                        remaining_records = total_records - total_deleted
+                        cache_size_mb = remaining_records * avg_record_size if remaining_records > 0 else 0.0
+                        if cache_size_mb <= MAX_CACHE_SIZE_MB:
+                            break
 
                     if eviction_iterations >= max_iterations:
                         app_logger.warning(
@@ -1335,10 +1325,7 @@ class CacheManager:
                         )
 
                 finally:
-                    try:
-                        cursor.close()
-                    except (sqlite3.Error, OSError, MemoryError) as cursor_error:
-                        app_logger.debug("Ошибка при закрытии курсора: %s", cursor_error)
+                    self._safe_close_cursor(cursor)
 
         except OSError as os_error:
             app_logger.warning("Ошибка при проверке размера кэша: %s", os_error)

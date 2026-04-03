@@ -52,14 +52,14 @@ _SQLITE_PRAGMA_BUSY_TIMEOUT: int = 60000  # 60 секунд
 _PRAGMA_SCRIPT_CACHE: str | None = None
 
 # Попытка импортировать psutil для мониторинга памяти
-# ISSUE-052: Переименовано из _PSUTIL_AVAILABLE в PSUTIL_AVAILABLE
 try:
     import psutil
 
     PSUTIL_AVAILABLE = True
+    _psutil_available = True
 except ImportError:
     PSUTIL_AVAILABLE = False
-    psutil = None  # type: ignore
+    _psutil_available = False
 
 
 @functools.lru_cache(maxsize=1)
@@ -86,7 +86,7 @@ def _calculate_dynamic_pool_size() -> int:
     """
     try:
         # Пытаемся получить информацию о памяти через psutil
-        if not PSUTIL_AVAILABLE or psutil is None:
+        if not _psutil_available:
             raise ImportError("psutil не установлен")
 
         available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)
@@ -267,35 +267,23 @@ class ConnectionPool:
             # C002: Используем единую блокировку вместо double-checked locking
             # Это предотвращает race conditions и упрощает код
             with self._lock:
-                # Проверяем кэш thread-local внутри блокировки
-                # Используем id(conn) как ключ для хранения возраста
-                if hasattr(self._local, "connection") and self._local.connection is not None:
-                    conn_obj = self._local.connection
-                    conn_id = id(conn_obj)
-                    if conn_id in self._connection_age:
-                        age = time.time() - self._connection_age[conn_id]
-                        if age <= _CONNECTION_MAX_AGE_ENV:
-                            # Дополнительная проверка активности соединения
-                            if self._is_connection_valid(conn_obj):
-                                return conn_obj
-                            app_logger.debug(
-                                "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
-                            )
-
-                # Повторная проверка и обработка существующего соединения
+                # Единая проверка thread-local кэша
                 if hasattr(self._local, "connection") and self._local.connection is not None:
                     conn_obj = self._local.connection
                     conn_id = id(conn_obj)
                     age = self._connection_age.get(conn_id)
+
+                    should_reuse = False
                     if age is not None:
                         age = time.time() - age
                         if age <= _CONNECTION_MAX_AGE_ENV:
                             # Проверка активности соединения перед использованием
                             if self._is_connection_valid(conn_obj):
-                                return conn_obj
-                            app_logger.debug(
-                                "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
-                            )
+                                should_reuse = True
+                            else:
+                                app_logger.debug(
+                                    "Соединение неактивно (SELECT 1 failed), требуется пересоздание"
+                                )
                         else:
                             app_logger.debug(
                                 "Соединение устарело (возраст: %.0f сек), требуется пересоздание",
@@ -305,6 +293,9 @@ class ConnectionPool:
                         app_logger.debug(
                             "Соединение не найдено в _connection_age, требуется пересоздание"
                         )
+
+                    if should_reuse:
+                        return conn_obj
 
                     # Закрываем старое соединение
                     try:
