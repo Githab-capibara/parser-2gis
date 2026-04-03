@@ -30,9 +30,13 @@ class JSONWriter(FileWriter):
         self._file.write("[\n")
         return self
 
-    def __exit__(self, *exc_info) -> None:
+    def __exit__(self, *exc_info: Any) -> None:
         # Записываем закрывающую скобку массива
-        self._file.write("\n]")
+        try:
+            self._file.write("\n]")
+        except OSError as write_error:
+            logger.error("Ошибка записи закрывающей скобки JSON: %s", write_error)
+            raise
         super().__exit__(*exc_info)
 
     def _writedoc(self, catalog_doc: Any) -> None:
@@ -83,9 +87,10 @@ class JSONWriter(FileWriter):
             # ISSUE-171: Буферизация через явный вызов flush после dump
             json.dump(item, self._file, ensure_ascii=False, indent=2)
             self._file.flush()  # Явная буферизация для предотвращения потери данных
-        except (TypeError, ValueError) as json_error:
+        except (TypeError, ValueError, json.JSONDecodeError) as json_error:
             # TypeError: объект не сериализуем в JSON
             # ValueError: объект содержит некорректные данные для JSON
+            # json.JSONDecodeError: ошибка декодирования JSON
             logger.error("Ошибка сериализации JSON: %s", json_error)
             raise
 

@@ -19,7 +19,7 @@ import signal
 import threading
 import time
 import typing
-from typing import TextIO
+from typing import TYPE_CHECKING, TextIO
 import csv as csv_module
 import uuid
 from dataclasses import dataclass
@@ -34,6 +34,9 @@ from parser_2gis.constants import (
 )
 from parser_2gis.logger import logger
 from parser_2gis.utils.temp_file_manager import temp_file_manager
+
+if TYPE_CHECKING:
+    from parser_2gis.config import Configuration
 
 
 @dataclass
@@ -522,7 +525,11 @@ class ParallelFileMerger:
     """
 
     def __init__(
-        self, output_dir: Path, config, cancel_event: threading.Event, lock: threading.RLock
+        self,
+        output_dir: Path,
+        config: "Configuration",
+        cancel_event: threading.Event,
+        lock: threading.RLock,
     ) -> None:
         """Инициализация слияния файлов.
 

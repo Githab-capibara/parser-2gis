@@ -19,8 +19,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING
-from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable, Generator
 
 from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.constants import (
@@ -48,6 +48,9 @@ from parser_2gis.writer import get_writer
 
 if TYPE_CHECKING:
     from parser_2gis.config import Configuration
+
+# Константа для дополнительного количества слотов семафора браузеров
+BROWSER_SEMAPHORE_EXTRA_SLOTS: int = 20
 
 
 # =============================================================================
@@ -91,7 +94,7 @@ class CoordinatorContext:
 _coordinator_context = CoordinatorContext()
 
 
-def _signal_handler(signum: int, frame) -> None:
+def _signal_handler(signum: int, frame: Any) -> None:
     """Глобальный обработчик сигналов SIGINT (Ctrl+C).
 
     ISSUE-009: Использует CoordinatorContext вместо глобальной переменной.
@@ -236,7 +239,7 @@ class ParallelCoordinator:
         self._lock = threading.Lock()
         self._cancel_event = threading.Event()
         self._stop_event = threading.Event()
-        self._browser_launch_semaphore = BoundedSemaphore(max_workers + 20)
+        self._browser_launch_semaphore = BoundedSemaphore(max_workers + BROWSER_SEMAPHORE_EXTRA_SLOTS)
 
         # H3: Dependency Injection с fallback на создание по умолчанию
         self._error_handler = error_handler or ParallelErrorHandler(self.output_dir, self.config)
@@ -334,7 +337,7 @@ class ParallelCoordinator:
             log_func = getattr(logger, level)
             log_func(message)
 
-    def _create_parser(self, url: str):
+    def _create_parser(self, url: str) -> Any | None:
         """Создаёт парсер для указанного URL.
 
         Args:
@@ -352,7 +355,7 @@ class ParallelCoordinator:
             self.log(f"Ошибка создания парсера: {e}", "error")
             return None
 
-    def _create_writer(self, temp_filepath: Path):
+    def _create_writer(self, temp_filepath: Path) -> Any | None:
         """Создаёт writer для временного файла.
 
         Args:
@@ -382,11 +385,11 @@ class ParallelCoordinator:
         self.log(f"Сгенерировано {len(all_urls)} URL для парсинга", "info")
         return all_urls
 
-    def generate_all_urls_lazy(self):
+    def generate_all_urls_lazy(self) -> Generator[tuple[str, str, str], None, None]:
         """Генератор URL для парсинга.
 
         C014: Lazy loading для снижения потребления памяти.
-        Yield:
+        Yields:
             Кортеж (url, category_name, city_name).
 
         """

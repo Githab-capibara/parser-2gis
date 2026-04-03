@@ -12,11 +12,23 @@ from __future__ import annotations
 import gc
 import os
 import time
+from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.constants import MAX_UNIQUE_NAME_ATTEMPTS
 from parser_2gis.logger import logger
+
+if TYPE_CHECKING:
+    from parser_2gis.config import Configuration
+
+# Константы для повторных попыток по умолчанию
+DEFAULT_BASE_DELAY: float = 5.0
+"""Базовая задержка между попытками в секундах."""
+
+DEFAULT_MAX_RETRIES: int = 10
+"""Максимальное количество повторных попыток."""
 
 
 class ParallelErrorHandler:
@@ -35,7 +47,9 @@ class ParallelErrorHandler:
 
     """
 
-    def __init__(self, output_dir: Path, config) -> None:
+    def __init__(
+        self, output_dir: Path, config: "Configuration"
+    ) -> None:
         """Инициализация обработчика ошибок.
 
         Args:
@@ -65,7 +79,7 @@ class ParallelErrorHandler:
         log_func(message)
 
     def handle_chrome_error(
-        self, chrome_error: ChromeException, temp_filepath: Path, max_retries: int = 10
+        self, chrome_error: ChromeException, temp_filepath: Path, max_retries: int = DEFAULT_MAX_RETRIES
     ) -> tuple[bool, str]:
         """Обрабатывает ошибку Chrome.
 
@@ -237,12 +251,14 @@ class ParallelErrorHandler:
                         MAX_UNIQUE_NAME_ATTEMPTS,
                         temp_filename,
                     )
-                    raise e
+                    raise
 
         # Должно быть выброшено в цикле выше
         raise RuntimeError("Не удалось создать временный файл")
 
-    def retry_with_backoff(self, func, max_retries: int = 10, base_delay: float = 5.0):
+    def retry_with_backoff(
+        self, func: Callable[[], Any], max_retries: int = DEFAULT_MAX_RETRIES, base_delay: float = DEFAULT_BASE_DELAY
+    ) -> Any:
         """Выполняет функцию с повторными попытками и экспоненциальной задержкой.
 
         Args:
@@ -266,17 +282,20 @@ class ParallelErrorHandler:
             except ChromeException:
                 # При max_retries=0 и наличии exception - выбрасываем его
                 raise
-            # При max_retries=0 и отсутствии exception - возвращаем результат
+            # При max_retries=0 без exception -- логируем предупреждение
+            self.log(
+                "retry_with_backoff: max_retries=0, функция выполнена без повторных попыток, "
+                "возвращается None",
+                "warning",
+            )
             return None
 
         retry_delay = base_delay
-        last_exception = None
 
         for attempt in range(max_retries):
             try:
                 return func()
             except ChromeException as chrome_error:
-                last_exception = chrome_error
                 if attempt < max_retries - 1:
                     self.log(
                         f"Попытка {attempt + 1}/{max_retries} не удалась: {chrome_error}. "
@@ -287,8 +306,3 @@ class ParallelErrorHandler:
                     retry_delay *= 2
                 else:
                     raise
-
-        if last_exception:
-            raise last_exception
-
-        return None

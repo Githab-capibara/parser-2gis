@@ -28,7 +28,7 @@ import tempfile
 import time
 import weakref
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from typing_extensions import TypeAlias
 
@@ -498,7 +498,12 @@ class ProcessManager:
 
         try:
             app_logger.warning("Отправка SIGKILL процессу %d", process_pid)
-            self._proc.kill()
+            try:
+                self._proc.kill()
+            except ProcessLookupError as proc_kill_error:
+                app_logger.debug("Процесс уже завершён при попытке kill(): %s", proc_kill_error)
+                self._proc = None
+                return True, "already_killed"
 
             # Проверка poll() после kill()
             poll_result = self._proc.poll()
@@ -777,10 +782,16 @@ class BrowserLifecycleManager:
 
                 # Если не удалось, пробуем принудительно
                 if not success:
-                    self._process_manager.kill(process_pid, timeout=20)
+                    kill_success, kill_status = self._process_manager.kill(process_pid, timeout=20)
+                    if not kill_success:
+                        app_logger.error(
+                            "Не удалось завершить процесс браузера (PID: %s): "
+                            "terminate и kill оба вернули False",
+                            process_pid,
+                        )
 
         except Exception as e:
-            app_logger.error(f"Error closing browser: {e}")
+            app_logger.error("Error closing browser: %s", e)
         finally:
             # ИСПРАВЛЕНИЕ CRITICAL 8: Гарантированная очистка профиля в finally
             try:
@@ -840,7 +851,12 @@ class BrowserLifecycleManager:
         """Возвращает экземпляр для использования в контекстном менеджере."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any | None,
+    ) -> None:
         """Закрывает браузер при выходе из контекста."""
         self.close()
 

@@ -16,10 +16,10 @@ from __future__ import annotations
 import asyncio
 import signal
 import threading
-from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import Executor, Future, ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, FrameType, Literal
 from collections.abc import Callable
 
 from parser_2gis.constants import (
@@ -35,23 +35,49 @@ if TYPE_CHECKING:
     from parser_2gis.parallel.url_parser import ParallelUrlParser
 
 
-# Глобальная переменная для отслеживания активного координатора
-_active_coordinator: ThreadCoordinator | None = None
+# =============================================================================
+# THREAD-LOCAL COORDINATOR CONTEXT (ISSUE-111: Устранено глобальное состояние)
+# =============================================================================
 
 
-def _signal_handler(signum: int, frame) -> None:
+class _CoordinatorContext:
+    """Контекстный менеджер для хранения активного координатора.
+
+    ISSUE-111: Вместо глобальной переменной _active_coordinator используем
+    thread-local хранение для устранения race condition.
+    """
+
+    def __init__(self) -> None:
+        """Инициализирует контекстный менеджер."""
+        self._local = threading.local()
+
+    def set_coordinator(self, coordinator: "ThreadCoordinator | None") -> None:
+        """Устанавливает активный координатор для текущего потока."""
+        self._local.active_coordinator = coordinator
+
+    def get_coordinator(self) -> "ThreadCoordinator | None":
+        """Получает активный координатор для текущего потока."""
+        return getattr(self._local, "active_coordinator", None)
+
+
+# Глобальный экземпляр контекста (не изменяемое состояние, а контейнер)
+_coordinator_context = _CoordinatorContext()
+
+
+def _signal_handler(signum: int, frame: "FrameType | None") -> None:
     """Глобальный обработчик сигналов SIGINT (Ctrl+C).
+
+    ISSUE-111: Использует thread-local контекст вместо глобальной переменной.
 
     Args:
         signum: Номер сигнала.
         frame: Текущий фрейм.
 
     """
-    # pylint: disable=global-statement
-    global _active_coordinator
-    if _active_coordinator is not None:
+    coordinator = _coordinator_context.get_coordinator()
+    if coordinator is not None:
         logger.warning("Получен сигнал прерывания (SIGINT), остановка парсинга...")
-        _active_coordinator.stop()
+        coordinator.stop()
 
 
 ExecutorType = Literal["thread", "process"]
@@ -192,17 +218,15 @@ class ThreadCoordinator:
             True если парсинг успешен, False иначе.
 
         """
-        global _active_coordinator
-
         # Установка глобального обработчика сигнала SIGINT
         old_signal_handler = signal.signal(signal.SIGINT, _signal_handler)
-        _active_coordinator = self
+        _coordinator_context.set_coordinator(self)
 
         # Синхронизируем флаг отмены с url_parser
         self._url_parser._cancel_event = self._cancel_event
 
         executor: Executor | None = None
-        futures: dict = {}
+        futures: dict[Future, tuple] = {}
 
         try:
             # Создаём executor в зависимости от типа
@@ -248,7 +272,7 @@ class ThreadCoordinator:
             return False
         finally:
             # Восстановление обработчика сигнала и очистка ресурсов
-            _active_coordinator = None
+            _coordinator_context.set_coordinator(None)
             try:
                 signal.signal(signal.SIGINT, old_signal_handler)
             except (ValueError, TypeError):
@@ -315,5 +339,8 @@ class ThreadCoordinator:
 
     @property
     def stats(self) -> dict[str, int]:
-        """Возвращает статистику парсинга."""
+        """Возвращает статистику парсинга.
+
+        Примечание: Делегирует получение статистики объекту _url_parser.
+        """
         return self._url_parser.stats

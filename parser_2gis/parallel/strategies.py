@@ -1,7 +1,7 @@
 """Модуль стратегий парсинга для параллельного парсинга.
 
 Предоставляет классы стратегий для:
-- ParseStrategy - стратегия парсинга单个 URL
+- ParseStrategy - стратегия парсинга URL
 - UrlGenerationStrategy - стратегия генерации URL
 - MemoryCheckStrategy - стратегия проверки памяти
 
@@ -20,7 +20,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 
 from typing_extensions import TypeAlias
 
@@ -39,6 +39,8 @@ UrlTuple: TypeAlias = tuple[str, str, str]  # (url, category_name, city_name)
 
 # Константы
 MEMORY_THRESHOLD_BYTES: int = 100 * 1024 * 1024  # 100MB порог для проверки памяти
+DEFAULT_MAX_ATTEMPTS: int = 3
+"""Максимальное количество попыток по умолчанию."""
 
 
 class UrlGenerationStrategy:
@@ -81,7 +83,7 @@ class UrlGenerationStrategy:
         logger.info(f"Сгенерировано {len(all_urls)} URL для парсинга")
         return all_urls
 
-    def generate_all_urls_lazy(self):
+    def generate_all_urls_lazy(self) -> Generator[UrlTuple, None, None]:
         """Генератор URL для парсинга (lazy loading).
 
         Yields:
@@ -127,7 +129,7 @@ class MemoryCheckStrategy:
         """
         available_memory = self._memory_monitor.get_available_memory()
         available_mb = available_memory // (1024 * 1024)
-        is_enough = available_memory >= MEMORY_THRESHOLD_BYTES
+        is_enough = available_memory >= (self._memory_threshold_mb * 1024 * 1024)
 
         return is_enough, available_mb
 
@@ -143,7 +145,7 @@ class MemoryCheckStrategy:
 
 
 class ParseStrategy:
-    """Стратегия парсинга单个 URL.
+    """Стратегия парсинга URL.
 
     Отвечает за:
     - Проверку памяти перед парсингом
@@ -205,7 +207,7 @@ class ParseStrategy:
         temp_filepath = self.output_dir / temp_filename
         return temp_filename, temp_filepath
 
-    def _ensure_unique_temp_file(self, temp_filepath: Path, max_attempts: int = 3) -> Path:
+    def _ensure_unique_temp_file(self, temp_filepath: Path, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> Path:
         """Гарантирует создание уникального временного файла.
 
         Args:
@@ -315,7 +317,6 @@ class ParseStrategy:
         # Создаём временный файл
         temp_filename, temp_filepath = self._create_temp_filename(safe_city, safe_category)
         temp_filepath = self._ensure_unique_temp_file(temp_filepath)
-        temp_file_manager.register(temp_filepath)
 
         def do_parse() -> ParserResult:
             """Выполняет парсинг внутри потока."""
@@ -439,8 +440,10 @@ class ParseStrategy:
                 if semaphore_acquired and self._browser_semaphore:
                     self._browser_semaphore.release()
 
-        # Выполняем с таймаутом
+        # Выполняем с таймаутом и гарантированной регистрацией временного файла
         try:
+            temp_file_manager.register(temp_filepath)
+
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(do_parse)
                 try:
