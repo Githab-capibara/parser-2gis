@@ -212,7 +212,11 @@ def validate_path_traversal(file_path: str) -> Path:
     try:
         normalized_input = unicodedata.normalize("NFKC", file_path)
     except (ValueError, TypeError, UnicodeDecodeError) as unicode_error:
-        raise ValueError(f"Некорректный Unicode в пути к файлу: {file_path}") from unicode_error
+        # ID:044: Добавлены детали unicode_error в сообщение
+        raise ValueError(
+            f"Некорректный Unicode в пути к файлу: {file_path!r}. "
+            f"Ошибка: {type(unicode_error).__name__}: {unicode_error}"
+        ) from unicode_error
 
     # ИСПРАВЛЕНИЕ CRITICAL 1: Whitelist проверка символов
     for char in normalized_input:

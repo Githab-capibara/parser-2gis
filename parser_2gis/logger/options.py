@@ -10,17 +10,7 @@ from __future__ import annotations
 
 import re
 
-from pydantic import BaseModel
-
-try:
-    from pydantic import field_validator  # type: ignore[attr-defined]
-
-    PYDANTIC_V2 = True
-    validator = None  # Заглушка для ветки Pydantic V2
-except ImportError:
-    from pydantic import validator
-
-    PYDANTIC_V2 = False
+from pydantic import BaseModel, field_validator
 
 
 class LogOptions(BaseModel):
@@ -65,24 +55,14 @@ class LogOptions(BaseModel):
             raise ValueError("Строка формата неверна")
         return v
 
-    if PYDANTIC_V2:
+    @field_validator("level")
+    @classmethod
+    def level_validation(cls, v: str) -> str:
+        """Валидатор уровня логирования."""
+        return cls._validate_level(v)
 
-        @field_validator("level")
-        @classmethod
-        def level_validation(cls, v: str) -> str:
-            return cls._validate_level(v)
-
-        @field_validator("gui_format", "cli_format")
-        @classmethod
-        def format_validation(cls, v: str) -> str:
-            return cls._validate_format(v)
-
-    else:
-
-        @validator("level")
-        def level_validation(self, v: str) -> str:
-            return self._validate_level(v)
-
-        @validator("gui_format", "cli_format")
-        def format_validation(self, v: str) -> str:
-            return self._validate_format(v)
+    @field_validator("gui_format", "cli_format")
+    @classmethod
+    def format_validation(cls, v: str) -> str:
+        """Валидатор формата строк."""
+        return cls._validate_format(v)

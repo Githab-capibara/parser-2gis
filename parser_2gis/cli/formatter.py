@@ -99,16 +99,20 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
 _patch_installed = False
 
 
-def patch_argparse_translations() -> None:
+def patch_argparse_translations(force: bool = False) -> None:
     """Патчит gettext в argparse для перевода строк на русский язык.
 
     Заменяет стандартные сообщения argparse на русские аналоги.
     Использует локальный gettext вместо глобального патчинга argparse._
 
     ISSUE-040: Избегаем повторного патчинга через флаг _patch_installed.
+
+    Args:
+        force: Принудительная переустановка патча даже если он уже установлен.
+
     """
     global _patch_installed
-    if _patch_installed:
+    if _patch_installed and not force:
         return
 
     custom_translations = {

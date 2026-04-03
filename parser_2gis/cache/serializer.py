@@ -82,7 +82,8 @@ class JsonSerializer:
                 # Продолжаем выполнение и используем стандартный json
             except (RuntimeError, OSError, MemoryError) as unexpected_error:
                 # Любая другая неожиданная ошибка - логируем и используем fallback
-                app_logger.debug(
+                # ID:041: Изменено на WARNING для видимости проблем сериализации
+                app_logger.warning(
                     "Неожиданная ошибка orjson, fallback на json: %s", unexpected_error
                 )
 
@@ -204,9 +205,11 @@ class JsonSerializer:
                             f"Длина данных: {len(data)}, "
                             f"Содержимое: {data[:200]}..."
                         ) from json_error
-                except (AttributeError, TypeError):
+                except (AttributeError, TypeError) as orjson_check_error:
                     # orjson.JSONDecodeError недоступен, используем стандартную обработку
-                    pass
+                    app_logger.debug(
+                        "Не удалось проверить orjson.JSONDecodeError: %s", orjson_check_error
+                    )
 
             # Стандартная обработка JSON ошибок
             raise ValueError(

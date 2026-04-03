@@ -13,6 +13,10 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
 
+# Константы для файлового логирования (ID:049)
+DEFAULT_LOG_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB
+DEFAULT_LOG_BACKUP_COUNT: int = 5
+
 
 class FileLogger:
     """Логгер с поддержкой записи в файл.
@@ -45,8 +49,8 @@ class FileLogger:
         log_file: Path | None = None,
         log_dir: Path | None = None,
         log_level: str = "DEBUG",
-        max_bytes: int = 10 * 1024 * 1024,  # 10 MB
-        backup_count: int = 5,
+        max_bytes: int = DEFAULT_LOG_MAX_BYTES,
+        backup_count: int = DEFAULT_LOG_BACKUP_COUNT,
         auto_session: bool = True,
     ):
         """Инициализация файлового логгера.
@@ -88,11 +92,11 @@ class FileLogger:
             try:
                 self._setup_file_handler()
             except OSError as e:
-                # ID:137: Обрабатываем ошибку создания директории
-                import sys
-
-                sys.stderr.write(
-                    f"Не удалось инициализировать файловый логгер: {e}. Файл: {self._log_file}\n"
+                # ID:137: Логируем ошибку настройки файлового логгера как WARNING
+                # вместо тихого sys.stderr.write для видимости проблемы
+                app_logger = logging.getLogger("parser-2gis")
+                app_logger.warning(
+                    "Не удалось инициализировать файловый логгер: %s. Файл: %s", e, self._log_file
                 )
                 # Не пробрасываем ошибку дальше, чтобы приложение могло работать без файлового логгера
                 self._log_file = None

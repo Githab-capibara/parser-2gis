@@ -241,7 +241,7 @@ class CacheManager:
         self,
         cache_dir: Path,
         ttl_hours: int = DEFAULT_TTL_HOURS,
-        pool_size: int = 5,
+        pool_size: int = 10,
         cache_file_name: str = DEFAULT_CACHE_FILE_NAME,
     ) -> None:
         """Инициализация менеджера кэша.
@@ -249,7 +249,7 @@ class CacheManager:
         Args:
             cache_dir: Директория для хранения кэша
             ttl_hours: Время жизни кэша в часах (по умолчанию 24 часа)
-            pool_size: Размер пула соединений (по умолчанию 5)
+            pool_size: Размер пула соединений (по умолчанию 10)
             cache_file_name: Имя файла кэша (по умолчанию "cache.db")
 
         Raises:
@@ -1331,34 +1331,6 @@ class CacheManager:
             app_logger.warning("Ошибка при проверке размера кэша: %s", os_error)
         except sqlite3.Error as db_error:
             app_logger.warning("Ошибка БД при LRU eviction: %s", db_error)
-
-    def __del__(self) -> None:
-        """Гарантирует закрытие ресурсов при уничтожении объекта.
-
-        ID:068: Явный __del__ как fallback для weakref.finalize().
-        weakref.finalize() может не вызваться при циклических ссылках,
-        поэтому добавляем явный __del__ для дополнительной гарантии.
-
-        Важно:
-            Не следует полагаться на этот метод для гарантированной очистки.
-            Всегда вызывайте close() явно или используйте контекстный менеджер.
-        """
-        try:
-            # Проверяем есть ли финализатор
-            if hasattr(self, "_finalizer") and self._finalizer is not None:
-                if self._finalizer.detach():
-                    # Финализатор был успешно отделён и вызван
-                    app_logger.debug("CacheManager очищен через weakref.finalize()")
-                    return
-
-            # Fallback: явная очистка если finalizer не сработал
-            if hasattr(self, "_pool") and self._pool is not None:
-                app_logger.debug("CacheManager: явная очистка пула соединений в __del__")
-                self._pool.close()
-
-        except (OSError, RuntimeError, AttributeError, sqlite3.Error) as del_error:
-            # Интерпретатор может завершаться - игнорируем ошибки
-            app_logger.debug("CacheManager.__del__: ошибка при очистке: %s", del_error)
 
 
 # Алиас для обратной совместимости

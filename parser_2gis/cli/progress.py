@@ -11,6 +11,9 @@ import logging
 import time
 from dataclasses import dataclass
 
+# Получаем логгер для вывода сообщений
+_logger = logging.getLogger("parser-2gis.progress")
+
 try:
     from tqdm import tqdm
 
@@ -18,9 +21,11 @@ try:
 except ImportError:
     TQDM_AVAILABLE = False
     tqdm = None
-
-# Получаем логгер для вывода сообщений
-_logger = logging.getLogger("parser-2gis.progress")
+    # ID:051: Логируем недоступность tqdm вместо молчаливого отключения
+    _logger.warning(
+        "Библиотека tqdm недоступна. Прогресс-бар будет отключён. "
+        "Установите: pip install tqdm"
+    )
 
 
 @dataclass

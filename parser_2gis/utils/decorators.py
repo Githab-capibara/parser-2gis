@@ -287,8 +287,17 @@ def wait_until_finished(
                     # Пробрасываем TimeoutError немедленно
                     consecutive_failures += 1
                     raise
-                except (MemoryError, OSError, RuntimeError, ValueError, TypeError) as e:
-                    # Логирование ошибок выполнения функции
+                except (MemoryError, OSError) as e:
+                    # ID:043: Изменено на WARNING для MemoryError/OSError — это критические ошибки
+                    logger.warning(
+                        "Критическая ошибка при выполнении функции %s (попытка %d): %s",
+                        func.__name__,
+                        attempt_count,
+                        e,
+                    )
+                    consecutive_failures += 1
+                except (RuntimeError, ValueError, TypeError) as e:
+                    # Логирование остальных ошибок выполнения функции
                     logger.debug(
                         "Ошибка при выполнении функции %s (попытка %d): %s",
                         func.__name__,

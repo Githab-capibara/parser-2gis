@@ -48,8 +48,6 @@ _SQLITE_PRAGMA_CACHE_SIZE: int = -64000  # 64MB в страницах по 4KB
 _SQLITE_PRAGMA_SYNCHRONOUS: str = "NORMAL"
 _SQLITE_PRAGMA_BUSY_TIMEOUT: int = 60000  # 60 секунд
 
-# ISSUE-080: Кэшированные PRAGMA настройки для предотвращения executescript на каждое соединение
-_PRAGMA_SCRIPT_CACHE: str | None = None
 
 # Попытка импортировать psutil для мониторинга памяти
 try:
@@ -455,7 +453,8 @@ class ConnectionPool:
     def _create_connection(self) -> sqlite3.Connection:
         """Создаёт новое соединение с оптимизированными настройками.
 
-        ISSUE-080: Кэширует PRAGMA скрипт для предотвращения executescript на каждое соединение.
+        ID:060: Заменён conn.executescript() на отдельные conn.execute() для каждого PRAGMA.
+        executescript() выполняет неявный COMMIT, что может нарушить транзакции.
 
         Returns:
             Новое SQLite соединение.
@@ -467,17 +466,6 @@ class ConnectionPool:
             правильной синхронизации через RLock.
 
         """
-        global _PRAGMA_SCRIPT_CACHE
-
-        # ISSUE-080: Кэшируем PRAGMA скрипт для всех соединений
-        if _PRAGMA_SCRIPT_CACHE is None:
-            _PRAGMA_SCRIPT_CACHE = f"""
-                PRAGMA journal_mode={_SQLITE_PRAGMA_JOURNAL_MODE};
-                PRAGMA cache_size={_SQLITE_PRAGMA_CACHE_SIZE};
-                PRAGMA synchronous={_SQLITE_PRAGMA_SYNCHRONOUS};
-                PRAGMA busy_timeout={_SQLITE_PRAGMA_BUSY_TIMEOUT};
-            """
-
         conn = sqlite3.connect(
             str(self._cache_file),
             timeout=60.0,  # HIGH 14: Увеличенный таймаут для снижения конфликтов
@@ -485,8 +473,12 @@ class ConnectionPool:
             check_same_thread=False,  # Потокобезопасность
         )
 
-        # ISSUE-080: Используем кэшированный скрипт вместо executescript с форматированием
-        conn.executescript(_PRAGMA_SCRIPT_CACHE)
+        # ID:060: Отдельные execute() для каждого PRAGMA вместо executescript()
+        # executescript() выполняет неявный COMMIT, что может нарушить транзакции
+        conn.execute(f"PRAGMA journal_mode={_SQLITE_PRAGMA_JOURNAL_MODE}")
+        conn.execute(f"PRAGMA cache_size={_SQLITE_PRAGMA_CACHE_SIZE}")
+        conn.execute(f"PRAGMA synchronous={_SQLITE_PRAGMA_SYNCHRONOUS}")
+        conn.execute(f"PRAGMA busy_timeout={_SQLITE_PRAGMA_BUSY_TIMEOUT}")
 
         return conn
 
@@ -603,39 +595,3 @@ class ConnectionPool:
                 exc_info=True,
             )
         # Возвращаем None (подавляем исключения) чтобы не мешать основной логике
-
-    def __del__(self) -> None:
-        """Гарантирует закрытие соединений при уничтожении объекта.
-
-        ИСПОЛЬЗУЕТСЯ weakref.finalize() для гарантированной очистки:
-        - weakref.finalize() регистрируется в __init__ и вызывается сборщиком мусора
-        - Этот метод __del__ используется только для логирования и как fallback
-        - weakref.finalize() работает даже при циклических ссылках
-
-        Важно:
-            Не следует полагаться на этот метод для гарантированной очистки.
-            Всегда вызывайте close() явно или используйте контекстный менеджер.
-        """
-        # weakref.finalize() уже зарегистрирован в __init__ и вызовет _cleanup_pool
-        # Этот метод используется только для логирования
-        try:
-            # Проверяем есть ли финализатор
-            if hasattr(self, "_finalizer") and self._finalizer is not None:
-                if self._finalizer.detach():
-                    # Финализатор был успешно отделён и вызван
-                    app_logger.debug("ConnectionPool очищен через weakref.finalize()")
-                    return
-
-            # Fallback: если финализатор не сработал
-            if hasattr(self, "_all_conns") and self._all_conns:
-                app_logger.warning(
-                    "ConnectionPool уничтожается сборщиком мусора с %d незакрытыми соединениями. "
-                    "Всегда вызывайте close() явно или используйте контекстный менеджер.",
-                    len(self._all_conns),
-                )
-        except (MemoryError, KeyboardInterrupt, SystemExit):
-            # Критические исключения - пробрасываем дальше
-            raise
-        except (RuntimeError, TypeError, ValueError, OSError) as del_error:
-            # В __del__ нельзя выбрасывать исключения - только логируем
-            app_logger.debug("Ошибка в __del__ ConnectionPool: %s", del_error)
