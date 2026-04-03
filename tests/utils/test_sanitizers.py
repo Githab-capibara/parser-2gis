@@ -6,7 +6,6 @@
 - Sanitizer не зацикливается при обнаружении циклических ссылок
 """
 
-
 from parser_2gis.utils.sanitizers import _sanitize_value
 
 
@@ -84,13 +83,7 @@ class TestSanitizerCyclicReferences:
 
     def test_no_cyclic_reference_normal(self) -> None:
         """Тест 7: Нормальная структура без циклов работает корректно."""
-        data = {
-            "name": "test",
-            "nested": {
-                "title": "value",
-                "items": [1, 2, 3],
-            },
-        }
+        data = {"name": "test", "nested": {"title": "value", "items": [1, 2, 3]}}
 
         result = _sanitize_value(data)
         assert isinstance(result, dict)

@@ -59,7 +59,7 @@ class TestJsonSerializerDeserialize:
             pytest.param('{"key":"value"}', {"key": "value"}, id="simple_dict"),
             pytest.param('{"nested":{"a":1}}', {"nested": {"a": 1}}, id="nested_dict"),
             pytest.param('{"count":42}', {"count": 42}, id="dict_with_int"),
-            pytest.param('{}', {}, id="empty_dict"),
+            pytest.param("{}", {}, id="empty_dict"),
         ],
     )
     def test_deserialize_returns_dict(self, data, expected):

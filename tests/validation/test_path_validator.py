@@ -1,15 +1,10 @@
 """Тесты для PathValidator."""
 
-import tempfile
 from pathlib import Path
 
 import pytest
 
-from parser_2gis.validation.path_validator import (
-    PathValidator,
-    get_path_validator,
-    validate_path,
-)
+from parser_2gis.validation.path_validator import PathValidator, get_path_validator, validate_path
 
 
 class TestPathValidatorConstruction:
@@ -38,8 +33,7 @@ class TestPathValidatorValidate:
         validator.validate(safe_path)  # Не должно выбросить исключений
 
     @pytest.mark.parametrize(
-        "forbidden_char",
-        ["..", "~", "$", "`", "|", ";", "&", "\\", "\n", "\r"],
+        "forbidden_char", ["..", "~", "$", "`", "|", ";", "&", "\\", "\n", "\r"]
     )
     def test_forbidden_characters_raise_error(self, forbidden_char, tmp_path):
         """Запрещённые символы вызывают ValueError."""
@@ -67,10 +61,7 @@ class TestPathValidatorValidateMultiple:
     def test_multiple_safe_paths_no_error(self, tmp_path):
         """Несколько безопасных путей не вызывают ошибок."""
         validator = PathValidator(allowed_base_dirs=[tmp_path])
-        paths = {
-            "path1": str(tmp_path / "file1.txt"),
-            "path2": str(tmp_path / "file2.txt"),
-        }
+        paths = {"path1": str(tmp_path / "file1.txt"), "path2": str(tmp_path / "file2.txt")}
         validator.validate_multiple(paths)  # Не должно выбросить исключений
 
 

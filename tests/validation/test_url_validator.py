@@ -2,11 +2,7 @@
 
 import pytest
 
-from parser_2gis.validation.url_validator import (
-    clear_url_cache,
-    is_valid_url,
-    validate_url,
-)
+from parser_2gis.validation.url_validator import clear_url_cache, is_valid_url, validate_url
 
 
 class TestValidateUrl:
@@ -17,7 +13,9 @@ class TestValidateUrl:
         [
             pytest.param("https://2gis.ru/moscow", True, id="valid_https"),
             pytest.param("http://example.com/search/test", True, id="valid_http"),
-            pytest.param("https://2gis.ru/msk/search/apteki/filters/sort=name", True, id="complex_url"),
+            pytest.param(
+                "https://2gis.ru/msk/search/apteki/filters/sort=name", True, id="complex_url"
+            ),
             pytest.param("ftp://example.com", False, id="invalid_scheme"),
             pytest.param("://example.com", False, id="no_scheme"),
             pytest.param("https://", False, id="no_host"),

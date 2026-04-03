@@ -875,9 +875,7 @@ class ChromeRemote:
         """
         # ISSUE-003-#5: Валидация source параметра
         if not isinstance(source, str):
-            raise TypeError(
-                f"source должен быть строкой, получен {type(source).__name__}"
-            )
+            raise TypeError(f"source должен быть строкой, получен {type(source).__name__}")
         if not source or not source.strip():
             raise ValueError("source не может быть пустой строкой")
 

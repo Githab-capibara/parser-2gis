@@ -1,7 +1,6 @@
 """Тесты для cache_utils."""
 
 import hashlib
-import zlib
 
 import pytest
 

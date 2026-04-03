@@ -93,16 +93,15 @@ class TestHandleDbErrorRetry:
         future_expires = (datetime.now() + timedelta(hours=1)).isoformat()
         test_data = json.dumps({"result": "found"})
         mock_retry_conn = MagicMock()
-        mock_retry_conn.execute.return_value.fetchone.return_value = (
-            test_data,
-            future_expires,
-        )
+        mock_retry_conn.execute.return_value.fetchone.return_value = (test_data, future_expires)
         mock_retry_conn.close.return_value = None
 
         with patch("parser_2gis.cache.manager.time.sleep"):
             with patch.object(cache_manager, "_pool") as mock_pool:
                 mock_pool.get_connection.return_value = mock_retry_conn
-                with patch.object(cache_manager._serializer, "deserialize", return_value={"result": "found"}):
+                with patch.object(
+                    cache_manager._serializer, "deserialize", return_value={"result": "found"}
+                ):
                     result = cache_manager._handle_db_error(error, url, url_hash)
 
         assert result == {"result": "found"}
@@ -193,10 +192,7 @@ class TestHandleDbErrorRetry:
         past_expires = (datetime.now() - timedelta(hours=1)).isoformat()
         test_data = '{"old": "data"}'
         mock_retry_conn = MagicMock()
-        mock_retry_conn.execute.return_value.fetchone.return_value = (
-            test_data,
-            past_expires,
-        )
+        mock_retry_conn.execute.return_value.fetchone.return_value = (test_data, past_expires)
 
         with patch("parser_2gis.cache.manager.time.sleep"):
             with patch.object(cache_manager, "_pool") as mock_pool:

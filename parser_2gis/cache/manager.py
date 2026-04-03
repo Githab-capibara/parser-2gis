@@ -550,9 +550,7 @@ class CacheManager:
                     self._pool.return_connection(retry_conn)
             except sqlite3.Error as retry_error:
                 app_logger.warning("Повторная попытка не удалась: %s", retry_error)
-            app_logger.warning(
-                "Кэш недоступен после retry (URL: %s). Возврат None.", url
-            )
+            app_logger.warning("Кэш недоступен после retry (URL: %s). Возврат None.", url)
             return None
 
         # H6 Категория 2: Критические ошибки - выбрасываются дальше

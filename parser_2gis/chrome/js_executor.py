@@ -107,11 +107,23 @@ def _check_js_length(code: str, max_length: int) -> tuple[bool, str | None]:
 # ISSUE-003-#14: Скомпилированные паттерны для проверки опасных кодировок
 # Вынесены на уровень модуля для компиляции один раз
 _ENCODING_CHECK_PATTERNS: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"\\u00[0-9a-fA-F]{2}", re.IGNORECASE), "Обнаружена попытка обхода через Unicode кодировку"),
-    (re.compile(r"\\u\{[0-9a-fA-F]+\}", re.IGNORECASE), "Обнаружена попытка обхода через расширенную Unicode кодировку"),
-    (re.compile(r"&#x[0-9a-fA-F]+;|&#\d+;", re.IGNORECASE), "Обнаружена попытка обхода через HTML entity кодировку"),
+    (
+        re.compile(r"\\u00[0-9a-fA-F]{2}", re.IGNORECASE),
+        "Обнаружена попытка обхода через Unicode кодировку",
+    ),
+    (
+        re.compile(r"\\u\{[0-9a-fA-F]+\}", re.IGNORECASE),
+        "Обнаружена попытка обхода через расширенную Unicode кодировку",
+    ),
+    (
+        re.compile(r"&#x[0-9a-fA-F]+;|&#\d+;", re.IGNORECASE),
+        "Обнаружена попытка обхода через HTML entity кодировку",
+    ),
     (re.compile(r"\\0[0-7]{2,3}"), "Обнаружена попытка обхода через Octal кодировку"),
-    (re.compile(r"\\x[0-9a-fA-F]{2}", re.IGNORECASE), "Обнаружена попытка обхода через Hex кодировку"),
+    (
+        re.compile(r"\\x[0-9a-fA-F]{2}", re.IGNORECASE),
+        "Обнаружена попытка обхода через Hex кодировку",
+    ),
 ]
 
 

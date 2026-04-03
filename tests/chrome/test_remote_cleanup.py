@@ -53,10 +53,7 @@ class TestCleanupInterface:
 
         mock_tab.stop.assert_called_once()
         mock_request.assert_called_once_with(
-            "put",
-            "http://127.0.0.1:9222/json/close/tab-123",
-            timeout=10,
-            verify=True,
+            "put", "http://127.0.0.1:9222/json/close/tab-123", timeout=10, verify=True
         )
         assert chrome_remote._chrome_tab is None
 
@@ -102,7 +99,9 @@ class TestCleanupInterface:
 
         assert chrome_remote._chrome_tab is None
 
-    def test_cleanup_interface_http_error_on_close_request(self, chrome_remote: ChromeRemote) -> None:
+    def test_cleanup_interface_http_error_on_close_request(
+        self, chrome_remote: ChromeRemote
+    ) -> None:
         """Тест 5: Ошибка HTTP-запроса при закрытии вкладки."""
         mock_tab = MagicMock()
         mock_tab.status = "started"
@@ -111,6 +110,7 @@ class TestCleanupInterface:
 
         with patch("parser_2gis.chrome.remote._safe_external_request") as mock_request:
             from requests import RequestException
+
             mock_request.side_effect = RequestException("HTTP error")
             chrome_remote._cleanup_interface()
 

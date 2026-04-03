@@ -577,9 +577,7 @@ class TestBrowserLifecycleManager:
         manager._process_manager._proc = mock_proc
 
         with patch.object(
-            manager._process_manager,
-            "_terminate_process_common",
-            return_value=(True, "terminated"),
+            manager._process_manager, "_terminate_process_common", return_value=(True, "terminated")
         ):
             with patch.object(manager._profile_manager, "cleanup_profile") as mock_cleanup:
                 manager.close()

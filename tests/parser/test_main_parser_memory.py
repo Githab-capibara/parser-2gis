@@ -364,4 +364,3 @@ class TestNavigateTimeoutHandling:
 
             # Проверяем что результат False
             assert result is False
-

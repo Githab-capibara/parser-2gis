@@ -36,6 +36,7 @@ from parser_2gis.writer import CSVWriter, JSONWriter, WriterOptions, XLSXWriter,
 # ChromeOptions тесты (из test_chrome.py)
 # ============================================================================
 
+
 class TestChromeOptions:
     """Тесты для ChromeOptions."""
 
@@ -154,6 +155,7 @@ class TestChromeDefaultMemoryLimit:
 # ChromeRemote тесты (из test_chrome.py)
 # ============================================================================
 
+
 class TestChromeRemote:
     """Тесты для ChromeRemote."""
 
@@ -179,6 +181,7 @@ class TestChromeRemote:
 # ============================================================================
 # ChromeExceptions тесты (из test_chrome.py)
 # ============================================================================
+
 
 class TestChromeExceptions:
     """Тесты для исключений Chrome."""
@@ -218,6 +221,7 @@ class TestChromeExceptions:
 # ============================================================================
 # Интеграционные тесты конфигурации (из test_integration.py)
 # ============================================================================
+
 
 class TestConfigWithParser:
     """Тесты для конфигурации с парсером."""

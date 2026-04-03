@@ -1,7 +1,5 @@
 """Тесты для CacheDataValidator."""
 
-import math
-
 import pytest
 
 from parser_2gis.cache.validator import CacheDataValidator

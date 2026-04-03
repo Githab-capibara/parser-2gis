@@ -315,8 +315,7 @@ class CSVWriter(FileWriter):
             except (OSError, IOError, RuntimeError) as e:
                 logger.error("Ошибка при удалении дубликатов: %s", e)
                 logger.warning(
-                    "Файл %s может содержать дубликаты. "
-                    "Рекомендуется проверить качество данных.",
+                    "Файл %s может содержать дубликаты. Рекомендуется проверить качество данных.",
                     self._file_path,
                 )
 

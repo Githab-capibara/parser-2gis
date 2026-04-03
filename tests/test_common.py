@@ -32,6 +32,7 @@ from parser_2gis.utils.validation_utils import report_from_validation_error
 # floor_to_hundreds тесты (из test_common.py)
 # ============================================================================
 
+
 class TestFloorToHundreds:
     """Тесты для функции floor_to_hundreds."""
 
@@ -68,6 +69,7 @@ class TestFloorToHundreds:
 # ============================================================================
 # unwrap_dot_dict тесты (объединены из test_common.py и test_code_improvements.py)
 # ============================================================================
+
 
 class TestUnwrapDotDict:
     """Тесты для функции unwrap_dot_dict."""
@@ -123,6 +125,7 @@ class TestUnwrapDotDict:
 # report_from_validation_error тесты (из test_common.py)
 # ============================================================================
 
+
 class TestReportFromValidationError:
     """Тесты для функции report_from_validation_error."""
 
@@ -173,6 +176,7 @@ class TestReportFromValidationError:
 # Configuration Robustness тесты (из test_code_improvements.py)
 # ============================================================================
 
+
 class TestConfigurationRobustness:
     """Тесты для устойчивости конфигурации."""
 
@@ -205,6 +209,7 @@ class TestConfigurationRobustness:
 # Common Function Robustness тесты (из test_code_improvements.py)
 # ============================================================================
 
+
 class TestCommonFunctionRobustness:
     """Тесты для устойчивости функций в common.py."""
 
@@ -226,6 +231,7 @@ class TestCommonFunctionRobustness:
 # ============================================================================
 # Parallel Parser Robustness тесты (из test_code_improvements.py)
 # ============================================================================
+
 
 class TestParallelParserRobustness:
     """Тесты для устойчивости параллельного парсера."""
@@ -273,6 +279,7 @@ class TestParallelParserRobustness:
 # Error Handling Comprehensive тесты (из test_code_improvements.py)
 # ============================================================================
 
+
 class TestErrorHandlingComprehensive:
     """Комплексные тесты для обработки ошибок."""
 
@@ -302,6 +309,7 @@ class TestErrorHandlingComprehensive:
 # ============================================================================
 # Concurrency Patterns тесты (из test_code_improvements.py)
 # ============================================================================
+
 
 class TestConcurrencyPatterns:
     """Тесты для паттернов многопоточности."""
@@ -358,6 +366,7 @@ class TestConcurrencyPatterns:
 # ============================================================================
 # Boundary Conditions тесты (из test_code_improvements.py)
 # ============================================================================
+
 
 class TestBoundaryConditions:
     """Тесты граничных условий."""
