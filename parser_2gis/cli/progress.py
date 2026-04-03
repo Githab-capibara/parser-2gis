@@ -178,7 +178,7 @@ class ProgressManager:
             if self._page_bar:
                 try:
                     self._page_bar.close()
-                except Exception as e:
+                except (ValueError, AttributeError) as e:
                     _logger.warning(
                         f"Ошибка закрытия прогресс-бара страниц: {e}. "
                         f"Функция: {self.finish.__name__}"
@@ -187,7 +187,7 @@ class ProgressManager:
             if self._record_bar:
                 try:
                     self._record_bar.close()
-                except Exception as e:
+                except (ValueError, AttributeError) as e:
                     _logger.warning(
                         f"Ошибка закрытия прогресс-бара записей: {e}. "
                         f"Функция: {self.finish.__name__}"
@@ -208,7 +208,7 @@ class ProgressManager:
                     f"Всего страниц: {self._stats.current_page}, "
                     f"Всего записей: {self._stats.current_record}"
                 )
-        except Exception as e:
+        except (RuntimeError, TypeError) as e:
             _logger.exception(
                 f"Ошибка при завершении прогресс-бара: {e}. "
                 f"Функция: {self.finish.__name__}, "
@@ -241,7 +241,7 @@ class ProgressManager:
             if self._page_bar:
                 try:
                     self._page_bar.close()
-                except Exception as e:
+                except (ValueError, AttributeError) as e:
                     _logger.warning(
                         f"Ошибка закрытия прогресс-бара страниц при сбросе: {e}. "
                         f"Функция: {self.reset.__name__}"
@@ -250,7 +250,7 @@ class ProgressManager:
             if self._record_bar:
                 try:
                     self._record_bar.close()
-                except Exception as e:
+                except (ValueError, AttributeError) as e:
                     _logger.warning(
                         f"Ошибка закрытия прогресс-бара записей при сбросе: {e}. "
                         f"Функция: {self.reset.__name__}"
@@ -259,7 +259,7 @@ class ProgressManager:
             self._stats = ProgressStats()
             self._page_bar = None
             self._record_bar = None
-        except Exception as e:
+        except (RuntimeError, TypeError) as e:
             _logger.exception(
                 f"Ошибка при сбросе прогресс-бара: {e}. Функция: {self.reset.__name__}"
             )

@@ -32,6 +32,9 @@ F = TypeVar("F", bound=Callable[..., Any])
 # Типы исключений которые можно retry
 RetryableException = type[Exception] | tuple[type[Exception], ...]
 
+# Исключения по умолчанию для retry — сетевые и системные ошибки
+DEFAULT_RETRY_EXCEPTIONS: tuple[type[Exception], ...] = (ConnectionError, TimeoutError, OSError)
+
 # =============================================================================
 # КОНСТАНТЫ
 # =============================================================================
@@ -65,7 +68,7 @@ def retry_with_backoff(
     backoff_factor: float = 2.0,
     max_delay: float = DEFAULT_MAX_RETRY_DELAY,
     jitter: bool = True,
-    exceptions: RetryableException = Exception,
+    exceptions: RetryableException = DEFAULT_RETRY_EXCEPTIONS,
     logger_name: str | None = None,
 ) -> Callable[[F], F]:
     """Декоратор для повторных попыток с экспоненциальной задержкой.
@@ -151,7 +154,7 @@ def retry_with_backoff(
 
 
 def retry_with_fixed_delay(
-    max_attempts: int = 3, delay: float = 1.0, exceptions: RetryableException = Exception
+    max_attempts: int = 3, delay: float = 1.0, exceptions: RetryableException = DEFAULT_RETRY_EXCEPTIONS
 ) -> Callable[[F], F]:
     """Декоратор для повторных попыток с фиксированной задержкой.
 
@@ -187,7 +190,7 @@ def retry_with_jitter(
     max_attempts: int = 3,
     min_delay: float = 1.0,
     max_delay: float = 10.0,
-    exceptions: RetryableException = Exception,
+    exceptions: RetryableException = DEFAULT_RETRY_EXCEPTIONS,
 ) -> Callable[[F], F]:
     """Декоратор для повторных попыток со случайной задержкой.
 
@@ -265,7 +268,7 @@ def retry_with_tenacity(
     max_attempts: int = 3,
     delay: float = 1.0,
     max_delay: float = DEFAULT_MAX_RETRY_DELAY,
-    exceptions: RetryableException = Exception,
+    exceptions: RetryableException = DEFAULT_RETRY_EXCEPTIONS,
 ) -> Callable[[F], F]:
     """Декоратор с использованием tenacity (если доступна).
 

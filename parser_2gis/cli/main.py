@@ -93,10 +93,13 @@ def main() -> None:
         exit_code = launcher.launch(args)
     except (MemoryError, OSError, RuntimeError) as e:
         logger.critical("Критическая ошибка при запуске приложения: %s", e, exc_info=True)
-        exit_code = 1
+        sys.exit(1)
+    except (TypeError, ValueError) as e:
+        logger.error("Ошибка конфигурации при запуске приложения: %s", e, exc_info=True)
+        sys.exit(1)
     except Exception as e:
         logger.error("Непредвиденная ошибка при запуске приложения: %s", e, exc_info=True)
-        exit_code = 1
+        sys.exit(1)
 
     sys.exit(exit_code)
 

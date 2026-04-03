@@ -54,7 +54,7 @@ class CLIRunner(AbstractRunner):
                             parser.parse(writer)
                             parsed_count += 1
                             logger.info("✅ [%d/%d] Ссылка успешно обработана", idx, total_urls)
-                        except Exception as parse_error:
+                        except (ValueError, TypeError, RuntimeError) as parse_error:
                             error_count += 1
                             logger.error(
                                 "❌ [%d/%d] Ошибка при парсинге ссылки: %s",
@@ -91,7 +91,7 @@ class CLIRunner(AbstractRunner):
             logger.error("❌ Ошибка файловой системы: %s", e)
             log_parser_finish(success=False)
             return
-        except Exception as e:
+        except (TypeError, RuntimeError, ChromeRuntimeException) as e:
             if isinstance(e, ChromeRuntimeException) and str(e) == "Вкладка была остановлена":
                 logger.error("❌ Вкладка браузера была закрыта.")
             else:

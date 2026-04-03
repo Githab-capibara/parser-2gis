@@ -184,8 +184,11 @@ class FileLogger:
             if handler_created and self._file_handler is not None:
                 try:
                     self._file_handler.close()
-                except Exception:
-                    pass  # Игнорируем ошибку закрытия
+                except Exception as handler_close_error:
+                    app_logger = logging.getLogger("parser-2gis")
+                    app_logger.warning(
+                        "Ошибка закрытия обработчика при сбое: %s", handler_close_error
+                    )
                 self._file_handler = None
             # Логируем ошибку в stderr
             import sys

@@ -74,7 +74,7 @@ if TYPE_CHECKING:
 
 # Константы
 MEMORY_THRESHOLD_BYTES = 100 * 1024 * 1024  # 100MB порог для проверки памяти
-MAX_LOCK_ATTEMPTS = 50  # Максимальное число попыток получения lock файла
+MAX_LOCK_ATTEMPTS = 50  # Максимальное число попыток получения lock файла (50 попыток с интервалом 1 сек = до 50 сек ожидания)
 
 
 # =============================================================================
@@ -181,7 +181,7 @@ class ParallelCityParser:
         # Проверка на path traversal атаки
         if ".." in output_dir:
             raise ValueError("output_dir не должен содержать '..'")
-        # Проверка на абсолютный путь
+        # Преобразуем в абсолютный путь
         output_dir_path = Path(output_dir)
         if not output_dir_path.is_absolute():
             output_dir = os.path.abspath(output_dir)

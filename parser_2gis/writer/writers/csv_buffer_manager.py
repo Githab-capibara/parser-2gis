@@ -174,7 +174,7 @@ def _open_file_with_mmap_support(
             # Fallback на обычную буферизацию
             file_obj = open(file_path, mode, encoding=encoding)
             return file_obj, False
-        except Exception as unexpected_error:
+        except (TypeError, RuntimeError) as unexpected_error:
             logger.error(
                 "Непредвиденная ошибка при открытии mmap для файла %s: %s. "
                 "Используется обычная буферизация.",
@@ -220,7 +220,7 @@ def _close_file_with_mmap_support(
             # Обычное закрытие файла
             if hasattr(file_obj, "close"):
                 file_obj.close()
-    except Exception as close_error:
+    except (OSError, TypeError) as close_error:
         logger.warning("Ошибка при закрытии файла: %s", close_error)
 
 
@@ -351,7 +351,7 @@ def _close_file_safely(file_obj: object | None) -> None:
     if file_obj is not None and hasattr(file_obj, "close"):
         try:
             file_obj.close()
-        except Exception as close_error:
+        except (OSError, TypeError) as close_error:
             logger.warning("Ошибка при закрытии файла: %s", close_error)
 
 
@@ -509,11 +509,11 @@ def _safe_move_file(src: str, dst: str) -> bool:
                 logger.error("Fallback copy+delete не удался: файл %s не создан", dst)
                 return False
 
-        except OSError as fallback_error:
+        except (OSError, IOError) as fallback_error:
             # ISSUE-115: Обработка OSError при shutil.copy2
             logger.error("Fallback copy+delete не удался (OSError): %s", fallback_error)
             return False
-        except Exception as fallback_error:
+        except (TypeError, RuntimeError) as fallback_error:
             logger.error(
                 "Fallback copy+delete не удался: %s (%s)",
                 fallback_error,
@@ -521,7 +521,7 @@ def _safe_move_file(src: str, dst: str) -> bool:
             )
             return False
 
-    except Exception as move_error:
+    except (TypeError, RuntimeError) as move_error:
         # Fallback на copy+delete для других исключений
         logger.warning(
             "shutil.move не удался (%s: %s), используем fallback copy+delete",
@@ -551,7 +551,7 @@ def _safe_move_file(src: str, dst: str) -> bool:
         except OSError as fallback_error:
             logger.error("Fallback copy+delete не удался (OSError): %s", fallback_error)
             return False
-        except Exception as fallback_error:
+        except (TypeError, RuntimeError) as fallback_error:
             logger.error(
                 "Fallback copy+delete не удался: %s (%s)",
                 fallback_error,

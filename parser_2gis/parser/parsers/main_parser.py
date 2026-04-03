@@ -35,8 +35,8 @@ if TYPE_CHECKING:
 # =============================================================================
 
 # Попытки и таймауты
-MAX_RESPONSE_ATTEMPTS: int = 3  # Максимальное количество попыток получить ответ
-NAVIGATION_TIMEOUT: int = 300  # Таймаут навигации в секундах (5 минут)
+MAX_RESPONSE_ATTEMPTS: int = 3  # Максимальное количество попыток получить ответ (достаточно для временных сбоев сети)
+NAVIGATION_TIMEOUT: int = 300  # Таймаут навигации в секундах (5 минут — достаточно для медленных страниц с тяжёлым JS)
 WAIT_REQUESTS_TIMEOUT: int = 60  # Таймаут ожидания завершения запросов (1 минута)
 GET_LINKS_TIMEOUT: int = 30  # Таймаут получения ссылок (30 секунд)
 GET_UNIQUE_LINKS_TIMEOUT: int = 30  # Таймаут получения уникальных ссылок (30 секунд)
@@ -440,12 +440,18 @@ class MainPageParser(BaseParser):
                 return True
 
             except TimeoutError as timeout_error:
-                return self._handle_navigation_timeout(
+                should_continue = self._handle_navigation_timeout(
                     url, timeout_error, retry_attempt, NavigationTimeoutError
                 )
+                if should_continue:
+                    continue
+                return False
 
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as navigate_error:
-                return self._handle_navigation_error(url, navigate_error, retry_attempt)
+                should_continue = self._handle_navigation_error(url, navigate_error, retry_attempt)
+                if should_continue:
+                    continue
+                return False
 
         return False
 

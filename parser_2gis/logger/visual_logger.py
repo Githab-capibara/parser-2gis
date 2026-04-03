@@ -244,7 +244,7 @@ class VisualLogger:
             print(f"\n{title}")
             if subtitle:
                 print(f"{subtitle}\n")
-        except Exception as e:
+        except (OSError, TypeError, RuntimeError) as e:
             # Логгируем неожиданную ошибку с полным traceback
             _logger.exception(
                 f"Неожиданная ошибка при выводе заголовка: {e}. "
@@ -291,7 +291,7 @@ class VisualLogger:
             for key, value in items.items():
                 print(f"  {key}: {value}")
             print()
-        except Exception as e:
+        except (OSError, TypeError, RuntimeError) as e:
             _logger.exception(
                 f"Неожиданная ошибка при выводе секции конфигурации: {e}. "
                 f"Функция: {self.print_config_section.__name__}, "
@@ -373,7 +373,7 @@ class VisualLogger:
             for key, value in stats.items():
                 print(f"  {key}: {value}")
             print()
-        except Exception as e:
+        except (OSError, TypeError, RuntimeError) as e:
             _logger.exception(
                 f"Неожиданная ошибка при выводе статистики: {e}. "
                 f"Функция: {self.print_stats.__name__}, "
@@ -388,7 +388,7 @@ class VisualLogger:
         except OSError as e:
             _logger.error(f"Ошибка вывода сообщения об успехе: {e}. Сообщение: {message}")
             print(f"✅ {message}")
-        except Exception as e:
+        except (TypeError, RuntimeError) as e:
             _logger.exception(f"Неожиданная ошибка при выводе успеха: {e}. Сообщение: {message}")
             raise
 
@@ -399,7 +399,7 @@ class VisualLogger:
         except OSError as e:
             _logger.error(f"Ошибка вывода сообщения об ошибке: {e}. Сообщение: {message}")
             print(f"❌ {message}")
-        except Exception as e:
+        except (TypeError, RuntimeError) as e:
             _logger.exception(f"Неожиданная ошибка при выводе ошибки: {e}. Сообщение: {message}")
             raise
 
@@ -410,7 +410,7 @@ class VisualLogger:
         except OSError as e:
             _logger.error(f"Ошибка вывода предупреждения: {e}. Сообщение: {message}")
             print(f"⚠️ {message}")
-        except Exception as e:
+        except (TypeError, RuntimeError) as e:
             _logger.exception(
                 f"Неожиданная ошибка при выводе предупреждения: {e}. Сообщение: {message}"
             )
@@ -423,7 +423,7 @@ class VisualLogger:
         except OSError as e:
             _logger.error(f"Ошибка вывода информационного сообщения: {e}. Сообщение: {message}")
             print(f"ℹ️ {message}")
-        except Exception as e:
+        except (TypeError, RuntimeError) as e:
             _logger.exception(
                 f"Неожиданная ошибка при выводе информации: {e}. Сообщение: {message}"
             )
@@ -436,7 +436,7 @@ class VisualLogger:
         except OSError as e:
             _logger.error(f"Ошибка вывода отладочного сообщения: {e}. Сообщение: {message}")
             print(f"🔍 {message}")
-        except Exception as e:
+        except (TypeError, RuntimeError) as e:
             _logger.exception(f"Неожиданная ошибка при выводе отладки: {e}. Сообщение: {message}")
             raise
 
@@ -450,7 +450,7 @@ def print_header(title: str, subtitle: str | None = None) -> None:
     """Выводит заголовок секции."""
     try:
         visual_logger.print_header(title, subtitle)
-    except Exception as e:
+    except (OSError, TypeError, RuntimeError) as e:
         _logger.exception(f"Ошибка в глобальной функции print_header: {e}")
         raise
 
@@ -459,7 +459,7 @@ def print_config(title: str, items: dict[str, str]) -> None:
     """Выводит секцию конфигурации."""
     try:
         visual_logger.print_config_section(title, items)
-    except Exception as e:
+    except (OSError, TypeError, RuntimeError) as e:
         _logger.exception(f"Ошибка в глобальной функции print_config: {e}. Заголовок: {title}")
         raise
 
@@ -473,7 +473,7 @@ def print_success(message: str) -> None:
     """Выводит сообщение об успехе."""
     try:
         visual_logger.print_success(message)
-    except Exception as e:
+    except (OSError, TypeError, RuntimeError) as e:
         _logger.exception(f"Ошибка в глобальной функции print_success: {e}. Сообщение: {message}")
         raise
 
@@ -482,7 +482,7 @@ def print_error(message: str) -> None:
     """Выводит сообщение об ошибке."""
     try:
         visual_logger.print_error(message)
-    except Exception as e:
+    except (OSError, TypeError, RuntimeError) as e:
         _logger.exception(f"Ошибка в глобальной функции print_error: {e}. Сообщение: {message}")
         raise
 
@@ -491,7 +491,7 @@ def print_warning(message: str) -> None:
     """Выводит предупреждение."""
     try:
         visual_logger.print_warning(message)
-    except Exception as e:
+    except (OSError, TypeError, RuntimeError) as e:
         _logger.exception(f"Ошибка в глобальной функции print_warning: {e}. Сообщение: {message}")
         raise
 
@@ -500,7 +500,7 @@ def print_info(message: str, bold: bool = False) -> None:
     """Выводит информационное сообщение."""
     try:
         visual_logger.print_info(message, bold)
-    except Exception as e:
+    except (OSError, TypeError, RuntimeError) as e:
         _logger.exception(f"Ошибка в глобальной функции print_info: {e}. Сообщение: {message}")
         raise
 
@@ -509,7 +509,7 @@ def print_debug(message: str) -> None:
     """Выводит отладочное сообщение."""
     try:
         visual_logger.print_debug(message)
-    except Exception as e:
+    except (OSError, TypeError, RuntimeError) as e:
         _logger.exception(f"Ошибка в глобальной функции print_debug: {e}. Сообщение: {message}")
         raise
 
@@ -518,6 +518,6 @@ def print_stats(stats: dict[str, int | str], title: str = "Статистика"
     """Выводит статистику."""
     try:
         visual_logger.print_stats(stats, title)
-    except Exception as e:
+    except (OSError, TypeError, RuntimeError) as e:
         _logger.exception(f"Ошибка в глобальной функции print_stats: {e}. Заголовок: {title}")
         raise

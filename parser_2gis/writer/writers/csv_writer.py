@@ -266,10 +266,6 @@ class CSVWriter(FileWriter):
             # Ошибка кодировки (некорректные символы Unicode)
             logger.error("Ошибка кодировки при записи строки: %s", unicode_error)
             raise
-        except Exception as general_error:
-            # Общая ошибка
-            logger.error("Общая ошибка во время записи строки: %s", general_error)
-            raise
 
     def __enter__(self) -> CSVWriter:
         super().__enter__()
@@ -300,7 +296,7 @@ class CSVWriter(FileWriter):
                     encoding=self._options.encoding,
                 )
                 post_processor.remove_empty_columns()
-            except Exception as e:
+            except (OSError, csv.Error, RuntimeError) as e:
                 logger.error("Ошибка при удалении пустых колонок: %s", e)
 
         # Постобработка: удаление дубликатов
@@ -311,7 +307,7 @@ class CSVWriter(FileWriter):
                     file_path=self._file_path, encoding=self._options.encoding
                 )
                 deduplicator.remove_duplicates()
-            except Exception as e:
+            except (OSError, IOError, RuntimeError) as e:
                 logger.error("Ошибка при удалении дубликатов: %s", e)
 
         # Теперь закрываем файл через super().__exit__()

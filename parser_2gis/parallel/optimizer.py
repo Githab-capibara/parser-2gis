@@ -87,16 +87,40 @@ class ParallelOptimizer:
     контролирует использование ресурсов системы.
     """
 
-    def __init__(self, max_workers: int = 3, max_memory_mb: int = 4096) -> None:
+    def __init__(self, max_workers: int = 3, max_memory_mb: int | None = None) -> None:
         """Инициализирует оптимизатор.
 
         Args:
             max_workers: Максимальное количество рабочих потоков.
             max_memory_mb: Максимальное использование памяти в МБ.
+                         Если None, автоматически определяется через psutil (10% от доступной памяти).
 
         """
         self._max_workers = max_workers
-        self._max_memory_mb = max_memory_mb
+        # Автоматическое определение лимита памяти через psutil
+        if max_memory_mb is None:
+            try:
+                available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)
+                # Используем 10% от доступной памяти как лимит
+                self._max_memory_mb = int(available_memory_mb * 0.10)
+                # Ограничиваем разумным диапазоном: минимум 512 MB, максимум 8192 MB
+                self._max_memory_mb = max(512, min(self._max_memory_mb, 8192))
+                logger.debug(
+                    "Автоматически определён лимит памяти: %d MB (доступно: %.0f MB)",
+                    self._max_memory_mb,
+                    available_memory_mb,
+                )
+            except (OSError, AttributeError, ImportError) as e:
+                # Fallback если psutil недоступен
+                self._max_memory_mb = 4096
+                logger.warning(
+                    "Не удалось определить доступную память через psutil: %s. "
+                    "Используется лимит по умолчанию: %d MB",
+                    e,
+                    self._max_memory_mb,
+                )
+        else:
+            self._max_memory_mb = max_memory_mb
         # Оптимизация 3.5: используем queue.Queue для потокобезопасной очереди задач
         # Queue автоматически синхронизирует доступ из разных потоков
         self._tasks: queue.Queue[ParallelTask] = queue.Queue()

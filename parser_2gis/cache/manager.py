@@ -60,6 +60,9 @@ CacheRow: TypeAlias = tuple[str, int, str]
 # Пара элемента кэша: (url, data)
 CacheItem: TypeAlias = tuple[str, dict[str, Any]]
 
+# Размер пула соединений по умолчанию (10 соединений — баланс между производительностью и памятью)
+DEFAULT_POOL_SIZE: int = 10
+
 
 # =============================================================================
 # CACHED HASH COMPUTATION (P0-8: Кэширование SHA-256 для снижения CPU нагрузки)
@@ -256,7 +259,7 @@ class CacheManager:
         self,
         cache_dir: Path,
         ttl_hours: int = DEFAULT_TTL_HOURS,
-        pool_size: int = 10,
+        pool_size: int = DEFAULT_POOL_SIZE,
         cache_file_name: str = DEFAULT_CACHE_FILE_NAME,
     ) -> None:
         """Инициализация менеджера кэша.
@@ -535,6 +538,9 @@ class CacheManager:
             # ISSUE-065: Повторная попытка через conn.execute() напрямую
             # Для этого нужно получить новое соединение
             try:
+                app_logger.warning(
+                    "Повторная попытка получения кэша после блокировки БД (URL: %s)", url
+                )
                 retry_conn = self._pool.get_connection() if self._pool else None
                 if retry_conn:
                     retry_cursor = retry_conn.execute(self.SQL_SELECT, (url_hash,))

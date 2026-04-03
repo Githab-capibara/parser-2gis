@@ -180,7 +180,7 @@ class CSVDeduplicator:
                                 f_tmp_csv.writelines(batch)
                                 batch.clear()
 
-                        except Exception as line_error:
+                        except (ValueError, TypeError, UnicodeError) as line_error:
                             logger.warning("Ошибка обработки строки %d: %s", line_num, line_error)
                             # Пропускаем проблемную строку и продолжаем
 
@@ -218,7 +218,7 @@ class CSVDeduplicator:
             logger.info("Операция удаления дубликатов прервана пользователем")
             raise
 
-        except Exception as e:
+        except (TypeError, RuntimeError) as e:
             logger.error("Непредвиденная ошибка при удалении дубликатов: %s", e)
             raise
 

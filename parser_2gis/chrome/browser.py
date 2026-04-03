@@ -38,6 +38,12 @@ from .constants import DEFAULT_FILE_PERMISSIONS, SECONDS_PER_HOUR
 from .exceptions import ChromePathNotFound
 from .utils import free_port, locate_chrome_path
 
+# Попытка импортировать psutil для принудительного завершения процессов
+try:
+    import psutil
+except ImportError:
+    psutil = None  # type: ignore[misc]
+
 if TYPE_CHECKING:
     from .options import ChromeOptions
 
@@ -541,8 +547,8 @@ class ProcessManager:
                     )
                     try:
                         # Принудительное завершение процесса и всех дочерних процессов
-                        import psutil
-
+                        if psutil is None:
+                            raise ImportError("psutil не установлен")
                         ps_proc = psutil.Process(process_pid)
                         children = ps_proc.children(recursive=True)
                         for child in children:
