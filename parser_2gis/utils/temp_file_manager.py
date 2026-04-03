@@ -103,12 +103,13 @@ class TempFileManager:
         with self._lock:
             if len(self._registry) >= self._max_files:
                 self._logger.warning(
-                    f"Достигнут лимит временных файлов ({self._max_files}), "
-                    f"файл {file_path} не зарегистрирован"
+                    "Достигнут лимит временных файлов (%d), файл %s не зарегистрирован",
+                    self._max_files,
+                    file_path,
                 )
                 return
             self._registry.add(file_path)
-            self._logger.debug(f"Зарегистрирован временный файл: {file_path}")
+            self._logger.debug("Зарегистрирован временный файл: %s", file_path)
 
     def unregister(self, file_path: Path) -> None:
         """Удаляет файл из реестра.
@@ -120,7 +121,7 @@ class TempFileManager:
         with self._lock:
             if file_path in self._registry:
                 self._registry.discard(file_path)
-                self._logger.debug(f"Удалён из реестра: {file_path}")
+                self._logger.debug("Удалён из реестра: %s", file_path)
 
     def cleanup_all(self) -> tuple[int, int]:
         """Очищает все зарегистрированные временные файлы.
@@ -158,7 +159,8 @@ class TempFileManager:
                         f"Ошибка проверки прав доступа к {file_path}: {access_error}"
                     )
                     error_count += 1
-                    continue
+                    # Критическая ошибка — прерываем очистку
+                    break
 
                 # Безопасное удаление файла
                 file_path.unlink()
@@ -178,9 +180,13 @@ class TempFileManager:
             self._logger.info(
                 f"Очистка временных файлов завершена: успешно={success_count}, ошибок={error_count}"
             )
-        except (ValueError, OSError):
-            # Логгер закрыт, игнорируем
-            pass
+        except (ValueError, OSError) as log_error:
+            # Логгер закрыт, игнорируем но логируем в stderr
+            import sys
+            print(
+                f"[TempFileManager] Ошибка логирования: {log_error}",
+                file=sys.stderr,
+            )
 
         return success_count, error_count
 

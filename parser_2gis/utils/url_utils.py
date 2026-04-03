@@ -25,7 +25,18 @@ from typing import Any
 # =============================================================================
 
 
-_url_query_encode = lru_cache(maxsize=1024)(lambda query: urllib.parse.quote(query, safe=""))
+@lru_cache(maxsize=1024)
+def _url_query_encode(query: str) -> str:
+    """Кодирует строку запроса для URL с кэшированием.
+
+    Args:
+        query: Исходная строка запроса.
+
+    Returns:
+        Закодированная строка для URL.
+
+    """
+    return urllib.parse.quote(query, safe="")
 
 
 def url_query_encode(query: str) -> str:

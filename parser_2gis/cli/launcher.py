@@ -281,7 +281,11 @@ class ApplicationLauncher:
                     delay_ms=self.config.parser.delay_between_clicks,
                     retry_on_network_errors=self.config.parser.retry_on_network_errors,
                 ),
-                writer=WriterOptions(format="csv", encoding="utf-8-sig", deduplicate=True),
+                writer=WriterOptions(
+                    format=self.config.writer.format,
+                    encoding="utf-8-sig",
+                    deduplicate=True,
+                ),
             )
 
             # Определяем output_dir
@@ -295,7 +299,7 @@ class ApplicationLauncher:
                 output_dir=str(output_dir),
                 config=config,
                 max_workers=self.config.parallel.max_workers,
-                timeout_per_url=1800,
+                timeout_per_url=self.config.parser.timeout,
             )
 
             def progress_callback(success: int, failed: int, filename: str) -> None:
@@ -303,7 +307,9 @@ class ApplicationLauncher:
                 logger.info("Прогресс: успешно=%d, ошибок=%d, файл=%s", success, failed, filename)
 
             # Определяем имя выходного файла
-            output_file = self._get_output_filename(args, "omsk_all_categories.csv")
+            # Используем формат из конфигурации для определения расширения
+            output_extension = self.config.writer.format or "csv"
+            output_file = self._get_output_filename(args, f"all_categories.{output_extension}")
             output_file_path = output_dir / output_file
 
             result = parser.run(
@@ -524,9 +530,11 @@ class ApplicationLauncher:
             if not hasattr(chrome_class, "_active_instances"):
                 return
 
+            chrome_class_type: type[Any] = chrome_class
+
             # ID:049: Кэшируем список экземпляров перед итерацией для безопасности
             try:
-                chrome_instances = list(chrome_class._active_instances)
+                chrome_instances = list(chrome_class_type._active_instances)
             except (TypeError, AttributeError) as list_error:
                 logger.error("Ошибка создания копии списка _active_instances: %s", list_error)
                 return

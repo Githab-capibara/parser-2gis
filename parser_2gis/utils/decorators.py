@@ -42,6 +42,12 @@ MAX_POLL_INTERVAL: float = MAX_POLL_INTERVAL_CONST
 EXPONENTIAL_BACKOFF_MULTIPLIER: float = EXPONENTIAL_BACKOFF_MULTIPLIER_CONST
 """Множитель для экспоненциальной задержки."""
 
+# Максимальный допустимый таймаут в секундах (24 часа)
+MAX_TIMEOUT: int = 86400
+
+# Максимальный допустимый интервал опроса в секундах
+MAX_POLL_INTERVAL_LIMIT: float = 60.0
+
 
 @dataclass
 class WaitConfig:
@@ -155,14 +161,12 @@ def wait_until_finished(
         )
 
     # ISSUE-099: Дополнительная проверка timeout на разумность (максимум 24 часа)
-    MAX_TIMEOUT = 86400  # 24 часа в секундах
     if timeout is not None and timeout > MAX_TIMEOUT:
         raise ValueError(
             f"timeout не должен превышать {MAX_TIMEOUT} секунд (24 часа), получено {timeout}"
         )
 
     # ISSUE-100: Дополнительная проверка max_poll_interval на разумность (максимум 60 секунд)
-    MAX_POLL_INTERVAL_LIMIT = 60.0
     if max_poll_interval > MAX_POLL_INTERVAL_LIMIT:
         raise ValueError(
             f"max_poll_interval не должен превышать {MAX_POLL_INTERVAL_LIMIT} секунд, получено {max_poll_interval}"
@@ -281,6 +285,7 @@ def wait_until_finished(
                     consecutive_failures = 0  # Сброс при успехе
                 except TimeoutError:
                     # Пробрасываем TimeoutError немедленно
+                    consecutive_failures += 1
                     raise
                 except (MemoryError, OSError, RuntimeError, ValueError, TypeError) as e:
                     # Логирование ошибок выполнения функции

@@ -124,6 +124,24 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
     # Проверка запрещённых директорий (/, /etc, /root, /home)
     forbidden_dirs = ["/", "/etc", "/root", "/home"]
     resolved_path_str = str(resolved_path)
+
+    # Проверка на symlink: если resolved путь отличается от исходного,
+    # возможно используются символические ссылки — дополнительная проверка
+    if str(resolved_path) != str(path_obj) and path_obj.exists():
+        # Проверяем каждый компонент пути на symlink
+        for part_path in path_obj.parents:
+            if part_path.is_symlink():
+                target = part_path.resolve()
+                # Если symlink ведёт в запрещённую директорию — ошибка
+                target_str = str(target)
+                for forbidden_dir in forbidden_dirs:
+                    if target_str == forbidden_dir or target_str.startswith(forbidden_dir + "/"):
+                        if not target_str.startswith("/tmp"):
+                            raise ValueError(
+                                f"{path_name} содержит symlink, ведущий в "
+                                f"системную директорию: {part_path} -> {target}"
+                            )
+
     for forbidden_dir in forbidden_dirs:
         if resolved_path_str == forbidden_dir or resolved_path_str.startswith(forbidden_dir + "/"):
             # Исключаем временные директории внутри /tmp

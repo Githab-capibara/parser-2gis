@@ -145,16 +145,6 @@ def retry_with_backoff(
                             attempts=attempt,
                         ) from e
 
-            # Исчерпаны попытки или unexpected error - выбрасываем ошибку
-            if last_error is not None:
-                raise RetryError(
-                    f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}",
-                    last_error=last_error,
-                    attempts=max_attempts,
-                ) from last_error
-
-            return None
-
         return wrapper  # type: ignore[return-value]
 
     return decorator
@@ -258,15 +248,6 @@ def retry_with_jitter(
                             last_error=e,
                             attempts=attempt,
                         ) from e
-
-            if last_error is not None:
-                raise RetryError(
-                    f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}",
-                    last_error=last_error,
-                    attempts=max_attempts,
-                ) from last_error
-
-            return None
 
         return wrapper  # type: ignore[return-value]
 

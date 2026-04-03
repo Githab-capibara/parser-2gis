@@ -341,6 +341,11 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
 
                 # Чувствительные ключи обрабатываем сразу
                 if current_key and _is_sensitive_key(current_key):
+                    logger.warning(
+                        "Обнаружен чувствительный ключ '%s' — данные будут частично обработаны "
+                        "и заменены на '<REDACTED>'",
+                        current_key,
+                    )
                     result = "<REDACTED>"
                     if parent is not None and parent_key is not None:
                         if isinstance(parent, dict):
@@ -461,8 +466,17 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
     finally:
         try:
             _visited.clear()
-        except (OSError, RuntimeError, MemoryError) as cleanup_error:
+        except (OSError, RuntimeError) as cleanup_error:
             logger.warning("Ошибка при очистке _visited: %s", cleanup_error)
+        except MemoryError as mem_cleanup_error:
+            logger.critical("Нехватка памяти при очистке _visited: %s", mem_cleanup_error)
+        # Очищаем стек при MemoryError для освобождения памяти
+        try:
+            stack.clear()
+        except (NameError, OSError, RuntimeError):
+            pass
+        except MemoryError as mem_cleanup_error:
+            logger.critical("Нехватка памяти при очистке стека: %s", mem_cleanup_error)
 
 
 # =============================================================================

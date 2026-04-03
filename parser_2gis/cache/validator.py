@@ -45,21 +45,27 @@ class CacheDataValidator:
 
     # Паттерн для обнаружения SQL-инъекций
     # Используем (?<![^\s]) вместо \b для корректной работы с unicode
-    _SQL_INJECTION_PATTERNS: re.Pattern = re.compile(
-        r"((?<![^\s])(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE)(?![^\s])|"
+    # Расширенный набор паттернов для обнаружения различных типов SQL-инъекций
+    _SQL_INJECTION_PATTERNS: re.Pattern[str] = re.compile(
+        r"(?i)(?:\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE)\b|"
         r"--|/\*|\*/|@@|CHAR\(|0x[0-9a-f]+|"
-        r"(?<![^\s])(OR|AND)\s+\d+\s*=\s*\d+|"
-        r"(?<![^\s])UNION\s+(ALL\s+)?SELECT(?![^\s])|"
-        r"(?<![^\s])WAITFOR\s+DELAY(?![^\s])|"
-        r"(?<![^\s])BENCHMARK\s*\(|"
-        r"(?<![^\s])HAVING\s+\d+\s*=\s*\d+|"
-        r"(?<![^\s])GROUP\s+BY\s+\d+|"
-        r"(?<![^\s])ORDER\s+BY\s+\d+|"
-        r"(?<![^\s])SLEEP\s*\(\s*\d+\s*\)|"
-        r"(?<![^\s])INFORMATION_SCHEMA(?![^\s])|"
-        r"(?<![^\s])SYS\.\w+(?![^\s])|"
-        r";\s*(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE))",
-        re.IGNORECASE,
+        r"\b(?:OR|AND)\s+\d+\s*=\s*\d+|"
+        r"\bUNION\s+(?:ALL\s+)?SELECT\b|"
+        r"\bWAITFOR\s+DELAY\b|"
+        r"\bBENCHMARK\s*\(|"
+        r"\bHAVING\s+\d+\s*=\s*\d+|"
+        r"\bGROUP\s+BY\s+\d+|"
+        r"\bORDER\s+BY\s+\d+|"
+        r"\bSLEEP\s*\(\s*\d+\s*\)|"
+        r"\bINFORMATION_SCHEMA\b|"
+        r"\bSYS\.\w+|"
+        r";\s*(?:SELECT|INSERT|UPDATE|DELETE|DROP|UNION|EXEC|EXECUTE)|"
+        r"\b(?:LOAD_FILE|INTO\s+OUTFILE|INTO\s+DUMPFILE)\b|"
+        r"\b(?:EXTRACTVALUE|UPDATEXML)\s*\(|"
+        r"\bxp_\w+|"
+        r"\b(?:TRUNCATE|ALTER|CREATE|GRANT|REVOKE)\b|"
+        r"\b(?:CONCAT|GROUP_CONCAT|CAST|CONVERT)\s*\(|"
+        r"'\s*(?:OR|AND|UNION|SELECT|INSERT|UPDATE|DELETE|DROP|EXEC)\b)",
     )
 
     # Опасные ключи для защиты от prototype pollution

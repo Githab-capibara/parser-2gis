@@ -527,8 +527,10 @@ class CacheManager:
                 retry_conn = self._pool.get_connection() if self._pool else None
                 if retry_conn:
                     retry_cursor = retry_conn.execute(self.SQL_SELECT, (url_hash,))
-                    row = retry_cursor.fetchone()
-                    retry_cursor.close()
+                    try:
+                        row = retry_cursor.fetchone()
+                    finally:
+                        retry_cursor.close()
                     if row:
                         data, expires_at_str = row
                         expires_at = self._parse_expires_at(expires_at_str)
@@ -629,7 +631,24 @@ class CacheManager:
         conn = self._pool.get_connection()
 
         try:
-            conn.execute("BEGIN IMMEDIATE")
+            # Добавляем retry логику для обработки sqlite3.OperationalError (database is locked)
+            max_retries = 3
+            retry_delay = 0.1
+            for attempt in range(max_retries):
+                try:
+                    conn.execute("BEGIN IMMEDIATE")
+                    break
+                except sqlite3.OperationalError as lock_error:
+                    if "database is locked" in str(lock_error).lower() and attempt < max_retries - 1:
+                        app_logger.debug(
+                            "База данных заблокирована при BEGIN IMMEDIATE (попытка %d/%d): %s",
+                            attempt + 1,
+                            max_retries,
+                            lock_error,
+                        )
+                        time.sleep(retry_delay * (2 ** attempt))
+                    else:
+                        raise
 
             # ISSUE-071: Используем conn.execute() напрямую для простых SELECT запросов
             row = self._get_from_db(conn, url_hash)
@@ -872,15 +891,15 @@ class CacheManager:
         except sqlite3.Error as db_error:
             try:
                 conn.rollback()
-            except (sqlite3.Error, OSError, MemoryError):
-                pass
+            except (sqlite3.Error, OSError, MemoryError) as rollback_error:
+                app_logger.debug("Ошибка при откате пакетной операции: %s", rollback_error)
             app_logger.error("Ошибка БД при пакетном получении кэша: %s", db_error)
             results = {url: None for url in urls}
         finally:
             try:
                 cursor.close()
-            except (sqlite3.Error, OSError, MemoryError):
-                pass
+            except (sqlite3.Error, OSError, MemoryError) as close_error:
+                app_logger.debug("Ошибка при закрытии курсора пакетной операции: %s", close_error)
 
         return results
 

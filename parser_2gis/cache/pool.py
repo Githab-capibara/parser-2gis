@@ -19,6 +19,7 @@ import threading
 import time
 import weakref
 from pathlib import Path
+from typing import Any
 
 from ..constants import MAX_POOL_SIZE, MIN_POOL_SIZE, validate_env_int
 from ..logger.logger import logger as app_logger
@@ -201,7 +202,7 @@ class ConnectionPool:
         # Для совместимости с тестами
         self._max_size = self._pool_size
 
-        self._local = threading.local()
+        self._local: threading.local = threading.local()
         self._all_conns: list[sqlite3.Connection] = []
         # ИСПРАВЛЕНИЕ CRITICAL 23: Используем Lock вместо RLock где не нужна реентерабельность
         # Lock более производительный и предотвращает случайные реентерабельные вызовы
@@ -229,7 +230,8 @@ class ConnectionPool:
         try:
             conn.execute("SELECT 1")
             return True
-        except (sqlite3.Error, OSError):
+        except (sqlite3.Error, OSError) as e:
+            app_logger.debug("Соединение неактивно (ошибка проверки): %s", e)
             return False
 
     def get_connection(self) -> sqlite3.Connection:
@@ -341,7 +343,7 @@ class ConnectionPool:
                             conn = None
                 except queue.Empty:
                     # Queue пуста, нужно создавать новое соединение
-                    pass
+                    app_logger.debug("Queue соединений пуста, создаём новое соединение")
 
                 # Создаём новое соединение если не получили из queue
                 if conn is None:
@@ -402,8 +404,9 @@ class ConnectionPool:
             raise
         finally:
             # ИСПРАВЛЕНИЕ CRITICAL 2: finally блок для гарантированной очистки
-            # Если соединение было создано но не добавлено в пул - закрываем его
-            if conn is not None and not hasattr(self._local, "connection"):
+            # Закрываем соединение только если оно было создано но не добавлено в пул
+            # Не закрываем соединения полученные из queue (reuse)
+            if conn is not None and created_new and not hasattr(self._local, "connection"):
                 try:
                     conn.close()
                     app_logger.debug("Соединение закрыто в finally (не добавлено в пул)")
@@ -509,11 +512,11 @@ class ConnectionPool:
                 try:
                     conn.close()
                 except sqlite3.Error as db_error:
-                    app_logger.debug("Ошибка БД при закрытии соединения: %s", db_error)
+                    app_logger.warning("Ошибка БД при закрытии соединения: %s", db_error)
                 except OSError as os_error:
-                    app_logger.debug("Ошибка ОС при закрытии соединения: %s", os_error)
+                    app_logger.warning("Ошибка ОС при закрытии соединения: %s", os_error)
                 except (RuntimeError, TypeError, ValueError) as e:
-                    app_logger.debug("Неожиданная ошибка при закрытии соединения: %s", e)
+                    app_logger.warning("Неожиданная ошибка при закрытии соединения: %s", e)
             self._all_conns.clear()
             # Очищаем словарь возрастов соединений
             self._connection_age.clear()
@@ -582,7 +585,12 @@ class ConnectionPool:
         """
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
         """Контекстный менеджер: выход.
 
         Args:
