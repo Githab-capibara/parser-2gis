@@ -216,7 +216,9 @@ class TestPoolExceptionHandling:
         - MemoryError обрабатывается корректно
         - Возвращается MIN_POOL_SIZE
         """
-        with caplog.at_level(logging.WARNING):
+        # Сбрасываем lru_cache для чистого теста
+        _calculate_dynamic_pool_size.cache_clear()
+        with caplog.at_level(logging.DEBUG):
             with patch("parser_2gis.cache.pool.psutil") as mock_psutil:
                 mock_psutil.virtual_memory.side_effect = MemoryError("Mocked MemoryError")
 
