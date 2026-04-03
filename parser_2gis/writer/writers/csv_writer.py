@@ -11,6 +11,7 @@ ISSUE-005: Использует стратегии форматирования 
 from __future__ import annotations
 
 import csv
+import re
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, TypedDict
 from collections.abc import Callable
@@ -348,12 +349,17 @@ class CSVWriter(FileWriter):
                         # Проверка строковых полей на опасные конструкции
                         for key, value in item.items():
                             if isinstance(value, str):
-                                # Проверка на потенциальные XSS атаки
-                                if "<script" in value.lower() or "javascript:" in value.lower():
+                                # Проверка на потенциальные XSS атаки (regex для обходных конструкций)
+                                if re.search(
+                                    r"<\s*script|javascript\s*:", value, re.IGNORECASE
+                                ):
                                     logger.warning(
                                         "Обнаружена подозрительная конструкция в поле %s: %s",
                                         key,
                                         value[:100],
+                                    )
+                                    raise ValueError(
+                                        f"Обнаружена потенциальная XSS атака в поле {key}"
                                     )
 
         if not self._check_catalog_doc(catalog_doc):

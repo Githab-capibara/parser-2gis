@@ -99,6 +99,21 @@ class AppState:
         self.current_record = 0
         self._parsing_logs = []
 
+    def add_parsing_log(self, message: str) -> None:
+        """Добавляет запись в буфер логов парсинга.
+
+        Args:
+            message: Сообщение для добавления в лог.
+
+        Note:
+            Буфер автоматически обрезается до MAX_LOG_BUFFER_SIZE записей
+            для предотвращения утечки памяти.
+
+        """
+        self._parsing_logs.append(message)
+        if len(self._parsing_logs) > MAX_LOG_BUFFER_SIZE:
+            self._parsing_logs = self._parsing_logs[-MAX_LOG_BUFFER_SIZE:]
+
     def update(self, **kwargs: Any) -> None:
         """Обновляет поля состояния.
 
@@ -343,21 +358,6 @@ class TUIApp(App):
         """
         return Configuration.load_config()
 
-    def _init_state(self) -> AppState:
-        """Инициализировать состояние приложения.
-
-        Returns:
-            Новый экземпляр AppState.
-
-        """
-        return AppState()
-
-    def _clear_state(self) -> None:
-        """Очистить состояние приложения для освобождения памяти."""
-        self._state.reset()
-        self._parser = None
-        self._last_notification = None
-
     @property
     def last_notification(self) -> dict[str, str] | None:
         """Последнее уведомление."""
@@ -409,15 +409,31 @@ class TUIApp(App):
         self._running = value
 
     def get_config(self) -> Configuration:
-        """Получить конфигурацию."""
+        """Получить текущую конфигурацию приложения.
+
+        Returns:
+            Объект Configuration с текущими настройками.
+
+        """
         return self._config
 
     def save_config(self) -> None:
-        """Сохранить конфигурацию."""
+        """Сохранить текущую конфигурацию приложения.
+
+        Записывает изменения конфигурации на диск.
+
+        """
         self._config.save_config()
 
     def get_cities(self) -> list[dict[str, Any]]:
-        """Получить список городов."""
+        """Получить список доступных городов.
+
+        Загружает города из файла cities.json в директории data.
+
+        Returns:
+            Список словарей с данными городов или пустой список если файл не найден.
+
+        """
         cities_path = Path(__file__).parent.parent / "data" / "cities.json"
         if cities_path.exists():
             with open(cities_path, encoding="utf-8") as f:
@@ -425,7 +441,12 @@ class TUIApp(App):
         return []
 
     def get_categories(self) -> list[dict[str, str | int]]:
-        """Получить список категорий."""
+        """Получить список доступных категорий.
+
+        Returns:
+            Список словарей с данными категорий из CATEGORIES_93.
+
+        """
         return CATEGORIES_93  # type: ignore[return-value]
 
     def update_state(self, **kwargs: Any) -> None:
@@ -440,7 +461,15 @@ class TUIApp(App):
         self._state.update(**kwargs)
 
     def get_state(self, key: str) -> Any:
-        """Получить значение из состояния."""
+        """Получить значение из состояния приложения.
+
+        Args:
+            key: Ключ состояния для получения.
+
+        Returns:
+            Значение состояния по ключу или None если ключ не найден.
+
+        """
         return getattr(self._state, key, None)
 
     def notify_user(self, message: str, level: str = "info") -> None:
@@ -592,6 +621,16 @@ class TUIApp(App):
                 return
 
             config = self._config
+            # P0-9: Сохраняем оригинальные значения конфигурации для восстановления
+            saved_config = {
+                "chrome_headless": config.chrome.headless,
+                "chrome_disable_images": config.chrome.disable_images,
+                "chrome_silent_browser": config.chrome.silent_browser,
+                "parser_stop_on_first_404": config.parser.stop_on_first_404,
+                "parser_max_consecutive_empty_pages": config.parser.max_consecutive_empty_pages,
+                "parser_max_retries": config.parser.max_retries,
+                "parser_retry_on_network_errors": config.parser.retry_on_network_errors,
+            }
             config.chrome.headless = True
             config.chrome.disable_images = True
             config.chrome.silent_browser = True
@@ -672,6 +711,17 @@ class TUIApp(App):
             # Вернуться в главное меню при ошибке
             self.call_from_thread(self.switch_to_main_menu)
         finally:
+            # P0-9: Восстанавливаем оригинальные значения конфигурации
+            if "saved_config" in locals():
+                config.chrome.headless = saved_config["chrome_headless"]
+                config.chrome.disable_images = saved_config["chrome_disable_images"]
+                config.chrome.silent_browser = saved_config["chrome_silent_browser"]
+                config.parser.stop_on_first_404 = saved_config["parser_stop_on_first_404"]
+                config.parser.max_consecutive_empty_pages = saved_config["parser_max_consecutive_empty_pages"]
+                config.parser.max_retries = saved_config["parser_max_retries"]
+                config.parser.retry_on_network_errors = saved_config["parser_retry_on_network_errors"]
+                logger.debug("Конфигурация восстановлена после парсинга")
+
             # P0-5: Гарантированная очистка ресурсов парсинга
             # Вызываем parser.cancel() и get_stats() корректно
             if "parser" in locals():

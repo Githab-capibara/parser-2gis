@@ -117,7 +117,7 @@ _DANGEROUS_KEYS = {
 }
 
 # D013: Дополнительные паттерны для санитизации строк
-_HTML_ESCAPE_TABLE = {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;"}
+_HTML_ESCAPE_TABLE = {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;", "`": "&#x60;"}
 
 
 def _sanitize_string_value(value: str) -> str:

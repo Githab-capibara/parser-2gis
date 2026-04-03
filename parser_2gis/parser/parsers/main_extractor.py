@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -86,8 +87,8 @@ class MainDataExtractor:
             # Пытаемся получить href атрибут
             if hasattr(link, "getAttribute"):
                 return link.getAttribute("href")
-            # Fallback: используем repr для создания уникального ключа
-            return str(hash(link))
+            # Fallback: используем md5 для создания детерминированного уникального ключа
+            return hashlib.md5(str(link).encode()).hexdigest()[:12]
         except (OSError, RuntimeError, TypeError, ValueError):
             return None
 
@@ -153,7 +154,7 @@ class MainDataExtractor:
         resp: dict[str, Any] | None = None
 
         # ISSUE-140: Выносим вычисления за пределы цикла
-        delay_between_clicks = self._parser._options.delay_between_clicks
+        delay_between_clicks = self._parser._parser_options.delay_between_clicks
         delay_seconds = delay_between_clicks / CLICK_DELAY_DIVISOR if delay_between_clicks else 0
         item_response_pattern = self._parser._item_response_pattern
         chrome_remote = self._parser._chrome_remote

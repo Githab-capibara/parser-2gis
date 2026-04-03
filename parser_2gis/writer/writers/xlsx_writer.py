@@ -52,7 +52,7 @@ class XLSXWriter(FileWriter):
         """
         raise NotImplementedError("XLSX записывается через конвертацию из CSV в __exit__")
 
-    def __exit__(self, *exc_info) -> None:
+    def __exit__(self, *exc_info: Any) -> None:
         """Закрывает файл и выполняет конвертацию CSV в XLSX.
 
         ISSUE-173: Добавлено описание constant_memory=True.
@@ -80,18 +80,22 @@ class XLSXWriter(FileWriter):
                 bold = workbook.add_format({"bold": True})  # Формат для заголовка
 
                 worksheet = workbook.add_worksheet()
-                with self._open_file(self._file_path, "r") as f_csv:
-                    csv_reader = csv.reader(f_csv)
-                    for r, row in enumerate(csv_reader):
-                        for c, col in enumerate(row):
-                            if r == 0:
-                                worksheet.write(r, c, col, bold)  # Запись заголовка
-                            else:
-                                worksheet.write(r, c, col)
+                try:
+                    with self._open_file(self._file_path, "r") as f_csv:
+                        csv_reader = csv.reader(f_csv)
+                        for r, row in enumerate(csv_reader):
+                            for c, col in enumerate(row):
+                                if r == 0:
+                                    worksheet.write(r, c, col, bold)  # Запись заголовка
+                                else:
+                                    worksheet.write(r, c, col)
+                except csv.Error as csv_error:
+                    logger.error("Ошибка парсинга CSV при конвертации в XLSX: %s", csv_error)
+                    raise
 
             # Замена оригинального файла новым
             shutil.move(tmp_xlsx_name, self._file_path)
-        except Exception as e:
+        except (OSError, csv.Error, ValueError, RuntimeError) as e:
             # Удаляем временный файл если он был создан
             if os.path.exists(tmp_xlsx_name):
                 os.remove(tmp_xlsx_name)

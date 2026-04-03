@@ -85,6 +85,8 @@ class MainDataProcessor:
         """
         self._parser = parser
         self._extractor = MainDataExtractor(parser)
+        # P0-6: Кэшированный set для инкрементального обновления уникальности ссылок
+        self._visited_set: set[str] = set()
 
     def _handle_pagination(
         self, current_page_number: int, walk_page_number: int | None
@@ -223,16 +225,16 @@ class MainDataProcessor:
                     logger.debug(
                         "Использование памяти: %.1f МБ (порог: %d МБ)",
                         memory_mb,
-                        self._parser._options.memory_threshold,
+                        self._parser._parser_options.memory_threshold,
                     )
 
                 # Проверяем превышение порога
-                if memory_mb > self._parser._options.memory_threshold:
+                if memory_mb > self._parser._parser_options.memory_threshold:
                     logger.warning(
                         "Использование памяти %.1f МБ превышает порог %d МБ. "
                         "Выполняем автоматическую оптимизацию...",
                         memory_mb,
-                        self._parser._options.memory_threshold,
+                        self._parser._parser_options.memory_threshold,
                     )
 
                     # ISSUE-133: deque автоматически управляет размером через maxlen
@@ -316,14 +318,15 @@ class MainDataProcessor:
                 }
 
                 with visited_links_lock:
-                    # ISSUE-150: Оптимизация - используем set.difference() вместо intersection()
-                    # Это позволяет получить только новые ссылки за одну операцию
-                    visited_set = set(visited_links)
-                    new_link_hrefs = link_hrefs - visited_set
+                    # P0-6: Оптимизация — используем кэшированный set вместо создания нового
+                    new_link_hrefs = link_hrefs - self._visited_set
 
                     # Если нет новых ссылок - возвращаем None
                     if not new_link_hrefs:
                         return None
+
+                    # Обновляем кэшированный set инкрементально
+                    self._visited_set.update(new_link_hrefs)
 
                     # ISSUE-133: batch add links to deque
                     for url in new_link_hrefs:
@@ -382,7 +385,7 @@ class MainDataProcessor:
                         "Не удалось получить ссылки, переходим к следующей странице. "
                         "(Пустых страниц подряд: %d/%d, Попыток: %d/%d, Итераций: %d/%d)",
                         consecutive_empty_pages,
-                        self._parser._options.max_consecutive_empty_pages,
+                        self._parser._parser_options.max_consecutive_empty_pages,
                         link_attempt_count,
                         MAX_LINK_ATTEMPTS,
                         total_iterations,
@@ -390,10 +393,10 @@ class MainDataProcessor:
                     )
 
                     # Если подряд слишком много пустых страниц - прерываем парсинг
-                    if consecutive_empty_pages >= self._parser._options.max_consecutive_empty_pages:
+                    if consecutive_empty_pages >= self._parser._parser_options.max_consecutive_empty_pages:
                         logger.error(
                             "Достигнут лимит подряд пустых страниц (%d). Прекращаем парсинг URL.",
-                            self._parser._options.max_consecutive_empty_pages,
+                            self._parser._parser_options.max_consecutive_empty_pages,
                         )
                         return
 
@@ -424,7 +427,7 @@ class MainDataProcessor:
                     links_since_gc = 0
 
                     # H015: Ранний выход при достижении лимита записей
-                    if collected_records >= self._parser._options.max_records:
+                    if collected_records >= self._parser._parser_options.max_records:
                         logger.info(
                             "Достигнут лимит записей (%d) перед началом обработки ссылок",
                             collected_records,
@@ -434,7 +437,7 @@ class MainDataProcessor:
                     # Итерируемся по собранным ссылкам
                     for link in links:
                         # H015: Проверяем лимит ПЕРЕД парсингом для раннего выхода
-                        if collected_records >= self._parser._options.max_records:
+                        if collected_records >= self._parser._parser_options.max_records:
                             logger.info(
                                 "Достигнут лимит записей (%d), завершаем парсинг", collected_records
                             )
@@ -445,7 +448,7 @@ class MainDataProcessor:
                             collected_records += 1
 
                             # Проверяем достижение лимита после каждой успешной записи
-                            if collected_records >= self._parser._options.max_records:
+                            if collected_records >= self._parser._parser_options.max_records:
                                 logger.info(
                                     "Спарсено максимально разрешенное количество записей с данного URL."
                                 )
@@ -459,11 +462,11 @@ class MainDataProcessor:
                             links_since_gc = 0
 
                 # Запускаем сборщик мусора и проверяем использование памяти
-                if current_page_number % self._parser._options.gc_pages_interval == 0:
+                if current_page_number % self._parser._parser_options.gc_pages_interval == 0:
                     check_and_optimize_memory()
 
                     # Запускаем сборщик мусора, если включён
-                    if self._parser._options.use_gc:
+                    if self._parser._parser_options.use_gc:
                         logger.debug("Запуск сборщика мусора.")
                         try:
                             self._parser._chrome_remote.execute_script(

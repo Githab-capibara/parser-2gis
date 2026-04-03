@@ -135,7 +135,6 @@ class MainPageParser(BaseParser):
         # Сохраняем опции для использования в дочернем классе
         self._chrome_options = chrome_options
         self._parser_options = parser_options
-        self._options = parser_options  # Алиас для backward совместимости
         self._url = url
 
         # Паттерн ответа "Catalog Item Document"
@@ -681,10 +680,14 @@ class MainPageParser(BaseParser):
         Args:
             writer: Объект FileWriter для записи данных.
 
+        Raises:
+            NotImplementedError: Метод не предназначен для прямого вызова.
+
         """
-        # Этот класс используется только как вспомогательный компонент
-        # Основной парсинг выполняется в MainParser
-        logger.debug("MainPageParser.parse() вызван (вспомогательный метод)")
+        raise NotImplementedError(
+            "MainPageParser.parse() не предназначен для прямого вызова. "
+            "Используйте MainParser.parse() вместо этого."
+        )
 
     def get_stats(self) -> dict[str, Any]:
         """Получение статистики парсера.
@@ -717,7 +720,7 @@ class MainPageParser(BaseParser):
 
         return self
 
-    def __exit__(self, *exc_info) -> None:
+    def __exit__(self, *exc_info: Any) -> None:
         """Контекстный менеджер: выход.
 
         Закрывает браузер, если он был создан внутри парсера.

@@ -47,8 +47,18 @@ class ConfigValidator:
             ValidationError: При ошибках валидации.
 
         """
+        if config is None:
+            raise ValidationError.from_exception_data(
+                "ConfigValidator", [{"msg": "Конфигурация не может быть None", "type": "value_error"}]
+            )
+        if not isinstance(config, BaseModel):
+            raise ValidationError.from_exception_data(
+                "ConfigValidator",
+                [{"msg": "Конфигурация должна быть экземпляром Pydantic BaseModel", "type": "type_error"}],
+            )
         # Pydantic валидирует автоматически при присваивании
-        # Этот метод для явной валидации и расширения в будущем
+        # Дополнительная явная валидация через model_validate
+        type(config).model_validate(config.model_dump())
         return True
 
     @staticmethod

@@ -6,6 +6,30 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Input, Label, Static, Switch
 
+# =============================================================================
+# КОНСТАНТЫ ЗНАЧЕНИЙ ПО УМОЛЧАНИЮ (P0-10: устранение дублирования)
+# =============================================================================
+
+# Настройки браузера по умолчанию
+BROWSER_DEFAULTS_HEADLESS: bool = True
+BROWSER_DEFAULTS_DISABLE_IMAGES: bool = True
+BROWSER_DEFAULTS_SILENT: bool = True
+BROWSER_DEFAULTS_MEMORY_LIMIT: int = 512
+BROWSER_DEFAULTS_STARTUP_DELAY: int = 0
+
+# Настройки парсера по умолчанию
+PARSER_DEFAULTS_MAX_RECORDS: int = 1000
+PARSER_DEFAULTS_DELAY_BETWEEN_CLICKS: int = 500
+PARSER_DEFAULTS_MAX_RETRIES: int = 3
+PARSER_DEFAULTS_TIMEOUT: int = 300
+PARSER_DEFAULTS_WORKERS: int = 10
+
+# Настройки вывода по умолчанию
+OUTPUT_DEFAULTS_ENCODING: str = "utf-8"
+OUTPUT_DEFAULTS_ADD_RUBRICS: bool = True
+OUTPUT_DEFAULTS_ADD_COMMENTS: bool = False
+OUTPUT_DEFAULTS_REMOVE_DUPLICATES: bool = True
+
 
 class BrowserSettingsScreen(Screen):
     """Настройки браузера."""
@@ -82,23 +106,23 @@ class BrowserSettingsScreen(Screen):
 
             with Vertical(classes="setting-row"):
                 yield Label("Headless режим:", classes="setting-label")
-                yield Switch(id="headless-switch", value=True)
+                yield Switch(id="headless-switch", value=BROWSER_DEFAULTS_HEADLESS)
 
             with Vertical(classes="setting-row"):
                 yield Label("Отключить изображения:", classes="setting-label")
-                yield Switch(id="disable-images-switch", value=True)
+                yield Switch(id="disable-images-switch", value=BROWSER_DEFAULTS_DISABLE_IMAGES)
 
             with Vertical(classes="setting-row"):
                 yield Label("Тихий режим:", classes="setting-label")
-                yield Switch(id="silent-switch", value=True)
+                yield Switch(id="silent-switch", value=BROWSER_DEFAULTS_SILENT)
 
             with Vertical(classes="setting-row"):
                 yield Label("Лимит памяти (МБ):", classes="setting-label")
-                yield Input(id="memory-limit-input", value="512", type="integer")
+                yield Input(id="memory-limit-input", value=str(BROWSER_DEFAULTS_MEMORY_LIMIT), type="integer")
 
             with Vertical(classes="setting-row"):
                 yield Label("Задержка запуска (сек):", classes="setting-label")
-                yield Input(id="startup-delay-input", value="0", type="integer")
+                yield Input(id="startup-delay-input", value=str(BROWSER_DEFAULTS_STARTUP_DELAY), type="integer")
 
             with Horizontal(classes="button-row"):
                 yield Button("💾 Сохранить", id="save", variant="primary")
@@ -124,10 +148,10 @@ class BrowserSettingsScreen(Screen):
             config.chrome.silent_browser = self.query_one("#silent-switch", Switch).value
 
             memory_limit = self.query_one("#memory-limit-input", Input).value
-            config.chrome.memory_limit = int(memory_limit) if memory_limit.isdigit() else 512
+            config.chrome.memory_limit = int(memory_limit) if memory_limit.isdigit() else BROWSER_DEFAULTS_MEMORY_LIMIT
 
             startup_delay = self.query_one("#startup-delay-input", Input).value
-            config.chrome.startup_delay = int(startup_delay) if startup_delay.isdigit() else 0
+            config.chrome.startup_delay = int(startup_delay) if startup_delay.isdigit() else BROWSER_DEFAULTS_STARTUP_DELAY
 
             self.app.save_config()  # type: ignore
             self.app.notify("Настройки сохранены", title="Успех")  # type: ignore
@@ -143,11 +167,11 @@ class BrowserSettingsScreen(Screen):
 
         Устанавливает переключатели в True и поля ввода в значения по умолчанию.
         """
-        self.query_one("#headless-switch", Switch).value = True
-        self.query_one("#disable-images-switch", Switch).value = True
-        self.query_one("#silent-switch", Switch).value = True
-        self.query_one("#memory-limit-input", Input).value = "512"
-        self.query_one("#startup-delay-input", Input).value = "0"
+        self.query_one("#headless-switch", Switch).value = BROWSER_DEFAULTS_HEADLESS
+        self.query_one("#disable-images-switch", Switch).value = BROWSER_DEFAULTS_DISABLE_IMAGES
+        self.query_one("#silent-switch", Switch).value = BROWSER_DEFAULTS_SILENT
+        self.query_one("#memory-limit-input", Input).value = str(BROWSER_DEFAULTS_MEMORY_LIMIT)
+        self.query_one("#startup-delay-input", Input).value = str(BROWSER_DEFAULTS_STARTUP_DELAY)
 
 
 class ParserSettingsScreen(Screen):
@@ -225,23 +249,23 @@ class ParserSettingsScreen(Screen):
 
             with Vertical(classes="setting-row"):
                 yield Label("Максимум записей:", classes="setting-label")
-                yield Input(id="max-records-input", value="1000", type="integer")
+                yield Input(id="max-records-input", value=str(PARSER_DEFAULTS_MAX_RECORDS), type="integer")
 
             with Vertical(classes="setting-row"):
                 yield Label("Задержка между кликами (мс):", classes="setting-label")
-                yield Input(id="delay-input", value="500", type="integer")
+                yield Input(id="delay-input", value=str(PARSER_DEFAULTS_DELAY_BETWEEN_CLICKS), type="integer")
 
             with Vertical(classes="setting-row"):
                 yield Label("Максимум попыток:", classes="setting-label")
-                yield Input(id="max-retries-input", value="3", type="integer")
+                yield Input(id="max-retries-input", value=str(PARSER_DEFAULTS_MAX_RETRIES), type="integer")
 
             with Vertical(classes="setting-row"):
                 yield Label("Таймаут (сек):", classes="setting-label")
-                yield Input(id="timeout-input", value="300", type="integer")
+                yield Input(id="timeout-input", value=str(PARSER_DEFAULTS_TIMEOUT), type="integer")
 
             with Vertical(classes="setting-row"):
                 yield Label("Потоков:", classes="setting-label")
-                yield Input(id="workers-input", value="10", type="integer")
+                yield Input(id="workers-input", value=str(PARSER_DEFAULTS_WORKERS), type="integer")
 
             with Horizontal(classes="button-row"):
                 yield Button("💾 Сохранить", id="save", variant="primary")
@@ -264,19 +288,19 @@ class ParserSettingsScreen(Screen):
             config = self.app.get_config()  # type: ignore
 
             max_records = self.query_one("#max-records-input", Input).value
-            config.parser.max_records = int(max_records) if max_records.isdigit() else 1000
+            config.parser.max_records = int(max_records) if max_records.isdigit() else PARSER_DEFAULTS_MAX_RECORDS
 
             delay = self.query_one("#delay-input", Input).value
-            config.parser.delay_between_clicks = int(delay) if delay.isdigit() else 500
+            config.parser.delay_between_clicks = int(delay) if delay.isdigit() else PARSER_DEFAULTS_DELAY_BETWEEN_CLICKS
 
             max_retries = self.query_one("#max-retries-input", Input).value
-            config.parser.max_retries = int(max_retries) if max_retries.isdigit() else 3
+            config.parser.max_retries = int(max_retries) if max_retries.isdigit() else PARSER_DEFAULTS_MAX_RETRIES
 
             timeout = self.query_one("#timeout-input", Input).value
-            config.parser.timeout = int(timeout) if timeout.isdigit() else 300
+            config.parser.timeout = int(timeout) if timeout.isdigit() else PARSER_DEFAULTS_TIMEOUT
 
             workers = self.query_one("#workers-input", Input).value
-            config.parallel.max_workers = int(workers) if workers.isdigit() else 10
+            config.parallel.max_workers = int(workers) if workers.isdigit() else PARSER_DEFAULTS_WORKERS
 
             self.app.save_config()  # type: ignore
             self.app.notify("Настройки сохранены", title="Успех")  # type: ignore
@@ -292,11 +316,11 @@ class ParserSettingsScreen(Screen):
 
         Устанавливает поля ввода в значения по умолчанию для всех параметров.
         """
-        self.query_one("#max-records-input", Input).value = "1000"
-        self.query_one("#delay-input", Input).value = "500"
-        self.query_one("#max-retries-input", Input).value = "3"
-        self.query_one("#timeout-input", Input).value = "300"
-        self.query_one("#workers-input", Input).value = "10"
+        self.query_one("#max-records-input", Input).value = str(PARSER_DEFAULTS_MAX_RECORDS)
+        self.query_one("#delay-input", Input).value = str(PARSER_DEFAULTS_DELAY_BETWEEN_CLICKS)
+        self.query_one("#max-retries-input", Input).value = str(PARSER_DEFAULTS_MAX_RETRIES)
+        self.query_one("#timeout-input", Input).value = str(PARSER_DEFAULTS_TIMEOUT)
+        self.query_one("#workers-input", Input).value = str(PARSER_DEFAULTS_WORKERS)
 
 
 class OutputSettingsScreen(Screen):
@@ -374,19 +398,19 @@ class OutputSettingsScreen(Screen):
 
             with Vertical(classes="setting-row"):
                 yield Label("Кодировка:", classes="setting-label")
-                yield Input(id="encoding-input", value="utf-8")
+                yield Input(id="encoding-input", value=OUTPUT_DEFAULTS_ENCODING)
 
             with Vertical(classes="setting-row"):
                 yield Label("Добавить рубрики:", classes="setting-label")
-                yield Switch(id="add-rubrics-switch", value=True)
+                yield Switch(id="add-rubrics-switch", value=OUTPUT_DEFAULTS_ADD_RUBRICS)
 
             with Vertical(classes="setting-row"):
                 yield Label("Добавить комментарии:", classes="setting-label")
-                yield Switch(id="add-comments-switch", value=False)
+                yield Switch(id="add-comments-switch", value=OUTPUT_DEFAULTS_ADD_COMMENTS)
 
             with Vertical(classes="setting-row"):
                 yield Label("Удалить дубликаты:", classes="setting-label")
-                yield Switch(id="remove-duplicates-switch", value=True)
+                yield Switch(id="remove-duplicates-switch", value=OUTPUT_DEFAULTS_REMOVE_DUPLICATES)
 
             with Horizontal(classes="button-row"):
                 yield Button("💾 Сохранить", id="save", variant="primary")
@@ -431,7 +455,7 @@ class OutputSettingsScreen(Screen):
 
         Устанавливает кодировку в "utf-8" и переключатели в значения по умолчанию.
         """
-        self.query_one("#encoding-input", Input).value = "utf-8"
-        self.query_one("#add-rubrics-switch", Switch).value = True
-        self.query_one("#add-comments-switch", Switch).value = False
-        self.query_one("#remove-duplicates-switch", Switch).value = True
+        self.query_one("#encoding-input", Input).value = OUTPUT_DEFAULTS_ENCODING
+        self.query_one("#add-rubrics-switch", Switch).value = OUTPUT_DEFAULTS_ADD_RUBRICS
+        self.query_one("#add-comments-switch", Switch).value = OUTPUT_DEFAULTS_ADD_COMMENTS
+        self.query_one("#remove-duplicates-switch", Switch).value = OUTPUT_DEFAULTS_REMOVE_DUPLICATES

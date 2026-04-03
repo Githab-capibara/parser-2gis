@@ -15,7 +15,9 @@
 
 from __future__ import annotations
 
+import random
 import re
+import time
 from typing import TYPE_CHECKING
 
 from parser_2gis.constants import MAX_VISITED_LINKS_SIZE
@@ -92,7 +94,7 @@ class MainParser:
         self._data_processor = MainDataProcessor(self._page_parser)
 
     @staticmethod
-    def url_pattern():
+    def url_pattern() -> str:
         """URL-паттерн для парсера."""
         return r"https?://2gis\.[^/]+/[^/]+/search/.*"
 
@@ -192,9 +194,6 @@ class MainParser:
                 # Системные ошибки - повторяем если разрешено
                 if attempt < max_retries and self._options.retry_on_network_errors:
                     # Добавляем jitter для предотвращения thundering herd эффекта
-                    import random
-                    import time
-
                     jitter = random.uniform(0, 0.3)
                     delay = base_delay * (1.5**attempt) + jitter
                     logger.warning(
@@ -241,7 +240,7 @@ class MainParser:
         self._page_parser.__enter__()
         return self
 
-    def __exit__(self, *exc_info) -> None:
+    def __exit__(self, *exc_info: Any) -> None:
         """Контекстный менеджер: выход.
 
         Закрывает браузер через _page_parser.
