@@ -12,7 +12,6 @@
 from __future__ import annotations
 
 import csv
-import csv as csv_module
 import fcntl
 import os
 import shutil
@@ -20,10 +19,11 @@ import signal
 import threading
 import time
 import typing
+from typing import TextIO
+import csv as csv_module
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TextIO
 from collections.abc import Callable
 
 from parser_2gis.constants import (

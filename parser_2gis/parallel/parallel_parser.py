@@ -156,8 +156,6 @@ class ParallelCityParser:
         # Проверка на абсолютный путь
         output_dir_path = Path(output_dir)
         if not output_dir_path.is_absolute():
-            import os
-
             output_dir = os.path.abspath(output_dir)
             output_dir_path = Path(output_dir)
 

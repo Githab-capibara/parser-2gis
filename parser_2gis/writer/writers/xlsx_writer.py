@@ -46,8 +46,11 @@ class XLSXWriter(FileWriter):
 
         Примечание: XLSXWriter работает как пост-процесс конвертер,
         поэтому метод write не используется напрямую.
+
+        Raises:
+            NotImplementedError: Метод не используется, конвертация выполняется через __exit__.
         """
-        pass  # XLSXWriter работает через конвертацию CSV файла
+        raise NotImplementedError("XLSX записывается через конвертацию из CSV в __exit__")
 
     def __exit__(self, *exc_info) -> None:
         """Закрывает файл и выполняет конвертацию CSV в XLSX.

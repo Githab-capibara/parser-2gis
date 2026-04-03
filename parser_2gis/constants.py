@@ -8,6 +8,7 @@
     >>> print(f"Максимальная глубина: {MAX_DATA_DEPTH}")
     Максимальная глубина: 15
 """
+# pylint: disable=undefined-all-variable,import-error,no-name-in-module
 
 from __future__ import annotations
 
@@ -278,8 +279,8 @@ def get_env_config() -> EnvConfig:
     # ISSUE-010: Singleton через замыкание вместо глобальной переменной
     # Переменная _instance видна только внутри функции, не загрязняя глобальное пространство
     if not hasattr(get_env_config, "_instance"):
-        get_env_config._instance = EnvConfig()  # type: ignore[attr-defined]
-    return get_env_config._instance  # type: ignore[attr-defined]
+        get_env_config._instance = EnvConfig()  # type: ignore[attr-defined]  # pylint: disable=protected-access
+    return get_env_config._instance  # type: ignore[attr-defined]  # pylint: disable=protected-access
 
 
 # Для обратной совместимости используем __getattr__ для ленивой инициализации
@@ -522,7 +523,7 @@ def validate_env_int(
         Валидированное целое число.
 
     """
-    return get_env_config()._validate_env_int(env_name, default, min_value, max_value)
+    return get_env_config()._validate_env_int(env_name, default, min_value, max_value)  # pylint: disable=protected-access
 
 
 # =============================================================================

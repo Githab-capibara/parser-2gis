@@ -39,7 +39,7 @@ class BaseFormatter(ABC):
             Отформатированное значение.
 
         """
-        pass
+        ...
 
 
 class PhoneFormatter(BaseFormatter):

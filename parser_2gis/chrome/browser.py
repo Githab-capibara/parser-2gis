@@ -401,10 +401,10 @@ class ProcessManager:
                 process_status = f"{success_status} (exit code: {poll_result})"
                 app_logger.info(
                     "Chrome браузер %s завершён (PID: %d, exit code: %d, время жизни: %.1f сек)",
+                    terminate_method,
                     process_pid,
                     poll_result,
                     time.time() - self._start_time,
-                    terminate_method,
                 )
                 # H013: Очищаем ссылку на процесс после завершения
                 self._proc = None

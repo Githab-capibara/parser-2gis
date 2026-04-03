@@ -117,7 +117,7 @@ class BaseParser(ABC):
             ...     self._stats["parsed"] += 1
 
         """
-        pass  # pragma: no cover
+        ...  # pragma: no cover
 
     @abstractmethod
     def get_stats(self) -> ParserStats:
@@ -144,7 +144,7 @@ class BaseParser(ABC):
             ...     }
 
         """
-        pass  # pragma: no cover
+        ...  # pragma: no cover
 
     def __repr__(self) -> str:
         """Строковое представление парсера.

@@ -55,18 +55,14 @@ class TestCacheManagerFinallyCleanup:
         """Тест очистки ресурсов при MemoryError.
 
         Проверяет:
-        - finally блок выполняется при MemoryError
-        - Курсор закрывается корректно
-        - Соединение возвращается в пул
+        - Обработка MemoryError в методе get
+        - Возврат соединения в пул
+        - Результат None при ошибке
         """
         with caplog.at_level(logging.DEBUG):
-            # Mock курсора для выбрасывания MemoryError при close
-            mock_cursor = MagicMock()
-            mock_cursor.fetchone.return_value = None
-            mock_cursor.close.side_effect = MemoryError("Mocked MemoryError in cursor.close")
-
+            # Mock соединения для выбрасывания MemoryError
             mock_conn = MagicMock()
-            mock_conn.cursor.return_value = mock_cursor
+            mock_conn.execute.side_effect = MemoryError("Mocked MemoryError in execute")
             mock_conn.rollback.return_value = None
 
             with patch.object(cache_manager._pool, "get_connection", return_value=mock_conn):
@@ -76,8 +72,8 @@ class TestCacheManagerFinallyCleanup:
                 # Проверяем что результат None (из-за ошибки)
                 assert result is None
 
-                # Проверяем что cursor.close() был вызван (finally блок выполнился)
-                assert mock_cursor.close.called
+                # Проверяем что rollback был вызван для очистки транзакции
+                assert mock_conn.rollback.called
 
     def test_cache_manager_finally_cleanup_keyboard_interrupt(
         self, cache_manager: CacheManager, caplog

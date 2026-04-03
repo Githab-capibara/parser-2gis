@@ -33,11 +33,13 @@ if TYPE_CHECKING:
 # REGISTRY PATTERN ДЛЯ WRITERS
 # =============================================================================
 
+from collections.abc import Callable
+
 WRITER_REGISTRY: dict[str, type[FileWriter]] = {}
 """Реестр зарегистрированных writer классов по формату файла."""
 
 
-def register_writer(format_name: str) -> callable:
+def register_writer(format_name: str) -> Callable[[type[FileWriter]], type[FileWriter]]:
     """Декоратор для регистрации writer класса в реестре.
 
     Args:

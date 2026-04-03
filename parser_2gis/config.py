@@ -125,7 +125,7 @@ class Configuration(BaseModel):
             config_cls=cls, config_path=config_path, auto_create=auto_create
         )  # type: ignore[return-value]
 
-    def validate(self) -> bool:
+    def validate(self) -> bool:  # pylint: disable=arguments-renamed
         """Валидирует конфигурацию.
 
         Делегирует операцию классу ConfigValidator.
