@@ -23,7 +23,8 @@ from parser_2gis.parser.parsers.firm import (
     _validate_initial_state,
 )
 from parser_2gis.utils.temp_file_manager import TempFileManager, create_temp_file
-from parser_2gis.writer.writers.csv_writer import _sanitize_csv_value, CSVRowData
+from parser_2gis.writer.writers.csv_formatter import SanitizeFormatter
+from parser_2gis.writer.writers.csv_writer import CSVRowData
 
 
 # =============================================================================
@@ -34,58 +35,52 @@ from parser_2gis.writer.writers.csv_writer import _sanitize_csv_value, CSVRowDat
 class TestCSVInjection:
     """Тесты для защиты от CSV injection атак."""
 
+    @pytest.fixture(autouse=True)
+    def setup_formatter(self):
+        """Создаёт SanitizeFormatter для тестов."""
+        self.formatter = SanitizeFormatter()
+
     def test_sanitize_value_with_formula_prefix(self) -> None:
         """Тест санитизации значений с опасными префиксами формул."""
-        # Значения начинающиеся с =, +, -, @ могут быть выполнены как формулы
-        assert _sanitize_csv_value("=1+1") == "'=1+1"  # Префикс ' для предотвращения выполнения
-        assert _sanitize_csv_value("+1+1") == "'+1+1"
-        assert _sanitize_csv_value("-1+1") == "'-1+1"
-        assert _sanitize_csv_value("@SUM(A1:A10)") == "'@SUM(A1:A10)"
+        assert self.formatter.format("=1+1") == "'=1+1"
+        assert self.formatter.format("+1+1") == "'+1+1"
+        assert self.formatter.format("-1+1") == "'-1+1"
+        assert self.formatter.format("@SUM(A1:A10)") == "'@SUM(A1:A10)"
 
     def test_sanitize_value_without_formula_prefix(self) -> None:
         """Тест санитизации безопасных значений."""
-        # Обычные значения не должны модифицироваться
-        assert _sanitize_csv_value("normal text") == "normal text"
-        assert _sanitize_csv_value("123") == "123"
-        assert _sanitize_csv_value("test@example.com") == "test@example.com"
+        assert self.formatter.format("normal text") == "normal text"
+        assert self.formatter.format("123") == "123"
+        assert self.formatter.format("test@example.com") == "test@example.com"
 
     def test_sanitize_value_special_characters(self) -> None:
         """Тест экранирования специальных символов CSV."""
-        # Кавычки должны экранироваться
-        assert _sanitize_csv_value('test "quoted" value') == 'test ""quoted"" value'
-        # Новые строки заменяются на пробелы
-        assert _sanitize_csv_value("line1\nline2") == "line1 line2"
-        # Carriage return удаляется
-        assert _sanitize_csv_value("line1\rline2") == "line1line2"
-        # Табы заменяются на пробелы
-        assert _sanitize_csv_value("col1\tcol2") == "col1 col2"
-        # Null символы удаляются
-        assert _sanitize_csv_value("test\x00value") == "testvalue"
+        assert self.formatter.format('test "quoted" value') == 'test ""quoted"" value'
+        assert self.formatter.format("line1\nline2") == "line1 line2"
+        assert self.formatter.format("line1\rline2") == "line1line2"
+        assert self.formatter.format("col1\tcol2") == "col1 col2"
+        assert self.formatter.format("test\x00value") == "testvalue"
 
     def test_sanitize_table_coverage(self) -> None:
         """Тест покрытия таблицы санитизации."""
-        # Проверяем что все символы из таблицы санитизации обрабатываются
         test_value = 'test"\nvalue\rwith\ttabs\x00null'
-        result = _sanitize_csv_value(test_value)
+        result = self.formatter.format(test_value)
 
-        assert '"' not in result or '""' in result  # Кавычки экранированы
-        assert "\n" not in result  # Новые строки удалены
-        assert "\r" not in result  # Carriage return удалены
-        assert "\t" not in result  # Табы удалены
-        assert "\x00" not in result  # Null символы удалены
+        assert '"' not in result or '""' in result
+        assert "\n" not in result
+        assert "\r" not in result
+        assert "\t" not in result
+        assert "\x00" not in result
 
-    def test_csv_writer_formula_protection(self, tmp_path: Path) -> None:
+    def test_csv_writer_formula_protection(self) -> None:
         """Тест защиты CSVWriter от формул."""
-        # Тестируем напрямую функцию санитизации
         dangerous_name = "=CMD|'/C calc'!A1"
-        sanitized = _sanitize_csv_value(dangerous_name)
+        sanitized = self.formatter.format(dangerous_name)
 
-        # Проверяем что опасное значение санитизировано
-        assert sanitized.startswith("'")  # Добавлен префикс '
+        assert sanitized.startswith("'")
 
     def test_csv_row_data_typeddict(self) -> None:
         """Тест TypedDict для CSVRowData."""
-        # TypedDict должен позволять создание с типизированными полями
         row_data: CSVRowData = {
             "name": "Test Organization",
             "address": "Test Address",
@@ -96,7 +91,6 @@ class TestCSVInjection:
         assert row_data["name"] == "Test Organization"
         assert row_data["address"] == "Test Address"
 
-        # TypedDict с total=False позволяет частичное заполнение
         partial_data: CSVRowData = {"name": "Partial"}
         assert partial_data["name"] == "Partial"
 
@@ -430,17 +424,18 @@ class TestTempFilePrediction:
 class TestSecurityIntegration:
     """Интеграционные тесты для систем безопасности."""
 
-    def test_csv_writer_full_sanitization(self, tmp_path: Path) -> None:
+    def test_csv_writer_full_sanitization(self) -> None:
         """Полный тест санитизации CSV writer."""
+        formatter = SanitizeFormatter()
         test_cases = [
-            ("=1+1", "'=1+1"),  # Formula injection
-            ("+1+1", "'+1+1"),  # Formula injection
-            ('test "quote"', 'test ""quote""'),  # CSV escaping
-            ("line1\nline2", "line1 line2"),  # Newline
+            ("=1+1", "'=1+1"),
+            ("+1+1", "'+1+1"),
+            ('test "quote"', 'test ""quote""'),
+            ("line1\nline2", "line1 line2"),
         ]
 
         for input_val, expected_start in test_cases:
-            result = _sanitize_csv_value(input_val)
+            result = formatter.format(input_val)
             assert result == expected_start or result.startswith(expected_start[:2])
 
     def test_xss_full_sanitization(self) -> None:

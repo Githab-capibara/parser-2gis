@@ -6,11 +6,18 @@ from pathlib import Path
 
 import pytest
 
-from parser_2gis.utils.temp_file_manager import (
-    register_temp_file,
-    temp_file_manager,
-    unregister_temp_file,
-)
+from parser_2gis.utils.temp_file_manager import temp_file_manager
+
+
+# Вспомогательные функции для обратной совместимости
+def register_temp_file(path):
+    """Регистрирует временный файл."""
+    temp_file_manager.register(path)
+
+
+def unregister_temp_file(path):
+    """Удаляет временный файл из реестра."""
+    temp_file_manager.unregister(path)
 
 
 @pytest.fixture(autouse=True)

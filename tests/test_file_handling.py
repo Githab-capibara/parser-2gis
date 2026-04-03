@@ -19,18 +19,29 @@ from pathlib import Path
 
 import pytest
 
-from parser_2gis.utils.temp_file_manager import (
-    cleanup_all_temp_files,
-    register_temp_file,
-    temp_file_manager,
-    unregister_temp_file,
-)
+from parser_2gis.utils.temp_file_manager import temp_file_manager
 
 # Добавляем путь к модулю parser_2gis
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Константа для тестов
 MAX_TEMP_FILES = 1000  # Значение по умолчанию из TempFileManager
+
+
+# Вспомогательные функции для обратной совместимости с тестами
+def register_temp_file(path):
+    """Регистрирует временный файл через temp_file_manager."""
+    temp_file_manager.register(path)
+
+
+def unregister_temp_file(path):
+    """Удаляет временный файл из реестра."""
+    temp_file_manager.unregister(path)
+
+
+def cleanup_all_temp_files():
+    """Очищает все временные файлы. Возвращает tuple (success, errors)."""
+    return temp_file_manager.cleanup_all()
 
 
 # =============================================================================
