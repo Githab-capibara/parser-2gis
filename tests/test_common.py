@@ -23,7 +23,7 @@ from pydantic import BaseModel, ValidationError
 from parser_2gis.config import Configuration, ParserOptions, WriterOptions
 from parser_2gis.parallel import ParallelCityParser
 from parser_2gis.utils.data_utils import unwrap_dot_dict
-from parser_2gis.utils.decorators import wait_until_finish
+from parser_2gis.utils.decorators import wait_until_finished
 from parser_2gis.utils.math_utils import floor_to_hundreds
 from parser_2gis.utils.validation_utils import report_from_validation_error
 
@@ -212,7 +212,7 @@ class TestCommonFunctionRobustness:
         """Проверка декоратора wait_until_finished."""
         call_count = 0
 
-        @wait_until_finish(timeout=5, finished=lambda x: x is True)
+        @wait_until_finished(timeout=5, finished=lambda x: x is True)
         def test_func():
             nonlocal call_count
             call_count += 1
@@ -383,10 +383,10 @@ class TestBoundaryConditions:
         assert parser.max_workers == 20
 
     def test_wait_until_finished_timeout_decorator(self):
-        """Проверка декоратора wait_until_finish с таймаутом."""
+        """Проверка декоратора wait_until_finished с таймаутом."""
         call_count = 0
 
-        @wait_until_finish(timeout=0.5, finished=lambda x: False, throw_exception=False)
+        @wait_until_finished(timeout=0.5, finished=lambda x: False, throw_exception=False)
         def slow_func():
             nonlocal call_count
             call_count += 1

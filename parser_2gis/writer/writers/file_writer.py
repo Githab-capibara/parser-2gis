@@ -71,17 +71,15 @@ class FileWriter(FileWriterProtocol, ABC):
         # Это гарантирует что файл будет создан только в текущей директории
         base_name = os.path.basename(normalized_path)
 
-        # Если после нормализации путь изменился, логируем предупреждение
+        # Если после нормализации путь изменился, выбрасываем ошибку
+        # ISSUE-003-#11: Вместо простого логирования теперь выбрасываем ValueError
+        # для предотвращения path traversal атак
         if normalized_path != base_name and not normalized_path.startswith(os.getcwd()):
             # Путь содержит директорию отличную от текущей
-            # Используем только базовое имя файла
-            logger.warning(
-                "Путь к файлу выходит за пределы текущей директории: %s. "
-                "Используется только имя файла: %s",
-                file_path_str,
-                base_name,
+            raise ValueError(
+                f"Путь к файлу выходит за пределы текущей директории: {file_path_str}. "
+                f"Разрешены только файлы в текущей директории: {base_name}"
             )
-            return base_name
 
         return normalized_path
 

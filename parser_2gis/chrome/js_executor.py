@@ -104,8 +104,22 @@ def _check_js_length(code: str, max_length: int) -> tuple[bool, str | None]:
     return True, None
 
 
+# ISSUE-003-#14: Скомпилированные паттерны для проверки опасных кодировок
+# Вынесены на уровень модуля для компиляции один раз
+_ENCODING_CHECK_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"\\u00[0-9a-fA-F]{2}", re.IGNORECASE), "Обнаружена попытка обхода через Unicode кодировку"),
+    (re.compile(r"\\u\{[0-9a-fA-F]+\}", re.IGNORECASE), "Обнаружена попытка обхода через расширенную Unicode кодировку"),
+    (re.compile(r"&#x[0-9a-fA-F]+;|&#\d+;", re.IGNORECASE), "Обнаружена попытка обхода через HTML entity кодировку"),
+    (re.compile(r"\\0[0-7]{2,3}"), "Обнаружена попытка обхода через Octal кодировку"),
+    (re.compile(r"\\x[0-9a-fA-F]{2}", re.IGNORECASE), "Обнаружена попытка обхода через Hex кодировку"),
+]
+
+
 def _check_dangerous_encoding(code: str) -> tuple[bool, str | None]:
     """Проверяет код на опасные кодировки (Unicode, HTML entities, octal, hex).
+
+    ISSUE-003-#14: Использует скомпилированные паттерны для снижения
+    сложности с O(n*k) до O(n).
 
     Args:
         code: JavaScript код для проверки.
@@ -116,25 +130,9 @@ def _check_dangerous_encoding(code: str) -> tuple[bool, str | None]:
         - error_message: Сообщение об ошибке или None
 
     """
-    # Проверяем на попытки обхода через unicode кодировку (\u0065\u0076\u0061\u006C = eval)
-    if re.search(r"\\u00[0-9a-fA-F]{2}", code, re.IGNORECASE):
-        return False, "Обнаружена попытка обхода через Unicode кодировку"
-
-    # Проверяем на расширенную Unicode кодировку (\u{...})
-    if re.search(r"\\u\{[0-9a-fA-F]+\}", code, re.IGNORECASE):
-        return False, "Обнаружена попытка обхода через расширенную Unicode кодировку"
-
-    # Проверяем на HTML entity кодировку
-    if re.search(r"&#x[0-9a-fA-F]+;|&#\d+;", code, re.IGNORECASE):
-        return False, "Обнаружена попытка обхода через HTML entity кодировку"
-
-    # Проверяем на octal кодировку (\042, \050 и т.д.)
-    if re.search(r"\\0[0-7]{2,3}", code):
-        return False, "Обнаружена попытка обхода через Octal кодировку"
-
-    # Проверяем на hex кодировку (\x41, \x42 и т.д.)
-    if re.search(r"\\x[0-9a-fA-F]{2}", code, re.IGNORECASE):
-        return False, "Обнаружена попытка обхода через Hex кодировку"
+    for pattern, message in _ENCODING_CHECK_PATTERNS:
+        if pattern.search(code):
+            return False, message
 
     return True, None
 
@@ -466,18 +464,13 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         return (False, f"JavaScript код должен быть строкой, получен {type(code).__name__}")
 
     # ИСПРАВЛЕНИЕ 5: Нормализуем Unicode для предотвращения обходов через Unicode эскейпы
-    # Сначала нормализуем Unicode (NFKC)
+    # Только NFKC нормализация — безопасное преобразование без изменения легитимного кода
     normalized_code = unicodedata.normalize("NFKC", code)
 
-    # Затем декодируем Unicode эскейпы (\u0065 -> e)
-    try:
-        # Декодируем \uXXXX и \xXX эскейпы
-        normalized_code = (
-            normalized_code.encode("utf-8").decode("unicode_escape").encode("utf-8").decode("utf-8")
-        )
-    except (UnicodeDecodeError, UnicodeEncodeError) as e:
-        # Если декодирование не удалось, используем нормализованный код
-        app_logger.warning("Не удалось декодировать Unicode эскейпы в JS коде: %s", e)
+    # ISSUE-003-#8: Убрано unicode_escape декодирование, так как оно может
+    # изменить легитимный JavaScript код (например, строки с \n, \t внутри).
+    # Обнаружение обходов через Unicode-эскейпы выполняется в _check_dangerous_encoding
+    # через regex-паттерны (\uXXXX, \xXX, octal и т.д.)
 
     # Проверка на None и пустую строку после нормализации
     if not normalized_code:

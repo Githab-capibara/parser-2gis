@@ -350,6 +350,11 @@ class FirmParser(MainParser):
                 if self._options.skip_404_response:
                     return
 
+                # ISSUE-003-#13: Даже если skip_404_response=False, прекращаем парсинг
+                # для несуществующих организаций
+                logger.warning("Пропуск парсинга для несуществующей организации (404)")
+                return
+
             # Ждём завершения всех запросов 2GIS
             self._wait_requests_finished()
 

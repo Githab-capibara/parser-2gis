@@ -1,4 +1,4 @@
-#!/home/d/parser-2gis/venv/bin/python3
+#!/home/d/parser-2gis/venv/bin/python
 import sys
 from pytest import console_main
 if __name__ == '__main__':

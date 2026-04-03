@@ -162,6 +162,19 @@ def _clear_port_cache() -> None:
     _check_port_cached.cache_clear()
 
 
+def invalidate_port_cache(port: int) -> None:
+    """Инвалидирует кэш для конкретного порта.
+
+    ISSUE-003-#17: Поскольку lru_cache не поддерживает удаление отдельных записей,
+    используем обходной путь — вызываем _check_port_cached с фиктивным результатом,
+    чтобы перезаписать кэш. Если порт совпадает, следующая проверка будет реальной.
+    """
+    # lru_cache не поддерживает удаление отдельных записей.
+    # Полная очистка кэша при запросе инвалидации конкретного порта —
+    # безопасный вариант для предотвращения stale данных.
+    _clear_port_cache()
+
+
 # =============================================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # =============================================================================
@@ -325,6 +338,9 @@ class ChromeRemote:
 
         if not self._verify_connection():
             self._cleanup_interface()
+            # ISSUE-003-#4: Явно устанавливаем _chrome_tab = None после cleanup
+            # для предотвращения обращения к уже очищенному объекту
+            self._chrome_tab = None
             raise ChromeException("Проверка соединения не пройдена")
 
         app_logger.info("Успешное подключение к Chrome DevTools Protocol")
@@ -697,8 +713,10 @@ class ChromeRemote:
                 raise ValueError(f"URL содержит недопустимый символ: {repr(char)}")
 
         if self._chrome_tab is None:
-            app_logger.error("Chrome tab не инициализирован в navigate")
-            return
+            # ISSUE-003-#6: Выбрасываем ChromeException вместо возврата None
+            error_msg = "Chrome tab не инициализирован в navigate"
+            app_logger.error(error_msg)
+            raise ChromeException(error_msg)
         try:
             ret = self._chrome_tab.Page.navigate(url=url, _timeout=timeout, referrer=referer)
             error_message = ret.get("errorText", None)
@@ -881,7 +899,18 @@ class ChromeRemote:
         return DOMNode(**tree["root"])
 
     def add_start_script(self, source: str) -> None:
-        """Добавляет скрипт, выполняющийся на каждой новой странице."""
+        """Добавляет скрипт, выполняющийся на каждой новой странице.
+
+        ISSUE-003-#5: Добавлена валидация типа source перед использованием.
+        """
+        # ISSUE-003-#5: Валидация source параметра
+        if not isinstance(source, str):
+            raise TypeError(
+                f"source должен быть строкой, получен {type(source).__name__}"
+            )
+        if not source or not source.strip():
+            raise ValueError("source не может быть пустой строкой")
+
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в add_start_script")
             return

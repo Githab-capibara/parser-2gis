@@ -34,7 +34,12 @@ from typing_extensions import TypeAlias
 
 from parser_2gis.logger.logger import logger as app_logger
 
-from .constants import DEFAULT_FILE_PERMISSIONS, SECONDS_PER_HOUR
+from .constants import (
+    CHROME_NO_SANDBOX_FLAG,
+    CHROME_REMOTE_ALLOW_ORIGINS_TEMPLATE,
+    DEFAULT_FILE_PERMISSIONS,
+    SECONDS_PER_HOUR,
+)
 from .exceptions import ChromePathNotFound
 from .utils import free_port, locate_chrome_path
 
@@ -735,10 +740,10 @@ class BrowserLifecycleManager:
             f"--user-data-dir={profile_path}",
             "--no-default-browser-check",
             "--no-first-run",
-            "--no-sandbox",
+            CHROME_NO_SANDBOX_FLAG,  # Необходимо для работы в Docker/контейнерах
             "--disable-fre",
-            # Ограничиваем remote-allow-origins для безопасности
-            "--remote-allow-origins=http://127.0.0.1:*",
+            # Ограничиваем remote-allow-origins точным портом для безопасности
+            f"--remote-allow-origins={CHROME_REMOTE_ALLOW_ORIGINS_TEMPLATE.format(port=remote_port)}",
             "--js-flags=--expose-gc",
             f"--max-old-space-size={memory_limit}",
         ]
@@ -804,6 +809,14 @@ class BrowserLifecycleManager:
                 self._profile_manager.cleanup_profile()
             except Exception as cleanup_error:
                 app_logger.error(f"Error cleaning up profile in finally: {cleanup_error}")
+            # ISSUE-003-#3: Явно вызываем финализатор при normal close,
+            # так как _finalizer.atexit = False не вызывает его при обычном выходе
+            try:
+                if self._finalizer is not None and self._finalizer.alive:
+                    self._finalizer()
+                    app_logger.debug("Финализатор weakref вызван явно в close()")
+            except Exception as finalizer_error:
+                app_logger.debug("Ошибка при явном вызове финализатора: %s", finalizer_error)
 
     @staticmethod
     def _cleanup_from_finalizer(
@@ -1156,10 +1169,19 @@ def cleanup_orphaned_profiles(
     return deleted_count
 
 
+# ISSUE-003-#18: Кэширование результатов проверки процессов для снижения нагрузки
+# Кэш хранит (timestamp, set_of_chrome_cmdlines) на короткое время
+_process_cache: dict[str, tuple[float, list[list[str | None]]]] = {}
+_PROCESS_CACHE_TTL = 5.0  # секунд
+
+
 def _is_profile_in_use(profile_path: Path) -> bool:
     """Проверяет, используется ли профиль активным процессом Chrome.
     - Проверяет активные процессы перед удалением профиля
     - Предотвращает удаление активных профилей
+
+    ISSUE-003-#18: Кэширует результат psutil.process_iter() на 5 секунд
+    для предотвращения повторного перебора всех процессов.
 
     Args:
         profile_path: Путь к директории профиля.
@@ -1174,19 +1196,41 @@ def _is_profile_in_use(profile_path: Path) -> bool:
             import psutil
 
             profile_str = str(profile_path)
+
+            # ISSUE-003-#18: Проверяем кэш перед вызовом process_iter
+            current_time = time.time()
+            cache_key = "chrome_processes"
+            if cache_key in _process_cache:
+                cached_time, cached_processes = _process_cache[cache_key]
+                if current_time - cached_time < _PROCESS_CACHE_TTL:
+                    # Используем кэшированные процессы
+                    for cmdline in cached_processes:
+                        if cmdline and any("chrome" in str(part).lower() for part in cmdline):
+                            cmdline_str = " ".join(str(p) for p in cmdline if p)
+                            if profile_str in cmdline_str:
+                                return True
+                    return False
+
+            # Кэш устарел или отсутствует — собираем заново
+            all_processes = []
             for proc in psutil.process_iter(["pid", "name", "cmdline"]):
                 try:
                     cmdline = proc.info.get("cmdline") or []
                     name = proc.info.get("name") or ""
+                    all_processes.append(cmdline)
                     if "chrome" in name.lower():
-                        cmdline_str = " ".join(cmdline)
+                        cmdline_str = " ".join(str(p) for p in cmdline if p)
                         if profile_str in cmdline_str:
+                            # ISSUE-003-#18: Кэшируем результат
+                            _process_cache[cache_key] = (current_time, all_processes)
                             app_logger.debug(
                                 "Профиль используется процессом Chrome PID %d", proc.info["pid"]
                             )
                             return True
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
+            # ISSUE-003-#18: Кэшируем даже если Chrome не найден
+            _process_cache[cache_key] = (current_time, all_processes)
             return False
         except ImportError:
             # Fallback для систем без psutil: используем subprocess (Unix)

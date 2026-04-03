@@ -135,9 +135,23 @@ class CacheManager:
     - Пакетные операции для массовой вставки/удаления
     - WAL режим для лучшей конкурентности
 
+    ISSUE-003-#20: SQL-константы определены как атрибуты класса для
+    централизованного управления запросами и возможности переиспользования.
+
     Attributes:
         cache_dir: Директория для хранения кэша
         ttl: Время жизни кэша (timedelta)
+        SQL_CREATE_TABLE: SQL-запрос создания таблицы кэша
+        SQL_CREATE_INDEX: SQL-запрос создания индекса по expires_at
+        SQL_CREATE_CACHE_KEY_INDEX: SQL-запрос создания составного индекса
+        SQL_SELECT: SQL-запрос выборки данных по url_hash
+        SQL_INSERT_OR_REPLACE: SQL-запрос вставки или замены записи
+        SQL_DELETE: SQL-запрос удаления записи по url_hash
+        SQL_DELETE_EXPIRED: SQL-запрос удаления истёкших записей
+        SQL_COUNT_ALL: SQL-запрос подсчёта всех записей
+        SQL_COUNT_EXPIRED: SQL-запрос подсчёта истёкших записей
+        SQL_DELETE_LRU: SQL-запрос удаления LRU записей
+        SQL_GET_CACHE_SIZE: SQL-запрос получения размера кэша
 
     Пример использования:
         >>> from pathlib import Path
@@ -151,47 +165,10 @@ class CacheManager:
         ...     data = {...}
         ...     cache.set('https://2gis.ru/moscow/search/Аптеки', data)
 
-    Пример batch операций:
-        >>> # Пакетная запись нескольких URL
-        >>> urls_data = [
-        ...     ('https://2gis.ru/url1', {'name': 'Org1'}),
-        ...     ('https://2gis.ru/url2', {'name': 'Org2'}),
-        ...     ('https://2gis.ru/url3', {'name': 'Org3'}),
-        ... ]
-        >>> for url, data in urls_data:
-        ...     cache.set(url, data)
-
-        # Пакетная проверка существования
-        >>> for url, _ in urls_data:
-        ...     if cache.exists(url):
-        ...         print(f"Кэш найден для {url}")
-
-        # Пакетное удаление устаревших записей
-        >>> old_urls = ['https://2gis.ru/url1', 'https://2gis.ru/url2']
-        >>> for url in old_urls:
-        ...     cache.delete(url)
-
-        # Пакетная очистка по условию
-        >>> cache.clear()  # Очистка всего кэша
-
-    Пример работы с connection pool:
-        >>> # Кэш с настраиваемым размером пула
-        >>> cache = CacheManager(
-        ...     Path('/tmp/cache'),
-        ...     ttl_hours=24,
-        ...     pool_size=10  # 10 соединений в пуле
-        ... )
-
-        # Автоматическое управление соединениями
-        >>> with cache._pool.get_connection() as conn:
-        ...     cursor = conn.cursor()
-        ...     cursor.execute("SELECT COUNT(*) FROM cache")
-        ...     count = cursor.fetchone()[0]
-        ...     print(f"Записей в кэше: {count}")
-
     """
 
-    # Компилированные SQL запросы для оптимизации
+    # ISSUE-003-#20: Скомпилированные SQL-запросы как атрибуты класса
+    # для централизованного управления и переиспользования
     SQL_CREATE_TABLE = """
         CREATE TABLE IF NOT EXISTS cache (
             url_hash TEXT PRIMARY KEY,
@@ -321,6 +298,9 @@ class CacheManager:
         self._serializer = JsonSerializer()
         self._validator = CacheDataValidator()
 
+        # ISSUE-003-#15: Флаг инициализации БД для пропуска повторных CREATE TABLE
+        self._db_initialized: bool = False
+
         # weakref.finalize() для гарантированной очистки ресурсов
         self._weak_ref = weakref.ref(self)
         self._finalizer = weakref.finalize(self, self._cleanup_cache_manager)
@@ -335,6 +315,7 @@ class CacheManager:
         таблицу для хранения кэшированных данных.
 
         C4: Включает WAL режим и настраивает synchronous=NORMAL для производительности.
+        ISSUE-003-#15: Кэширует флаг инициализации для пропуска повторных CREATE TABLE.
 
         Args:
             pool_size: Размер пула соединений.
@@ -360,6 +341,10 @@ class CacheManager:
             app_logger.error("Ошибка при создании пула соединений: %s", pool_error)
             raise
 
+        # ISSUE-003-#15: Пропускаем инициализацию если БД уже создана
+        if self._db_initialized:
+            return
+
         # Получаем соединение для инициализации
         conn = self._pool.get_connection()
 
@@ -381,6 +366,9 @@ class CacheManager:
 
             # Применяем изменения
             conn.commit()
+
+            # ISSUE-003-#15: Отмечаем БД как инициализированную
+            self._db_initialized = True
 
         except (sqlite3.Error, OSError, MemoryError) as e:
             app_logger.error("Ошибка при инициализации кэша: %s", e)
@@ -555,9 +543,11 @@ class CacheManager:
                         expires_at = self._parse_expires_at(expires_at_str)
                         if expires_at and datetime.now() <= expires_at:
                             result = self._serializer.deserialize(data)
-                            retry_conn.close()
+                            # ISSUE-003-#12: Возвращаем соединение в пул вместо закрытия
+                            self._pool.return_connection(retry_conn)
                             return result
-                    retry_conn.close()
+                    # ISSUE-003-#12: Возвращаем соединение в пул вместо закрытия
+                    self._pool.return_connection(retry_conn)
             except sqlite3.Error as retry_error:
                 app_logger.warning("Повторная попытка не удалась: %s", retry_error)
             return None
@@ -685,12 +675,16 @@ class CacheManager:
             return self._handle_cache_hit(data, checksum, expires_at_str, conn, url_hash)
 
         except sqlite3.Error as db_error:
-            try:
-                conn.rollback()
-            except (sqlite3.Error, OSError, MemoryError) as rollback_error:
-                app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
-
-            return self._handle_db_error(db_error, url, url_hash)
+            # ISSUE-003-#19: Не вызываем rollback если retry уже обработал транзакцию
+            # _handle_db_error может выполнить commit при успешной retry попытке
+            result = self._handle_db_error(db_error, url, url_hash)
+            if result is None:
+                # Только если retry не вернул результат, делаем rollback
+                try:
+                    conn.rollback()
+                except (sqlite3.Error, OSError, MemoryError) as rollback_error:
+                    app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
+            return result
 
         except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as decode_error:
             self._handle_deserialize_error(decode_error, url, conn, url_hash)

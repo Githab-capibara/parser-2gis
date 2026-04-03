@@ -20,11 +20,6 @@ from parser_2gis.logger.logger import logger as app_logger
 if TYPE_CHECKING:
     import requests
 
-# D012: Глобальная метка времени для rate limiting
-_last_request_time: float = 0.0
-_rate_limit_lock = threading.Lock()
-
-
 # =============================================================================
 # КЭШИРОВАНИЕ HTTP ЗАПРОСОВ С TTL
 # =============================================================================
@@ -132,24 +127,6 @@ class _HTTPCache:
         """
         with self._lock:
             return len(self._cache)
-
-
-def _apply_rate_limit() -> None:
-    """D012: Применяет rate limiting для HTTP запросов.
-
-    Обеспечивает минимальную задержку между запросами для предотвращения блокировок.
-    """
-    global _last_request_time
-
-    with _rate_limit_lock:
-        current_time = time.time()
-        elapsed = current_time - _last_request_time
-
-        if elapsed < HTTP_CACHE_RATE_LIMIT_DELAY:
-            delay = HTTP_CACHE_RATE_LIMIT_DELAY - elapsed
-            time.sleep(delay)
-
-        _last_request_time = time.time()
 
 
 # =============================================================================

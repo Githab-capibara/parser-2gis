@@ -440,7 +440,10 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
 
         # Возвращаем результат
         if id(value) in results:
-            return results[id(value)]
+            result = results[id(value)]
+            # ISSUE-003-#16: Очищаем results после обработки для освобождения памяти
+            results.clear()
+            return result
         # Если значение было обработано inline, возвращаем его
         return value
 
