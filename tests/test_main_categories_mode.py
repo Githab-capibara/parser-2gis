@@ -46,6 +46,8 @@ class TestCategoriesModeValidation:
                 "--cities",
                 "omsk",
                 "--categories-mode",
+                "--parallel.max-workers",
+                "10",
                 "-o",
                 str(output_file),
                 "-f",
@@ -70,7 +72,18 @@ class TestCategoriesModeValidation:
         output_file = tmp_path / "output.csv"
 
         with patch(
-            "sys.argv", ["parser-2gis", "--cities", "omsk", "-o", str(output_file), "-f", "csv"]
+            "sys.argv",
+            [
+                "parser-2gis",
+                "--cities",
+                "omsk",
+                "--parallel.max-workers",
+                "10",
+                "-o",
+                str(output_file),
+                "-f",
+                "csv",
+            ],
         ):
             args, config = parse_arguments()
 
@@ -104,6 +117,8 @@ class TestCategoriesModeValidation:
                 "https://2gis.ru/moscow/search/Аптеки",
                 "--cities",
                 "omsk",
+                "--parallel.max-workers",
+                "10",
                 "-o",
                 str(output_file),
                 "-f",
@@ -139,6 +154,8 @@ class TestParallelWorkersValidation:
                 "--cities",
                 "omsk",
                 "--categories-mode",
+                "--parallel.max-workers",
+                "10",
                 "-o",
                 str(output_dir),
                 "-f",

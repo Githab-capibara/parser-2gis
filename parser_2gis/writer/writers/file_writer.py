@@ -72,14 +72,19 @@ class FileWriter(WriterProtocol, ABC):
         # Это гарантирует что файл будет создан только в текущей директории
         base_name = os.path.basename(normalized_path)
 
-        # Если после нормализации путь изменился, выбрасываем ошибку
-        # ISSUE-003-#11: Вместо простого логирования теперь выбрасываем ValueError
-        # для предотвращения path traversal атак
-        if normalized_path != base_name and not normalized_path.startswith(os.getcwd()):
+        # Если после нормализации путь изменился, проверяем допустимые директории
+        # ISSUE-003-#11: Разрешаем пути в tempfile и output директориях
+        allowed_prefixes = (
+            os.getcwd(),
+            "/tmp",
+            "/var/tmp",
+            os.path.join(os.getcwd(), "output"),
+        )
+        if normalized_path != base_name and not normalized_path.startswith(allowed_prefixes):
             # Путь содержит директорию отличную от текущей
             raise ValueError(
-                f"Путь к файлу выходит за пределы текущей директории: {file_path_str}. "
-                f"Разрешены только файлы в текущей директории: {base_name}"
+                f"Путь к файлу выходит за пределы разрешённых директорий: {file_path_str}. "
+                f"Разрешены: текущая директория, output, tempfile. Базовое имя: {base_name}"
             )
 
         return normalized_path

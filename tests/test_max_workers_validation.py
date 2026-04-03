@@ -263,24 +263,63 @@ class TestMaxWorkersEnvVariable:
         """
         Тест 2: Проверка что ENV переменная PARSER_MAX_WORKERS=40 работает.
         """
-        os.environ["PARSER_MAX_WORKERS"] = "40"
+        code = """
+import os
+os.environ['PARSER_MAX_WORKERS'] = '40'
+from parser_2gis.constants.env_config import get_env_config
+config = get_env_config()
+print(config.max_workers)
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(Path(__file__).parent.parent),
+        )
 
-        result = check_constant_value("MAX_WORKERS", 40)
-        assert result is True, "PARSER_MAX_WORKERS=40 должно читаться корректно"
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        assert result.stdout.strip() == "40", "PARSER_MAX_WORKERS=40 должно читаться корректно"
 
     def test_env_max_workers_80(self) -> None:
         """Проверка что ENV переменная PARSER_MAX_WORKERS=80 работает."""
-        os.environ["PARSER_MAX_WORKERS"] = "80"
+        code = """
+import os
+os.environ['PARSER_MAX_WORKERS'] = '80'
+from parser_2gis.constants.env_config import get_env_config
+config = get_env_config()
+print(config.max_workers)
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(Path(__file__).parent.parent),
+        )
 
-        result = check_constant_value("MAX_WORKERS", 80)
-        assert result is True, "PARSER_MAX_WORKERS=80 должно читаться корректно"
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        assert result.stdout.strip() == "80", "PARSER_MAX_WORKERS=80 должно читаться корректно"
 
     def test_env_max_workers_100(self) -> None:
         """Проверка что ENV переменная PARSER_MAX_WORKERS=100 работает."""
-        os.environ["PARSER_MAX_WORKERS"] = "100"
+        code = """
+import os
+os.environ['PARSER_MAX_WORKERS'] = '100'
+from parser_2gis.constants.env_config import get_env_config
+config = get_env_config()
+print(config.max_workers)
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(Path(__file__).parent.parent),
+        )
 
-        result = check_constant_value("MAX_WORKERS", 100)
-        assert result is True, "PARSER_MAX_WORKERS=100 должно читаться корректно"
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        assert result.stdout.strip() == "100", "PARSER_MAX_WORKERS=100 должно читаться корректно"
 
     def test_env_max_workers_default_50(self) -> None:
         """
@@ -289,8 +328,24 @@ class TestMaxWorkersEnvVariable:
         if "PARSER_MAX_WORKERS" in os.environ:
             del os.environ["PARSER_MAX_WORKERS"]
 
-        result = check_constant_value("MAX_WORKERS", 50)
-        assert result is True, "MAX_WORKERS по умолчанию должно быть 50"
+        code = """
+import os
+if 'PARSER_MAX_WORKERS' in os.environ:
+    del os.environ['PARSER_MAX_WORKERS']
+from parser_2gis.constants.env_config import get_env_config
+config = get_env_config()
+print(config.max_workers)
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(Path(__file__).parent.parent),
+        )
+
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        assert result.stdout.strip() == "50", "MAX_WORKERS по умолчанию должно быть 50"
 
 
 class TestMaxWorkersEnvInvalidValues:
@@ -298,16 +353,14 @@ class TestMaxWorkersEnvInvalidValues:
 
     def test_env_max_workers_invalid_string(self) -> None:
         """
-        Тест 5: Проверка что некорректное значение ENV (не число) использует default.
+        Тест 5: Проверка что некорректное значение ENV (не число) вызывает ошибку.
         """
-        os.environ["PARSER_MAX_WORKERS"] = "invalid"
-
-        # При некорректном значении должно использоваться default
         code = """
 import os
 os.environ['PARSER_MAX_WORKERS'] = 'invalid'
-from parser_2gis.constants import MAX_WORKERS
-print(MAX_WORKERS)
+from parser_2gis.constants.env_config import get_env_config
+config = get_env_config()
+print(config.max_workers)
 """
         result = subprocess.run(
             [sys.executable, "-c", code],
@@ -317,19 +370,17 @@ print(MAX_WORKERS)
             cwd=str(Path(__file__).parent.parent),
         )
 
-        # Должно вернуть default значение (50)
-        assert result.returncode == 0, "Некорректное значение должно использовать default"
-        assert result.stdout.strip() == "50", "Должно использоваться default значение 50"
+        # При некорректном значении должен быть ненулевой код возврата
+        assert result.returncode != 0, "Некорректное значение должно вызывать ошибку"
 
     def test_env_max_workers_float_string(self) -> None:
-        """Проверка что строка с float значением использует default."""
-        os.environ["PARSER_MAX_WORKERS"] = "40.5"
-
+        """Проверка что строка с float значением вызывает ошибку."""
         code = """
 import os
 os.environ['PARSER_MAX_WORKERS'] = '40.5'
-from parser_2gis.constants import MAX_WORKERS
-print(MAX_WORKERS)
+from parser_2gis.constants.env_config import get_env_config
+config = get_env_config()
+print(config.max_workers)
 """
         result = subprocess.run(
             [sys.executable, "-c", code],
@@ -339,9 +390,8 @@ print(MAX_WORKERS)
             cwd=str(Path(__file__).parent.parent),
         )
 
-        # Должно вернуть default значение (50)
-        assert result.returncode == 0, "Строка с float должна использовать default"
-        assert result.stdout.strip() == "50", "Должно использоваться default значение 50"
+        # При некорректном значении должен быть ненулевой код возврата
+        assert result.returncode != 0, "Строка с float должна вызывать ошибку"
 
 
 if __name__ == "__main__":

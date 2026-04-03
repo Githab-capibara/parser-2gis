@@ -11,11 +11,15 @@ class TestJSONWriterStructure:
     """Тесты для проверки структуры JSON данных."""
 
     @pytest.fixture
-    def mock_writer(self):
+    def mock_writer(self, tmp_path):
         """Создает мок writer."""
+        from unittest.mock import MagicMock
+        from parser_2gis.writer.writers.json_writer import JSONWriter
+        
+        test_file = tmp_path / "test.json"
         options = MagicMock()
         options.verbose = False
-        writer = JSONWriter("/tmp/test.json", options)
+        writer = JSONWriter(str(test_file), options)
         writer._file = MagicMock()
         writer._wrote_count = 0
         writer._first_item = True
