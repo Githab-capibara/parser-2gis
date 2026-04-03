@@ -146,8 +146,8 @@ class PathValidator(PathValidatorProtocol):
                 self.validate(path_value, path_name)
 
 
-# Singleton экземпляр для глобального использования
-_path_validator: PathValidator | None = None
+# Singleton экземпляр для глобального использования (используем список для избежания global)
+_path_validator: list[PathValidator | None] = [None]
 
 
 def get_path_validator() -> PathValidator:
@@ -161,10 +161,9 @@ def get_path_validator() -> PathValidator:
         >>> validator.validate("/safe/path/file.txt")
 
     """
-    global _path_validator
-    if _path_validator is None:
-        _path_validator = PathValidator()
-    return _path_validator
+    if _path_validator[0] is None:
+        _path_validator[0] = PathValidator()
+    return _path_validator[0]
 
 
 def validate_path(path: str, path_name: str = "Путь") -> None:

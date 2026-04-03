@@ -16,6 +16,7 @@ from __future__ import annotations
 import ipaddress
 import socket
 from functools import lru_cache
+from urllib.error import URLError
 from urllib.parse import urlparse
 
 from parser_2gis.logger import logger as app_logger
@@ -117,7 +118,7 @@ def validate_url(url: str) -> ValidationResult:
 
         return ValidationResult(is_valid=True, value=url, error=None)
 
-    except Exception as e:
+    except (ValueError, TypeError, URLError) as e:
         return ValidationResult(is_valid=False, error=f"Ошибка валидации URL: {e}")
 
 

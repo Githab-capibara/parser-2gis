@@ -37,7 +37,7 @@ class PathTraversalError(ValueError):
 
     """
 
-    pass
+    ...
 
 
 class PathSafetyValidator:
@@ -188,8 +188,8 @@ class PathSafetyValidator:
                 self.validate_safety(path_value, path_name)
 
 
-# Singleton экземпляр для глобального использования
-_path_safety_validator: PathSafetyValidator | None = None
+# Singleton экземпляр для глобального использования (используем список для избежания global)
+_path_safety_validator: list[PathSafetyValidator | None] = [None]
 
 
 def get_path_safety_validator() -> PathSafetyValidator:
@@ -206,10 +206,9 @@ def get_path_safety_validator() -> PathSafetyValidator:
         >>> validator.validate_safety("/tmp/output.txt", "output_path")
 
     """
-    global _path_safety_validator
-    if _path_safety_validator is None:
-        _path_safety_validator = PathSafetyValidator()
-    return _path_safety_validator
+    if _path_safety_validator[0] is None:
+        _path_safety_validator[0] = PathSafetyValidator()
+    return _path_safety_validator[0]
 
 
 def validate_path_traversal(path: str) -> bool:
