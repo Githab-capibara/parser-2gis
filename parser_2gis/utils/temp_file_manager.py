@@ -151,9 +151,7 @@ class TempFileManager:
                 try:
                     # Проверяем что файл доступен для записи
                     if not os.access(str(file_path), os.W_OK):
-                        self._logger.warning(
-                            "Нет прав на удаление файла %s, пропускаем", file_path
-                        )
+                        self._logger.warning("Нет прав на удаление файла %s, пропускаем", file_path)
                         error_count += 1
                         continue
                 except (OSError, RuntimeError) as access_error:
@@ -170,9 +168,7 @@ class TempFileManager:
                 self._logger.debug("Удалён временный файл: %s", file_path)
             except PermissionError as perm_error:
                 error_count += 1
-                self._logger.error(
-                    "Нет прав на удаление файла %s: %s", file_path, perm_error
-                )
+                self._logger.error("Нет прав на удаление файла %s: %s", file_path, perm_error)
             except OSError as e:
                 error_count += 1
                 self._logger.error("Ошибка удаления файла %s: %s", file_path, e)

@@ -154,7 +154,9 @@ def retry_with_backoff(
 
 
 def retry_with_fixed_delay(
-    max_attempts: int = 3, delay: float = 1.0, exceptions: RetryableException = DEFAULT_RETRY_EXCEPTIONS
+    max_attempts: int = 3,
+    delay: float = 1.0,
+    exceptions: RetryableException = DEFAULT_RETRY_EXCEPTIONS,
 ) -> Callable[[F], F]:
     """Декоратор для повторных попыток с фиксированной задержкой.
 

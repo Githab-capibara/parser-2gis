@@ -67,6 +67,7 @@ DEFAULT_POOL_SIZE: int = 10
 # CACHED HASH COMPUTATION (P0-8: Кэширование SHA-256 для снижения CPU нагрузки)
 # =============================================================================
 
+
 @lru_cache(maxsize=1024)
 def _compute_data_hash_cached(data: str) -> str:
     """Кэширует вычисление SHA-256 хеша для данных.

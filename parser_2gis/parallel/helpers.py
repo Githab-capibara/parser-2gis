@@ -44,7 +44,10 @@ class FileMerger:
     """
 
     def __init__(
-        self, output_dir: Path, config: "Configuration | None" = None, cancel_event: threading.Event | None = None
+        self,
+        output_dir: Path,
+        config: "Configuration | None" = None,
+        cancel_event: threading.Event | None = None,
     ) -> None:
         """Инициализация FileMerger.
 

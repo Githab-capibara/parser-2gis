@@ -106,9 +106,7 @@ def _calculate_dynamic_pool_size() -> int:
     except (ImportError, MemoryError, OSError, ValueError, TypeError, Exception) as error:
         # Объединённая обработка ошибок: все типы ошибок возвращают MIN_POOL_SIZE
         error_type = type(error).__name__
-        app_logger.debug(
-            "%s при расчёте размера пула: %s, используем минимум", error_type, error
-        )
+        app_logger.debug("%s при расчёте размера пула: %s, используем минимум", error_type, error)
         return MIN_POOL_SIZE
 
 
@@ -275,7 +273,8 @@ class ConnectionPool:
                 conn_id = id(conn)
                 age = self._connection_age.get(conn_id)
                 if age is not None and (
-                    time.time() - age > _CONNECTION_MAX_AGE_ENV or not self._is_connection_valid(conn)
+                    time.time() - age > _CONNECTION_MAX_AGE_ENV
+                    or not self._is_connection_valid(conn)
                 ):
                     app_logger.debug("Соединение из queue устарело или неактивно, пересоздаём")
                     try:

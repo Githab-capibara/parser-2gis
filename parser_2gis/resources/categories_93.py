@@ -185,7 +185,9 @@ def get_category_by_name(name: str) -> CategoryDict | None:
     return None
 
 
-def generate_urls_for_city(city: CityDict, categories: list[CategoryDict] | None = None) -> list[str]:
+def generate_urls_for_city(
+    city: CityDict, categories: list[CategoryDict] | None = None
+) -> list[str]:
     """Генерирует URL для парсинга всех категорий для одного города.
 
     Args:

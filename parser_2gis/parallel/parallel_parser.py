@@ -81,6 +81,7 @@ MAX_LOCK_ATTEMPTS = 50  # Максимальное число попыток п�
 # MODULE-LEVEL HELPER FUNCTIONS (P0-11: Вынесены из merge_csv_files для тестируемости)
 # =============================================================================
 
+
 def _create_merge_fieldnames_cache() -> dict[tuple[str, ...], list[str]]:
     """Создаёт кэш для fieldnames CSV файлов.
 
@@ -679,7 +680,9 @@ class ParallelCityParser:
                     try:
                         if temp_file.exists():
                             temp_file.unlink()
-                            log_method(f"Временный файл удалён при прерывании: {temp_file}", "debug")
+                            log_method(
+                                f"Временный файл удалён при прерывании: {temp_file}", "debug"
+                            )
                     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         log_method(
                             f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}",
@@ -797,7 +800,15 @@ class ParallelCityParser:
 
         except KeyboardInterrupt:
             self.log("Объединение прервано пользователем (KeyboardInterrupt)", "warning")
-            cleanup_temp_files()
+            # Вложенная функция _do_cleanup определена выше в merge_csv_files
+            # Вызываем inline очистку
+            with self._merge_lock:
+                for temp_file in self._merge_temp_files:
+                    try:
+                        if temp_file.exists():
+                            temp_file.unlink()
+                    except OSError:
+                        pass
             return False
 
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:

@@ -20,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from collections.abc import Callable, Generator
 
 from parser_2gis.chrome.exceptions import ChromeException
