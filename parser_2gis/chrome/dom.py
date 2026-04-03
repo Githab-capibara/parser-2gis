@@ -10,16 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from pydantic import BaseModel, Field
-
-try:
-    from pydantic import field_validator  # type: ignore[attr-defined]
-
-    PYDANTIC_V2 = True
-except ImportError:
-    from pydantic import validator
-
-    PYDANTIC_V2 = False
+from pydantic import BaseModel, Field, field_validator
 
 
 class DOMNode(BaseModel):
@@ -67,36 +58,19 @@ class DOMNode(BaseModel):
             attributes[attributes_list[name_idx]] = attributes_list[name_idx + 1]
         return attributes
 
-    if PYDANTIC_V2:
+    @field_validator("attributes", mode="before")
+    @classmethod
+    def validate_attributes(cls, attributes_list: list[str]) -> dict[str, str]:
+        """Валидирует атрибуты в режиме Pydantic V2.
 
-        @field_validator("attributes", mode="before")
-        @classmethod
-        def validate_attributes(cls, attributes_list: list[str]) -> dict[str, str]:
-            """Валидирует атрибуты в режиме Pydantic V2.
+        Args:
+            attributes_list: Список атрибутов в формате [name1, value1, name2, value2, ...].
 
-            Args:
-                attributes_list: Список атрибутов в формате [name1, value1, name2, value2, ...].
+        Returns:
+            Словарь атрибутов {name1: value1, name2: value2, ...}.
 
-            Returns:
-                Словарь атрибутов {name1: value1, name2: value2, ...}.
-
-            """
-            return cls._validate_attributes(attributes_list)
-
-    else:
-
-        @validator("attributes", pre=True)
-        def validate_attributes(self, attributes_list: list[str]) -> dict[str, str]:
-            """Валидирует атрибуты в режиме Pydantic V1.
-
-            Args:
-                attributes_list: Список атрибутов в формате [name1, value1, name2, value2, ...].
-
-            Returns:
-                Словарь атрибутов {name1: value1, name2: value2, ...}.
-
-            """
-            return self._validate_attributes(attributes_list)
+        """
+        return cls._validate_attributes(attributes_list)
 
     def search(self, predicate: Callable[[DOMNode], bool]) -> list[DOMNode]:
         """Ищет узлы в DOM дереве с помощью predicate."""

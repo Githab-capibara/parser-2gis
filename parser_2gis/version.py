@@ -14,8 +14,24 @@
 VERSION: str = "2.1.12"
 CONFIG_VERSION: str = "0.1"
 
-# Алиасы для обратной совместимости
-version: str = "2.1.12"
-config_version: str = CONFIG_VERSION
+__all__ = ["CONFIG_VERSION", "VERSION"]
 
-__all__ = ["CONFIG_VERSION", "VERSION", "config_version", "version"]
+
+def __getattr__(name: str) -> str:
+    """Ленивые алиасы для обратной совместимости.
+
+    Args:
+        name: Имя атрибута.
+
+    Returns:
+        Значение алиаса.
+
+    Raises:
+        AttributeError: Если атрибут не найден.
+
+    """
+    if name == "version":
+        return VERSION
+    if name == "config_version":
+        return CONFIG_VERSION
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

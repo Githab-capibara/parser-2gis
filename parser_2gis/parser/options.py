@@ -20,6 +20,15 @@ from parser_2gis.constants import (
 )
 from parser_2gis.utils import floor_to_hundreds
 
+# Константы для значений по умолчанию
+_DEFAULT_MEMORY_THRESHOLD_MB = 2048
+_DEFAULT_GC_PAGES_INTERVAL = 10
+_DEFAULT_MAX_RETRIES = 3
+_DEFAULT_RETRY_DELAY_BASE = 1
+_DEFAULT_MAX_CONSECUTIVE_EMPTY_PAGES = 3
+_DEFAULT_TIMEOUT_SECONDS = 60
+_DEFAULT_MAX_RECORDS_FALLBACK = 100
+
 
 def default_max_records() -> int:
     """Пытается найти линейную аппроксимацию для оптимального количества записей."""
@@ -27,7 +36,7 @@ def default_max_records() -> int:
 
     # Защита от отрицательного или нулевого значения памяти
     if memory_limit <= 0:
-        return 100
+        return _DEFAULT_MAX_RECORDS_FALLBACK
 
     # ISSUE-039: Вынесены магические числа в константы
     max_records = floor_to_hundreds(
@@ -38,7 +47,7 @@ def default_max_records() -> int:
     )
 
     # Гарантируем положительное значение
-    return max(100, max_records)
+    return max(_DEFAULT_MAX_RECORDS_FALLBACK, max_records)
 
 
 class ParserOptions(BaseModel):
@@ -64,11 +73,11 @@ class ParserOptions(BaseModel):
     delay_between_clicks: NonNegativeInt = 0
     max_records: PositiveInt = default_max_records()
     use_gc: bool = False
-    gc_pages_interval: PositiveInt = 10
+    gc_pages_interval: PositiveInt = _DEFAULT_GC_PAGES_INTERVAL
     retry_on_network_errors: bool = True
-    max_retries: PositiveInt = 3
-    retry_delay_base: PositiveInt = 1
-    memory_threshold: PositiveInt = 2048
+    max_retries: PositiveInt = _DEFAULT_MAX_RETRIES
+    retry_delay_base: PositiveInt = _DEFAULT_RETRY_DELAY_BASE
+    memory_threshold: PositiveInt = _DEFAULT_MEMORY_THRESHOLD_MB
     stop_on_first_404: bool = False
-    max_consecutive_empty_pages: PositiveInt = 3
-    timeout: PositiveInt = 60
+    max_consecutive_empty_pages: PositiveInt = _DEFAULT_MAX_CONSECUTIVE_EMPTY_PAGES
+    timeout: PositiveInt = _DEFAULT_TIMEOUT_SECONDS

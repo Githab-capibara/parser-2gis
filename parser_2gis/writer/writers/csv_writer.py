@@ -298,6 +298,11 @@ class CSVWriter(FileWriter):
                 post_processor.remove_empty_columns()
             except (OSError, csv.Error, RuntimeError) as e:
                 logger.error("Ошибка при удалении пустых колонок: %s", e)
+                logger.warning(
+                    "Файл %s может содержать пустые колонки. "
+                    "Рекомендуется проверить качество данных.",
+                    self._file_path,
+                )
 
         # Постобработка: удаление дубликатов
         if self._options.csv.remove_duplicates:
@@ -309,6 +314,11 @@ class CSVWriter(FileWriter):
                 deduplicator.remove_duplicates()
             except (OSError, IOError, RuntimeError) as e:
                 logger.error("Ошибка при удалении дубликатов: %s", e)
+                logger.warning(
+                    "Файл %s может содержать дубликаты. "
+                    "Рекомендуется проверить качество данных.",
+                    self._file_path,
+                )
 
         # Теперь закрываем файл через super().__exit__()
         super().__exit__(*exc_info)

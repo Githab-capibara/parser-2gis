@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import pathlib
+from functools import lru_cache
 
 import psutil
 from pydantic import BaseModel, PositiveInt
@@ -18,8 +19,11 @@ from parser_2gis.chrome.constants import MEMORY_FRACTION_FOR_V8
 from parser_2gis.utils import floor_to_hundreds
 
 
+@lru_cache(maxsize=1)
 def default_memory_limit() -> int:
     """Лимит памяти по умолчанию для V8 — MEMORY_FRACTION_FOR_V8 от общей физической памяти в МБ.
+
+    Результат кэшируется через lru_cache для предотвращения повторных вычислений.
 
     Returns:
         Лимит памяти в мегабайтах, округлённый вниз до ближайшей сотни.

@@ -54,6 +54,22 @@ _setup_third_party_logging_once()
 _LOGGER_NAME = "parser-2gis"
 
 
+def _create_formatter(fmt: str, datefmt: str) -> logging.Formatter:
+    """Создаёт объект Formatter с заданными параметрами.
+
+    Вынесено для устранения дублирования кода создания formatter.
+
+    Args:
+        fmt: Строка формата логов.
+        datefmt: Строка формата даты.
+
+    Returns:
+        Настроенный экземпляр logging.Formatter.
+
+    """
+    return logging.Formatter(fmt, datefmt)
+
+
 def _setup_base_logger(
     level: str | int = logging.INFO,
     fmt: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -81,7 +97,7 @@ def _setup_base_logger(
 
     if not target_logger.handlers:
         handler = logging.StreamHandler()
-        formatter = logging.Formatter(fmt, datefmt)
+        formatter = _create_formatter(fmt, datefmt)
         handler.setFormatter(formatter)
 
         target_logger.addHandler(handler)

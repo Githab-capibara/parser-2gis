@@ -3,27 +3,18 @@
 import pytest
 
 from parser_2gis.chrome.constants import (
+    CHROME_NO_SANDBOX_FLAG,
     CHROME_STARTUP_DELAY,
-    DEFAULT_CONNECTION_TIMEOUT_SEC,
     DEFAULT_MEMORY_LIMIT_MB,
-    DEFAULT_NETWORK_TIMEOUT,
-    DEFAULT_REMOTE_DEBUGGING_PORT,
     DEFAULT_REMOTE_DEBUGGING_PORT_RANGE,
     DEFAULT_STARTUP_DELAY_SEC,
     DEFAULT_TTL_HOURS,
-    EXTERNAL_RATE_LIMIT_CALLS,
     EXTERNAL_RATE_LIMIT_PERIOD,
     LOCALHOST_BASE_URL,
-    MAX_JS_CODE_LENGTH,
     MAX_PORT,
-    MAX_RESPONSE_SIZE,
-    MAX_TOTAL_JS_SIZE,
     MEMORY_FRACTION_FOR_V8,
     MIN_PORT,
-    PORT_CACHE_MAXSIZE,
-    RATE_LIMIT_CALLS,
     RATE_LIMIT_PERIOD,
-    SECONDS_PER_HOUR,
 )
 
 
@@ -109,3 +100,9 @@ class TestChromeConstantsValues:
     def test_ttl_hours_is_positive(self):
         """DEFAULT_TTL_HOURS положительный."""
         assert DEFAULT_TTL_HOURS > 0
+
+    def test_chrome_no_sandbox_flag_is_correct(self):
+        """CHROME_NO_SANDBOX_FLAG равен '--no-sandbox'."""
+        assert CHROME_NO_SANDBOX_FLAG == "--no-sandbox"
+        assert CHROME_NO_SANDBOX_FLAG.startswith("--")
+        assert "sandbox" in CHROME_NO_SANDBOX_FLAG

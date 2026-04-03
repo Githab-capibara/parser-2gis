@@ -61,20 +61,12 @@ except ImportError:
     limits = None  # type: ignore[assignment, misc]
     sleep_and_retry = None  # type: ignore[assignment, misc]
 
-_RATELIMIT_AVAILABLE = limits is not None and sleep_and_retry is not None
-
 try:
     from requests.exceptions import RequestException
 except ImportError:
     RequestException = Exception  # type: ignore[misc, assignment]
 
-try:
-    from tenacity import retry, stop_after_attempt
-except ImportError:
-    retry = None  # type: ignore[assignment, misc]
-    stop_after_attempt = None  # type: ignore[assignment, misc]
-
-_TENACITY_AVAILABLE = retry is not None and stop_after_attempt is not None
+# tenacity импортируется из utils.retry при необходимости
 
 
 # Импорты для backward совместимости
@@ -279,7 +271,7 @@ class ChromeRemote:
                     connection_established = True
                     return True
                 except (RequestException, WebSocketException, ChromeException, OSError) as e:
-                    app_logger.debug("Попытка %d/%d: %s", attempt + 1, max_attempts, e)
+                    app_logger.warning("Попытка %d/%d: %s", attempt + 1, max_attempts, e)
                     self._cleanup_interface()
                     if attempt < max_attempts - 1:
                         time.sleep(attempt_delay)
@@ -1024,7 +1016,7 @@ class ChromeRemote:
 
     # D010: Rate limiting теперь обязательный для всех внешних запросов
     # Если ratelimit не установлен, используем fallback с предупреждением
-    if _RATELIMIT_AVAILABLE:
+    if sleep_and_retry is not None and limits is not None:
         _execute_script_internal = sleep_and_retry(
             limits(calls=EXTERNAL_RATE_LIMIT_CALLS, period=EXTERNAL_RATE_LIMIT_PERIOD)(
                 _execute_script_internal_impl

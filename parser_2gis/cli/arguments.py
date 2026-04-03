@@ -16,7 +16,6 @@ import textwrap
 from parser_2gis.cli.formatter import ArgumentHelpFormatter, patch_argparse_translations
 from parser_2gis.cli.validator import ArgumentValidator
 from parser_2gis.config import Configuration
-from parser_2gis.constants import get_env_config
 from parser_2gis.utils import unwrap_dot_dict
 
 
@@ -268,10 +267,11 @@ def _create_argument_parser() -> argparse.ArgumentParser:
         help=textwrap.fill("Максимум работников", width=60, subsequent_indent="    "),
     )
     # ISSUE-034: Используем значение из config вместо хардкода default=10
+    # ISSUE-059: Factory функция для ленивого вычисления default значения
     p_parser.add_argument(
         "--parallel.max-workers",
         type=int,
-        default=get_env_config().max_workers,
+        default=None,  # Вычисляется лениво в _get_default_max_workers
         help=textwrap.fill(
             "Потоков для параллельного парсинга", width=60, subsequent_indent="    "
         ),

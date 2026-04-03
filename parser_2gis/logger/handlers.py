@@ -190,13 +190,14 @@ class FileLogger:
                         "Ошибка закрытия обработчика при сбое: %s", handler_close_error
                     )
                 self._file_handler = None
-            # Логируем ошибку в stderr
-            import sys
-
-            sys.stderr.write(
-                f"Критическая ошибка при настройке файлового обработчика: {e}. "
-                f"Функция: {self._setup_file_handler.__name__}, "
-                f"Файл: {self._log_file}\n"
+            # Логируем ошибку через logging.warning вместо sys.stderr.write
+            app_logger = logging.getLogger("parser-2gis")
+            app_logger.error(
+                "Критическая ошибка при настройке файлового обработчика: %s. "
+                "Функция: %s, Файл: %s",
+                e,
+                self._setup_file_handler.__name__,
+                self._log_file,
             )
             raise
 
@@ -265,10 +266,11 @@ class FileLogger:
         except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
-            import sys
-
-            sys.stderr.write(
-                f"Ошибка при закрытии файлового логгера: {e}. Функция: {self.close.__name__}\n"
+            app_logger = logging.getLogger("parser-2gis")
+            app_logger.error(
+                "Ошибка при закрытии файлового логгера: %s. Функция: %s",
+                e,
+                self.close.__name__,
             )
             # Не пробрасываем ошибку, чтобы не нарушить завершение работы
 

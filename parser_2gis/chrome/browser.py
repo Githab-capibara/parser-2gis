@@ -569,7 +569,7 @@ class ProcessManager:
                             process_pid,
                         )
                         return True, "killed_forcefully"
-                    except (psutil.NoSuchProcess, psutil.AccessDenied, ImportError) as e:
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, ImportError, FileNotFoundError) as e:
                         app_logger.error(
                             "Не удалось принудительно завершить процесс PID %d: %s", process_pid, e
                         )
