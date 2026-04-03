@@ -87,8 +87,15 @@ if TYPE_CHECKING:
 # ЛОКАЛЬНЫЕ КОНСТАНТЫ И ПАТТЕРНЫ
 # =============================================================================
 
-# Задержка между проверками порта в секундах
-PORT_CHECK_RETRY_DELAY: float = 0.005  # Максимально ускоренная проверка порта
+# Задержка между проверками порта в секундах (максимально ускоренная проверка)
+PORT_CHECK_RETRY_DELAY: float = 0.005
+
+# Именованная константа для задержки между проверками порта (алиас для обратной совместимости)
+PORT_CHECK_DELAY: float = PORT_CHECK_RETRY_DELAY
+
+# Максимальное количество попыток проверки доступности порта при запуске Chrome.
+# Увеличено до 20 для поддержки 40+ параллельных браузеров.
+MAX_STARTUP_ATTEMPTS: int = 20
 
 # Оптимизация: скомпилированный regex паттерн для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
@@ -382,7 +389,7 @@ class ChromeRemote:
 
             # Оптимизация: увеличены задержки для поддержки 40+ параллельных браузеров
             startup_delay = CHROME_STARTUP_DELAY
-            max_startup_attempts = 20  # Увеличено для 40+ браузеров
+            max_startup_attempts = MAX_STARTUP_ATTEMPTS  # Используем именованную константу
             max_delay = 5.0  # Максимальная задержка между попытками
 
             for attempt in range(max_startup_attempts):
@@ -544,6 +551,7 @@ class ChromeRemote:
         self._chrome_tab.Network.setUserAgentOverride(userAgent=fixed_useragent)
 
         self.add_start_script(r"""
+            # Known limitation: may be detected by anti-bot systems
             Object.defineProperty(navigator, 'webdriver', {
                 get: () => undefined
             })
@@ -568,6 +576,8 @@ class ChromeRemote:
             return
 
         tab_detached = threading.Event()
+        # ISSUE-083: Добавляем событие для graceful shutdown потока мониторинга
+        shutdown_event = threading.Event()
         # H009: Увеличенный интервал мониторинга до 1 сек для снижения нагрузки на CPU
         MONITOR_INTERVAL = 1.0
 
@@ -578,36 +588,44 @@ class ChromeRemote:
 
             last_check_time: float = 0.0
 
-            while not self._chrome_tab._stopped.is_set():
-                current_time = time.time()
+            try:
+                while not self._chrome_tab._stopped.is_set() and not shutdown_event.is_set():
+                    current_time = time.time()
 
-                if current_time - last_check_time >= MONITOR_INTERVAL:
-                    try:
-                        ret = _safe_external_request(
-                            "get", "%s/json" % self._dev_url, timeout=6, verify=True
-                        )
-                        # ИСПРАВЛЕНИЕ: Добавлена проверка на None перед вызовом json()
-                        if ret is None:
-                            app_logger.debug("HTTP запрос вернул None при мониторинге вкладки")
-                            tab_detached.set()
-                            self._chrome_tab._stopped.set()
+                    if current_time - last_check_time >= MONITOR_INTERVAL:
+                        try:
+                            ret = _safe_external_request(
+                                "get", "%s/json" % self._dev_url, timeout=6, verify=True
+                            )
+                            # ИСПРАВЛЕНИЕ: Добавлена проверка на None перед вызовом json()
+                            if ret is None:
+                                app_logger.debug("HTTP запрос вернул None при мониторинге вкладки")
+                                tab_detached.set()
+                                self._chrome_tab._stopped.set()
+                                break
+
+                            tabs_data = ret.json()
+                            tab_found = any(x["id"] == self._chrome_tab.id for x in tabs_data)
+                            if not tab_found:
+                                tab_detached.set()
+                                self._chrome_tab._stopped.set()
+                            last_check_time = current_time
+                        except (ConnectionError, RequestException, TimeoutError):
                             break
 
-                        tabs_data = ret.json()
-                        tab_found = any(x["id"] == self._chrome_tab.id for x in tabs_data)
-                        if not tab_found:
-                            tab_detached.set()
-                            self._chrome_tab._stopped.set()
-                        last_check_time = current_time
-                    except (ConnectionError, RequestException, TimeoutError):
-                        break
-
-                self._chrome_tab._stopped.wait(MONITOR_INTERVAL)
+                    # ISSUE-083: Используем shutdown_event.wait() вместо _stopped.wait()
+                    # для поддержки graceful shutdown — поток завершится при установке события
+                    shutdown_event.wait(MONITOR_INTERVAL)
+            finally:
+                # ISSUE-083: Гарантированная очистка ресурсов при завершении потока
+                app_logger.debug("Поток мониторинга вкладки завершён")
 
         # ID:117: Используем daemon=True для предотвращения утечки ресурсов
         # daemon поток автоматически завершится при завершении основного приложения
         self._ping_thread = threading.Thread(target=monitor_tab, daemon=True)
         self._ping_thread.start()
+        # ISSUE-083: Сохраняем событие shutdown для последующего использования при остановке
+        self._tab_monitor_shutdown = shutdown_event
 
         if self._chrome_tab is None:
             return
@@ -1074,6 +1092,12 @@ class ChromeRemote:
         Использует Guard Clauses для уменьшения вложенности.
         """
         app_logger.info("Начало остановки ChromeRemote...")
+
+        # ISSUE-083: Сигнализируем потоку мониторинга о необходимости завершиться
+        if hasattr(self, "_tab_monitor_shutdown"):
+            self._tab_monitor_shutdown.set()
+            if hasattr(self, "_ping_thread") and self._ping_thread.is_alive():
+                self._ping_thread.join(timeout=3.0)
 
         # Остановка вкладки Chrome
         self._stop_chrome_tab()

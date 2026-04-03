@@ -708,6 +708,10 @@ class CacheManager:
             except (sqlite3.Error, OSError, MemoryError) as rollback_error:
                 app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
             return None
+        finally:
+            # ISSUE-084: Возвращаем соединение в пул явно для предотвращения утечки ресурсов
+            if self._pool is not None:
+                self._pool.return_connection(conn)
 
     def set(self, url: str, data: dict[str, Any]) -> None:
         """Сохранение данных в кэш.
