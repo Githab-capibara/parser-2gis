@@ -189,7 +189,9 @@ def validate_non_empty_list(value: list[Any], field_name: str) -> list[Any]:
     return value
 
 
-def validate_list_length(value: list[Any], min_length: int, max_length: int, field_name: str) -> list[Any]:
+def validate_list_length(
+    value: list[Any], min_length: int, max_length: int, field_name: str
+) -> list[Any]:
     """Валидирует длину списка.
 
     Args:
@@ -448,7 +450,9 @@ def validate_categories_config(categories: list, field_name: str = "categories")
     return _validate_config_data(categories, field_name, _CATEGORIES_CONFIG_CACHE)
 
 
-def validate_config(config: list, field_name: str, cache: OrderedDict[str, list] | None = None) -> list:
+def validate_config(
+    config: list, field_name: str, cache: OrderedDict[str, list] | None = None
+) -> list:
     """Универсальная функция валидации конфигурации (города, категории и т.д.).
 
     Объединяет логику validate_cities_config и validate_categories_config.

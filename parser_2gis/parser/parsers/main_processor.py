@@ -155,9 +155,7 @@ def check_and_optimize_memory(
     return memory_check_counter, visited_links_cleanup_counter
 
 
-@wait_until_finished(
-    timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.01
-)
+@wait_until_finished(timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.01)
 def get_unique_links(
     parser: MainPageParser,
     visited_links: deque[str],
@@ -208,8 +206,7 @@ def get_unique_links(
             # deque автоматически удаляет старые ссылки при превышении maxlen
             if len(visited_links) == max_visited_links:
                 logger.debug(
-                    "LRU eviction: deque заполнен до максимума (%d ссылок)",
-                    max_visited_links,
+                    "LRU eviction: deque заполнен до максимума (%d ссылок)", max_visited_links
                 )
 
             # Возвращаем только ссылки с новыми href

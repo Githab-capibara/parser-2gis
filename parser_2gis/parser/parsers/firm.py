@@ -395,7 +395,9 @@ class FirmParser(MainParser):
                 return
 
             # Записываем API документ в файл
-            writer.write({"result": {"items": [firm_data["data"]]}, "meta": firm_data.get("meta", {})})
+            writer.write(
+                {"result": {"items": [firm_data["data"]]}, "meta": firm_data.get("meta", {})}
+            )
 
         except MemoryError as memory_error:
             # ISSUE-128: Явная обработка MemoryError

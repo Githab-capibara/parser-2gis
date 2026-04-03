@@ -18,11 +18,7 @@ import pytest
 
 from parser_2gis.cache.manager import CacheManager
 from parser_2gis.chrome.js_executor import DANGEROUS_JS_PATTERNS
-from parser_2gis.parser.parsers.firm import (
-    DANGEROUS_HTML_PATTERNS,
-    _sanitize_string_value,
-    _validate_initial_state,
-)
+from parser_2gis.parser.parsers.firm import _sanitize_string_value, _validate_initial_state
 from parser_2gis.utils.temp_file_manager import TempFileManager, create_temp_file
 from parser_2gis.writer.writers.csv_formatter import SanitizeFormatter
 from parser_2gis.writer.writers.csv_writer import CSVRowData
