@@ -17,7 +17,7 @@ from __future__ import annotations
 import gc
 import threading
 from collections import deque
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 try:
     import psutil
@@ -56,6 +56,168 @@ VISITED_LINKS_CLEANUP_FRACTION: float = 0.5
 
 # Количество ссылок для вызова GC
 GC_LINKS_INTERVAL: int = 10
+
+
+def check_and_optimize_memory(
+    process_cache: Any,
+    parser: MainPageParser,
+    visited_links: deque[str],
+    visited_links_lock: threading.RLock,
+    max_visited_links: int,
+    memory_check_counter: int,
+    visited_links_cleanup_counter: int,
+) -> tuple[int, int]:
+    """Проверяет использование памяти и выполняет автоматическую оптимизацию.
+
+    C5: Добавлена периодическая принудительная очистка visited_links.
+
+    Args:
+        process_cache: Кэшированный объект psutil.Process.
+        parser: Экземпляр MainPageParser для доступа к опциям и Chrome.
+        visited_links: deque с посещёнными ссылками.
+        visited_links_lock: Блокировка для visited_links.
+        max_visited_links: Максимальный размер visited_links.
+        memory_check_counter: Счётчик проверок памяти.
+        visited_links_cleanup_counter: Счётчик очисток visited_links.
+
+    Returns:
+        Кортеж (memory_check_counter, visited_links_cleanup_counter).
+    """
+    memory_check_counter += 1
+    visited_links_cleanup_counter += 1
+
+    # Проверяем доступность psutil
+    if not PSUTIL_AVAILABLE or process_cache is None:
+        logger.debug("psutil не доступен - пропускаем проверку памяти")
+        return memory_check_counter, visited_links_cleanup_counter
+
+    try:
+        # Получаем текущее использование памяти процесса в МБ
+        memory_info = process_cache.memory_info()
+        memory_mb = memory_info.rss / 1024 / 1024  # Конвертируем в МБ
+
+        # Мониторинг использования памяти в реальном времени
+        if memory_check_counter % MEMORY_CHECK_INTERVAL == 0:
+            logger.debug(
+                "Использование памяти: %.1f МБ (порог: %d МБ)",
+                memory_mb,
+                parser._parser_options.memory_threshold,
+            )
+
+        # Проверяем превышение порога
+        if memory_mb > parser._parser_options.memory_threshold:
+            logger.warning(
+                "Использование памяти %.1f МБ превышает порог %d МБ. "
+                "Выполняем автоматическую оптимизацию...",
+                memory_mb,
+                parser._parser_options.memory_threshold,
+            )
+
+            with visited_links_lock:
+                if len(visited_links) > max_visited_links // 2:
+                    target_remove = int(len(visited_links) * MEMORY_CLEANUP_FRACTION)
+
+                    if target_remove > 0:
+                        for _ in range(target_remove):
+                            visited_links.popleft()
+
+                        logger.debug("Очищено %d ссылок для освобождения памяти", target_remove)
+
+        # Принудительный вызов GC
+        gc_collected = gc.collect()
+        logger.info("GC собрал %d объектов", gc_collected)
+
+        # Очищаем кэш запросов Chrome если возможно
+        try:
+            parser._chrome_remote.clear_requests()
+            logger.debug("Очищен кэш запросов Chrome")
+        except (OSError, RuntimeError, TypeError, ValueError) as cache_error:
+            logger.debug("Ошибка при очистке кэша: %s", cache_error)
+
+        # C5: Периодическая принудительная очистка visited_links
+        if visited_links_cleanup_counter >= VISITED_LINKS_CLEANUP_INTERVAL:
+            with visited_links_lock:
+                if len(visited_links) > max_visited_links * VISITED_LINKS_CLEANUP_FRACTION:
+                    target_remove = int(len(visited_links) * VISITED_LINKS_CLEANUP_FRACTION)
+                    if target_remove > 0:
+                        for _ in range(target_remove):
+                            visited_links.popleft()
+                        logger.debug(
+                            "C5: Периодическая очистка visited_links: удалено %d ссылок",
+                            target_remove,
+                        )
+            visited_links_cleanup_counter = 0
+
+    except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as memory_error:
+        logger.debug("Ошибка при проверке памяти: %s", memory_error)
+
+    return memory_check_counter, visited_links_cleanup_counter
+
+
+@wait_until_finished(
+    timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.01
+)
+def get_unique_links(
+    parser: MainPageParser,
+    visited_links: deque[str],
+    visited_links_lock: threading.RLock,
+    visited_set: set[str],
+    max_visited_links: int,
+) -> list[DOMNode] | None:
+    """Получает уникальные ссылки, которые ещё не были посещены.
+
+    ISSUE-150: Оптимизация алгоритма проверки уникальности ссылок.
+    Вместо set.intersection() в цикле используется set.difference()
+    для однократного получения уникальных ссылок.
+
+    Args:
+        parser: Экземпляр MainPageParser для получения ссылок.
+        visited_links: deque с посещёнными ссылками.
+        visited_links_lock: Блокировка для visited_links.
+        visited_set: Кэшированный set посещённых href.
+        max_visited_links: Максимальный размер visited_links.
+
+    Returns:
+        Список уникальных DOM-узлов ссылок или None при ошибке.
+    """
+    try:
+        links = parser._get_links()
+        # Проверяем, что ссылки успешно получены
+        if links is None:
+            return None
+
+        # Optimization: use set comprehension for fast set creation
+        link_hrefs = {link.attributes["href"] for link in links if "href" in link.attributes}
+
+        with visited_links_lock:
+            # P0-6: Оптимизация — используем кэшированный set вместо создания нового
+            new_link_hrefs = link_hrefs - visited_set
+
+            # Если нет новых ссылок - возвращаем None
+            if not new_link_hrefs:
+                return None
+
+            # Обновляем кэшированный set инкрементально
+            visited_set.update(new_link_hrefs)
+
+            # ISSUE-133: batch add links to deque
+            for url in new_link_hrefs:
+                visited_links.append(url)
+
+            # deque автоматически удаляет старые ссылки при превышении maxlen
+            if len(visited_links) == max_visited_links:
+                logger.debug(
+                    "LRU eviction: deque заполнен до максимума (%d ссылок)",
+                    max_visited_links,
+                )
+
+            # Возвращаем только ссылки с новыми href
+            return [link for link in links if link.attributes.get("href") in new_link_hrefs]
+
+    except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
+        logger.error("Ошибка при получении уникальных ссылок: %s", e)
+        return None
+
 
 if TYPE_CHECKING:
     from parser_2gis.writer import FileWriter
@@ -198,155 +360,6 @@ class MainDataProcessor:
         # C5: Счётчик для периодической принудительной очистки visited_links
         visited_links_cleanup_counter = 0
 
-        # Проверка и автоматическая оптимизация памяти при больших объёмах данных
-        def check_and_optimize_memory():
-            """Проверяет использование памяти и выполняет автоматическую оптимизацию.
-
-            C5: Добавлена периодическая принудительная очистка visited_links.
-            """
-            nonlocal memory_check_counter, visited_links_cleanup_counter
-            memory_check_counter += 1
-            visited_links_cleanup_counter += 1
-
-            # Проверяем доступность psutil
-            if not PSUTIL_AVAILABLE or _process_cache is None:
-                logger.debug("psutil не доступен - пропускаем проверку памяти")
-                return
-
-            try:
-                # Получаем текущее использование памяти процесса в МБ
-                # Оптимизация: используем кэшированный Process объект
-                memory_info = _process_cache.memory_info()
-                memory_mb = memory_info.rss / 1024 / 1024  # Конвертируем в МБ
-
-                # Мониторинг использования памяти в реальном времени
-                # ISSUE-152: Используем константу вместо магического числа
-                if memory_check_counter % MEMORY_CHECK_INTERVAL == 0:
-                    logger.debug(
-                        "Использование памяти: %.1f МБ (порог: %d МБ)",
-                        memory_mb,
-                        self._parser._parser_options.memory_threshold,
-                    )
-
-                # Проверяем превышение порога
-                if memory_mb > self._parser._parser_options.memory_threshold:
-                    logger.warning(
-                        "Использование памяти %.1f МБ превышает порог %d МБ. "
-                        "Выполняем автоматическую оптимизацию...",
-                        memory_mb,
-                        self._parser._parser_options.memory_threshold,
-                    )
-
-                    # ISSUE-133: deque автоматически управляет размером через maxlen
-                    # Но для агрессивной очистки при нехватке памяти очищаем вручную
-                    with visited_links_lock:
-                        if len(visited_links) > max_visited_links // 2:
-                            # ISSUE-152: Используем константу вместо магического числа
-                            target_remove = int(len(visited_links) * MEMORY_CLEANUP_FRACTION)
-
-                            if target_remove > 0:
-                                # Удаляем старые элементы из начала deque
-                                for _ in range(target_remove):
-                                    visited_links.popleft()
-
-                                logger.debug(
-                                    "Очищено %d ссылок для освобождения памяти", target_remove
-                                )
-
-                    # Принудительный вызов GC
-                    gc_collected = gc.collect()
-                    logger.info("GC собрал %d объектов", gc_collected)
-
-                    # Очищаем кэш запросов Chrome если возможно
-                    try:
-                        self._parser._chrome_remote.clear_requests()
-                        logger.debug("Очищен кэш запросов Chrome")
-                    except (OSError, RuntimeError, TypeError, ValueError) as cache_error:
-                        logger.debug("Ошибка при очистке кэша: %s", cache_error)
-
-                # C5: Периодическая принудительная очистка visited_links
-                # ISSUE-152: Используем константу вместо магического числа
-                if visited_links_cleanup_counter >= VISITED_LINKS_CLEANUP_INTERVAL:
-                    with visited_links_lock:
-                        if len(visited_links) > max_visited_links * VISITED_LINKS_CLEANUP_FRACTION:
-                            # ISSUE-152: Используем константу вместо магического числа
-                            target_remove = int(len(visited_links) * VISITED_LINKS_CLEANUP_FRACTION)
-                            if target_remove > 0:
-                                for _ in range(target_remove):
-                                    visited_links.popleft()
-                                logger.debug(
-                                    "C5: Периодическая очистка visited_links: удалено %d ссылок",
-                                    target_remove,
-                                )
-                    visited_links_cleanup_counter = 0
-
-            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as memory_error:
-                logger.debug("Ошибка при проверке памяти: %s", memory_error)
-
-        # Эта обёртка не необходима, но я хочу быть уверен,
-        # что мы не собрали ссылки из старого DOM каким-то образом.
-        @wait_until_finished(
-            timeout=GET_UNIQUE_LINKS_TIMEOUT, throw_exception=False, poll_interval=0.01
-        )
-        def get_unique_links() -> list[DOMNode] | None:
-            """Получает уникальные ссылки, которые ещё не были посещены.
-
-            ISSUE-150: Оптимизация алгоритма проверки уникальности ссылок.
-            Вместо set.intersection() в цикле используется set.difference()
-            для однократного получения уникальных ссылок.
-
-            Returns:
-                Список уникальных DOM-узлов ссылок или None при ошибке.
-
-            Raises:
-                OSError: При ошибке доступа к DOM.
-                RuntimeError: При ошибке выполнения операций Chrome.
-                TypeError: При некорректном типе данных.
-                ValueError: При некорректных параметрах.
-                MemoryError: При нехватке памяти.
-
-            """
-            try:
-                links = self._parser._get_links()
-                # Проверяем, что ссылки успешно получены
-                if links is None:
-                    return None
-
-                # Optimization: use set comprehension for fast set creation
-                link_hrefs = {
-                    link.attributes["href"] for link in links if "href" in link.attributes
-                }
-
-                with visited_links_lock:
-                    # P0-6: Оптимизация — используем кэшированный set вместо создания нового
-                    new_link_hrefs = link_hrefs - self._visited_set
-
-                    # Если нет новых ссылок - возвращаем None
-                    if not new_link_hrefs:
-                        return None
-
-                    # Обновляем кэшированный set инкрементально
-                    self._visited_set.update(new_link_hrefs)
-
-                    # ISSUE-133: batch add links to deque
-                    for url in new_link_hrefs:
-                        visited_links.append(url)
-
-                    # deque автоматически удаляет старые ссылки при превышении maxlen
-                    # Логирование для отладки
-                    if len(visited_links) == max_visited_links:
-                        logger.debug(
-                            "LRU eviction: deque заполнен до максимума (%d ссылок)",
-                            max_visited_links,
-                        )
-
-                    # Возвращаем только ссылки с новыми href
-                    return [link for link in links if link.attributes.get("href") in new_link_hrefs]
-
-            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
-                logger.error("Ошибка при получении уникальных ссылок: %s", e)
-                return None
-
         current_page_number = 1
 
         # Максимальное количество итераций цикла для предотвращения бесконечного цикла
@@ -375,7 +388,13 @@ class MainDataProcessor:
                     logger.warning("Ошибка при ожидании запросов: %s", wait_error)
 
                 # Собираем ссылки для клика
-                links: list | None = get_unique_links()
+                links: list | None = get_unique_links(
+                    parser=self._parser,
+                    visited_links=visited_links,
+                    visited_links_lock=visited_links_lock,
+                    visited_set=self._visited_set,
+                    max_visited_links=max_visited_links,
+                )
 
                 # Проверяем, что ссылки успешно получены
                 if links is None:
@@ -466,7 +485,15 @@ class MainDataProcessor:
 
                 # Запускаем сборщик мусора и проверяем использование памяти
                 if current_page_number % self._parser._parser_options.gc_pages_interval == 0:
-                    check_and_optimize_memory()
+                    memory_check_counter, visited_links_cleanup_counter = check_and_optimize_memory(
+                        process_cache=_process_cache,
+                        parser=self._parser,
+                        visited_links=visited_links,
+                        visited_links_lock=visited_links_lock,
+                        max_visited_links=max_visited_links,
+                        memory_check_counter=memory_check_counter,
+                        visited_links_cleanup_counter=visited_links_cleanup_counter,
+                    )
 
                     # Запускаем сборщик мусора, если включён
                     if self._parser._parser_options.use_gc:

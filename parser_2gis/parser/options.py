@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, NonNegativeInt, PositiveInt
 
+from parser_2gis.chrome.constants import DEFAULT_MEMORY_LIMIT_MB
 from parser_2gis.chrome.options import default_memory_limit
 from parser_2gis.constants import (
     MAX_RECORDS_BASE_OFFSET,
@@ -21,7 +22,6 @@ from parser_2gis.constants import (
 from parser_2gis.utils import floor_to_hundreds
 
 # Константы для значений по умолчанию
-_DEFAULT_MEMORY_THRESHOLD_MB = 2048
 _DEFAULT_GC_PAGES_INTERVAL = 10
 _DEFAULT_MAX_RETRIES = 3
 _DEFAULT_RETRY_DELAY_BASE = 1
@@ -77,7 +77,7 @@ class ParserOptions(BaseModel):
     retry_on_network_errors: bool = True
     max_retries: PositiveInt = _DEFAULT_MAX_RETRIES
     retry_delay_base: PositiveInt = _DEFAULT_RETRY_DELAY_BASE
-    memory_threshold: PositiveInt = _DEFAULT_MEMORY_THRESHOLD_MB
+    memory_threshold: PositiveInt = DEFAULT_MEMORY_LIMIT_MB
     stop_on_first_404: bool = False
     max_consecutive_empty_pages: PositiveInt = _DEFAULT_MAX_CONSECUTIVE_EMPTY_PAGES
     timeout: PositiveInt = _DEFAULT_TIMEOUT_SECONDS

@@ -5,7 +5,7 @@
 - Проверка JSON-документов Catalog Item API
 - Управление файловыми ресурсами
 
-ISSUE-031: Реализует протокол FileWriterProtocol из protocols.py.
+ISSUE-031: Реализует протокол Writer из protocols.py.
 """
 
 from __future__ import annotations
@@ -18,16 +18,16 @@ from typing import IO, TYPE_CHECKING, Any
 
 from parser_2gis.constants import HTTP_STATUS_OK
 from parser_2gis.logger import logger
-from parser_2gis.protocols import FileWriterProtocol
+from parser_2gis.protocols import Writer as WriterProtocol
 
 if TYPE_CHECKING:
     from parser_2gis.writer.options import WriterOptions
 
 
-class FileWriter(FileWriterProtocol, ABC):
+class FileWriter(WriterProtocol, ABC):
     """Базовый писатель.
 
-    ISSUE-031: Реализует протокол FileWriterProtocol.
+    ISSUE-031: Реализует протокол Writer.
     """
 
     def __init__(self, file_path: str, writer_options: WriterOptions) -> None:

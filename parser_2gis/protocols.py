@@ -121,13 +121,27 @@ class CleanupCallback(Protocol):
 
 @runtime_checkable
 class Writer(Protocol):
-    """Protocol для записи данных (CSV, XLSX, JSON)."""
+    """Protocol для записи данных (CSV, XLSX, JSON).
 
-    def write(self, records: list[dict]) -> None:
-        """Записывает данные."""
+    ISSUE-031: Объединён с FileWriterProtocol для устранения дублирования.
+    """
+
+    def write(self, records: list[dict[str, Any]]) -> None:
+        """Записывает данные в файл.
+
+        Args:
+            records: Список записей для записи.
+
+        """
 
     def close(self) -> None:
         """Закрывает writer и освобождает ресурсы."""
+
+    def __enter__(self) -> "Writer":
+        """Контекстный менеджер для входа."""
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Контекстный менеджер для выхода."""
 
 
 @runtime_checkable
@@ -358,37 +372,6 @@ class MemoryManagerProtocol(Protocol):
         """Получает статистику использования памяти."""
 
 
-@runtime_checkable
-class FileWriterProtocol(Protocol):
-    """Protocol для файлового писателя.
-
-    ISSUE-031: Общий интерфейс для всех файловых писателей (CSV, XLSX, JSON).
-
-    Example:
-        >>> writer: FileWriterProtocol = CSVWriter("output.csv", options)
-        >>> writer.write([{"name": "Item 1"}])
-        >>> writer.close()
-
-    """
-
-    def write(self, records: list[dict[str, Any]]) -> None:
-        """Записывает данные в файл.
-
-        Args:
-            records: Список записей для записи.
-
-        """
-
-    def close(self) -> None:
-        """Закрывает файл и освобождает ресурсы."""
-
-    def __enter__(self) -> "FileWriterProtocol":
-        """Контекстный менеджер для входа."""
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Контекстный менеджер для выхода."""
-
-
 __all__ = [
     # Callback Protocols
     "LoggerProtocol",
@@ -416,6 +399,4 @@ __all__ = [
     "PathValidatorProtocol",
     # Memory Manager Protocol (ISSUE-019)
     "MemoryManagerProtocol",
-    # File Writer Protocol (ISSUE-031)
-    "FileWriterProtocol",
 ]

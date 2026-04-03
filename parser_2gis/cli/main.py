@@ -97,6 +97,9 @@ def main() -> None:
     except (TypeError, ValueError) as e:
         logger.error("Ошибка конфигурации при запуске приложения: %s", e, exc_info=True)
         sys.exit(1)
+    except (KeyboardInterrupt, SystemExit):
+        logger.warning("Приложение прервано пользователем")
+        sys.exit(1)
     except Exception as e:
         logger.error("Непредвиденная ошибка при запуске приложения: %s", e, exc_info=True)
         sys.exit(1)

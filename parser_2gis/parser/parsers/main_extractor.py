@@ -18,6 +18,7 @@ import hashlib
 import json
 from typing import TYPE_CHECKING, Any
 
+from parser_2gis.chrome.dom import DOMNode
 from parser_2gis.logger import logger
 from parser_2gis.parser.parsers.main_parser import MAX_RESPONSE_ATTEMPTS, RESPONSE_RETRY_DELAY
 
@@ -65,7 +66,7 @@ class MainDataExtractor:
         self._extracted_data_cache: dict[str, dict[str, Any]] = {}
         self._cache_max_size = EXTRACTOR_CACHE_MAX_SIZE
 
-    def _get_link_url(self, link) -> str | None:
+    def _get_link_url(self, link: DOMNode) -> str | None:
         """Получает URL из DOM-узла ссылки.
 
         H006: Извлекает URL для использования в качестве ключа кэша.
@@ -112,7 +113,7 @@ class MainDataExtractor:
             for key in keys_to_remove:
                 del self._extracted_data_cache[key]
 
-    def _parse_firm_page(self, link, writer: FileWriter) -> bool:
+    def _parse_firm_page(self, link: DOMNode, writer: FileWriter) -> bool:
         """Парсит страницу организации по ссылке.
 
         Args:

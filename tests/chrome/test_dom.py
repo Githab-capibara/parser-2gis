@@ -104,7 +104,7 @@ class TestDOMNodeSearch:
         """search находит узлы по предикату."""
         results = nested_dom_node.search(lambda n: n.type == 3)
         assert len(results) == 1
-        assert results[0].nodeValue == "Hello World"
+        assert results[0].value == "Hello World"
 
     def test_search_no_matches(self, sample_dom_node):
         """search возвращает пустой список при отсутствии совпадений."""

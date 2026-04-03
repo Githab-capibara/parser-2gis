@@ -141,17 +141,17 @@ class CacheManager:
     Attributes:
         cache_dir: Директория для хранения кэша
         ttl: Время жизни кэша (timedelta)
-        SQL_CREATE_TABLE: SQL-запрос создания таблицы кэша
-        SQL_CREATE_INDEX: SQL-запрос создания индекса по expires_at
-        SQL_CREATE_CACHE_KEY_INDEX: SQL-запрос создания составного индекса
-        SQL_SELECT: SQL-запрос выборки данных по url_hash
-        SQL_INSERT_OR_REPLACE: SQL-запрос вставки или замены записи
-        SQL_DELETE: SQL-запрос удаления записи по url_hash
-        SQL_DELETE_EXPIRED: SQL-запрос удаления истёкших записей
-        SQL_COUNT_ALL: SQL-запрос подсчёта всех записей
-        SQL_COUNT_EXPIRED: SQL-запрос подсчёта истёкших записей
-        SQL_DELETE_LRU: SQL-запрос удаления LRU записей
-        SQL_GET_CACHE_SIZE: SQL-запрос получения размера кэша
+        CREATE_TABLE_SQL: SQL-запрос создания таблицы кэша
+        CREATE_INDEX_SQL: SQL-запрос создания индекса по expires_at
+        CREATE_CACHE_KEY_INDEX_SQL: SQL-запрос создания составного индекса
+        SELECT_SQL: SQL-запрос выборки данных по url_hash
+        UPSERT_SQL: SQL-запрос вставки или замены записи
+        DELETE_SQL: SQL-запрос удаления записи по url_hash
+        DELETE_EXPIRED_SQL: SQL-запрос удаления истёкших записей
+        COUNT_ALL_SQL: SQL-запрос подсчёта всех записей
+        COUNT_EXPIRED_SQL: SQL-запрос подсчёта истёкших записей
+        DELETE_LRU_SQL: SQL-запрос удаления LRU записей
+        GET_CACHE_SIZE_SQL: SQL-запрос получения размера кэша
 
     Пример использования:
         >>> from pathlib import Path
@@ -169,7 +169,7 @@ class CacheManager:
 
     # ISSUE-003-#20: Скомпилированные SQL-запросы как атрибуты класса
     # для централизованного управления и переиспользования
-    SQL_CREATE_TABLE = """
+    CREATE_TABLE_SQL = """
         CREATE TABLE IF NOT EXISTS cache (
             url_hash TEXT PRIMARY KEY,
             url TEXT NOT NULL,
@@ -180,48 +180,54 @@ class CacheManager:
         )
     """
 
-    SQL_CREATE_INDEX = """
+    CREATE_INDEX_SQL = """
         CREATE INDEX IF NOT EXISTS idx_expires_at
         ON cache(expires_at)
     """
 
     # Составной индекс для range queries по url_hash + expires_at
-    SQL_CREATE_CACHE_KEY_INDEX = """
+    CREATE_CACHE_KEY_INDEX_SQL = """
         CREATE INDEX IF NOT EXISTS idx_cache_key
         ON cache(url_hash, expires_at)
     """
 
-    SQL_SELECT = """
+    SELECT_SQL = """
         SELECT data, checksum, expires_at
         FROM cache
         WHERE url_hash = ?
     """
 
-    SQL_INSERT_OR_REPLACE = """
-        INSERT OR REPLACE INTO cache
-        (url_hash, url, data, checksum, timestamp, expires_at)
+    # ISSUE-003-#20: INSERT ... ON CONFLICT DO UPDATE вместо устаревшего INSERT OR REPLACE
+    UPSERT_SQL = """
+        INSERT INTO cache (url_hash, url, data, checksum, timestamp, expires_at)
         VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(url_hash) DO UPDATE SET
+            url=excluded.url,
+            data=excluded.data,
+            checksum=excluded.checksum,
+            timestamp=excluded.timestamp,
+            expires_at=excluded.expires_at
     """
 
-    SQL_DELETE = """
+    DELETE_SQL = """
         DELETE FROM cache WHERE url_hash = ?
     """
 
-    SQL_DELETE_EXPIRED = """
+    DELETE_EXPIRED_SQL = """
         DELETE FROM cache
         WHERE expires_at < ?
     """
 
-    SQL_COUNT_ALL = """
+    COUNT_ALL_SQL = """
         SELECT COUNT(*) FROM cache
     """
 
-    SQL_COUNT_EXPIRED = """
+    COUNT_EXPIRED_SQL = """
         SELECT COUNT(*) FROM cache
         WHERE expires_at < ?
     """
 
-    SQL_DELETE_LRU = """
+    DELETE_LRU_SQL = """
         DELETE FROM cache
         WHERE url_hash IN (
             SELECT url_hash FROM cache
@@ -230,7 +236,7 @@ class CacheManager:
         )
     """
 
-    SQL_GET_CACHE_SIZE = """
+    GET_CACHE_SIZE_SQL = """
         SELECT COUNT(*) FROM cache
     """
 
@@ -356,13 +362,13 @@ class CacheManager:
             conn.execute("PRAGMA synchronous=NORMAL")
 
             # Создаем таблицу для кэша
-            conn.execute(self.SQL_CREATE_TABLE)
+            conn.execute(self.CREATE_TABLE_SQL)
 
             # Создаем индекс для быстрого поиска истекших записей
-            conn.execute(self.SQL_CREATE_INDEX)
+            conn.execute(self.CREATE_INDEX_SQL)
 
             # Создаём составной индекс для ускорения поиска
-            conn.execute(self.SQL_CREATE_CACHE_KEY_INDEX)
+            conn.execute(self.CREATE_CACHE_KEY_INDEX_SQL)
 
             # Применяем изменения
             conn.commit()
@@ -402,7 +408,7 @@ class CacheManager:
 
         """
         # ISSUE-065: Используем conn.execute() напрямую для простых SELECT запросов
-        cursor = conn.execute(self.SQL_SELECT, (url_hash,))
+        cursor = conn.execute(self.SELECT_SQL, (url_hash,))
         row = cursor.fetchone()
         cursor.close()
         return row  # type: ignore[return-value]
@@ -429,7 +435,7 @@ class CacheManager:
             url_hash: Хеш URL для удаления.
 
         """
-        cursor.execute(self.SQL_DELETE, (url_hash,))
+        cursor.execute(self.DELETE_SQL, (url_hash,))
 
     def _handle_cache_hit(
         self, data: str, checksum: int, expires_at_str: str, conn: sqlite3.Connection, url_hash: str
@@ -456,7 +462,7 @@ class CacheManager:
 
         if self._is_cache_expired(expires_at):
             # ISSUE-065: Используем conn.execute() напрямую
-            conn.execute(self.SQL_DELETE, (url_hash,))
+            conn.execute(self.DELETE_SQL, (url_hash,))
             conn.commit()
             return None
 
@@ -473,7 +479,7 @@ class CacheManager:
                 computed_checksum,
             )
             # ISSUE-065: Используем conn.execute() напрямую
-            conn.execute(self.SQL_DELETE, (url_hash,))
+            conn.execute(self.DELETE_SQL, (url_hash,))
             conn.commit()
             return None
 
@@ -533,7 +539,7 @@ class CacheManager:
                 )
                 retry_conn = self._pool.get_connection() if self._pool else None
                 if retry_conn:
-                    retry_cursor = retry_conn.execute(self.SQL_SELECT, (url_hash,))
+                    retry_cursor = retry_conn.execute(self.SELECT_SQL, (url_hash,))
                     try:
                         row = retry_cursor.fetchone()
                     finally:
@@ -598,7 +604,7 @@ class CacheManager:
         )
         try:
             # ISSUE-065: Используем conn.execute() напрямую
-            conn.execute(self.SQL_DELETE, (url_hash,))
+            conn.execute(self.DELETE_SQL, (url_hash,))
             conn.commit()
         except sqlite3.Error as cleanup_error:
             app_logger.warning("Ошибка при удалении повреждённой записи: %s", cleanup_error)
@@ -808,7 +814,7 @@ class CacheManager:
 
             # Сохраняем данные в базу с использованием подготовленного запроса
             cursor.execute(
-                self.SQL_INSERT_OR_REPLACE,
+                self.UPSERT_SQL,
                 (url_hash, url, data_json, checksum, now.isoformat(), expires_at.isoformat()),
             )
             conn.commit()
@@ -968,7 +974,7 @@ class CacheManager:
         try:
             # Пакетная вставка через executemany для снижения накладных расходов
             if batch_params:
-                cursor.executemany(self.SQL_INSERT_OR_REPLACE, batch_params)
+                cursor.executemany(self.UPSERT_SQL, batch_params)
 
                 # ПРОВЕРКА: Ограничение размера кэша перед пакетной вставкой
                 # C013: Проверяем размер кэша только если количество записей > порога
@@ -1039,7 +1045,7 @@ class CacheManager:
         conn = self._pool.get_connection()
 
         try:
-            conn.execute(self.SQL_DELETE, (url_hash,))
+            conn.execute(self.DELETE_SQL, (url_hash,))
             conn.commit()
         except sqlite3.Error as db_error:
             error_str = str(db_error).lower()
@@ -1066,7 +1072,7 @@ class CacheManager:
         try:
             current_time = datetime.now()
 
-            cursor.execute(self.SQL_DELETE_EXPIRED, (current_time.isoformat(),))
+            cursor.execute(self.DELETE_EXPIRED_SQL, (current_time.isoformat(),))
             deleted_count = cursor.rowcount
             conn.commit()
 
@@ -1164,12 +1170,12 @@ class CacheManager:
         cursor = conn.cursor()
 
         try:
-            cursor.execute(self.SQL_COUNT_ALL)
+            cursor.execute(self.COUNT_ALL_SQL)
             total = cursor.fetchone()[0]
 
             current_time = datetime.now()
 
-            cursor.execute(self.SQL_COUNT_EXPIRED, (current_time.isoformat(),))
+            cursor.execute(self.COUNT_EXPIRED_SQL, (current_time.isoformat(),))
             expired = cursor.fetchone()[0]
 
             try:
@@ -1306,7 +1312,7 @@ class CacheManager:
                         eviction_iterations += 1
 
                         # D008: Используем параметризованный запрос (уже безопасно)
-                        cursor.execute(self.SQL_DELETE_LRU, (eviction_batch_size,))
+                        cursor.execute(self.DELETE_LRU_SQL, (eviction_batch_size,))
                         deleted_count = cursor.rowcount
                         conn.commit()
 

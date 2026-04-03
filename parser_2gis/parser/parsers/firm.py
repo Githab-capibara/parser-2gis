@@ -383,19 +383,19 @@ class FirmParser(MainParser):
                 if not data:
                     logger.warning("Данные организации не найдены (пустой профиль).")
                     return
-                doc = data[0]
+                firm_data = data[0]
 
                 # D013: Санитизация строковых данных перед записью
-                if "data" in doc and isinstance(doc["data"], dict):
-                    for key, value in doc["data"].items():
+                if "data" in firm_data and isinstance(firm_data["data"], dict):
+                    for key, value in firm_data["data"].items():
                         if isinstance(value, str):
-                            doc["data"][key] = _sanitize_string_value(value)
+                            firm_data["data"][key] = _sanitize_string_value(value)
             except (KeyError, TypeError, AttributeError) as e:
                 logger.error("Ошибка при получении данных организации: %s", e)
                 return
 
             # Записываем API документ в файл
-            writer.write({"result": {"items": [doc["data"]]}, "meta": doc.get("meta", {})})
+            writer.write({"result": {"items": [firm_data["data"]]}, "meta": firm_data.get("meta", {})})
 
         except MemoryError as memory_error:
             # ISSUE-128: Явная обработка MemoryError

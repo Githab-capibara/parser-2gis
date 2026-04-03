@@ -1,4 +1,4 @@
-"""Модуль фасадов приложения Parser2GIS.
+"""Модуль фасадов приложения Parser2GIS.  # noqa: RUF002
 
 Предоставляет фасады для упрощения взаимодействия с основными компонентами:
 - ParserFacade: фасад для парсеров
@@ -181,7 +181,7 @@ class CacheFacade:
     """
 
     def __init__(
-        self, cache_path: str | None = None, cache_manager: "CacheManager | None" = None
+        self, cache_path: str | None = None, cache_manager: CacheManager | None = None
     ) -> None:
         """Инициализация фасада кэша.
 
@@ -203,9 +203,9 @@ class CacheFacade:
         elif cache_path is not None:
             self._cache = CacheManager(cache_path)
         else:
-            raise ValueError("Необходимо передать cache_path или cache_manager")
+            raise ValueError("cache_path или cache_manager обязателен")
 
-    def get(self, key: str) -> Any | None:
+    def get(self, key: str) -> dict[str, Any] | None:
         """Получает значение из кэша.
 
         Args:
