@@ -286,6 +286,100 @@ def get_env_config() -> EnvConfig:
 # Для обратной совместимости используем __getattr__ для ленивой инициализации
 # ISSUE-010: Кэширование результатов __getattr__ через lru_cache для оптимизации
 
+# P0-12: Словарь маппинга ENV-зависимых констант для устранения длинной цепи if
+_ENV_CONSTANTS_MAPPING: dict[str, str] = {
+    # Connection pool
+    "MAX_CONNECTION_AGE": "max_connection_age",
+    "MAX_CACHE_SIZE_MB": "max_cache_size_mb",
+    "MAX_POOL_SIZE": "max_pool_size",
+    "MIN_POOL_SIZE": "min_pool_size",
+    "CONNECTION_MAX_AGE": "connection_max_age",
+    # Параллельный парсинг
+    "MIN_WORKERS": "min_workers",
+    "MAX_WORKERS": "max_workers",
+    "MIN_TIMEOUT": "min_timeout",
+    "MAX_TIMEOUT": "max_timeout",
+    "DEFAULT_TIMEOUT": "default_timeout",
+    "TEMP_FILE_CLEANUP_INTERVAL": "temp_file_cleanup_interval",
+    "MAX_TEMP_FILES_MONITORING": "max_temp_files_monitoring",
+    "ORPHANED_TEMP_FILE_AGE": "orphaned_temp_file_age",
+    "MERGE_LOCK_TIMEOUT": "merge_lock_timeout",
+    "MAX_LOCK_FILE_AGE": "max_lock_file_age",
+}
+
+# P0-12: Словарь маппинга статических констант для устранения длинной цепи if
+_STATIC_CONSTANTS_MAPPING: dict[str, int | float | list[str]] = {
+    # Безопасность данных
+    "MAX_DATA_DEPTH": 100,
+    "MAX_STRING_LENGTH": 10000,
+    "MAX_DATA_SIZE": 10 * 1024 * 1024,
+    "MAX_COLLECTION_SIZE": 100000,
+    "MAX_PATH_LENGTH": 4096,
+    # Безопасность initialState
+    "MAX_INITIAL_STATE_DEPTH": 10,
+    "MAX_INITIAL_STATE_SIZE": 5 * 1024 * 1024,
+    "MAX_ITEMS_IN_COLLECTION": 10000,
+    # Кэширование
+    "DEFAULT_BATCH_SIZE": 100,
+    "MAX_BATCH_SIZE": 1000,
+    "LRU_EVICT_BATCH": 100,
+    "SHA256_HASH_LENGTH": 64,
+    "EXTRACTOR_CACHE_MAX_SIZE": 2048,
+    "CACHE_EVICTION_PERCENT": 10,
+    # Параллельный парсинг
+    "MAX_TEMP_FILES": 1000,
+    # Буферизация
+    "DEFAULT_BUFFER_SIZE": 524288,
+    "MERGE_BUFFER_SIZE": 131072,
+    "CSV_BATCH_SIZE": 1000,
+    "CSV_COLUMNS_PER_ENTITY": 5,
+    "MERGE_BATCH_SIZE": 500,
+    "LARGE_FILE_THRESHOLD_MB": 100,
+    "LARGE_FILE_BUFFER_MULTIPLIER": 4,
+    "MAX_BUFFER_SIZE": 1048576,
+    "MMAP_THRESHOLD_BYTES": 10 * 1024 * 1024,
+    # Валидация городов
+    "MAX_CITIES_FILE_SIZE": 10 * 1024 * 1024,
+    "MAX_CITIES_COUNT": 1000,
+    "MMAP_CITIES_THRESHOLD": 1 * 1024 * 1024,
+    # JS безопасность
+    "MAX_JS_CODE_LENGTH": 100000,
+    "MAX_RESPONSE_SIZE": 10 * 1024 * 1024,
+    "MAX_TOTAL_JS_SIZE": 5 * 1024 * 1024,
+    "CHROME_STARTUP_DELAY": 5.0,
+    # Rate limiting
+    "EXTERNAL_RATE_LIMIT_CALLS": 10,
+    "EXTERNAL_RATE_LIMIT_PERIOD": 60,
+    # HTTP кэширование
+    "HTTP_CACHE_TTL_SECONDS": 300,
+    "HTTP_CACHE_MAXSIZE": 1024,
+    # Polling
+    "DEFAULT_POLL_INTERVAL": 0.1,
+    "MAX_POLL_INTERVAL": 2.0,
+    "EXPONENTIAL_BACKOFF_MULTIPLIER": 2,
+    # HTTP статус коды
+    "HTTP_STATUS_OK": 200,
+    # Безопасность путей
+    "MAX_URL_DECODE_ITERATIONS": 5,
+    "MAX_DICT_RECURSION_DEPTH": 10,
+    # Прогресс
+    "PROGRESS_UPDATE_INTERVAL": 3,
+    # Уникальные имена файлов
+    "MAX_UNIQUE_NAME_ATTEMPTS": 10,
+    # Таймауты и задержки
+    "DEFAULT_SLEEP_TIME": 0.1,
+    # Парсер - лимиты
+    "MAX_VISITED_LINKS_SIZE": 10000,
+    "MAX_RECORDS_MEMORY_COEFFICIENT": 550,
+    "MAX_RECORDS_MEMORY_DIVISOR": 1024,
+    "MAX_RECORDS_BASE_OFFSET": 400,
+    # Порог памяти для GC
+    "GC_MEMORY_THRESHOLD_MB": 100,
+    # Безопасность путей
+    "MAX_PATH_LENGTH_SAFE": 4096,
+    "FORBIDDEN_PATH_CHARS": ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"],
+}
+
 
 @lru_cache(maxsize=128)
 def _get_constant_value(name: str) -> int | float | list[str] | EnvConfig:
@@ -293,6 +387,7 @@ def _get_constant_value(name: str) -> int | float | list[str] | EnvConfig:
 
     ISSUE-010: Кэширование результатов для устранения повторных вычислений.
     Все константы кэшируются после первого обращения.
+    P0-12: Использует словарь-маппинг вместо длинной цепи if-проверок.
 
     Args:
         name: Имя константы.
@@ -301,189 +396,19 @@ def _get_constant_value(name: str) -> int | float | list[str] | EnvConfig:
         Значение константы.
 
     """
-    # Lazy initialization для env_config
+    # Специальный случай для env_config
     if name == "env_config":
         return get_env_config()
 
-    # Lazy initialization для ENV-зависимых констант
-    config = get_env_config()
+    # P0-12: Проверка ENV-зависимых констант через словарь
+    env_attr = _ENV_CONSTANTS_MAPPING.get(name)
+    if env_attr is not None:
+        config = get_env_config()
+        return getattr(config, env_attr)
 
-    # Константы для кэширования
-    if name == "MAX_CONNECTION_AGE":
-        return config.max_connection_age
-    if name == "MAX_CACHE_SIZE_MB":
-        return config.max_cache_size_mb
-
-    # Константы для connection pool
-    if name == "MAX_POOL_SIZE":
-        return config.max_pool_size
-    if name == "MIN_POOL_SIZE":
-        return config.min_pool_size
-    if name == "CONNECTION_MAX_AGE":
-        return config.connection_max_age
-
-    # Константы для параллельного парсинга
-    if name == "MIN_WORKERS":
-        return config.min_workers
-    if name == "MAX_WORKERS":
-        return config.max_workers
-    if name == "MIN_TIMEOUT":
-        return config.min_timeout
-    if name == "MAX_TIMEOUT":
-        return config.max_timeout
-    if name == "DEFAULT_TIMEOUT":
-        return config.default_timeout
-    if name == "TEMP_FILE_CLEANUP_INTERVAL":
-        return config.temp_file_cleanup_interval
-    if name == "MAX_TEMP_FILES_MONITORING":
-        return config.max_temp_files_monitoring
-    if name == "ORPHANED_TEMP_FILE_AGE":
-        return config.orphaned_temp_file_age
-    if name == "MERGE_LOCK_TIMEOUT":
-        return config.merge_lock_timeout
-    if name == "MAX_LOCK_FILE_AGE":
-        return config.max_lock_file_age
-
-    # Статические константы (для обратной совместимости)
-    # Безопасность данных
-    if name == "MAX_DATA_DEPTH":
-        return 100
-    if name == "MAX_STRING_LENGTH":
-        return 10000
-    if name == "MAX_DATA_SIZE":
-        return 10 * 1024 * 1024
-    if name == "MAX_COLLECTION_SIZE":
-        return 100000
-    if name == "MAX_PATH_LENGTH":
-        return 4096
-
-    # Безопасность initialState (firm_parser.py)
-    if name == "MAX_INITIAL_STATE_DEPTH":
-        return 10
-    if name == "MAX_INITIAL_STATE_SIZE":
-        return 5 * 1024 * 1024  # 5MB
-    if name == "MAX_ITEMS_IN_COLLECTION":
-        return 10000
-
-    # Кэширование
-    if name == "DEFAULT_BATCH_SIZE":
-        return 100
-    if name == "MAX_BATCH_SIZE":
-        return 1000
-    if name == "LRU_EVICT_BATCH":
-        return 100
-    if name == "SHA256_HASH_LENGTH":
-        return 64
-    if name == "EXTRACTOR_CACHE_MAX_SIZE":
-        return 2048
-    if name == "CACHE_EVICTION_PERCENT":
-        return 10
-
-    # Параллельный парсинг
-    if name == "MAX_TEMP_FILES":
-        return 1000
-
-    # Буферизация
-    if name == "DEFAULT_BUFFER_SIZE":
-        return 524288
-    if name == "MERGE_BUFFER_SIZE":
-        return 131072
-    if name == "CSV_BATCH_SIZE":
-        return 1000
-    if name == "CSV_COLUMNS_PER_ENTITY":
-        return 5
-    if name == "MERGE_BATCH_SIZE":
-        return 500
-    if name == "LARGE_FILE_THRESHOLD_MB":
-        return 100
-    if name == "LARGE_FILE_BUFFER_MULTIPLIER":
-        return 4
-    if name == "MAX_BUFFER_SIZE":
-        return 1048576
-    if name == "MMAP_THRESHOLD_BYTES":
-        return 10 * 1024 * 1024
-
-    # Валидация городов
-    if name == "MAX_CITIES_FILE_SIZE":
-        return 10 * 1024 * 1024
-    if name == "MAX_CITIES_COUNT":
-        return 1000
-    if name == "MMAP_CITIES_THRESHOLD":
-        return 1 * 1024 * 1024
-
-    # JS безопасность
-    if name == "MAX_JS_CODE_LENGTH":
-        return 100000
-    if name == "MAX_RESPONSE_SIZE":
-        return 10 * 1024 * 1024
-    if name == "MAX_TOTAL_JS_SIZE":
-        return 5 * 1024 * 1024
-    if name == "CHROME_STARTUP_DELAY":
-        return 5.0
-
-    # Rate limiting
-    if name == "EXTERNAL_RATE_LIMIT_CALLS":
-        return 10
-    if name == "EXTERNAL_RATE_LIMIT_PERIOD":
-        return 60
-
-    # HTTP кэширование
-    if name == "HTTP_CACHE_TTL_SECONDS":
-        return 300
-    if name == "HTTP_CACHE_MAXSIZE":
-        return 1024
-
-    # Polling
-    if name == "DEFAULT_POLL_INTERVAL":
-        return 0.1
-    if name == "MAX_POLL_INTERVAL":
-        return 2.0
-    if name == "EXPONENTIAL_BACKOFF_MULTIPLIER":
-        return 2
-
-    # HTTP статус коды
-    if name == "HTTP_STATUS_OK":
-        return 200
-
-    # Безопасность путей - максимальная глубина декодирования
-    if name == "MAX_URL_DECODE_ITERATIONS":
-        return 5
-
-    # Максимальная глубина рекурсии для unwrap_dot_dict
-    if name == "MAX_DICT_RECURSION_DEPTH":
-        return 10
-
-    # Прогресс
-    if name == "PROGRESS_UPDATE_INTERVAL":
-        return 3
-
-    # Уникальные имена файлов
-    if name == "MAX_UNIQUE_NAME_ATTEMPTS":
-        return 10
-
-    # Таймауты и задержки
-    if name == "DEFAULT_SLEEP_TIME":
-        return 0.1
-
-    # Парсер - лимиты
-    if name == "MAX_VISITED_LINKS_SIZE":
-        return 10000  # Максимальное количество посещённых ссылок в памяти
-    if name == "MAX_RECORDS_MEMORY_COEFFICIENT":
-        return 550  # Коэффициент для расчёта max_records
-    if name == "MAX_RECORDS_MEMORY_DIVISOR":
-        return 1024  # Делитель для расчёта max_records
-    if name == "MAX_RECORDS_BASE_OFFSET":
-        return 400  # Базовое смещение для расчёта max_records
-
-    # ISSUE-152: Порог памяти для вызова gc.collect()
-    if name == "GC_MEMORY_THRESHOLD_MB":
-        return 100  # Вызывать GC только если доступно меньше 100 MB
-
-    # Безопасность путей
-    if name == "MAX_PATH_LENGTH_SAFE":
-        return 4096
-    if name == "FORBIDDEN_PATH_CHARS":
-        return ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
+    # P0-12: Проверка статических констант через словарь
+    if name in _STATIC_CONSTANTS_MAPPING:
+        return _STATIC_CONSTANTS_MAPPING[name]
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

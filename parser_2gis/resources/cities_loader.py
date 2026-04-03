@@ -22,13 +22,14 @@ from parser_2gis.logger import logger
 
 
 @lru_cache(maxsize=16)
-def load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
+def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
     """Загружает JSON файл с городами с оптимизированной загрузкой.
 
     C019: Кэширование через lru_cache для снижения повторных загрузок.
+    P0-17: Параметр cities_path использует pathlib.Path вместо строки.
 
     Args:
-        cities_path_str: Путь к файлу cities.json как строка.
+        cities_path: Путь к файлу cities.json.
 
     Returns:
         Список городов из JSON файла.
@@ -39,7 +40,6 @@ def load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
         OSError: Если произошла ошибка операционной системы.
 
     """
-    cities_path = Path(cities_path_str)
 
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)
@@ -135,14 +135,15 @@ def load_cities_json(cities_path_str: str) -> list[dict[str, Any]]:
         raise OSError(f"Не удалось прочитать файл городов: {e}") from e
 
 
-def load_cities_json_lazy(cities_path_str: str):
+def load_cities_json_lazy(cities_path: Path):
     """Генератор для lazy loading городов из JSON файла.
 
     C019: Lazy loading через генератор для снижения потребления памяти.
+    P0-17: Параметр cities_path использует pathlib.Path вместо строки.
     Вместо загрузки всех городов в память, генерирует города по одному.
 
     Args:
-        cities_path_str: Путь к файлу cities.json как строка.
+        cities_path: Путь к файлу cities.json.
 
     Yields:
         Словари городов с полями: name, code, domain, country_code (опционально).
@@ -153,11 +154,10 @@ def load_cities_json_lazy(cities_path_str: str):
         OSError: Если произошла ошибка операционной системы.
 
     Example:
-        >>> for city in load_cities_json_lazy("/path/to/cities.json"):
+        >>> for city in load_cities_json_lazy(Path("/path/to/cities.json")):
         ...     print(f"Город: {city['name']}, код: {city['code']}")
 
     """
-    cities_path = Path(cities_path_str)
 
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)

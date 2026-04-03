@@ -68,12 +68,20 @@ class RequestInterceptor:
             if pattern in self._response_patterns:
                 self._response_patterns.remove(pattern)
                 if pattern in self._response_queues:
-                    # Очищаем очередь перед удалением
-                    while not self._response_queues[pattern].empty():
+                    # Очищаем очередь перед удалением с защитой от бесконечного цикла
+                    queue_to_clean = self._response_queues[pattern]
+                    max_iterations = 10000  # Защита от бесконечного цикла при высокой нагрузке
+                    iterations = 0
+                    while not queue_to_clean.empty() and iterations < max_iterations:
                         try:
-                            self._response_queues[pattern].get_nowait()
+                            queue_to_clean.get_nowait()
                         except queue.Empty:
                             break
+                        iterations += 1
+                    if iterations >= max_iterations:
+                        app_logger.warning(
+                            "Достигнут лимит итераций очистки очереди для паттерна %s", pattern
+                        )
                     del self._response_queues[pattern]
                 app_logger.debug("Удалён паттерн ответа: %s", pattern)
 

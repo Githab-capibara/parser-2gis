@@ -15,11 +15,12 @@ import shutil
 import signal
 import threading
 import time
+import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from collections.abc import Callable, Generator
 
 from parser_2gis.chrome.exceptions import ChromeException
@@ -94,10 +95,11 @@ class CoordinatorContext:
 _coordinator_context = CoordinatorContext()
 
 
-def _signal_handler(signum: int, frame: Any) -> None:
+def _signal_handler(signum: int, frame: types.FrameType | None) -> None:
     """Глобальный обработчик сигналов SIGINT (Ctrl+C).
 
     ISSUE-009: Использует CoordinatorContext вместо глобальной переменной.
+    P0-20: Добавлены type hints для signum и frame.
 
     Args:
         signum: Номер сигнала.

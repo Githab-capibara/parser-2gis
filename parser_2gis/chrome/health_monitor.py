@@ -38,9 +38,14 @@ class BrowserHealthMonitor:
     """
 
     # Пороги для автоматического перезапуска
-    MEMORY_THRESHOLD_MB = 2048  # 2 ГБ
-    CPU_THRESHOLD_PERCENT = 95  # 95%
-    STALL_THRESHOLD_SEC = 120  # 2 минуты без ответа
+    # Память: 2 ГБ — порог превышения использования RAM
+    MEMORY_THRESHOLD_MB = 2048
+    # CPU: 95% — порег перегрузки процессора
+    CPU_THRESHOLD_PERCENT = 95
+    # Stall: 120 секунд (2 минуты) — порог зависания браузера
+    STALL_THRESHOLD_SEC = 120
+    # Максимальное количество критических ошибок до рекомендации перезапуска
+    MAX_CRITICAL_ERRORS_BEFORE_RESTART = 3
 
     def __init__(self, browser: ChromeBrowser, enable_auto_restart: bool = True) -> None:
         """Инициализирует монитор.
@@ -177,11 +182,15 @@ class BrowserHealthMonitor:
 
         # Перезапуск если браузер нездоров
         if not health["healthy"]:
+            # Атомарно читаем счётчик критических ошибок под блокировкой
+            with self._lock:
+                errors_count = self._critical_errors_count
+
             # Перезапуск если много критических ошибок
-            if self._critical_errors_count >= 3:
+            if errors_count >= self.MAX_CRITICAL_ERRORS_BEFORE_RESTART:
                 logger.warning(
                     "Превышен порог критических ошибок (%d). Рекомендуется перезапуск браузера.",
-                    self._critical_errors_count,
+                    errors_count,
                 )
                 return True
 

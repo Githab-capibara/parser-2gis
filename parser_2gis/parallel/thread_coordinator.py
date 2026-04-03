@@ -68,7 +68,16 @@ class _CoordinatorContext:
 
 
 # Глобальный экземпляр контекста (не изменяемое состояние, а контейнер)
-_coordinator_context = _CoordinatorContext()
+# Используем ленивую инициализацию для предотвращения race condition при импорте
+_coordinator_context: _CoordinatorContext | None = None
+
+
+def _get_coordinator_context() -> _CoordinatorContext:
+    """Лениво создаёт и возвращает глобальный контекст координатора."""
+    global _coordinator_context
+    if _coordinator_context is None:
+        _coordinator_context = _CoordinatorContext()
+    return _coordinator_context
 
 
 def _signal_handler(signum: int, frame: "FrameType | None") -> None:
@@ -81,7 +90,7 @@ def _signal_handler(signum: int, frame: "FrameType | None") -> None:
         frame: Текущий фрейм.
 
     """
-    coordinator = _coordinator_context.get_coordinator()
+    coordinator = _get_coordinator_context().get_coordinator()
     if coordinator is not None:
         logger.warning("Получен сигнал прерывания (SIGINT), остановка парсинга...")
         coordinator.stop()
@@ -227,7 +236,7 @@ class ThreadCoordinator:
         """
         # Установка глобального обработчика сигнала SIGINT
         old_signal_handler = signal.signal(signal.SIGINT, _signal_handler)
-        _coordinator_context.set_coordinator(self)
+        _get_coordinator_context().set_coordinator(self)
 
         # Синхронизируем флаг отмены с url_parser
         self._url_parser._cancel_event = self._cancel_event
@@ -279,7 +288,7 @@ class ThreadCoordinator:
             return False
         finally:
             # Восстановление обработчика сигнала и очистка ресурсов
-            _coordinator_context.set_coordinator(None)
+            _get_coordinator_context().set_coordinator(None)
             try:
                 signal.signal(signal.SIGINT, old_signal_handler)
             except (ValueError, TypeError):

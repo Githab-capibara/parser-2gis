@@ -42,6 +42,24 @@ class CategoryDict(TypedDict):
     rubric_code: str | None
 
 
+class CityDict(TypedDict):
+    """Типизация словаря города для генерации URL.
+
+    P0-16: Замена dict на TypedDict для лучшей типизации.
+
+    Attributes:
+        code: Код города (например, 'msk').
+        domain: Домен 2GIS для города (например, '2gis.ru').
+
+    Example:
+        >>> city: CityDict = {"code": "msk", "domain": "2gis.ru"}
+
+    """
+
+    code: str
+    domain: str
+
+
 # Полный список из 93 категорий
 CATEGORIES_93: list[CategoryDict] = [
     # 1-15: Общественное питание
@@ -167,7 +185,7 @@ def get_category_by_name(name: str) -> CategoryDict | None:
     return None
 
 
-def generate_urls_for_city(city: dict, categories: list[CategoryDict] | None = None) -> list[str]:
+def generate_urls_for_city(city: CityDict, categories: list[CategoryDict] | None = None) -> list[str]:
     """Генерирует URL для парсинга всех категорий для одного города.
 
     Args:

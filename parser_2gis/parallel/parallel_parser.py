@@ -22,10 +22,12 @@ import shutil
 import signal
 import threading
 import time
+import types
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, TextIO, cast
@@ -73,6 +75,31 @@ if TYPE_CHECKING:
 # Константы
 MEMORY_THRESHOLD_BYTES = 100 * 1024 * 1024  # 100MB порог для проверки памяти
 MAX_LOCK_ATTEMPTS = 50  # Максимальное число попыток получения lock файла
+
+
+# =============================================================================
+# MODULE-LEVEL HELPER FUNCTIONS (P0-11: Вынесены из merge_csv_files для тестируемости)
+# =============================================================================
+
+def _create_merge_fieldnames_cache() -> dict[tuple[str, ...], list[str]]:
+    """Создаёт кэш для fieldnames CSV файлов.
+
+    P0-9: LRU кэш для fieldnames чтобы не создавать новый словарь при каждом вызове merge.
+    """
+    return {}
+
+
+@lru_cache(maxsize=256)
+def _get_cached_fieldnames(fieldnames_tuple: tuple[str, ...], add_category: bool) -> list[str]:
+    """Кэширует вычисление fieldnames с добавлением колонки категории.
+
+    P0-9: LRU кэш на 256 записей для предотвращения повторных вычислений
+    fieldnames при обработке множества CSV файлов с одинаковой структурой.
+    """
+    fieldnames = list(fieldnames_tuple)
+    if add_category and "Категория" not in fieldnames:
+        fieldnames.insert(0, "Категория")
+    return fieldnames
 
 
 @dataclass
@@ -552,10 +579,9 @@ class ParallelCityParser:
                 return writer, 0
 
             fieldnames_key = tuple(reader.fieldnames)
+            # P0-9: Сначала проверяем локальный кэш, затем используем lru_cache
             if fieldnames_key not in fieldnames_cache:
-                fieldnames = list(reader.fieldnames)
-                if "Категория" not in fieldnames:
-                    fieldnames.insert(0, "Категория")
+                fieldnames = _get_cached_fieldnames(fieldnames_key, True)
                 fieldnames_cache[fieldnames_key] = fieldnames
             else:
                 fieldnames = fieldnames_cache[fieldnames_key]
@@ -641,32 +667,37 @@ class ParallelCityParser:
         sigint_registered = False
         sigterm_registered = False
 
-        def cleanup_temp_files():
+        # P0-11: Выносим логику очистки в замыкание для передачи в signal handler
+        merge_temp_files_ref = self._merge_temp_files
+        merge_lock_ref = self._merge_lock
+        log_method = self.log
+
+        def _do_cleanup() -> None:
             """Функция очистки временных файлов при прерывании."""
-            with self._merge_lock:
-                for temp_file in self._merge_temp_files:
+            with merge_lock_ref:
+                for temp_file in merge_temp_files_ref:
                     try:
                         if temp_file.exists():
                             temp_file.unlink()
-                            self.log(f"Временный файл удалён при прерывании: {temp_file}", "debug")
+                            log_method(f"Временный файл удалён при прерывании: {temp_file}", "debug")
                     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-                        self.log(
+                        log_method(
                             f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}",
                             "error",
                         )
 
-        def signal_handler(signum, frame):
+        def _signal_handler(signum: int, frame: types.FrameType | None) -> None:
             """Обработчик сигналов прерывания."""
             self.log(f"Получен сигнал {signum}, очистка временных файлов...", "warning")
-            cleanup_temp_files()
+            _do_cleanup()
             if callable(old_sigint_handler):
                 old_sigint_handler(signum, frame)
 
         # Регистрируем обработчики сигналов
         try:
-            signal.signal(signal.SIGINT, signal_handler)
+            signal.signal(signal.SIGINT, _signal_handler)
             sigint_registered = True
-            signal.signal(signal.SIGTERM, signal_handler)
+            signal.signal(signal.SIGTERM, _signal_handler)
             sigterm_registered = True
         except (OSError, ValueError) as sig_error:
             self.log(f"Не удалось зарегистрировать обработчики сигналов: {sig_error}", "warning")
@@ -681,7 +712,8 @@ class ParallelCityParser:
                 temp_file_created = True
                 writer = None
                 total_rows = 0
-                fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
+                # P0-9: Используем функцию для создания кэша fieldnames
+                fieldnames_cache = _create_merge_fieldnames_cache()
 
                 for csv_file in csv_files:
                     if self._cancel_event.is_set():

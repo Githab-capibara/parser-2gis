@@ -22,6 +22,7 @@ import sqlite3
 import time
 import weakref
 from datetime import datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 
 # Импорты для типизации (для совместимости с Python 3.9)
@@ -58,6 +59,20 @@ from .validator import CacheDataValidator
 CacheRow: TypeAlias = tuple[str, int, str]
 # Пара элемента кэша: (url, data)
 CacheItem: TypeAlias = tuple[str, dict[str, Any]]
+
+
+# =============================================================================
+# CACHED HASH COMPUTATION (P0-8: Кэширование SHA-256 для снижения CPU нагрузки)
+# =============================================================================
+
+@lru_cache(maxsize=1024)
+def _compute_data_hash_cached(data: str) -> str:
+    """Кэширует вычисление SHA-256 хеша для данных.
+
+    P0-8: LRU кеш на 1024 записи для предотвращения повторных вычислений
+    SHA-256 + CRC32 при каждом чтении кэша.
+    """
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
 # =============================================================================
@@ -453,7 +468,8 @@ class CacheManager:
             return None
 
         # H002: Проверка CRC32 checksum с кэшированием для проверки целостности данных
-        data_json_hash = hashlib.sha256(data.encode("utf-8")).hexdigest()
+        # P0-8: Используем кэшированную функцию для снижения CPU нагрузки
+        data_json_hash = _compute_data_hash_cached(data)
         computed_checksum = compute_crc32_cached(data_json_hash, data)
         if computed_checksum != checksum:
             app_logger.warning(
@@ -928,7 +944,8 @@ class CacheManager:
                 url_hash = self._hash_url(url)
                 data_json = self._serializer.serialize(data)
                 # H002: Вычисляем CRC32 checksum с кэшированием для часто используемых данных
-                data_json_hash = hashlib.sha256(data_json.encode("utf-8")).hexdigest()
+                # P0-8: Используем кэшированную функцию для снижения CPU нагрузки
+                data_json_hash = _compute_data_hash_cached(data_json)
                 checksum = compute_crc32_cached(data_json_hash, data_json)
                 batch_params.append(
                     (url_hash, url, data_json, checksum, now.isoformat(), expires_at.isoformat())

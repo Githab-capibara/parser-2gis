@@ -17,12 +17,15 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 
 from parser_2gis.constants import MAX_LOCK_FILE_AGE, MERGE_BUFFER_SIZE, MERGE_LOCK_TIMEOUT
 from parser_2gis.logger import logger
 from parser_2gis.utils.signal_handler import SignalHandler
+
+if TYPE_CHECKING:
+    from parser_2gis.config import Configuration
 
 
 class FileMerger:
@@ -41,7 +44,7 @@ class FileMerger:
     """
 
     def __init__(
-        self, output_dir: Path, config: Any = None, cancel_event: threading.Event | None = None
+        self, output_dir: Path, config: "Configuration | None" = None, cancel_event: threading.Event | None = None
     ) -> None:
         """Инициализация FileMerger.
 
@@ -263,11 +266,21 @@ class FileMerger:
                             writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                             writer.writeheader()
 
+                        # Пакетная записи строк для повышения производительности
+                        batch: list[dict[str, str]] = []
                         for row in reader:
-                            row["Category"] = category_name
-                            if writer:
-                                writer.writerow(row)
-                            total_rows += 1
+                            row_with_category = {"Category": category_name, **row}
+                            batch.append(row_with_category)
+
+                            if len(batch) >= 500:  # Размер пакета для пакетной записи
+                                writer.writerows(batch)
+                                total_rows += len(batch)
+                                batch.clear()
+
+                        # Записываем оставшиеся строки
+                        if batch:
+                            writer.writerows(batch)
+                            total_rows += len(batch)
 
                 logger.info("Объединено %d строк в файл %s", total_rows, temp_output.name)
 

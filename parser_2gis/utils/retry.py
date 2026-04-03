@@ -100,7 +100,10 @@ def retry_with_backoff(
 
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            """Обертка для повторных попыток."""
+            """Обертка для повторных попыток.
+
+            P0-18: Добавлены type hints — wrapper возвращает тот же тип что и func.
+            """
             current_delay = delay
             func_name = func.__name__
 

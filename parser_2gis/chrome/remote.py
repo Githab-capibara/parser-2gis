@@ -116,8 +116,12 @@ def _check_port_cached(port: int) -> bool:
     return _check_port_available_internal(port, timeout=0.6, retries=1)
 
 
-def _check_port_available_internal(port: int, timeout: float = 0.6, retries: int = 2) -> bool:
-    """Внутренняя функция проверки порта без кэширования."""
+def _check_port_available_internal(port: int, timeout: float = 0.6, retries: int = 1) -> bool:
+    """Внутренняя функция проверки порта без кэширования.
+
+    Оптимизация: по умолчанию 1 попытка вместо 2 для снижения нагрузки
+    при 40+ параллельных браузерах (k*2 -> k проверок).
+    """
     result = True
 
     for attempt in range(retries):
@@ -141,7 +145,7 @@ def _check_port_available_internal(port: int, timeout: float = 0.6, retries: int
     return result
 
 
-def _check_port_available(port: int, timeout: float = 0.6, retries: int = 2) -> bool:
+def _check_port_available(port: int, timeout: float = 0.6, retries: int = 1) -> bool:
     """Проверяет доступность порта для подключения."""
     return _check_port_available_internal(port, timeout=timeout, retries=retries)
 

@@ -154,18 +154,14 @@ class CSVWriter(FileWriter):
     def _type_names(self) -> dict[str, str]:
         """Возвращает отображение типов на русские названия.
 
+        P0-14: Упрощено — возвращаем готовый словарь без делегирования format().
+
         Returns:
             Словарь с маппингом типов: 'parking' -> 'Парковка' и т.д.
 
         """
-        # Делегируем форматирование TypeFormatter
-        return {
-            "parking": self._type_formatter.format("parking"),
-            "street": self._type_formatter.format("street"),
-            "road": self._type_formatter.format("road"),
-            "crossroad": self._type_formatter.format("crossroad"),
-            "station": self._type_formatter.format("station"),
-        }
+        # P0-14: Возвращаем готовый словарь напрямую из TypeFormatter
+        return self._type_formatter.get_type_mapping()
 
     @cached_property
     def _complex_mapping(self) -> dict[str, Any]:
