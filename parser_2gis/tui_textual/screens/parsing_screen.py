@@ -9,9 +9,13 @@ from textual.containers import Container, Horizontal
 from textual.screen import Screen
 from textual.widgets import Button, ProgressBar, RichLog, Static
 
+from ..protocols import ITuiApp
+
 
 class ParsingScreen(Screen):
     """Экран парсинга."""
+
+    app: ITuiApp  # type: ignore[assignment]
 
     BINDINGS = [Binding("escape", "stop_parsing", "Стоп"), Binding("p", "toggle_pause", "Пауза")]
 
@@ -166,21 +170,21 @@ class ParsingScreen(Screen):
         self._add_log("[bold green]Запуск парсинга...[/]")
 
         # Получить выбранные города и категории
-        selected_city_names = self.app.selected_cities  # type: ignore[attr-defined]
-        selected_categories = self.app.selected_categories  # type: ignore[attr-defined]
+        selected_city_names = self.app.selected_cities
+        selected_categories = self.app.selected_categories
 
         # Отладочное логирование для диагностики
         self._add_log(f"[dim]Выбрано городов: {len(selected_city_names)}[/]")
         self._add_log(f"[dim]Выбрано категорий: {len(selected_categories)}[/]")
 
-        cities = self.app.get_cities()  # type: ignore[attr-defined]
+        cities = self.app.get_cities()
         selected_cities = [
             city
             for city in cities
             if isinstance(city, dict) and city.get("name") in selected_city_names
         ]
 
-        all_categories = self.app.get_categories()  # type: ignore[attr-defined]
+        all_categories = self.app.get_categories()
         selected_cats = [
             cat
             for cat in all_categories
@@ -202,7 +206,7 @@ class ParsingScreen(Screen):
 
         # Запустить парсинг
         self._parsing_started = True
-        self.app.start_parsing(selected_cities, selected_cats)  # type: ignore[attr-defined]
+        self.app.start_parsing(selected_cities, selected_cats)
 
     def _add_log(self, message: str) -> None:
         """Добавить запись в лог парсинга.
@@ -222,7 +226,7 @@ class ParsingScreen(Screen):
         для надёжности.
         """
         try:
-            self.app.pop_screen()  # type: ignore[attr-defined]
+            self.app.pop_screen()
         except (RuntimeError, AttributeError, ValueError) as menu_error:
             # Логирование ошибки при закрытии экрана
             logging.getLogger(__name__).debug("Ошибка при закрытии экрана: %s", menu_error)
@@ -326,7 +330,7 @@ class ParsingScreen(Screen):
             if self._parsing_started and not self._stopping:
                 self._add_log("[yellow]Остановка парсинга перед возвратом в меню...[/]")
                 self._stopping = True
-                self.app.stop_parsing()  # type: ignore[attr-defined]
+                self.app.stop_parsing()
             self._return_to_menu()
 
     def action_toggle_pause(self) -> None:
@@ -367,7 +371,7 @@ class ParsingScreen(Screen):
 
         # Корректная остановка парсинга через метод приложения
         # НЕ используем self.app.running = False - это останавливает ВСЁ приложение!
-        self.app.stop_parsing()  # type: ignore[attr-defined]
+        self.app.stop_parsing()
 
         # Безопасный возврат в меню после остановки
         self._return_to_menu()

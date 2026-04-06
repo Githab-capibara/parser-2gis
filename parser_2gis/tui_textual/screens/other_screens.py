@@ -6,9 +6,13 @@ from textual.containers import Container, Horizontal, ScrollableContainer, Verti
 from textual.screen import Screen
 from textual.widgets import Button, DataTable, Static
 
+from ..protocols import ITuiApp
+
 
 class CacheViewerScreen(Screen):
     """Просмотр кэша."""
+
+    app: ITuiApp  # type: ignore[assignment]
 
     BINDINGS = [Binding("escape", "go_back", "Назад"), Binding("c", "clear_cache", "Очистить кэш")]
 
@@ -154,9 +158,9 @@ class CacheViewerScreen(Screen):
         elif button_id == "refresh":
             self._load_cache_stats()
             self._load_cache_data()
-            self.app.notify("Кэш обновлён", title="Инфо")  # type: ignore[attr-defined]
+            self.app.notify("Кэш обновлён", title="Инфо")
         elif button_id == "back":
-            self.app.pop_screen()  # type: ignore[attr-defined]
+            self.app.pop_screen()
 
     def action_clear_cache(self) -> None:
         """Очистить кэш.
@@ -175,11 +179,13 @@ class CacheViewerScreen(Screen):
 
         self._load_cache_stats()
         self._load_cache_data()
-        self.app.notify("Кэш очищен", title="Успех")  # type: ignore[attr-defined]
+        self.app.notify("Кэш очищен", title="Успех")
 
 
 class AboutScreen(Screen):
     """Информация о программе."""
+
+    app: ITuiApp  # type: ignore[assignment]
 
     BINDINGS = [Binding("escape", "go_back", "Назад")]
 
@@ -310,4 +316,4 @@ class AboutScreen(Screen):
 
         """
         if event.button.id == "back":
-            self.app.pop_screen()  # type: ignore[attr-defined]
+            self.app.pop_screen()

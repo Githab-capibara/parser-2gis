@@ -21,7 +21,11 @@ long_description_content_type = "text/markdown"
 match = re.search(
     r'^version\s*=\s*[\'"](?P<version>.+?)[\'"]', VERSION_PATH.read_text(encoding="utf-8"), re.M
 )
-assert match
+if not match:
+    raise RuntimeError(
+        f"Не удалось найти версию в файле {VERSION_PATH}. "
+        "Убедитесь, что файл содержит строку вида version = 'X.Y.Z'"
+    )
 version = match.group("version")
 
 

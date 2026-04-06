@@ -6,9 +6,13 @@ from textual.containers import Container, Horizontal, ScrollableContainer
 from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Input, Static
 
+from ..protocols import ITuiApp
+
 
 class CategorySelectorScreen(Screen):
     """Экран выбора категорий."""
+
+    app: ITuiApp  # type: ignore[assignment]
 
     BINDINGS = [
         Binding("escape", "go_back", "Назад"),
@@ -146,7 +150,7 @@ class CategorySelectorScreen(Screen):
         """
         # Получить категории из приложения и сделать глубокую копию
         # Это предотвращает мутацию глобальной константы CATEGORIES_93
-        categories_from_app = self.app.get_categories()  # type: ignore[attr-defined]
+        categories_from_app = self.app.get_categories()
         self._categories = [cat.copy() for cat in categories_from_app]
         self._filtered_categories = self._categories.copy()
 
@@ -158,7 +162,7 @@ class CategorySelectorScreen(Screen):
             self._id_to_index[str(i)] = i
 
         # Восстановить ранее выбранные категории
-        selected_names = set(self.app.selected_categories)  # type: ignore[attr-defined]
+        selected_names = set(self.app.selected_categories)
         for i, cat in enumerate(self._categories):
             if cat.get("name") in selected_names:
                 self._selected_indices.add(i)
@@ -300,25 +304,25 @@ class CategorySelectorScreen(Screen):
 
         elif button_id == "next":
             # Проверка что города выбраны перед переходом к парсингу
-            selected_cities = self.app.selected_cities  # type: ignore[attr-defined]
+            selected_cities = self.app.selected_cities
             if not selected_cities:
                 # Показать уведомление об ошибке
-                self.app.notify("❌ Сначала выберите города в меню '📁 Выбрать города'", timeout=5)  # type: ignore[attr-defined]
+                self.app.notify("❌ Сначала выберите города в меню '📁 Выбрать города'", timeout=5)
                 # Записать в лог
-                self.app.notify_user("Попытка запуска без выбранных городов", level="error")  # type: ignore[attr-defined]
+                self.app.notify_user("Попытка запуска без выбранных городов", level="error")
                 return
 
             # Сохранить выбранные категории
             selected_names = [
                 self._categories[i].get("name", "") for i in sorted(self._selected_indices)
             ]
-            self.app.selected_categories = selected_names  # type: ignore[attr-defined]
+            self.app.selected_categories = selected_names
             # Используем switch_screen для замены текущего экрана вместо push_screen
             # Это предотвращает накопление экранов в стеке
-            self.app.switch_screen("parsing")  # type: ignore[attr-defined]
+            self.app.switch_screen("parsing")
 
         elif button_id == "back":
-            self.app.pop_screen()  # type: ignore[attr-defined]
+            self.app.pop_screen()
 
     def action_select_all(self) -> None:
         """Выбрать все отображённые категории.

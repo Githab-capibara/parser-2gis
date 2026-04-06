@@ -6,9 +6,13 @@ from textual.containers import Container
 from textual.screen import Screen
 from textual.widgets import Button, Static
 
+from ..protocols import ITuiApp
+
 
 class MainMenuScreen(Screen):
     """Главное меню приложения."""
+
+    app: ITuiApp  # type: ignore[assignment]
 
     BINDINGS = [Binding("q", "quit", "Выход")]
 
@@ -153,21 +157,21 @@ class MainMenuScreen(Screen):
 
         if button_id == "start-parsing":
             # Проверка что выбраны города и категории
-            selected_cities = self.app.selected_cities  # type: ignore[attr-defined]
-            selected_categories = self.app.selected_categories  # type: ignore[attr-defined]
+            selected_cities = self.app.selected_cities
+            selected_categories = self.app.selected_categories
 
             if not selected_cities:
-                self.app.notify("❌ Сначала выберите города в меню '📁 Выбрать города'", timeout=5)  # type: ignore[attr-defined]
+                self.app.notify("❌ Сначала выберите города в меню '📁 Выбрать города'", timeout=5)
                 return
             if not selected_categories:
                 self.app.notify(
                     "❌ Сначала выберите категории в меню '📂 Выбрать категории'", timeout=5
-                )  # type: ignore[attr-defined]
+                )
                 return
             # Только если оба списка не пустые - открывать экран парсинга
             # Используем switch_screen для замены текущего экрана вместо push_screen
             # Это предотвращает накопление экранов в стеке и циклические вызовы
-            self.app.switch_screen("parsing")  # type: ignore[attr-defined]
+            self.app.switch_screen("parsing")
         elif button_id == "select-cities":
             self.app.push_screen("city_selector")
         elif button_id == "select-categories":

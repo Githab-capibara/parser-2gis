@@ -7,10 +7,13 @@ from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Input, Static
 
 from parser_2gis.logger import logger as app_logger
+from ..protocols import ITuiApp
 
 
 class CitySelectorScreen(Screen):
     """Экран выбора городов."""
+
+    app: ITuiApp  # type: ignore[assignment]
 
     BINDINGS = [
         Binding("escape", "go_back", "Назад"),
@@ -144,11 +147,11 @@ class CitySelectorScreen(Screen):
             AttributeError: Если метод get_cities недоступен в приложении.
 
         """
-        self._cities = self.app.get_cities()  # type: ignore[attr-defined]
+        self._cities = self.app.get_cities()
         self._filtered_cities = self._cities.copy()
 
         # Восстановить ранее выбранные города
-        selected_names = set(self.app.selected_cities)  # type: ignore[attr-defined]
+        selected_names = set(self.app.selected_cities)
         for i, city in enumerate(self._cities):
             if city.get("name") in selected_names:
                 self._selected_indices.add(i)
@@ -299,13 +302,13 @@ class CitySelectorScreen(Screen):
             selected_names = [
                 self._cities[i].get("name", "") for i in sorted(self._selected_indices)
             ]
-            self.app.selected_cities = selected_names  # type: ignore[attr-defined]
+            self.app.selected_cities = selected_names
             # Используем switch_screen для замены текущего экрана вместо push_screen
             # Это предотвращает накопление экранов в стеке
-            self.app.switch_screen("category_selector")  # type: ignore[attr-defined]
+            self.app.switch_screen("category_selector")
 
         elif button_id == "back":
-            self.app.pop_screen()  # type: ignore[attr-defined]
+            self.app.pop_screen()
 
     def action_select_all(self) -> None:
         """Выбрать все отображённые города.

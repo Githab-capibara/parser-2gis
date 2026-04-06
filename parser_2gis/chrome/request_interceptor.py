@@ -233,12 +233,14 @@ class RequestInterceptor:
                 self._requests[request_id] = request
 
         # Регистрируем обработчики на вкладке
-        chrome_tab.Network.responseReceived = responseReceived  # type: ignore[attr-defined]
-        chrome_tab.Network.loadingFailed = loadingFailed  # type: ignore[attr-defined]
-        chrome_tab.Network.requestWillBeSent = requestWillBeSent  # type: ignore[attr-defined]
+        # Динамическая установка callback — единственный способ интеграции с pychrome Tab API.
+        # pychrome не предоставляет статического API для регистрации обработчиков.
+        chrome_tab.Network.responseReceived = responseReceived  # pragma: no cover
+        chrome_tab.Network.loadingFailed = loadingFailed  # pragma: no cover
+        chrome_tab.Network.requestWillBeSent = requestWillBeSent  # pragma: no cover
 
         # Включаем события Network
-        chrome_tab.Network.enable()  # type: ignore[attr-defined]
+        chrome_tab.Network.enable()  # pragma: no cover
 
     def get_stats(self) -> dict[str, int]:
         """Возвращает статистику перехватчика.

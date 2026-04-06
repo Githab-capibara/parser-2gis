@@ -17,7 +17,7 @@ import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 
-from typing import TypeAlias
+from typing import TypeAlias, cast
 
 # Импорты констант из подмодулей для обратной совместимости
 from .parser import (
@@ -285,8 +285,8 @@ def get_env_config() -> EnvConfig:
     # ISSUE-010: Singleton через замыкание вместо глобальной переменной
     # Переменная _instance видна только внутри функции, не загрязняя глобальное пространство
     if not hasattr(get_env_config, "_instance"):
-        get_env_config._instance = EnvConfig()  # type: ignore[attr-defined]  # pylint: disable=protected-access
-    return get_env_config._instance  # type: ignore[attr-defined]  # pylint: disable=protected-access
+        object.__setattr__(get_env_config, "_instance", EnvConfig())
+    return cast(EnvConfig, getattr(get_env_config, "_instance"))
 
 
 # Для обратной совместимости используем __getattr__ для ленивой инициализации

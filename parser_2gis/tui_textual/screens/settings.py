@@ -6,6 +6,8 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Input, Label, Static, Switch
 
+from ..protocols import ITuiApp
+
 # =============================================================================
 # КОНСТАНТЫ ЗНАЧЕНИЙ ПО УМОЛЧАНИЮ (P0-10: устранение дублирования)
 # =============================================================================
@@ -33,6 +35,8 @@ OUTPUT_DEFAULTS_REMOVE_DUPLICATES: bool = True
 
 class BrowserSettingsScreen(Screen):
     """Настройки браузера."""
+
+    app: ITuiApp  # type: ignore[assignment]
 
     BINDINGS = [Binding("escape", "go_back", "Назад"), Binding("r", "reset", "Сброс")]
 
@@ -150,7 +154,7 @@ class BrowserSettingsScreen(Screen):
         button_id = event.button.id
 
         if button_id == "save":
-            config = self.app.get_config()  # type: ignore[attr-defined]
+            config = self.app.get_config()
             config.chrome.headless = self.query_one("#headless-switch", Switch).value
             config.chrome.disable_images = self.query_one("#disable-images-switch", Switch).value
             config.chrome.silent_browser = self.query_one("#silent-switch", Switch).value
@@ -165,14 +169,14 @@ class BrowserSettingsScreen(Screen):
                 int(startup_delay) if startup_delay.isdigit() else BROWSER_DEFAULTS_STARTUP_DELAY
             )
 
-            self.app.save_config()  # type: ignore[attr-defined]
-            self.app.notify("Настройки сохранены", title="Успех")  # type: ignore[attr-defined]
+            self.app.save_config()
+            self.app.notify("Настройки сохранены", title="Успех")
 
         elif button_id == "reset":
             self.action_reset()
 
         elif button_id == "back":
-            self.app.pop_screen()  # type: ignore[attr-defined]
+            self.app.pop_screen()
 
     def action_reset(self) -> None:
         """Сбросить настройки браузера к значениям по умолчанию.
@@ -188,6 +192,8 @@ class BrowserSettingsScreen(Screen):
 
 class ParserSettingsScreen(Screen):
     """Настройки парсера."""
+
+    app: ITuiApp  # type: ignore[assignment]
 
     BINDINGS = [Binding("escape", "go_back", "Назад"), Binding("r", "reset", "Сброс")]
 
@@ -305,7 +311,7 @@ class ParserSettingsScreen(Screen):
         button_id = event.button.id
 
         if button_id == "save":
-            config = self.app.get_config()  # type: ignore[attr-defined]
+            config = self.app.get_config()
 
             max_records = self.query_one("#max-records-input", Input).value
             config.parser.max_records = (
@@ -330,14 +336,14 @@ class ParserSettingsScreen(Screen):
                 int(workers) if workers.isdigit() else PARSER_DEFAULTS_WORKERS
             )
 
-            self.app.save_config()  # type: ignore[attr-defined]
-            self.app.notify("Настройки сохранены", title="Успех")  # type: ignore[attr-defined]
+            self.app.save_config()
+            self.app.notify("Настройки сохранены", title="Успех")
 
         elif button_id == "reset":
             self.action_reset()
 
         elif button_id == "back":
-            self.app.pop_screen()  # type: ignore[attr-defined]
+            self.app.pop_screen()
 
     def action_reset(self) -> None:
         """Сбросить настройки парсера к значениям по умолчанию.
@@ -353,6 +359,8 @@ class ParserSettingsScreen(Screen):
 
 class OutputSettingsScreen(Screen):
     """Настройки вывода."""
+
+    app: ITuiApp  # type: ignore[assignment]
 
     BINDINGS = [Binding("escape", "go_back", "Назад"), Binding("r", "reset", "Сброс")]
 
@@ -458,7 +466,7 @@ class OutputSettingsScreen(Screen):
         button_id = event.button.id
 
         if button_id == "save":
-            config = self.app.get_config()  # type: ignore[attr-defined]
+            config = self.app.get_config()
 
             encoding = self.query_one("#encoding-input", Input).value
             config.writer.encoding = encoding
@@ -469,14 +477,14 @@ class OutputSettingsScreen(Screen):
                 "#remove-duplicates-switch", Switch
             ).value
 
-            self.app.save_config()  # type: ignore[attr-defined]
-            self.app.notify("Настройки сохранены", title="Успех")  # type: ignore[attr-defined]
+            self.app.save_config()
+            self.app.notify("Настройки сохранены", title="Успех")
 
         elif button_id == "reset":
             self.action_reset()
 
         elif button_id == "back":
-            self.app.pop_screen()  # type: ignore[attr-defined]
+            self.app.pop_screen()
 
     def action_reset(self) -> None:
         """Сбросить настройки вывода к значениям по умолчанию.

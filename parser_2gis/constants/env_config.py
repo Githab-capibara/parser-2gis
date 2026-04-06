@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from typing import Any
@@ -293,8 +293,8 @@ def get_env_config() -> EnvConfig:
 
     """
     if not hasattr(get_env_config, "_instance"):
-        get_env_config._instance = EnvConfig()  # type: ignore[attr-defined]
-    return get_env_config._instance  # type: ignore[attr-defined]
+        object.__setattr__(get_env_config, "_instance", EnvConfig())
+    return cast(EnvConfig, getattr(get_env_config, "_instance"))
 
 
 def validate_env_int(
