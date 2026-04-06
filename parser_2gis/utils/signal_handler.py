@@ -18,6 +18,7 @@ from __future__ import annotations
 import logging
 import signal
 import threading
+import types
 from collections.abc import Callable
 
 logger = logging.getLogger("parser_2gis.utils.signal_handler")
@@ -77,7 +78,7 @@ class SignalHandler:
         if self._registered:
             return
 
-        def handler(signum: int, frame) -> None:
+        def handler(signum: int, frame: types.FrameType | None) -> None:
             """Обработчик сигналов прерывания."""
             logger.warning("Получен сигнал %d, инициализация завершения...", signum)
             self._cancel_event.set()

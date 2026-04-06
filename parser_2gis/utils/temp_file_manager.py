@@ -58,7 +58,7 @@ class TempFileManager:
 
     """
 
-    def __init__(self, max_files: int = 1000) -> None:
+    def __init__(self, max_files: int = MAX_TEMP_FILES_MONITORING) -> None:
         """Инициализирует менеджер временных файлов.
 
         Args:

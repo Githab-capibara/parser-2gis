@@ -11,12 +11,20 @@
     Версия конфигурации: 0.1
 """
 
+from typing import Literal, overload
+
 VERSION: str = "2.1.12"
 CONFIG_VERSION: str = "0.1"
 
 __all__ = ["CONFIG_VERSION", "VERSION"]
 
 
+@overload
+def __getattr__(name: Literal["version"]) -> str: ...
+@overload
+def __getattr__(name: Literal["config_version"]) -> str: ...
+@overload
+def __getattr__(name: str) -> str: ...
 def __getattr__(name: str) -> str:
     """Ленивые алиасы для обратной совместимости.
 

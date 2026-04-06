@@ -36,6 +36,21 @@ RetryableException = type[Exception] | tuple[type[Exception], ...]
 # Исключения по умолчанию для retry — сетевые и системные ошибки
 DEFAULT_RETRY_EXCEPTIONS: tuple[type[Exception], ...] = (ConnectionError, TimeoutError, OSError)
 
+
+def _normalize_exceptions(exceptions: RetryableException) -> tuple[type[Exception], ...]:
+    """Нормализует исключения в кортеж для использования в except.
+
+    Args:
+        exceptions: Единичный тип или кортеж типов исключений.
+
+    Returns:
+        Кортеж типов исключений.
+
+    """
+    if isinstance(exceptions, tuple):
+        return exceptions
+    return (exceptions,)
+
 # =============================================================================
 # КОНСТАНТЫ
 # =============================================================================
@@ -115,7 +130,7 @@ def retry_with_backoff(
                 try:
                     return func(*args, **kwargs)
 
-                except exceptions as e:  # type: ignore[misc]
+                except _normalize_exceptions(exceptions) as e:
                     if attempt < max_attempts:
                         # Вычисляем задержку с jitter
                         actual_delay = current_delay
@@ -158,7 +173,7 @@ def retry_with_fixed_delay(
     max_attempts: int = 3,
     delay: float = 1.0,
     exceptions: RetryableException = DEFAULT_RETRY_EXCEPTIONS,
-) -> Callable[[F], F]:
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Декоратор для повторных попыток с фиксированной задержкой.
 
     Использует фиксированную задержку между попытками без экспоненциального роста.
@@ -227,7 +242,7 @@ def retry_with_jitter(
                 try:
                     return func(*args, **kwargs)
 
-                except exceptions as e:  # type: ignore[misc]
+                except _normalize_exceptions(exceptions) as e:
                     if attempt < max_attempts:
                         # Случайная задержка между min_delay и max_delay
                         actual_delay = random.uniform(min_delay, max_delay)

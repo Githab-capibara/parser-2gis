@@ -161,7 +161,7 @@ class ApplicationLauncher:
         signal_handler_factory: SignalHandlerFactory | None = None,
         chrome_factory: ChromeRemoteFactory | None = None,
         cache_factory: CacheManagerFactory | None = None,
-    ):
+    ) -> None:
         """Инициализация лаунчера.
 
         Args:

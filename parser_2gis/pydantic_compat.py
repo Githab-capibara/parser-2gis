@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypeVar
 
 import pydantic
 from typing_extensions import TypeAlias
@@ -24,6 +24,9 @@ from typing_extensions import TypeAlias
 # TypeAlias для сложных типов
 PydanticModel: TypeAlias = pydantic.BaseModel
 PydanticModelDict: TypeAlias = dict[str, Any]
+
+# TypeVar для функций, возвращающих конкретный подкласс BaseModel
+M = TypeVar("M", bound=pydantic.BaseModel)
 
 
 def get_model_dump(model: pydantic.BaseModel, **kwargs: Any) -> PydanticModelDict:
@@ -75,27 +78,28 @@ def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
     return model.model_fields_set  # type: ignore[attr-defined]
 
 
-def model_validate_json(json_str: str) -> pydantic.BaseModel:
-    """Создаёт модель из JSON строки.
+def model_validate_json(json_str: str, cls: type[M]) -> M:
+    """Создаёт модель из JSON строки для указанного класса.
 
     Использует метод model_validate_json() из Pydantic v2.
 
     Args:
         json_str: JSON строка для парсинга.
+        cls: Класс модели Pydantic для десериализации.
 
     Returns:
-        Модель Pydantic.
+        Экземпляр модели Pydantic указанного класса.
 
     Example:
         >>> from pydantic import BaseModel
         >>> class User(BaseModel):
         ...     name: str
         ...     age: int
-        >>> model_validate_json('{"name": "Alice", "age": 30}')
+        >>> model_validate_json('{"name": "Alice", "age": 30}', User)
         User(name='Alice', age=30)
 
     """
-    return pydantic.BaseModel.model_validate_json(json_str)  # type: ignore[attr-defined]
+    return cls.model_validate_json(json_str)
 
 
 def model_validate_json_class(cls: type[pydantic.BaseModel], json_str: str) -> pydantic.BaseModel:

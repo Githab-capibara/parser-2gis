@@ -54,7 +54,7 @@ class FileLogger:
         max_bytes: int = DEFAULT_LOG_MAX_BYTES,
         backup_count: int = DEFAULT_LOG_BACKUP_COUNT,
         auto_session: bool = True,
-    ):
+    ) -> None:
         """Инициализация файлового логгера.
 
         Args:
