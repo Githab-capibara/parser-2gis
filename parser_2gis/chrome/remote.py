@@ -696,6 +696,8 @@ class ChromeRemote:
         except ValueError:
             # Пробрасываем ValueError дальше
             raise
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             app_logger.error("Ошибка навигации по URL %s: %s", url, e)
             raise
@@ -730,6 +732,8 @@ class ChromeRemote:
 
         except ChromeException:
             # Пробрасываем ChromeException дальше
+            raise
+        except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
             app_logger.error("Ошибка при ожидании ответа: %s", e)
@@ -839,6 +843,8 @@ class ChromeRemote:
             return ""
         except ValueError:
             # Пробрасываем ValueError дальше (превышение размера)
+            raise
+        except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
             app_logger.warning("Непредвиденная ошибка при получении тела ответа: %s", e)
@@ -987,6 +993,8 @@ class ChromeRemote:
                     expression=expression, returnByValue=True
                 )
                 result["value"] = eval_result["result"].get("value", None)
+            except (KeyboardInterrupt, SystemExit):
+                raise
             except Exception as e:
                 result["error"] = e
                 app_logger.warning("Ошибка при выполнении скрипта: %s", e)
@@ -1008,6 +1016,8 @@ class ChromeRemote:
             return result["value"]
 
         except TimeoutError:
+            raise
+        except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
             app_logger.warning("Непредвиденная ошибка при выполнении скрипта: %s", e)
@@ -1074,6 +1084,8 @@ class ChromeRemote:
             self._chrome_tab.Runtime.callFunctionOn(
                 objectId=object_id, functionDeclaration="(function(){this.click()})"
             )
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             app_logger.error("Ошибка при выполнении клика: %s", e)
 
@@ -1148,6 +1160,8 @@ class ChromeRemote:
             app_logger.debug("Закрытие Chrome браузера...")
             self._chrome_browser.close()
             app_logger.info("Chrome браузер успешно закрыт")
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as close_browser_error:
             app_logger.error(
                 "Ошибка при закрытии браузера: %s (тип: %s)",
@@ -1177,6 +1191,8 @@ class ChromeRemote:
         try:
             self.clear_requests()
             app_logger.debug("Очередь запросов очищена")
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as clear_requests_error:
             app_logger.warning("Ошибка при очистке очереди запросов: %s", clear_requests_error)
 
@@ -1184,6 +1200,8 @@ class ChromeRemote:
         try:
             _clear_port_cache()
             app_logger.debug("Кэш портов очищен")
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as clear_cache_error:
             app_logger.warning("Ошибка при очистке кэша портов: %s", clear_cache_error)
 
@@ -1267,6 +1285,8 @@ class ChromeRemote:
             if result and "result" in result:
                 return result["result"].get("value", "")
             return ""
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             app_logger.error("Ошибка при получении HTML: %s", e)
             return ""
@@ -1297,6 +1317,8 @@ class ChromeRemote:
                 app_logger.debug("Скриншот сохранён: %s", path)
             else:
                 app_logger.error("Не удалось получить скриншот: пустой результат")
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             app_logger.error("Ошибка при создании скриншота: %s", e)
             raise

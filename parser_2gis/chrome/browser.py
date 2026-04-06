@@ -822,20 +822,25 @@ class BrowserLifecycleManager:
                             process_pid,
                         )
 
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             app_logger.error("Ошибка при закрытии браузера: %s", e)
         finally:
             # ИСПРАВЛЕНИЕ CRITICAL 8: Гарантированная очистка профиля в finally
             try:
                 self._profile_manager.cleanup_profile()
+            except (KeyboardInterrupt, SystemExit):
+                raise
             except Exception as cleanup_error:
                 app_logger.error(f"Error cleaning up profile in finally: {cleanup_error}")
             # ISSUE-003-#3: Явно вызываем финализатор при normal close,
-            # так как _finalizer.atexit = False не вызывает его при обычном выходе
             try:
                 if self._finalizer is not None and self._finalizer.alive:
                     self._finalizer()
                     app_logger.debug("Финализатор weakref вызван явно в close()")
+            except (KeyboardInterrupt, SystemExit):
+                raise
             except Exception as finalizer_error:
                 app_logger.debug("Ошибка при явном вызове финализатора: %s", finalizer_error)
 

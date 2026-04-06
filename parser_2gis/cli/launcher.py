@@ -84,6 +84,8 @@ def run_tui_application(tui_type: str = "main") -> int:
             app = Parser2GISTUI()
             app.run()
         return 0
+    except (KeyboardInterrupt, SystemExit):
+        return 1
     except Exception as e:
         logger.error("Ошибка при запуске TUI: %s", e, exc_info=True)
         return 1
@@ -197,6 +199,8 @@ class ApplicationLauncher:
             self._setup_signal_handlers()
         except (TypeError, AttributeError, RuntimeError) as e:
             logger.error("Ошибка при настройке обработчиков сигналов: %s", e, exc_info=True)
+            return 1
+        except (KeyboardInterrupt, SystemExit):
             return 1
         except Exception as e:
             # ID:045: Добавлен catch-all Exception для обработки непредвиденных ошибок
@@ -498,6 +502,8 @@ class ApplicationLauncher:
 
         except MemoryError as e:
             logger.critical("Критическая ошибка: нехватка памяти при очистке ресурсов: %s", e)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             logger.error("Непредвиденная ошибка при очистке ресурсов: %s", e, exc_info=True)
 
@@ -600,6 +606,8 @@ class ApplicationLauncher:
 
             cache.close()
             logger.info("Кэш базы данных успешно закрыт")
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             logger.error("Ошибка при закрытии кэша: %s", e, exc_info=True)
 
@@ -622,6 +630,8 @@ class ApplicationLauncher:
         try:
             gc.collect()
             logger.debug("Сборщик мусора завершён")
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             logger.error("Ошибка gc.collect(): %s", e, exc_info=True)
 
