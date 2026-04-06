@@ -8,7 +8,8 @@ import gc
 import weakref
 from pathlib import Path
 
-from parser_2gis.cache import CacheManager, _ConnectionPool
+from parser_2gis.cache import CacheManager
+from parser_2gis.cache.pool import ConnectionPool as _ConnectionPool
 from parser_2gis.utils.temp_file_manager import TempFileTimer
 
 

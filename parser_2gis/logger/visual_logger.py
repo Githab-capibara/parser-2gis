@@ -233,25 +233,20 @@ class VisualLogger:
                 if subtitle:
                     print(f"{subtitle.center(width)}")
                 print(f"{'=' * width}\n")
-        except OSError as e:
-            # Логгируем ошибку вывода, но не прерываем работу
+        except (OSError, TypeError, RuntimeError) as e:
+            # Логгируем ошибку вывода заголовка, но не прерываем работу
             _logger.error(
-                f"Ошибка вывода заголовка в консоль: {e}. "
-                f"Функция: {self.print_header.__name__}, "
-                f"Заголовок: {title}"
+                "Ошибка вывода заголовка в консоль: %s. "
+                "Функция: %s, "
+                "Заголовок: %s",
+                e,
+                self.print_header.__name__,
+                title,
             )
             # Фолбэк: простой вывод без форматирования
             print(f"\n{title}")
             if subtitle:
                 print(f"{subtitle}\n")
-        except (OSError, TypeError, RuntimeError) as e:
-            # Логгируем неожиданную ошибку с полным traceback
-            _logger.exception(
-                f"Неожиданная ошибка при выводе заголовка: {e}. "
-                f"Функция: {self.print_header.__name__}, "
-                f"Заголовок: {title}"
-            )
-            raise
 
     def print_config_section(self, title: str, items: dict[str, str], width: int = 60) -> None:
         """Печатает секцию конфигурации.
@@ -279,25 +274,22 @@ class VisualLogger:
                 for key, value in items.items():
                     print(f"  {key}: {value}")
                 print(f"─{'─' * (width - 1)}\n")
-        except OSError as e:
+        except (OSError, TypeError, RuntimeError) as e:
             _logger.error(
-                f"Ошибка вывода секции конфигурации: {e}. "
-                f"Функция: {self.print_config_section.__name__}, "
-                f"Заголовок: {title}, "
-                f"Параметров: {len(items)}"
+                "Ошибка вывода секции конфигурации: %s. "
+                "Функция: %s, "
+                "Заголовок: %s, "
+                "Параметров: %d",
+                e,
+                self.print_config_section.__name__,
+                title,
+                len(items),
             )
             # Фолбэк: простой вывод
             print(f"\n{title}")
             for key, value in items.items():
                 print(f"  {key}: {value}")
             print()
-        except (OSError, TypeError, RuntimeError) as e:
-            _logger.exception(
-                f"Неожиданная ошибка при выводе секции конфигурации: {e}. "
-                f"Функция: {self.print_config_section.__name__}, "
-                f"Заголовок: {title}"
-            )
-            raise
 
     def print_progress_bar(
         self,
@@ -361,25 +353,22 @@ class VisualLogger:
                 print(f"  {key}: {value_str}")
 
             print()
-        except OSError as e:
+        except (OSError, TypeError, RuntimeError) as e:
             _logger.error(
-                f"Ошибка вывода статистики: {e}. "
-                f"Функция: {self.print_stats.__name__}, "
-                f"Заголовок: {title}, "
-                f"Параметров: {len(stats)}"
+                "Ошибка вывода статистики: %s. "
+                "Функция: %s, "
+                "Заголовок: %s, "
+                "Параметров: %d",
+                e,
+                self.print_stats.__name__,
+                title,
+                len(stats),
             )
             # Фолбэк: простой вывод
             print(f"\n{title}")
             for key, value in stats.items():
                 print(f"  {key}: {value}")
             print()
-        except (OSError, TypeError, RuntimeError) as e:
-            _logger.exception(
-                f"Неожиданная ошибка при выводе статистики: {e}. "
-                f"Функция: {self.print_stats.__name__}, "
-                f"Заголовок: {title}"
-            )
-            raise
 
     def print_success(self, message: str) -> None:
         """Печатает сообщение об успехе."""

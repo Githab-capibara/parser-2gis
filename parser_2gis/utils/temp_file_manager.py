@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 import threading
 import time
@@ -178,12 +179,12 @@ class TempFileManager:
 
         try:
             self._logger.info(
-                f"Очистка временных файлов завершена: успешно={success_count}, ошибок={error_count}"
+                "Очистка временных файлов завершена: успешно=%d, ошибок=%d",
+                success_count,
+                error_count,
             )
         except (ValueError, OSError) as log_error:
             # Логгер закрыт, игнорируем но логируем в stderr
-            import sys
-
             print(f"[TempFileManager] Ошибка логирования: {log_error}", file=sys.stderr)
 
         return success_count, error_count
@@ -259,9 +260,6 @@ class TempFileManager:
 
         # D015: tempfile.mkstemp использует os.urandom() для криптографически
         # безопасной генерации случайных имён
-        import os
-        import tempfile
-
         fd, path = tempfile.mkstemp(prefix=safe_prefix, suffix=suffix, dir=directory)
         try:
             # D015: Проверка прав доступа к созданному файлу

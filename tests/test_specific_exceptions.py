@@ -13,7 +13,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from parser_2gis.cache import CacheManager, _ConnectionPool
+from parser_2gis.cache import CacheManager
+from parser_2gis.cache.pool import ConnectionPool as _ConnectionPool
 from parser_2gis.chrome.browser import cleanup_orphaned_profiles
 from parser_2gis.chrome.file_handler import FileLogger
 

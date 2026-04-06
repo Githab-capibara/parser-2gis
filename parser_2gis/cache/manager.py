@@ -14,6 +14,7 @@
 ISSUE-004: Рефакторинг - выделены вспомогательные функции в cache_utils.py
 """
 
+import hashlib
 import json
 import os
 import re
@@ -59,12 +60,6 @@ CacheRow: TypeAlias = tuple[str, int, str]
 # Пара элемента кэша: (url, data)
 CacheItem: TypeAlias = tuple[str, dict[str, Any]]
 
-# Константы для операций с кэшем
-_CACHE_MAX_RETRIES: int = 3
-_CACHE_RETRY_DELAY: float = 0.1
-_CACHE_LRU_MAX_ITERATIONS: int = 20
-_CACHE_SIZE_CHECK_THRESHOLD: int = 100
-
 # Размер пула соединений по умолчанию (10 соединений — баланс между производительностью и памятью)
 DEFAULT_POOL_SIZE: int = 10
 
@@ -81,8 +76,6 @@ def _compute_data_hash_cached(data: str) -> str:
     P0-8: LRU кеш на 1024 записи для предотвращения повторных вычислений
     SHA-256 + CRC32 при каждом чтении кэша.
     """
-    import hashlib
-
     return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
@@ -172,6 +165,10 @@ class CacheManager:
         ...     cache.set('https://2gis.ru/moscow/search/Аптеки', data)
 
     """
+
+    # P0-16: Константы retry логики как атрибуты класса
+    _MAX_RETRIES: int = 3
+    _RETRY_DELAY: float = 0.1
 
     # ISSUE-003-#20: Скомпилированные SQL-запросы как атрибуты класса
     # для централизованного управления и переиспользования
@@ -655,22 +652,22 @@ class CacheManager:
 
         try:
             # Добавляем retry логику для обработки sqlite3.OperationalError (database is locked)
-            for attempt in range(_CACHE_MAX_RETRIES):
+            for attempt in range(self._MAX_RETRIES):
                 try:
                     conn.execute("BEGIN IMMEDIATE")
                     break
                 except sqlite3.OperationalError as lock_error:
                     if (
                         "database is locked" in str(lock_error).lower()
-                        and attempt < _CACHE_MAX_RETRIES - 1
+                        and attempt < self._MAX_RETRIES - 1
                     ):
                         app_logger.debug(
                             "База данных заблокирована при BEGIN IMMEDIATE (попытка %d/%d): %s",
                             attempt + 1,
-                            _CACHE_MAX_RETRIES,
+                            self._MAX_RETRIES,
                             lock_error,
                         )
-                        time.sleep(_CACHE_RETRY_DELAY * (2**attempt))
+                        time.sleep(self._RETRY_DELAY * (2**attempt))
                     else:
                         raise
 

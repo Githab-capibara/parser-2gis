@@ -108,7 +108,7 @@ if [ $# -eq 0 ]; then
     echo ""
 
     # Запускаем НОВЫЙ TUI с автоматическим парсингом Омска
-    python "$SCRIPT_DIR/parser-2gis.py" --tui-new-omsk
+    python "$SCRIPT_DIR/parser_2gis_entry.py" --tui-new-omsk
 
     EXIT_CODE=$?
 
@@ -135,7 +135,7 @@ elif [ "$1" = "--tui" ]; then
     echo ""
 
     # Запускаем TUI вручную
-    python "$SCRIPT_DIR/parser-2gis.py" --tui-new
+    python "$SCRIPT_DIR/parser_2gis_entry.py" --tui-new
 
     exit $?
 
@@ -155,7 +155,7 @@ else
     echo ""
 
     # Запуск с переданными аргументами
-    python "$SCRIPT_DIR/parser-2gis.py" "$@" \
+    python "$SCRIPT_DIR/parser_2gis_entry.py" "$@" \
         2>&1 | grep -v -E "(PySimpleGUI|pip uninstall|pip cache|pip install.*--extra-index-url|PySimpleGUI\.net|The version you just installed|Then install the latest|You can also force|Use python3 command)"
 
     EXIT_CODE=$?

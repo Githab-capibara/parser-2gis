@@ -23,7 +23,7 @@ from typing import List
 
 import pytest
 
-from parser_2gis.cache import _ConnectionPool
+from parser_2gis.cache.pool import ConnectionPool as _ConnectionPool
 
 # Добавляем корень проекта в путь
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

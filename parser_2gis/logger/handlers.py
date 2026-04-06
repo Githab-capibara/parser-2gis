@@ -7,6 +7,8 @@
 зависимости между logger и chrome модулями.
 """
 
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
@@ -172,10 +174,10 @@ class FileLogger:
             session_logger = logging.getLogger("parser-2gis")
             session_logger.info("=" * 80)
             session_logger.info("НАЧАЛО НОВОЙ СЕССИИ")
-            session_logger.info(f"Время запуска: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            session_logger.info("Время запуска: %s", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             # Проверяем, что файл лога существует перед вызовом absolute()
             if self._log_file:
-                session_logger.info(f"Файл лога: {self._log_file.absolute()}")
+                session_logger.info("Файл лога: %s", self._log_file.absolute())
             session_logger.info("=" * 80)
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -251,7 +253,7 @@ class FileLogger:
                 session_logger.info("=" * 80)
                 session_logger.info("ЗАВЕРШЕНИЕ СЕССИИ")
                 session_logger.info(
-                    f"Время завершения: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    "Время завершения: %s", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 )
                 session_logger.info("=" * 80)
 

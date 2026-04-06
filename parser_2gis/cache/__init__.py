@@ -31,12 +31,6 @@ from .serializer import JsonSerializer, _deserialize_json, _serialize_json
 from .validator import CacheDataValidator
 from .config_cache import ConfigCache, get_config_cache, CategoryDict
 
-# Для обратной совместимости с тестами
-_ConnectionPool = ConnectionPool
-
-# Алиас для обратной совместимости
-_validate_pool_env_int = validate_env_int
-
 # Экспортируем psutil для тестов (если доступен)
 try:
     import psutil
@@ -63,11 +57,9 @@ __all__ = [
     "ConfigCache",
     "ConnectionPool",
     "JsonSerializer",
-    "_ConnectionPool",  # Для обратной совместимости с тестами
     "_calculate_dynamic_pool_size",
     "_deserialize_json",  # Для обратной совместимости с тестами
     "_serialize_json",  # Для обратной совместимости с тестами
-    "_validate_pool_env_int",  # Алиас для обратной совместимости
     "get_config_cache",
     "psutil",  # Для тестов
     "validate_env_int",

@@ -62,7 +62,7 @@ class BuildStandaloneCommand(Command):
                 "parser_2gis/data/images/icon.png",
                 "--add-data",
                 f"parser_2gis/data{os.pathsep}parser_2gis/data",
-                "parser-2gis.py",
+                "parser_2gis_entry.py",
             ]
 
             print("Running command: %s" % " ".join(build_cmd), file=sys.stderr)

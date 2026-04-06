@@ -418,14 +418,14 @@ def async_wait_until_finished(
                 else decorator_poll_interval
             )
 
-            start_time = asyncio.get_event_loop().time()
+            start_time = asyncio.get_running_loop().time()
             current_poll_interval = effective_poll_interval
             result = None
 
             while True:
                 # Проверяем таймаут
                 if effective_timeout is not None:
-                    elapsed = asyncio.get_event_loop().time() - start_time
+                    elapsed = asyncio.get_running_loop().time() - start_time
                     if elapsed > effective_timeout:
                         if effective_throw_exception:
                             raise TimeoutError(

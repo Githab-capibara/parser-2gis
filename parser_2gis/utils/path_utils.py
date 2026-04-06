@@ -122,7 +122,8 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
         raise OSError(f"Ошибка разрешения {path_name}: {fs_error}") from fs_error
 
     # Проверка запрещённых директорий (/, /etc, /root, /home)
-    forbidden_dirs = ["/", "/etc", "/root", "/home"]
+    # P0-11: Объединённая проверка в одном цикле
+    forbidden_dirs = {"/", "/etc", "/root", "/home"}
     resolved_path_str = str(resolved_path)
 
     # Проверка на symlink: если resolved путь отличается от исходного,
@@ -134,18 +135,18 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
                 target = part_path.resolve()
                 # Если symlink ведёт в запрещённую директорию — ошибка
                 target_str = str(target)
-                for forbidden_dir in forbidden_dirs:
-                    if target_str == forbidden_dir or target_str.startswith(forbidden_dir + "/"):
-                        if not target_str.startswith("/tmp"):
+                if not target_str.startswith("/tmp"):
+                    for forbidden_dir in forbidden_dirs:
+                        if target_str == forbidden_dir or target_str.startswith(forbidden_dir + "/"):
                             raise ValueError(
                                 f"{path_name} содержит symlink, ведущий в "
                                 f"системную директорию: {part_path} -> {target}"
                             )
 
-    for forbidden_dir in forbidden_dirs:
-        if resolved_path_str == forbidden_dir or resolved_path_str.startswith(forbidden_dir + "/"):
-            # Исключаем временные директории внутри /tmp
-            if not resolved_path_str.startswith("/tmp"):
+    # P0-11: Единая проверка запрещённых директорий
+    if not resolved_path_str.startswith("/tmp"):
+        for forbidden_dir in forbidden_dirs:
+            if resolved_path_str == forbidden_dir or resolved_path_str.startswith(forbidden_dir + "/"):
                 raise ValueError(
                     f"{path_name} не может находиться в системной директории: {forbidden_dir}. "
                     f"Попытка записи в: {resolved_path_str}"
