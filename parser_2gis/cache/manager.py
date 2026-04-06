@@ -59,6 +59,12 @@ CacheRow: TypeAlias = tuple[str, int, str]
 # Пара элемента кэша: (url, data)
 CacheItem: TypeAlias = tuple[str, dict[str, Any]]
 
+# Константы для операций с кэшем
+_CACHE_MAX_RETRIES: int = 3
+_CACHE_RETRY_DELAY: float = 0.1
+_CACHE_LRU_MAX_ITERATIONS: int = 20
+_CACHE_SIZE_CHECK_THRESHOLD: int = 100
+
 # Размер пула соединений по умолчанию (10 соединений — баланс между производительностью и памятью)
 DEFAULT_POOL_SIZE: int = 10
 
@@ -649,24 +655,22 @@ class CacheManager:
 
         try:
             # Добавляем retry логику для обработки sqlite3.OperationalError (database is locked)
-            max_retries = 3
-            retry_delay = 0.1
-            for attempt in range(max_retries):
+            for attempt in range(_CACHE_MAX_RETRIES):
                 try:
                     conn.execute("BEGIN IMMEDIATE")
                     break
                 except sqlite3.OperationalError as lock_error:
                     if (
                         "database is locked" in str(lock_error).lower()
-                        and attempt < max_retries - 1
+                        and attempt < _CACHE_MAX_RETRIES - 1
                     ):
                         app_logger.debug(
                             "База данных заблокирована при BEGIN IMMEDIATE (попытка %d/%d): %s",
                             attempt + 1,
-                            max_retries,
+                            _CACHE_MAX_RETRIES,
                             lock_error,
                         )
-                        time.sleep(retry_delay * (2**attempt))
+                        time.sleep(_CACHE_RETRY_DELAY * (2**attempt))
                     else:
                         raise
 
@@ -979,7 +983,7 @@ class CacheManager:
 
                 # ПРОВЕРКА: Ограничение размера кэша перед пакетной вставкой
                 # C013: Проверяем размер кэша только если количество записей > порога
-                if len(items) > 100:  # Проверяем только для больших пакетов
+                if len(items) > _CACHE_SIZE_CHECK_THRESHOLD:
                     self._enforce_cache_size_limit(conn)
 
                 # Один коммит для всех записей
@@ -1290,7 +1294,6 @@ class CacheManager:
                 try:
                     total_deleted = 0
                     eviction_iterations = 0
-                    max_iterations = 20
 
                     # C007: Увеличенный размер пакета для снижения количества итераций
                     # O(n) -> O(n/batch_size) где batch_size увеличен
@@ -1309,7 +1312,7 @@ class CacheManager:
                     # Оцениваем средний размер записи и общий размер после удалений
                     avg_record_size = cache_size_mb / total_records if total_records > 0 else 0.001
 
-                    while eviction_iterations < max_iterations:
+                    while eviction_iterations < _CACHE_LRU_MAX_ITERATIONS:
                         eviction_iterations += 1
 
                         # D008: Используем параметризованный запрос (уже безопасно)
@@ -1336,10 +1339,10 @@ class CacheManager:
                         if cache_size_mb <= MAX_CACHE_SIZE_MB:
                             break
 
-                    if eviction_iterations >= max_iterations:
+                    if eviction_iterations >= _CACHE_LRU_MAX_ITERATIONS:
                         app_logger.warning(
                             "LRU eviction: достигнут лимит итераций (%d), текущий размер %.2f MB",
-                            max_iterations,
+                            _CACHE_LRU_MAX_ITERATIONS,
                             cache_size_mb,
                         )
 

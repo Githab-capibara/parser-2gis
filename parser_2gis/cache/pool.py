@@ -48,6 +48,10 @@ _SQLITE_PRAGMA_CACHE_SIZE: int = -64000  # 64MB в страницах по 4KB
 _SQLITE_PRAGMA_SYNCHRONOUS: str = "NORMAL"
 _SQLITE_PRAGMA_BUSY_TIMEOUT: int = 60000  # 60 секунд
 
+# D009: Константы для расчёта размера пула соединений
+_POOL_MEMORY_FRACTION: float = 0.10  # 10% доступной памяти
+_POOL_MB_PER_CONNECTION: float = 2.0  # 2MB на одно соединение
+
 
 # Попытка импортировать psutil для мониторинга памяти
 try:
@@ -89,8 +93,8 @@ def _calculate_dynamic_pool_size() -> int:
 
         # Выделяем до 10% доступной памяти под пул соединений
         # Каждое соединение занимает ~2MB в среднем
-        memory_for_pool_mb = available_memory_mb * 0.10
-        connections_by_memory = int(memory_for_pool_mb / 2.0)
+        memory_for_pool_mb = available_memory_mb * _POOL_MEMORY_FRACTION
+        connections_by_memory = int(memory_for_pool_mb / _POOL_MB_PER_CONNECTION)
 
         # Ограничиваем разумными пределами
         dynamic_size = max(MIN_POOL_SIZE, min(connections_by_memory, MAX_POOL_SIZE))

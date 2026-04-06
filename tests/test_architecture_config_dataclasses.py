@@ -517,7 +517,7 @@ class TestDataclassInFunctions:
             output_dir="/tmp/test",
             config=config,
             max_workers=2,
-            timeout_per_url=30,
+            timeout_per_url=60,
         )
 
         assert coordinator is not None
