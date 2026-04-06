@@ -500,7 +500,6 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
         return False, "JavaScript код не может быть пустым"
 
     # D016: Дополнительная проверка на base64 кодировки для обхода фильтров
-    import re
 
     # Проверка на потенциальные base64 строки (длинные последовательности base64 символов)
     base64_pattern = re.compile(r"[A-Za-z0-9+/]{50,}={0,2}")
