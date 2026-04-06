@@ -194,4 +194,6 @@ class TestLoggerMessageFormatting:
             logger.exception("Exception occurred")
         assert any("Exception occurred" in record.message for record in caplog.records)
         # Traceback проверяется в exc_text
-        assert any(record.exc_text and "Test exception" in record.exc_text for record in caplog.records)
+        assert any(
+            record.exc_text and "Test exception" in record.exc_text for record in caplog.records
+        )
