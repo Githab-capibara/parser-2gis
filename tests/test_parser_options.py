@@ -10,7 +10,6 @@
 import pytest
 
 from parser_2gis.parser import ParserOptions
-from parser_2gis.parser.exceptions import ParserException
 
 
 class TestParserOptions:

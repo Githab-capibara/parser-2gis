@@ -1,20 +1,38 @@
 # Тестовый реестр parser-2gis
 
 **Дата последней актуализации:** 2026-04-06
-**Дата последней очистки:** 2026-04-06
+**Дата последней очистки:** 2026-04-06 (16:45 MSK)
 
 ## Сводная статистика
 
 | Метрика | Значение |
 |---------|----------|
 | Тестовых файлов | 106 (удалено 4 устаревших) |
-| Тестовых функций | ~1474 |
-| Тестовых классов | ~370 |
+| Тестовых функций | ~1466 (удалено 8 дубликатов) |
+| Тестовых классов | ~368 |
 | Прошедших тестов | 1356+ (без threading stress) |
-| Упавших тестов | ~75 (архитектурные + cli arguments, требуют обновления под новый API) |
+| Упавших тестов | ~70 (архитектурные + cli arguments, требуют обновления под новый API) |
 | Пропущенных (skipped) | 18 |
 | Конфигурация | pytest.ini, conftest.py (~1072 строки), tox.ini, .coveragerc, setup.cfg |
 | Coverage threshold | 85% |
+
+## Очистка 2026-04-06 (16:45 MSK)
+
+### Удалённые дубликаты
+| Тест | Файл | Причина |
+|------|------|---------|
+| `TestChromeExceptions` класс (5 тестов) | `test_chrome_integration.py` | Дублируют `test_version_exceptions.py` с более детальными проверками |
+| `TestParserException` класс (2 теста) | `test_parser_options.py` | Дублируют `test_version_exceptions.py` |
+| `test_specific_os_exception_browser_cleanup` | `test_specific_exceptions.py` | Метод `_cleanup_profile` не существует |
+
+### Исправленные тесты
+| Тест | Исправление |
+|------|------------|
+| `TestLoggerLevels.*` (5 тестов) | Добавлен `caplog` для реальных проверок вместо "если нет ошибок" |
+| `test_logger_format_with_args` | Добавлен `caplog` с проверкой форматирования |
+| `test_logger_format_exception` | Добавлен `caplog` с проверкой exc_text |
+| `test_specific_value_exception_browser_path` | Убран skip, тест активирован (метод существует) |
+| `test_specific_value_exception_browser_path_directory` | Убран skip, тест активирован (метод существует) |
 
 ## Удалённые тесты (2026-04-06)
 

@@ -20,12 +20,6 @@ from pathlib import Path
 import pytest
 
 from parser_2gis.chrome import ChromeOptions, ChromeRemote
-from parser_2gis.chrome.exceptions import (
-    ChromeException,
-    ChromePathNotFound,
-    ChromeRuntimeException,
-    ChromeUserAbortException,
-)
 from parser_2gis.config import Configuration
 from parser_2gis.logger import LogOptions
 from parser_2gis.parser import ParserOptions
