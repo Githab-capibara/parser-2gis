@@ -705,6 +705,9 @@ class TUIApp(App):
             self._running = False
             self.call_from_thread(self._parsing_complete, result)
 
+        except (KeyboardInterrupt, SystemExit):
+            self._running = False
+            raise
         except Exception as e:
             self._running = False
             self.call_from_thread(self._parsing_error, str(e))

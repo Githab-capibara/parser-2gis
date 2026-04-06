@@ -224,6 +224,8 @@ class FileLogger:
                 # Устанавливаем минимальный уровень логирования
                 if logger.level == 0 or logger.level > self._log_level:
                     logger.setLevel(self._log_level)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             raise RuntimeError(
                 f"Ошибка добавления файлового обработчика к логгеру: {e}. "

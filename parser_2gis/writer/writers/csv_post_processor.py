@@ -146,6 +146,8 @@ class CSVPostProcessor:
                     use_mmap,
                 )
 
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             logger.error("Ошибка при чтении CSV для анализа колонок: %s", e)
             raise
@@ -277,6 +279,8 @@ class CSVPostProcessor:
                 logger.error("Не удалось переместить файл с удалёнными колонками")
                 raise RuntimeError("Failed to move file with removed columns")
 
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as e:
             logger.error("Ошибка при записи CSV без пустых колонок: %s", e)
             raise

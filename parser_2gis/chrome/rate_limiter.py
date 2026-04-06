@@ -110,6 +110,8 @@ def _safe_external_request(
 
         app_logger.debug("Ошибка HTTP запроса к %s: %s", url, e)
         return None
+    except (KeyboardInterrupt, SystemExit):
+        raise
     except Exception as e:
         from parser_2gis.logger import logger as app_logger
 

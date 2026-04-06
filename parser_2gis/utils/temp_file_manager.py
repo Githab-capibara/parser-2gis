@@ -364,6 +364,8 @@ class TempFileTimer:
             self._timer = threading.Timer(self._interval, self._cleanup_callback)
             self._timer.daemon = True
             self._timer.start()
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as schedule_error:
             logger.error(
                 "Ошибка при планировании следующей очистки: %s", schedule_error, exc_info=True
@@ -410,6 +412,8 @@ class TempFileTimer:
 
                 except OSError as os_error:
                     logger.debug("Ошибка при удалении файла %s: %s", temp_file, os_error)
+                except (KeyboardInterrupt, SystemExit):
+                    raise
                 except Exception as file_error:
                     logger.debug(
                         "Непредвиденная ошибка при обработке файла %s: %s", temp_file, file_error
@@ -423,6 +427,8 @@ class TempFileTimer:
                     self._cleanup_count,
                 )
 
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except Exception as cleanup_error:
             logger.error(
                 "Ошибка при сканировании директории %s: %s",
@@ -450,11 +456,15 @@ class TempFileTimer:
         if self._timer is not None:
             try:
                 self._timer.cancel()
+            except (KeyboardInterrupt, SystemExit):
+                raise
             except Exception as cancel_error:
                 logger.debug("Ошибка при отмене таймера: %s", cancel_error)
 
             try:
                 self._timer.join(timeout=self._interval * 2)
+            except (KeyboardInterrupt, SystemExit):
+                raise
             except Exception as join_error:
                 logger.debug("Ошибка при ожидании таймера: %s", join_error)
 
