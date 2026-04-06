@@ -12,7 +12,7 @@
     >>> from parser_2gis.protocols import LoggerProtocol, ProgressCallback
     >>> def my_logger(msg: str) -> None:
     ...     print(msg)
-    >>> logger: LoggerProtocol = my_logger  # type: ignore
+    >>> logger: LoggerProtocol = my_logger  # type: ignore[arg-type]
 """
 
 from __future__ import annotations

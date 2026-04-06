@@ -126,7 +126,7 @@ class JsonSerializer:
         try:
             # ISSUE-104: Убрана избыточная проверка orjson is not None
             if _USE_ORJSON:
-                deserialized = orjson.loads(data, option=orjson.OPT_NON_STR_KEYS)  # type: ignore
+                deserialized = orjson.loads(data, option=orjson.OPT_NON_STR_KEYS)  # type: ignore[return-value]
             else:
                 deserialized = json.loads(data)
 
@@ -162,7 +162,7 @@ class JsonSerializer:
                     data_decoded = data.decode("latin-1", errors="replace")
                     deserialized = json.loads(data_decoded)
                     app_logger.info("Fallback на latin-1 успешен (с заменой символов)")
-                    return deserialized  # type: ignore
+                    return deserialized  # type: ignore[return-value]
                 fallback_attempts.append("latin-1: неудача")
             except (json.JSONDecodeError, AttributeError) as fallback_error:
                 fallback_attempts.append(f"latin-1: {fallback_error}")
@@ -174,7 +174,7 @@ class JsonSerializer:
                     data_decoded = data.decode("cp1251", errors="replace")
                     deserialized = json.loads(data_decoded)
                     app_logger.info("Fallback на cp1251 успешен (с заменой символов)")
-                    return deserialized  # type: ignore
+                    return deserialized  # type: ignore[return-value]
                 fallback_attempts.append("cp1251: неудача")
             except (json.JSONDecodeError, AttributeError) as fallback_error:
                 fallback_attempts.append(f"cp1251: {fallback_error}")
@@ -199,7 +199,7 @@ class JsonSerializer:
             if _USE_ORJSON:
                 # Проверяем, это orjson.JSONDecodeError
                 try:
-                    if isinstance(json_error, orjson.JSONDecodeError):  # type: ignore
+                    if isinstance(json_error, orjson.JSONDecodeError):  # type: ignore[return-value]
                         raise ValueError(
                             f"Критическая ошибка десериализации orjson: {json_error}. "
                             f"Длина данных: {len(data)}, "

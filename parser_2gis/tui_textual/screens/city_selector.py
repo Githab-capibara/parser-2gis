@@ -113,10 +113,9 @@ class CitySelectorScreen(Screen):
             # Счётчик
             yield Static("Выбрано: 0 из 0", id="city-counter", classes="counter-panel")
 
-            # Список городов
+            # Список городов (заполняется динамически в _populate_cities)
             with ScrollableContainer(id="city-list", classes="city-list-container"):
-                # Города будут добавлены динамически
-                pass
+                pass  # noqa: FURB110 — виджеты добавляются динамически в on_mount
 
             # Кнопки
             with Horizontal(classes="button-row"):
@@ -145,11 +144,11 @@ class CitySelectorScreen(Screen):
             AttributeError: Если метод get_cities недоступен в приложении.
 
         """
-        self._cities = self.app.get_cities()  # type: ignore
+        self._cities = self.app.get_cities()  # type: ignore[attr-defined]
         self._filtered_cities = self._cities.copy()
 
         # Восстановить ранее выбранные города
-        selected_names = set(self.app.selected_cities)  # type: ignore
+        selected_names = set(self.app.selected_cities)  # type: ignore[attr-defined]
         for i, city in enumerate(self._cities):
             if city.get("name") in selected_names:
                 self._selected_indices.add(i)
@@ -180,7 +179,7 @@ class CitySelectorScreen(Screen):
             # НЕ используем ID - это предотвращает ошибку DuplicateIds
             # Сохраняем city_code как атрибут виджета
             checkbox = Checkbox(f"{city_name} ({country})", value=is_selected)
-            checkbox.city_code = city_code  # type: ignore
+            checkbox.city_code = city_code  # type: ignore[attr-defined]
             self._checkboxes.append(checkbox)
 
         # Смонтировать все виджеты за один раз
@@ -300,13 +299,13 @@ class CitySelectorScreen(Screen):
             selected_names = [
                 self._cities[i].get("name", "") for i in sorted(self._selected_indices)
             ]
-            self.app.selected_cities = selected_names  # type: ignore
+            self.app.selected_cities = selected_names  # type: ignore[attr-defined]
             # Используем switch_screen для замены текущего экрана вместо push_screen
             # Это предотвращает накопление экранов в стеке
-            self.app.switch_screen("category_selector")  # type: ignore
+            self.app.switch_screen("category_selector")  # type: ignore[attr-defined]
 
         elif button_id == "back":
-            self.app.pop_screen()  # type: ignore
+            self.app.pop_screen()  # type: ignore[attr-defined]
 
     def action_select_all(self) -> None:
         """Выбрать все отображённые города.

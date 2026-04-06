@@ -103,14 +103,10 @@ MAX_UNIQUE_NAME_ATTEMPTS: int = 10
 MAX_PATH_LENGTH_SAFE: int = 4096
 
 # Запрещённые символы в путях
-FORBIDDEN_PATH_CHARS: list[str] = None  # type: ignore
+FORBIDDEN_PATH_CHARS: list[str] = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
 
 # HTTP статус код OK
 HTTP_STATUS_OK: int = 200
-
-
-# Инициализация FORBIDDEN_PATH_CHARS после определения типа
-FORBIDDEN_PATH_CHARS = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
 
 
 __all__ = [

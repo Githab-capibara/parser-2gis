@@ -41,7 +41,7 @@ _validate_pool_env_int = validate_env_int
 try:
     import psutil
 except ImportError:
-    psutil = None  # type: ignore
+    psutil = None  # type: ignore[assignment]
 
 __all__ = [
     "CONNECTION_MAX_AGE",

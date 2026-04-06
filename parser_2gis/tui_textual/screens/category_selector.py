@@ -113,10 +113,9 @@ class CategorySelectorScreen(Screen):
             # Счётчик
             yield Static("Выбрано: 0 из 0", id="category-counter", classes="counter-panel")
 
-            # Список категорий
+            # Список категорий (заполняется динамически в _populate_categories)
             with ScrollableContainer(id="category-list", classes="category-list-container"):
-                # Категории будут добавлены динамически
-                pass
+                pass  # noqa: FURB110 — виджеты добавляются динамически в on_mount
 
             # Кнопки
             with Horizontal(classes="button-row"):
@@ -147,7 +146,7 @@ class CategorySelectorScreen(Screen):
         """
         # Получить категории из приложения и сделать глубокую копию
         # Это предотвращает мутацию глобальной константы CATEGORIES_93
-        categories_from_app = self.app.get_categories()  # type: ignore
+        categories_from_app = self.app.get_categories()  # type: ignore[attr-defined]
         self._categories = [cat.copy() for cat in categories_from_app]
         self._filtered_categories = self._categories.copy()
 
@@ -159,7 +158,7 @@ class CategorySelectorScreen(Screen):
             self._id_to_index[str(i)] = i
 
         # Восстановить ранее выбранные категории
-        selected_names = set(self.app.selected_categories)  # type: ignore
+        selected_names = set(self.app.selected_categories)  # type: ignore[attr-defined]
         for i, cat in enumerate(self._categories):
             if cat.get("name") in selected_names:
                 self._selected_indices.add(i)
@@ -199,7 +198,7 @@ class CategorySelectorScreen(Screen):
             # НЕ используем ID - это предотвращает ошибку DuplicateIds
             # Сохраняем original_index как атрибут виджета
             checkbox = Checkbox(f"{cat_name}", value=is_selected)
-            checkbox.original_index = original_index  # type: ignore
+            checkbox.original_index = original_index  # type: ignore[attr-defined]
             self._checkboxes.append(checkbox)
 
         # Смонтировать все виджеты за один раз
@@ -301,25 +300,25 @@ class CategorySelectorScreen(Screen):
 
         elif button_id == "next":
             # Проверка что города выбраны перед переходом к парсингу
-            selected_cities = self.app.selected_cities  # type: ignore
+            selected_cities = self.app.selected_cities  # type: ignore[attr-defined]
             if not selected_cities:
                 # Показать уведомление об ошибке
-                self.app.notify("❌ Сначала выберите города в меню '📁 Выбрать города'", timeout=5)  # type: ignore
+                self.app.notify("❌ Сначала выберите города в меню '📁 Выбрать города'", timeout=5)  # type: ignore[attr-defined]
                 # Записать в лог
-                self.app.notify_user("Попытка запуска без выбранных городов", level="error")  # type: ignore
+                self.app.notify_user("Попытка запуска без выбранных городов", level="error")  # type: ignore[attr-defined]
                 return
 
             # Сохранить выбранные категории
             selected_names = [
                 self._categories[i].get("name", "") for i in sorted(self._selected_indices)
             ]
-            self.app.selected_categories = selected_names  # type: ignore
+            self.app.selected_categories = selected_names  # type: ignore[attr-defined]
             # Используем switch_screen для замены текущего экрана вместо push_screen
             # Это предотвращает накопление экранов в стеке
-            self.app.switch_screen("parsing")  # type: ignore
+            self.app.switch_screen("parsing")  # type: ignore[attr-defined]
 
         elif button_id == "back":
-            self.app.pop_screen()  # type: ignore
+            self.app.pop_screen()  # type: ignore[attr-defined]
 
     def action_select_all(self) -> None:
         """Выбрать все отображённые категории.

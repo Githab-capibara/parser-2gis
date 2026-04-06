@@ -145,7 +145,7 @@ def patch_argparse_translations(force: bool = False) -> None:
             format_str = "аргумент %(argument_name)s: %(message)s"
         return format_str % dict(message=self.message, argument_name=self.argument_name)
 
-    argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore
+    argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore[assignment,method-assign]
 
     _patch_installed = True
 

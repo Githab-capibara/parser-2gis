@@ -42,7 +42,7 @@
 
 ## 🌐 GITHUB
 - ВСЕ изменения синхронизируй с GitHub
-- Репозиторий: `https://github.com/Githab-capibara/parser-2gis.git`
+- Репозиторий: `https://github.com/Githab-capibara/rust-parser-2gis.git`
 - В авторстве коммитов указывай **ТОЛЬКО** `Githab-capibara`!
 - НИКОГДА НЕ СОЗДАВАЙ НОВЫХ ВЕТОК НА GutHub!
 

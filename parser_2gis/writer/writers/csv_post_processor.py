@@ -108,7 +108,7 @@ class CSVPostProcessor:
                 _,  # is_mmap не используется
                 _,  # underlying_fp не используется
             ):
-                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
+                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore[arg-type]
 
                 # ИСПРАВЛЕНИЕ 9: Проверка reader.fieldnames на None/пустоту
                 # Это предотвращает ошибки при обработке пустых файлов
@@ -212,8 +212,8 @@ class CSVPostProcessor:
                     # ВАЖНО: Помечаем что временный файл создан
                     temp_created = True
 
-                    csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore
-                    csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore
+                    csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore[arg-type]
+                    csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore[arg-type]
 
                     # ИСПРАВЛЕНИЕ 9: Проверка reader.fieldnames на None/пустоту
                     # Это предотвращает ошибки при обработке пустых файлов

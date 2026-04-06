@@ -154,9 +154,9 @@ class CacheViewerScreen(Screen):
         elif button_id == "refresh":
             self._load_cache_stats()
             self._load_cache_data()
-            self.app.notify("Кэш обновлён", title="Инфо")  # type: ignore
+            self.app.notify("Кэш обновлён", title="Инфо")  # type: ignore[attr-defined]
         elif button_id == "back":
-            self.app.pop_screen()  # type: ignore
+            self.app.pop_screen()  # type: ignore[attr-defined]
 
     def action_clear_cache(self) -> None:
         """Очистить кэш.
@@ -175,7 +175,7 @@ class CacheViewerScreen(Screen):
 
         self._load_cache_stats()
         self._load_cache_data()
-        self.app.notify("Кэш очищен", title="Успех")  # type: ignore
+        self.app.notify("Кэш очищен", title="Успех")  # type: ignore[attr-defined]
 
 
 class AboutScreen(Screen):
@@ -310,4 +310,4 @@ class AboutScreen(Screen):
 
         """
         if event.button.id == "back":
-            self.app.pop_screen()  # type: ignore
+            self.app.pop_screen()  # type: ignore[attr-defined]
