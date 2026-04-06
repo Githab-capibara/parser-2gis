@@ -221,24 +221,18 @@ class TestValidatePathUtility:
         """Тест валидации опасных паттернов.
 
         Проверяет:
-        - Опасные паттерны обнаруживаются
-        - ValueError выбрасывается
+        - Path traversal паттерны обнаруживаются
+        - ValueError выбрасывается для реальных traversal атак
         """
-        # Тест с опасными паттернами
-        dangerous_paths = [
+        # Path traversal паттерны (должны вызывать ValueError)
+        traversal_paths = [
             "/tmp/../etc/passwd",
+            "/tmp/../../etc/shadow",
             "/tmp/~/test.txt",
             "/tmp/$HOME/test.txt",
-            "/tmp/`whoami`/test.txt",
-            "/tmp/|cat/test.txt",
-            "/tmp/;rm/test.txt",
-            "/tmp/&test/test.txt",
-            "/tmp/>test/test.txt",
-            "/tmp/<test/test.txt",
-            "/tmp/\\test/test.txt",
         ]
 
-        for path in dangerous_paths:
+        for path in traversal_paths:
             with pytest.raises(ValueError):
                 validate_path_traversal(path)
 

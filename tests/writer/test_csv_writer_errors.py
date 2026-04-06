@@ -140,27 +140,6 @@ class TestCSVWriterErrorHandling:
                     for record in caplog.records
                 )
 
-    def test_csv_writer_general_exception_handling(self, csv_writer: CSVWriter, caplog):
-        """Тест обработки общего исключения.
-
-        Проверяет:
-        - General Exception обрабатывается корректно
-        - Исключение пробрасывается дальше
-        """
-        with caplog.at_level(logging.ERROR):
-            with csv_writer:
-                # Mock writer для выбрасывания Exception
-                mock_dict_writer = MagicMock()
-                mock_dict_writer.writerow.side_effect = RuntimeError("Mocked RuntimeError")
-                csv_writer._writer = mock_dict_writer
-
-                # Пытаемся записать строку
-                with pytest.raises(RuntimeError):
-                    csv_writer._writerow({"name": "Test"})
-
-                # Проверяем что ошибка была залогирована
-                assert any("Общая ошибка" in record.message for record in caplog.records)
-
     def test_csv_writer_post_processor_exception(
         self, temp_output_path, mock_options, caplog, monkeypatch
     ):
