@@ -476,8 +476,8 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
         # Очищаем стек при MemoryError для освобождения памяти
         try:
             stack.clear()
-        except (NameError, OSError, RuntimeError):
-            pass
+        except (NameError, OSError, RuntimeError) as cleanup_error:
+            logger.debug("Ошибка при очистке стека (игнорируется): %s", cleanup_error)
         except MemoryError as mem_cleanup_error:
             logger.critical("Нехватка памяти при очистке стека: %s", mem_cleanup_error)
 

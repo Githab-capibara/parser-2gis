@@ -565,7 +565,7 @@ class ProcessManager:
                             try:
                                 child.kill()
                             except (psutil.NoSuchProcess, psutil.AccessDenied):
-                                pass
+                                pass  # Процесс уже завершён или нет доступа — ожидаемо при форс-килле
 
                         ps_proc.kill()
                         app_logger.info(
@@ -1001,8 +1001,9 @@ class ChromeBrowser:
         """Деструктор объекта."""
         try:
             if hasattr(self, "_lifecycle_manager"):
-                # weakref.finalize() уже зарегистрирован в BrowserLifecycleManager
-                pass
+                # weakref.finalize() уже зарегистрирован в BrowserLifecycleManager,
+                # дополнительных действий не требуется
+                pass  # noqa: PIE790 — намеренный no-op, finalize уже зарегистрирован
         except (OSError, RuntimeError, AttributeError) as del_error:
             app_logger.debug("ChromeBrowser.__del__: ошибка: %s", del_error)
 

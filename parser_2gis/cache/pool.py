@@ -279,8 +279,11 @@ class ConnectionPool:
                     app_logger.debug("Соединение из queue устарело или неактивно, пересоздаём")
                     try:
                         conn.close()
-                    except (sqlite3.Error, OSError):
-                        pass
+                    except (sqlite3.Error, OSError) as close_error:
+                        app_logger.debug(
+                            "Ошибка при закрытии устаревшего соединения (игнорируется): %s",
+                            close_error,
+                        )
                     with self._lock:
                         if conn in self._all_conns:
                             self._all_conns.remove(conn)

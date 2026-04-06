@@ -291,8 +291,10 @@ class ThreadCoordinator:
             _get_coordinator_context().set_coordinator(None)
             try:
                 signal.signal(signal.SIGINT, old_signal_handler)
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as signal_error:
+                logger.debug(
+                    "Ошибка при восстановлении обработчика SIGINT (игнорируется): %s", signal_error
+                )
 
             if executor is not None:
                 try:

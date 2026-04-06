@@ -231,8 +231,8 @@ class FileMergerStrategy:
                     self.log(f"Не удалось переместить временный файл: {move_error}", "error")
                     try:
                         temp_output.unlink()
-                    except (OSError, RuntimeError, TypeError, ValueError):
-                        pass
+                    except (OSError, RuntimeError, TypeError, ValueError) as unlink_error:
+                        self.log(f"Не удалось удалить временный файл: {unlink_error}", "debug")
                     raise move_error
 
             self.log(f"Временный файл переименован: {temp_output.name} → {output_file}", "debug")
@@ -271,8 +271,11 @@ class FileMergerStrategy:
                     signal.signal(signal.SIGINT, old_sigint_handler)
                 if sigterm_registered:
                     signal.signal(signal.SIGTERM, old_sigterm_handler)
-            except (OSError, ValueError, TypeError):
-                pass
+            except (OSError, ValueError, TypeError) as signal_error:
+                self.log(
+                    f"Ошибка при восстановлении обработчиков сигналов (игнорируется): {signal_error}",
+                    "debug",
+                )
 
     def _get_csv_files_list(self, output_file_path: Path) -> list[Path]:
         """Получает список CSV файлов для объединения.
@@ -377,8 +380,11 @@ class FileMergerStrategy:
                     if lock_fd is not None:
                         try:
                             os.close(lock_fd)
-                        except OSError:
-                            pass
+                        except OSError as close_error:
+                            self.log(
+                                f"Ошибка при закрытии fd lock файла (игнорируется): {close_error}",
+                                "debug",
+                            )
                     if lock_file_handle is not None:
                         try:
                             lock_file_handle.close()

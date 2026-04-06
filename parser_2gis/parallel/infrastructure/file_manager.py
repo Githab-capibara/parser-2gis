@@ -250,8 +250,10 @@ class FileManager:
                     if lock_fd is not None:
                         try:
                             os.close(lock_fd)
-                        except OSError:
-                            pass
+                        except OSError as close_error:
+                            logger.debug(
+                                "Ошибка при закрытии fd lock файла (игнорируется): %s", close_error
+                            )
                     lock_fd = None
 
                     if time.time() - start_time > timeout:
@@ -265,8 +267,11 @@ class FileManager:
             if lock_fd is not None:
                 try:
                     os.close(lock_fd)
-                except OSError:
-                    pass
+                except OSError as close_error:
+                    logger.debug(
+                        "Ошибка при закрытии fd lock файла при ошибе (игнорируется): %s",
+                        close_error,
+                    )
             return None, False
 
         return lock_fd, lock_acquired

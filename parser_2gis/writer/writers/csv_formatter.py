@@ -38,8 +38,11 @@ class BaseFormatter(ABC):
         Returns:
             Отформатированное значение.
 
+        Raises:
+            NotImplementedError: Если метод не реализован в дочернем классе.
+
         """
-        ...
+        raise NotImplementedError("Метод format() должен быть реализован в дочернем классе")
 
 
 class PhoneFormatter(BaseFormatter):

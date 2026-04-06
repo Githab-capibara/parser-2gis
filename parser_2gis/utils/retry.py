@@ -265,7 +265,7 @@ try:
 
     _TENACITY_AVAILABLE = True
 except ImportError:
-    pass
+    logger.debug("Библиотека tenacity не установлена — retry_with_tenacity недоступен")
 
 
 def retry_with_tenacity(

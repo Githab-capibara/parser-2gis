@@ -507,8 +507,11 @@ class ParallelCityParser:
                         if lock_fd is not None:
                             try:
                                 os.close(lock_fd)
-                            except OSError:
-                                pass
+                            except OSError as close_error:
+                                self.log(
+                                    f"Ошибка при закрытии fd lock файла (игнорируется): {close_error}",
+                                    "debug",
+                                )
                 except (OSError, FileExistsError):
                     if lock_file_handle is not None:
                         try:
@@ -813,8 +816,11 @@ class ParallelCityParser:
                     try:
                         if temp_file.exists():
                             temp_file.unlink()
-                    except OSError:
-                        pass
+                    except OSError as unlink_error:
+                        self.log(
+                            f"Ошибка при удалении временного файла (игнорируется): {unlink_error}",
+                            "debug",
+                        )
             return False
 
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
