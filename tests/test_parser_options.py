@@ -74,21 +74,6 @@ class TestParserOptions:
         assert options.max_records == 100000
 
 
-class TestParserException:
-    """Тесты для ParserException."""
-
-    def test_parser_exception_creation(self):
-        """Проверка создания исключения."""
-        exc = ParserException("Test error")
-        # Проверяем что базовый текст входит в сообщение исключения
-        assert "Test error" in str(exc)
-
-    def test_parser_exception_inheritance(self):
-        """Проверка наследования."""
-        exc = ParserException("Test error")
-        assert isinstance(exc, Exception)
-
-
 class TestParserDefaultValues:
     """Тесты для значений по умолчанию парсера."""
 

@@ -183,44 +183,8 @@ class TestChromeRemote:
 # ============================================================================
 
 
-class TestChromeExceptions:
-    """Тесты для исключений Chrome."""
-
-    def test_chrome_exception_creation(self):
-        """Проверка создания ChromeException."""
-        exc = ChromeException("Test error")
-        # Проверяем что базовый текст входит в сообщение исключения
-        assert "Test error" in str(exc)
-
-    def test_chrome_exception_inheritance(self):
-        """Проверка наследования ChromeException."""
-        exc = ChromeException("Test error")
-        assert isinstance(exc, Exception)
-
-    def test_chrome_path_not_found(self):
-        """Проверка ChromePathNotFound."""
-        exc = ChromePathNotFound("/usr/bin/chrome")
-        assert "/usr/bin/chrome" in str(exc)
-        assert isinstance(exc, ChromeException)
-
-    def test_chrome_runtime_exception(self):
-        """Проверка ChromeRuntimeException."""
-        exc = ChromeRuntimeException("Runtime error")
-        # Проверяем что базовый текст входит в сообщение исключения
-        assert "Runtime error" in str(exc)
-        assert isinstance(exc, ChromeException)
-
-    def test_chrome_user_abort_exception(self):
-        """Проверка ChromeUserAbortException."""
-        exc = ChromeUserAbortException("User aborted")
-        # Проверяем что базовый текст входит в сообщение исключения
-        assert "User aborted" in str(exc)
-        assert isinstance(exc, ChromeException)
-
-
-# ============================================================================
 # Интеграционные тесты конфигурации (из test_integration.py)
-# ============================================================================
+# Тесты Chrome исключений перенесены в test_version_exceptions.py с более детальными проверками
 
 
 class TestConfigWithParser:

@@ -209,16 +209,6 @@ class TestSpecificOsException:
             with pytest.raises((OSError, IOError)):
                 FileLogger(log_file=log_file)
 
-    def test_specific_os_exception_browser_cleanup(self, caplog):
-        """
-        Тест 2.3: Проверка обработки OSError при очистке профиля браузера.
-
-        Проверяет что OSError при очистке профиля
-        корректно обрабатывается и логируется.
-        """
-        # Тест требует метода _cleanup_profile который может отсутствовать
-        pytest.skip("Метод _cleanup_profile может отсутствовать в текущей версии")
-
     def test_specific_os_exception_orphaned_profiles(self, tmp_path, caplog):
         """
         Тест 2.4: Проверка обработки OSError при очистке осиротевших профилей.
@@ -323,9 +313,12 @@ class TestSpecificValueException:
         Проверяет что ValueError при некорректном пути
         корректно обрабатывается и логируется.
         """
-        # Тест требует реального метода валидации который может отсутствовать
-        # Пропускаем если метод не реализован
-        pytest.skip("Метод _validate_binary_path может отсутствовать в текущей версии")
+        from parser_2gis.chrome.browser import ChromeBrowser
+
+        # Метод _validate_binary_path существует - тестируем напрямую
+        browser_service = ChromeBrowser.__new__(ChromeBrowser)
+        with pytest.raises(ValueError, match="не существует"):
+            browser_service._validate_binary_path("/nonexistent/chrome/path")
 
     def test_specific_value_exception_browser_path_directory(self, tmp_path):
         """
@@ -334,9 +327,15 @@ class TestSpecificValueException:
         Проверяет что ValueError при пути к директории
         корректно обрабатывается и логируется.
         """
-        # Тест требует реального метода валидации который может отсутствовать
-        # Пропускаем если метод не реализован
-        pytest.skip("Метод _validate_binary_path может отсутствовать в текущей версии")
+        from parser_2gis.chrome.browser import ChromeBrowser
+
+        # Создаем директорию вместо бинарного файла
+        fake_binary = tmp_path / "fake_chrome_dir"
+        fake_binary.mkdir()
+
+        browser_service = ChromeBrowser.__new__(ChromeBrowser)
+        with pytest.raises(ValueError):
+            browser_service._validate_binary_path(str(fake_binary))
 
 
 class TestSpecificExceptionComprehensive:

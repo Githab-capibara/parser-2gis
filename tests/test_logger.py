@@ -64,30 +64,35 @@ class TestLoggerSetup:
 class TestLoggerLevels:
     """Тесты для уровней логирования."""
 
-    def test_logger_debug(self):
+    def test_logger_debug(self, caplog):
         """Проверка логирования debug."""
+        caplog.set_level(logging.DEBUG)
         logger.debug("Test debug message")
-        # Если нет ошибок, тест пройден
+        assert any("Test debug message" in record.message for record in caplog.records)
 
-    def test_logger_info(self):
+    def test_logger_info(self, caplog):
         """Проверка логирования info."""
+        caplog.set_level(logging.INFO)
         logger.info("Test info message")
-        # Если нет ошибок, тест пройден
+        assert any("Test info message" in record.message for record in caplog.records)
 
-    def test_logger_warning(self):
+    def test_logger_warning(self, caplog):
         """Проверка логирования warning."""
+        caplog.set_level(logging.WARNING)
         logger.warning("Test warning message")
-        # Если нет ошибок, тест пройден
+        assert any("Test warning message" in record.message for record in caplog.records)
 
-    def test_logger_error(self):
+    def test_logger_error(self, caplog):
         """Проверка логирования error."""
+        caplog.set_level(logging.ERROR)
         logger.error("Test error message")
-        # Если нет ошибок, тест пройден
+        assert any("Test error message" in record.message for record in caplog.records)
 
-    def test_logger_critical(self):
+    def test_logger_critical(self, caplog):
         """Проверка логирования critical."""
+        caplog.set_level(logging.CRITICAL)
         logger.critical("Test critical message")
-        # Если нет ошибок, тест пройден
+        assert any("Test critical message" in record.message for record in caplog.records)
 
 
 class TestQueueHandler:
@@ -174,32 +179,18 @@ class TestThirdPartyLoggers:
 class TestLoggerMessageFormatting:
     """Тесты для форматирования сообщений."""
 
-    def test_logger_format_with_args(self):
+    def test_logger_format_with_args(self, caplog):
         """Проверка форматирования с аргументами."""
-        test_logger = logging.getLogger("test-format-args")
-        test_logger.setLevel(logging.INFO)
+        caplog.set_level(logging.INFO)
+        logger.info("Test with args: %s, %d", "value", 42)
+        assert any("Test with args: value, 42" in record.message for record in caplog.records)
 
-        if not test_logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter("%(message)s - %(args)s")
-            handler.setFormatter(formatter)
-            test_logger.addHandler(handler)
-
-        # Если нет ошибок, тест пройден
-        test_logger.info("Test with args")
-
-    def test_logger_format_exception(self):
+    def test_logger_format_exception(self, caplog):
         """Проверка форматирования исключений."""
-        test_logger = logging.getLogger("test-format-exception")
-        test_logger.setLevel(logging.ERROR)
-
-        if not test_logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter("%(message)s\n%(exc_text)s")
-            handler.setFormatter(formatter)
-            test_logger.addHandler(handler)
-
+        caplog.set_level(logging.ERROR)
         try:
             raise ValueError("Test exception")
         except ValueError:
-            test_logger.exception("Exception occurred")
+            logger.exception("Exception occurred")
+        assert any("Exception occurred" in record.message for record in caplog.records)
+        assert any("Test exception" in record.message for record in caplog.records)
