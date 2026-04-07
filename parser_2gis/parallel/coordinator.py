@@ -10,12 +10,10 @@
 from __future__ import annotations
 
 import asyncio
-import random
 import shutil
 import signal
 import threading
 import time
-import types
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
@@ -31,11 +29,13 @@ from parser_2gis.constants import (
     MIN_TIMEOUT,
     MIN_WORKERS,
 )
+from parser_2gis.delay_utils import apply_startup_delay
 from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger import log_parser_finish, logger
 from parser_2gis.parallel.error_handler import ParallelErrorHandler
 from parser_2gis.parallel.merger import ParallelFileMerger
 from parser_2gis.parallel.progress import ParallelProgressReporter
+from parser_2gis.parallel.signal_handler import create_signal_handler
 from parser_2gis.parallel.strategies import MEMORY_THRESHOLD_BYTES
 from parser_2gis.parser import get_parser
 from parser_2gis.utils.temp_file_manager import TempFileTimer
@@ -95,25 +95,8 @@ class CoordinatorContext:
 # Глобальный экземпляр контекста (не изменяемое состояние, а контейнер)
 _coordinator_context = CoordinatorContext()
 
-
-def _signal_handler(signum: int, frame: types.FrameType | None) -> None:
-    """Глобальный обработчик сигналов SIGINT (Ctrl+C).
-
-    ISSUE-009: Использует CoordinatorContext вместо глобальной переменной.
-    P0-20: Добавлены type hints для signum и frame.
-
-    Примечание: Логика дублируется в parser_2gis/parallel/thread_coordinator.py.
-    Рефакторинг отложен — разная логика обработки в каждом файле.
-
-    Args:
-        signum: Номер сигнала.
-        frame: Текущий фрейм.
-
-    """
-    coordinator = _coordinator_context.get_coordinator()
-    if coordinator is not None:
-        logger.warning("Получен сигнал прерывания (SIGINT), остановка парсинга...")
-        coordinator.stop()
+# Общий обработчик сигналов (#62: вынесен в signal_handler.py)
+_signal_handler = create_signal_handler(lambda: _coordinator_context)
 
 
 class ParallelCoordinator:
@@ -297,6 +280,7 @@ class ParallelCoordinator:
         """Валидирует входные данные с использованием централизованных функций валидации.
 
         H6: Централизация валидации в validation/data_validator.py
+        #68-#69: Использует общие validate_* функции из parser_2gis.validation.
         ISSUE-110, ISSUE-111: Дополнительная валидация на разумность.
         """
         # Валидация городов
@@ -427,21 +411,20 @@ class ParallelCoordinator:
         )
 
         # H003: Задержка ТОЛЬКО если use_delays=True
-        if getattr(self.config.parallel, "use_delays", True):
-            initial_delay = random.uniform(
-                self.config.parallel.initial_delay_min, self.config.parallel.initial_delay_max
-            )
-            time.sleep(initial_delay)
+        apply_startup_delay(
+            self.config,
+            phase="initial",
+            log_func=lambda msg, level: self.log(msg, level),
+        )
 
         self._browser_launch_semaphore.acquire()
         try:
             # H003: Задержка ТОЛЬКО если use_delays=True
-            if getattr(self.config.parallel, "use_delays", True):
-                launch_delay = random.uniform(
-                    self.config.parallel.launch_delay_min, self.config.parallel.launch_delay_max
-                )
-                self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
-                time.sleep(launch_delay)
+            apply_startup_delay(
+                self.config,
+                phase="launch",
+                log_func=lambda msg, level: self.log(msg, level),
+            )
 
             # Вынесено в отдельные методы для устранения nonlocal
             parser = self._create_parser(url)

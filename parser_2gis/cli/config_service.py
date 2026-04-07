@@ -45,7 +45,7 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from parser_2gis.logger import logger
-from parser_2gis.pydantic_compat import get_model_dump, model_validate_json_class
+from parser_2gis.pydantic_compat import get_model_dump, model_validate_json
 from parser_2gis.utils import report_from_validation_error
 from parser_2gis.utils.paths import user_path
 
@@ -179,7 +179,7 @@ class ConfigService:
             return config_cls()  # type: ignore[call-arg]
 
         try:
-            config = model_validate_json_class(config_cls, config_data)
+            config = model_validate_json(config_data, config_cls)
             config.path = config_path  # type: ignore[attr-defined]
             return config  # type: ignore[return-value]
 

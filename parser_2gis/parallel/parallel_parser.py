@@ -46,6 +46,7 @@ from parser_2gis.constants import (
     PROGRESS_UPDATE_INTERVAL,
 )
 from parser_2gis.logger import log_parser_finish, logger, print_progress
+from parser_2gis.parallel.filename_utils import extract_category_from_filename
 from parser_2gis.utils.temp_file_manager import (
     MAX_TEMP_FILES_MONITORING,
     ORPHANED_TEMP_FILE_AGE,
@@ -414,15 +415,11 @@ class ParallelCityParser:
             Название категории.
 
         """
-        stem = csv_file.stem
-        last_underscore_idx = stem.rfind("_")
-
-        if last_underscore_idx > 0:
-            return stem[last_underscore_idx + 1 :].replace("_", " ")
-
-        category = stem.replace("_", " ")
-        self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
-        return category
+        # #64: Использует общую утилиту из filename_utils.py
+        return extract_category_from_filename(
+            csv_file,
+            log_func=lambda msg, level: self.log(msg, level),
+        )
 
     def _acquire_merge_lock(self, lock_file_path: Path) -> tuple[TextIO | None, bool]:
         """Получает блокировку merge операции.

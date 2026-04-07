@@ -30,6 +30,7 @@ from parser_2gis.constants import (
     MERGE_LOCK_TIMEOUT,
 )
 from parser_2gis.logger.logger import logger
+from parser_2gis.parallel.filename_utils import extract_category_from_filename
 from parser_2gis.utils.temp_file_manager import temp_file_manager
 
 if TYPE_CHECKING:
@@ -310,15 +311,11 @@ class FileMergerStrategy:
             Название категории.
 
         """
-        stem = csv_file.stem
-        last_underscore_idx = stem.rfind("_")
-
-        if last_underscore_idx > 0:
-            return stem[last_underscore_idx + 1 :].replace("_", " ")
-
-        category = stem.replace("_", " ")
-        self.log(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
-        return category
+        # #64: Использует общую утилиту из filename_utils.py
+        return extract_category_from_filename(
+            csv_file,
+            log_func=lambda msg, level: self.log(msg, level),
+        )
 
     def _acquire_merge_lock(self, lock_file_path: Path) -> tuple[typing.TextIO | None, bool]:
         """Получает блокировку merge операции.

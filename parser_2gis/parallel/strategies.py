@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import gc
 import os
-import random
 import shutil
 import threading
 import time
@@ -25,8 +24,10 @@ from collections.abc import Callable, Generator
 from typing_extensions import TypeAlias
 
 from parser_2gis.constants import DEFAULT_TIMEOUT
+from parser_2gis.delay_utils import apply_startup_delay
 from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger.logger import logger
+from parser_2gis.parallel.cleanup_utils import cleanup_temp_file
 from parser_2gis.utils.temp_file_manager import temp_file_manager
 from parser_2gis.utils.url_utils import generate_category_url
 
@@ -259,15 +260,8 @@ class ParseStrategy:
 
     def _cleanup_temp_file(self, temp_filepath: Path) -> None:
         """Очищает временный файл."""
-        try:
-            if temp_filepath.exists():
-                temp_filepath.unlink()
-                self._log(f"Временный файл удалён: {temp_filepath.name}", "debug")
-        except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-            self._log(
-                f"Не удалось удалить временный файл {temp_filepath.name}: {cleanup_error}",
-                "warning",
-            )
+        # #63: Использует общую утилиту из cleanup_utils.py
+        cleanup_temp_file(temp_filepath, description="Временный файл удалён")
 
     def _update_stats(self, success: bool) -> None:
         """Обновляет статистику."""
@@ -328,12 +322,12 @@ class ParseStrategy:
             )
 
             # Rate limiting
-            use_delays = getattr(self.config.parallel, "use_delays", True)
-            initial_delay_min = getattr(self.config.parallel, "initial_delay_min", 0.5)
-            initial_delay_max = getattr(self.config.parallel, "initial_delay_max", 2.0)
-            delay = random.uniform(max(0.1, initial_delay_min), initial_delay_max)
-            self._log(f"Rate limiting задержка: {delay:.2f} сек", "debug")
-            time.sleep(delay)
+            # #65-#67: Использует общую утилиту apply_startup_delay
+            apply_startup_delay(
+                self.config,
+                phase="initial",
+                log_func=lambda msg, level: self._log(msg, level),
+            )
 
             # Приобретаем семафор
             semaphore_acquired = False
@@ -351,11 +345,12 @@ class ParseStrategy:
                 from parser_2gis.writer import get_writer
 
                 # Дополнительная задержка запуска
-                if use_delays:
-                    launch_delay_min = getattr(self.config.parallel, "launch_delay_min", 0.1)
-                    launch_delay_max = getattr(self.config.parallel, "launch_delay_max", 1.0)
-                    launch_delay = random.uniform(launch_delay_min, launch_delay_max)
-                    time.sleep(launch_delay)
+                # #65-#67: Использует общую утилиту apply_startup_delay
+                apply_startup_delay(
+                    self.config,
+                    phase="launch",
+                    log_func=lambda msg, level: self._log(msg, level),
+                )
 
                 # Создаём parser и writer с повторными попытками
                 max_retries = 10

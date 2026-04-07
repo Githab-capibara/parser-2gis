@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any
 from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.constants import MAX_UNIQUE_NAME_ATTEMPTS
 from parser_2gis.logger import logger
+from parser_2gis.parallel.cleanup_utils import cleanup_temp_file
 
 if TYPE_CHECKING:
     from parser_2gis.config import Configuration
@@ -192,15 +193,12 @@ class ParallelErrorHandler:
             temp_filepath: Путь к временному файлу.
 
         """
-        try:
-            if temp_filepath.exists():
-                temp_filepath.unlink()
-                self.log(f"Временный файл удалён после ошибки: {temp_filepath.name}", "debug")
-        except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-            self.log(
-                f"Не удалось удалить временный файл {temp_filepath.name}: {cleanup_error}",
-                "warning",
-            )
+        # #63: Использует общую утилиту из cleanup_utils.py
+        cleanup_temp_file(
+            temp_filepath,
+            log_func=lambda msg, level: self.log(msg, level),
+            description="Временный файл удалён после ошибки",
+        )
 
     def create_unique_temp_file(self, city_name: str, category_name: str) -> Path:
         """Создаёт уникальный временный файл.

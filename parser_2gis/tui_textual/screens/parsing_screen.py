@@ -37,7 +37,7 @@ class ParsingScreen(Screen):
         align: center middle;
     }
 
-    /* Заголовок */
+    /* Заголовок — #73: идентичен в city_selector, category_selector, settings, other_screens */
     .header {
         width: 100%;
         height: 3;

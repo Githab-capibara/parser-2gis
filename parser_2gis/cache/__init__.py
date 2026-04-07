@@ -17,7 +17,7 @@ from ..constants import (
     LRU_EVICT_BATCH,
     MAX_BATCH_SIZE,
     MAX_CACHE_SIZE_MB,
-    MAX_CONNECTION_AGE,
+    # #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
     MAX_DATA_DEPTH,
     MAX_POOL_SIZE,
     MAX_STRING_LENGTH,
@@ -43,7 +43,7 @@ __all__ = [
     "LRU_EVICT_BATCH",
     "MAX_BATCH_SIZE",
     "MAX_CACHE_SIZE_MB",
-    "MAX_CONNECTION_AGE",
+    # #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
     "MAX_DATA_DEPTH",  # Для обратной совместимости с тестами
     "MAX_POOL_SIZE",
     "MAX_STRING_LENGTH",  # Для обратной совместимости с тестами

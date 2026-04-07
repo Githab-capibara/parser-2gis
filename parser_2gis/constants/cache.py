@@ -45,8 +45,7 @@ MIN_POOL_SIZE: int = 5
 # Максимальный возраст соединения в секундах
 CONNECTION_MAX_AGE: int = 600
 
-# Максимальный возраст соединения (алиас)
-MAX_CONNECTION_AGE: int = 600
+# #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
 
 # ISSUE-067: Имя файла кэша по умолчанию
 DEFAULT_CACHE_FILE_NAME: str = "cache.db"
@@ -67,7 +66,7 @@ __all__ = [
     "MAX_POOL_SIZE",
     "MIN_POOL_SIZE",
     "CONNECTION_MAX_AGE",
-    "MAX_CONNECTION_AGE",
+    # #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
     "DEFAULT_CACHE_FILE_NAME",
     "DEFAULT_OUTPUT_DIR",
     "DEFAULT_TTL_HOURS",

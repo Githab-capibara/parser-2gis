@@ -68,12 +68,24 @@ class TestErrorLogging:
         """
         import logging
 
-        from parser_2gis.parallel.helpers import FileMerger
+        from parser_2gis.parallel.merger import ParallelFileMerger
 
-        # Создаем FileMerger
-        merger = FileMerger(output_dir=tmp_path, cancel_event=threading.Event())
+        # Создаем ParallelFileMerger (вместо удалённого FileMerger из helpers.py)
+        cancel_event = threading.Event()
+        # ParallelFileMerger требует config и lock, создаём минимальный mock
+        class _MockConfig:
+            class writer:
+                encoding = "utf-8"
+        import threading as _threading
+        mock_lock = _threading.RLock()
+        merger = ParallelFileMerger(
+            output_dir=tmp_path,
+            config=_MockConfig(),
+            cancel_event=cancel_event,
+            lock=mock_lock,
+        )
 
-        # Проверяем что FileMerger имеет необходимые атрибуты
+        # Проверяем что ParallelFileMerger имеет необходимые атрибуты
         assert merger is not None
         assert hasattr(merger, "merge_csv_files")
 

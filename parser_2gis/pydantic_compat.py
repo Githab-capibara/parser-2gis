@@ -100,27 +100,3 @@ def model_validate_json(json_str: str, cls: type[M]) -> M:
 
     """
     return cls.model_validate_json(json_str)
-
-
-def model_validate_json_class(cls: type[pydantic.BaseModel], json_str: str) -> pydantic.BaseModel:
-    """Создаёт модель из JSON строки для указанного класса.
-
-    Использует метод model_validate_json() из Pydantic v2.
-
-    Args:
-        cls: Класс модели Pydantic.
-        json_str: JSON строка для парсинга.
-
-    Returns:
-        Экземпляр модели Pydantic.
-
-    Example:
-        >>> from pydantic import BaseModel
-        >>> class User(BaseModel):
-        ...     name: str
-        ...     age: int
-        >>> model_validate_json_class(User, '{"name": "Alice", "age": 30}')
-        User(name='Alice', age=30)
-
-    """
-    return cls.model_validate_json(json_str)  # type: ignore[attr-defined]

@@ -164,8 +164,8 @@ class EnvConfig:
     # Connection Pool
     max_pool_size: int = field(init=False)
     min_pool_size: int = field(init=False)
+    # #74: max_connection_age удалён как дубликат connection_max_age
     connection_max_age: int = field(init=False)
-    max_connection_age: int = field(init=False)
 
     # Кэширование
     max_cache_size_mb: int = field(init=False)
@@ -252,14 +252,7 @@ class EnvConfig:
                 "connection_max_age",
                 "PARSER_CONNECTION_MAX_AGE: %d сек (по умолчанию: 600)",
             ),
-            (
-                "PARSER_MAX_CONNECTION_AGE",
-                600,
-                60,
-                7200,
-                "max_connection_age",
-                "PARSER_MAX_CONNECTION_AGE: %d сек (по умолчанию: 600)",
-            ),
+            # #74: PARSER_MAX_CONNECTION_AGE удалён как дубликат PARSER_CONNECTION_MAX_AGE
             # Кэширование
             (
                 "PARSER_MAX_CACHE_SIZE_MB",
@@ -358,11 +351,12 @@ def get_env_config() -> EnvConfig:
 # P0-12: Словарь маппинга ENV-зависимых констант для устранения длинной цепи if
 _ENV_CONSTANTS_MAPPING: dict[str, str] = {
     # Connection pool
-    "MAX_CONNECTION_AGE": "max_connection_age",
+    # #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
     "MAX_CACHE_SIZE_MB": "max_cache_size_mb",
     "MAX_POOL_SIZE": "max_pool_size",
     "MIN_POOL_SIZE": "min_pool_size",
     "CONNECTION_MAX_AGE": "connection_max_age",
+    # #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
     # Параллельный парсинг
     "MIN_WORKERS": "min_workers",
     "MAX_WORKERS": "max_workers",
@@ -557,7 +551,7 @@ __all__: list[str] = [  # noqa: F822
     "MAX_ITEMS_IN_COLLECTION",
     # Кэширование
     "DEFAULT_BATCH_SIZE",
-    "MAX_CONNECTION_AGE",
+    # #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
     "MAX_BATCH_SIZE",
     "MAX_CACHE_SIZE_MB",
     "LRU_EVICT_BATCH",

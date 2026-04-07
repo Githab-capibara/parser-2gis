@@ -25,7 +25,6 @@ from concurrent.futures import (
 )
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from threading import BoundedSemaphore
-from types import FrameType
 from typing import TYPE_CHECKING, Literal
 from collections.abc import Callable
 
@@ -37,6 +36,7 @@ from parser_2gis.constants import (
     MIN_WORKERS,
 )
 from parser_2gis.logger.logger import logger
+from parser_2gis.parallel.signal_handler import create_signal_handler
 
 if TYPE_CHECKING:
     from parser_2gis.parallel.url_parser import ParallelUrlParser
@@ -78,20 +78,8 @@ def _get_coordinator_context() -> _CoordinatorContext:
     return _get_coordinator_context._instance  # type: ignore[attr-defined]
 
 
-def _signal_handler(signum: int, frame: "FrameType | None") -> None:
-    """Глобальный обработчик сигналов SIGINT (Ctrl+C).
-
-    ISSUE-111: Использует thread-local контекст вместо глобальной переменной.
-
-    Args:
-        signum: Номер сигнала.
-        frame: Текущий фрейм.
-
-    """
-    coordinator = _get_coordinator_context().get_coordinator()
-    if coordinator is not None:
-        logger.warning("Получен сигнал прерывания (SIGINT), остановка парсинга...")
-        coordinator.stop()
+# Общий обработчик сигналов (#62: вынесен в signal_handler.py)
+_signal_handler = create_signal_handler(_get_coordinator_context)
 
 
 ExecutorType = Literal["thread", "process"]

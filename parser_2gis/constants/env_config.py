@@ -57,8 +57,8 @@ class EnvConfig:
     # Connection Pool
     max_pool_size: int = field(init=False)
     min_pool_size: int = field(init=False)
+    # #74: max_connection_age удалён как дубликат connection_max_age
     connection_max_age: int = field(init=False)
-    max_connection_age: int = field(init=False)
 
     # Кэширование
     max_cache_size_mb: int = field(init=False)
@@ -127,11 +127,7 @@ class EnvConfig:
             "connection_max_age",
             self._validate_env_int("PARSER_CONNECTION_MAX_AGE", 600, 60, 7200),
         )
-        object.__setattr__(
-            self,
-            "max_connection_age",
-            self._validate_env_int("PARSER_MAX_CONNECTION_AGE", 600, 60, 7200),
-        )
+        # #74: max_connection_age удалён как дубликат connection_max_age
 
     def _init_cache_settings(self) -> None:
         """Инициализирует настройки кэширования.
@@ -259,7 +255,7 @@ class EnvConfig:
             "max_pool_size": self.max_pool_size,
             "min_pool_size": self.min_pool_size,
             "connection_max_age": self.connection_max_age,
-            "max_connection_age": self.max_connection_age,
+            # #74: max_connection_age удалён как дубликат connection_max_age
             # Кэширование
             "max_cache_size_mb": self.max_cache_size_mb,
             # Временные файлы

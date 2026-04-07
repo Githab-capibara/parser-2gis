@@ -17,8 +17,6 @@ from .csv_buffer_manager import (
     READ_BUFFER_SIZE,
     WRITE_BUFFER_SIZE,
     _calculate_optimal_buffer_size,
-    _close_file_with_mmap_support,
-    _open_file_with_mmap_support,
     _safe_move_file,
     _should_use_mmap,
     mmap_file_context,
@@ -44,8 +42,7 @@ __all__ = [
     "READ_BUFFER_SIZE",
     "WRITE_BUFFER_SIZE",
     "_calculate_optimal_buffer_size",
-    "_close_file_with_mmap_support",
-    "_open_file_with_mmap_support",
+    # #75: _open_file_with_mmap_support и _close_file_with_mmap_support удалены как неиспользуемые
     "_safe_move_file",
     "_should_use_mmap",
     "mmap_file_context",

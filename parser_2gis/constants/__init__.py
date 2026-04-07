@@ -35,7 +35,7 @@ from parser_2gis.constants.cache import (  # noqa: F401
     LRU_EVICT_BATCH,
     MAX_BATCH_SIZE,
     MAX_CACHE_SIZE_MB,
-    MAX_CONNECTION_AGE,
+    # #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
     MAX_POOL_SIZE,
     MIN_POOL_SIZE,
     SHA256_HASH_LENGTH,
@@ -110,7 +110,7 @@ __all__ = [
     "MAX_BUFFER_SIZE",
     "MMAP_THRESHOLD_BYTES",
     # Cache constants
-    "MAX_CONNECTION_AGE",
+    # #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
     "MAX_CACHE_SIZE_MB",
     "LRU_EVICT_BATCH",
     "SHA256_HASH_LENGTH",

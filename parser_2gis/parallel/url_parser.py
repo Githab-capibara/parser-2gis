@@ -24,8 +24,10 @@ from typing import TYPE_CHECKING
 from collections.abc import Callable
 
 from parser_2gis.constants import DEFAULT_TIMEOUT, MAX_UNIQUE_NAME_ATTEMPTS
+from parser_2gis.delay_utils import apply_startup_delay
 from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger.logger import logger
+from parser_2gis.parallel.cleanup_utils import cleanup_temp_file
 from parser_2gis.parallel.strategies import MEMORY_THRESHOLD_BYTES
 from parser_2gis.protocols import UrlGeneratorProtocol
 from parser_2gis.utils.url_utils import generate_category_url
@@ -255,21 +257,20 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             )
 
             # H003: Задержка ТОЛЬКО если use_delays=True
-            if getattr(self.config.parallel, "use_delays", True):
-                initial_delay = random.uniform(
-                    self.config.parallel.initial_delay_min, self.config.parallel.initial_delay_max
-                )
-                time.sleep(initial_delay)
+            apply_startup_delay(
+                self.config,
+                phase="initial",
+                log_func=lambda msg, level: self.log(msg, level),
+            )
 
             browser_semaphore.acquire()
             try:
                 # H003: Задержка ТОЛЬКО если use_delays=True
-                if getattr(self.config.parallel, "use_delays", True):
-                    launch_delay = random.uniform(
-                        self.config.parallel.launch_delay_min, self.config.parallel.launch_delay_max
-                    )
-                    self.log(f"Задержка перед запуском Chrome: {launch_delay:.2f} сек", "debug")
-                    time.sleep(launch_delay)
+                apply_startup_delay(
+                    self.config,
+                    phase="launch",
+                    log_func=lambda msg, level: self.log(msg, level),
+                )
 
                 max_retries = 10
                 retry_delay = 5.0
@@ -421,15 +422,8 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             temp_filepath: Путь к временному файлу.
 
         """
-        try:
-            if temp_filepath.exists():
-                temp_filepath.unlink()
-                self.log(f"Временный файл удалён: {temp_filepath.name}", "debug")
-        except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-            self.log(
-                f"Не удалось удалить временный файл {temp_filepath.name}: {cleanup_error}",
-                "warning",
-            )
+        # #63: Использует общую утилиту из cleanup_utils.py
+        cleanup_temp_file(temp_filepath, description="Временный файл удалён")
 
     def _rename_temp_to_final(
         self, temp_filepath: Path, filepath: Path, temp_filename: str

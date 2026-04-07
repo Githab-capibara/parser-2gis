@@ -58,7 +58,7 @@ class BrowserSettingsScreen(Screen):
         align: center middle;
     }
 
-    /* Заголовок */
+    /* Заголовок — #73: идентичен в city_selector, category_selector, parsing_screen, other_screens */
     .header {
         width: 100%;
         height: 3;
@@ -215,7 +215,7 @@ class ParserSettingsScreen(Screen):
         align: center middle;
     }
 
-    /* Заголовок */
+    /* Заголовок — #73: идентичен в city_selector, category_selector, parsing_screen, other_screens */
     .header {
         width: 100%;
         height: 3;
@@ -382,7 +382,7 @@ class OutputSettingsScreen(Screen):
         align: center middle;
     }
 
-    /* Заголовок */
+    /* Заголовок — #73: идентичен в city_selector, category_selector, parsing_screen, other_screens */
     .header {
         width: 100%;
         height: 3;
