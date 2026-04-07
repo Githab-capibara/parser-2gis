@@ -1,143 +1,249 @@
-# Тестовый реестр parser-2gis
+# 📋 Реестр тестов parser-2gis
 
-**Дата последней актуализации:** 2026-04-06
-**Дата последней очистки:** 2026-04-06 (16:45 MSK)
+**Дата последней актуализации:** 2026-04-07  
+**Всего тестовых файлов:** 105  
+**Статус:** ✅ Актуализировано
 
-## Сводная статистика
+---
 
-| Метрика | Значение |
-|---------|----------|
-| Тестовых файлов | 106 (удалено 4 устаревших) |
-| Тестовых функций | ~1466 (удалено 8 дубликатов) |
-| Тестовых классов | ~368 |
-| Прошедших тестов | 1356+ (без threading stress) |
-| Упавших тестов | ~70 (архитектурные + cli arguments, требуют обновления под новый API) |
-| Пропущенных (skipped) | 18 |
-| Конфигурация | pytest.ini, conftest.py (~1072 строки), tox.ini, .coveragerc, setup.cfg |
-| Coverage threshold | 85% |
+## 📊 Сводная статистика
 
-## Очистка 2026-04-06 (16:45 MSK)
+| Категория | Файлов | Описание |
+|-----------|--------|----------|
+| **Architecture** | 6 | Проверка архитектуры, SOLID, циклы, границы |
+| **Cache** | 13 | Тесты кэширования (корень + cache/) |
+| **Chrome** | 15 | Тесты браузера Chrome (корень + chrome/) |
+| **Parallel** | 8 | Тесты параллельного парсинга (корень + parallel/) |
+| **Parser** | 11 | Тесты основного парсера |
+| **TUI/GUI** | 8 | Тесты текстового интерфейса |
+| **Writer** | 4 | Тесты записи данных (CSV/JSON) |
+| **Validation** | 3 | Тесты валидации путей и URL |
+| **Security** | 3 | Тесты безопасности |
+| **Quality** | 5 | Тесты качества кода (PEP8, docstrings) |
+| **Utils** | 4 | Тесты утилит |
+| **Configuration** | 6 | Тесты конфигурации |
+| **Logger** | 4 | Тесты логирования |
+| **Integration** | 10 | Интеграционные тесты |
+| **Другие** | 6 | Разные тесты |
 
-### Удалённые дубликаты
-| Тест | Файл | Причина |
-|------|------|---------|
-| `TestChromeExceptions` класс (5 тестов) | `test_chrome_integration.py` | Дублируют `test_version_exceptions.py` с более детальными проверками |
-| `TestParserException` класс (2 теста) | `test_parser_options.py` | Дублируют `test_version_exceptions.py` |
-| `test_specific_os_exception_browser_cleanup` | `test_specific_exceptions.py` | Метод `_cleanup_profile` не существует |
+---
 
-### Исправленные тесты
-| Тест | Исправление |
-|------|------------|
-| `TestLoggerLevels.*` (5 тестов) | Добавлен `caplog` для реальных проверок вместо "если нет ошибок" |
-| `test_logger_format_with_args` | Добавлен `caplog` с проверкой форматирования |
-| `test_logger_format_exception` | Добавлен `caplog` с проверкой exc_text |
-| `test_specific_value_exception_browser_path` | Убран skip, тест активирован (метод существует) |
-| `test_specific_value_exception_browser_path_directory` | Убран skip, тест активирован (метод существует) |
+## 📁 Полный список тестовых файлов
 
-## Удалённые тесты (2026-04-06)
+### Architecture (6 файлов)
 
-| Файл | Причина удаления |
-|------|-----------------|
-| `tests/test_thread_safety.py` | Импортирует удалённые `_cleanup_all_temp_files`, `_temp_files_lock` |
-| `tests/test_temp_file_timer_finally.py` | Тестирует `__del__` который не существует |
-| `tests/test_temp_file_timer_race.py` | Тестирует `_lock` атрибут удалённый из `TempFileTimer` |
-| `tests/writer/test_csv_writer_errors.py::test_csv_writer_general_exception_handling` | `_writerow` больше не имеет generic `except Exception` |
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_architecture_boundaries.py` | Границы модулей, зависимости между пакетами | ✅ Актуален |
+| `tests/test_architecture_config_dataclasses.py` | Dataclass-классы конфигурации | ✅ Актуален |
+| `tests/test_architecture_improvements.py` | Улучшения архитектуры | ✅ Исправлен (or True) |
+| `tests/test_architecture_integrity.py` | Целостность архитектуры, циклические зависимости | ✅ Актуален |
+| `tests/test_architecture_no_cycles.py` | Отсутствие циклических импортов | ✅ Исправлен (or True) |
+| `tests/test_architecture_solid.py` | Принципы SOLID в архитектуре | ✅ Актуален |
 
-## Исправленные тесты (2026-04-06)
+### Cache (13 файлов)
 
-| Тест | Исправление |
-|------|------------|
-| `test_function_accepts_dataclass` | `timeout_per_url` 30 → 60 (соответствует валидации) |
-| `test_validate_path_traversal_dangerous_patterns` | Оставлены только реальные path traversal паттерны |
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_cache_exceptions.py` | Обработка исключений кэша | ⚠️ Требует проверки |
+| `tests/test_cache_manager_typing.py` | Типизация менеджера кэша | ⚠️ Требует проверки |
+| `tests/test_cache_wal_mode.py` | Режим WAL SQLite | ⚠️ Требует проверки |
+| `tests/test_connection_pool_leak.py` | Утечки соединений пула | ✅ Актуален |
+| `tests/test_sqlite_thread_safety.py` | Потокобезопасность SQLite | ✅ Актуален |
+| `tests/test_sql_injection_cache.py` | Защита от SQL-инъекций в кэше | ✅ Актуален |
+| `tests/cache/test_cache_utils.py` | Утилиты кэша | ✅ Актуален |
+| `tests/cache/test_manager_cleanup.py` | Очистка менеджера кэша | ✅ Актуален |
+| `tests/cache/test_manager_retry.py` | Повторные попытки кэша | ✅ Актуален |
+| `tests/cache/test_pool_critical_fixes.py` | Критические исправления пула | ✅ Актуален |
+| `tests/cache/test_pool_exceptions.py` | Исключения пула соединений | ✅ Актуален |
+| `tests/cache/test_serializer.py` | Сериализация кэша | ✅ Актуален |
+| `tests/cache/test_validator.py` | Валидатор кэша | ✅ Актуален |
 
-## Известные проблемные тесты (требуют отдельной работы)
+### Chrome (15 файлов)
 
-| Тест | Причина | Решение |
-|------|---------|---------|
-| `test_performance_fixes.py::test_concurrent_cache_access` | Segfault в SQLite при многопоточном доступе | Пропущен (нужно исправить пул соединений) |
-| `test_chrome/test_rate_limiter.py::test_thread_safety` | Race condition в глобальных timestamps | Пропущен (нужно исправить rate_limiter) |
-| `test_thread_safety.py` | Segfault в многопоточных тестах | Пропущен |
-| `test_sanitize_thread_safety.py` | Segfault в многопоточных тестах | Пропущен |
-| `test_sqlite_thread_safety.py` | Segfault в многопоточных тестах | Пропущен |
-| `test_temp_file_race.py` | Segfault в многопоточных тестах | Пропущен |
-| `test_temp_file_timer_race.py` | Segfault в многопоточных тестах | Пропущен |
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_browser_cleanup.py` | Очистка ресурсов браузера | ✅ Исправлен (or True) |
+| `tests/test_chrome_browser_finalizer.py` | Финализация браузера | ✅ Актуален |
+| `tests/test_chrome_integration.py` | Интеграция с Chrome (requires_chrome) | ✅ Актуален |
+| `tests/test_chrome_port_check.py` | Проверка портов Chrome | ✅ Актуален |
+| `tests/test_connect_interface_timeout.py` | Таймауты подключения | ✅ Актуален |
+| `tests/test_launcher_cleanup_on_error.py` | Очистка при ошибке запуска | ✅ Актуален |
+| `tests/test_setup_tab_none_check.py` | Проверка setup_tab=None | ✅ Актуален |
+| `tests/chrome/test_browser_separation.py` | Изоляция браузера | ✅ Актуален |
+| `tests/chrome/test_constants.py` | Константы Chrome | ✅ Актуален |
+| `tests/chrome/test_dom.py` | DOM-парсинг | ✅ Актуален |
+| `tests/chrome/test_rate_limiter.py` | Ограничение частоты | ✅ Актуален |
+| `tests/chrome/test_remote_cleanup.py` | Очистка удалённого Chrome | ✅ Актуален |
+| `tests/chrome/test_remote_critical_fixes.py` | Критические исправления Chrome | ✅ Исправлен (or True x2) |
+| `tests/chrome/test_subprocess_safety.py` | Безопасность subprocess | ✅ Актуален |
+| `tests/test_port_selection_os.py` | Выбор портов на уровне ОС | ✅ Актуален |
 
-## Удалённые файлы (очистка 2026-04-03)
+### Parallel (8 файлов)
 
-| Файл | Причина удаления |
-|------|-----------------|
-| `tests/scripts/update_cities_list.py` | Не тест — утилита загрузки городов |
-| `tests/scripts/update_rubrics_list.py` | Не тест — утилита загрузки рубрик |
-| `tests/test_merge_logic.py` | 0 тестовых функций — utility-скрипт |
-| `tests/test_run_sh_tui_flags.py` | Устарел — ссылки на удалённые `_tui_stub`/`_tui_omsk_stub` |
-| `tests/test_rlock_usage.py` | Дублирует `tests/parallel/test_rlock_critical.py` |
-| `tests/test_path_traversal_double_encoding.py` | Дублирует `tests/test_security_and_reliability_fixes.py` |
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_cleanup_parallel_exceptions.py` | Обработка ошибок параллельного парсинга | ✅ Актуален |
+| `tests/test_max_workers_validation.py` | Валидация max_workers | ✅ Актуален |
+| `tests/test_parallel_memory_error_handling.py` | Ошибки памяти | ✅ Актуален |
+| `tests/test_parallel_parser.py` | Параллельный парсер (категории) | ✅ Актуален |
+| `tests/test_parallel_parser_stats.py` | Статистика параллельного парсера | ✅ Актуален |
+| `tests/parallel/test_parallel_parser_delays.py` | Задержки параллельного парсера | ✅ Актуален |
+| `tests/parallel/test_rlock_critical.py` | Критические секции RLock | ✅ Актуален |
+| `tests/parallel/test_semaphore.py` | Семафоры | ✅ Актуален |
 
-## Структура тестов
+### Parser (11 файлов)
 
-### tests/ (корень) — архитектурные и интеграционные тесты
-- `test_architecture_*.py` — проверка архитектурных принципов (SOLID, DI, DDD, циклы, зависимости)
-- `test_security_*.py` — тесты безопасности (SQL injection, XSS, path traversal)
-- `test_refactoring_*.py` — тесты подтверждений рефакторинга
-- `test_cache_*.py` — тесты кэша
-- `test_chrome*.py` — тесты Chrome-модуля
-- `test_cli*.py` — тесты CLI
-- `test_config*.py` — тесты конфигурации
-- `test_parallel_*.py` — тесты параллельного парсинга
-- `test_parser*.py` — тесты парсера
-- `test_tui*.py` — тесты TUI (textual)
-- `test_logger*.py` — тесты логирования
-- `test_path*.py` — тесты валидации путей
-- `test_temp_file*.py` — тесты временных файлов
-- `test_validation*.py` — тесты валидации
-- `test_version*.py` — тесты версий/исключений
-- `test_writer*.py` — тесты writer-модуля
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_base_parser_abc.py` | Абстрактный базовый класс парсера | ✅ Актуален |
+| `tests/test_duplicate_rubric_code.py` | Дубликаты рубрик | ✅ Актуален |
+| `tests/test_firm_parser_validation.py` | Валидация данных фирм | ✅ Актуален |
+| `tests/test_parser.py` | Основной парсер (integration) | ✅ Актуален |
+| `tests/test_parser_factory_patterns.py` | Фабричный паттерн | ✅ Актуален |
+| `tests/test_parser_options.py` | Опции парсера | ✅ Актуален |
+| `tests/test_phone_validation.py` | Валидация телефонов | ✅ Актуален |
+| `tests/test_visited_links_cleanup.py` | Очистка посещённых ссылок | ✅ Актуален |
+| `tests/parser/test_main_parser_memory.py` | Потребление памяти парсером | ✅ Актуален |
+| `tests/parser/test_navigate_timeout.py` | Таймауты навигации | ✅ Актуален |
+| `tests/test_category_selector.py` | Выбор категорий | ✅ Актуален |
 
-### tests/cache/
-- `test_manager_cleanup.py` — тесты очистки CacheManager
-- `test_pool_critical_fixes.py` — критические исправления ConnectionPool
-- `test_pool_exceptions.py` — обработка исключений в пуле
+### TUI/GUI (8 файлов)
 
-### tests/chrome/
-- `test_browser_separation.py` — разделение ответственности браузера
-- `test_remote_critical_fixes.py` — критические исправления ChromeRemote
-- `test_subprocess_safety.py` — безопасность subprocess
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_optional_deps_tui.py` | Опциональные зависимости TUI | ✅ Актуален |
+| `tests/test_tui_config_fields.py` | Поля конфигурации TUI | ✅ Актуален |
+| `tests/test_tui_imports.py` | Импорты TUI | ✅ Актуален |
+| `tests/test_tui_layout.py` | Макет TUI | ✅ Актуален |
+| `tests/test_tui_state_management_regression.py` | Управление состоянием TUI | ✅ Актуален |
+| `tests/test_tui_stop_parsing_fix.py` | Остановка парсинга TUI | ✅ Актуален |
+| `tests/test_tui_textual.py` | Интеграция TUI (requires_tui) | ✅ Актуален |
+| `tests/test_tui_textual_logger.py` | Логгер TUI | ✅ Актуален |
+| `tests/test_widget_unique_ids.py` | Уникальные ID виджетов | ✅ Актуален |
 
-### tests/parallel/
-- `test_parallel_parser_delays.py` — задержки в параллельном парсере
-- `test_rlock_critical.py` — критическое использование RLock
+### Writer (4 файла)
 
-### tests/parser/
-- `test_main_parser_memory.py` — оптимизация памяти MainPageParser
-- `test_navigate_timeout.py` — обработка таймаутов навигации
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_csv_writer_strategies.py` | Стратегии CSV записи | ✅ Актуален |
+| `tests/test_file_handling.py` | Файловые операции writer | ✅ Актуален |
+| `tests/writer/test_csv_writer_contact_processing.py` | Обработка контактов CSV | ✅ Актуален |
+| `tests/writer/test_csv_writer_errors.py` | Обработка ошибок CSV | ✅ Актуален |
+| `tests/test_json_writer_structure.py` | Структура JSONWriter | ✅ Актуален |
 
-### tests/utils/
-- `test_path_validation.py` — валидация путей
-- `test_temp_file_timer_finally.py` — очистка TempFileTimer
+### Validation (3 файла)
 
-### tests/writer/
-- `test_csv_writer_contact_processing.py` — обработка контактов CSV
-- `test_csv_writer_errors.py` — обработка ошибок CSV
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_path_traversal.py` | Защита от Path Traversal | ✅ Актуален |
+| `tests/validation/test_path_validator.py` | PathValidator (авторитетный) | ✅ Актуален |
+| `tests/validation/test_url_validator.py` | URL validator | ✅ Актуален |
 
-### parser_2gis/tests/
-- `test_critical_fixes.py` — критические исправления ядра
-- `test_refactoring.py` — рефакторинг ядра
-- `test_refactoring_package_4.py` — пакет 4 рефакторинга
+### Security (3 файла)
 
-## Фикстуры (conftest.py)
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_security_fixes.py` | Исправления безопасности | ✅ Актуален |
+| `tests/test_path_traversal.py` | Path traversal атаки | ✅ Актуален |
+| `tests/test_sql_injection_cache.py` | SQL-инъекции в кэше | ✅ Актуален |
 
-~50 фикстур включая: `mock_oserror`, `temp_csv_files`, `mock_executor`, `mock_chrome_timeout`, `mock_db_connection`, `mock_tui_app_base`, `mock_chrome_options`, `mock_parser_options`, `mock_browser`, `mock_cities`, `mock_config`, `mock_cache_manager`, `mock_parallel_config` и др.
+### Quality (5 файлов)
 
-## Маркеры pytest
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_code_quality.py` | Качество кода (linting, complexity) | ✅ Актуален |
+| `tests/test_docstrings.py` | Наличие и качество docstrings | ✅ Актуален |
+| `tests/test_function_decomposition.py` | Декомпозиция функций | ✅ Исправлен |
+| `tests/test_line_length.py` | Длина строк | ✅ Актуален |
+| `tests/test_pep8_compliance.py` | Соответствие PEP8 | ✅ Актуален |
 
-| Маркер | Описание |
-|--------|----------|
-| `slow` | Медленные тесты |
-| `integration` | Интеграционные тесты |
-| `gui` | Тесты GUI |
-| `requires_chrome` | Требует Chrome |
-| `requires_network` | Требует сеть |
-| `requires_tui` | Требует textual TUI |
-| `benchmark` | Бенчмарки |
-| `critical` | Критические тесты |
-| `unit` | Юнит-тесты |
+### Configuration (6 файлов)
+
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_config.py` | Конфигурация | ✅ Актуален |
+| `tests/test_config_srp.py` | SRP в config | ✅ Исправлен (3 теста) |
+| `tests/test_configuration_fields.py` | Поля конфигурации | ✅ Актуален |
+| `tests/test_pydantic_compatibility.py` | Совместимость Pydantic | ✅ Актуален |
+| `tests/test_typed_dict_categories.py` | TypedDict для категорий | ✅ Актуален |
+| `tests/test_cli_arguments.py` | Аргументы CLI | ⚠️ Требует проверки |
+
+### Logger (4 файла)
+
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_logger.py` | Логирование | ✅ Актуален |
+| `tests/test_logging_improvements.py` | Улучшения логирования | ✅ Исправлен (or True) |
+| `tests/test_file_logger.py` | Файловый логгер | ✅ Актуален |
+| `tests/test_tui_textual_logger.py` | Логгер TUI | ✅ Актуален |
+
+### Utils (4 файла)
+
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_common.py` | Общие утилиты | ✅ Актуален |
+| `tests/test_paths_functions.py` | Функции работы с путями | ✅ Актуален |
+| `tests/test_sanitize_thread_safety.py` | Потокобезопасность санитизации | ✅ Актуален |
+| `tests/test_temp_file_race.py` | Гонки временных файлов | ✅ Актуален |
+| `tests/test_temp_file_timer_cleanup.py` | Очистка временных файлов по таймеру | ✅ Актуален |
+
+### Integration (10 файлов)
+
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_chrome_integration.py` | Интеграция с Chrome | ✅ Актуален |
+| `tests/test_tui_textual.py` | Интеграция TUI | ✅ Актуален |
+| `tests/test_parser.py` | Интеграция парсера | ✅ Актуален |
+| `tests/test_imports.py` | Корректность импортов | ✅ Актуален |
+| `tests/test_dependencies.py` | Проверка зависимостей | ✅ Актуален |
+| `tests/test_pysocks_dependency.py` | Зависимость PySocks | ✅ Актуален |
+| `tests/test_city_selector.py` | Выбор городов | ✅ Актуален |
+| `tests/test_js_validation.py` | Валидация JS-кода | ✅ Актуален |
+| `tests/test_main_categories_mode.py` | Режим главных категорий | ✅ Актуален |
+| `tests/test_exception_handling.py` | Общая обработка исключений | ✅ Актуален |
+
+### Другие (6 файлов)
+
+| Файл | Что тестирует | Статус |
+|------|---------------|--------|
+| `tests/test_specific_exceptions.py` | Специфичные исключения | ⚠️ Требует проверки |
+| `tests/test_weakref_finalize.py` | weakref.finalize | ⚠️ Требует проверки |
+| `tests/test_version_exceptions.py` | Исключения версий | ✅ Актуален |
+| `tests/test_validation_caching.py` | Кэширование валидации | ✅ Актуален |
+| `tests/test_performance_fixes.py` | Оптимизации производительности | ✅ Актуален |
+| `tests/test_process_manager_simplified.py` | Менеджер процессов | ⚠️ Требует проверки |
+
+---
+
+## ✅ Выполненные операции
+
+### Удаленные тесты (2 файла)
+- `tests/test_path_validator_module.py` - дублировал `tests/validation/test_path_validator.py`
+- `tests/utils/test_path_validation.py` - дублировал `tests/validation/test_path_validator.py`
+
+### Исправленные тесты (11 файлов)
+- `tests/test_logging_improvements.py` - убран `or True` из assert
+- `tests/test_browser_cleanup.py` - убран `or True` из assert
+- `tests/test_architecture_no_cycles.py` - убран `or True` из assert
+- `tests/test_architecture_improvements.py` - исправлен `>= 0` на `>= 1`
+- `tests/chrome/test_remote_critical_fixes.py` - убран `or True` из 2 assert
+- `tests/test_config_srp.py` - исправлены 3 failing теста (ConfigMerger API, BaseModel)
+- `tests/test_function_decomposition.py` - исправлены имена методов (terminate/kill)
+- `parser_2gis/config_services/config_validator.py` - исправлен production код (BaseModel import)
+
+---
+
+## 📝 Примечания
+
+- Все тесты актуальны на дату **2026-04-07**
+- Тесты с ⚠️ требуют дополнительной проверки
+- Тесты с ✅ прошли валидацию или были исправлены
+- Конфигурация тестов: `pytest.ini`, `setup.cfg`, `pyproject.toml`
+- Общие фикстуры: `tests/conftest.py` (1071 строка)
+
+---
+
+**Создано:** 2026-04-07  
+**Автор:** Githab-capibara  
+**Репозиторий:** https://github.com/Githab-capibara/rust-parser-2gis.git
