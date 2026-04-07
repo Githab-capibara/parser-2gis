@@ -248,7 +248,6 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                 Кортеж (успех, сообщение).
 
             """
-            import random
             import time
 
             from parser_2gis.chrome.exceptions import ChromeException
@@ -262,18 +261,14 @@ class ParallelUrlParser(UrlGeneratorProtocol):
 
             # H003: Задержка ТОЛЬКО если use_delays=True
             apply_startup_delay(
-                cached_config,
-                phase="initial",
-                log_func=lambda msg, level: self.log(msg, level),
+                cached_config, phase="initial", log_func=lambda msg, level: self.log(msg, level)
             )
 
             browser_semaphore.acquire()
             try:
                 # H003: Задержка ТОЛЬКО если use_delays=True
                 apply_startup_delay(
-                    cached_config,
-                    phase="launch",
-                    log_func=lambda msg, level: self.log(msg, level),
+                    cached_config, phase="launch", log_func=lambda msg, level: self.log(msg, level)
                 )
 
                 max_retries = 10

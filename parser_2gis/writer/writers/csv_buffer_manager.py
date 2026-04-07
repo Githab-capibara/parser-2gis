@@ -324,9 +324,7 @@ def _fallback_copy_and_remove(src: str, dst: str) -> bool:
                 logger.info("Файл перемещён через fallback copy+delete: %s -> %s", src, dst)
                 return True
             except OSError as remove_error:
-                logger.error(
-                    "OSError при удалении оригинала %s после copy: %s", src, remove_error
-                )
+                logger.error("OSError при удалении оригинала %s после copy: %s", src, remove_error)
                 return False
         else:
             logger.error("Fallback copy+delete не удался: файл %s не создан", dst)
@@ -336,9 +334,7 @@ def _fallback_copy_and_remove(src: str, dst: str) -> bool:
         return False
     except (TypeError, RuntimeError) as fallback_error:
         logger.error(
-            "Fallback copy+delete не удался: %s (%s)",
-            fallback_error,
-            type(fallback_error).__name__,
+            "Fallback copy+delete не удался: %s (%s)", fallback_error, type(fallback_error).__name__
         )
         return False
 

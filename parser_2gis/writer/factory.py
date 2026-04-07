@@ -77,7 +77,9 @@ def register_writer(format_name: str) -> Callable[[type[FileWriter]], type[FileW
     return decorator
 
 
-def get_writer(file_path: str | Path, file_format: str, writer_options: WriterOptions) -> FileWriter:
+def get_writer(
+    file_path: str | Path, file_format: str, writer_options: WriterOptions
+) -> FileWriter:
     """Фабричная функция для создания писателя файлов.
 
     Использует реестр для получения класса writer по формату файла.

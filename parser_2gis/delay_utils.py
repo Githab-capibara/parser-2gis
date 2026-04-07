@@ -13,11 +13,7 @@ if TYPE_CHECKING:
     pass
 
 
-def apply_startup_delay(
-    config: object,
-    phase: str = "initial",
-    log_func: object = None,
-) -> float:
+def apply_startup_delay(config: object, phase: str = "initial", log_func: object = None) -> float:
     """Применяет задержку перед запуском парсинга.
 
     Читает параметры задержки из конфигурации, выполняет ``random.uniform``

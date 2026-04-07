@@ -81,9 +81,7 @@ class CSVPostProcessor:
         """
         # #195: Проверка расширения файла
         if not str(self._file_path).endswith(".csv"):
-            raise ValueError(
-                f"Файл должен иметь расширение .csv, получен {self._file_path}"
-            )
+            raise ValueError(f"Файл должен иметь расширение .csv, получен {self._file_path}")
 
         complex_columns = list(self._complex_mapping.keys())
 

@@ -74,14 +74,16 @@ class EndOfResultsDetector:
 
             # #152: Ограничиваем размер текста для предотвращения проверки
             # всех паттернов по всей странице (производительность и безопасность)
-            page_text = (dom_tree.text or '')[:5000].lower()
+            page_text = (dom_tree.text or "")[:5000].lower()
             for pattern in self._compiled_patterns:
                 if pattern.search(page_text):
                     logger.debug("Обнаружен паттерн окончания: %s", pattern.pattern)
                     return True
 
             # Проверяем DOM-элементы
-            nodes = dom_tree.search(lambda node: bool(node.text) and len(node.text) < MAX_NODE_TEXT_LENGTH)
+            nodes = dom_tree.search(
+                lambda node: bool(node.text) and len(node.text) < MAX_NODE_TEXT_LENGTH
+            )
             for selector in self.DOM_END_SELECTORS:
                 for node in nodes:
                     try:

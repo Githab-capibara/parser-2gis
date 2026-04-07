@@ -183,7 +183,9 @@ class ConnectionPool:
             self._pool_size = _get_min_pool_size_env()
         elif pool_size is not None:
             # Ограничиваем размер пула разумными пределами
-            self._pool_size = max(_get_min_pool_size_env(), min(pool_size, _get_max_pool_size_env()))
+            self._pool_size = max(
+                _get_min_pool_size_env(), min(pool_size, _get_max_pool_size_env())
+            )
         else:
             self._pool_size = _get_max_pool_size_env()
 

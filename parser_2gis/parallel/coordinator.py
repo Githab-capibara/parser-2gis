@@ -57,10 +57,7 @@ BROWSER_SEMAPHORE_EXTRA_SLOTS: int = 0
 
 
 def _atomic_rename_with_retry(
-    src: Path,
-    dst: Path,
-    log_func: Callable[[str, str], None],
-    max_attempts: int = 3,
+    src: Path, dst: Path, log_func: Callable[[str, str], None], max_attempts: int = 3
 ) -> bool:
     """Атомарное переименование файла с повторными попытками.
 
@@ -92,10 +89,7 @@ def _atomic_rename_with_retry(
 
             # Используем shutil.move для кроссплатформенности
             shutil.move(str(src), str(dst))
-            log_func(
-                f"Временный файл перемещён: {src.name} → {dst.name}",
-                level="debug",
-            )
+            log_func(f"Временный файл перемещён: {src.name} → {dst.name}", level="debug")
             return True
 
         except OSError as move_error:
@@ -105,9 +99,7 @@ def _atomic_rename_with_retry(
                 )
                 time.sleep(0.1 * (attempt + 1))  # Экспоненциальная задержка
             else:
-                log_func(
-                    f"Не удалось переместить временный файл {src.name}: {move_error}"
-                )
+                log_func(f"Не удалось переместить временный файл {src.name}: {move_error}")
                 raise move_error
 
     return False
@@ -452,8 +444,7 @@ class ParallelCoordinator:
                 yield (url, category["name"], city["name"])
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
                 self.log(
-                    f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
-                    "error",
+                    f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}", "error"
                 )
 
     def _parse_single_url_impl(
@@ -472,18 +463,14 @@ class ParallelCoordinator:
 
         # H003: Задержка ТОЛЬКО если use_delays=True
         apply_startup_delay(
-            self.config,
-            phase="initial",
-            log_func=lambda msg, level: self.log(msg, level),
+            self.config, phase="initial", log_func=lambda msg, level: self.log(msg, level)
         )
 
         self._browser_launch_semaphore.acquire()
         try:
             # H003: Задержка ТОЛЬКО если use_delays=True
             apply_startup_delay(
-                self.config,
-                phase="launch",
-                log_func=lambda msg, level: self.log(msg, level),
+                self.config, phase="launch", log_func=lambda msg, level: self.log(msg, level)
             )
 
             # Вынесено в отдельные методы для устранения nonlocal

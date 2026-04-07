@@ -336,9 +336,7 @@ class ParseStrategy:
             # Rate limiting
             # #65-#67: Использует общую утилиту apply_startup_delay
             apply_startup_delay(
-                self.config,
-                phase="initial",
-                log_func=lambda msg, level: self._log(msg, level),
+                self.config, phase="initial", log_func=lambda msg, level: self._log(msg, level)
             )
 
             # Приобретаем семафор
@@ -359,9 +357,7 @@ class ParseStrategy:
                 # Дополнительная задержка запуска
                 # #65-#67: Использует общую утилиту apply_startup_delay
                 apply_startup_delay(
-                    self.config,
-                    phase="launch",
-                    log_func=lambda msg, level: self._log(msg, level),
+                    self.config, phase="launch", log_func=lambda msg, level: self._log(msg, level)
                 )
 
                 # Создаём parser и writer с повторными попытками

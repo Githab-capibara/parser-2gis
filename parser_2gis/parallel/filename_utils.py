@@ -12,10 +12,7 @@ if TYPE_CHECKING:
     pass
 
 
-def extract_category_from_filename(
-    csv_file: Path,
-    log_func: object = None,
-) -> str:
+def extract_category_from_filename(csv_file: Path, log_func: object = None) -> str:
     """Извлекает название категории из имени CSV файла.
 
     Формат имени файла: ``{city}_{category}.csv``.
@@ -39,9 +36,6 @@ def extract_category_from_filename(
     category = stem.replace("_", " ")
 
     if log_func is not None:
-        log_func(
-            f"Предупреждение: файл {csv_file.name} не содержит категорию в имени",
-            "warning",
-        )
+        log_func(f"Предупреждение: файл {csv_file.name} не содержит категорию в имени", "warning")
 
     return category

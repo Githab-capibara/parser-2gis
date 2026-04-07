@@ -151,7 +151,9 @@ class AdaptiveLimits:
         if self._city_size:
             return self.ADAPTIVE_TIMEOUTS[self._city_size]
         else:
-            return self._base_limit * DEFAULT_TIMEOUT_MULTIPLIER  # Fallback до определения размера города
+            return (
+                self._base_limit * DEFAULT_TIMEOUT_MULTIPLIER
+            )  # Fallback до определения размера города
 
     def get_city_size(self) -> str | None:
         """Возвращает определенный размер города.

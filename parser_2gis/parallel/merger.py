@@ -157,7 +157,9 @@ def _acquire_merge_lock(
                 lock_file_handle = None
 
                 if time.time() - start_time > timeout:
-                    _log_message(f"Таймаут ожидания lock файла ({timeout} сек)", "error", log_callback)
+                    _log_message(
+                        f"Таймаут ожидания lock файла ({timeout} сек)", "error", log_callback
+                    )
                     return None, False
 
                 time.sleep(1)
@@ -296,9 +298,7 @@ def _merge_csv_files(
                 # #64: Использует общую утилиту из filename_utils.py
                 category_name = extract_category_from_filename(
                     csv_file,
-                    log_func=lambda msg, level: _log_message(
-                        msg, level, merge_config.log_callback
-                    ),
+                    log_func=lambda msg, level: _log_message(msg, level, merge_config.log_callback),
                 )
 
                 infile = None
@@ -603,8 +603,7 @@ class ParallelFileMerger:
         """
         # #64: Использует общую утилиту из filename_utils.py
         return extract_category_from_filename(
-            csv_file,
-            log_func=lambda msg, level: self.log(msg, level),
+            csv_file, log_func=lambda msg, level: self.log(msg, level)
         )
 
     def acquire_merge_lock(self, lock_file_path: Path) -> tuple[typing.TextIO | None, bool]:
@@ -657,7 +656,9 @@ class ParallelFileMerger:
                         lock_file_handle = None
 
                         if time.time() - start_time > MERGE_LOCK_TIMEOUT:
-                            self.log(f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error")
+                            self.log(
+                                f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error"
+                            )
                             return None, False
 
                         time.sleep(1)

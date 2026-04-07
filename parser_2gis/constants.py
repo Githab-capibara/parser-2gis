@@ -335,7 +335,9 @@ class EnvConfig:
         ]
 
         for entry in env_validations:
-            value = self._validate_env_int(entry.env_name, entry.default, entry.min_value, entry.max_value)
+            value = self._validate_env_int(
+                entry.env_name, entry.default, entry.min_value, entry.max_value
+            )
             object.__setattr__(self, entry.attr_name, value)
             self._logger.info(entry.log_template, value)
 

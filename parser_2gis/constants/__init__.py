@@ -117,6 +117,7 @@ def _reset_constant_cache() -> None:
     if hasattr(get_env_config, "_instance"):
         delattr(get_env_config, "_instance")
 
+
 __all__ = [
     # Buffer constants
     "DEFAULT_BUFFER_SIZE",

@@ -13,9 +13,7 @@ if TYPE_CHECKING:
 
 
 def cleanup_temp_file(
-    temp_filepath: Path,
-    log_func: object = None,
-    description: str = "Временный файл удалён",
+    temp_filepath: Path, log_func: object = None, description: str = "Временный файл удалён"
 ) -> None:
     """Очищает временный файл.
 
@@ -41,6 +39,5 @@ def cleanup_temp_file(
             log_func(f"{description}: {temp_filepath.name}", "debug")
     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
         log_func(
-            f"Не удалось удалить временный файл {temp_filepath.name}: {cleanup_error}",
-            "warning",
+            f"Не удалось удалить временный файл {temp_filepath.name}: {cleanup_error}", "warning"
         )

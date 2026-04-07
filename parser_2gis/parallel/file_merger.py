@@ -313,8 +313,7 @@ class FileMergerStrategy:
         """
         # #64: Использует общую утилиту из filename_utils.py
         return extract_category_from_filename(
-            csv_file,
-            log_func=lambda msg, level: self.log(msg, level),
+            csv_file, log_func=lambda msg, level: self.log(msg, level)
         )
 
     def _acquire_merge_lock(self, lock_file_path: Path) -> tuple[typing.TextIO | None, bool]:

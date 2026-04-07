@@ -138,7 +138,9 @@ class ParallelOptimizer:
                 # Используем заданный процент от доступной памяти
                 self._max_memory_mb = int(available_memory_mb * self._memory_percent_threshold)
                 # Ограничиваем разумным диапазоном: минимум 512 MB, максимум 8192 MB
-                self._max_memory_mb = max(MIN_MEMORY_LIMIT_MB, min(self._max_memory_mb, MAX_MEMORY_LIMIT_MB))
+                self._max_memory_mb = max(
+                    MIN_MEMORY_LIMIT_MB, min(self._max_memory_mb, MAX_MEMORY_LIMIT_MB)
+                )
                 logger.debug(
                     "Автоматически определён лимит памяти: %d MB (доступно: %.0f MB, процент: %.0f%%)",
                     self._max_memory_mb,

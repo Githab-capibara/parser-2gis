@@ -104,9 +104,7 @@ class XLSXWriter(FileWriter):
             if os.path.exists(tmp_xlsx_name):
                 shutil.move(tmp_xlsx_name, self._file_path)
             else:
-                logger.warning(
-                    "Временный файл XLSX не создан: %s", tmp_xlsx_name
-                )
+                logger.warning("Временный файл XLSX не создан: %s", tmp_xlsx_name)
         except (OSError, csv.Error, ValueError, RuntimeError) as e:
             # Удаляем временный файл если он был создан
             if os.path.exists(tmp_xlsx_name):

@@ -113,9 +113,7 @@ class ParallelRunConfig:
 
         max_workers = data.get("max_workers", 10)
         if not isinstance(max_workers, int):
-            raise TypeError(
-                f"max_workers должен быть int, получен {type(max_workers).__name__}"
-            )
+            raise TypeError(f"max_workers должен быть int, получен {type(max_workers).__name__}")
 
         timeout_per_url = data.get("timeout_per_url", 300)
         if not isinstance(timeout_per_url, (int, float)):
@@ -131,9 +129,7 @@ class ParallelRunConfig:
 
         config = data.get("config")
         if config is not None and not isinstance(config, dict):
-            raise TypeError(
-                f"config должен быть dict или None, получен {type(config).__name__}"
-            )
+            raise TypeError(f"config должен быть dict или None, получен {type(config).__name__}")
 
         return cls(
             cities=cities,
