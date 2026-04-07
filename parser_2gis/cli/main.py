@@ -100,7 +100,7 @@ def main() -> None:
     except (KeyboardInterrupt, SystemExit):
         logger.warning("Приложение прервано пользователем")
         sys.exit(1)
-    except Exception as e:
+    except (RuntimeError, OSError, ImportError) as e:
         logger.error("Непредвиденная ошибка при запуске приложения: %s", e, exc_info=True)
         sys.exit(1)
 

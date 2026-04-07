@@ -520,7 +520,7 @@ class ParallelCoordinator:
 
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, RuntimeError, MemoryError) as e:
             return self._error_handler.handle_other_error(
                 e, temp_filepath, city_name, category_name
             )

@@ -181,12 +181,12 @@ class FileLogger:
             session_logger.info("=" * 80)
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, IOError, RuntimeError) as e:
             # ID:138: Закрываем handler если он был создан но настройка не удалась
             if handler_created and self._file_handler is not None:
                 try:
                     self._file_handler.close()
-                except Exception as handler_close_error:
+                except (OSError, IOError) as handler_close_error:
                     app_logger = logging.getLogger("parser-2gis")
                     app_logger.warning(
                         "Ошибка закрытия обработчика при сбое: %s", handler_close_error
@@ -228,7 +228,7 @@ class FileLogger:
                     logger.setLevel(self._log_level)
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (AttributeError, RuntimeError, OSError) as e:
             raise RuntimeError(
                 f"Ошибка добавления файлового обработчика к логгеру: {e}. "
                 f"Функция: {self.setup_logger.__name__}, "
@@ -259,7 +259,7 @@ class FileLogger:
 
                 try:
                     self._file_handler.close()
-                except Exception as e:
+                except (OSError, IOError) as e:
                     session_logger.error(
                         f"Ошибка закрытия файлового обработчика: {e}. "
                         f"Функция: {self.close.__name__}"
@@ -268,7 +268,7 @@ class FileLogger:
                     self._file_handler = None
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, IOError, RuntimeError) as e:
             app_logger = logging.getLogger("parser-2gis")
             app_logger.error(
                 "Ошибка при закрытии файлового логгера: %s. Функция: %s", e, self.close.__name__

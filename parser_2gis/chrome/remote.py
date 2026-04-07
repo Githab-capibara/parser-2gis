@@ -708,7 +708,7 @@ class ChromeRemote:
             raise
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, RuntimeError, ConnectionError) as e:
             app_logger.error("Ошибка навигации по URL %s: %s", url, e)
             raise
 
@@ -745,7 +745,7 @@ class ChromeRemote:
             raise
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, RuntimeError, ConnectionError) as e:
             app_logger.error("Ошибка при ожидании ответа: %s", e)
             return None
 
@@ -856,7 +856,7 @@ class ChromeRemote:
             raise
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError) as e:
             app_logger.warning("Непредвиденная ошибка при получении тела ответа: %s", e)
             return ""
         finally:
@@ -1005,7 +1005,7 @@ class ChromeRemote:
                 result["value"] = eval_result["result"].get("value", None)
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except Exception as e:
+            except (pychrome.CallMethodException, OSError, RuntimeError, KeyError) as e:
                 result["error"] = e
                 app_logger.warning("Ошибка при выполнении скрипта: %s", e)
 
@@ -1029,7 +1029,7 @@ class ChromeRemote:
             raise
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (RuntimeError, OSError, TimeoutError) as e:
             app_logger.warning("Непредвиденная ошибка при выполнении скрипта: %s", e)
             return None
 
@@ -1096,7 +1096,7 @@ class ChromeRemote:
             )
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, RuntimeError, ConnectionError) as e:
             app_logger.error("Ошибка при выполнении клика: %s", e)
 
     def wait(self, timeout: float | None = None) -> None:
@@ -1172,7 +1172,7 @@ class ChromeRemote:
             app_logger.info("Chrome браузер успешно закрыт")
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as close_browser_error:
+        except (OSError, RuntimeError, ChromeException) as close_browser_error:
             app_logger.error(
                 "Ошибка при закрытии браузера: %s (тип: %s)",
                 close_browser_error,
@@ -1203,7 +1203,7 @@ class ChromeRemote:
             app_logger.debug("Очередь запросов очищена")
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as clear_requests_error:
+        except (OSError, RuntimeError, AttributeError) as clear_requests_error:
             app_logger.warning("Ошибка при очистке очереди запросов: %s", clear_requests_error)
 
         # Очистка кэша портов
@@ -1212,7 +1212,7 @@ class ChromeRemote:
             app_logger.debug("Кэш портов очищен")
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as clear_cache_error:
+        except (OSError, RuntimeError) as clear_cache_error:
             app_logger.warning("Ошибка при очистке кэша портов: %s", clear_cache_error)
 
     def __enter__(self) -> ChromeRemote:
@@ -1297,7 +1297,7 @@ class ChromeRemote:
             return ""
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, RuntimeError, ConnectionError) as e:
             app_logger.error("Ошибка при получении HTML: %s", e)
             return ""
 
@@ -1329,7 +1329,7 @@ class ChromeRemote:
                 app_logger.error("Не удалось получить скриншот: пустой результат")
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, IOError, RuntimeError) as e:
             app_logger.error("Ошибка при создании скриншота: %s", e)
             raise
 

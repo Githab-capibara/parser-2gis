@@ -27,7 +27,7 @@ def _compute_default_memory_limit() -> int:
     """
     try:
         memory_total = psutil.virtual_memory().total / 1024**2  # Конвертируем в МБ
-    except Exception:  # noqa: BLE001 — В контейнерах psutil может вернуть некорректные данные
+    except (psutil.Error, OSError, ValueError):  # В контейнерах psutil может вернуть некорректные данные
         # Fallback для контейнеров и окружений без доступа к информации о памяти
         memory_total = 8192  # 8 ГБ по умолчанию
     # ISSUE-038: Вынесено магическое число 0.75 в константу MEMORY_FRACTION_FOR_V8

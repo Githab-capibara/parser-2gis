@@ -86,7 +86,7 @@ def run_tui_application(tui_type: str = "main") -> int:
         return 0
     except (KeyboardInterrupt, SystemExit):
         return 1
-    except Exception as e:
+    except (ImportError, RuntimeError, OSError) as e:
         logger.error("Ошибка при запуске TUI: %s", e, exc_info=True)
         return 1
 
@@ -202,7 +202,7 @@ class ApplicationLauncher:
             return 1
         except (KeyboardInterrupt, SystemExit):
             return 1
-        except Exception as e:
+        except (RuntimeError, OSError, ImportError) as e:
             # ID:045: Добавлен catch-all Exception для обработки непредвиденных ошибок
             logger.error(
                 "Непредвиденная ошибка при настройке обработчиков сигналов: %s", e, exc_info=True
@@ -504,7 +504,7 @@ class ApplicationLauncher:
             logger.critical("Критическая ошибка: нехватка памяти при очистке ресурсов: %s", e)
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, RuntimeError, ImportError) as e:
             logger.error("Непредвиденная ошибка при очистке ресурсов: %s", e, exc_info=True)
 
     def _cleanup_chrome_remote(self) -> None:
@@ -608,7 +608,7 @@ class ApplicationLauncher:
             logger.info("Кэш базы данных успешно закрыт")
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, RuntimeError, ImportError) as e:
             logger.error("Ошибка при закрытии кэша: %s", e, exc_info=True)
 
     def _cleanup_gc(self) -> None:
@@ -632,7 +632,7 @@ class ApplicationLauncher:
             logger.debug("Сборщик мусора завершён")
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (RuntimeError, OSError) as e:
             logger.error("Ошибка gc.collect(): %s", e, exc_info=True)
 
 
