@@ -30,6 +30,8 @@ from typing import Any, Protocol
 
 from typing_extensions import TypeAlias
 
+# NOTE: architecture violation — модуль cache не должен зависеть от chrome.constants.
+# Это существующая архитектура, требует рефакторинга для устранения зависимости.
 from ..chrome.constants import DEFAULT_TTL_HOURS, MAX_RESPONSE_SIZE
 from ..constants.cache import (
     DEFAULT_CACHE_FILE_NAME,

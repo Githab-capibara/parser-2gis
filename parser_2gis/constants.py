@@ -20,6 +20,8 @@ from functools import lru_cache
 from typing import TypeAlias, cast
 
 # Импорты констант из подмодулей для обратной совместимости
+# WARNING: potential circular dependency — constants.py импортирует из .parser,
+# а .parser.config импортирует из constants. Это существующая архитектура.
 from .parser import (
     DEFAULT_SLEEP_TIME,
     MAX_RECORDS_BASE_OFFSET,

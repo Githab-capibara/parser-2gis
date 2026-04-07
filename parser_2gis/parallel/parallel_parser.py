@@ -73,7 +73,6 @@ if TYPE_CHECKING:
     from parser_2gis.config import Configuration
 
 # Константы
-MEMORY_THRESHOLD_BYTES = 100 * 1024 * 1024  # 100MB порог для проверки памяти
 MAX_LOCK_ATTEMPTS = 50  # Максимальное число попыток получения lock файла (50 попыток с интервалом 1 сек = до 50 сек ожидания)
 
 

@@ -94,8 +94,8 @@ class SanitizeFormatter(BaseFormatter):
         "\x00": "",  # Удаление null-символов для предотвращения CSV injection
     }
 
-    # Опасные символы для CSV injection
-    _DANGEROUS_CHARS = ("=", "+", "-", "@")
+    # Опасные символы для CSV injection (включая | и ^ — используются в LibreOffice формулах)
+    _DANGEROUS_CHARS = ("=", "+", "-", "@", "|", "^")
 
     def format(self, value: str) -> str:
         """Санитизирует значение для CSV.
