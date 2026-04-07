@@ -83,7 +83,7 @@ class TestErrorLogging:
         logger.info("Тестовое сообщение для проверки логирования")
 
         # Проверяем что логирование работает
-        assert "Тестовое сообщение" in caplog.text or True
+        assert "Тестовое сообщение" in caplog.text
 
 
 class TestLoggingLevels:

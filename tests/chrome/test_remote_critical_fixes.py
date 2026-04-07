@@ -276,7 +276,7 @@ class TestChromeBrowserCloseGuaranteedCleanup:
             browser.close()
 
             # Проверяем что terminate или kill был вызван
-            assert mock_process.terminate.called or mock_process.kill.called or True
+            assert mock_process.terminate.called or mock_process.kill.called
 
     def test_browser_close_handles_exception(self) -> None:
         """Тест 11: Обработка исключений в browser.close().
@@ -331,7 +331,7 @@ class TestChromeBrowserCloseGuaranteedCleanup:
             browser.close()
 
             # Проверяем что процесс был завершён
-            assert mock_process.terminate.called or mock_process.kill.called or True
+            assert mock_process.terminate.called or mock_process.kill.called
 
     def test_browser_close_none_process(self) -> None:
         """Тест 13: Обработка None процесса в browser.close().

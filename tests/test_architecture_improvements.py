@@ -361,7 +361,7 @@ class TestProtocolDocumentation:
 
         assert has_docstring, "LoggerProtocol должен иметь docstring"
         # LoggerProtocol должен иметь хотя бы минимальную документацию
-        assert len(sections) >= 0, "LoggerProtocol должен иметь docstring"
+        assert len(sections) >= 1, "LoggerProtocol должен иметь docstring с описанием"
 
 
 # =============================================================================

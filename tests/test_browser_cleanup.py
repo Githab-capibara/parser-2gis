@@ -249,7 +249,7 @@ class TestSignalHandlerCleanup:
 
                         # Проверяем что были вызваны логи очистки
                         # logger.debug или logger.error должны были вызваться
-                        assert mock_logger.debug.called or mock_logger.error.called or True, (
+                        assert mock_logger.debug.called or mock_logger.error.called, (
                             "Очистка не была залогирована"
                         )
 
