@@ -377,50 +377,46 @@ class TestNoCyclesDetectedByAST:
             if "tests" in py_file.parts or "__pycache__" in py_file.parts:
                 continue
 
-            content = py_file.read_text(encoding="utf-8")
-
-            # Проверяем на явные самоимпорты (исключая docstring примеры)
             rel_path = py_file.relative_to(project_root)
             module_path = str(rel_path.with_suffix("")).replace("/", ".")
 
             # Пропускаем __init__.py файлы (они могут импортировать из sibling модулей)
+            # А также пакетные __init__.py которые содержат документацию с примерами импорта
             if py_file.name == "__init__.py":
                 continue
 
-            # Удаляем docstring и комментарии для проверки
-            content_no_docstring = content
-            try:
-                tree = ast.parse(content)
-                if (
-                    tree.body
-                    and isinstance(tree.body[0], ast.Expr)
-                    and isinstance(tree.body[0].value, ast.Constant)
-                ):
-                    # Удаляем первый docstring
-                    docstring_node = tree.body[0]
-                    if hasattr(docstring_node, "lineno") and hasattr(docstring_node, "end_lineno"):
-                        lines = content.split("\n")
-                        content_no_docstring = "\n".join(lines[docstring_node.end_lineno :])
-            except (SyntaxError, AttributeError, IndexError):
+            # Пропускаем файлы которые являются пакетными модулями
+            # (constants/__init__.py -> модуль "constants", содержит примеры в docstring)
+            parent_dir = py_file.parent
+            if parent_dir.name == py_file.stem:
+                # Например: cache/cache.py, logger/logger.py — это допустимо
                 pass
 
-            # Также удаляем строки которые являются примерами в docstring (начинаются с >>>)
-            lines = content_no_docstring.split("\n")
-            filtered_lines = [line for line in lines if not line.strip().startswith(">>>")]
-            content_no_examples = "\n".join(filtered_lines)
+            # Используем AST для поиска реальных импортов а не строковый поиск
+            try:
+                with open(py_file, "r", encoding="utf-8") as f:
+                    source = f.read()
+                tree = ast.parse(source)
+            except (SyntaxError, OSError, UnicodeDecodeError):
+                continue
 
-            # Проверяем что файл не импортирует сам себя
-            # Ищем только реальные импорты а не примеры в docstring
-            self_import_patterns = [
-                f"from parser_2gis.{module_path} import",
-                f"import parser_2gis.{module_path}",
-            ]
+            self_import_found = False
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom):
+                    if node.module and node.module == f"parser_2gis.{module_path}":
+                        self_import_found = True
+                        break
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name == f"parser_2gis.{module_path}":
+                            self_import_found = True
+                            break
+                if self_import_found:
+                    break
 
-            for pattern in self_import_patterns:
-                # Проверяем что паттерн не в примере (не после >>>)
-                assert pattern not in content_no_examples, (
-                    f"{py_file.name} не должен импортировать сам себя: {pattern}"
-                )
+            assert not self_import_found, (
+                f"{py_file.name} не должен импортировать parser_2gis.{module_path}"
+            )
 
 
 # =============================================================================

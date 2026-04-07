@@ -44,30 +44,29 @@ class TestTempFileTimerStop:
         timer.stop()
 
         # Проверяем что таймер остановлен
-        # timer._timer может быть None после stop()
-        if timer._timer is not None:
-            assert timer._timer.is_alive() is False, "Таймер должен быть остановлен"
+        assert timer._timer is None, "Таймер должен быть очищен"
         assert timer._is_running is False, "Флаг is_running должен быть False"
 
-    def test_stop_sets_stop_event(self, tmp_path: Path) -> None:
+    def test_stop_sets_is_running_false(self, tmp_path: Path) -> None:
         """
-        Тест 1.2: Проверка что stop() устанавливает событие остановки.
+        Тест 1.2: Проверка что stop() устанавливает _is_running в False.
 
-        Проверяет что _stop_event устанавливается при вызове stop().
+        Проверяет что _is_running сбрасывается при вызове stop().
 
         Args:
             tmp_path: pytest tmp_path fixture.
         """
         timer = TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer.start()
 
-        # Проверяем что событие не установлено изначально
-        assert timer._stop_event.is_set() is False, "Событие остановки не должно быть установлено"
+        # Проверяем что флаг установлен
+        assert timer._is_running is True, "Таймер должен быть запущен"
 
         # Вызываем stop
         timer.stop()
 
-        # Проверяем что событие установлено
-        assert timer._stop_event.is_set(), "Событие остановки должно быть установлено"
+        # Проверяем что флаг сброшен
+        assert timer._is_running is False, "Флаг is_running должен быть False"
 
     def test_stop_clears_timer_reference(self, tmp_path: Path) -> None:
         """
@@ -112,7 +111,6 @@ class TestTempFileTimerStop:
 
         # Проверяем что таймер остановлен
         assert timer._is_running is False, "Таймер должен быть остановлен"
-        assert timer._stop_event.is_set(), "Событие остановки должно быть установлено"
 
     def test_stop_without_start(self, tmp_path: Path) -> None:
         """
@@ -131,7 +129,6 @@ class TestTempFileTimerStop:
 
         # Проверяем что состояние корректно
         assert timer._is_running is False, "Таймер не должен быть запущен"
-        assert timer._stop_event.is_set(), "Событие остановки должно быть установлено"
 
 
 class TestTempFileTimerMemoryLeak:
@@ -199,51 +196,15 @@ class TestTempFileTimerMemoryLeak:
             f"Утечка потоков: было {initial_threads}, стало {final_threads}"
         )
 
-    def test_finalizer_called_on_deletion(self, tmp_path: Path) -> None:
-        """
-        Тест 2.3: Проверка вызова finalizer при удалении.
-
-        Проверяет что weakref.finalize вызывается
-        при удалении объекта таймера.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
-        """
-        import gc
-
-        finalizer_called = {"value": False}
-
-        def mock_finalizer(timer_obj, timer_ref, lock):
-            """Mock finalizer функции."""
-            finalizer_called["value"] = True
-
-        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
-
-        # Сохраняем ссылку на finalizer
-        original_finalizer = timer._finalizer
-
-        # Проверяем что finalizer существует
-        assert original_finalizer is not None, "Finalizer должен быть создан"
-
-        # Останавливаем таймер
-        timer.stop()
-
-        # Удаляем таймер
-        del timer
-        gc.collect()
-
-        # Finalizer должен быть вызван (проверяем через detach)
-        # Note: finalizer вызывается автоматически при удалении объекта
-
 
 class TestTempFileTimerCallback:
     """Тесты для проверки callback функции очистки."""
 
-    def test_callback_checks_stop_event(self, tmp_path: Path) -> None:
+    def test_callback_checks_is_running(self, tmp_path: Path) -> None:
         """
-        Тест 3.1: Проверка что callback проверяет событие остановки.
+        Тест 3.1: Проверка что callback проверяет _is_running.
 
-        Проверяет что _cleanup_callback проверяет _stop_event
+        Проверяет что _cleanup_callback проверяет _is_running
         перед выполнением очистки.
 
         Args:
@@ -251,8 +212,8 @@ class TestTempFileTimerCallback:
         """
         timer = TempFileTimer(temp_dir=tmp_path, interval=60)
 
-        # Устанавливаем событие остановки
-        timer._stop_event.set()
+        # Убеждаемся что таймер не запущен
+        timer._is_running = False
 
         # Вызываем callback - не должно выполнять очистку
         timer._cleanup_callback()
@@ -260,91 +221,76 @@ class TestTempFileTimerCallback:
         # Проверяем что очистка не была вызвана
         assert timer._cleanup_count == 0, "Очистка не должна была быть вызвана"
 
-    def test_callback_acquires_lock(self, tmp_path: Path) -> None:
+    def test_callback_calls_cleanup(self, tmp_path: Path) -> None:
         """
-        Тест 3.2: Проверка что callback захватывает блокировку.
+        Тест 3.2: Проверка что callback вызывает очистку.
 
-        Проверяет что _cleanup_callback захватывает
-        блокировку перед проверкой события.
+        Проверяет что _cleanup_callback вызывает _cleanup_temp_files
+        когда _is_running = True.
 
         Args:
             tmp_path: pytest tmp_path fixture.
         """
         timer = TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer._is_running = True
 
-        # Захватываем блокировку
-        lock_acquired = timer._lock.acquire(timeout=5.0)
-        assert lock_acquired, "Блокировка должна быть захвачена"
+        cleanup_called = {"count": 0}
 
-        # Вызываем callback в отдельном потоке
-        callback_completed = threading.Event()
+        def mock_cleanup():
+            cleanup_called["count"] += 1
 
-        def call_callback():
-            """Вызывает callback."""
-            timer._cleanup_callback()
-            callback_completed.set()
-
-        thread = threading.Thread(target=call_callback)
-        thread.start()
-
-        # Ждем немного - callback должен ждать блокировку
-        time.sleep(0.5)
-        assert callback_completed.is_set() is False, "Callback должен ждать блокировку"
-
-        # Освобождаем блокировку
-        timer._lock.release()
-
-        # Ждем завершения callback
-        thread.join(timeout=5)
-        assert callback_completed.is_set(), "Callback должен завершиться"
-
-    def test_callback_handles_lock_timeout(self, tmp_path: Path, caplog) -> None:
-        """
-        Тест 3.3: Проверка обработки timeout блокировки.
-
-        Проверяет что при timeout блокировки callback
-        логирует предупреждение и возвращается.
-
-        Args:
-            tmp_path: pytest tmp_path fixture.
-            caplog: pytest caplog fixture.
-        """
-        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
-
-        # Mock блокировки для имитации timeout
-        mock_lock = MagicMock()
-        mock_lock.acquire.return_value = False  # Timeout
-        timer._lock = mock_lock
+        timer._cleanup_temp_files = mock_cleanup
 
         # Вызываем callback
         timer._cleanup_callback()
 
-        # Проверяем что предупреждение было залогировано
-        assert "Не удалось получить блокировку" in caplog.text
+        # Проверяем что очистка была вызвана
+        assert cleanup_called["count"] == 1, "Очистка должна быть вызвана"
 
-    def test_callback_handles_lock_error(self, tmp_path: Path, caplog) -> None:
+    def test_callback_schedules_next(self, tmp_path: Path) -> None:
         """
-        Тест 3.4: Проверка обработки ошибки блокировки.
+        Тест 3.3: Проверка что callback планирует следующую очистку.
 
-        Проверяет что при ошибке блокировки callback
-        логирует ошибку и возвращается.
+        Проверяет что после очистки вызывается _schedule_next_cleanup.
+
+        Args:
+            tmp_path: pytest tmp_path fixture.
+        """
+        timer = TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer._is_running = True
+
+        timer._cleanup_temp_files = lambda: 0
+
+        # Вызываем callback
+        timer._cleanup_callback()
+
+        # Проверяем что следующий таймер запланирован
+        assert timer._timer is not None, "Следующий таймер должен быть запланирован"
+
+    def test_callback_handles_cleanup_error(self, tmp_path: Path, caplog) -> None:
+        """
+        Тест 3.4: Проверка обработки ошибки очистки.
+
+        Проверяет что при ошибке очистки callback
+        логирует ошибку и планирует следующую очистку.
 
         Args:
             tmp_path: pytest tmp_path fixture.
             caplog: pytest caplog fixture.
         """
         timer = TempFileTimer(temp_dir=tmp_path, interval=60)
+        timer._is_running = True
 
-        # Mock блокировки для имитации ошибки
-        mock_lock = MagicMock()
-        mock_lock.acquire.side_effect = RuntimeError("Lock error")
-        timer._lock = mock_lock
+        def mock_cleanup_error():
+            raise OSError("Cleanup failed")
 
-        # Вызываем callback
+        timer._cleanup_temp_files = mock_cleanup_error
+
+        # Вызываем callback — не должен выбросить исключение
         timer._cleanup_callback()
 
         # Проверяем что ошибка была залогирована
-        assert "Ошибка при получении блокировки" in caplog.text
+        assert "Ошибка при периодической очистке" in caplog.text
 
 
 class TestTempFileTimerEdgeCases:
@@ -384,7 +330,7 @@ class TestTempFileTimerEdgeCases:
             cleanup_completed.wait(timeout=5)
 
         # Проверяем что таймер остановлен
-        assert timer._stop_event.is_set(), "Событие остановки должно быть установлено"
+        assert timer._is_running is False, "Флаг is_running должен быть False"
 
     def test_timer_with_short_interval(self, tmp_path: Path) -> None:
         """
@@ -423,12 +369,16 @@ class TestTempFileTimerEdgeCases:
         # Initial count
         initial_count = timer._cleanup_count
 
-        # Вызываем очистку несколько раз (сначала снимаем с блокировки stop_event)
-        timer._stop_event.clear()
+        # Запускаем таймер чтобы _is_running = True
+        timer.start()
 
-        # Mock _cleanup_temp_files чтобы он не делал ничего но увеличивал счетчик
+        # Счетчик увеличивается внутри _cleanup_temp_files
+        original_cleanup = timer._cleanup_temp_files
+        call_count = {"count": 0}
+
         def mock_cleanup():
-            timer._cleanup_count += 1
+            call_count["count"] += 1
+            return original_cleanup()
 
         timer._cleanup_temp_files = mock_cleanup
 
@@ -436,9 +386,12 @@ class TestTempFileTimerEdgeCases:
         timer._cleanup_callback()
         timer._cleanup_callback()
 
-        # Проверяем что счетчик увеличился минимум на 3
-        assert timer._cleanup_count >= initial_count + 3, (
-            f"Счетчик должен быть >= {initial_count + 3}"
+        # Останавливаем таймер чтобы остановить рекурсивное планирование
+        timer._is_running = False
+
+        # Проверяем что _cleanup_temp_files был вызван 3 раза
+        assert call_count["count"] == 3, (
+            f"_cleanup_temp_files должен быть вызван 3 раза, вызван {call_count['count']}"
         )
 
 

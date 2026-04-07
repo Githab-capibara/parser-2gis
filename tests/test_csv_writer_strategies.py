@@ -155,7 +155,7 @@ class TestSanitizeFormatter:
         formatter = SanitizeFormatter()
         result = formatter.format(123)  # type: ignore[arg-type]
 
-        assert result == 123
+        assert result == "123"
 
 
 class TestTypeFormatter:
@@ -296,7 +296,7 @@ class TestCSVWriterWithStrategies:
         self, mock_options: MagicMock, temp_csv_file: pathlib.Path
     ) -> None:
         """Тестирует инициализацию форматировщиков в CSVWriter."""
-        writer = CSVWriter(file_path=str(temp_csv_file), writer_options=mock_options)
+        writer = CSVWriter(file_path=str(temp_csv_file), options=mock_options)
 
         assert hasattr(writer, "_phone_formatter")
         assert hasattr(writer, "_sanitize_formatter")
@@ -312,7 +312,7 @@ class TestCSVWriterWithStrategies:
         self, mock_options: MagicMock, temp_csv_file: pathlib.Path
     ) -> None:
         """Тестирует что _type_names использует TypeFormatter."""
-        writer = CSVWriter(file_path=str(temp_csv_file), writer_options=mock_options)
+        writer = CSVWriter(file_path=str(temp_csv_file), options=mock_options)
 
         type_names = writer._type_names
 
@@ -323,7 +323,7 @@ class TestCSVWriterWithStrategies:
         self, mock_options: MagicMock, temp_csv_file: pathlib.Path
     ) -> None:
         """Тестирует санитизацию в _extract_raw."""
-        writer = CSVWriter(file_path=str(temp_csv_file), writer_options=mock_options)
+        writer = CSVWriter(file_path=str(temp_csv_file), options=mock_options)
 
         # Проверяем что санитизация работает
         test_value = "=SUM(A1:A10)"

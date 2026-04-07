@@ -183,12 +183,12 @@ class TestProcessManagerSimplified:
         with patch.object(process_manager, "terminate") as mock_terminate:
             mock_terminate.return_value = (True, "terminated")
             process_manager.terminate_process_graceful(12345)
-            mock_terminate.assert_called_once_with(12345, 5)
+            mock_terminate.assert_called_once_with(12345, timeout=5)
 
         with patch.object(process_manager, "kill") as mock_kill:
             mock_kill.return_value = (True, "killed")
             process_manager.terminate_process_forceful(12345)
-            mock_kill.assert_called_once_with(12345, 10)
+            mock_kill.assert_called_once_with(12345, timeout=10)
 
     def test_terminate_success_scenario(self) -> None:
         """Тест успешного сценария terminate().

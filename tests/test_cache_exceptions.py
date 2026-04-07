@@ -63,7 +63,7 @@ class TestCacheSpecificExceptions:
         Тест 1.2: Проверка обработки sqlite3.Error "disk I/O error".
 
         Проверяет что ошибка "disk I/O error"
-        обрабатывается специфично и пробрасывается.
+        пробрасывается дальше как sqlite3.Error.
 
         Args:
             tmp_path: pytest tmp_path fixture.
@@ -71,12 +71,11 @@ class TestCacheSpecificExceptions:
         """
         cache = temp_cache_manager
 
-        # Mock sqlite3.Error для имитации "disk I/O error"
+        # Mock execute для имитации "disk I/O error"
         with patch.object(cache._pool, "get_connection") as mock_get_conn:
             mock_conn = MagicMock()
-            mock_cursor = MagicMock()
-            mock_cursor.fetchone.side_effect = sqlite3.Error("disk I/O error")
-            mock_conn.cursor.return_value = mock_cursor
+            mock_conn.execute.side_effect = sqlite3.Error("disk I/O error")
+            mock_conn.cursor.return_value.fetchone.return_value = None
             mock_get_conn.return_value = mock_conn
 
             # Пытаемся получить данные - должна произойти ошибка
@@ -94,7 +93,7 @@ class TestCacheSpecificExceptions:
         Тест 1.3: Проверка обработки sqlite3.Error "no such table".
 
         Проверяет что ошибка "no such table"
-        обрабатывается специфично и пробрасывается.
+        пробрасывается дальше как sqlite3.Error.
 
         Args:
             tmp_path: pytest tmp_path fixture.
@@ -102,12 +101,11 @@ class TestCacheSpecificExceptions:
         """
         cache = temp_cache_manager
 
-        # Mock sqlite3.Error для имитации "no such table"
+        # Mock execute для имитации "no such table"
         with patch.object(cache._pool, "get_connection") as mock_get_conn:
             mock_conn = MagicMock()
-            mock_cursor = MagicMock()
-            mock_cursor.fetchone.side_effect = sqlite3.Error("no such table: cache")
-            mock_conn.cursor.return_value = mock_cursor
+            mock_conn.execute.side_effect = sqlite3.Error("no such table: cache")
+            mock_conn.cursor.return_value.fetchone.return_value = None
             mock_get_conn.return_value = mock_conn
 
             # Пытаемся получить данные - должна произойти ошибка
@@ -249,9 +247,8 @@ class TestCacheSpecificExceptions:
 
         with patch.object(cache._pool, "get_connection") as mock_get_conn:
             mock_conn = MagicMock()
-            mock_cursor = MagicMock()
-            mock_cursor.fetchone.side_effect = sqlite3.Error(error_msg)
-            mock_conn.cursor.return_value = mock_cursor
+            mock_conn.execute.side_effect = sqlite3.Error(error_msg)
+            mock_conn.cursor.return_value.fetchone.return_value = None
             mock_get_conn.return_value = mock_conn
 
             if should_be_handled:

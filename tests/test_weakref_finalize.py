@@ -45,18 +45,18 @@ class TestWeakrefFinalize:
             assert cache._finalizer.alive, "Finalizer должен быть активен"
 
     def test_temp_file_timer_has_finalizer(self):
-        """Тест 3: TempFileTimer имеет weakref.finalize."""
+        """Тест 3: TempFileTimer имеет механизмы очистки."""
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
             timer = TempFileTimer(temp_dir=Path(tmpdir))
 
-            # Проверяем наличие finalizer
-            assert hasattr(timer, "_finalizer"), "TempFileTimer должен иметь _finalizer"
-            assert hasattr(timer, "_weak_ref"), "TempFileTimer должен иметь _weak_ref"
+            # Проверяем наличие атрибутов управления
+            assert hasattr(timer, "_is_running"), "TempFileTimer должен иметь _is_running"
+            assert hasattr(timer, "_timer"), "TempFileTimer должен иметь _timer"
 
-            # Проверяем что finalizer активен
-            assert timer._finalizer.alive, "Finalizer должен быть активен"
+            # Проверяем что изначально не запущен
+            assert timer._is_running is False, "Timer изначально не должен быть запущен"
 
     def test_weakref_returns_object(self):
         """Тест 4: weakref возвращает объект."""

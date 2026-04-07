@@ -271,7 +271,6 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     p_parser.add_argument(
         "--parallel.max-workers",
         type=int,
-        default=None,  # Вычисляется лениво в _get_default_max_workers
         help=textwrap.fill(
             "Потоков для параллельного парсинга", width=60, subsequent_indent="    "
         ),

@@ -88,7 +88,10 @@ class TestConfigValidator:
 
         result = validator.validate(config)
 
-        assert result is True
+        # validate возвращает кортеж (bool, list[str])
+        assert isinstance(result, tuple)
+        assert result[0] is True
+        assert result[1] == []
 
     def test_format_validation_errors(self) -> None:
         """Тестирует форматирование ошибок валидации."""
@@ -150,7 +153,10 @@ class TestConfiguration:
 
         result = config.validate()
 
-        assert result is True
+        # validate возвращает кортеж (bool, list[str])
+        assert isinstance(result, tuple)
+        assert result[0] is True
+        assert result[1] == []
 
     def test_configuration_format_errors(self) -> None:
         """Тестирует форматирование ошибок."""

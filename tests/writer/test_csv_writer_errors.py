@@ -61,7 +61,7 @@ class TestCSVWriterErrorHandling:
         Returns:
             CSVWriter экземпляр.
         """
-        writer = CSVWriter(file_path=str(temp_output_path), writer_options=mock_options)
+        writer = CSVWriter(file_path=str(temp_output_path), options=mock_options)
         yield writer
         try:
             writer.close()
@@ -164,7 +164,7 @@ class TestCSVWriterErrorHandling:
         monkeypatch.setattr(csv_writer, "CSVPostProcessor", lambda *args, **kwargs: mock_processor)
 
         with caplog.at_level(logging.ERROR):
-            writer = CSVWriter(file_path=str(temp_output_path), writer_options=mock_options)
+            writer = CSVWriter(file_path=str(temp_output_path), options=mock_options)
 
             with writer:
                 writer._writerow({"name": "Test"})
@@ -201,7 +201,7 @@ class TestCSVWriterErrorHandling:
         monkeypatch.setattr(csv_writer, "CSVDeduplicator", lambda *args, **kwargs: mock_dedup)
 
         with caplog.at_level(logging.ERROR):
-            writer = CSVWriter(file_path=str(temp_output_path), writer_options=mock_options)
+            writer = CSVWriter(file_path=str(temp_output_path), options=mock_options)
 
             with writer:
                 writer._writerow({"name": "Test"})
@@ -314,7 +314,7 @@ class TestCSVWriterErrorHandling:
             invalid_path = ""
 
             with pytest.raises(ValueError):
-                writer = CSVWriter(file_path=invalid_path, writer_options=mock_options)
+                writer = CSVWriter(file_path=invalid_path, options=mock_options)
                 with writer:
                     pass
 
@@ -328,7 +328,7 @@ class TestCSVWriterErrorHandling:
         from pathlib import Path
 
         with caplog.at_level(logging.ERROR):
-            writer = CSVWriter(file_path=temp_output_path, writer_options=mock_options)
+            writer = CSVWriter(file_path=temp_output_path, options=mock_options)
 
             # Проверяем что контекстный менеджер работает корректно
             with writer:
@@ -358,7 +358,7 @@ class TestCSVWriterErrorHandling:
         - Файл закрывается даже при ошибке
         """
         with caplog.at_level(logging.ERROR):
-            writer = CSVWriter(file_path=temp_output_path, writer_options=mock_options)
+            writer = CSVWriter(file_path=temp_output_path, options=mock_options)
 
             # Входим в контекст, чтобы создать _file
             with writer:

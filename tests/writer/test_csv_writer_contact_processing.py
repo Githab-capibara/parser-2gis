@@ -59,7 +59,7 @@ class TestCSVWriterContactProcessing:
         Returns:
             CSVWriter экземпляр.
         """
-        writer = CSVWriter(file_path=str(temp_output_path), writer_options=mock_options)
+        writer = CSVWriter(file_path=str(temp_output_path), options=mock_options)
         yield writer
         try:
             writer.close()

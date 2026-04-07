@@ -432,9 +432,9 @@ class ProcessManager:
                     self._proc.wait(timeout=timeout)
                     app_logger.info(
                         "Chrome браузер %s завершён (PID: %d, время ожидания: %d сек)",
+                        terminate_method,
                         process_pid,
                         timeout,
-                        terminate_method,
                     )
                     # H013: Очищаем ссылку на процесс после завершения
                     self._proc = None
@@ -626,6 +626,15 @@ class ProcessManager:
     def start_time(self) -> float:
         """Возвращает время запуска процесса."""
         return self._start_time
+
+    # Алиасы для обратной совместимости
+    def terminate_process_graceful(self, process_pid: int) -> ProcessStatus:
+        """Алиас для terminate() для обратной совместимости."""
+        return self.terminate(process_pid, timeout=5)
+
+    def terminate_process_forceful(self, process_pid: int) -> ProcessStatus:
+        """Алиас для kill() для обратной совместимости."""
+        return self.kill(process_pid, timeout=10)
 
 
 # =============================================================================

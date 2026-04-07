@@ -223,6 +223,7 @@ class TestYieldFrom:
         # Создаём временный файл с городами для теста
         import json
         import tempfile
+        from pathlib import Path
 
         test_cities = [
             {"name": "Moscow", "code": "moscow", "domain": "2gis.ru"},
@@ -235,8 +236,8 @@ class TestYieldFrom:
             temp_path = f.name
 
         try:
-            # Вызываем функцию
-            result = load_cities_json_lazy(temp_path)
+            # Вызываем функцию с Path объектом
+            result = load_cities_json_lazy(Path(temp_path))
 
             # Проверяем что это генератор
             assert inspect.isgenerator(result)
@@ -269,6 +270,7 @@ class TestYieldFrom:
 
         import json
         import tempfile
+        from pathlib import Path
 
         # Создаём большой файл с городами
         large_cities = [
@@ -280,8 +282,8 @@ class TestYieldFrom:
             temp_path = f.name
 
         try:
-            # Используем генератор
-            gen = load_cities_json_lazy(temp_path)
+            # Используем генератор с Path объектом
+            gen = load_cities_json_lazy(Path(temp_path))
 
             # Получаем первый элемент (не загружая всё в память)
             first_city = next(gen)
@@ -301,10 +303,11 @@ class TestYieldFrom:
     def test_generator_exception_handling(self) -> None:
         """Тест обработки исключений в генераторе."""
         from parser_2gis.resources.cities_loader import load_cities_json_lazy
+        from pathlib import Path
 
         # Проверяем что генератор правильно обрабатывает ошибки
         with pytest.raises(FileNotFoundError):
-            gen = load_cities_json_lazy("/nonexistent/path.json")
+            gen = load_cities_json_lazy(Path("/nonexistent/path.json"))
             next(gen)
 
 
@@ -321,7 +324,6 @@ class TestCyclicImportFix:
         # Проверяем что все CLI модули импортируются
         from parser_2gis.cli import app
         from parser_2gis.cli import arguments
-        from parser_2gis.cli import config
         from parser_2gis.cli import config_service
         from parser_2gis.cli import formatter
         from parser_2gis.cli import launcher
@@ -332,7 +334,6 @@ class TestCyclicImportFix:
         # Все модули должны импортироваться без ошибок
         assert app is not None
         assert arguments is not None
-        assert config is not None
         assert config_service is not None
         assert formatter is not None
         assert launcher is not None
@@ -355,7 +356,6 @@ class TestCyclicImportFix:
             "parser_2gis.cli",
             "parser_2gis.cli.app",
             "parser_2gis.cli.arguments",
-            "parser_2gis.cli.config",
             "parser_2gis.cli.config_service",
             "parser_2gis.cli.formatter",
             "parser_2gis.cli.launcher",
@@ -461,7 +461,8 @@ class TestTypingIntegration:
 
     def test_typeddict_in_actual_usage(self) -> None:
         """Тест использования TypedDict в реальном коде."""
-        from parser_2gis.writer.writers.csv_writer import CSVRowData, _sanitize_csv_value
+        from parser_2gis.writer.writers.csv_writer import CSVRowData
+        from parser_2gis.writer.writers.csv_formatter import SanitizeFormatter
 
         # Создаём данные
         row: CSVRowData = {
@@ -470,12 +471,13 @@ class TestTypingIntegration:
             "city": "Moscow",
         }
 
-        # Санитизируем
+        # Санитизируем через SanitizeFormatter
+        formatter = SanitizeFormatter()
         for key, value in row.items():
             if isinstance(value, str):
-                row[key] = _sanitize_csv_value(value)  # type: ignore
+                row[key] = formatter.format(value)  # type: ignore
 
-        # Проверяем что имя санитизировано
+        # Проверяем что имя санитизировано (начинаается с ' для защиты от CSV injection)
         assert row["name"].startswith("'")  # type: ignore
 
     def test_all_typeddicts_are_consistent(self) -> None:
