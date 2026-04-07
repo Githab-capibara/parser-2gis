@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from dataclasses import dataclass, field
 from functools import lru_cache
 
@@ -319,10 +320,13 @@ class EnvConfig:
 
 
 # =============================================================================
-# LAZY ИНИЦИАЛИЗАЦИЯ ENV CONFIG (SINGLETON PATTERN БЕЗ ГЛОБАЛЬНОГО СОСТОЯНИЯ)
+# LAZY ИНИЦИАЛИЗАЦИЯ ENV CONFIG (SINGLETON PATTERN С THREADING.LOCK)
 # =============================================================================
 # ISSUE-010: Устранено глобальное состояние _env_config_instance
-# Используем замыкание для хранения singleton экземпляра
+# Используем threading.Lock для thread-safe ленивой инициализации
+
+# Блокировка для thread-safe инициализации singleton
+_env_config_lock = threading.Lock()
 
 
 def get_env_config() -> EnvConfig:
@@ -331,7 +335,7 @@ def get_env_config() -> EnvConfig:
     EnvConfig создаётся только при первом вызове функции, а не при импорте модуля.
     Это предотвращает лишние вычисления при импорте и ускоряет запуск модуля.
 
-    ISSUE-010: Устранено глобальное состояние через использование замыкания.
+    ISSUE-010: Устранено глобальное состояние через threading.Lock based singleton.
 
     Returns:
         Singleton экземпляр EnvConfig.
@@ -341,10 +345,10 @@ def get_env_config() -> EnvConfig:
         >>> print(config.max_workers)  # 50 (или значение из PARSER_MAX_WORKERS)
 
     """
-    # ISSUE-010: Singleton через замыкание вместо глобальной переменной
-    # Переменная _instance видна только внутри функции, не загрязняя глобальное пространство
     if not hasattr(get_env_config, "_instance"):
-        object.__setattr__(get_env_config, "_instance", EnvConfig())
+        with _env_config_lock:
+            if not hasattr(get_env_config, "_instance"):
+                object.__setattr__(get_env_config, "_instance", EnvConfig())
     return cast(EnvConfig, getattr(get_env_config, "_instance"))
 
 

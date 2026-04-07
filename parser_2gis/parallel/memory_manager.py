@@ -201,21 +201,16 @@ class MemoryManager(MemoryManagerProtocol):
         logger.debug("Статистика MemoryManager сброшена")
 
 
-# Глобальный экземпляр для удобного доступа
-_memory_manager: MemoryManager | None = None
-
-
 def get_memory_manager() -> MemoryManager:
-    """Получает глобальный экземпляр MemoryManager.
+    """Получает глобальный экземпляр MemoryManager (ленивая инициализация через замыкание).
 
     Returns:
         Экземпляр MemoryManager.
 
     """
-    global _memory_manager
-    if _memory_manager is None:
-        _memory_manager = MemoryManager()
-    return _memory_manager
+    if not hasattr(get_memory_manager, "_instance"):
+        get_memory_manager._instance = MemoryManager()
+    return get_memory_manager._instance  # type: ignore[attr-defined]
 
 
 def check_memory_safety(context: str = "") -> bool:

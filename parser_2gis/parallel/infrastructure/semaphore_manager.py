@@ -200,12 +200,8 @@ class SemaphoreManager:
         return self._extra_slots
 
 
-# Глобальный экземпляр для удобного доступа
-_semaphore_manager: SemaphoreManager | None = None
-
-
 def get_semaphore_manager(max_workers: int = 3) -> SemaphoreManager:
-    """Получает глобальный экземпляр SemaphoreManager.
+    """Получает глобальный экземпляр SemaphoreManager (ленивая инициализация через замыкание).
 
     Args:
         max_workers: Максимальное количество рабочих потоков.
@@ -214,7 +210,8 @@ def get_semaphore_manager(max_workers: int = 3) -> SemaphoreManager:
         Экземпляр SemaphoreManager.
 
     """
-    global _semaphore_manager
-    if _semaphore_manager is None or _semaphore_manager.max_workers != max_workers:
-        _semaphore_manager = SemaphoreManager(max_workers=max_workers)
-    return _semaphore_manager
+    if not hasattr(get_semaphore_manager, "_instance"):
+        get_semaphore_manager._instance = SemaphoreManager(max_workers=max_workers)
+    elif get_semaphore_manager._instance.max_workers != max_workers:  # type: ignore[attr-defined]
+        get_semaphore_manager._instance = SemaphoreManager(max_workers=max_workers)  # type: ignore[attr-defined]
+    return get_semaphore_manager._instance  # type: ignore[attr-defined]

@@ -27,22 +27,7 @@ from ..logger.logger import logger as app_logger
 # ИСПРАВЛЕНИЕ CRITICAL 23: Заменяем RLock на Lock где не нужна реентерабельность
 # RLock используется только там, где требуется реентерабельность (например, вложенные вызовы)
 
-# Максимальное количество соединений в пуле (из ENV или default)
-_MAX_POOL_SIZE_ENV: int = validate_env_int(
-    "PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50
-)
-
-# Минимальное количество соединений в пуле (из ENV или default)
-_MIN_POOL_SIZE_ENV: int = validate_env_int(
-    "PARSER_MIN_POOL_SIZE", default=5, min_value=1, max_value=10
-)
-
-# Время жизни соединения в секундах (из ENV или default)
-_CONNECTION_MAX_AGE_ENV: int = validate_env_int(
-    "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
-)
-
-# D009: Константы для PRAGMA настроек с валидацией
+# Попытка импортировать psutil для мониторинга памяти
 _SQLITE_PRAGMA_JOURNAL_MODE: str = "WAL"
 _SQLITE_PRAGMA_CACHE_SIZE: int = -64000  # 64MB в страницах по 4KB
 _SQLITE_PRAGMA_SYNCHRONOUS: str = "NORMAL"
@@ -51,6 +36,34 @@ _SQLITE_PRAGMA_BUSY_TIMEOUT: int = 60000  # 60 секунд
 # D009: Константы для расчёта размера пула соединений
 _POOL_MEMORY_FRACTION: float = 0.10  # 10% доступной памяти
 _POOL_MB_PER_CONNECTION: float = 2.0  # 2MB на одно соединение
+
+
+# Lazy инициализация ENV-зависимых констант для предотвращения вызова на уровне модуля
+def _get_max_pool_size_env() -> int:
+    """Получает MAX_POOL_SIZE из ENV (lazy инициализация)."""
+    if not hasattr(_get_max_pool_size_env, "_value"):
+        _get_max_pool_size_env._value = validate_env_int(
+            "PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50
+        )
+    return _get_max_pool_size_env._value  # type: ignore[attr-defined]
+
+
+def _get_min_pool_size_env() -> int:
+    """Получает MIN_POOL_SIZE из ENV (lazy инициализация)."""
+    if not hasattr(_get_min_pool_size_env, "_value"):
+        _get_min_pool_size_env._value = validate_env_int(
+            "PARSER_MIN_POOL_SIZE", default=5, min_value=1, max_value=10
+        )
+    return _get_min_pool_size_env._value  # type: ignore[attr-defined]
+
+
+def _get_connection_max_age_env() -> int:
+    """Получает CONNECTION_MAX_AGE из ENV (lazy инициализация)."""
+    if not hasattr(_get_connection_max_age_env, "_value"):
+        _get_connection_max_age_env._value = validate_env_int(
+            "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
+        )
+    return _get_connection_max_age_env._value  # type: ignore[attr-defined]
 
 
 # Попытка импортировать psutil для мониторинга памяти
@@ -167,12 +180,12 @@ class ConnectionPool:
         # Используем фиксированный размер пула из ENV или заданный вручную
         if use_dynamic:
             # Для обратной совместимости: use_dynamic=True возвращает MIN_POOL_SIZE
-            self._pool_size = _MIN_POOL_SIZE_ENV
+            self._pool_size = _get_min_pool_size_env()
         elif pool_size is not None:
             # Ограничиваем размер пула разумными пределами
-            self._pool_size = max(_MIN_POOL_SIZE_ENV, min(pool_size, _MAX_POOL_SIZE_ENV))
+            self._pool_size = max(_get_min_pool_size_env(), min(pool_size, _get_max_pool_size_env()))
         else:
-            self._pool_size = _MAX_POOL_SIZE_ENV
+            self._pool_size = _get_max_pool_size_env()
 
         app_logger.debug("Используемый размер пула соединений: %d", self._pool_size)
 
@@ -247,7 +260,7 @@ class ConnectionPool:
                 should_reuse = False
                 if age is not None:
                     age = time.time() - age
-                    if age <= _CONNECTION_MAX_AGE_ENV:
+                    if age <= _get_connection_max_age_env():
                         if self._is_connection_valid(conn_obj):
                             should_reuse = True
                     # Если устарело — нужно пересоздать под блокировкой
@@ -277,7 +290,7 @@ class ConnectionPool:
                 conn_id = id(conn)
                 age = self._connection_age.get(conn_id)
                 if age is not None and (
-                    time.time() - age > _CONNECTION_MAX_AGE_ENV
+                    time.time() - age > _get_connection_max_age_env()
                     or not self._is_connection_valid(conn)
                 ):
                     app_logger.debug("Соединение из queue устарело или неактивно, пересоздаём")

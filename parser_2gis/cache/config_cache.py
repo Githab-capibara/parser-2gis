@@ -259,21 +259,16 @@ class ConfigCache:
         ConfigCache.get_categories.cache_clear()
 
 
-# Глобальный singleton экземпляр для удобства
-_config_cache: ConfigCache | None = None
-
-
 def get_config_cache() -> ConfigCache:
-    """Получает singleton экземпляр ConfigCache.
+    """Получает singleton экземпляр ConfigCache (ленивая инициализация через замыкание).
 
     Returns:
         Singleton экземпляр ConfigCache.
 
     """
-    global _config_cache
-    if _config_cache is None:
-        _config_cache = ConfigCache()
-    return _config_cache
+    if not hasattr(get_config_cache, "_instance"):
+        get_config_cache._instance = ConfigCache()
+    return get_config_cache._instance  # type: ignore[attr-defined]
 
 
 __all__ = ["ConfigCache", "get_config_cache", "CategoryDict"]

@@ -68,16 +68,14 @@ class _CoordinatorContext:
 
 
 # Глобальный экземпляр контекста (не изменяемое состояние, а контейнер)
-# Используем ленивую инициализацию для предотвращения race condition при импорте
-_coordinator_context: _CoordinatorContext | None = None
+# Используем ленивую инициализацию через замыкание для предотвращения race condition при импорте
 
 
 def _get_coordinator_context() -> _CoordinatorContext:
     """Лениво создаёт и возвращает глобальный контекст координатора."""
-    global _coordinator_context
-    if _coordinator_context is None:
-        _coordinator_context = _CoordinatorContext()
-    return _coordinator_context
+    if not hasattr(_get_coordinator_context, "_instance"):
+        _get_coordinator_context._instance = _CoordinatorContext()
+    return _get_coordinator_context._instance  # type: ignore[attr-defined]
 
 
 def _signal_handler(signum: int, frame: "FrameType | None") -> None:

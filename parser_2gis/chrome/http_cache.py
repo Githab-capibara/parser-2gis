@@ -140,7 +140,6 @@ class _HTTPCache:
 # СИНГЛТОН ЭКЗЕМПЛЯР КЭША
 # =============================================================================
 
-_http_cache_instance: _HTTPCache | None = None
 _http_cache_lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
 
 
@@ -151,11 +150,11 @@ def _get_http_cache() -> _HTTPCache:
         Экземпляр _HTTPCache.
 
     """
-    global _http_cache_instance
-    with _http_cache_lock:
-        if _http_cache_instance is None:
-            _http_cache_instance = _HTTPCache()
-        return _http_cache_instance
+    if not hasattr(_get_http_cache, "_instance"):
+        with _http_cache_lock:
+            if not hasattr(_get_http_cache, "_instance"):
+                _get_http_cache._instance = _HTTPCache()
+    return _get_http_cache._instance  # type: ignore[attr-defined]
 
 
 def _get_cache_key(method: str, url: str, verify_ssl: bool) -> tuple:

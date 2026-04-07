@@ -95,24 +95,22 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
         return help_string
 
 
-# Глобальный флаг для предотвращения повторного патчинга
-_patch_installed = False
-
-
 def patch_argparse_translations(force: bool = False) -> None:
     """Патчит gettext в argparse для перевода строк на русский язык.
 
     Заменяет стандартные сообщения argparse на русские аналоги.
     Использует локальный gettext вместо глобального патчинга argparse._
 
-    ISSUE-040: Избегаем повторного патчинга через флаг _patch_installed.
+    ISSUE-040: Избегаем повторного патчинга через замыкание вместо глобальной переменной.
 
     Args:
         force: Принудительная переустановка патча даже если он уже установлен.
 
     """
-    global _patch_installed
-    if _patch_installed and not force:
+    if not hasattr(patch_argparse_translations, "_installed"):
+        patch_argparse_translations._installed = False
+
+    if patch_argparse_translations._installed and not force:  # type: ignore[attr-defined]
         return
 
     custom_translations = {
@@ -147,7 +145,7 @@ def patch_argparse_translations(force: bool = False) -> None:
 
     argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore[assignment,method-assign]
 
-    _patch_installed = True
+    patch_argparse_translations._installed = True  # type: ignore[attr-defined]
 
 
 __all__ = ["ArgumentHelpFormatter", "format_config_summary", "patch_argparse_translations"]

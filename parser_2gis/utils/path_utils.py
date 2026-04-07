@@ -15,18 +15,12 @@
 from __future__ import annotations
 
 import os
+import threading
 import unicodedata
 import urllib.parse
 from pathlib import Path
 
 from parser_2gis.constants import FORBIDDEN_PATH_CHARS, MAX_PATH_LENGTH
-
-# Разрешённые базовые директории для записи
-# ОБОСНОВАНИЕ: Используем tempfile.gettempdir() вместо hardcoded /tmp для кроссплатформенности
-# - Unix: /tmp
-# - macOS: /var/folders/...
-# - Windows: C:\Users\...\AppData\Local\Temp
-_ALLOWED_BASE_DIRS: list[Path] | None = None
 
 # Whitelist разрешенных символов для путей
 # Разрешаем только безопасные символы: буквы, цифры, _, -, ., /, \, пробел, кириллица
@@ -34,20 +28,28 @@ _ALLOWED_CHARS_ASCII = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123
 _ALLOWED_CHARS_CYRILLIC = "абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ"
 _ALLOWED_PATH_PATTERN = frozenset(_ALLOWED_CHARS_ASCII + _ALLOWED_CHARS_CYRILLIC)
 
+# Блокировка для thread-safe инициализации _allowed_base_dirs
+_allowed_base_dirs_lock = threading.Lock()
+
 
 def _get_allowed_base_dirs() -> list[Path]:
-    """Получает список разрешённых базовых директорий.
+    """Получает список разрешённых базовых директорий (thread-safe singleton).
 
     Returns:
         Список Path объектов разрешённых директорий.
 
     """
-    global _ALLOWED_BASE_DIRS
-    if _ALLOWED_BASE_DIRS is None:
+    if not hasattr(_get_allowed_base_dirs, "_allowed_dirs"):
         import tempfile
 
-        _ALLOWED_BASE_DIRS = [Path.cwd(), Path.home() / "parser-2gis", Path(tempfile.gettempdir())]
-    return _ALLOWED_BASE_DIRS
+        with _allowed_base_dirs_lock:
+            if not hasattr(_get_allowed_base_dirs, "_allowed_dirs"):
+                _get_allowed_base_dirs._allowed_dirs = [
+                    Path.cwd(),
+                    Path.home() / "parser-2gis",
+                    Path(tempfile.gettempdir()),
+                ]
+    return _get_allowed_base_dirs._allowed_dirs  # type: ignore[attr-defined]
 
 
 # =============================================================================
