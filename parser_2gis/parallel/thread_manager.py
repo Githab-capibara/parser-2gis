@@ -12,10 +12,19 @@ from __future__ import annotations
 import logging
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
-from typing import Any
+from typing import Any, TypedDict
 from collections.abc import Callable
 
 logger = logging.getLogger("parser_2gis.parallel.thread_manager")
+
+
+class ThreadManagerStats(TypedDict):
+    """TypedDict для статистики ThreadManager."""
+
+    max_workers: int
+    timeout_per_task: int
+    total_tasks: int
+    cancelled: bool
 
 
 class ThreadManager:
@@ -151,7 +160,7 @@ class ThreadManager:
         """
         return self._cancel_event.is_set()
 
-    def get_statistics(self) -> dict:
+    def get_statistics(self) -> ThreadManagerStats:
         """Возвращает статистику выполнения.
 
         Returns:

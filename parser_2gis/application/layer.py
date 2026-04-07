@@ -11,7 +11,7 @@ ISSUE-014: Dependency Injection — зависимости внедряются 
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, Callable
 
 if TYPE_CHECKING:
     from parser_2gis.cache import CacheManager
@@ -288,7 +288,7 @@ class BrowserFacade:
     def __init__(
         self,
         chrome_options: ChromeOptions | None = None,
-        browser_factory: Protocol | None = None,
+        browser_factory: Callable[[], BrowserService] | None = None,
         response_patterns: list[str] | None = None,
     ) -> None:
         """Инициализация браузерного фасада.
@@ -343,7 +343,9 @@ class BrowserFacade:
             browser: Опциональный браузер (если не передан, создаётся новый).
 
         """
-        own_browser = browser or self.create_browser()
+        own_browser = browser
+        if own_browser is None:
+            own_browser = self.create_browser()
         own_browser.navigate(url)
 
     def get_html(self, browser: BrowserService) -> str:

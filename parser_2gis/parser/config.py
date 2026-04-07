@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass
@@ -54,7 +54,7 @@ class ParserRunConfig:
 
     url: str
     output_file: Path
-    output_format: str = "csv"
+    output_format: Literal["csv", "xlsx", "json"] = "csv"
     max_records: int = 10000
     use_gc: bool = True
     gc_pages_interval: int = 5

@@ -18,7 +18,7 @@ import threading
 from dataclasses import dataclass, field
 from functools import lru_cache
 
-from typing import TypeAlias, cast
+from typing import NamedTuple, Union, TypeAlias, cast
 
 # Импорты констант из подмодулей для обратной совместимости
 # WARNING: potential circular dependency — constants.py импортирует из .parser,
@@ -45,6 +45,21 @@ from .security import (
 # =============================================================================
 
 EnvValidationResult: TypeAlias = tuple[bool, str | None]
+
+
+class EnvValidationEntry(NamedTuple):
+    """Запись конфигурации ENV валидации.
+
+    P0-91: Замена tuple[str, int, int | None, int | None, str, str] на именованный кортеж.
+    """
+
+    env_name: str
+    default: int
+    min_value: int | None
+    max_value: int | None
+    attr_name: str
+    log_template: str
+
 
 # =============================================================================
 # DATACLASS ДЛЯ ВАЛИДАЦИИ ENV ПЕРЕМЕННЫХ
@@ -200,10 +215,10 @@ class EnvConfig:
         self._logger.info("Инициализация конфигурации ENV переменных")
 
         # P0-10: Маппинг ENV переменных для устранения дублирования кода
-        # Формат: (env_name, default, min_value, max_value, attr_name, log_template)
-        env_validations: list[tuple[str, int, int | None, int | None, str, str]] = [
+        # Формат: EnvValidationEntry(env_name, default, min_value, max_value, attr_name, log_template)
+        env_validations: list[EnvValidationEntry] = [
             # Параллельный парсинг
-            (
+            EnvValidationEntry(
                 "PARSER_MAX_WORKERS",
                 50,
                 1,
@@ -211,7 +226,7 @@ class EnvConfig:
                 "max_workers",
                 "PARSER_MAX_WORKERS: %d (по умолчанию: 50)",
             ),
-            (
+            EnvValidationEntry(
                 "PARSER_MAX_TIMEOUT",
                 72000,
                 60,
@@ -219,7 +234,7 @@ class EnvConfig:
                 "max_timeout",
                 "PARSER_MAX_TIMEOUT: %d сек (по умолчанию: 72000)",
             ),
-            (
+            EnvValidationEntry(
                 "PARSER_DEFAULT_TIMEOUT",
                 7200,
                 60,
@@ -228,7 +243,7 @@ class EnvConfig:
                 "PARSER_DEFAULT_TIMEOUT: %d сек (по умолчанию: 7200)",
             ),
             # Connection Pool
-            (
+            EnvValidationEntry(
                 "PARSER_MAX_POOL_SIZE",
                 20,
                 5,
@@ -236,7 +251,7 @@ class EnvConfig:
                 "max_pool_size",
                 "PARSER_MAX_POOL_SIZE: %d (по умолчанию: 20)",
             ),
-            (
+            EnvValidationEntry(
                 "PARSER_MIN_POOL_SIZE",
                 5,
                 1,
@@ -244,7 +259,7 @@ class EnvConfig:
                 "min_pool_size",
                 "PARSER_MIN_POOL_SIZE: %d (по умолчанию: 5)",
             ),
-            (
+            EnvValidationEntry(
                 "PARSER_CONNECTION_MAX_AGE",
                 600,
                 60,
@@ -254,7 +269,7 @@ class EnvConfig:
             ),
             # #74: PARSER_MAX_CONNECTION_AGE удалён как дубликат PARSER_CONNECTION_MAX_AGE
             # Кэширование
-            (
+            EnvValidationEntry(
                 "PARSER_MAX_CACHE_SIZE_MB",
                 500,
                 100,
@@ -263,7 +278,7 @@ class EnvConfig:
                 "PARSER_MAX_CACHE_SIZE_MB: %d MB (по умолчанию: 500)",
             ),
             # Временные файлы
-            (
+            EnvValidationEntry(
                 "PARSER_MAX_TEMP_FILES_MONITORING",
                 1000,
                 100,
@@ -271,7 +286,7 @@ class EnvConfig:
                 "max_temp_files_monitoring",
                 "PARSER_MAX_TEMP_FILES_MONITORING: %d (по умолчанию: 1000)",
             ),
-            (
+            EnvValidationEntry(
                 "PARSER_TEMP_FILE_CLEANUP_INTERVAL",
                 120,
                 10,
@@ -279,7 +294,7 @@ class EnvConfig:
                 "temp_file_cleanup_interval",
                 "PARSER_TEMP_FILE_CLEANUP_INTERVAL: %d сек (по умолчанию: 120)",
             ),
-            (
+            EnvValidationEntry(
                 "PARSER_ORPHANED_TEMP_FILE_AGE",
                 600,
                 60,
@@ -288,7 +303,7 @@ class EnvConfig:
                 "PARSER_ORPHANED_TEMP_FILE_AGE: %d сек (по умолчанию: 600)",
             ),
             # Merge операции
-            (
+            EnvValidationEntry(
                 "PARSER_MERGE_LOCK_TIMEOUT",
                 7200,
                 60,
@@ -296,7 +311,7 @@ class EnvConfig:
                 "merge_lock_timeout",
                 "PARSER_MERGE_LOCK_TIMEOUT: %d сек (по умолчанию: 7200)",
             ),
-            (
+            EnvValidationEntry(
                 "PARSER_MAX_LOCK_FILE_AGE",
                 120,
                 10,
@@ -306,10 +321,10 @@ class EnvConfig:
             ),
         ]
 
-        for env_name, default, min_val, max_val, attr_name, log_template in env_validations:
-            value = self._validate_env_int(env_name, default, min_val, max_val)
-            object.__setattr__(self, attr_name, value)
-            self._logger.info(log_template, value)
+        for entry in env_validations:
+            value = self._validate_env_int(entry.env_name, entry.default, entry.min_value, entry.max_value)
+            object.__setattr__(self, entry.attr_name, value)
+            self._logger.info(entry.log_template, value)
 
 
 # =============================================================================
@@ -445,7 +460,7 @@ _STATIC_CONSTANTS_MAPPING: dict[str, int | float | list[str]] = {
 
 
 @lru_cache(maxsize=128)
-def _get_constant_value(name: str) -> int | float | list[str] | EnvConfig:
+def _get_constant_value(name: str) -> Union[int, float, list[str], EnvConfig]:
     """Получает значение константы с кэшированием через lru_cache.
 
     ISSUE-010: Кэширование результатов для устранения повторных вычислений.
@@ -476,7 +491,7 @@ def _get_constant_value(name: str) -> int | float | list[str] | EnvConfig:
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
+def __getattr__(name: str) -> Union[int, float, list[str], EnvConfig]:
     """Ленивая инициализация констант для устранения global singleton (A034).
 
     ISSUE-010: Устранено глобальное состояние _env_config_instance.

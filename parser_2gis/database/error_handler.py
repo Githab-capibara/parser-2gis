@@ -85,7 +85,7 @@ def handle_db_errors(
         """Декоратор для функции."""
 
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any | None:
             """Обертка для обработки ошибок."""
             last_error: Exception | None = None
             func_name = func.__name__

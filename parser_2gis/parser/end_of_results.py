@@ -33,7 +33,7 @@ class EndOfResultsDetector:
     ]
 
     # Паттерны DOM-элементов, указывающих на окончание
-    DOM_END_SELECTORS: ClassVar[list] = [
+    DOM_END_SELECTORS: ClassVar[list[object]] = [
         lambda node: (
             node.local_name == "div"
             and node.text is not None

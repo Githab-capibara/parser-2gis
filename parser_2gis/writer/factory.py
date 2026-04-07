@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from parser_2gis.utils.path_utils import validate_path_traversal
@@ -76,7 +77,7 @@ def register_writer(format_name: str) -> Callable[[type[FileWriter]], type[FileW
     return decorator
 
 
-def get_writer(file_path: str, file_format: str, writer_options: WriterOptions) -> FileWriter:
+def get_writer(file_path: str | Path, file_format: str, writer_options: WriterOptions) -> FileWriter:
     """Фабричная функция для создания писателя файлов.
 
     Использует реестр для получения класса writer по формату файла.
@@ -98,7 +99,7 @@ def get_writer(file_path: str, file_format: str, writer_options: WriterOptions) 
         >>> writer = get_writer("output.csv", "csv", options)
 
     """
-    validated_path = validate_path_traversal(file_path)
+    validated_path = validate_path_traversal(str(file_path))
 
     # Получаем writer класс из реестра
     writer_cls = WRITER_REGISTRY.get(file_format.lower())

@@ -39,7 +39,7 @@ class JSONWriter(FileWriter):
             raise
         super().__exit__(*exc_info)
 
-    def _writedoc(self, catalog_doc: Any) -> None:
+    def _writedoc(self, catalog_doc: dict[str, Any]) -> None:
         """Добавляет документ в JSON файл.
 
         ISSUE-170: Добавлена обработка json.JSONDecodeError.
@@ -97,7 +97,7 @@ class JSONWriter(FileWriter):
         self._first_item = False
         self._wrote_count += 1
 
-    def write(self, catalog_doc: Any) -> None:
+    def write(self, catalog_doc: dict[str, Any]) -> None:
         """Записывает JSON-документ Catalog Item API в JSON файл.
 
         Args:

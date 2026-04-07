@@ -29,6 +29,7 @@ from .file_writer import FileWriter
 
 if TYPE_CHECKING:
     from parser_2gis.writer.models.contact_group import ContactGroup
+    from parser_2gis.writer.options import WriterOptions
 
 # =============================================================================
 # TYPE ALIASES AND TYPEDDICT
@@ -135,15 +136,15 @@ class CSVWriter(FileWriter):
 
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, file_path: str, options: WriterOptions) -> None:
         """Инициализирует CSVWriter.
 
         Args:
-            *args: Позиционные аргументы.
-            **kwargs: Именованные аргументы.
+            file_path: Путь к выходному файлу.
+            options: Опции писателя.
 
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(file_path, options)
         # ISSUE-005: Инициализация стратегий форматирования
         self._phone_formatter = PhoneFormatter()
         self._sanitize_formatter = SanitizeFormatter()
@@ -329,7 +330,7 @@ class CSVWriter(FileWriter):
         except (OSError, IOError, RuntimeError) as close_error:
             logger.error("Ошибка при закрытии файла: %s", close_error)
 
-    def write(self, catalog_doc: Any) -> None:
+    def write(self, catalog_doc: dict[str, Any]) -> None:
         """Записывает JSON-документ Catalog Item API в CSV-таблицу.
 
         Args:

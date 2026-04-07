@@ -19,11 +19,10 @@ from __future__ import annotations
 from typing import Any, TypeVar
 
 import pydantic
-from typing_extensions import TypeAlias
 
-# TypeAlias для сложных типов
-PydanticModel: TypeAlias = pydantic.BaseModel
-PydanticModelDict: TypeAlias = dict[str, Any]
+# Type aliases для сложных типов
+PydanticModel = pydantic.BaseModel
+PydanticModelDict = dict[str, Any]
 
 # TypeVar для функций, возвращающих конкретный подкласс BaseModel
 M = TypeVar("M", bound=pydantic.BaseModel)

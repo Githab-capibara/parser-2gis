@@ -22,7 +22,7 @@ def patch_pychrome() -> None:
     - Корректно обрабатывает сообщения с id и method
     """
 
-    def _recv_loop_patched(self):
+    def _recv_loop_patched(self) -> None:
         while not self._stopped.is_set():
             try:
                 self._ws.settimeout(1)

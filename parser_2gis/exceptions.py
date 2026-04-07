@@ -68,6 +68,10 @@ class BaseContextualException(Exception):
         MyException: Произошла ошибка. Функция: my_func, Строка: 42, Файл: /path/to/file.py
     """
 
+    function_name: str
+    line_number: int
+    filename: str
+
     def __init__(self, message: str = "", **kwargs: Any) -> None:
         # Получаем информацию о вызове
         frame = inspect.currentframe()

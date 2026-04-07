@@ -15,7 +15,17 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Any
+from typing import Any, TypedDict
+
+
+class StatsSummary(TypedDict):
+    """TypedDict для сводки статистики."""
+
+    success_count: int
+    error_count: int
+    total: int
+    elapsed_time: float
+    errors: list[dict[str, Any]]
 
 
 class ProgressTracker:
@@ -170,7 +180,7 @@ class StatsCollector:
             end = self.end_time if self.end_time else time.time()
             return end - self.start_time
 
-    def get_summary(self) -> dict[str, Any]:
+    def get_summary(self) -> StatsSummary:
         """Получает сводку статистики.
 
         Returns:

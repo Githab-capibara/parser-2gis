@@ -121,9 +121,14 @@ class Configuration(BaseModel):
             Загруженная конфигурация.
 
         """
-        return ConfigService.load_config(
+        result = ConfigService.load_config(
             config_cls=cls, config_path=config_path, auto_create=auto_create
-        )  # type: ignore[return-value]
+        )
+        # ConfigService.load_config возвращает ConfigService.T, который связан с cls
+        # mypy не может вывести что T == Configuration, но это гарантировано логикой
+        from typing import cast
+
+        return cast(Configuration, result)
 
     def validate(self) -> tuple[bool, list[str]]:  # pylint: disable=arguments-renamed
         """Валидирует конфигурацию.

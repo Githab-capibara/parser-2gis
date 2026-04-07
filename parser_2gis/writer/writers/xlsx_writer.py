@@ -41,7 +41,7 @@ class XLSXWriter(FileWriter):
         записывая данные напрямую на диск вместо хранения в памяти.
     """
 
-    def write(self, catalog_doc: Any) -> None:
+    def write(self, catalog_doc: dict[str, Any]) -> None:
         """Записывает данные в XLSX формат.
 
         Примечание: XLSXWriter работает как пост-процесс конвертер,
