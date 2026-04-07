@@ -75,7 +75,7 @@ except ImportError:
     PSUTIL_AVAILABLE = False
 
 
-@functools.lru_cache(maxsize=1)
+@functools.lru_cache(maxsize=None)
 def _calculate_dynamic_pool_size() -> int:
     """Рассчитывает оптимальный размер пула соединений на основе доступной памяти.
 

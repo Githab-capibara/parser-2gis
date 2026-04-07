@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import asyncio
+import itertools
 import shutil
 import signal
 import threading
@@ -53,6 +54,63 @@ if TYPE_CHECKING:
 # Константа для дополнительного количества слотов семафора браузеров
 # ИСПРАВЛЕНИЕ #5: Уменьшено с 20 до 2 для небольшого запаса на накладные расходы
 BROWSER_SEMAPHORE_EXTRA_SLOTS: int = 2
+
+
+def _atomic_rename_with_retry(
+    src: Path,
+    dst: Path,
+    log_func: Callable[[str, str], None],
+    max_attempts: int = 3,
+) -> bool:
+    """Атомарное переименование файла с повторными попытками.
+
+    #147-#148: Вынесено в отдельную функцию для устранения дублирования кода
+    и улучшения тестируемости. Использует shutil.move для кроссплатформенности.
+
+    Args:
+        src: Исходный путь к файлу.
+        dst: Целевой путь к файлу.
+        log_func: Функция логирования (message, level).
+        max_attempts: Максимальное количество попыток.
+
+    Returns:
+        True если переименование успешно, False иначе.
+
+    Raises:
+        OSError: При исчерпании всех попыток переименования.
+
+    """
+    for attempt in range(max_attempts):
+        try:
+            # Задержка перед проверкой exists() для стабильности
+            time.sleep(0.1)
+
+            # Проверка существования исходного файла перед переименованием
+            if not src.exists():
+                log_func(f"Временный файл не существует: {src}", "error")
+                return False
+
+            # Используем shutil.move для кроссплатформенности
+            shutil.move(str(src), str(dst))
+            log_func(
+                f"Временный файл перемещён: {src.name} → {dst.name}",
+                level="debug",
+            )
+            return True
+
+        except OSError as move_error:
+            if attempt < max_attempts - 1:
+                log_func(
+                    f"Попытка {attempt + 1}/{max_attempts} не удалась: {move_error}. Повтор..."
+                )
+                time.sleep(0.1 * (attempt + 1))  # Экспоненциальная задержка
+            else:
+                log_func(
+                    f"Не удалось переместить временный файл {src.name}: {move_error}"
+                )
+                raise move_error
+
+    return False
 
 
 # =============================================================================
@@ -366,9 +424,10 @@ class ParallelCoordinator:
     def generate_all_urls(self) -> list[tuple[str, str, str]]:
         """Генерирует все URL для парсинга.
 
-        C014: Использует list() для обратной совместимости.
+        #146: Используем itertools для ленивой обработки URL.
+        C014: list() сохраняется для обратной совместимости.
         """
-        # C014: Используем генератор для эффективного создания списка
+        # #146: itertools.product для эффективного создания комбинаций
         all_urls = list(self.generate_all_urls_lazy())
 
         with self._lock:
@@ -381,20 +440,21 @@ class ParallelCoordinator:
         """Генератор URL для парсинга.
 
         C014: Lazy loading для снижения потребления памяти.
+        #146: Использует itertools.product для эффективного создания комбинаций.
         Yields:
             Кортеж (url, category_name, city_name).
 
         """
-        for city in self.cities:
-            for category in self.categories:
-                try:
-                    url = generate_category_url(city, category)
-                    yield (url, category["name"], city["name"])
-                except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
-                    self.log(
-                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
-                        "error",
-                    )
+        # #146: itertools.product для ленивого создания декартова произведения
+        for city, category in itertools.product(self.cities, self.categories):
+            try:
+                url = generate_category_url(city, category)
+                yield (url, category["name"], city["name"])
+            except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
+                self.log(
+                    f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
+                    "error",
+                )
 
     def _parse_single_url_impl(
         self,
@@ -450,41 +510,16 @@ class ParallelCoordinator:
             finally:
                 self._browser_launch_semaphore.release()
 
-            # Атомарное переименование с проверкой и retry логикой
-            max_rename_attempts = 3
-            rename_success = False
-
-            for rename_attempt in range(max_rename_attempts):
-                try:
-                    # Задержка 0.1 сек перед проверкой exists() для стабильности
-                    time.sleep(0.1)
-
-                    # Проверка существования временного файла перед переименованием
-                    if not temp_filepath.exists():
-                        self.log(f"Временный файл не существует: {temp_filepath}", "error")
-                        return False, "Временный файл не существует"
-
-                    # Используем shutil.move вместо Path.rename() для кроссплатформенности
-                    shutil.move(str(temp_filepath), str(filepath))
-                    self.log(
-                        f"Временный файл перемещён: {temp_filepath.name} → {filepath.name}",
-                        level="debug",
-                    )
-                    rename_success = True
-                    break
-
-                except OSError as move_error:
-                    if rename_attempt < max_rename_attempts - 1:
-                        self.log(
-                            f"Попытка {rename_attempt + 1}/{max_rename_attempts} не удалась: {move_error}. Повтор..."
-                        )
-                        time.sleep(0.1 * (rename_attempt + 1))  # Экспоненциальная задержка
-                    else:
-                        self.log(
-                            f"Не удалось переместить временный файл {temp_filepath.name}: {move_error}"
-                        )
-                        self._error_handler._cleanup_temp_file(temp_filepath)
-                        raise move_error
+            # #147-#148: Атомарное переименование с вынесенной функцией
+            try:
+                rename_success = _atomic_rename_with_retry(
+                    src=temp_filepath,
+                    dst=filepath,
+                    log_func=lambda msg, level: self.log(msg, level),
+                )
+            except OSError as move_error:
+                self._error_handler._cleanup_temp_file(temp_filepath)
+                raise move_error
 
             if not rename_success:
                 return False, "Не удалось переименовать файл"

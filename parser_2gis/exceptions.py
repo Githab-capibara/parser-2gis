@@ -60,25 +60,38 @@ class BaseContextualException(Exception):
     - Полную трассировку стека
     - Имя файла
 
+    #151: Параметр capture_context позволяет отключить захват контекста
+    для снижения накладных расходов при частом создании исключений.
+
     Пример использования:
         >>> class MyException(BaseContextualException):
         ...     pass
 
         >>> raise MyException("Произошла ошибка")
         MyException: Произошла ошибка. Функция: my_func, Строка: 42, Файл: /path/to/file.py
+
+        >>> # Без захвата контекста (для производительности)
+        >>> raise MyException("Произошла ошибка", capture_context=False)
+        MyException: Произошла ошибка. Функция: unknown, Строка: 0, Файл: unknown
     """
 
     function_name: str
     line_number: int
     filename: str
 
-    def __init__(self, message: str = "", **kwargs: Any) -> None:
-        # Получаем информацию о вызове
-        frame = inspect.currentframe()
-        if frame and frame.f_back:
-            self.function_name = frame.f_back.f_code.co_name
-            self.line_number = frame.f_back.f_lineno
-            self.filename = frame.f_back.f_code.co_filename
+    def __init__(self, message: str = "", capture_context: bool = True, **kwargs: Any) -> None:
+        # #151: Опциональный захват контекста через inspect.currentframe()
+        # capture_context=False снижает накладные расходы при частом создании исключений
+        if capture_context:
+            frame = inspect.currentframe()
+            if frame and frame.f_back:
+                self.function_name = frame.f_back.f_code.co_name
+                self.line_number = frame.f_back.f_lineno
+                self.filename = frame.f_back.f_code.co_filename
+            else:
+                self.function_name = "unknown"
+                self.line_number = 0
+                self.filename = "unknown"
         else:
             self.function_name = "unknown"
             self.line_number = 0

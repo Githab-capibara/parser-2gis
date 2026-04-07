@@ -169,6 +169,8 @@ class ParallelOptimizer:
         self._resource_cache: tuple[bool, float, float] = (True, 0.0, 0.0)
         self._resource_cache_time: float = 0
         self._resource_cache_ttl: float = 1.0  # TTL 1 секунда
+        # #160: Блокировка для защиты кэша от race condition
+        self._resource_cache_lock = threading.Lock()
 
         logger.info(
             "Инициализирован ParallelOptimizer: max_workers=%d, max_memory=%d МБ",
@@ -208,6 +210,7 @@ class ParallelOptimizer:
         Оптимизация:
         - Кэширование psutil.Process объекта
         - Кэширование результатов проверки для снижения частоты проверок
+        #160: Защищает кэш через threading.Lock от race condition.
 
         Returns:
             Кортеж (доступно ли, использование_памяти_МБ).
@@ -215,11 +218,12 @@ class ParallelOptimizer:
         """
         current_time = time.time()
 
-        # Проверяем кэш ресурсов
-        if current_time - self._resource_cache_time < self._resource_cache_ttl:
-            # Возвращаем кэшированный результат
-            available, memory_mb, _ = self._resource_cache
-            return available, memory_mb
+        # #160: Защищаем чтение кэша блокировкой
+        with self._resource_cache_lock:
+            if current_time - self._resource_cache_time < self._resource_cache_ttl:
+                # Возвращаем кэшированный результат
+                available, memory_mb, _ = self._resource_cache
+                return available, memory_mb
 
         try:
             # Оптимизация: используем кэшированный Process объект
@@ -246,10 +250,11 @@ class ParallelOptimizer:
                     cpu_percent,
                 )
 
-            # Кэшируем результат
+            # #160: Защищаем запись в кэш блокировкой
             result = (available, memory_mb, cpu_percent)
-            self._resource_cache = result
-            self._resource_cache_time = current_time
+            with self._resource_cache_lock:
+                self._resource_cache = result
+                self._resource_cache_time = current_time
 
             return available, memory_mb
 

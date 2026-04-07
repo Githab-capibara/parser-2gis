@@ -283,6 +283,8 @@ class CacheManager:
         # D002: Валидация имени файла кэша для предотвращения инъекций
         if not cache_file_name or not isinstance(cache_file_name, str):
             raise ValueError("cache_file_name должен быть непустой строкой")
+        # #144: Извлекаем только имя файла для защиты от path traversal атак
+        cache_file_name = os.path.basename(cache_file_name)
         # Запрещаем пути и опасные символы
         if "/" in cache_file_name or "\\" in cache_file_name or ".." in cache_file_name:
             raise ValueError("cache_file_name не должен содержать '/', '\\' или '..'")

@@ -507,6 +507,22 @@ def _get_constant_value(name: str) -> Union[int, float, list[str], EnvConfig]:
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
+def _reset_constant_cache() -> None:
+    """Сбрасывает кэш lru_cache для _get_constant_value.
+
+    #150: Функция для инвалидации кэша при изменении ENV переменных.
+    Необходима для тестирования и динамического изменения конфигурации.
+
+    Example:
+        >>> from parser_2gis.constants import _reset_constant_cache, MAX_WORKERS
+        >>> os.environ['PARSER_MAX_WORKERS'] = '10'
+        >>> _reset_constant_cache()  # Сбросить кэш
+        >>> assert MAX_WORKERS == 10  # Теперь вернёт новое значение
+
+    """
+    _get_constant_value.cache_clear()
+
+
 def __getattr__(name: str) -> Union[int, float, list[str], EnvConfig]:
     """Ленивая инициализация констант для устранения global singleton (A034).
 

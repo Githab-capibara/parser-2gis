@@ -72,8 +72,9 @@ class EndOfResultsDetector:
             # Получаем DOM страницы
             dom_tree = self._chrome_remote.get_document()
 
-            # Проверяем текстовые паттерны на всей странице
-            page_text = dom_tree.text.lower()
+            # #152: Ограничиваем размер текста для предотвращения проверки
+            # всех паттернов по всей странице (производительность и безопасность)
+            page_text = (dom_tree.text or '')[:5000].lower()
             for pattern in self._compiled_patterns:
                 if pattern.search(page_text):
                     logger.debug("Обнаружен паттерн окончания: %s", pattern.pattern)

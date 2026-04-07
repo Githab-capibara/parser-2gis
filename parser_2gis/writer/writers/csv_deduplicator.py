@@ -110,6 +110,12 @@ class CSVDeduplicator:
         """
         file_root, file_ext = os.path.splitext(self._file_path)
         tmp_csv_name = f"{file_root}.deduplicated{file_ext}"
+        # #149: TODO — для больших файлов (>100K строк) использовать Bloom filter
+        # вместо set[str] для снижения потребления памяти.
+        # Bloom filter даст вероятностную проверку с фиксированным потреблением памяти
+        # (например, 1MB для 1M строк с false-positive rate 1%).
+        # Текущая реализация с set потребляет ~100 байт на хеш,
+        # что для 1M строк = ~100MB памяти.
         seen_hashes: set[str] = set()
         duplicates_count = 0
 

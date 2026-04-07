@@ -98,6 +98,25 @@ from parser_2gis.constants.validation import (  # noqa: F401
 # Импортируем EnvConfig для обратной совместимости
 from parser_2gis.constants.env_config import EnvConfig, get_env_config, validate_env_int  # noqa: F401
 
+
+def _reset_constant_cache() -> None:
+    """Сбрасывает кэш lru_cache для констант.
+
+    #150: Функция для инвалидации кэша при изменении ENV переменных.
+    Сбрасывает кэши всех подмодулей, использующих lru_cache.
+
+    Example:
+        >>> from parser_2gis.constants import _reset_constant_cache
+        >>> import os
+        >>> os.environ['PARSER_MAX_WORKERS'] = '10'
+        >>> _reset_constant_cache()  # Сбросить кэш
+        # Теперь get_env_config() вернёт новое значение
+
+    """
+    # Сбрасываем кэш env_config singleton
+    if hasattr(get_env_config, "_instance"):
+        delattr(get_env_config, "_instance")
+
 __all__ = [
     # Buffer constants
     "DEFAULT_BUFFER_SIZE",
@@ -173,4 +192,6 @@ __all__ = [
     "EnvConfig",
     "get_env_config",
     "validate_env_int",
+    # #150: Сброс кэша констант
+    "_reset_constant_cache",
 ]

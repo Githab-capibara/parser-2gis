@@ -44,13 +44,19 @@ class XLSXWriter(FileWriter):
     def write(self, catalog_doc: dict[str, Any]) -> None:
         """Записывает данные в XLSX формат.
 
-        Примечание: XLSXWriter работает как пост-процесс конвертер,
-        поэтому метод write не используется напрямую.
+        #154: Метод является заглушкой — XLSXWriter работает как пост-процесс конвертер.
+        Конвертация CSV в XLSX происходит при закрытии файла через __exit__().
 
-        Raises:
-            NotImplementedError: Метод не используется, конвертация выполняется через __exit__.
+        Args:
+            catalog_doc: Данные каталога (игнорируются).
+
+        Примечание:
+            Этот метод вызывается базовым классом, но не используется напрямую.
+            Все данные записываются через CSV writer, а затем конвертируются в XLSX.
         """
-        raise NotImplementedError("XLSX записывается через конвертацию из CSV в __exit__")
+        # #154: Заглушка вместо NotImplementedError — данные записываются через CSV,
+        # а конвертация происходит в __exit__()
+        pass
 
     def __exit__(self, *exc_info: Any) -> None:
         """Закрывает файл и выполняет конвертацию CSV в XLSX.
@@ -94,7 +100,13 @@ class XLSXWriter(FileWriter):
                     raise
 
             # Замена оригинального файла новым
-            shutil.move(tmp_xlsx_name, self._file_path)
+            # #158: Проверка существования временного файла перед перемещением
+            if os.path.exists(tmp_xlsx_name):
+                shutil.move(tmp_xlsx_name, self._file_path)
+            else:
+                logger.warning(
+                    "Временный файл XLSX не создан: %s", tmp_xlsx_name
+                )
         except (OSError, csv.Error, ValueError, RuntimeError) as e:
             # Удаляем временный файл если он был создан
             if os.path.exists(tmp_xlsx_name):

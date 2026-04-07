@@ -108,7 +108,8 @@ class SanitizeFormatter(BaseFormatter):
 
         """
         if not isinstance(value, str):
-            return value
+            # #157: Возвращаем str(value) вместо value для соответствия сигнатуре
+            return str(value)
 
         # Экранируем специальные символы CSV
         for char, replacement in self._SANITIZE_TABLE.items():
@@ -126,6 +127,9 @@ class ContactFormatter(BaseFormatter):
 
     Форматирует контакты с добавлением комментариев.
 
+    #156: format() принимает **kwargs для обратной совместимости с BaseFormatter.
+    Используйте formatter.format(value, comment="...") или formatter.format(value).
+
     Attributes:
         add_comments: Добавлять ли комментарии к контактам.
 
@@ -133,6 +137,8 @@ class ContactFormatter(BaseFormatter):
         >>> formatter = ContactFormatter(add_comments=True)
         >>> formatter.format("test@example.com")
         'test@example.com'
+        >>> formatter.format("test@example.com", comment="Email")
+        'test@example.com (Email)'
 
     """
 
@@ -148,9 +154,12 @@ class ContactFormatter(BaseFormatter):
     def format(self, value: str, comment: str | None = None) -> str:
         """Форматирует контакт.
 
+        #156: comment — опциональный параметр, передаётся через kwargs
+        для совместимости с BaseFormatter.format(value: str) -> str.
+
         Args:
             value: Значение контакта.
-            comment: Комментарий к контакту.
+            comment: Комментарий к контакту (передаётся как keyword-only).
 
         Returns:
             Отформатированный контакт с комментарием (если есть).

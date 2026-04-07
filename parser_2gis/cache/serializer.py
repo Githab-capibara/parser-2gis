@@ -196,14 +196,13 @@ class JsonSerializer:
         except MemoryError as json_error:
             # ISSUE-093, ISSUE-095: Упрощённая обработка ошибок без избыточных try/except
             # ISSUE-104: Убрана избыточная проверка orjson is not None
+            # #143: Не логируем содержимое данных — только размер для безопасности
             if _USE_ORJSON:
                 # Проверяем, это orjson.JSONDecodeError
                 try:
                     if isinstance(json_error, orjson.JSONDecodeError):  # type: ignore[return-value]
                         raise ValueError(
-                            f"Критическая ошибка десериализации orjson: {json_error}. "
-                            f"Длина данных: {len(data)}, "
-                            f"Содержимое: {data[:200]}..."
+                            f"Ошибка десериализации, размер данных: {len(data)} байт"
                         ) from json_error
                 except (AttributeError, TypeError) as orjson_check_error:
                     # orjson.JSONDecodeError недоступен, используем стандартную обработку
@@ -213,7 +212,7 @@ class JsonSerializer:
 
             # Стандартная обработка JSON ошибок
             raise ValueError(
-                f"Критическая ошибка десериализации: {json_error}. Длина данных: {len(data)}"
+                f"Ошибка десериализации, размер данных: {len(data)} байт"
             ) from json_error
         except TypeError:
             # Пробрасываем TypeError как есть (некорректный тип данных)
