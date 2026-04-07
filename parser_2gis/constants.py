@@ -473,6 +473,9 @@ def _get_constant_value(name: str) -> Union[int, float, list[str], EnvConfig]:
     Returns:
         Значение константы.
 
+    Raises:
+        AttributeError: Если константа с указанным именем не найдена.
+
     """
     # Специальный случай для env_config
     if name == "env_config":

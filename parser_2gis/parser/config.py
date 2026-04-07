@@ -68,10 +68,13 @@ class ParserRunConfig:
     retry_on_network_errors: bool = True
 
     def to_parser_kwargs(self) -> dict[str, Any]:
-        """Преобразует в kwargs для создания ParserOptions.
+        """Конвертирует конфигурацию в kwargs для ParserOptions.
 
         Returns:
-            Словарь с параметрами для ParserOptions.
+            dict: Словарь с ключами: max_records, use_gc, gc_pages_interval,
+            memory_threshold, max_retries, retry_delay_base, delay_between_clicks,
+            skip_404_response, stop_on_first_404, max_consecutive_empty_pages,
+            retry_on_network_errors.
 
         """
         return {
