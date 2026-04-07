@@ -363,7 +363,9 @@ def async_wait_until_finished(
     poll_interval: float = DEFAULT_POLL_INTERVAL,
     use_exponential_backoff: bool = True,
     max_poll_interval: float = MAX_POLL_INTERVAL,
-) -> Callable[[Callable[P, asyncio.Coroutine[Any, Any, R]]], Callable[P, asyncio.Coroutine[Any, Any, R]]]:
+) -> Callable[
+    [Callable[P, asyncio.Coroutine[Any, Any, R]]], Callable[P, asyncio.Coroutine[Any, Any, R]]
+]:
     """Async версия декоратора wait_until_finished для asyncio.
 
     - Использует asyncio.sleep() вместо time.sleep()

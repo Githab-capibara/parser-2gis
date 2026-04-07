@@ -294,7 +294,7 @@ class TestNoCyclesBetweenCoreModules:
         # (это допустимо так как parallel координирует parser)
         coordinator_file = parallel_dir / "coordinator.py"
         if coordinator_file.exists():
-            imports = get_internal_imports(coordinator_file)
+            get_internal_imports(coordinator_file)
             # parallel может импортировать parser для создания экземпляров
             # Убедимся что coordinator.py существует и импортирует parser
             assert coordinator_file.exists()

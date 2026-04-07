@@ -236,9 +236,7 @@ class VisualLogger:
         except (OSError, TypeError, RuntimeError) as e:
             # Логгируем ошибку вывода заголовка, но не прерываем работу
             _logger.error(
-                "Ошибка вывода заголовка в консоль: %s. "
-                "Функция: %s, "
-                "Заголовок: %s",
+                "Ошибка вывода заголовка в консоль: %s. Функция: %s, Заголовок: %s",
                 e,
                 self.print_header.__name__,
                 title,
@@ -276,10 +274,7 @@ class VisualLogger:
                 print(f"─{'─' * (width - 1)}\n")
         except (OSError, TypeError, RuntimeError) as e:
             _logger.error(
-                "Ошибка вывода секции конфигурации: %s. "
-                "Функция: %s, "
-                "Заголовок: %s, "
-                "Параметров: %d",
+                "Ошибка вывода секции конфигурации: %s. Функция: %s, Заголовок: %s, Параметров: %d",
                 e,
                 self.print_config_section.__name__,
                 title,
@@ -355,10 +350,7 @@ class VisualLogger:
             print()
         except (OSError, TypeError, RuntimeError) as e:
             _logger.error(
-                "Ошибка вывода статистики: %s. "
-                "Функция: %s, "
-                "Заголовок: %s, "
-                "Параметров: %d",
+                "Ошибка вывода статистики: %s. Функция: %s, Заголовок: %s, Параметров: %d",
                 e,
                 self.print_stats.__name__,
                 title,

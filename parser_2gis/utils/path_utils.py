@@ -137,7 +137,9 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
                 target_str = str(target)
                 if not target_str.startswith("/tmp"):
                     for forbidden_dir in forbidden_dirs:
-                        if target_str == forbidden_dir or target_str.startswith(forbidden_dir + "/"):
+                        if target_str == forbidden_dir or target_str.startswith(
+                            forbidden_dir + "/"
+                        ):
                             raise ValueError(
                                 f"{path_name} содержит symlink, ведущий в "
                                 f"системную директорию: {part_path} -> {target}"
@@ -146,7 +148,9 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
     # P0-11: Единая проверка запрещённых директорий
     if not resolved_path_str.startswith("/tmp"):
         for forbidden_dir in forbidden_dirs:
-            if resolved_path_str == forbidden_dir or resolved_path_str.startswith(forbidden_dir + "/"):
+            if resolved_path_str == forbidden_dir or resolved_path_str.startswith(
+                forbidden_dir + "/"
+            ):
                 raise ValueError(
                     f"{path_name} не может находиться в системной директории: {forbidden_dir}. "
                     f"Попытка записи в: {resolved_path_str}"

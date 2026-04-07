@@ -570,7 +570,7 @@ class ProcessManager:
                                 # ИСПРАВЛЕНИЕ #4: Добавлено логирование для диагностики
                                 app_logger.debug(
                                     "Не удалось завершить дочерний процесс PID %d: %s",
-                                    child.pid if hasattr(child, 'pid') else 'unknown',
+                                    child.pid if hasattr(child, "pid") else "unknown",
                                     e,
                                 )
 

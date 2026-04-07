@@ -51,6 +51,7 @@ def _normalize_exceptions(exceptions: RetryableException) -> tuple[type[Exceptio
         return exceptions
     return (exceptions,)
 
+
 # =============================================================================
 # КОНСТАНТЫ
 # =============================================================================
