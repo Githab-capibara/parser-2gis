@@ -21,13 +21,20 @@ import logging
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
+
+# ИСПРАВЛЕНИЕ #20: Используем ParamSpec и TypeVar для точной типизации декоратора
+from typing import ParamSpec
 
 from parser_2gis.constants import (
     DEFAULT_POLL_INTERVAL as DEFAULT_POLL_INTERVAL_CONST,
     MAX_POLL_INTERVAL as MAX_POLL_INTERVAL_CONST,
     EXPONENTIAL_BACKOFF_MULTIPLIER as EXPONENTIAL_BACKOFF_MULTIPLIER_CONST,
 )
+
+# ИСПРАВЛЕНИЕ #20: ParamSpec для сохранения сигнатуры декорируемой функции
+P = ParamSpec("P")
+R = TypeVar("R")
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ POLLING
@@ -247,7 +254,7 @@ def wait_until_finished(
 
             # ISSUE-151: Явное условие выхода - цикл по attempt_count вместо while True
             while attempt_count < max_attempts:
-                # ISSUE-176: Кэширование time.time() для снижения накладных расходов
+                # ИСПРАВЛЕНИЕ #16: Кэширование time.time() — одна переменная для всех проверок
                 current_time = time.time()
 
                 # ISSUE-151: Проверка таймаута в начале цикла
@@ -356,12 +363,15 @@ def async_wait_until_finished(
     poll_interval: float = DEFAULT_POLL_INTERVAL,
     use_exponential_backoff: bool = True,
     max_poll_interval: float = MAX_POLL_INTERVAL,
-) -> Callable[..., Callable[..., Any]]:
+) -> Callable[[Callable[P, asyncio.Coroutine[Any, Any, R]]], Callable[P, asyncio.Coroutine[Any, Any, R]]]:
     """Async версия декоратора wait_until_finished для asyncio.
 
     - Использует asyncio.sleep() вместо time.sleep()
     - Совместим с asyncio event loop
     - Не блокирует event loop при ожидании
+
+    ИСПРАВЛЕНИЕ #20: Использует ParamSpec P и TypeVar R для сохранения
+    сигнатуры декорируемой async функции.
 
     Args:
         timeout: Максимальное время ожидания в секундах.

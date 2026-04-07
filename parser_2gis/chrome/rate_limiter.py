@@ -39,12 +39,16 @@ def _enforce_rate_limit() -> None:
 
     Ограничивает количество запросов в секунду и минимальный интервал между запросами.
     Блокирует выполнение пока не будет разрешён следующий запрос.
+
+    ИСПРАВЛЕНИЕ #1: Все обращения к _request_timestamps строго внутри with _rate_limit_lock
+    для предотвращения race condition при одновременных append/popleft операциях.
     """
     global _request_timestamps
 
-    with _rate_limit_lock:
-        now = time.time()
+    now = time.time()
+    sleep_time = 0.0
 
+    with _rate_limit_lock:
         # Удаляем старые timestamps (старше 1 секунды)
         while _request_timestamps and _request_timestamps[0] < now - 1.0:
             _request_timestamps.popleft()
@@ -55,12 +59,17 @@ def _enforce_rate_limit() -> None:
             oldest = _request_timestamps[0]
             sleep_time = (oldest + 1.0) - now
             if sleep_time > 0:
-                time.sleep(sleep_time)
-            # Обновляем now после sleep
-            now = time.time()
-            # Снова очищаем старые timestamps
-            while _request_timestamps and _request_timestamps[0] < now - 1.0:
-                _request_timestamps.popleft()
+                # Освобождаем lock на время sleep чтобы не блокировать другие потоки
+                _rate_limit_lock.release()
+                try:
+                    time.sleep(sleep_time)
+                finally:
+                    _rate_limit_lock.acquire()
+                # Обновляем now после sleep
+                now = time.time()
+                # Снова очищаем старые timestamps
+                while _request_timestamps and _request_timestamps[0] < now - 1.0:
+                    _request_timestamps.popleft()
 
         # Проверяем минимальный интервал между запросами
         if _request_timestamps:
@@ -68,10 +77,13 @@ def _enforce_rate_limit() -> None:
             time_since_last = now - last_request_time
             if time_since_last < _min_request_interval:
                 sleep_time = _min_request_interval - time_since_last
-                time.sleep(sleep_time)
 
-        # Добавляем текущий timestamp
+        # Добавляем текущий timestamp (всегда внутри lock)
         _request_timestamps.append(time.time())
+
+    # Sleep вынесен за пределы lock для минимизации времени блокировки
+    if sleep_time > 0:
+        time.sleep(sleep_time)
 
 
 def _safe_external_request(

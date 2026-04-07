@@ -319,8 +319,12 @@ class CSVWriter(FileWriter):
                     self._file_path,
                 )
 
-        # Теперь закрываем файл через super().__exit__()
-        super().__exit__(*exc_info)
+        # ИСПРАВЛЕНИЕ #10: Гарантированное закрытие файла через finally
+        # чтобы файл закрывался даже при ошибке постобработки
+        try:
+            super().__exit__(*exc_info)
+        except Exception as close_error:
+            logger.error("Ошибка при закрытии файла: %s", close_error)
 
     def write(self, catalog_doc: Any) -> None:
         """Записывает JSON-документ Catalog Item API в CSV-таблицу.

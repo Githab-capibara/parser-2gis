@@ -51,7 +51,8 @@ if TYPE_CHECKING:
     from parser_2gis.config import Configuration
 
 # Константа для дополнительного количества слотов семафора браузеров
-BROWSER_SEMAPHORE_EXTRA_SLOTS: int = 20
+# ИСПРАВЛЕНИЕ #5: Уменьшено с 20 до 2 для небольшого запаса на накладные расходы
+BROWSER_SEMAPHORE_EXTRA_SLOTS: int = 2
 
 
 # =============================================================================

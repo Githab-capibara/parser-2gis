@@ -51,6 +51,10 @@ from .pool import ConnectionPool
 from .serializer import JsonSerializer
 from .validator import CacheDataValidator
 
+# Пороговые значения для проверки размера кэша
+_CACHE_SIZE_CHECK_THRESHOLD: int = 100  # Проверка размера только при > 100 записей
+_CACHE_LRU_MAX_ITERATIONS: int = 10000  # Максимум итераций LRU eviction
+
 # =============================================================================
 # TYPE ALIASES FOR COMPLEX TYPES
 # =============================================================================
@@ -537,6 +541,7 @@ class CacheManager:
             time.sleep(0.5)
             # ISSUE-065: Повторная попытка через conn.execute() напрямую
             # Для этого нужно получить новое соединение
+            retry_conn = None
             try:
                 app_logger.warning(
                     "Повторная попытка получения кэша после блокировки БД (URL: %s)", url
@@ -553,13 +558,16 @@ class CacheManager:
                         expires_at = self._parse_expires_at(expires_at_str)
                         if expires_at and datetime.now() <= expires_at:
                             result = self._serializer.deserialize(data)
-                            # ISSUE-003-#12: Возвращаем соединение в пул вместо закрытия
-                            self._pool.return_connection(retry_conn)
                             return result
-                    # ISSUE-003-#12: Возвращаем соединение в пул вместо закрытия
-                    self._pool.return_connection(retry_conn)
             except sqlite3.Error as retry_error:
                 app_logger.warning("Повторная попытка не удалась: %s", retry_error)
+            finally:
+                # ИСПРАВЛЕНИЕ #9: Гарантированный возврат соединения в пул
+                if retry_conn and self._pool:
+                    try:
+                        self._pool.return_connection(retry_conn)
+                    except (sqlite3.Error, OSError) as return_error:
+                        app_logger.debug("Ошибка при возврате соединения в пул: %s", return_error)
             app_logger.warning("Кэш недоступен после retry (URL: %s). Возврат None.", url)
             return None
 
@@ -654,7 +662,9 @@ class CacheManager:
             # Добавляем retry логику для обработки sqlite3.OperationalError (database is locked)
             for attempt in range(self._MAX_RETRIES):
                 try:
-                    conn.execute("BEGIN IMMEDIATE")
+                    # ИСПРАВЛЕНИЕ #17: BEGIN DEFERRED вместо BEGIN IMMEDIATE для SELECT запросов
+                    # DEFERRED достаточно для read-транзакции, IMMEDIATE создаёт unnecessary write-транзакцию
+                    conn.execute("BEGIN DEFERRED")
                     break
                 except sqlite3.OperationalError as lock_error:
                     if (

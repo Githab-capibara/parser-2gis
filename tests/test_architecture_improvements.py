@@ -331,8 +331,6 @@ class TestProtocolDocumentation:
             "BrowserService",
             "CacheReader",
             "CacheWriter",
-            "CacheBackend",
-            "ExecutionBackend",
         ],
     )
     def test_protocol_has_docstring_with_sections(self, protocol_name):

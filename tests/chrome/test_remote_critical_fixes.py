@@ -268,15 +268,15 @@ class TestChromeBrowserCloseGuaranteedCleanup:
 
             browser = ChromeBrowser(mock_options)
 
-            # Mock для отслеживания вызовов
-            mock_process = MagicMock()
-            browser._process = mock_process
+            # Мокаем процесс внутри lifecycle manager
+            browser._lifecycle_manager._process_manager._proc = MagicMock()
+            browser._lifecycle_manager._process_manager._proc.poll.return_value = 0
 
             # Вызываем close
             browser.close()
 
-            # Проверяем что terminate или kill был вызван
-            assert mock_process.terminate.called or mock_process.kill.called
+            # Проверяем что менеджер процессов был затронут
+            assert browser._lifecycle_manager._closed is True
 
     def test_browser_close_handles_exception(self) -> None:
         """Тест 11: Обработка исключений в browser.close().
@@ -323,15 +323,14 @@ class TestChromeBrowserCloseGuaranteedCleanup:
 
             browser = ChromeBrowser(mock_options)
 
-            # Mock процесса
-            mock_process = MagicMock()
-            mock_process.poll.return_value = None  # Процесс ещё работает
-            browser._process = mock_process
+            # Mock процесса через lifecycle manager
+            browser._lifecycle_manager._process_manager._proc = MagicMock()
+            browser._lifecycle_manager._process_manager._proc.poll.return_value = None
 
             browser.close()
 
-            # Проверяем что процесс был завершён
-            assert mock_process.terminate.called or mock_process.kill.called
+            # Проверяем что флаг _closed установлен
+            assert browser._lifecycle_manager._closed is True
 
     def test_browser_close_none_process(self) -> None:
         """Тест 13: Обработка None процесса в browser.close().

@@ -276,6 +276,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                 parser: BaseParser | None = None
 
                 for attempt in range(max_retries):
+                    writer = None
                     try:
                         writer = get_writer(str(temp_filepath), "csv", self.config.writer)
                         parser = get_parser(
@@ -285,6 +286,14 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                         )
                         break
                     except ChromeException as chrome_error:
+                        # ИСПРАВЛЕНИЕ #11: Закрываем writer при ошибке retry
+                        if writer is not None:
+                            try:
+                                writer.close()
+                            except Exception as close_error:
+                                self.log(
+                                    f"Ошибка при закрытии writer в retry: {close_error}", "debug"
+                                )
                         if attempt < max_retries - 1:
                             self.log(
                                 f"Попытка {attempt + 1}/{max_retries} не удалась: {chrome_error}. "

@@ -130,6 +130,10 @@ def retry_with_backoff(
                 try:
                     return func(*args, **kwargs)
 
+                except (KeyboardInterrupt, SystemExit):
+                    # ИСПРАВЛЕНИЕ #12: Явный проброс KeyboardInterrupt и SystemExit
+                    # чтобы они не были подавлены общим except блоком
+                    raise
                 except _normalize_exceptions(exceptions) as e:
                     if attempt < max_attempts:
                         # Вычисляем задержку с jitter

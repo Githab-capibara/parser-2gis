@@ -354,21 +354,22 @@ class TestCSVWriterErrorHandling:
         """Тест обработки исключений при закрытии.
 
         Проверяет:
-        - Исключения при close() обрабатываются
+        - Исключения при close() обрабатываются и логируются
+        - Файл закрывается даже при ошибке
         """
         with caplog.at_level(logging.ERROR):
             writer = CSVWriter(file_path=temp_output_path, writer_options=mock_options)
 
             # Входим в контекст, чтобы создать _file
-            # Исключение произойдет при выходе из with writer блока
-            with pytest.raises(IOError):
-                with writer:
-                    writer._writerow({"name": "Test"})
-                    # Mock _file.close для выбрасывания исключения
-                    # Нужно сохранить мок, чтобы он был активен при выходе из with writer
-                    original_close = writer._file.close
-                    writer._file.close = MagicMock(side_effect=IOError("Mocked error"))
-                # Выход из with writer блока вызовет __exit__ который вызовет close() и выбросит исключение
+            with writer:
+                writer._writerow({"name": "Test"})
+                # Mock _file.close для выбрасывания исключения
+                original_close = writer._file.close
+                writer._file.close = MagicMock(side_effect=IOError("Mocked error"))
+
+            # Выход из with writer блока вызовет __exit__
+            # Исключение НЕ выбрасывается — оно логируется
+            assert "Ошибка при закрытии файла" in caplog.text
 
             # Восстанавливаем оригинальный метод
             writer._file.close = original_close

@@ -2,7 +2,7 @@
 Тесты для семафора в parallel/parallel_parser.py.
 
 Проверяет:
-- Семафор создаётся с размером max_workers + 2
+- Семафор создаётся с размером ровно max_workers
 - Валидация max_workers работает корректно
 - Семафор ограничивает количество одновременных запусков
 """
@@ -26,8 +26,8 @@ class TestBrowserLaunchSemaphore:
         config = Configuration(parallel=parallel_options)
         return config
 
-    def test_semaphore_size_equals_max_workers_plus_two(self) -> None:
-        """Тест 1: Семафор имеет размер max_workers + 2."""
+    def test_semaphore_size_equals_max_workers(self) -> None:
+        """Тест 1: Семафор имеет размер ровно max_workers."""
         max_workers = 4
         config = self._create_config()
 
@@ -43,14 +43,14 @@ class TestBrowserLaunchSemaphore:
                 max_workers=max_workers,
             )
 
-        expected_size = max_workers + 2
+        expected_size = max_workers
         actual_value = parser._browser_launch_semaphore._value
         assert actual_value == expected_size, (
             f"Семафор должен иметь размер {expected_size}, но имеет {actual_value}"
         )
 
     def test_semaphore_size_with_max_workers_1(self) -> None:
-        """Тест 2: Семафор с max_workers=1 имеет размер 3."""
+        """Тест 2: Семафор с max_workers=1 имеет размер 1."""
         max_workers = 1
         config = self._create_config()
 
@@ -66,10 +66,10 @@ class TestBrowserLaunchSemaphore:
                 max_workers=max_workers,
             )
 
-        assert parser._browser_launch_semaphore._value == 3
+        assert parser._browser_launch_semaphore._value == 1
 
     def test_semaphore_size_with_max_workers_10(self) -> None:
-        """Тест 3: Семафор с max_workers=10 имеет размер 12."""
+        """Тест 3: Семафор с max_workers=10 имеет размер 10."""
         max_workers = 10
         config = self._create_config()
 
@@ -85,7 +85,7 @@ class TestBrowserLaunchSemaphore:
                 max_workers=max_workers,
             )
 
-        assert parser._browser_launch_semaphore._value == 12
+        assert parser._browser_launch_semaphore._value == 10
 
     def test_semaphore_is_bounded_semaphore(self) -> None:
         """Тест 4: Семафор является BoundedSemaphore."""
@@ -188,7 +188,7 @@ class TestBrowserLaunchSemaphore:
             )
 
         semaphore = parser._browser_launch_semaphore
-        expected_max = max_workers + 2  # 4
+        expected_max = max_workers  # 4
 
         # Захватываем все слоты
         for _ in range(expected_max):

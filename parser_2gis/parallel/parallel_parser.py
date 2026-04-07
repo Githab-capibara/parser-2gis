@@ -236,9 +236,8 @@ class ParallelCityParser:
             )
 
         # Семафор для контроля одновременного запуска браузеров
-        # ISSUE-003-#10: Убран +20, который снижал эффективность ограничения.
-        # Используем max_workers + 2 для небольшого запаса на накладные расходы.
-        self._browser_launch_semaphore = BoundedSemaphore(max_workers + 2)
+        # ИСПРАВЛЕНИЕ #6: Используем ровно max_workers без дополнительного запаса
+        self._browser_launch_semaphore = BoundedSemaphore(max_workers)
 
         # Инициализация стратегий ISSUE-002
         self._url_strategy = UrlGenerationStrategy(cities, categories, self._lock)

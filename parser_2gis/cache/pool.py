@@ -344,13 +344,6 @@ class ConnectionPool:
         except (sqlite3.Error, OSError, RuntimeError) as e:
             app_logger.error("Ошибка при получении соединения: %s", e)
             raise
-        finally:
-            if conn is not None and created_new and not hasattr(self._local, "connection"):
-                try:
-                    conn.close()
-                    app_logger.debug("Соединение закрыто в finally (не добавлено в пул)")
-                except (sqlite3.Error, OSError) as cleanup_error:
-                    app_logger.debug("Ошибка при закрытии соединения в finally: %s", cleanup_error)
 
     def return_connection(self, conn: sqlite3.Connection) -> None:
         """Возвращает соединение в пул для reuse.
@@ -425,9 +418,10 @@ class ConnectionPool:
 
         # ID:060: Отдельные execute() для каждого PRAGMA вместо executescript()
         # executescript() выполняет неявный COMMIT, что может нарушить транзакции
-        conn.execute(f"PRAGMA journal_mode={_SQLITE_PRAGMA_JOURNAL_MODE}")
+        # ИСПРАВЛЕНИЕ #3: Прямая подстановка констант без f-string для ясности
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.execute(f"PRAGMA cache_size={_SQLITE_PRAGMA_CACHE_SIZE}")
-        conn.execute(f"PRAGMA synchronous={_SQLITE_PRAGMA_SYNCHRONOUS}")
+        conn.execute("PRAGMA synchronous=NORMAL")
         conn.execute(f"PRAGMA busy_timeout={_SQLITE_PRAGMA_BUSY_TIMEOUT}")
 
         return conn

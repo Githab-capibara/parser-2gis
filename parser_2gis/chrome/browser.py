@@ -25,6 +25,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 import types
 import weakref
@@ -359,7 +360,7 @@ class ProcessManager:
             app_logger.debug("Chrome браузер запущен с PID: %d", proc.pid)
             return proc
 
-        except (subprocess.SubprocessError, OSError, FileNotFoundError, ValueError, TypeError) as e:
+        except (subprocess.SubprocessError, OSError, TypeError) as e:
             app_logger.error("Ошибка при запуске Chrome браузера: %s", e)
             # ID:103: Очищаем ссылку на процесс при ошибке
             self._proc = None
@@ -564,8 +565,14 @@ class ProcessManager:
                         for child in children:
                             try:
                                 child.kill()
-                            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                                pass  # Процесс уже завершён или нет доступа — ожидаемо при форс-килле
+                            except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                                # Процесс уже завершён или нет доступа — ожидаемо при форс-килли
+                                # ИСПРАВЛЕНИЕ #4: Добавлено логирование для диагностики
+                                app_logger.debug(
+                                    "Не удалось завершить дочерний процесс PID %d: %s",
+                                    child.pid if hasattr(child, 'pid') else 'unknown',
+                                    e,
+                                )
 
                         ps_proc.kill()
                         app_logger.info(
@@ -661,7 +668,10 @@ class BrowserLifecycleManager:
         self._process_manager = ProcessManager()
         self._remote_port: int | None = None
         self._chrome_cmd: list[str] | None = None
+        # ИСПРАВЛЕНИЕ #7: Атомарная проверка и установка _closed через threading.Lock
+        # для предотвращения двойной очистки в weakref.finalize
         self._closed: bool = False
+        self._closed_lock: threading.Lock = threading.Lock()
 
         # weakref.finalize() для гарантированной очистки
         self._finalizer = weakref.finalize(
@@ -796,12 +806,12 @@ class BrowserLifecycleManager:
             1. Корректное завершение через terminate() + wait(timeout=10)
             2. Принудительное завершение через kill() + wait(timeout=20)
         """
-        # Проверка на повторное закрытие
-        if self._closed:
-            app_logger.debug("Браузер уже закрыт, повторный вызов игнорируется")
-            return
-
-        self._closed = True
+        # ИСПРАВЛЕНИЕ #7: Атомарная проверка и установка _closed через Lock
+        with self._closed_lock:
+            if self._closed:
+                app_logger.debug("Браузер уже закрыт, повторный вызов игнорируется")
+                return
+            self._closed = True
 
         process_pid = self._process_manager.pid
         app_logger.debug("Closing Chrome browser (PID: %s)", process_pid)

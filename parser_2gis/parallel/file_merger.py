@@ -15,6 +15,7 @@ import shutil
 import signal
 import threading
 import time
+import types
 import typing
 import uuid
 from asyncio import CancelledError
@@ -147,7 +148,7 @@ class FileMergerStrategy:
                             "error",
                         )
 
-        def signal_handler(signum, frame):
+        def signal_handler(signum: int, frame: types.FrameType | None) -> None:
             """Обработчик сигналов прерывания."""
             self.log(f"Получен сигнал {signum}, очистка временных файлов...", "warning")
             cleanup_temp_files()
