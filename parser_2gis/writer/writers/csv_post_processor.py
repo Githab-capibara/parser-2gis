@@ -27,6 +27,10 @@ from .csv_buffer_manager import (
     mmap_file_context,
 )
 
+# Константы
+TRAILING_NUMBER_PATTERN: Pattern[str] = re.compile(r"\s+\d+$")
+"""Паттерн для удаления суффикса с цифрами из названия колонки."""
+
 
 class CSVPostProcessor:
     """Класс для постобработки CSV файлов."""
@@ -171,7 +175,7 @@ class CSVPostProcessor:
             col_2 = f"{column}_2"
             if col_1 in new_data_mapping and col_2 not in new_data_mapping:
                 # Удаляем суффикс " 1" из названия колонки
-                new_data_mapping[col_1] = re.sub(r"\s+\d+$", "", new_data_mapping[col_1])
+                new_data_mapping[col_1] = TRAILING_NUMBER_PATTERN.sub("", new_data_mapping[col_1])
 
         # Создание временного файла
         file_root, file_ext = os.path.splitext(self._file_path)

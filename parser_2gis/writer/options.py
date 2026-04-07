@@ -17,7 +17,6 @@ try:
     from pydantic import field_validator  # type: ignore[attr-defined]
 
     PYDANTIC_V2 = True
-    validator = None  # Заглушка для V2
 except ImportError:
     from pydantic import validator
 

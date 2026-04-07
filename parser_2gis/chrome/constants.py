@@ -12,6 +12,10 @@
 from __future__ import annotations
 
 import os
+import logging
+
+# Logger для логирования fallback значений
+_chrome_constants_logger = logging.getLogger("parser_2gis.chrome.constants")
 
 # =============================================================================
 # КОНСТАНТЫ КОНФИГУРАЦИИ CHROME (ОБОСНОВАНИЕ ЗНАЧЕНИЙ)
@@ -24,7 +28,23 @@ import os
 # - Предотвращает OOM ошибки при парсинге тяжёлых страниц
 # - Баланс между производительностью и стабильностью
 # ISSUE-011: Значение можно переопределить через переменную окружения PARSER_MEMORY_LIMIT_MB
-DEFAULT_MEMORY_LIMIT_MB: int = int(os.environ.get("PARSER_MEMORY_LIMIT_MB", "2048"))
+_memory_limit_str = os.environ.get("PARSER_MEMORY_LIMIT_MB")
+if _memory_limit_str is not None:
+    try:
+        DEFAULT_MEMORY_LIMIT_MB: int = int(_memory_limit_str)
+    except ValueError:
+        DEFAULT_MEMORY_LIMIT_MB = 2048
+        _chrome_constants_logger.warning(
+            "Некорректное значение PARSER_MEMORY_LIMIT_MB=%s. Используется fallback: %d MB",
+            _memory_limit_str,
+            DEFAULT_MEMORY_LIMIT_MB,
+        )
+else:
+    DEFAULT_MEMORY_LIMIT_MB = 2048
+    _chrome_constants_logger.info(
+        "PARSER_MEMORY_LIMIT_MB не установлен. Используется значение по умолчанию: %d MB",
+        DEFAULT_MEMORY_LIMIT_MB,
+    )
 
 # Задержка запуска Chrome по умолчанию в секундах
 # ОБОСНОВАНИЕ: 0.1 секунды выбрано исходя из:
@@ -41,7 +61,10 @@ CHROME_STARTUP_DELAY: float = DEFAULT_STARTUP_DELAY_SEC
 # - Порт 9222 - стандартный порт Chrome DevTools
 # - 100 портов обеспечивают запас для параллельного запуска множества браузеров
 # - Достаточно для поддержки до 100 одновременных сессий парсинга
-DEFAULT_REMOTE_DEBUGGING_PORT_RANGE: tuple[int, int] = (9222, 9322)
+# ISSUE-#135: Можно настроить через ENV переменные
+_DEFAULT_PORT_START = int(os.environ.get("PARSER_DEBUG_PORT_START", "9222"))
+_DEFAULT_PORT_END = int(os.environ.get("PARSER_DEBUG_PORT_END", "9322"))
+DEFAULT_REMOTE_DEBUGGING_PORT_RANGE: tuple[int, int] = (_DEFAULT_PORT_START, _DEFAULT_PORT_END)
 
 # Максимальная длина JavaScript кода для предотвращения DoS атак
 # ОБОСНОВАНИЕ: 5MB выбрано исходя из:

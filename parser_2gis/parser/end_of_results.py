@@ -12,6 +12,13 @@ from typing import TYPE_CHECKING, ClassVar
 
 from parser_2gis.logger import logger
 
+# Константы
+MAX_NODE_TEXT_LENGTH: int = 500
+"""Максимальная длина текста узла DOM для анализа (оптимизация производительности)."""
+
+PAGINATION_URL_PATTERN: str = "/page/"
+"""Паттерн URL для обнаружения пагинации страниц."""
+
 if TYPE_CHECKING:
     from parser_2gis.chrome import ChromeRemote
 
@@ -73,7 +80,7 @@ class EndOfResultsDetector:
                     return True
 
             # Проверяем DOM-элементы
-            nodes = dom_tree.search(lambda node: bool(node.text) and len(node.text) < 500)
+            nodes = dom_tree.search(lambda node: bool(node.text) and len(node.text) < MAX_NODE_TEXT_LENGTH)
             for selector in self.DOM_END_SELECTORS:
                 for node in nodes:
                     try:
@@ -105,7 +112,7 @@ class EndOfResultsDetector:
                 lambda x: (
                     x.local_name == "a"
                     and "href" in x.attributes
-                    and "/page/" in x.attributes.get("href", "")
+                    and PAGINATION_URL_PATTERN in x.attributes.get("href", "")
                 )
             )
 

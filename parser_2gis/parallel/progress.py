@@ -15,6 +15,10 @@ from collections.abc import Callable
 
 from parser_2gis.logger import logger, print_progress
 
+# Константы
+PROGRESS_THROTTLE_INTERVAL: float = 0.5
+"""Минимальный интервал между обновлениями прогресса (секунды)."""
+
 
 class ParallelProgressReporter:
     """Класс для отслеживания прогресса параллельного парсинга.
@@ -56,7 +60,7 @@ class ParallelProgressReporter:
         self._last_progress_time = time.time()
         self._stats: dict[str, int] = {"success": 0, "failed": 0, "total": total_tasks}
         # H019: Throttling - минимальный интервал между обновлениями (сек)
-        self._throttle_interval = 0.5  # 500ms
+        self._throttle_interval = PROGRESS_THROTTLE_INTERVAL
 
     def log(self, message: str, level: str = "info") -> None:
         """Логгирование сообщения.

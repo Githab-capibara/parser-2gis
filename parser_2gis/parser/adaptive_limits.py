@@ -11,6 +11,23 @@ from typing import Any, ClassVar
 
 from parser_2gis.logger import logger
 
+# Константы
+MIN_PAGES_FOR_ANALYSIS: int = 3
+"""Минимальное количество страниц для анализа размера города."""
+
+DEFAULT_TIMEOUT_MULTIPLIER: int = 10
+"""Множитель для вычисления fallback таймаута до определения размера города."""
+
+# Пороги классификации городов по количеству организаций
+CITY_SIZE_SMALL_THRESHOLD: float = 10.0
+"""Порог малого города (организаций <= 10)."""
+
+CITY_SIZE_MEDIUM_THRESHOLD: float = 50.0
+"""Порог среднего города (организаций <= 50)."""
+
+CITY_SIZE_LARGE_THRESHOLD: float = 200.0
+"""Порог крупного города (организаций <= 200)."""
+
 
 class AdaptiveLimits:
     """Менеджер адаптивных лимитов для парсинга.
@@ -21,9 +38,9 @@ class AdaptiveLimits:
 
     # Классификация городов по количеству организаций
     CITY_SIZE_CLASSIFICATION: ClassVar[dict[str, float]] = {
-        "small": 10,  # Маленький город: <= 10 организаций
-        "medium": 50,  # Средний город: <= 50 организаций
-        "large": 200,  # Крупный город: <= 200 организаций
+        "small": CITY_SIZE_SMALL_THRESHOLD,  # Маленький город: <= 10 организаций
+        "medium": CITY_SIZE_MEDIUM_THRESHOLD,  # Средний город: <= 50 организаций
+        "large": CITY_SIZE_LARGE_THRESHOLD,  # Крупный город: <= 200 организаций
         "huge": float("inf"),  # Огромный город: > 200 организаций
     }
 
@@ -75,7 +92,7 @@ class AdaptiveLimits:
         )
 
         # Анализируем размер города после 3-5 страниц
-        if len(self._records_on_first_pages) >= 3:
+        if len(self._records_on_first_pages) >= MIN_PAGES_FOR_ANALYSIS:
             self._determine_city_size()
 
     def _determine_city_size(self) -> None:
@@ -134,7 +151,7 @@ class AdaptiveLimits:
         if self._city_size:
             return self.ADAPTIVE_TIMEOUTS[self._city_size]
         else:
-            return self._base_limit * 10  # Временное значение до определения
+            return self._base_limit * DEFAULT_TIMEOUT_MULTIPLIER  # Fallback до определения размера города
 
     def get_city_size(self) -> str | None:
         """Возвращает определенный размер города.

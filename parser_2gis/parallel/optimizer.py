@@ -23,6 +23,16 @@ import psutil
 
 from parser_2gis.logger import logger
 
+# Константы
+DEFAULT_MEMORY_PERCENT_THRESHOLD: float = 0.10
+"""Доля доступной памяти для использования по умолчанию (10%)."""
+
+MIN_MEMORY_LIMIT_MB: int = 512
+"""Минимальный лимит памяти в МБ."""
+
+MAX_MEMORY_LIMIT_MB: int = 8192
+"""Максимальный лимит памяти в МБ."""
+
 # Интервалы мониторинга ресурсов
 MONITOR_INTERVAL = 5.0
 """Интервал проверки ресурсов в секундах."""
@@ -94,28 +104,37 @@ class ParallelOptimizer:
     контролирует использование ресурсов системы.
     """
 
-    def __init__(self, max_workers: int = 3, max_memory_mb: int | None = None) -> None:
+    def __init__(
+        self,
+        max_workers: int = 3,
+        max_memory_mb: int | None = None,
+        memory_percent_threshold: float = DEFAULT_MEMORY_PERCENT_THRESHOLD,
+    ) -> None:
         """Инициализирует оптимизатор.
 
         Args:
             max_workers: Максимальное количество рабочих потоков.
             max_memory_mb: Максимальное использование памяти в МБ.
-                         Если None, автоматически определяется через psutil (10% от доступной памяти).
+                         Если None, автоматически определяется через psutil.
+            memory_percent_threshold: Доля доступной памяти для использования
+                         при автоматическом определении (по умолчанию 0.10 = 10%).
 
         """
         self._max_workers = max_workers
+        self._memory_percent_threshold = memory_percent_threshold
         # Автоматическое определение лимита памяти через psutil
         if max_memory_mb is None:
             try:
                 available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)
-                # Используем 10% от доступной памяти как лимит
-                self._max_memory_mb = int(available_memory_mb * 0.10)
+                # Используем заданный процент от доступной памяти
+                self._max_memory_mb = int(available_memory_mb * self._memory_percent_threshold)
                 # Ограничиваем разумным диапазоном: минимум 512 MB, максимум 8192 MB
-                self._max_memory_mb = max(512, min(self._max_memory_mb, 8192))
+                self._max_memory_mb = max(MIN_MEMORY_LIMIT_MB, min(self._max_memory_mb, MAX_MEMORY_LIMIT_MB))
                 logger.debug(
-                    "Автоматически определён лимит памяти: %d MB (доступно: %.0f MB)",
+                    "Автоматически определён лимит памяти: %d MB (доступно: %.0f MB, процент: %.0f%%)",
                     self._max_memory_mb,
                     available_memory_mb,
+                    self._memory_percent_threshold * 100,
                 )
             except (OSError, AttributeError, ImportError) as e:
                 # Fallback если psutil недоступен
