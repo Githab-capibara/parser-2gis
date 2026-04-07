@@ -83,21 +83,66 @@ class ParallelRunConfig:
     def from_dict(cls, data: dict[str, Any]) -> ParallelRunConfig:
         """Создаёт конфигурацию из словаря.
 
+        #190: Добавлена валидация типов входных данных.
+
         Args:
             data: Словарь с параметрами.
 
         Returns:
             Экземпляр ParallelRunConfig.
 
+        Raises:
+            TypeError: Если типы данных некорректны.
+            ValueError: Если значения некорректны.
+
         """
+        # #190: Валидация типов входных данных
+        cities = data.get("cities", [])
+        if not isinstance(cities, list):
+            raise TypeError(f"cities должен быть списком, получен {type(cities).__name__}")
+
+        categories = data.get("categories", [])
+        if not isinstance(categories, list):
+            raise TypeError(f"categories должен быть списком, получен {type(categories).__name__}")
+
+        output_dir = data.get("output_dir", "./output")
+        if not isinstance(output_dir, (str, Path)):
+            raise TypeError(
+                f"output_dir должен быть str или Path, получен {type(output_dir).__name__}"
+            )
+
+        max_workers = data.get("max_workers", 10)
+        if not isinstance(max_workers, int):
+            raise TypeError(
+                f"max_workers должен быть int, получен {type(max_workers).__name__}"
+            )
+
+        timeout_per_url = data.get("timeout_per_url", 300)
+        if not isinstance(timeout_per_url, (int, float)):
+            raise TypeError(
+                f"timeout_per_url должен быть числом, получен {type(timeout_per_url).__name__}"
+            )
+
+        output_file = data.get("output_file")
+        if output_file is not None and not isinstance(output_file, str):
+            raise TypeError(
+                f"output_file должен быть str или None, получен {type(output_file).__name__}"
+            )
+
+        config = data.get("config")
+        if config is not None and not isinstance(config, dict):
+            raise TypeError(
+                f"config должен быть dict или None, получен {type(config).__name__}"
+            )
+
         return cls(
-            cities=data.get("cities", []),
-            categories=data.get("categories", []),
-            output_dir=Path(data.get("output_dir", "./output")),
-            max_workers=data.get("max_workers", 10),
-            timeout_per_url=data.get("timeout_per_url", 300),
-            output_file=data.get("output_file"),
-            config=data.get("config"),
+            cities=cities,
+            categories=categories,
+            output_dir=Path(output_dir),
+            max_workers=max_workers,
+            timeout_per_url=int(timeout_per_url),
+            output_file=output_file,
+            config=config,
         )
 
 

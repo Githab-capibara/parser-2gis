@@ -137,15 +137,30 @@ def _acquire_merge_lock(
     # Пытаемся получить блокировку с таймаутом
     start_time = time.time()
     while not lock_acquired:
-        lock_file_handle = None
         try:
             # pylint: disable=consider-using-with
             lock_file_handle = open(lock_file_path, "w", encoding="utf-8")
-            fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            lock_file_handle.write(f"{os.getpid()}\n")
-            lock_file_handle.flush()
-            lock_acquired = True
-            _log_message("Lock file получен успешно", "debug", log_callback)
+            try:
+                fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                lock_file_handle.write(f"{os.getpid()}\n")
+                lock_file_handle.flush()
+                lock_acquired = True
+                _log_message("Lock file получен успешно", "debug", log_callback)
+            except OSError:
+                # #188: Гарантированное закрытие дескриптора через try/finally
+                try:
+                    lock_file_handle.close()
+                except (OSError, RuntimeError, ValueError) as close_error:
+                    _log_message(
+                        f"Ошибка при закрытии lock файла: {close_error}", "error", log_callback
+                    )
+                lock_file_handle = None
+
+                if time.time() - start_time > timeout:
+                    _log_message(f"Таймаут ожидания lock файла ({timeout} сек)", "error", log_callback)
+                    return None, False
+
+                time.sleep(1)
         except OSError:
             if lock_file_handle:
                 try:
@@ -193,10 +208,16 @@ def _merge_csv_files(
         - total_rows: Количество объединённых строк.
         - files_to_delete: Список файлов для удаления.
 
+    #192: Добавлена валидация file_paths.
+
     Raises:
-        ValueError: Если buffer_size или batch_size некорректны.
+        ValueError: Если file_paths пустой или buffer_size/batch_size некорректны.
 
     """
+    # #192: Проверка file_paths на пустоту
+    if not file_paths:
+        raise ValueError("file_paths не может быть пустым")
+
     # ISSUE-117, ISSUE-118: Валидация buffer_size и batch_size
     if buffer_size <= 0:
         raise ValueError(f"buffer_size должен быть положительным числом, получено {buffer_size}")
@@ -619,14 +640,27 @@ class ParallelFileMerger:
 
             start_time = time.time()
             while not lock_acquired:
-                lock_file_handle = None
                 try:
                     lock_file_handle = open(lock_file_path, "w", encoding="utf-8")
-                    fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    lock_file_handle.write(f"{os.getpid()}\n")
-                    lock_file_handle.flush()
-                    lock_acquired = True
-                    self.log("Lock file получен успешно", "debug")
+                    try:
+                        fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        lock_file_handle.write(f"{os.getpid()}\n")
+                        lock_file_handle.flush()
+                        lock_acquired = True
+                        self.log("Lock file получен успешно", "debug")
+                    except OSError:
+                        # #188: Гарантированное закрытие дескриптора через try/finally
+                        try:
+                            lock_file_handle.close()
+                        except (OSError, RuntimeError, TypeError, ValueError) as close_error:
+                            self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
+                        lock_file_handle = None
+
+                        if time.time() - start_time > MERGE_LOCK_TIMEOUT:
+                            self.log(f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error")
+                            return None, False
+
+                        time.sleep(1)
                 except OSError:
                     if lock_file_handle:
                         try:

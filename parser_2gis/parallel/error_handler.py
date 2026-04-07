@@ -199,6 +199,8 @@ class ParallelErrorHandler:
     def create_unique_temp_file(self, city_name: str, category_name: str) -> Path:
         """Создаёт уникальный временный файл.
 
+        #191: Добавлена валидация city_name.
+
         Args:
             city_name: Название города.
             category_name: Название категории.
@@ -207,9 +209,14 @@ class ParallelErrorHandler:
             Путь к временному файлу.
 
         Raises:
+            ValueError: Если city_name пустой.
             RuntimeError: Если не удалось создать уникальный файл.
 
         """
+        # #191: Валидация city_name
+        if not city_name or not city_name.strip():
+            raise ValueError("city_name не может быть пустым")
+
         safe_city = city_name.replace(" ", "_").replace("/", "_")
         safe_category = category_name.replace(" ", "_").replace("/", "_")
         temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{id(self)}.tmp"
@@ -276,21 +283,9 @@ class ParallelErrorHandler:
 
         """
         # Явная проверка edge case: max_retries=0
+        # #186: При max_retries=0 выполняем функцию один раз и возвращаем результат
         if max_retries <= 0:
-            # Если max_retries=0, выполняем функцию один раз без повторных попыток
-            try:
-                result = func()
-                return result
-            except ChromeException:
-                # При max_retries=0 и наличии exception - выбрасываем его
-                raise
-            # При max_retries=0 без exception -- логируем предупреждение
-            self.log(
-                "retry_with_backoff: max_retries=0, функция выполнена без повторных попыток, "
-                "возвращается None",
-                "warning",
-            )
-            return None
+            return func()
 
         retry_delay = base_delay
 

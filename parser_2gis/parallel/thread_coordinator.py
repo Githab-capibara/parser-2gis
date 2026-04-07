@@ -135,8 +135,8 @@ class ThreadCoordinator:
         self._executor_type = executor_type
 
         # Семафор для контроля одновременного запуска браузеров
-        # Небольшой допуск (max_workers + 2) для поддержки burst-нагрузки
-        self._browser_semaphore = BoundedSemaphore(max_workers + 2)
+        # ИСПРАВЛЕНИЕ #182: Используем ровно max_workers без дополнительных слотов
+        self._browser_semaphore = BoundedSemaphore(max_workers)
 
         # Флаг отмены
         self._cancel_event = threading.Event()

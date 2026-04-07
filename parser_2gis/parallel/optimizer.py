@@ -112,6 +112,8 @@ class ParallelOptimizer:
     ) -> None:
         """Инициализирует оптимизатор.
 
+        #194: Добавлена валидация max_workers.
+
         Args:
             max_workers: Максимальное количество рабочих потоков.
             max_memory_mb: Максимальное использование памяти в МБ.
@@ -119,7 +121,14 @@ class ParallelOptimizer:
             memory_percent_threshold: Доля доступной памяти для использования
                          при автоматическом определении (по умолчанию 0.10 = 10%).
 
+        Raises:
+            ValueError: Если max_workers <= 0.
+
         """
+        # #194: Валидация max_workers
+        if max_workers <= 0:
+            raise ValueError(f"max_workers должен быть положительным, получено {max_workers}")
+
         self._max_workers = max_workers
         self._memory_percent_threshold = memory_percent_threshold
         # Автоматическое определение лимита памяти через psutil
@@ -184,6 +193,7 @@ class ParallelOptimizer:
         Оптимизация 3.5:
         - Используем queue.Queue для потокобезопасной очереди
         - put() автоматически синхронизирует доступ
+        #185: Объединяем проверку и добавление под одной блокировкой
 
         Args:
             url: URL для парсинга.
@@ -194,10 +204,17 @@ class ParallelOptimizer:
         """
         task = ParallelTask(url, category_name, city_name, priority)
 
-        # Оптимизация 3.5: Queue потокобезопасен, не нужна блокировка
-        # Для приоритетных задач используем put с параметром block=False
-        self._tasks.put(task, block=True)
+        # #185: Объединяем проверку ресурсов и добавление задачи под одной блокировкой
         with self._lock:
+            # Проверяем доступные ресурсы перед добавлением
+            available, _ = self.check_resources()
+            if not available:
+                logger.warning(
+                    "Ресурсы ограничены, задача не добавлена: %s - %s", city_name, category_name
+                )
+                return
+            # Оптимизация 3.5: Queue потокобезопасен, но блокировка гарантирует атомарность
+            self._tasks.put(task, block=True)
             self._stats["total_tasks"] += 1
 
         logger.debug(

@@ -46,13 +46,22 @@ class ParallelProgressReporter:
     ) -> None:
         """Инициализация репортёра прогресса.
 
+        #193: Добавлена валидация total_tasks.
+
         Args:
             total_tasks: Общее количество задач.
             lock: Блокировка для потокобезопасного доступа.
             progress_callback: Функция обратного вызова для прогресса.
             merge_callback: Функция обратного вызова для объединения.
 
+        Raises:
+            ValueError: Если total_tasks отрицательный.
+
         """
+        # #193: Валидация total_tasks
+        if total_tasks < 0:
+            raise ValueError(f"total_tasks не может быть отрицательным, получено {total_tasks}")
+
         self.total_tasks = total_tasks
         self._lock = lock
         self._progress_callback = progress_callback

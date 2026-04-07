@@ -52,8 +52,8 @@ if TYPE_CHECKING:
     from parser_2gis.config import Configuration
 
 # Константа для дополнительного количества слотов семафора браузеров
-# ИСПРАВЛЕНИЕ #5: Уменьшено с 20 до 2 для небольшого запаса на накладные расходы
-BROWSER_SEMAPHORE_EXTRA_SLOTS: int = 2
+# ИСПРАВЛЕНИЕ #5, #181: Установлено в 0 для использования ровно max_workers
+BROWSER_SEMAPHORE_EXTRA_SLOTS: int = 0
 
 
 def _atomic_rename_with_retry(

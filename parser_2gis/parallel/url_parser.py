@@ -237,6 +237,10 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                     )
                     raise
 
+        # ИСПРАВЛЕНИЕ #183: Кэшируем значения config перед созданием потока
+        # чтобы избежать гонки при чтении из отдельного потока
+        cached_config = self.config
+
         def do_parse() -> tuple[bool, str]:
             """Выполняет парсинг внутри отдельного потока.
 
@@ -258,7 +262,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
 
             # H003: Задержка ТОЛЬКО если use_delays=True
             apply_startup_delay(
-                self.config,
+                cached_config,
                 phase="initial",
                 log_func=lambda msg, level: self.log(msg, level),
             )
@@ -267,7 +271,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             try:
                 # H003: Задержка ТОЛЬКО если use_delays=True
                 apply_startup_delay(
-                    self.config,
+                    cached_config,
                     phase="launch",
                     log_func=lambda msg, level: self.log(msg, level),
                 )
@@ -279,11 +283,11 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                 for attempt in range(max_retries):
                     writer = None
                     try:
-                        writer = get_writer(str(temp_filepath), "csv", self.config.writer)
+                        writer = get_writer(str(temp_filepath), "csv", cached_config.writer)
                         parser = get_parser(
                             url,
-                            chrome_options=self.config.chrome,
-                            parser_options=self.config.parser,
+                            chrome_options=cached_config.chrome,
+                            parser_options=cached_config.parser,
                         )
                         break
                     except ChromeException as chrome_error:
@@ -328,7 +332,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
 
             try:
                 with parser:
-                    with get_writer(str(temp_filepath), "csv", self.config.writer) as writer:
+                    with get_writer(str(temp_filepath), "csv", cached_config.writer) as writer:
                         try:
                             parser.parse(writer)
                         except MemoryError as memory_error:
