@@ -1,10 +1,7 @@
-"""Патч для pychrome.
+"""Патчи для библиотеки pychrome.
 
-Исправляет обработку пустых сообщений Chrome DevTools Protocol
-в библиотеке pychrome.
+Предоставляет функцию patch_all() для применения всех патчей к pychrome.
 """
-
-# Патч для pychrome - исправляет обработку пустых сообщений Chrome DevTools Protocol
 
 import json
 import logging

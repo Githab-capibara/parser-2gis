@@ -143,12 +143,21 @@ def _check_port_available_internal(port: int, timeout: float = 0.6, retries: int
 
 
 def _check_port_available(port: int, timeout: float = 0.6, retries: int = 1) -> bool:
-    """Проверяет доступность порта для подключения."""
+    """Проверяет доступность порта для подключения.
+
+    Примечание: Это публичный API, оставлен как обёртка над _check_port_available_internal
+    для обеспечения стабильного внешнего интерфейса.
+
+    """
     return _check_port_available_internal(port, timeout=timeout, retries=retries)
 
 
 def _clear_port_cache() -> None:
-    """Очищает кэш проверки портов."""
+    """Очищает кэш проверки портов.
+
+    Примечание: Это публичный API для внешней инвалидации кэша.
+
+    """
     _check_port_cached.cache_clear()
 
 
@@ -354,7 +363,8 @@ class ChromeRemote:
                 timeout=2000,  # Увеличенный таймаут проверки соединения
             )
 
-            if result and result.get("result", {}).get("value") == 2:
+            # Устойчивая проверка: результат существует и содержит ожидаемое значение
+            if result.get("result") and result["result"].get("value") == 2:
                 app_logger.debug("Проверка соединения пройдена")
                 return True
             else:

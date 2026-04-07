@@ -37,7 +37,14 @@ HTTP_CACHE_RATE_LIMIT_DELAY = 0.05  # 50ms между запросами
 class _HTTPCacheEntry:
     """Запись кэша HTTP запроса с TTL."""
 
-    def __init__(self, response: requests.Response, timestamp: float) -> None:
+    def __init__(self, response: "requests.Response", timestamp: float) -> None:
+        """Инициализирует запись HTTP кэша.
+
+        Args:
+            response: Данные ответа.
+            timestamp: Время сохранения.
+
+        """
         self.response = response
         self.timestamp = timestamp
 

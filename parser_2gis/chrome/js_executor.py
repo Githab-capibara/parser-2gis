@@ -54,13 +54,13 @@ _MIN_CODE_LENGTH_FOR_OBFUSCATION_CHECK = 100
 DANGEROUS_JS_PATTERNS = [
     (re.compile(r"\beval\s*\("), "eval() запрещён"),
     (re.compile(r"(?<![\w])Function\s*\("), "конструктор Function запрещён"),
-    (re.compile(r'\bsetTimeout\s*\([^,]*,\s*["\']'), "setTimeout с строковым кодом запрещён"),
-    (re.compile(r'\bsetInterval\s*\([^,]*,\s*["\']'), "setInterval с строковым кодом запрещён"),
+    (re.compile(r"\bsetTimeout\s*\([^,]*,\s*[\"']"), "setTimeout с строковым кодом запрещён"),
+    (re.compile(r"\bsetInterval\s*\([^,]*,\s*[\"']"), "setInterval с строковым кодом запрещён"),
     (re.compile(r"\bdocument\.write\s*\("), "document.write() запрещён"),
     (re.compile(r"\.innerHTML\s*="), "прямая установка innerHTML запрещена"),
     (re.compile(r"\.outerHTML\s*="), "прямая установка outerHTML запрещена"),
     (
-        re.compile(r"document\s*\.\s*createElement\s*\(\s*['\"]script['\"]"),
+        re.compile(r"document\s*\.\s*createElement\s*\(\s*[\"']script[\"']"),
         "создание script элемента запрещено",
     ),
     (re.compile(r"\bimport\s*\("), "динамический import запрещён"),
@@ -68,13 +68,13 @@ DANGEROUS_JS_PATTERNS = [
     (re.compile(r"\bfetch\s*\([^)]*\)\s*\.then"), "fetch с обработкой .then() запрещён"),
     (re.compile(r"\bfetch\s*\([^)]*\)\s*\.catch"), "fetch с обработкой .catch() запрещён"),
     (re.compile(r"\bXMLHttpRequest\s*\("), "XMLHttpRequest запрещён"),
-    (re.compile(r"\.src\s*=\s*['\"]http"), "установка src с http запрещена"),
+    (re.compile(r"\.src\s*=\s*[\"']http"), "установка src с http запрещена"),
     # Дополнительные паттерны для обнаружения обфускации
-    (re.compile(r"\[\s*['\"]eval['\"]\s*\]"), "обфускация eval через массив"),
-    (re.compile(r"window\s*\[\s*['\"]eval['\"]\s*\]"), "доступ к eval через window[]"),
-    (re.compile(r"this\s*\[\s*['\"]eval['\"]\s*\]"), "доступ к eval через this[]"),
-    (re.compile(r"global\s*\[\s*['\"]eval['\"]\s*\]"), "доступ к eval через global[]"),
-    (re.compile(r"self\s*\[\s*['\"]eval['\"]\s*\]"), "доступ к eval через self[]"),
+    (re.compile(r"\[\s*[\"']eval[\"']\s*\]"), "обфускация eval через массив"),
+    (re.compile(r"window\s*\[\s*[\"']eval[\"']\s*\]"), "доступ к eval через window[]"),
+    (re.compile(r"this\s*\[\s*[\"']eval[\"']\s*\]"), "доступ к eval через this[]"),
+    (re.compile(r"global\s*\[\s*[\"']eval[\"']\s*\]"), "доступ к eval через global[]"),
+    (re.compile(r"self\s*\[\s*[\"']eval[\"']\s*\]"), "доступ к eval через self[]"),
 ]
 
 

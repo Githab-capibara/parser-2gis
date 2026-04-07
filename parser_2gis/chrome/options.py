@@ -25,7 +25,11 @@ def _compute_default_memory_limit() -> int:
         Лимит памяти в мегабайтах, округлённый вниз до ближайшей сотни.
 
     """
-    memory_total = psutil.virtual_memory().total / 1024**2  # Конвертируем в МБ
+    try:
+        memory_total = psutil.virtual_memory().total / 1024**2  # Конвертируем в МБ
+    except Exception:  # noqa: BLE001 — В контейнерах psutil может вернуть некорректные данные
+        # Fallback для контейнеров и окружений без доступа к информации о памяти
+        memory_total = 8192  # 8 ГБ по умолчанию
     # ISSUE-038: Вынесено магическое число 0.75 в константу MEMORY_FRACTION_FOR_V8
     return floor_to_hundreds(round(MEMORY_FRACTION_FOR_V8 * memory_total))
 

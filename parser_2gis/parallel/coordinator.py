@@ -102,6 +102,9 @@ def _signal_handler(signum: int, frame: types.FrameType | None) -> None:
     ISSUE-009: Использует CoordinatorContext вместо глобальной переменной.
     P0-20: Добавлены type hints для signum и frame.
 
+    Примечание: Логика дублируется в parser_2gis/parallel/thread_coordinator.py.
+    Рефакторинг отложен — разная логика обработки в каждом файле.
+
     Args:
         signum: Номер сигнала.
         frame: Текущий фрейм.
