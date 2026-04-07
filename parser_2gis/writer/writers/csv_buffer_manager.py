@@ -294,7 +294,7 @@ def mmap_file_context(
             fallback_file = open(file_path, mode, encoding=encoding)
             yield fallback_file, False, None
 
-    except (OSError, Exception) as error:
+    except (OSError, TypeError, RuntimeError) as error:
         # ISSUE-157: Упрощённая fallback логика через выделение метода
         logger.warning(
             "Не удалось открыть mmap для файла %s: %s. Используется обычная буферизация.",
@@ -332,11 +332,20 @@ def _cleanup_mmap_resources(
 
     """
     if text_file is not None and hasattr(text_file, "close"):
-        text_file.close()
+        try:
+            text_file.close()
+        except (OSError, TypeError) as close_error:
+            logger.warning("Ошибка при закрытии text_file: %s", close_error)
     if mmapped_file is not None:
-        mmapped_file.close()
+        try:
+            mmapped_file.close()
+        except (OSError, TypeError) as close_error:
+            logger.warning("Ошибка при закрытии mmapped_file: %s", close_error)
     if underlying_fp is not None and hasattr(underlying_fp, "close"):
-        underlying_fp.close()
+        try:
+            underlying_fp.close()
+        except (OSError, TypeError) as close_error:
+            logger.warning("Ошибка при закрытии underlying_fp: %s", close_error)
 
 
 def _close_file_safely(file_obj: object | None) -> None:

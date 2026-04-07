@@ -125,13 +125,13 @@ class Configuration(BaseModel):
             config_cls=cls, config_path=config_path, auto_create=auto_create
         )  # type: ignore[return-value]
 
-    def validate(self) -> bool:  # pylint: disable=arguments-renamed
+    def validate(self) -> tuple[bool, list[str]]:  # pylint: disable=arguments-renamed
         """Валидирует конфигурацию.
 
         Делегирует операцию классу ConfigValidator.
 
         Returns:
-            True если конфигурация валидна.
+            Кортеж (валидность, список ошибок).
 
         """
         from .config_services import ConfigValidator

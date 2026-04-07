@@ -148,7 +148,7 @@ class CSVPostProcessor:
 
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, IOError, RuntimeError) as e:
             logger.error("Ошибка при чтении CSV для анализа колонок: %s", e)
             raise
 
@@ -281,7 +281,7 @@ class CSVPostProcessor:
 
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as e:
+        except (OSError, IOError, RuntimeError) as e:
             logger.error("Ошибка при записи CSV без пустых колонок: %s", e)
             raise
 

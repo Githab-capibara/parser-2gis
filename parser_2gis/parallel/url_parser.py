@@ -290,7 +290,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                         if writer is not None:
                             try:
                                 writer.close()
-                            except Exception as close_error:
+                            except (OSError, RuntimeError, ChromeException) as close_error:
                                 self.log(
                                     f"Ошибка при закрытии writer в retry: {close_error}", "debug"
                                 )

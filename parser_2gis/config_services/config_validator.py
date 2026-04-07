@@ -34,38 +34,27 @@ class ConfigValidator:
 
     """
 
-    def validate(self, config: BaseModel) -> bool:
+    def validate(self, config: BaseModel) -> tuple[bool, list[str]]:
         """Валидирует конфигурацию.
 
         Args:
             config: Конфигурация для валидации.
 
         Returns:
-            True если конфигурация валидна.
-
-        Raises:
-            ValidationError: При ошибках валидации.
+            Кортеж (валидность, список ошибок).
 
         """
         if config is None:
-            raise ValidationError.from_exception_data(
-                "ConfigValidator",
-                [{"msg": "Конфигурация не может быть None", "type": "value_error"}],
-            )
+            return False, ["Конфигурация не может быть None"]
         if not isinstance(config, BaseModel):
-            raise ValidationError.from_exception_data(
-                "ConfigValidator",
-                [
-                    {
-                        "msg": "Конфигурация должна быть экземпляром Pydantic BaseModel",
-                        "type": "type_error",
-                    }
-                ],
-            )
+            return False, ["Конфигурация должна быть экземпляром Pydantic BaseModel"]
         # Pydantic валидирует автоматически при присваивании
         # Дополнительная явная валидация через model_validate
-        type(config).model_validate(config.model_dump())
-        return True
+        try:
+            type(config).model_validate(config.model_dump())
+            return True, []
+        except ValidationError as ex:
+            return False, self.format_validation_errors(ex)
 
     @staticmethod
     def format_validation_errors(ex: ValidationError) -> list[str]:

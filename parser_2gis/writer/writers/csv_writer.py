@@ -326,7 +326,7 @@ class CSVWriter(FileWriter):
         # чтобы файл закрывался даже при ошибке постобработки
         try:
             super().__exit__(*exc_info)
-        except Exception as close_error:
+        except (OSError, IOError, RuntimeError) as close_error:
             logger.error("Ошибка при закрытии файла: %s", close_error)
 
     def write(self, catalog_doc: Any) -> None:

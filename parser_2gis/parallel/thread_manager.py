@@ -126,7 +126,9 @@ class ThreadManager:
                         self.timeout_per_task,
                     )
 
-                except (KeyboardInterrupt, Exception) as e:
+                except (KeyboardInterrupt, SystemExit):
+                    raise
+                except (OSError, RuntimeError, ValueError) as e:
                     failed_count += 1
                     logger.error("Исключение при парсинге %s - %s: %s", city_name, category_name, e)
 

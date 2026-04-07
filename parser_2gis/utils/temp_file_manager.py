@@ -346,7 +346,7 @@ class TempFileTimer:
             self._cleanup_temp_files()
         except (MemoryError, KeyboardInterrupt, SystemExit):
             raise
-        except Exception as cleanup_error:
+        except (OSError, IOError, RuntimeError) as cleanup_error:
             logger.error(
                 "Ошибка при периодической очистке временных файлов: %s",
                 cleanup_error,
@@ -364,7 +364,7 @@ class TempFileTimer:
             self._timer.start()
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as schedule_error:
+        except (OSError, RuntimeError, ValueError) as schedule_error:
             logger.error(
                 "Ошибка при планировании следующей очистки: %s", schedule_error, exc_info=True
             )
@@ -412,7 +412,7 @@ class TempFileTimer:
                     logger.debug("Ошибка при удалении файла %s: %s", temp_file, os_error)
                 except (KeyboardInterrupt, SystemExit):
                     raise
-                except Exception as file_error:
+                except (OSError, IOError, RuntimeError) as file_error:
                     logger.debug(
                         "Непредвиденная ошибка при обработке файла %s: %s", temp_file, file_error
                     )
@@ -427,7 +427,7 @@ class TempFileTimer:
 
         except (KeyboardInterrupt, SystemExit):
             raise
-        except Exception as cleanup_error:
+        except (OSError, IOError, RuntimeError) as cleanup_error:
             logger.error(
                 "Ошибка при сканировании директории %s: %s",
                 self._temp_dir,
@@ -456,14 +456,14 @@ class TempFileTimer:
                 self._timer.cancel()
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except Exception as cancel_error:
+            except (OSError, IOError) as cancel_error:
                 logger.debug("Ошибка при отмене таймера: %s", cancel_error)
 
             try:
                 self._timer.join(timeout=self._interval * 2)
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except Exception as join_error:
+            except (OSError, RuntimeError) as join_error:
                 logger.debug("Ошибка при ожидании таймера: %s", join_error)
 
             self._timer = None

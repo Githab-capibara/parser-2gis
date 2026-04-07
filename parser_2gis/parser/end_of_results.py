@@ -36,9 +36,10 @@ class EndOfResultsDetector:
     DOM_END_SELECTORS: ClassVar[list] = [
         lambda node: (
             node.local_name == "div"
+            and node.text is not None
             and any(pattern in node.text.lower() for pattern in ["конец", "нет результатов"])
         ),
-        lambda node: node.local_name == "p" and "ничего не найдено" in node.text.lower(),
+        lambda node: node.local_name == "p" and "ничего не найдено" in (node.text or "").lower(),
     ]
 
     def __init__(self, chrome_remote: ChromeRemote) -> None:

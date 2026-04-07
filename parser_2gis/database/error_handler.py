@@ -182,7 +182,7 @@ def _is_retryable_error(error: sqlite3.Error) -> bool:
         "database is locked" in error_str
         or "busy" in error_str
         or "timeout" in error_str
-        or isinstance(error, (sqlite3.OperationalError, sqlite3.DatabaseError))
+        or isinstance(error, sqlite3.OperationalError)
     )
 
 

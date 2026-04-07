@@ -63,7 +63,12 @@ class AdaptiveLimits:
         Args:
             count: Количество записей на странице.
 
+        Raises:
+            ValueError: Если count отрицательный.
+
         """
+        if count < 0:
+            raise ValueError(f"Количество записей не может быть отрицательным: {count}")
         self._records_on_first_pages.append(count)
         logger.debug(
             "Добавлено записей: %d (всего записей: %d)", count, len(self._records_on_first_pages)
