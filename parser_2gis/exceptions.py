@@ -98,8 +98,10 @@ class BaseContextualException(Exception):
             self.filename = "unknown"
 
         # Формируем полное сообщение с контекстом
+        # Убираем trailing '.' чтобы избежать двойных точек
+        cleaned_message = message.rstrip(".")
         full_message = (
-            f"{message}. "
+            f"{cleaned_message}. "
             f"Функция: {self.function_name}, "
             f"Строка: {self.line_number}, "
             f"Файл: {self.filename}"

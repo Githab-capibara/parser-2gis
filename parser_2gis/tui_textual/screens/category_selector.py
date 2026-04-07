@@ -339,12 +339,3 @@ class CategorySelectorScreen(Screen):
         """
         for checkbox in self._checkboxes:
             checkbox.value = False
-
-    def bind_app(self, app) -> None:
-        """Bind the application instance to the screen.
-
-        Args:
-            app: The application instance.
-
-        """
-        self._app = app

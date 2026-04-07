@@ -43,10 +43,6 @@ from .memory_manager import MemoryManager, check_memory_safety, get_memory_manag
 from .merger import (
     MergeConfig,  # noqa: F401 - используется для типизации
     ParallelFileMerger,
-    _acquire_merge_lock,
-    _cleanup_source_files,
-    _merge_csv_files,
-    _validate_merged_file,
 )
 from .options import MAX_TEMP_FILES, ParallelOptions
 from .parallel_parser import (
@@ -86,11 +82,6 @@ __all__ = [
     "TEMP_FILE_CLEANUP_INTERVAL",
     "MAX_TEMP_FILES_MONITORING",
     "ORPHANED_TEMP_FILE_AGE",
-    # Слияние файлов
-    "_merge_csv_files",
-    "_acquire_merge_lock",
-    "_cleanup_source_files",
-    "_validate_merged_file",
     # Константы из file_merger
     "MERGE_LOCK_TIMEOUT",
     "MAX_LOCK_FILE_AGE",

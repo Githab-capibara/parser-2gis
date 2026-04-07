@@ -24,6 +24,7 @@ import threading
 import time
 import types
 import uuid
+import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass
@@ -125,6 +126,15 @@ class ParserThreadConfig:
     max_workers: int = 3
     timeout_per_url: int = DEFAULT_TIMEOUT
     output_file: str | None = None
+
+    def __post_init__(self) -> None:
+        """Предупреждение о депрекации класса."""
+        warnings.warn(
+            "ParserThreadConfig устарел и будет удалён в будущей версии. "
+            "Используйте ParallelRunConfig вместо него.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
 
 # Регистрируем очистку через atexit для гарантированной очистки при аварийном завершении

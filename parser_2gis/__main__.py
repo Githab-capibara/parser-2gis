@@ -13,9 +13,9 @@ if __name__ == "__main__":
     # Очистка осиротевших профилей Chrome от предыдущих запусков
     # Это предотвращает накопление временных файлов после аварийных завершений
     try:
-        DELETED_COUNT = cleanup_orphaned_profiles()
-        if DELETED_COUNT > 0:
-            logger.info("Очищено %d осиротевших профилей Chrome", DELETED_COUNT)
+        deleted_count = cleanup_orphaned_profiles()
+        if deleted_count > 0:
+            logger.info("Очищено %d осиротевших профилей Chrome", deleted_count)
     except (OSError, RuntimeError) as e:
         logger.warning("Ошибка при очистке осиротевших профилей: %s", e)
 
