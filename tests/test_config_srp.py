@@ -49,8 +49,7 @@ class TestConfigMerger:
         config1 = Configuration()
         config2 = Configuration(parser={"max_records": 50})
 
-        merger = ConfigMerger(max_depth=5)
-        merger.merge(config1, config2)
+        ConfigMerger.merge(config1, config2, max_depth=5)
 
         assert config1.parser.max_records == 50
 
@@ -59,13 +58,10 @@ class TestConfigMerger:
         config1 = Configuration()
         config2 = Configuration()
 
-        merger = ConfigMerger(max_depth=1)
-
-        # При малой глубине и сложных вложенных структурах может возникнуть RecursionError
-        # Но для простых конфигураций merge должен работать
+        # При малой глубине и сложных конфигурациях может возникнуть RecursionError
         # Тест проверяет что max_depth контролируется
         try:
-            merger._merge(config1, config2)
+            ConfigMerger.merge(config1, config2, max_depth=1)
         except RecursionError:
             pytest.fail("RecursionError не должен возникать для простых конфигураций")
 
@@ -251,10 +247,9 @@ class TestConfigMergerEdgeCases:
         mock_obj.nested = mock_obj
 
         # Не должно вызвать бесконечную рекурсию
-        merger = ConfigMerger(max_depth=10)
         # Тест должен завершиться без зацикливания
         try:
-            merger.merge(mock_obj, config2)
+            ConfigMerger.merge(mock_obj, config2, max_depth=10)
         except RecursionError:
             pass  # Ожидаемое поведение при глубокой рекурсии
 

@@ -237,11 +237,11 @@ class TestBrowserCloseDecomposition:
         """
         from parser_2gis.chrome.browser import ProcessManager
 
-        assert hasattr(ProcessManager, "terminate_process_graceful")
-        assert hasattr(ProcessManager, "terminate_process_forceful")
+        assert hasattr(ProcessManager, "terminate")
+        assert hasattr(ProcessManager, "kill")
 
-        assert callable(getattr(ProcessManager, "terminate_process_graceful"))
-        assert callable(getattr(ProcessManager, "terminate_process_forceful"))
+        assert callable(getattr(ProcessManager, "terminate"))
+        assert callable(getattr(ProcessManager, "kill"))
 
     def test_browser_close_decomposed_cleanup_profile(self):
         """

@@ -15,10 +15,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 if TYPE_CHECKING:
-    from pydantic import BaseModel
+    pass
 
 
 class ConfigValidator:
