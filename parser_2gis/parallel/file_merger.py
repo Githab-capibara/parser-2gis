@@ -19,9 +19,9 @@ import types
 import typing
 import uuid
 from asyncio import CancelledError
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
-from collections.abc import Callable
 
 from parser_2gis.constants import (
     MAX_LOCK_FILE_AGE,
@@ -138,7 +138,7 @@ class FileMergerStrategy:
         sigint_registered = False
         sigterm_registered = False
 
-        def cleanup_temp_files():
+        def cleanup_temp_files() -> None:
             """Функция очистки временных файлов при прерывании."""
             with self._merge_lock:
                 for temp_file in self._merge_temp_files:
@@ -312,9 +312,7 @@ class FileMergerStrategy:
 
         """
         # #64: Использует общую утилиту из filename_utils.py
-        return extract_category_from_filename(
-            csv_file, log_func=lambda msg, level: self.log(msg, level)
-        )
+        return extract_category_from_filename(csv_file, log_func=self.log)
 
     def _acquire_merge_lock(self, lock_file_path: Path) -> tuple[typing.TextIO | None, bool]:
         """Получает блокировку merge операции.

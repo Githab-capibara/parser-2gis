@@ -11,7 +11,7 @@ ISSUE-014: Dependency Injection — зависимости внедряются 
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol, Callable
+from typing import TYPE_CHECKING, Any, Callable, Protocol
 
 if TYPE_CHECKING:
     from parser_2gis.cache import CacheManager
@@ -42,7 +42,7 @@ class ParserFactoryProtocol(Protocol):
         browser: BrowserService | None = None,
     ) -> BaseParser:
         """Создаёт парсер."""
-        ...
+        pass
 
 
 # =============================================================================

@@ -25,6 +25,7 @@ import time
 import types
 import uuid
 import warnings
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass
@@ -32,7 +33,6 @@ from functools import lru_cache
 from pathlib import Path
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, TextIO, cast
-from collections.abc import Callable, Iterator
 
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
@@ -48,6 +48,14 @@ from parser_2gis.constants import (
 )
 from parser_2gis.logger import log_parser_finish, logger, print_progress
 from parser_2gis.parallel.filename_utils import extract_category_from_filename
+
+# Импорты стратегий ISSUE-002
+from parser_2gis.parallel.strategies import (
+    ParserResult,
+    ParseStrategy,
+    UrlGenerationStrategy,
+    UrlTuple,
+)
 from parser_2gis.utils.temp_file_manager import (
     MAX_TEMP_FILES_MONITORING,
     ORPHANED_TEMP_FILE_AGE,
@@ -59,14 +67,6 @@ from parser_2gis.validation import (
     validate_categories_config,
     validate_cities_config,
     validate_parallel_config,
-)
-
-# Импорты стратегий ISSUE-002
-from parser_2gis.parallel.strategies import (
-    ParseStrategy,
-    UrlGenerationStrategy,
-    ParserResult,
-    UrlTuple,
 )
 
 # Импорты для типизации - откладываются до времени проверки типов
@@ -428,9 +428,7 @@ class ParallelCityParser:
 
         """
         # #64: Использует общую утилиту из filename_utils.py
-        return extract_category_from_filename(
-            csv_file, log_func=lambda msg, level: self.log(msg, level)
-        )
+        return extract_category_from_filename(csv_file, log_func=self.log)
 
     def _acquire_merge_lock(self, lock_file_path: Path) -> tuple[TextIO | None, bool]:
         """Получает блокировку merge операции.

@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -33,8 +34,6 @@ if TYPE_CHECKING:
 # =============================================================================
 # REGISTRY PATTERN ДЛЯ WRITERS
 # =============================================================================
-
-from collections.abc import Callable
 
 WRITER_REGISTRY: dict[str, type[FileWriter]] = {}
 """Реестр зарегистрированных writer классов по формату файла."""

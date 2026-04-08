@@ -19,11 +19,12 @@ import signal
 import threading
 import time
 import typing
-from typing import TYPE_CHECKING, TextIO
 import uuid
-from dataclasses import dataclass
-from pathlib import Path
 from collections.abc import Callable
+from dataclasses import dataclass
+from functools import partial
+from pathlib import Path
+from typing import TYPE_CHECKING, TextIO
 
 from parser_2gis.constants import (
     MAX_LOCK_FILE_AGE,
@@ -297,8 +298,7 @@ def _merge_csv_files(
 
                 # #64: Использует общую утилиту из filename_utils.py
                 category_name = extract_category_from_filename(
-                    csv_file,
-                    log_func=lambda msg, level: _log_message(msg, level, merge_config.log_callback),
+                    csv_file, log_func=partial(_log_message, log_callback=merge_config.log_callback)
                 )
 
                 infile = None
@@ -602,9 +602,7 @@ class ParallelFileMerger:
 
         """
         # #64: Использует общую утилиту из filename_utils.py
-        return extract_category_from_filename(
-            csv_file, log_func=lambda msg, level: self.log(msg, level)
-        )
+        return extract_category_from_filename(csv_file, log_func=self.log)
 
     def acquire_merge_lock(self, lock_file_path: Path) -> tuple[typing.TextIO | None, bool]:
         """Получает блокировку merge операции.

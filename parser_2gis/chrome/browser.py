@@ -1025,9 +1025,15 @@ class ChromeBrowser:
         """Возвращает экземпляр для использования в контекстном менеджере."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> bool:
         """Закрывает браузер при выходе из контекста."""
         self.close()
+        return False
 
     def __del__(self) -> None:
         """Деструктор объекта."""

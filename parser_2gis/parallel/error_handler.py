@@ -191,9 +191,7 @@ class ParallelErrorHandler:
         """
         # #63: Использует общую утилиту из cleanup_utils.py
         cleanup_temp_file(
-            temp_filepath,
-            log_func=lambda msg, level: self.log(msg, level),
-            description="Временный файл удалён после ошибки",
+            temp_filepath, log_func=self.log, description="Временный файл удалён после ошибки"
         )
 
     def create_unique_temp_file(self, city_name: str, category_name: str) -> Path:

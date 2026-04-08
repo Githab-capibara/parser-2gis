@@ -7,6 +7,6 @@
 from .pychrome import patch_pychrome
 
 
-def patch_all():
+def patch_all() -> None:
     """Применяет все пользовательские патчи."""
     patch_pychrome()

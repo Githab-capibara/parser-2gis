@@ -37,8 +37,6 @@ class PathTraversalError(ValueError):
 
     """
 
-    ...
-
 
 class PathSafetyValidator:
     """Валидатор безопасности путей для parser-2gis.

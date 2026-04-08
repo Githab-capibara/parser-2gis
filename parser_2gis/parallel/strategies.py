@@ -16,10 +16,11 @@ import shutil
 import threading
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from collections.abc import Callable, Generator
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING
-from collections.abc import Callable, Generator
 
 from typing_extensions import TypeAlias
 
@@ -335,9 +336,7 @@ class ParseStrategy:
 
             # Rate limiting
             # #65-#67: Использует общую утилиту apply_startup_delay
-            apply_startup_delay(
-                self.config, phase="initial", log_func=lambda msg, level: self._log(msg, level)
-            )
+            apply_startup_delay(self.config, phase="initial", log_func=self._log)
 
             # Приобретаем семафор
             semaphore_acquired = False
@@ -356,9 +355,7 @@ class ParseStrategy:
 
                 # Дополнительная задержка запуска
                 # #65-#67: Использует общую утилиту apply_startup_delay
-                apply_startup_delay(
-                    self.config, phase="launch", log_func=lambda msg, level: self._log(msg, level)
-                )
+                apply_startup_delay(self.config, phase="launch", log_func=self._log)
 
                 # Создаём parser и writer с повторными попытками
                 max_retries = self._max_retries

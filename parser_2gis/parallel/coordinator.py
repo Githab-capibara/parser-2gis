@@ -15,12 +15,12 @@ import shutil
 import signal
 import threading
 import time
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, Any
-from collections.abc import Callable, Generator
 
 from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.constants import (
@@ -462,16 +462,12 @@ class ParallelCoordinator:
         )
 
         # H003: Задержка ТОЛЬКО если use_delays=True
-        apply_startup_delay(
-            self.config, phase="initial", log_func=lambda msg, level: self.log(msg, level)
-        )
+        apply_startup_delay(self.config, phase="initial", log_func=self.log)
 
         self._browser_launch_semaphore.acquire()
         try:
             # H003: Задержка ТОЛЬКО если use_delays=True
-            apply_startup_delay(
-                self.config, phase="launch", log_func=lambda msg, level: self.log(msg, level)
-            )
+            apply_startup_delay(self.config, phase="launch", log_func=self.log)
 
             # Вынесено в отдельные методы для устранения nonlocal
             parser = self._create_parser(url)
@@ -500,9 +496,7 @@ class ParallelCoordinator:
             # #147-#148: Атомарное переименование с вынесенной функцией
             try:
                 rename_success = _atomic_rename_with_retry(
-                    src=temp_filepath,
-                    dst=filepath,
-                    log_func=lambda msg, level: self.log(msg, level),
+                    src=temp_filepath, dst=filepath, log_func=self.log
                 )
             except OSError as move_error:
                 self._error_handler._cleanup_temp_file(temp_filepath)

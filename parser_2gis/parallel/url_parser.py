@@ -17,11 +17,11 @@ import gc
 import os
 import threading
 import uuid
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
 from typing import TYPE_CHECKING
-from collections.abc import Callable
 
 from parser_2gis.constants import DEFAULT_TIMEOUT, MAX_UNIQUE_NAME_ATTEMPTS
 from parser_2gis.delay_utils import apply_startup_delay
@@ -260,16 +260,12 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             )
 
             # H003: Задержка ТОЛЬКО если use_delays=True
-            apply_startup_delay(
-                cached_config, phase="initial", log_func=lambda msg, level: self.log(msg, level)
-            )
+            apply_startup_delay(cached_config, phase="initial", log_func=self.log)
 
             browser_semaphore.acquire()
             try:
                 # H003: Задержка ТОЛЬКО если use_delays=True
-                apply_startup_delay(
-                    cached_config, phase="launch", log_func=lambda msg, level: self.log(msg, level)
-                )
+                apply_startup_delay(cached_config, phase="launch", log_func=self.log)
 
                 max_retries = 10
                 retry_delay = 5.0

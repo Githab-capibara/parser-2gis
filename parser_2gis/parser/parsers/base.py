@@ -117,7 +117,7 @@ class BaseParser(ABC):
             ...     self._stats["parsed"] += 1
 
         """
-        ...  # pragma: no cover
+        raise NotImplementedError("Subclasses must implement this method")  # pragma: no cover
 
     @abstractmethod
     def get_stats(self) -> ParserStats:
@@ -144,7 +144,7 @@ class BaseParser(ABC):
             ...     }
 
         """
-        ...  # pragma: no cover
+        raise NotImplementedError("Subclasses must implement this method")  # pragma: no cover
 
     def __repr__(self) -> str:
         """Строковое представление парсера.
