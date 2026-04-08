@@ -85,7 +85,7 @@ class FileWriter(WriterProtocol, ABC):
         return normalized_path
 
     @abstractmethod
-    def write(self, catalog_doc: Any) -> None:
+    def write(self, records: Any) -> None:
         """Записывает JSON-документ Catalog Item API, полученный парсером."""
 
     def _open_file(

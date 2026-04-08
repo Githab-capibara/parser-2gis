@@ -267,13 +267,11 @@ class ResourceMonitor:
         available_mb = self._memory_monitor.get_memory_usage().available_mb
         return available_mb >= (required_mb + threshold_mb)
 
-    @functools.lru_cache(maxsize=None)
     def get_cpu_usage(self, interval: float = 0.1) -> float:
         """Получает процент использования CPU.
 
-        ISSUE-166: Кэширование результатов для предотвращения частых вызовов.
-        #153: maxsize=None для кэширования всех уникальных комбинаций параметров.
-        Кэшируется последнее значение на 1 вызов (обновляется при каждом новом вызове).
+        ISSUE-166: Убран lru_cache с метода экземпляра для предотвращения утечки памяти.
+        #153: Метод выполняет измерения напрямую без кэширования.
 
         Args:
             interval: Интервал измерения в секундах (по умолчанию 0.1 сек).

@@ -202,12 +202,6 @@ class ApplicationLauncher:
             return 1
         except (KeyboardInterrupt, SystemExit):
             return 1
-        except (RuntimeError, OSError, ImportError) as e:
-            # ID:045: Добавлен catch-all Exception для обработки непредвиденных ошибок
-            logger.error(
-                "Непредвиденная ошибка при настройке обработчиков сигналов: %s", e, exc_info=True
-            )
-            return 1
 
         # Обработка TUI режимов
         if getattr(args, "tui_new_omsk", False):

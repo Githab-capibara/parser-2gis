@@ -365,6 +365,8 @@ class ProcessManager:
             # ID:103: Очищаем ссылку на процесс при ошибке
             self._proc = None
             # ID:107: Очистка профиля при ошибке запуска
+            # OSError допустим для операций очистки — файловые операции могут вызывать
+            # FileNotFoundError, PermissionError и другие подклассы OSError
             try:
                 shutil.rmtree(profile_path, ignore_errors=True)
             except OSError as cleanup_error:
@@ -752,6 +754,9 @@ class BrowserLifecycleManager:
                     self._profile_manager.cleanup_profile()
                     app_logger.debug("Профиль Chrome очищен в finally блоке")
                 except OSError as cleanup_error:
+                    # OSError допустим для операций очистки профиля —
+                    # файловые операции могут вызывать FileNotFoundError, PermissionError и др.
+                    # ignore_errors=True в cleanup_profile уже обрабатывает большинство случаев
                     app_logger.debug("Ошибка при очистке профиля в finally: %s", cleanup_error)
 
         return self._remote_port  # type: ignore[return-value]

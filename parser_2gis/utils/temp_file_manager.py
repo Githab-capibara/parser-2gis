@@ -412,10 +412,6 @@ class TempFileTimer:
                     logger.debug("Ошибка при удалении файла %s: %s", temp_file, os_error)
                 except (KeyboardInterrupt, SystemExit):
                     raise
-                except (OSError, IOError, RuntimeError) as file_error:
-                    logger.debug(
-                        "Непредвиденная ошибка при обработке файла %s: %s", temp_file, file_error
-                    )
 
             if deleted_count > 0:
                 self._cleanup_count += deleted_count

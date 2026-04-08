@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import csv
 import re
+from collections.abc import Callable
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, TypedDict
-from collections.abc import Callable
 
 from pydantic import ValidationError
 
@@ -330,28 +330,26 @@ class CSVWriter(FileWriter):
         except (OSError, IOError, RuntimeError) as close_error:
             logger.error("Ошибка при закрытии файла: %s", close_error)
 
-    def write(self, catalog_doc: dict[str, Any]) -> None:
+    def write(self, records: dict[str, Any]) -> None:
         """Записывает JSON-документ Catalog Item API в CSV-таблицу.
 
         Args:
-            catalog_doc: JSON-документ Catalog Item API.
+            records: JSON-документ Catalog Item API.
 
         Raises:
-            TypeError: Если catalog_doc не является словарём.
-            ValueError: Если catalog_doc имеет некорректную структуру.
+            TypeError: Если records не является словарём.
+            ValueError: Если records имеет некорректную структуру.
 
         """
-        # D007: Валидация catalog_doc перед записью
-        if catalog_doc is None:
-            raise TypeError("catalog_doc не может быть None")
-        if not isinstance(catalog_doc, dict):
-            raise TypeError(
-                f"catalog_doc должен быть словарём, получен {type(catalog_doc).__name__}"
-            )
+        # D007: Валидация records перед записью
+        if records is None:
+            raise TypeError("records не может быть None")
+        if not isinstance(records, dict):
+            raise TypeError(f"records должен быть словарём, получен {type(records).__name__}")
 
         # Проверка на path traversal в данных
-        if "result" in catalog_doc and isinstance(catalog_doc.get("result"), dict):
-            result = catalog_doc["result"]
+        if "result" in records and isinstance(records.get("result"), dict):
+            result = records["result"]
             if "items" in result and isinstance(result.get("items"), list):
                 for item in result["items"]:
                     if isinstance(item, dict):
@@ -369,10 +367,10 @@ class CSVWriter(FileWriter):
                                         f"Обнаружена потенциальная XSS атака в поле {key}"
                                     )
 
-        if not self._check_catalog_doc(catalog_doc):
+        if not self._check_catalog_doc(records):
             return
 
-        row = self._extract_raw(catalog_doc)
+        row = self._extract_raw(records)
         if row:
             self._writerow(row)
             self._wrote_count += 1

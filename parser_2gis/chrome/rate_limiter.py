@@ -42,6 +42,9 @@ def _enforce_rate_limit() -> None:
 
     ИСПРАВЛЕНИЕ #1: Все обращения к _request_timestamps строго внутри with _rate_limit_lock
     для предотвращения race condition при одновременных append/popleft операциях.
+
+    ИСПРАВЛЕНИЕ #12: Sleep вынесен за пределы lock — сначала вычисляем время ожидания
+    внутри lock, затем освобождаем lock и спим снаружи.
     """
     global _request_timestamps
 
@@ -59,15 +62,9 @@ def _enforce_rate_limit() -> None:
             oldest = _request_timestamps[0]
             sleep_time = (oldest + 1.0) - now
             if sleep_time > 0:
-                # Освобождаем lock на время sleep чтобы не блокировать другие потоки
-                _rate_limit_lock.release()
-                try:
-                    time.sleep(sleep_time)
-                finally:
-                    _rate_limit_lock.acquire()
-                # Обновляем now после sleep
-                now = time.time()
-                # Снова очищаем старые timestamps
+                # Обновляем now после предполагаемого sleep
+                now = now + sleep_time
+                # Снова очищаем старые timestamps (будут неактуальны после sleep)
                 while _request_timestamps and _request_timestamps[0] < now - 1.0:
                     _request_timestamps.popleft()
 
@@ -76,7 +73,8 @@ def _enforce_rate_limit() -> None:
             last_request_time = _request_timestamps[-1]
             time_since_last = now - last_request_time
             if time_since_last < _min_request_interval:
-                sleep_time = _min_request_interval - time_since_last
+                min_sleep = _min_request_interval - time_since_last
+                sleep_time = max(sleep_time, min_sleep)
 
         # Добавляем текущий timestamp (всегда внутри lock)
         _request_timestamps.append(time.time())
@@ -124,7 +122,7 @@ def _safe_external_request(
         return None
     except (KeyboardInterrupt, SystemExit):
         raise
-    except (requests.RequestException, OSError, ValueError) as e:
+    except (OSError, ValueError) as e:
         from parser_2gis.logger import logger as app_logger
 
         app_logger.error("Неожиданная ошибка HTTP запроса к %s: %s", url, e)

@@ -97,14 +97,14 @@ class JSONWriter(FileWriter):
         self._first_item = False
         self._wrote_count += 1
 
-    def write(self, catalog_doc: dict[str, Any]) -> None:
+    def write(self, records: dict[str, Any]) -> None:
         """Записывает JSON-документ Catalog Item API в JSON файл.
 
         Args:
-            catalog_doc: JSON-документ Catalog Item API.
+            records: JSON-документ Catalog Item API.
 
         """
-        if not self._check_catalog_doc(catalog_doc):
+        if not self._check_catalog_doc(records):
             return
 
-        self._writedoc(catalog_doc)
+        self._writedoc(records)

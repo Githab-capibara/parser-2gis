@@ -21,9 +21,9 @@ from __future__ import annotations
 import functools
 import random
 import time
+from collections.abc import Callable
 from functools import partial
 from typing import Any, TypeVar
-from collections.abc import Callable
 
 from parser_2gis.logger.logger import logger
 
@@ -169,6 +169,9 @@ def retry_with_backoff(
                             attempts=attempt,
                         ) from e
 
+            # Защита от непредвиденного завершения цикла
+            raise RuntimeError("Неожиданный конец цикла повторных попыток")
+
         return wrapper  # type: ignore[return-value]
 
     return decorator
@@ -272,6 +275,9 @@ def retry_with_jitter(
                             last_error=e,
                             attempts=attempt,
                         ) from e
+
+            # Защита от непредвиденного завершения цикла
+            raise RuntimeError("Неожиданный конец цикла повторных попыток")
 
         return wrapper  # type: ignore[return-value]
 

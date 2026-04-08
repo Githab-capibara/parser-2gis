@@ -30,9 +30,8 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
-from typing_extensions import TypeAlias
-
 import pychrome
+from typing_extensions import TypeAlias
 from websocket import WebSocketException
 
 from parser_2gis.logger.logger import logger as app_logger
@@ -54,7 +53,7 @@ from .exceptions import ChromeException
 from .js_executor import _validate_js_code
 from .patches import patch_all
 from .rate_limiter import _safe_external_request
-from .request_interceptor import RequestInterceptor, Request, Response
+from .request_interceptor import Request, RequestInterceptor, Response
 
 try:
     from ratelimit import limits, sleep_and_retry
@@ -856,7 +855,7 @@ class ChromeRemote:
             raise
         except (KeyboardInterrupt, SystemExit):
             raise
-        except (OSError, RuntimeError, KeyError) as e:
+        except (OSError, RuntimeError) as e:
             app_logger.warning("Непредвиденная ошибка при получении тела ответа: %s", e)
             return ""
         finally:
@@ -1029,7 +1028,7 @@ class ChromeRemote:
             raise
         except (KeyboardInterrupt, SystemExit):
             raise
-        except (RuntimeError, OSError, TimeoutError) as e:
+        except (RuntimeError, OSError) as e:
             app_logger.warning("Непредвиденная ошибка при выполнении скрипта: %s", e)
             return None
 
