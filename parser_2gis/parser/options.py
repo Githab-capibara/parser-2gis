@@ -14,6 +14,9 @@ from pydantic import BaseModel, NonNegativeInt, PositiveInt
 
 from parser_2gis.chrome.constants import DEFAULT_MEMORY_LIMIT_MB
 from parser_2gis.chrome.options import default_memory_limit
+
+# NOTE: Циклический импорт: constants -> parser -> parser.options -> utils -> constants
+# Данный модуль импортирует из constants и utils, создавая цикл зависимостей.
 from parser_2gis.constants import (
     MAX_RECORDS_BASE_OFFSET,
     MAX_RECORDS_MEMORY_COEFFICIENT,

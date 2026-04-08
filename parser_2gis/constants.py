@@ -17,12 +17,12 @@ import os
 import threading
 from dataclasses import dataclass, field
 from functools import lru_cache
-
-from typing import NamedTuple, Union, TypeAlias, cast
+from typing import NamedTuple, TypeAlias, Union, cast
 
 # Импорты констант из подмодулей для обратной совместимости
-# WARNING: potential circular dependency — constants.py импортирует из .parser,
-# а .parser.config импортирует из constants. Это существующая архитектура.
+# NOTE: Циклический импорт: constants -> parser -> parser.options -> utils -> constants
+# Данный импорт необходим для обратной совместимости, но создаёт цикл зависимостей.
+# constants.py импортирует из .parser, а .parser.options импортирует из constants.
 from .parser import (
     DEFAULT_SLEEP_TIME,
     MAX_RECORDS_BASE_OFFSET,

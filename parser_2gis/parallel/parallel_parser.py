@@ -569,6 +569,9 @@ class ParallelCityParser:
         except (OSError, RuntimeError, TypeError, ValueError) as lock_error:
             self.log(f"Ошибка при удалении lock файла: {lock_error}", "debug")
 
+    # TODO: Дублирование логики слияния с merger.py (~60% overlap).
+    # Код намеренно дублируется т.к. выполняется в контексте потока (thread context).
+    # Рекомендуется вынести в общий модуль при рефакторинге.
     def _process_single_csv_file(
         self,
         csv_file: Path,

@@ -12,6 +12,8 @@
 - retry: Повторные попытки с экспоненциальной задержкой
 """
 
+# NOTE: Циклический импорт: constants -> parser -> parser.options -> utils -> constants
+# Данный пакет импортируется из parser.options, замыкая цикл зависимостей.
 from .cache_monitor import get_cache_stats, log_cache_stats
 from .data_utils import unwrap_dot_dict
 from .decorators import (
