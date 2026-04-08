@@ -10,7 +10,6 @@
 
 from __future__ import annotations
 
-
 from pydantic import BaseModel
 
 from parser_2gis.logger import logger
@@ -114,6 +113,7 @@ class CatalogItem(BaseModel):
 
     @property
     def url(self) -> str:
+        """Возвращает URL фирмы на 2GIS."""
         return "https://2gis.com/firm/%s" % self.id.split("_")[0]
 
     @property

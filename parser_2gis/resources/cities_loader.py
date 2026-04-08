@@ -135,7 +135,7 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         raise OSError(f"Не удалось прочитать файл городов: {e}") from e
 
 
-def load_cities_json_lazy(cities_path: Path):
+def load_cities_json_lazy(cities_path: Path) -> None:
     """Генератор для lazy loading городов из JSON файла.
 
     C019: Lazy loading через генератор для снижения потребления памяти.

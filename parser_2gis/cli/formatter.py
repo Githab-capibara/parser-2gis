@@ -143,6 +143,7 @@ def patch_argparse_translations(force: bool = False) -> None:
     # Заменяем хардкодную строку `argument` в классе ArgumentError
     # Этот баг был исправлен только 6 мая 2022 https://github.com/python/cpython/pull/17169
     def argument_error__str__(self: argparse.ArgumentError) -> str:
+        """Возвращает локализованное строковое представление ошибки аргумента."""
         if self.argument_name is None:
             format_str = "%(message)s"
         else:

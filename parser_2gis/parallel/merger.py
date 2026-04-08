@@ -823,7 +823,7 @@ class ParallelFileMerger:
         sigint_registered = False
         sigterm_registered = False
 
-        def cleanup_temp_files():
+        def cleanup_temp_files() -> None:
             """Функция очистки временных файлов при прерывании."""
             with self._merge_lock:
                 for temp_file in self._merge_temp_files:
@@ -837,7 +837,7 @@ class ParallelFileMerger:
                             "error",
                         )
 
-        def signal_handler(signum, frame):
+        def signal_handler(signum: int, frame: object | None) -> None:
             """Обработчик сигналов прерывания."""
             self.log(f"Получен сигнал {signum}, очистка временных файлов...", "warning")
             cleanup_temp_files()

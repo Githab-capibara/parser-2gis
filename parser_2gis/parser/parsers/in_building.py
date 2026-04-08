@@ -56,6 +56,7 @@ class InBuildingParser(MainParser):
         """
 
         def valid_link(node: DOMNode) -> bool:
+            """Проверяет, что DOM-узел является допустимой ссылкой на фирму 2GIS."""
             if node.local_name == "a" and "href" in node.attributes:
                 link_match = re.match(r"/[^/]+/firm/[^/]+$", node.attributes["href"])
                 return bool(link_match)
@@ -111,6 +112,7 @@ class InBuildingParser(MainParser):
         # Получаем новые ссылки
         @wait_until_finished(timeout=1.5, throw_exception=False, poll_interval=0.01)
         def get_unique_links() -> list[DOMNode] | None:
+            """Возвращает список непосещённых ссылок на фирмы."""
             links = self._get_links()
             if links is None:
                 return None

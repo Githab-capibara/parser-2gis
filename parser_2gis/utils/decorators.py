@@ -16,21 +16,20 @@
 from __future__ import annotations
 
 import asyncio
-from functools import wraps
 import logging
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, TypeVar
+from functools import wraps
 
 # ИСПРАВЛЕНИЕ #20: Используем ParamSpec и TypeVar для точной типизации декоратора
-from typing import ParamSpec
+from typing import Any, Callable, ParamSpec, TypeVar
 
+from parser_2gis.constants import DEFAULT_POLL_INTERVAL as DEFAULT_POLL_INTERVAL_CONST
 from parser_2gis.constants import (
-    DEFAULT_POLL_INTERVAL as DEFAULT_POLL_INTERVAL_CONST,
-    MAX_POLL_INTERVAL as MAX_POLL_INTERVAL_CONST,
     EXPONENTIAL_BACKOFF_MULTIPLIER as EXPONENTIAL_BACKOFF_MULTIPLIER_CONST,
 )
+from parser_2gis.constants import MAX_POLL_INTERVAL as MAX_POLL_INTERVAL_CONST
 
 # ИСПРАВЛЕНИЕ #20: ParamSpec для сохранения сигнатуры декорируемой функции
 P = ParamSpec("P")
@@ -187,6 +186,8 @@ def wait_until_finished(
     decorator_max_retries = max_retries
 
     def outer(func: Callable[..., Any]) -> Callable[..., Any]:
+        """Внешняя функция декоратора, принимающая декорируемый метод."""
+
         @wraps(func)
         def inner(
             *args: Any,
@@ -203,6 +204,7 @@ def wait_until_finished(
             max_retries: int | None = None,
             **kwargs: Any,
         ) -> Any:
+            """Обёртка вокруг функции с ожиданием завершения операции."""
             # Группировка эффективных параметров в dataclass
             effective_config = WaitConfig(
                 timeout=(
@@ -401,6 +403,8 @@ def async_wait_until_finished(
     decorator_poll_interval = poll_interval
 
     def outer(func: Callable[..., Any]) -> Callable[..., Any]:
+        """Внешняя функция асинхронного декоратора, принимающая декорируемый метод."""
+
         @wraps(func)
         async def inner(
             *args: Any,
@@ -410,6 +414,7 @@ def async_wait_until_finished(
             override_poll_interval: float | None = None,
             **kwargs: Any,
         ) -> Any:
+            """Асинхронная обёртка вокруг функции с ожиданием завершения операции."""
             # Приоритет: override_* > значения из декоратора
             effective_timeout = (
                 override_timeout if override_timeout is not None else decorator_timeout

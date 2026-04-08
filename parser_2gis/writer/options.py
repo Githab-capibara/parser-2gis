@@ -69,10 +69,12 @@ class WriterOptions(BaseModel):
         @field_validator("encoding")
         @classmethod
         def encoding_exists(cls, v: str) -> str:
+            """Проверяет существование и валидность кодировки."""
             return cls._validate_encoding(v)
 
     else:
 
         @validator("encoding")
         def encoding_exists(self, v: str) -> str:
+            """Проверяет существование и валидность кодировки."""
             return self._validate_encoding(v)

@@ -242,8 +242,11 @@ def retry_with_jitter(
     """
 
     def decorator(func: F) -> F:
+        """Декоратор для функции с повторными попытками и случайной задержкой."""
+
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
+            """Обёртка, выполняющая вызов функции с механизмом повторных попыток."""
             func_name = func.__name__
 
             for attempt in range(1, max_attempts + 1):
@@ -333,6 +336,8 @@ def retry_with_tenacity(
     from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
     def decorator(func: F) -> F:
+        """Декоратор для функции с повторными попытками на основе tenacity."""
+
         @retry(
             stop=stop_after_attempt(max_attempts),
             wait=wait_exponential(multiplier=delay, max=max_delay),

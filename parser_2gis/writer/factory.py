@@ -59,6 +59,7 @@ def register_writer(format_name: str) -> Callable[[type[FileWriter]], type[FileW
     """
 
     def decorator(cls: type[FileWriter]) -> type[FileWriter]:
+        """Декоратор для регистрации формата записи."""
         # Валидация format_name
         if not format_name or not format_name.strip():
             raise ValueError("Название формата не может быть пустым")

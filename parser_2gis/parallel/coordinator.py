@@ -565,6 +565,7 @@ class ParallelCoordinator:
             return False, f"Ошибка создания временного файла: {e}"
 
         def do_parse() -> tuple[bool, str]:
+            """Выполняет парсинг одного URL через ThreadPoolExecutor."""
             return self._parse_single_url_impl(
                 url, category_name, city_name, temp_filepath, filepath, progress_callback
             )
