@@ -9,6 +9,7 @@ import pytest
 
 try:
     from parser_2gis.data.categories_93 import CATEGORIES_93
+
     from parser_2gis.tui_textual.screens.category_selector import CategorySelectorScreen
 
     TEXTUAL_AVAILABLE = True

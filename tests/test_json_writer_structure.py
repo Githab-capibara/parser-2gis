@@ -14,6 +14,7 @@ class TestJSONWriterStructure:
     def mock_writer(self, tmp_path):
         """Создает мок writer."""
         from unittest.mock import MagicMock
+
         from parser_2gis.writer.writers.json_writer import JSONWriter
 
         test_file = tmp_path / "test.json"

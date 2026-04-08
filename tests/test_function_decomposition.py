@@ -20,7 +20,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from parser_2gis.cache.validator import CacheDataValidator
-from parser_2gis.constants import MAX_DATA_DEPTH, MAX_STRING_LENGTH
 from parser_2gis.chrome.browser import (
     _check_profile_age_and_delete,
     _check_profile_age_by_dir,
@@ -28,6 +27,7 @@ from parser_2gis.chrome.browser import (
     _safe_remove_profile,
     cleanup_orphaned_profiles,
 )
+from parser_2gis.constants import MAX_DATA_DEPTH, MAX_STRING_LENGTH
 
 
 class TestValidateCachedDataDecomposition:

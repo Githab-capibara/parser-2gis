@@ -19,8 +19,8 @@ from __future__ import annotations
 import functools
 import sqlite3
 import time
-from typing import Any, TypeVar
 from collections.abc import Callable
+from typing import Any, TypeVar
 
 from parser_2gis.logger.logger import logger
 

@@ -15,9 +15,9 @@ import itertools
 import queue
 import threading
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
-from collections.abc import Callable
 
 import psutil
 

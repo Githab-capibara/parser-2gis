@@ -25,7 +25,6 @@ from parser_2gis.logger import LogOptions
 from parser_2gis.parser import ParserOptions
 from parser_2gis.writer import CSVWriter, JSONWriter, WriterOptions, XLSXWriter, get_writer
 
-
 # ============================================================================
 # ChromeOptions тесты (из test_chrome.py)
 # ============================================================================

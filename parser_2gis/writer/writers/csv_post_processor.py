@@ -14,8 +14,8 @@ from __future__ import annotations
 import csv
 import os
 import re
-from typing import Any
 from re import Pattern
+from typing import Any
 
 from parser_2gis.constants import CSV_BATCH_SIZE
 from parser_2gis.logger import logger

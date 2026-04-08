@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import signal
 import threading
+from collections.abc import Callable
 from concurrent.futures import (
     Executor,
     Future,
@@ -26,7 +27,6 @@ from concurrent.futures import (
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, Literal
-from collections.abc import Callable
 
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,

@@ -18,7 +18,6 @@ ISSUE-019: Dependency Injection — MemoryMonitor внедряется чере�
 
 from __future__ import annotations
 
-import functools
 from dataclasses import dataclass
 
 

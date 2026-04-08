@@ -12,8 +12,8 @@ import io
 import mmap
 import os
 import shutil
-from contextlib import contextmanager
 from collections.abc import Generator
+from contextlib import contextmanager
 
 from parser_2gis.constants import DEFAULT_BUFFER_SIZE
 from parser_2gis.logger import logger

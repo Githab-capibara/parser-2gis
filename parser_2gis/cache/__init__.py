@@ -25,11 +25,11 @@ from ..constants import (
     SHA256_HASH_LENGTH,
     validate_env_int,
 )
+from .config_cache import CategoryDict, ConfigCache, get_config_cache
 from .manager import Cache, CacheManager
 from .pool import PSUTIL_AVAILABLE, ConnectionPool, _calculate_dynamic_pool_size
 from .serializer import JsonSerializer, _deserialize_json, _serialize_json
 from .validator import CacheDataValidator
-from .config_cache import ConfigCache, get_config_cache, CategoryDict
 
 # Экспортируем psutil для тестов (если доступен)
 try:

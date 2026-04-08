@@ -40,6 +40,14 @@ from parser_2gis.constants.cache import (  # noqa: F401
     MIN_POOL_SIZE,
     SHA256_HASH_LENGTH,
 )
+
+# Polling константы уже импортированы из parser.py
+# Импортируем EnvConfig для обратной совместимости
+from parser_2gis.constants.env_config import (  # noqa: F401
+    EnvConfig,
+    get_env_config,
+    validate_env_int,
+)
 from parser_2gis.constants.parser import (  # noqa: F401
     DEFAULT_POLL_INTERVAL,
     DEFAULT_SLEEP_TIME,
@@ -92,11 +100,6 @@ from parser_2gis.constants.validation import (  # noqa: F401
     MAX_CITIES_FILE_SIZE,
     MMAP_CITIES_THRESHOLD,
 )
-
-# Polling константы уже импортированы из parser.py
-
-# Импортируем EnvConfig для обратной совместимости
-from parser_2gis.constants.env_config import EnvConfig, get_env_config, validate_env_int  # noqa: F401
 
 
 def _reset_constant_cache() -> None:

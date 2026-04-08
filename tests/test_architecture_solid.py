@@ -239,14 +239,28 @@ class TestSingleResponsibilityPrinciple:
         # MainPageParser отвечает за навигацию, DOM-операции и парсинг страниц
         # Все методы должны относиться к этим категориям
         allowed_method_patterns = [
-            "_get_links", "_add_xhr_counter", "_validate_js_script",
-            "_wait_requests_finished", "_get_available_pages", "_go_page",
-            "_navigate_to_search", "_handle_navigation_timeout",
-            "_handle_navigation_error", "_classify_error", "_is_network_error",
-            "_is_blocked_error", "_handle_network_error",
-            "_calculate_retry_delay", "_validate_document_response",
-            "url_pattern", "parse", "get_stats", "close",
-            "__init__", "__enter__", "__exit__",
+            "_get_links",
+            "_add_xhr_counter",
+            "_validate_js_script",
+            "_wait_requests_finished",
+            "_get_available_pages",
+            "_go_page",
+            "_navigate_to_search",
+            "_handle_navigation_timeout",
+            "_handle_navigation_error",
+            "_classify_error",
+            "_is_network_error",
+            "_is_blocked_error",
+            "_handle_network_error",
+            "_calculate_retry_delay",
+            "_validate_document_response",
+            "url_pattern",
+            "parse",
+            "get_stats",
+            "close",
+            "__init__",
+            "__enter__",
+            "__exit__",
         ]
 
         # Проверяем что большинство методов относятся к навигации/DOM/парсингу
@@ -359,10 +373,7 @@ class TestInterfaceSegregationPrinciple:
 
     def test_callback_protocols_are_segregated(self) -> None:
         """Проверяет что callback Protocol разделены."""
-        from parser_2gis.protocols import (
-            CleanupCallback,
-            ProgressCallback,
-        )
+        from parser_2gis.protocols import CleanupCallback, ProgressCallback
 
         # Каждый callback должен быть отдельным Protocol
         assert CleanupCallback is not None

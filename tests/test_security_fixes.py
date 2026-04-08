@@ -23,7 +23,6 @@ from parser_2gis.utils.temp_file_manager import TempFileManager, create_temp_fil
 from parser_2gis.writer.writers.csv_formatter import SanitizeFormatter
 from parser_2gis.writer.writers.csv_writer import CSVRowData
 
-
 # =============================================================================
 # ТЕСТЫ ДЛЯ CSV INJECTION (P0-1)
 # =============================================================================
@@ -291,8 +290,8 @@ class TestWebSocketInjection:
 
     def test_port_validation(self) -> None:
         """Тест валидации порта."""
+        from parser_2gis.chrome.constants import MAX_PORT, MIN_PORT
         from parser_2gis.chrome.remote import _validate_remote_port
-        from parser_2gis.chrome.constants import MIN_PORT, MAX_PORT
 
         # Валидные порты
         assert _validate_remote_port(9222) == 9222

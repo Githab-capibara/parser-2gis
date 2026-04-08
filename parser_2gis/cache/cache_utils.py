@@ -13,11 +13,10 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import sqlite3
 import zlib
 from datetime import datetime
 from pathlib import Path
-
-import sqlite3
 
 from parser_2gis.constants import SHA256_HASH_LENGTH
 from parser_2gis.logger.logger import logger as app_logger

@@ -16,10 +16,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-
 from parser_2gis.cache.cache_utils import compute_crc32_cached, compute_data_json_hash
 from parser_2gis.cache.manager import CacheManager
-
 
 # =============================================================================
 # ТЕСТЫ ДЛЯ DOUBLE HASHING (P1-9)

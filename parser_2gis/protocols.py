@@ -17,9 +17,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import Future
 from typing import Any, Protocol, runtime_checkable
-from collections.abc import Callable
 
 from typing_extensions import TypeAlias
 

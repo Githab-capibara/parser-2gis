@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from typing import Any, TypedDict
-from collections.abc import Callable
 
 logger = logging.getLogger("parser_2gis.parallel.thread_manager")
 

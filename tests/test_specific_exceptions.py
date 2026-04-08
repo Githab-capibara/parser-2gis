@@ -183,8 +183,9 @@ class TestSpecificOsException:
         Проверяет что OSError при открытии файла
         корректно обрабатывается и логируется.
         """
-        from parser_2gis.logger.handlers import FileLogger
         import builtins
+
+        from parser_2gis.logger.handlers import FileLogger
 
         def failing_open(*args, **kwargs):
             raise OSError("File access denied")

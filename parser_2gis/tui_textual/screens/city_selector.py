@@ -7,6 +7,7 @@ from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Input, Static
 
 from parser_2gis.logger import logger as app_logger
+
 from ..protocols import ITuiApp
 
 

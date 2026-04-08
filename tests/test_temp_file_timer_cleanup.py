@@ -13,7 +13,7 @@
 import threading
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -365,9 +365,6 @@ class TestTempFileTimerEdgeCases:
             tmp_path: pytest tmp_path fixture.
         """
         timer = TempFileTimer(temp_dir=tmp_path, interval=60)
-
-        # Initial count
-        initial_count = timer._cleanup_count
 
         # Запускаем таймер чтобы _is_running = True
         timer.start()

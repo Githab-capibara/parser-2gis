@@ -13,7 +13,6 @@ import time
 from collections import deque
 from unittest.mock import patch
 
-
 import parser_2gis.chrome.rate_limiter as rate_limiter_module
 
 

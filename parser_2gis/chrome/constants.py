@@ -11,8 +11,8 @@
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 
 # Logger для логирования fallback значений
 _chrome_constants_logger = logging.getLogger("parser_2gis.chrome.constants")

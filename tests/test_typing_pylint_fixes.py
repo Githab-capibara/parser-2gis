@@ -23,7 +23,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-
 # =============================================================================
 # ТЕСТЫ ДЛЯ TYPING FIXES (P1-13, P1-14, P1-15, P1-16)
 # =============================================================================
@@ -194,8 +193,8 @@ class TestTypingFixes:
 
     def test_type_hints_runtime_check(self) -> None:
         """Тест проверки type hints в runtime."""
-        from parser_2gis.writer.writers.csv_writer import CSVRowData
         from parser_2gis.parser.parsers.base import ParserStats
+        from parser_2gis.writer.writers.csv_writer import CSVRowData
 
         # Проверяем что type hints доступны в runtime
         csv_hints = get_type_hints(CSVRowData)
@@ -215,8 +214,6 @@ class TestYieldFrom:
 
     def test_load_cities_json_lazy_uses_yield(self) -> None:
         """Тест что load_cities_json_lazy использует yield."""
-        from parser_2gis.resources.cities_loader import load_cities_json_lazy
-
         # Проверяем что функция возвращает генератор
         import inspect
 
@@ -224,6 +221,8 @@ class TestYieldFrom:
         import json
         import tempfile
         from pathlib import Path
+
+        from parser_2gis.resources.cities_loader import load_cities_json_lazy
 
         test_cities = [
             {"name": "Moscow", "code": "moscow", "domain": "2gis.ru"},
@@ -253,10 +252,10 @@ class TestYieldFrom:
 
     def test_yield_from_syntax_in_cities_loader(self) -> None:
         """Тест синтаксиса yield from в cities_loader."""
-        from parser_2gis.resources import cities_loader
-
         # Читаем исходный код
         import inspect
+
+        from parser_2gis.resources import cities_loader
 
         source = inspect.getsource(cities_loader)
 
@@ -266,11 +265,11 @@ class TestYieldFrom:
 
     def test_lazy_loading_memory_efficiency(self) -> None:
         """Тест энергоэффективности lazy loading."""
-        from parser_2gis.resources.cities_loader import load_cities_json_lazy
-
         import json
         import tempfile
         from pathlib import Path
+
+        from parser_2gis.resources.cities_loader import load_cities_json_lazy
 
         # Создаём большой файл с городами
         large_cities = [
@@ -302,8 +301,9 @@ class TestYieldFrom:
 
     def test_generator_exception_handling(self) -> None:
         """Тест обработки исключений в генераторе."""
-        from parser_2gis.resources.cities_loader import load_cities_json_lazy
         from pathlib import Path
+
+        from parser_2gis.resources.cities_loader import load_cities_json_lazy
 
         # Проверяем что генератор правильно обрабатывает ошибки
         with pytest.raises(FileNotFoundError):
@@ -322,14 +322,16 @@ class TestCyclicImportFix:
     def test_cli_module_imports(self) -> None:
         """Тест импорта CLI модулей без циклических зависимостей."""
         # Проверяем что все CLI модули импортируются
-        from parser_2gis.cli import app
-        from parser_2gis.cli import arguments
-        from parser_2gis.cli import config_service
-        from parser_2gis.cli import formatter
-        from parser_2gis.cli import launcher
-        from parser_2gis.cli import main
-        from parser_2gis.cli import progress
-        from parser_2gis.cli import validator
+        from parser_2gis.cli import (
+            app,
+            arguments,
+            config_service,
+            formatter,
+            launcher,
+            main,
+            progress,
+            validator,
+        )
 
         # Все модули должны импортироваться без ошибок
         assert app is not None
@@ -461,8 +463,8 @@ class TestTypingIntegration:
 
     def test_typeddict_in_actual_usage(self) -> None:
         """Тест использования TypedDict в реальном коде."""
-        from parser_2gis.writer.writers.csv_writer import CSVRowData
         from parser_2gis.writer.writers.csv_formatter import SanitizeFormatter
+        from parser_2gis.writer.writers.csv_writer import CSVRowData
 
         # Создаём данные
         row: CSVRowData = {

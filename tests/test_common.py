@@ -27,7 +27,6 @@ from parser_2gis.utils.decorators import wait_until_finished
 from parser_2gis.utils.math_utils import floor_to_hundreds
 from parser_2gis.utils.validation_utils import report_from_validation_error
 
-
 # ============================================================================
 # floor_to_hundreds тесты (из test_common.py)
 # ============================================================================
