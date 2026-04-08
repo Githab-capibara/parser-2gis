@@ -24,7 +24,6 @@ import threading
 import time
 import types
 import uuid
-import warnings
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
@@ -110,6 +109,9 @@ def _get_cached_fieldnames(fieldnames_tuple: tuple[str, ...], add_category: bool
 class ParserThreadConfig:
     """Конфигурация для потока параллельного парсинга.
 
+    .. deprecated::
+        Класс устарел и будет удалён в будущей версии. Используйте ParallelRunConfig вместо него.
+
     Attributes:
         cities: Список городов для парсинга.
         categories: Список категорий для парсинга.
@@ -129,14 +131,21 @@ class ParserThreadConfig:
     timeout_per_url: int = DEFAULT_TIMEOUT
     output_file: str | None = None
 
+    # Флаг для предотвращения дублирования предупреждений на уровне класса
+    _deprecation_warned: bool = False
+
     def __post_init__(self) -> None:
         """Предупреждение о депрекации класса."""
-        warnings.warn(
-            "ParserThreadConfig устарел и будет удалён в будущей версии. "
-            "Используйте ParallelRunConfig вместо него.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        if not ParserThreadConfig._deprecation_warned:
+            import warnings
+
+            warnings.warn(
+                "ParserThreadConfig устарел и будет удалён в будущей версии. "
+                "Используйте ParallelRunConfig вместо него.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            ParserThreadConfig._deprecation_warned = True
 
 
 # Регистрируем очистку через atexit для гарантированной очистки при аварийном завершении

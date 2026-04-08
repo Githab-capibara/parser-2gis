@@ -346,6 +346,7 @@ def retry_with_tenacity(
         )
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
+            """Обёртка для повторных попыток на основе tenacity."""
             return func(*args, **kwargs)
 
         return wrapper  # type: ignore[return-value]
