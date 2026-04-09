@@ -4,7 +4,11 @@
 - validate_path_traversal: проверка на path traversal атаки
 - validate_path_safety: полная проверка безопасности пути
 - PathSafetyValidator: класс для валидации путей
+- PathValidator: алиас для обратной совместимости (из path_validator.py)
 - get_path_safety_validator: получение singleton экземпляра валидатора
+- get_path_validator: алиас для обратной совместимости
+
+ISSUE-055: Консолидировано с path_validator.py — PathValidator добавлен как алиас.
 
 Пример использования:
     >>> from parser_2gis.validation.path_validation import validate_path_safety
@@ -259,9 +263,10 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
     validator.validate_safety(path, path_name)
 
 
-# Алиасы для обратной совместимости
+# Алиасы для обратной совместимости (ISSUE-055: из path_validator.py)
 validate_path = validate_path_safety
 PathValidator = PathSafetyValidator
+get_path_validator = get_path_safety_validator
 
 
 __all__ = [
@@ -269,6 +274,7 @@ __all__ = [
     "PathTraversalError",
     "PathValidator",
     "get_path_safety_validator",
+    "get_path_validator",
     "validate_path",
     "validate_path_safety",
     "validate_path_traversal",

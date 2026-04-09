@@ -10,10 +10,11 @@
 - cache_monitor: Мониторинг статистики кэшей
 - path_utils: Валидация безопасности путей
 - retry: Повторные попытки с экспоненциальной задержкой
+
+ISSUE-041: Устранён цикл импортов — utils больше не зависит от constants.
 """
 
-# NOTE: Циклический импорт: constants -> parser -> parser.options -> utils -> constants
-# Данный пакет импортируется из parser.options, замыкая цикл зависимостей.
+# ISSUE-041: Устранён цикл импортов — utils больше не зависит от parser.options
 from .cache_monitor import get_cache_stats, log_cache_stats
 from .data_utils import unwrap_dot_dict
 from .decorators import (

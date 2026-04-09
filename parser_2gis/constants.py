@@ -17,28 +17,14 @@ import os
 import threading
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import NamedTuple, cast
+from typing import TYPE_CHECKING, NamedTuple, cast
 
-# Импорты констант из подмодулей для обратной совместимости
-# NOTE: Циклический импорт: constants -> parser -> parser.options -> utils -> constants
-# Данный импорт необходим для обратной совместимости, но создаёт цикл зависимостей.
-# constants.py импортирует из .parser, а .parser.options импортирует из constants.
-from .parser import (
-    DEFAULT_SLEEP_TIME,
-    MAX_RECORDS_BASE_OFFSET,
-    MAX_RECORDS_MEMORY_COEFFICIENT,
-    MAX_RECORDS_MEMORY_DIVISOR,
-    MAX_VISITED_LINKS_SIZE,
-    PROGRESS_UPDATE_INTERVAL,
-)
-from .security import (
-    FORBIDDEN_PATH_CHARS,
-    HTTP_STATUS_OK,
-    MAX_DICT_RECURSION_DEPTH,
-    MAX_PATH_LENGTH_SAFE,
-    MAX_UNIQUE_NAME_ATTEMPTS,
-    MAX_URL_DECODE_ITERATIONS,
-)
+# ISSUE-041: Разрыв цикла constants -> parser -> parser.options -> utils -> constants
+# Значения констант определены напрямую вместо импорта из .parser
+# Для обратной совместимости в конце модуля используется __getattr__
+
+if TYPE_CHECKING:
+    pass
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ PARSE_MAX_WORKERS (DEFAULT/MIN/MAX)

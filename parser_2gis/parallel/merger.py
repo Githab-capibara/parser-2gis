@@ -627,9 +627,10 @@ class ParallelFileMerger:
         """
         self._lock_manager.release_lock(lock_file_handle, lock_file_path)
 
-    # TODO: Дублирование логики слияния с parallel_parser.py (~60% overlap).
+    # TODO(ISSUE-058): Дублирование логики слияния с parallel_parser.py (~60% overlap).
+    # Общая функция: parser_2gis.parallel.common.csv_merge_common.merge_csv_files_common
     # Код намеренно дублируется т.к. выполняется в контексте основного процесса (main context).
-    # Рекомендуется вынести в общий модуль при рефакторинге.
+    # При следующем рефакторинге использовать merge_csv_files_common из parallel.common.
     def process_single_csv_file(
         self,
         csv_file: Path,

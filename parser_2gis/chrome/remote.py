@@ -35,8 +35,8 @@ from websocket import WebSocketException
 
 from parser_2gis.logger.logger import logger as app_logger
 
-# NOTE: Циклический импорт: constants -> parser -> parser.options -> utils -> chrome.remote -> utils
-# Данный модуль импортирует из utils.decorators, участвуя в цикле зависимостей.
+# ISSUE-043: Разрыв цикла chrome.remote -> utils.decorators -> constants -> parser
+# wait_until_finished импортируется напрямую из utils.decorators
 from parser_2gis.utils.decorators import wait_until_finished
 
 from .browser import ChromeBrowser

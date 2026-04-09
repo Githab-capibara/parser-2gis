@@ -14,17 +14,15 @@ from pydantic import BaseModel, NonNegativeInt, PositiveInt
 
 from parser_2gis.chrome.options import default_memory_limit
 
-# NOTE: Циклический импорт: constants -> parser -> parser.options -> utils -> constants
-# Данный модуль импортирует из constants и utils, создавая цикл зависимостей.
-from parser_2gis.constants import (
-    MAX_RECORDS_BASE_OFFSET,
-    MAX_RECORDS_MEMORY_COEFFICIENT,
-    MAX_RECORDS_MEMORY_DIVISOR,
-)
-
-# ISSUE-034: Импортируем из общего модуля для разрыва циклических зависимостей
+# ISSUE-041: Разрыв цикла imports — константы определены напрямую
+# вместо импорта из constants (который создавал цикл через utils)
 from parser_2gis.shared_config_constants import DEFAULT_MEMORY_LIMIT_MB
 from parser_2gis.utils import floor_to_hundreds
+
+# Константы парсера — определены напрямую для разрыва цикла imports
+_MAX_RECORDS_MEMORY_COEFFICIENT = 550
+_MAX_RECORDS_MEMORY_DIVISOR = 1024
+_MAX_RECORDS_BASE_OFFSET = 400
 
 # Константы для значений по умолчанию
 _DEFAULT_GC_PAGES_INTERVAL = 10
@@ -46,8 +44,8 @@ def default_max_records() -> int:
     # ISSUE-039: Вынесены магические числа в константы
     max_records = floor_to_hundreds(
 
-            MAX_RECORDS_MEMORY_COEFFICIENT * memory_limit / MAX_RECORDS_MEMORY_DIVISOR
-            - MAX_RECORDS_BASE_OFFSET
+            _MAX_RECORDS_MEMORY_COEFFICIENT * memory_limit / _MAX_RECORDS_MEMORY_DIVISOR
+            - _MAX_RECORDS_BASE_OFFSET
 
     )
 

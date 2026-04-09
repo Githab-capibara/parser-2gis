@@ -26,11 +26,11 @@ from functools import wraps
 # ИСПРАВЛЕНИЕ #20: Используем ParamSpec и TypeVar для точной типизации декоратора
 from typing import Any, ParamSpec, TypeVar
 
-from parser_2gis.constants import DEFAULT_POLL_INTERVAL as DEFAULT_POLL_INTERVAL_CONST
-from parser_2gis.constants import (
-    EXPONENTIAL_BACKOFF_MULTIPLIER as EXPONENTIAL_BACKOFF_MULTIPLIER_CONST,
-)
-from parser_2gis.constants import MAX_POLL_INTERVAL as MAX_POLL_INTERVAL_CONST
+# ISSUE-041: Разрыв цикла imports — константы polling определены напрямую
+# чтобы utils.decorators не зависел от constants (через parser.options -> utils)
+_DEFAULT_POLL_INTERVAL_VALUE = 0.1
+_MAX_POLL_INTERVAL_VALUE = 2.0
+_EXPONENTIAL_BACKOFF_MULTIPLIER_VALUE = 2.0
 
 # ИСПРАВЛЕНИЕ #20: ParamSpec для сохранения сигнатуры декорируемой функции
 P = ParamSpec("P")
@@ -40,13 +40,13 @@ R = TypeVar("R")
 # КОНСТАНТЫ ДЛЯ POLLING
 # =============================================================================
 
-DEFAULT_POLL_INTERVAL: float = DEFAULT_POLL_INTERVAL_CONST
+DEFAULT_POLL_INTERVAL: float = _DEFAULT_POLL_INTERVAL_VALUE
 """Начальный интервал опроса в секундах (максимально ускорено)."""
 
-MAX_POLL_INTERVAL: float = MAX_POLL_INTERVAL_CONST
+MAX_POLL_INTERVAL: float = _MAX_POLL_INTERVAL_VALUE
 """Максимальный интервал опроса в секундах (максимально ускорено)."""
 
-EXPONENTIAL_BACKOFF_MULTIPLIER: float = EXPONENTIAL_BACKOFF_MULTIPLIER_CONST
+EXPONENTIAL_BACKOFF_MULTIPLIER: float = _EXPONENTIAL_BACKOFF_MULTIPLIER_VALUE
 """Множитель для экспоненциальной задержки."""
 
 # Максимальный допустимый таймаут в секундах (24 часа — максимальное разумное время для одной операции)

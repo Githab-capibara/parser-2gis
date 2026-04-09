@@ -8,7 +8,10 @@
 Примечание: класс FileMerger был удалён, т.к. полностью дублирует
 ParallelFileMerger из parser_2gis/parallel/merger.py.
 Используйте ParallelFileMerger вместо FileMerger.
-TODO (#61): Удалить импорты FileMerger из тестов и полностью убрать упоминания.
+Для общего кода слияния CSV используйте:
+    parser_2gis.parallel.common.csv_merge_common.merge_csv_files_common
+
+ISSUE-059: Импорты FileMerger из тестов удалены.
 """
 
 from __future__ import annotations

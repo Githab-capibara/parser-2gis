@@ -28,7 +28,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -102,19 +102,19 @@ class Configuration(BaseModel):
 
     # ISSUE-037: Lazy creation через Field(default_factory=...)
     # Фабрики вызываются только при создании экземпляра, не при импорте
-    log: "LogOptions" = Field(default_factory=lambda: __import__(
+    log: LogOptions = Field(default_factory=lambda: __import__(
         "parser_2gis.logger", fromlist=["LogOptions"]
     ).LogOptions())
-    writer: "WriterOptions" = Field(default_factory=lambda: __import__(
+    writer: WriterOptions = Field(default_factory=lambda: __import__(
         "parser_2gis.writer", fromlist=["WriterOptions"]
     ).WriterOptions())
-    chrome: "ChromeOptions" = Field(default_factory=lambda: __import__(
+    chrome: ChromeOptions = Field(default_factory=lambda: __import__(
         "parser_2gis.chrome", fromlist=["ChromeOptions"]
     ).ChromeOptions())
-    parser: "ParserOptions" = Field(default_factory=lambda: __import__(
+    parser: ParserOptions = Field(default_factory=lambda: __import__(
         "parser_2gis.parser", fromlist=["ParserOptions"]
     ).ParserOptions())
-    parallel: "ParallelOptions" = Field(default_factory=lambda: __import__(
+    parallel: ParallelOptions = Field(default_factory=lambda: __import__(
         "parser_2gis.parallel", fromlist=["ParallelOptions"]
     ).ParallelOptions())
     path: pathlib.Path | None = None

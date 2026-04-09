@@ -110,12 +110,17 @@ class CSVDeduplicator:
         """
         file_root, file_ext = os.path.splitext(self._file_path)
         tmp_csv_name = f"{file_root}.deduplicated{file_ext}"
-        # #149: TODO — для больших файлов (>100K строк) использовать Bloom filter
-        # вместо set[str] для снижения потребления памяти.
-        # Bloom filter даст вероятностную проверку с фиксированным потреблением памяти
-        # (например, 1MB для 1M строк с false-positive rate 1%).
-        # Текущая реализация с set потребляет ~100 байт на хеш,
-        # что для 1M строк = ~100MB памяти.
+        # ISSUE-060: TODO(#149) — Bloom filter для больших файлов (>100K строк)
+        # Планируется замена set[str] на Bloom filter для снижения потребления памяти:
+        # - Bloom filter: ~1 MB для 1M строк с false-positive rate 1%
+        # - Текущий set[str]: ~100 байт на хеш, ~100 MB для 1M строк
+        # Stub для будущей реализации:
+        #   from parser_2gis.utils.bloom_filter import BloomFilter
+        #   bloom = BloomFilter(max_items=1_000_000, false_positive_rate=0.01)
+        #   if bloom.contains(line_hash):
+        #       duplicates_count += 1
+        #       continue
+        #   bloom.add(line_hash)
         seen_hashes: set[str] = set()
         duplicates_count = 0
 

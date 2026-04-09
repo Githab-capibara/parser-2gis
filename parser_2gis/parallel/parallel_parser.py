@@ -569,9 +569,10 @@ class ParallelCityParser:
         except (OSError, RuntimeError, TypeError, ValueError) as lock_error:
             self.log(f"Ошибка при удалении lock файла: {lock_error}", "debug")
 
-    # TODO: Дублирование логики слияния с merger.py (~60% overlap).
+    # TODO(ISSUE-057): Дублирование логики слияния с merger.py (~60% overlap).
+    # Общая функция: parser_2gis.parallel.common.csv_merge_common.merge_csv_files_common
     # Код намеренно дублируется т.к. выполняется в контексте потока (thread context).
-    # Рекомендуется вынести в общий модуль при рефакторинге.
+    # При следующем рефакторинге использовать merge_csv_files_common из parallel.common.
     def _process_single_csv_file(
         self,
         csv_file: Path,
