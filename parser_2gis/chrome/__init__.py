@@ -10,6 +10,7 @@ Backward совместимость:
 """
 
 from .browser import ChromeBrowser
+from .browser_builder import ChromeBrowserBuilder
 from .http_cache import (
     HTTP_CACHE_MAXSIZE,
     HTTP_CACHE_TTL_SECONDS,
@@ -35,6 +36,8 @@ __all__ = [
     "HTTP_CACHE_MAXSIZE",
     "HTTP_CACHE_TTL_SECONDS",
     "MAX_JS_CODE_LENGTH",
+    # ISSUE 114: Builder для ChromeBrowser
+    "ChromeBrowserBuilder",
     "ChromeBrowser",
     "ChromeOptions",
     # Основные классы

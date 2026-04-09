@@ -45,9 +45,10 @@ from parser_2gis.constants import (
     MIN_WORKERS,
     PROGRESS_UPDATE_INTERVAL,
 )
-from parser_2gis.logger import log_parser_finish, logger, print_progress
+from parser_2gis.logger import log_parser_finish, logger
 from parser_2gis.parallel.common.csv_merge_common import merge_csv_files_common
 from parser_2gis.parallel.filename_utils import extract_category_from_filename
+from parser_2gis.parallel.protocols import EventEmitter, ParsingEvents
 
 # Импорты стратегий ISSUE-002
 from parser_2gis.parallel.strategies import (
@@ -247,6 +248,9 @@ class ParallelCityParser:
         self._cancel_event = threading.Event()
         self._stop_event = threading.Event()
 
+        # ISSUE 107, 115: EventEmitter для системы событий вместо ad-hoc callbacks
+        self._event_emitter = EventEmitter()
+
         # Валидация max_workers ПЕРЕД созданием семафора
         if max_workers < MIN_WORKERS:
             raise ValueError(
@@ -355,6 +359,19 @@ class ParallelCityParser:
         with self._lock:
             log_func = getattr(logger, level)
             log_func(message)
+
+    @property
+    def event_emitter(self) -> EventEmitter:
+        """Возвращает EventEmitter для подписки на события парсинга.
+
+        ISSUE 115: Позволяет внешним подписчикам получать события парсинга
+        через систему событий вместо ad-hoc callbacks.
+
+        Returns:
+            Экземпляр EventEmitter.
+
+        """
+        return self._event_emitter
 
     def generate_all_urls(self) -> list[UrlTuple]:
         """Генерирует все URL для парсинга.
@@ -900,6 +917,15 @@ class ParallelCityParser:
         """
         start_time = time.time()
         total_tasks = len(self.cities) * len(self.categories)
+
+        # ISSUE 115: Генерируем событие начала парсинга
+        self._event_emitter.emit(ParsingEvents.PARSING_STARTED, {
+            "total_tasks": total_tasks,
+            "max_workers": self.max_workers,
+            "cities": [c["name"] for c in self.cities],
+            "categories": len(self.categories),
+        })
+
         if self._temp_file_cleanup_timer is not None:
             try:
                 self._temp_file_cleanup_timer.start()
@@ -951,6 +977,19 @@ class ParallelCityParser:
                     if current_time - last_progress_time >= PROGRESS_UPDATE_INTERVAL or idx == len(
                         futures
                     ):
+                        # ISSUE 107, 115: Используем EventEmitter вместо print_progress
+                        progress_data = {
+                            "current": success_count + failed_count,
+                            "total": len(futures),
+                            "success": success_count,
+                            "failed": failed_count,
+                        }
+                        self._event_emitter.emit(
+                            ParsingEvents.PROGRESS_UPDATE, progress_data
+                        )
+                        # Для обратной совместимости также логируем прогресс
+                        from parser_2gis.logger import print_progress
+
                         progress_bar = print_progress(
                             success_count + failed_count, len(futures), prefix="   Прогресс"
                         )

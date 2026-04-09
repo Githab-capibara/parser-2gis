@@ -27,6 +27,10 @@ from .logger import (
     setup_logger,
 )
 from .options import LogOptions
+from .presentation_bridge import (
+    LoggerPresentationBridge,
+    logger_presentation_bridge,
+)
 from .visual_logger import (
     ColorCodes,
     Emoji,
@@ -49,11 +53,13 @@ __all__ = [
     "FileLogger",
     "LogOptions",
     "Logger",
+    "LoggerPresentationBridge",
     "QueueHandler",
     "VisualLogger",
     "log_parser_finish",
     "log_parser_start",
     "logger",
+    "logger_presentation_bridge",
     "print_config",
     "print_debug",
     "print_error",

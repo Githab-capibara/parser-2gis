@@ -285,6 +285,8 @@ def log_parser_start(
 ) -> None:
     """Логирует запуск парсера с подробной информацией.
 
+    ISSUE 106: Делегирует LoggerPresentationBridge вместо прямого вызова visual_logger.
+
     Args:
         version: Версия парсера.
         urls_count: Количество URL для парсинга.
@@ -293,29 +295,16 @@ def log_parser_start(
         config_summary: Краткая сводка конфигурации.
 
     """
-    from .visual_logger import Emoji, print_config, print_header
+    from .presentation_bridge import logger_presentation_bridge
 
-    # Заголовок
-    print_header(f"{Emoji.START} Parser2GIS запущен", subtitle=f"Версия: {version}")
-
-    # Основная информация
-    main_info = {
-        "URL для парсинга": str(urls_count),
-        "Выходной файл": output_path,
-        "Формат": format.upper(),
-    }
-    print_config("📋 Основная информация", main_info)
-
-    # Конфигурация браузера
-    if config_summary:
-        if "chrome" in config_summary:
-            print_config("🌐 Браузер", config_summary["chrome"])
-
-        if "parser" in config_summary:
-            print_config("🔎 Парсер", config_summary["parser"])
-
-        if "writer" in config_summary:
-            print_config("📄 Writer", config_summary["writer"])
+    # ISSUE 106: Делегируем мосту вместо прямого вызова visual_logger
+    logger_presentation_bridge.log_parser_start(
+        version=version,
+        urls_count=urls_count,
+        output_path=output_path,
+        format=format,
+        config_summary=config_summary,
+    )
 
 
 def log_parser_finish(
@@ -323,26 +312,19 @@ def log_parser_finish(
 ) -> None:
     """Логирует завершение парсера.
 
+    ISSUE 106: Делегирует LoggerPresentationBridge вместо прямого вызова visual_logger.
+
     Args:
         success: Успешно ли завершено.
         stats: Статистика работы.
         duration: Продолжительность работы.
 
     """
-    from .visual_logger import Emoji, print_error, print_header, print_stats, print_success
+    from .presentation_bridge import logger_presentation_bridge
 
-    emoji = Emoji.SUCCESS if success else Emoji.ERROR
-    title = f"{emoji} Парсинг завершён"
-
-    if success:
-        print_success("Парсинг успешно завершён!")
-    else:
-        print_error("Парсинг завершён с ошибками")
-
-    # Статистика
-    if stats:
-        if duration:
-            stats["Время работы"] = duration
-        print_stats(stats, title="📊 Итоговая статистика")
-
-    print_header(title)
+    # ISSUE 106: Делегируем мосту вместо прямого вызова visual_logger
+    logger_presentation_bridge.log_parser_finish(
+        success=success,
+        stats=stats,
+        duration=duration,
+    )

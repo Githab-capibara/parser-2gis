@@ -35,6 +35,7 @@ from parser_2gis.constants import (
     TEMP_FILE_CLEANUP_INTERVAL,
 )
 
+from .builder import ParallelCityParserBuilder
 from .config import ParallelRunConfig
 from .coordinator import ParallelCoordinator
 from .error_handler import ParallelErrorHandler
@@ -53,6 +54,13 @@ from .parallel_parser import (
     ParserThreadConfig,
 )
 from .progress import ParallelProgressReporter
+from .protocols import (
+    ConnectionPoolProtocol,
+    EventEmitter,
+    ParsingEvents,
+)
+from .signal_handler import create_signal_handler
+from .signal_subscription import SignalSubscriptionSystem
 from .strategies import (
     MemoryCheckStrategy,
     MemoryMonitorProtocol,
@@ -85,12 +93,15 @@ __all__ = [
     "PROGRESS_UPDATE_INTERVAL",
     # Константы очистки
     "TEMP_FILE_CLEANUP_INTERVAL",
+    # ISSUE 113: Builder для ParallelCityParser
+    "ParallelCityParserBuilder",
     "FileMergerStrategy",
     "MemoryCheckStrategy",
     "MemoryManager",
     "MemoryMonitorProtocol",
     "MergeCSVHandler",
     "MergeLockManager",
+    "create_signal_handler",
     # Основные классы (старые для обратной совместимости)
     "ParallelCityParser",
     "ParallelCityParserThread",
@@ -105,6 +116,12 @@ __all__ = [
     "ParallelProgressReporter",
     "ParallelRunConfig",
     "ParallelUrlParser",
+    # ISSUE 107, 112, 115: Новые протоколы и EventEmitter
+    "ConnectionPoolProtocol",
+    "EventEmitter",
+    "ParsingEvents",
+    # ISSUE 116: Система подписки на сигналы
+    "SignalSubscriptionSystem",
     # ISSUE-030, 040: Стратегии с DI
     "ParseStrategy",
     "ParserFactory",

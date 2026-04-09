@@ -11,7 +11,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    from parser_2gis.parallel.parallel_parser import ParallelCityParser
 
 from textual import work
 from textual.app import App, ComposeResult
@@ -20,9 +23,9 @@ from textual.widgets import Footer, Header
 
 from parser_2gis.config import Configuration
 from parser_2gis.logger import logger
-from parser_2gis.parallel import ParallelCityParser
 from parser_2gis.resources import CATEGORIES_93
 
+from .parsing_facade import ParsingFacade
 from .screens import (
     AboutScreen,
     BrowserSettingsScreen,
@@ -336,7 +339,7 @@ class TUIApp(App):
         self._state = AppState()  # ISSUE-020: Используем dataclass
         self._file_logger: logging.Logger | None = None
         self._log_file: Path | None = None
-        self._parser: ParallelCityParser | None = None
+        self._parser: "ParallelCityParser | None" = None
         self._running = False
         self._started_at: datetime | None = None
         self._last_notification: dict[str, str] | None = None
@@ -620,37 +623,10 @@ class TUIApp(App):
             if not self._running:
                 return
 
-            config = self._config
-            # P0-9: Сохраняем оригинальные значения конфигурации для восстановления
-            saved_config = {
-                "chrome_headless": config.chrome.headless,
-                "chrome_disable_images": config.chrome.disable_images,
-                "chrome_silent_browser": config.chrome.silent_browser,
-                "parser_stop_on_first_404": config.parser.stop_on_first_404,
-                "parser_max_consecutive_empty_pages": config.parser.max_consecutive_empty_pages,
-                "parser_max_retries": config.parser.max_retries,
-                "parser_retry_on_network_errors": config.parser.retry_on_network_errors,
-            }
-            config.chrome.headless = True
-            config.chrome.disable_images = True
-            config.chrome.silent_browser = True
-            config.parser.stop_on_first_404 = True
-            config.parser.max_consecutive_empty_pages = 5
-            config.parser.max_retries = 3
-            config.parser.retry_on_network_errors = True
-
-            max_workers = getattr(config.parallel, "max_workers", 10)
-
+            # ISSUE 103: Используем ParsingFacade вместо прямого создания ParallelCityParser
             from parser_2gis.constants.cache import DEFAULT_OUTPUT_DIR
 
-            parser = ParallelCityParser(
-                cities=cities,
-                categories=categories,
-                output_dir=DEFAULT_OUTPUT_DIR,
-                config=config,
-                max_workers=max_workers,
-                timeout_per_url=1800,  # 30 минут для парсинга одной категории
-            )
+            facade = ParsingFacade(config=self._config)
 
             total_urls = len(cities) * len(categories)
             self.update_state(total_urls=total_urls)
@@ -695,8 +671,12 @@ class TUIApp(App):
 
                 self.call_from_thread(update_progress_state)
 
-            output_file = f"Омск_парсинг_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            result = parser.run(output_file=output_file, progress_callback=progress_callback)
+            result = facade.run_parsing(
+                cities=cities,
+                categories=categories,
+                output_dir=DEFAULT_OUTPUT_DIR,
+                progress_callback=progress_callback,
+            )
 
             # Проверка флага остановки после завершения парсинга
             if not self._running:
@@ -715,38 +695,15 @@ class TUIApp(App):
             self.call_from_thread(self.switch_to_main_menu)
             # ISSUE 008: Логирование неожиданных исключений вместо молчаливого подавления
             from parser_2gis.logger import logger as _app_logger
+
             _app_logger.exception("Неожиданная ошибка в процессе парсинга: %s", e)
         finally:
-            # P0-9: Восстанавливаем оригинальные значения конфигурации
-            if "saved_config" in locals():
-                config.chrome.headless = saved_config["chrome_headless"]
-                config.chrome.disable_images = saved_config["chrome_disable_images"]
-                config.chrome.silent_browser = saved_config["chrome_silent_browser"]
-                config.parser.stop_on_first_404 = saved_config["parser_stop_on_first_404"]
-                config.parser.max_consecutive_empty_pages = saved_config[
-                    "parser_max_consecutive_empty_pages"
-                ]
-                config.parser.max_retries = saved_config["parser_max_retries"]
-                config.parser.retry_on_network_errors = saved_config[
-                    "parser_retry_on_network_errors"
-                ]
-                logger.debug("Конфигурация восстановлена после парсинга")
-
-            # P0-5: Гарантированная очистка ресурсов парсинга
-            # Вызываем parser.cancel() и get_stats() корректно
-            if "parser" in locals():
+            # ISSUE 103: ParsingFacade сам управляет конфигурацией, но гарантируем очистку
+            if "facade" in locals():
                 try:
-                    parser.stop()  # Вызываем cancel через метод stop()
-                    parser_stats = parser.get_statistics()
-                    logger.debug("Статистика парсера после завершения: %s", parser_stats)
-                except (
-                    OSError,
-                    RuntimeError,
-                    TypeError,
-                    ValueError,
-                    AttributeError,
-                ) as cleanup_error:
-                    logger.debug("Ошибка при очистке парсера: %s", cleanup_error)
+                    facade.stop_parsing()
+                except (OSError, RuntimeError, AttributeError) as cleanup_error:
+                    logger.debug("Ошибка при остановке фасада: %s", cleanup_error)
 
             if not self._cleanup_in_progress:
                 self._cleanup_in_progress = True
