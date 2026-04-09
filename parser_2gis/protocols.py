@@ -19,17 +19,17 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from concurrent.futures import Future
-from typing import Any, Protocol, TypeAlias, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 # =============================================================================
 # TYPE ALIASES FOR COMPLEX TYPES
 # =============================================================================
 
-UrlTuple: TypeAlias = tuple[str, str, str]  # (url, category_name, city_name)
-UrlGeneratorResult: TypeAlias = list[UrlTuple]
-ParserResult: TypeAlias = list[dict[str, Any]]
-ParserStats: TypeAlias = dict[str, Any]
-FutureResult: TypeAlias = Future[Any]
+type UrlTuple = tuple[str, str, str]  # (url, category_name, city_name)
+type UrlGeneratorResult = list[UrlTuple]
+type ParserResult = list[dict[str, Any]]
+type ParserStats = dict[str, Any]
+type FutureResult = Future[Any]
 
 # =============================================================================
 # CALLBACK PROTOCOLS
@@ -93,7 +93,7 @@ class ProgressCallback(Protocol):
 
 
 # ISSUE-112: Type alias для Callable с полными type hints
-ProgressCallbackType: TypeAlias = Callable[[int, int, str], None]
+type ProgressCallbackType = Callable[[int, int, str], None]
 """Type alias для callback прогресса с полными type hints."""
 
 
@@ -371,30 +371,30 @@ class MemoryManagerProtocol(Protocol):
 
 
 __all__ = [
-    # Callback Protocols
-    "LoggerProtocol",
-    "ProgressCallback",
-    "CleanupCallback",
-    # Data Protocols
-    "Writer",
-    "Parser",
-    # Browser Protocols
-    "BrowserNavigation",
     "BrowserContentAccess",
     "BrowserJSExecution",
+    # Browser Protocols
+    "BrowserNavigation",
     "BrowserScreenshot",
     "BrowserService",
     # Cache Protocols
     "CacheReader",
     "CacheWriter",
+    "CleanupCallback",
     # Parallel Parsing Protocols
     "ErrorHandlerProtocol",
-    "MergerProtocol",
-    "ProgressReporterProtocol",
-    "UrlGeneratorProtocol",
-    "ThreadCoordinatorProtocol",
-    # Path Validation Protocol (ISSUE-034)
-    "PathValidatorProtocol",
+    # Callback Protocols
+    "LoggerProtocol",
     # Memory Manager Protocol (ISSUE-019)
     "MemoryManagerProtocol",
+    "MergerProtocol",
+    "Parser",
+    # Path Validation Protocol (ISSUE-034)
+    "PathValidatorProtocol",
+    "ProgressCallback",
+    "ProgressReporterProtocol",
+    "ThreadCoordinatorProtocol",
+    "UrlGeneratorProtocol",
+    # Data Protocols
+    "Writer",
 ]

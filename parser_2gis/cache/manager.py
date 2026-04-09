@@ -26,11 +26,8 @@ from functools import lru_cache
 from pathlib import Path
 
 # Импорты для типизации (для совместимости с Python 3.9)
-from typing import Any, Protocol, TypeAlias
+from typing import Any, Protocol
 
-# NOTE: architecture violation — модуль cache не должен зависеть от chrome.constants.
-# Это существующая архитектура, требует рефакторинга для устранения зависимости.
-from ..chrome.constants import DEFAULT_TTL_HOURS, MAX_RESPONSE_SIZE
 from ..constants.cache import (
     DEFAULT_CACHE_FILE_NAME,
     LRU_EVICT_BATCH,
@@ -38,6 +35,10 @@ from ..constants.cache import (
     MAX_CACHE_SIZE_MB,
 )
 from ..logger.logger import logger as app_logger
+
+# ISSUE-031: Импортируем DEFAULT_TTL_HOURS из общего модуля вместо chrome.constants
+# для устранения архитектурного нарушения (cache не должен зависеть от chrome)
+from ..shared_config_constants import DEFAULT_TTL_HOURS, MAX_RESPONSE_SIZE
 from .cache_utils import (
     compute_crc32_cached,
     compute_data_json_hash,
@@ -60,9 +61,9 @@ _CACHE_LRU_MAX_ITERATIONS: int = 10000  # Максимум итераций LRU 
 # =============================================================================
 
 # Кортеж строки кэша: (data, checksum, expires_at_str)
-CacheRow: TypeAlias = tuple[str, int, str]
+type CacheRow = tuple[str, int, str]
 # Пара элемента кэша: (url, data)
-CacheItem: TypeAlias = tuple[str, dict[str, Any]]
+type CacheItem = tuple[str, dict[str, Any]]
 
 # Размер пула соединений по умолчанию (10 соединений — баланс между производительностью и памятью)
 DEFAULT_POOL_SIZE: int = 10

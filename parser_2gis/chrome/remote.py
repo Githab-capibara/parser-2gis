@@ -28,7 +28,7 @@ import time
 import types
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, Any
 
 import pychrome
 from websocket import WebSocketException
@@ -96,7 +96,7 @@ _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
 # =============================================================================
 
 # Тип возврата для методов завершения процесса
-ProcessStatus: TypeAlias = tuple[bool, str]
+type ProcessStatus = tuple[bool, str]
 
 
 # =============================================================================
@@ -608,7 +608,7 @@ class ChromeRemote:
                     if current_time - last_check_time >= MONITOR_INTERVAL:
                         try:
                             ret = _safe_external_request(
-                                "get", "%s/json" % self._dev_url, timeout=6, verify=True
+                                "get", f"{self._dev_url}/json", timeout=6, verify=True
                             )
                             # ИСПРАВЛЕНИЕ: Добавлена проверка на None перед вызовом json()
                             if ret is None:

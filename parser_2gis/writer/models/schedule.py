@@ -106,7 +106,7 @@ class Schedule(BaseModel):
         """
         # Явно указываем имена дней для совместимости с Pydantic v1 и v2
         days_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        days_mapping = dict(Mon="Пн", Tue="Вт", Wed="Ср", Thu="Чт", Fri="Пт", Sat="Сб", Sun="Вс")
+        days_mapping = {"Mon": "Пн", "Tue": "Вт", "Wed": "Ср", "Thu": "Чт", "Fri": "Пт", "Sat": "Сб", "Sun": "Вс"}
 
         slots_list = []
         for day_name in days_names:
@@ -124,6 +124,6 @@ class Schedule(BaseModel):
 
         result = join_char.join(slots_list)
         if add_comment and self.comment:
-            result += " (%s)" % self.comment
+            result += f" ({self.comment})"
 
         return result

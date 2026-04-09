@@ -48,6 +48,6 @@ def patch_pychrome() -> None:
                 if message["id"] in self.method_results:
                     self.method_results[message["id"]].put(message)
             else:  # pragma: no cover
-                warnings.warn("unknown message: %s" % message, stacklevel=2)
+                warnings.warn(f"unknown message: {message}", stacklevel=2)
 
     pychrome.tab.Tab._recv_loop = _recv_loop_patched

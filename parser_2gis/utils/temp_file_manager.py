@@ -533,15 +533,15 @@ def create_temp_file(directory: str, prefix: str = "parser_") -> str:
 # =============================================================================
 
 __all__ = [
-    # Константы
-    "TEMP_FILE_CLEANUP_INTERVAL",
     "MAX_TEMP_FILES_MONITORING",
     "ORPHANED_TEMP_FILE_AGE",
+    # Константы
+    "TEMP_FILE_CLEANUP_INTERVAL",
     # TempFileManager
     "TempFileManager",
-    "temp_file_manager",
     # TempFileTimer
     "TempFileTimer",
     # Helper functions
     "create_temp_file",
+    "temp_file_manager",
 ]

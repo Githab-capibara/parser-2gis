@@ -54,31 +54,31 @@ from .path_validator import PathValidator, get_path_validator, validate_path
 from .url_validator import clear_url_cache, is_valid_url, validate_url
 
 __all__ = [
-    # URL валидация
-    "validate_url",
-    "is_valid_url",
-    "clear_url_cache",
-    # Валидация данных
-    "ValidationResult",
-    "validate_positive_int",
-    "validate_positive_float",
-    "validate_non_empty_string",
-    "validate_string_length",
-    "validate_non_empty_list",
-    "validate_list_length",
-    "validate_email",
-    "validate_phone",
-    # Валидация конфигурации параллельного парсинга
-    "validate_cities_config",
-    "validate_categories_config",
-    "validate_parallel_config",
-    # Валидация путей (старый модуль)
-    "PathValidator",
-    "get_path_validator",
-    "validate_path",
     # Валидация путей (новый консолидированный модуль)
     "PathSafetyValidator",
     "PathTraversalError",
-    "validate_path_traversal",
+    # Валидация путей (старый модуль)
+    "PathValidator",
+    # Валидация данных
+    "ValidationResult",
+    "clear_url_cache",
+    "get_path_validator",
+    "is_valid_url",
+    "validate_categories_config",
+    # Валидация конфигурации параллельного парсинга
+    "validate_cities_config",
+    "validate_email",
+    "validate_list_length",
+    "validate_non_empty_list",
+    "validate_non_empty_string",
+    "validate_parallel_config",
+    "validate_path",
     "validate_path_safety",
+    "validate_path_traversal",
+    "validate_phone",
+    "validate_positive_float",
+    "validate_positive_int",
+    "validate_string_length",
+    # URL валидация
+    "validate_url",
 ]

@@ -94,7 +94,7 @@ class CSVPostProcessor:
             # Группируем паттерны для корректной работы regex
             pattern_str = r"^(?:" + "|".join(rf"{x}_\d+" for x in complex_columns) + r")$"
             complex_columns_pattern = re.compile(pattern_str)
-            for c in self._data_mapping.keys():
+            for c in self._data_mapping:
                 if complex_columns_pattern.match(c):
                     complex_columns_count[c] = 0
 

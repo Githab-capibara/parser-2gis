@@ -29,18 +29,18 @@ from .json_writer import JSONWriter
 from .xlsx_writer import XLSXWriter
 
 __all__ = [
-    "FileWriter",
-    "CSVWriter",
-    "XLSXWriter",
-    "JSONWriter",
-    "CSVPostProcessor",
-    "CSVDeduplicator",
     # Утилиты буферизации
     "HASH_BATCH_SIZE",
     "MAX_BUFFER_SIZE",
     "MMAP_THRESHOLD_BYTES",
     "READ_BUFFER_SIZE",
     "WRITE_BUFFER_SIZE",
+    "CSVDeduplicator",
+    "CSVPostProcessor",
+    "CSVWriter",
+    "FileWriter",
+    "JSONWriter",
+    "XLSXWriter",
     "_calculate_optimal_buffer_size",
     # #75: _open_file_with_mmap_support и _close_file_with_mmap_support удалены как неиспользуемые
     "_safe_move_file",

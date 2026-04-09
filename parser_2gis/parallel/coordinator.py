@@ -676,7 +676,7 @@ class ParallelCoordinator:
             }
 
             for future in as_completed(futures):
-                url, category_name, city_name = futures[future]
+                _url, category_name, city_name = futures[future]
                 try:
                     success, result = future.result(timeout=self.timeout_per_url)
                     if self._progress_reporter:

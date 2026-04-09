@@ -249,7 +249,7 @@ class ThreadCoordinator:
 
             # Обрабатываем результаты по мере завершения
             for future in as_completed(futures):
-                url, category_name, city_name = futures[future]
+                _url, category_name, city_name = futures[future]
                 try:
                     success, result = future.result(timeout=self._timeout_per_url)
                     if not success:

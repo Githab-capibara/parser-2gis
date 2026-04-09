@@ -10,6 +10,15 @@
     - ConfigValidator (валидация) - config.config_validator
     - ConfigService (save/load) - cli.config_service
 
+    ISSUE-027: Методы делегирования (merge_with, save_config, load_config, validate)
+    оставлены для обратной совместимости, но вся логика вынесена в сервисы.
+
+    ISSUE-035: Используется ленивый импорт ConfigService внутри методов
+    вместо импорта на уровне модуля для устранения жёсткой зависимости.
+
+    ISSUE-037: Вложенные модели опций используют default_factory через Field
+    для ленивой инициализации при создании конфигурации.
+
 Пример использования:
     >>> from parser_2gis.config import Configuration
     >>> config = Configuration()
@@ -19,23 +28,49 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TypeAlias
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from .chrome import ChromeOptions
-from .cli.config_service import ConfigService
-from .logger import LogOptions
-from .parallel import ParallelOptions
-from .parser import ParserOptions
 from .version import config_version
-from .writer import WriterOptions
+
+if TYPE_CHECKING:
+    from .chrome import ChromeOptions
+    from .logger import LogOptions
+    from .parallel import ParallelOptions
+    from .parser import ParserOptions
+    from .writer import WriterOptions
 
 # =============================================================================
-# TYPE ALIASES FOR COMPLEX TYPES
+# PROTOCOL FOR CONFIG SERVICE (ISSUE-035)
 # =============================================================================
 
-ConfigFieldsSet: TypeAlias = set[str]
+
+@runtime_checkable
+class ConfigServiceProtocol(Protocol):
+    """Протокол сервиса конфигурации для устранения жёстких зависимостей.
+
+    ISSUE-035: Определяет интерфейс ConfigService без прямого импорта.
+    """
+
+    @staticmethod
+    def save_config(config: BaseModel, path: pathlib.Path) -> None:
+        """Сохраняет конфигурацию в файл."""
+        ...
+
+    @staticmethod
+    def load_config(
+        config_cls: type[BaseModel],
+        config_path: pathlib.Path | None = ...,
+        auto_create: bool = ...,
+    ) -> BaseModel:
+        """Загружает конфигурацию из файла."""
+        ...
+
+
+# =============================================================================
+# CONFIGURATION MODEL
+# =============================================================================
 
 
 class Configuration(BaseModel):
@@ -43,6 +78,9 @@ class Configuration(BaseModel):
 
     Хранит настройки парсера и делегирует операции специализированным сервисам.
     Следует принципу единственной ответственности (SRP).
+
+    ISSUE-037: Вложенные модели опций создаются лениво через Field(default_factory=...)
+    для предотвращения eager инициализации при импорте модуля.
 
     Attributes:
         log: Настройки логирования.
@@ -62,11 +100,23 @@ class Configuration(BaseModel):
 
     model_config = ConfigDict(validate_assignment=True)
 
-    log: LogOptions = LogOptions()
-    writer: WriterOptions = WriterOptions()
-    chrome: ChromeOptions = ChromeOptions()
-    parser: ParserOptions = ParserOptions()
-    parallel: ParallelOptions = ParallelOptions()
+    # ISSUE-037: Lazy creation через Field(default_factory=...)
+    # Фабрики вызываются только при создании экземпляра, не при импорте
+    log: "LogOptions" = Field(default_factory=lambda: __import__(
+        "parser_2gis.logger", fromlist=["LogOptions"]
+    ).LogOptions())
+    writer: "WriterOptions" = Field(default_factory=lambda: __import__(
+        "parser_2gis.writer", fromlist=["WriterOptions"]
+    ).WriterOptions())
+    chrome: "ChromeOptions" = Field(default_factory=lambda: __import__(
+        "parser_2gis.chrome", fromlist=["ChromeOptions"]
+    ).ChromeOptions())
+    parser: "ParserOptions" = Field(default_factory=lambda: __import__(
+        "parser_2gis.parser", fromlist=["ParserOptions"]
+    ).ParserOptions())
+    parallel: "ParallelOptions" = Field(default_factory=lambda: __import__(
+        "parser_2gis.parallel", fromlist=["ParallelOptions"]
+    ).ParallelOptions())
     path: pathlib.Path | None = None
     version: str = config_version
 
@@ -94,12 +144,17 @@ class Configuration(BaseModel):
 
         Делегирует операцию классу ConfigService.
 
+        ISSUE-035: Использует ленивый импорт внутри метода.
+
         Raises:
             OSError: При ошибке записи файла.
 
         """
+        # ISSUE-035: Ленивый импорт ConfigService
+        from .cli.config_service import ConfigService as _ConfigService
+
         if self.path:
-            ConfigService.save_config(config=self, path=self.path)
+            _ConfigService.save_config(config=self, path=self.path)
         else:
             from .logger.logger import logger as lazy_logger
 
@@ -121,11 +176,12 @@ class Configuration(BaseModel):
             Загруженная конфигурация.
 
         """
-        result = ConfigService.load_config(
+        # ISSUE-035: Ленивый импорт ConfigService
+        from .cli.config_service import ConfigService as _ConfigService
+
+        result = _ConfigService.load_config(
             config_cls=cls, config_path=config_path, auto_create=auto_create
         )
-        # ConfigService.load_config возвращает ConfigService.T, который связан с cls
-        # mypy не может вывести что T == Configuration, но это гарантировано логикой
         from typing import cast
 
         return cast(Configuration, result)
@@ -182,3 +238,27 @@ class Configuration(BaseModel):
         from .config_services import ConfigValidator
 
         ConfigValidator.backup_corrupted_config(config_path)
+
+
+# Pydantic model rebuild для разрешения forward references
+def _resolve_option_types() -> dict[str, type]:
+    """Разрешает forward references для Pydantic."""
+    from .chrome import ChromeOptions
+    from .logger import LogOptions
+    from .parallel import ParallelOptions
+    from .parser import ParserOptions
+    from .writer import WriterOptions
+
+    return {
+        "LogOptions": LogOptions,
+        "WriterOptions": WriterOptions,
+        "ChromeOptions": ChromeOptions,
+        "ParserOptions": ParserOptions,
+        "ParallelOptions": ParallelOptions,
+    }
+
+
+Configuration.model_rebuild(
+    _types_namespace=_resolve_option_types(),
+    raise_errors=True,
+)

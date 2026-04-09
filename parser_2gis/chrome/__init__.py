@@ -30,23 +30,23 @@ from .rate_limiter import _safe_external_request
 from .remote import ChromeRemote
 
 __all__ = [
+    # Валидация JS (для backward совместимости)
+    "DANGEROUS_JS_PATTERNS",
+    "HTTP_CACHE_MAXSIZE",
+    "HTTP_CACHE_TTL_SECONDS",
+    "MAX_JS_CODE_LENGTH",
+    "ChromeBrowser",
+    "ChromeOptions",
     # Основные классы
     "ChromeRemote",
-    "ChromeOptions",
-    "ChromeBrowser",
     # HTTP кэш (для backward совместимости)
     "_HTTPCache",
     "_HTTPCacheEntry",
     "_cleanup_expired_cache",
     "_get_cache_key",
     "_get_http_cache",
-    "HTTP_CACHE_MAXSIZE",
-    "HTTP_CACHE_TTL_SECONDS",
-    # Валидация JS (для backward совместимости)
-    "DANGEROUS_JS_PATTERNS",
-    "_sanitize_js_string",
-    "_validate_js_code",
-    "MAX_JS_CODE_LENGTH",
     # Rate limiting (для backward совместимости)
     "_safe_external_request",
+    "_sanitize_js_string",
+    "_validate_js_code",
 ]

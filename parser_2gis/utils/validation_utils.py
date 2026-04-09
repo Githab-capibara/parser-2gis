@@ -251,11 +251,11 @@ def _validate_category(category: Any) -> dict[str, Any]:
 __all__ = [
     # Логгер
     "_get_logger",
-    # Обработка ошибок валидации
-    "report_from_validation_error",
+    "_validate_category",
+    "_validate_category_cached",
     # Валидация
     "_validate_city",
-    "_validate_category",
     "_validate_city_cached",
-    "_validate_category_cached",
+    # Обработка ошибок валидации
+    "report_from_validation_error",
 ]

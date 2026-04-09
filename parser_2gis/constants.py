@@ -17,7 +17,7 @@ import os
 import threading
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import NamedTuple, TypeAlias, cast
+from typing import NamedTuple, cast
 
 # Импорты констант из подмодулей для обратной совместимости
 # NOTE: Циклический импорт: constants -> parser -> parser.options -> utils -> constants
@@ -57,7 +57,7 @@ MAX_MAX_WORKERS: int = 100
 # TYPE ALIASES FOR COMPLEX TYPES
 # =============================================================================
 
-EnvValidationResult: TypeAlias = tuple[bool, str | None]
+type EnvValidationResult = tuple[bool, str | None]
 
 
 class EnvValidationEntry(NamedTuple):
@@ -584,85 +584,85 @@ def validate_env_int(
 
 
 __all__: list[str] = [  # noqa: F822
-    # Конфигурация ENV
-    "EnvConfig",
-    "get_env_config",
-    "validate_env_int",
+    "CHROME_STARTUP_DELAY",
+    "CONNECTION_MAX_AGE",
+    "CSV_BATCH_SIZE",
+    "CSV_COLUMNS_PER_ENTITY",
+    # Кэширование
+    "DEFAULT_BATCH_SIZE",
+    # Буферизация
+    "DEFAULT_BUFFER_SIZE",
+    # Polling
+    "DEFAULT_POLL_INTERVAL",
+    # Таймауты и задержки
+    "DEFAULT_SLEEP_TIME",
+    "DEFAULT_TIMEOUT",
+    "EXPONENTIAL_BACKOFF_MULTIPLIER",
+    # Rate limiting
+    "EXTERNAL_RATE_LIMIT_CALLS",
+    "EXTERNAL_RATE_LIMIT_PERIOD",
+    "FORBIDDEN_PATH_CHARS",
+    "HTTP_CACHE_MAXSIZE",
+    # HTTP кэширование
+    "HTTP_CACHE_TTL_SECONDS",
+    # HTTP статус коды
+    "HTTP_STATUS_OK",
+    "LRU_EVICT_BATCH",
+    # #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
+    "MAX_BATCH_SIZE",
+    "MAX_CACHE_SIZE_MB",
+    "MAX_CITIES_COUNT",
+    # Валидация городов
+    "MAX_CITIES_FILE_SIZE",
+    "MAX_COLLECTION_SIZE",
     # Безопасность данных
     "MAX_DATA_DEPTH",
-    "MAX_STRING_LENGTH",
     "MAX_DATA_SIZE",
-    "MAX_COLLECTION_SIZE",
-    "MAX_PATH_LENGTH",
+    "MAX_DICT_RECURSION_DEPTH",
     # Безопасность initialState (firm_parser.py)
     "MAX_INITIAL_STATE_DEPTH",
     "MAX_INITIAL_STATE_SIZE",
     "MAX_ITEMS_IN_COLLECTION",
-    # Кэширование
-    "DEFAULT_BATCH_SIZE",
-    # #74: MAX_CONNECTION_AGE удалён как дубликат CONNECTION_MAX_AGE
-    "MAX_BATCH_SIZE",
-    "MAX_CACHE_SIZE_MB",
-    "LRU_EVICT_BATCH",
-    "SHA256_HASH_LENGTH",
-    # Connection Pool
-    "MAX_POOL_SIZE",
-    "MIN_POOL_SIZE",
-    "CONNECTION_MAX_AGE",
-    # Параллельный парсинг
-    "MIN_WORKERS",
-    "MAX_WORKERS",
-    "MIN_TIMEOUT",
-    "MAX_TIMEOUT",
-    "DEFAULT_TIMEOUT",
-    "TEMP_FILE_CLEANUP_INTERVAL",
-    "MAX_TEMP_FILES_MONITORING",
-    "ORPHANED_TEMP_FILE_AGE",
-    "MAX_TEMP_FILES",
-    "MERGE_LOCK_TIMEOUT",
-    "MAX_LOCK_FILE_AGE",
-    # Буферизация
-    "DEFAULT_BUFFER_SIZE",
-    "MERGE_BUFFER_SIZE",
-    "CSV_BATCH_SIZE",
-    "CSV_COLUMNS_PER_ENTITY",
-    "MERGE_BATCH_SIZE",
-    # Валидация городов
-    "MAX_CITIES_FILE_SIZE",
-    "MAX_CITIES_COUNT",
-    "MMAP_CITIES_THRESHOLD",
     # JS безопасность
     "MAX_JS_CODE_LENGTH",
-    "MAX_RESPONSE_SIZE",
-    "MAX_TOTAL_JS_SIZE",
-    "CHROME_STARTUP_DELAY",
-    # Rate limiting
-    "EXTERNAL_RATE_LIMIT_CALLS",
-    "EXTERNAL_RATE_LIMIT_PERIOD",
-    # HTTP кэширование
-    "HTTP_CACHE_TTL_SECONDS",
-    "HTTP_CACHE_MAXSIZE",
-    # Polling
-    "DEFAULT_POLL_INTERVAL",
-    "MAX_POLL_INTERVAL",
-    "EXPONENTIAL_BACKOFF_MULTIPLIER",
-    # HTTP статус коды
-    "HTTP_STATUS_OK",
-    # Безопасность путей
-    "MAX_URL_DECODE_ITERATIONS",
-    "MAX_DICT_RECURSION_DEPTH",
-    # Прогресс
-    "PROGRESS_UPDATE_INTERVAL",
-    # Уникальные имена файлов
-    "MAX_UNIQUE_NAME_ATTEMPTS",
-    # Таймауты и задержки
-    "DEFAULT_SLEEP_TIME",
-    # Парсер - лимиты
-    "MAX_VISITED_LINKS_SIZE",
-    "MAX_RECORDS_MEMORY_COEFFICIENT",
-    "MAX_RECORDS_MEMORY_DIVISOR",
-    "MAX_RECORDS_BASE_OFFSET",
+    "MAX_LOCK_FILE_AGE",
+    "MAX_PATH_LENGTH",
     # Безопасность путей
     "MAX_PATH_LENGTH_SAFE",
-    "FORBIDDEN_PATH_CHARS",
+    "MAX_POLL_INTERVAL",
+    # Connection Pool
+    "MAX_POOL_SIZE",
+    "MAX_RECORDS_BASE_OFFSET",
+    "MAX_RECORDS_MEMORY_COEFFICIENT",
+    "MAX_RECORDS_MEMORY_DIVISOR",
+    "MAX_RESPONSE_SIZE",
+    "MAX_STRING_LENGTH",
+    "MAX_TEMP_FILES",
+    "MAX_TEMP_FILES_MONITORING",
+    "MAX_TIMEOUT",
+    "MAX_TOTAL_JS_SIZE",
+    # Уникальные имена файлов
+    "MAX_UNIQUE_NAME_ATTEMPTS",
+    # Безопасность путей
+    "MAX_URL_DECODE_ITERATIONS",
+    # Парсер - лимиты
+    "MAX_VISITED_LINKS_SIZE",
+    "MAX_WORKERS",
+    "MERGE_BATCH_SIZE",
+    "MERGE_BUFFER_SIZE",
+    "MERGE_LOCK_TIMEOUT",
+    "MIN_POOL_SIZE",
+    "MIN_TIMEOUT",
+    # Параллельный парсинг
+    "MIN_WORKERS",
+    "MMAP_CITIES_THRESHOLD",
+    "ORPHANED_TEMP_FILE_AGE",
+    # Прогресс
+    "PROGRESS_UPDATE_INTERVAL",
+    "SHA256_HASH_LENGTH",
+    "TEMP_FILE_CLEANUP_INTERVAL",
+    # Конфигурация ENV
+    "EnvConfig",
+    "get_env_config",
+    "validate_env_int",
 ]

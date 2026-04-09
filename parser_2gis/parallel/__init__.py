@@ -39,7 +39,10 @@ from .config import ParallelRunConfig
 from .coordinator import ParallelCoordinator
 from .error_handler import ParallelErrorHandler
 from .file_merger import FileMergerStrategy
+from .lock_manager import ParallelLockManager
 from .memory_manager import MemoryManager, check_memory_safety, get_memory_manager
+from .merge_csv_handler import MergeCSVHandler
+from .merge_lock_manager import MergeLockManager
 from .merger import (
     MergeConfig,  # noqa: F401 - используется для типизации
     ParallelFileMerger,
@@ -51,46 +54,69 @@ from .parallel_parser import (
     ParserThreadConfig,
 )
 from .progress import ParallelProgressReporter
+from .strategies import (
+    MemoryCheckStrategy,
+    MemoryMonitorProtocol,
+    ParserFactory,
+    ParserResult,
+    ParseStrategy,
+    UrlGenerationStrategy,
+    UrlTuple,
+    WriterFactory,
+)
 from .thread_coordinator import ThreadCoordinator
 from .thread_manager import ThreadManager
 from .url_parser import ParallelUrlParser
 
 # Экспорт основного API для обратной совместимости
 __all__ = [
-    # Основные классы (новые)
-    "ParallelCoordinator",
-    "ThreadCoordinator",
-    "ParallelFileMerger",
+    "DEFAULT_TIMEOUT",
+    "MAX_LOCK_FILE_AGE",
+    "MAX_TEMP_FILES",
+    "MAX_TEMP_FILES_MONITORING",
+    "MAX_TIMEOUT",
+    "MAX_WORKERS",
+    # Константы из file_merger
+    "MERGE_LOCK_TIMEOUT",
+    "MIN_TIMEOUT",
+    # Константы
+    "MIN_WORKERS",
+    "ORPHANED_TEMP_FILE_AGE",
+    # Прогресс
+    "PROGRESS_UPDATE_INTERVAL",
+    # Константы очистки
+    "TEMP_FILE_CLEANUP_INTERVAL",
     "FileMergerStrategy",
-    "ParallelErrorHandler",
-    "ParallelProgressReporter",
-    "ParallelRunConfig",
-    "ParallelUrlParser",
+    "MemoryCheckStrategy",
     "MemoryManager",
-    "ThreadManager",
-    # Функции управления памятью
-    "get_memory_manager",
-    "check_memory_safety",
+    "MemoryMonitorProtocol",
+    "MergeCSVHandler",
+    "MergeLockManager",
     # Основные классы (старые для обратной совместимости)
     "ParallelCityParser",
     "ParallelCityParserThread",
-    "ParserThreadConfig",  # Deprecated: используйте ParallelRunConfig
+    # Основные классы (новые)
+    "ParallelCoordinator",
+    "ParallelErrorHandler",
+    "ParallelFileMerger",
+    # ISSUE-024, 025: Новые выделенные компоненты
+    "ParallelLockManager",
     # Опции
     "ParallelOptions",
-    "MAX_TEMP_FILES",
-    # Константы очистки
-    "TEMP_FILE_CLEANUP_INTERVAL",
-    "MAX_TEMP_FILES_MONITORING",
-    "ORPHANED_TEMP_FILE_AGE",
-    # Константы из file_merger
-    "MERGE_LOCK_TIMEOUT",
-    "MAX_LOCK_FILE_AGE",
-    # Прогресс
-    "PROGRESS_UPDATE_INTERVAL",
-    # Константы
-    "MIN_WORKERS",
-    "MAX_WORKERS",
-    "MIN_TIMEOUT",
-    "MAX_TIMEOUT",
-    "DEFAULT_TIMEOUT",
+    "ParallelProgressReporter",
+    "ParallelRunConfig",
+    "ParallelUrlParser",
+    # ISSUE-030, 040: Стратегии с DI
+    "ParseStrategy",
+    "ParserFactory",
+    "ParserResult",
+    "ParserThreadConfig",  # Deprecated: используйте ParallelRunConfig
+    "ThreadCoordinator",
+    "ThreadManager",
+    "UrlGenerationStrategy",
+    "UrlTuple",
+    "WriterFactory",
+    "check_memory_safety",
+    # Функции управления памятью
+    "get_memory_manager",
 ]

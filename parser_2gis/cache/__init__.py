@@ -48,8 +48,8 @@ __all__ = [
     "MAX_POOL_SIZE",
     "MAX_STRING_LENGTH",  # Для обратной совместимости с тестами
     "MIN_POOL_SIZE",
-    "SHA256_HASH_LENGTH",
     "PSUTIL_AVAILABLE",
+    "SHA256_HASH_LENGTH",
     "Cache",
     "CacheDataValidator",
     "CacheManager",

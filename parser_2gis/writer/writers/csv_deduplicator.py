@@ -152,7 +152,7 @@ class CSVDeduplicator:
             # Используем контекстный менеджер для безопасной работы с mmap
             with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
                 f_csv,
-                is_mmap,
+                _is_mmap,
                 _,  # underlying_fp не используется
             ):
                 f_tmp_csv = open(

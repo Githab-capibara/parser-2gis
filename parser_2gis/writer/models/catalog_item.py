@@ -114,7 +114,7 @@ class CatalogItem(BaseModel):
     @property
     def url(self) -> str:
         """Возвращает URL фирмы на 2GIS."""
-        return "https://2gis.com/firm/%s" % self.id.split("_")[0]
+        return "https://2gis.com/firm/{}".format(self.id.split("_")[0])
 
     @property
     def timezone(self) -> str | None:

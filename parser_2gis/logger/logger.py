@@ -48,10 +48,40 @@ def _setup_third_party_logging_once() -> None:
         _ThirdPartyLoggingState.set_urllib3_level_set()
 
 
-# H018: Выполняем один раз при импорте модуля
-_setup_third_party_logging_once()
+# H018: Убрано выполнение _setup_third_party_logging_once() при импорте модуля.
+# Теперь вызывается лениво при первом использовании логгера (см. _get_logger()).
 
 _LOGGER_NAME = "parser-2gis"
+
+
+class _LazyLogger:
+    """Прокси-обёртка для ленивой инициализации логгера с настройкой сторонних библиотек.
+
+    ISSUE-028: Вызывает _setup_third_party_logging_once() только при первом
+    реальном обращении к логгеру, а не при импорте модуля.
+    """
+
+    _initialized: bool = False
+    _logger: logging.Logger | None = None
+
+    @classmethod
+    def _ensure_initialized(cls) -> logging.Logger:
+        """Гарантирует ленивую инициализацию логгера."""
+        if cls._logger is None:
+            cls._logger = logging.getLogger(_LOGGER_NAME)
+        if not cls._initialized:
+            _setup_third_party_logging_once()
+            cls._initialized = True
+        return cls._logger
+
+    def __getattr__(self, name: str):
+        """Делегирует все атрибуты внутреннему логгеру."""
+        return getattr(self._ensure_initialized(), name)
+
+
+# Глобальный экземпляр ленивого логгера
+logger = _LazyLogger()
+Logger = logging.Logger
 
 
 def _create_formatter(fmt: str, datefmt: str) -> logging.Formatter:

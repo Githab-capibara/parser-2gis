@@ -204,9 +204,7 @@ class CacheDataValidator:
                 self.max_string_length,
             )
             return False
-        if not self._check_sql_injection_patterns(data):
-            return False
-        return True
+        return self._check_sql_injection_patterns(data)
 
     def _check_dict(self, data: dict, depth: int) -> bool:
         """Валидирует данные типа dict.
@@ -281,10 +279,7 @@ class CacheDataValidator:
             return False
 
         # Рекурсивно проверяем все элементы списка
-        for item in data:
-            if not self.validate(item, next_depth):
-                return False
-        return True
+        return all(self.validate(item, next_depth) for item in data)
 
     def _check_sql_injection_patterns(self, value: Any) -> bool:
         """Проверяет значение на наличие SQL-инъекций.

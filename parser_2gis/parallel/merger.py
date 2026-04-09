@@ -34,6 +34,8 @@ from parser_2gis.constants import (
 )
 from parser_2gis.logger import logger
 from parser_2gis.parallel.filename_utils import extract_category_from_filename
+from parser_2gis.parallel.merge_csv_handler import MergeCSVHandler
+from parser_2gis.parallel.merge_lock_manager import MergeLockManager
 from parser_2gis.utils.temp_file_manager import temp_file_manager
 
 if TYPE_CHECKING:
@@ -561,6 +563,17 @@ class ParallelFileMerger:
         self._merge_temp_files: list[Path] = []
         self._merge_lock = threading.RLock()
 
+        # ISSUE-025: Делегирование специализированным компонентам
+        self._csv_handler = MergeCSVHandler(
+            log_callback=lambda msg, level: self.log(msg, level),
+            buffer_size=MERGE_BUFFER_SIZE,
+            batch_size=MERGE_BATCH_SIZE,
+        )
+        self._lock_manager = MergeLockManager(
+            log_callback=lambda msg, level: self.log(msg, level),
+            timeout=MERGE_LOCK_TIMEOUT,
+        )
+
     def log(self, message: str, level: str = "info") -> None:
         """Логгирование сообщения.
 
@@ -594,115 +607,25 @@ class ParallelFileMerger:
     def extract_category_from_filename(self, csv_file: Path) -> str:
         """Извлекает название категории из имени CSV файла.
 
-        Args:
-            csv_file: Путь к CSV файлу.
-
-        Returns:
-            Название категории.
-
+        ISSUE-025: Делегирует MergeCSVHandler.
         """
-        # #64: Использует общую утилиту из filename_utils.py
-        return extract_category_from_filename(csv_file, log_func=self.log)
+        return self._csv_handler.extract_category_from_filename(csv_file)
 
     def acquire_merge_lock(self, lock_file_path: Path) -> tuple[typing.TextIO | None, bool]:
         """Получает блокировку merge операции.
 
-        Args:
-            lock_file_path: Путь к lock файлу.
-
-        Returns:
-            Кортеж (lock_file_handle, lock_acquired).
-
+        ISSUE-025: Делегирует MergeLockManager.
         """
-        lock_file_handle = None
-        lock_acquired = False
-
-        try:
-            if lock_file_path.exists():
-                try:
-                    lock_age = time.time() - lock_file_path.stat().st_mtime
-                    if lock_age > MAX_LOCK_FILE_AGE:
-                        self.log(
-                            f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек)",
-                            "debug",
-                        )
-                        lock_file_path.unlink()
-                    else:
-                        self.log(
-                            f"Lock файл существует (возраст: {lock_age:.0f} сек), ожидаем...",
-                            "warning",
-                        )
-                except OSError as e:
-                    self.log(f"Ошибка проверки lock файла: {e}", "debug")
-
-            start_time = time.time()
-            while not lock_acquired:
-                try:
-                    lock_file_handle = open(lock_file_path, "w", encoding="utf-8")
-                    try:
-                        fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                        lock_file_handle.write(f"{os.getpid()}\n")
-                        lock_file_handle.flush()
-                        lock_acquired = True
-                        self.log("Lock file получен успешно", "debug")
-                    except OSError:
-                        # #188: Гарантированное закрытие дескриптора через try/finally
-                        try:
-                            lock_file_handle.close()
-                        except (OSError, RuntimeError, TypeError, ValueError) as close_error:
-                            self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
-                        lock_file_handle = None
-
-                        if time.time() - start_time > MERGE_LOCK_TIMEOUT:
-                            self.log(
-                                f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error"
-                            )
-                            return None, False
-
-                        time.sleep(1)
-                except OSError:
-                    if lock_file_handle:
-                        try:
-                            lock_file_handle.close()
-                        except (OSError, RuntimeError, TypeError, ValueError) as close_error:
-                            self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
-                        lock_file_handle = None
-
-                    if time.time() - start_time > MERGE_LOCK_TIMEOUT:
-                        self.log(f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error")
-                        return None, False
-
-                    time.sleep(1)
-
-        except (OSError, RuntimeError, TypeError, ValueError) as lock_error:
-            self.log(f"Ошибка при получении lock файла: {lock_error}", "error")
-            if lock_file_handle:
-                try:
-                    lock_file_handle.close()
-                except (OSError, RuntimeError, TypeError, ValueError) as close_error:
-                    self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
-            return None, False
-
-        return typing.cast(tuple[typing.TextIO | None, bool], (lock_file_handle, lock_acquired))
+        return self._lock_manager.acquire_lock(lock_file_path)
 
     def cleanup_merge_lock(
         self, lock_file_handle: typing.TextIO | None, lock_file_path: Path
     ) -> None:
         """Очищает и удаляет lock файл.
 
-        Args:
-            lock_file_handle: Дескриптор lock файла.
-            lock_file_path: Путь к lock файлу.
-
+        ISSUE-025: Делегирует MergeLockManager.
         """
-        try:
-            if lock_file_handle:
-                fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_UN)
-                lock_file_handle.close()
-                lock_file_path.unlink()
-                self.log("Lock файл удалён", "debug")
-        except (OSError, RuntimeError, TypeError, ValueError) as lock_error:
-            self.log(f"Ошибка при удалении lock файла: {lock_error}", "debug")
+        self._lock_manager.release_lock(lock_file_handle, lock_file_path)
 
     # TODO: Дублирование логики слияния с parallel_parser.py (~60% overlap).
     # Код намеренно дублируется т.к. выполняется в контексте основного процесса (main context).
@@ -718,64 +641,14 @@ class ParallelFileMerger:
     ) -> tuple[csv.DictWriter | None, int]:
         """Обрабатывает один CSV файл и добавляет данные в выходной файл.
 
-        Args:
-            csv_file: Путь к исходному CSV файлу.
-            writer: Текущий CSV writer.
-            outfile: Выходной файл.
-            buffer_size: Размер буфера.
-            batch_size: Размер пакета для записи.
-            fieldnames_cache: Кэш полей для файлов.
-
-        Returns:
-            Кортеж (writer, total_rows).
-
+        ISSUE-025: Делегирует MergeCSVHandler.
         """
-        category_name = self.extract_category_from_filename(csv_file)
-
-        with open(csv_file, encoding="utf-8-sig", newline="", buffering=buffer_size) as infile:
-            reader = csv.DictReader(infile)
-
-            if not reader.fieldnames:
-                self.log(f"Файл {csv_file} пуст или не имеет заголовков", "warning")
-                return writer, 0
-
-            fieldnames_key = tuple(reader.fieldnames)
-            if fieldnames_key not in fieldnames_cache:
-                fieldnames = list(reader.fieldnames)
-                if "Категория" not in fieldnames:
-                    fieldnames.insert(0, "Категория")
-                fieldnames_cache[fieldnames_key] = fieldnames
-            else:
-                fieldnames = fieldnames_cache[fieldnames_key]
-
-            if writer is None:
-                writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-                writer.writeheader()
-
-            batch = []
-            batch_total = 0
-
-            for row in reader:
-                row_with_category = {"Категория": category_name, **row}
-                batch.append(row_with_category)
-
-                if len(batch) >= batch_size:
-                    writer.writerows(batch)
-                    batch_total += len(batch)
-                    batch.clear()
-
-            if batch:
-                writer.writerows(batch)
-                batch_total += len(batch)
-
-            self.log(
-                f"Файл {csv_file.name} обработан (строк: {batch_total}, пакетов: {
-                    (batch_total // batch_size) + (1 if batch_total % batch_size else 0)
-                })",
-                level="debug",
-            )
-
-            return writer, batch_total
+        return self._csv_handler.process_single_csv_file(
+            csv_file=csv_file,
+            writer=writer,
+            outfile=outfile,
+            fieldnames_cache=fieldnames_cache,
+        )
 
     def merge_csv_files(
         self, output_file: str, progress_callback: Callable[[str], None] | None = None

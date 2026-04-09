@@ -110,7 +110,7 @@ class ThreadManager:
             }
 
             for _idx, future in enumerate(as_completed(self._futures), 1):
-                url, category_name, city_name = self._futures[future]
+                _url, category_name, city_name = self._futures[future]
 
                 try:
                     if self._cancel_event.is_set():

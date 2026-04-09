@@ -30,7 +30,7 @@ import time
 import types
 import weakref
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, TypeAlias
+from typing import TYPE_CHECKING, Literal
 
 from parser_2gis.logger.logger import logger as app_logger
 
@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 # =============================================================================
 
 # Тип возврата для методов завершения процесса
-ProcessStatus: TypeAlias = tuple[
+type ProcessStatus = tuple[
     bool,
     Literal[
         "no_process",
@@ -851,11 +851,11 @@ class BrowserLifecycleManager:
             # Завершаем процесс безопасно (H2: используем упрощённые методы)
             if process_pid is not None:
                 # Сначала пытаемся завершить корректно
-                success, status = self._process_manager.terminate(process_pid, timeout=10)
+                success, _status = self._process_manager.terminate(process_pid, timeout=10)
 
                 # Если не удалось, пробуем принудительно
                 if not success:
-                    kill_success, kill_status = self._process_manager.kill(process_pid, timeout=20)
+                    kill_success, _kill_status = self._process_manager.kill(process_pid, timeout=20)
                     if not kill_success:
                         app_logger.error(
                             "Не удалось завершить процесс браузера (PID: %s): "

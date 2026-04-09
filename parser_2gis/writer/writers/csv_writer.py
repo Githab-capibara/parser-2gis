@@ -117,7 +117,7 @@ def _append_contact(
         # Добавляем контакт в data (проверка на существование ключа не нужна)
         data[data_name] = formatter(contact_value) if formatter else contact_value
         if add_comments and contact.comment:
-            data[data_name] += " (%s)" % contact.comment
+            data[data_name] += f" ({contact.comment})"
 
 
 class CSVWriter(FileWriter):

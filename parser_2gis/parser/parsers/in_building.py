@@ -116,7 +116,7 @@ class InBuildingParser(MainParser):
             links = self._get_links()
             if links is None:
                 return None
-            link_addresses = set(x.attributes["href"] for x in links) - visited_links
+            link_addresses = {x.attributes["href"] for x in links} - visited_links
             visited_links.update(link_addresses)
             return [x for x in links if x.attributes["href"] in link_addresses]
 
