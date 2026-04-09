@@ -14,6 +14,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Protocol
 
+from parser_2gis.shared_config_constants import CATALOG_API_PATTERN
+
 if TYPE_CHECKING:
     from parser_2gis.cache import CacheManager
     from parser_2gis.chrome.options import ChromeOptions
@@ -327,9 +329,7 @@ class BrowserFacade:
         else:
             raise ValueError("Необходимо передать chrome_options или browser_factory")
 
-        self._response_patterns = response_patterns or [
-            r"https://catalog\.api\.2gis\.[^/]+/.*/items/byid"
-        ]
+        self._response_patterns = response_patterns or [CATALOG_API_PATTERN]
 
     def create_browser(self) -> ChromeRemote:
         """Создаёт экземпляр браузера.

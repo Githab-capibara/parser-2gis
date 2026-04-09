@@ -13,6 +13,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 from parser_2gis.logger import logger
+from parser_2gis.shared_config_constants import TWO_GIS_FIRM_URL_TEMPLATE
 
 from .address import Address
 from .adm_div_item import AdmDivItem
@@ -114,7 +115,7 @@ class CatalogItem(BaseModel):
     @property
     def url(self) -> str:
         """Возвращает URL фирмы на 2GIS."""
-        return "https://2gis.com/firm/{}".format(self.id.split("_")[0])
+        return TWO_GIS_FIRM_URL_TEMPLATE.format(self.id.split("_")[0])
 
     @property
     def timezone(self) -> str | None:

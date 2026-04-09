@@ -24,6 +24,7 @@ from parser_2gis.chrome.dom import DOMNode
 from parser_2gis.logger import logger
 from parser_2gis.parser.parsers.base import BaseParser
 from parser_2gis.protocols import BrowserService
+from parser_2gis.shared_config_constants import CATALOG_API_PATTERN
 from parser_2gis.utils.decorators import wait_until_finished
 
 if TYPE_CHECKING:
@@ -132,7 +133,7 @@ class MainPageParser(BaseParser):
             from parser_2gis.chrome.remote import ChromeRemote
 
             # Паттерн ответа "Catalog Item Document" - должен совпадать с _item_response_pattern
-            response_patterns = [r"https://catalog\.api\.2gis\.[^/]+/.*/items/byid"]
+            response_patterns = [CATALOG_API_PATTERN]
             browser = ChromeRemote(chrome_options, response_patterns)
 
         # Инициализируем базовый класс только browser аргументом
@@ -145,7 +146,7 @@ class MainPageParser(BaseParser):
         self._url = url
 
         # Паттерн ответа "Catalog Item Document"
-        self._item_response_pattern = r"https://catalog\.api\.2gis\.[^/]+/.*/items/byid"
+        self._item_response_pattern = CATALOG_API_PATTERN
 
         # Добавляем счётчик для 2GIS запросов
         self._add_xhr_counter()

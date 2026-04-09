@@ -279,7 +279,9 @@ disable = [
     "too-many-locals",  # Сложные функции обработки данных
     "too-many-branches",  # Функции с множеством условий
     "too-many-statements",  # Сложные функции обработки
-    # "duplicate-code"  # ISSUE-80: Временно отключено; включить после устранения дублирования
+    # ISSUE-193: duplicate-code — включено после рефакторинга DRY;
+    # если появляются ложные срабатывания, отключить повторно
+    # "duplicate-code"
     "redefined-builtin",  # Допустимо для совместимости (str, int и т.д.)
     "no-name-in-module",  # Проблемы с динамическими импортами
     "no-member",  # Проблемы с динамическими атрибутами
@@ -310,7 +312,9 @@ disable = [
     "missing-function-docstring",  # Не критично для внутренних функций
     "too-many-public-methods",  # Сложные классы
     "keyword-arg-before-vararg",  # Не критично
-    "global-statement",  # Сознательное использование
+    # ISSUE-195: global-statement — используется осознанно для lazy-init singleton
+    # и кэширования констант; отключение сохранено
+    "global-statement",  # Lazy-init singleton в constants.py
     "arguments-differ",  # Допустимо для переопределения
     "redefined-outer-name",  # Допустимо в ограниченных контекстах
     "raise-missing-from",  # Не всегда требуется
@@ -321,7 +325,9 @@ disable = [
     "invalid-name",  # Допустимо для совместимости
     "import-outside-toplevel",  # Допустимо для опциональных зависимостей
     "protected-access",  # Допустимо для внутреннего использования
-    "logging-fstring-interpolation",  # Допустимо для логирования
+    # ISSUE-194: logging-fstring-interpolation — включено после исправления f-strings в логах
+    # Если появляются предупреждения, отключить повторно
+    # "logging-fstring-interpolation"
     "no-value-for-parameter",  # Проблемы с анализом
     "too-few-public-methods",  # Не критично
     "undefined-variable",  # Проблемы с анализом потока

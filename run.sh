@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Строгий режим обработки ошибок
+set -euo pipefail
+
 # Скрипт запуска Parser2GIS с новым TUI интерфейсом на Textual
 # Автоматически активирует виртуальное окружение и запускает приложение
 # Поддерживает TUI и CLI режимы работы
@@ -7,14 +10,43 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/venv"
 
-# Цвета для вывода
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-RED='\033[0;31m'
-MAGENTA='\033[0;35m'
-NC='\033[0m' # Без цвета
+# Функция очистки ресурсов при выходе
+cleanup() {
+    local exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        echo -e "${RED}Ошибка: скрипт завершён с кодом $exit_code${NC}"
+    fi
+    # Деактивируем виртуальное окружение если активно
+    if command -v deactivate &>/dev/null; then
+        deactivate 2>/dev/null || true
+    fi
+    exit $exit_code
+}
+
+# Устанавливаем ловушку для очистки при выходе
+trap cleanup EXIT
+trap 'echo -e "\n${RED}Прервано пользователем${NC}"; exit 130' INT
+trap 'echo -e "\n${RED}Прервано по сигналу TERM${NC}"; exit 143' TERM
+
+# Цвета для вывода с проверкой поддержки ANSI
+if [ -t 1 ] && command -v tput &>/dev/null && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
+    GREEN='\033[0;32m'
+    BLUE='\033[0;34m'
+    YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'
+    RED='\033[0;31m'
+    MAGENTA='\033[0;35m'
+    NC='\033[0m'
+else
+    # Fallback для терминалов без поддержки цветов
+    GREEN=''
+    BLUE=''
+    YELLOW=''
+    CYAN=''
+    RED=''
+    MAGENTA=''
+    NC=''
+fi
 
 # Функция вывода заголовка
 print_header() {
@@ -108,9 +140,11 @@ if [ $# -eq 0 ]; then
     echo ""
 
     # Запускаем НОВЫЙ TUI с автоматическим парсингом Омска
+    # Временно отключаем set -e для захвата кода выхода
+    set +e
     python "$SCRIPT_DIR/parser_2gis_entry.py" --tui-new-omsk
-
     EXIT_CODE=$?
+    set -e
 
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -135,9 +169,12 @@ elif [ "$1" = "--tui" ]; then
     echo ""
 
     # Запускаем TUI вручную
+    set +e
     python "$SCRIPT_DIR/parser_2gis_entry.py" --tui-new
+    EXIT_CODE=$?
+    set -e
 
-    exit $?
+    exit $EXIT_CODE
 
 elif [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ "$1" = "help" ]; then
     print_help
@@ -155,10 +192,11 @@ else
     echo ""
 
     # Запуск с переданными аргументами
+    set +e
     python "$SCRIPT_DIR/parser_2gis_entry.py" "$@" \
         2>&1 | grep -v -E "(PySimpleGUI|pip uninstall|pip cache|pip install.*--extra-index-url|PySimpleGUI\.net|The version you just installed|Then install the latest|You can also force|Use python3 command)"
-
-    EXIT_CODE=$?
+    EXIT_CODE=${PIPESTATUS[0]}
+    set -e
 
     echo ""
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
