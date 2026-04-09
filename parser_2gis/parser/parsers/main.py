@@ -254,6 +254,12 @@ class MainParser:
         self.close()
 
     def __repr__(self) -> str:
+        """Возвращает строковое представление парсера для отладки.
+
+        Returns:
+            Строка с именем класса и основными параметрами.
+
+        """
         classname = self.__class__.__name__
         return (
             f"{classname}(parser_options={self._options!r}, "

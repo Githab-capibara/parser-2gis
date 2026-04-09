@@ -25,12 +25,30 @@ if TYPE_CHECKING:
 
 
 class FileWriter(WriterProtocol, ABC):
-    """Базовый писатель.
+    """Базовый абстрактный класс для всех файловых писателей.
+
+    Определяет общую логику работы с файлами:
+    - Валидация пути к файлу
+    - Управление жизненным циклом файла (открытие/закрытие)
+    - Контекстный менеджер для работы с файлом
 
     ISSUE-031: Реализует протокол Writer.
+
+    Example:
+        >>> class MyWriter(FileWriter):
+        ...     def write(self, records):
+        ...         pass  # Реализация записи
+
     """
 
     def __init__(self, file_path: str, writer_options: WriterOptions) -> None:
+        """Инициализирует базовый файловый писатель.
+
+        Args:
+            file_path: Путь к выходному файлу.
+            writer_options: Опции записи.
+
+        """
         # ИСПРАВЛЕНИЕ 13: Path traversal защита
         # Валидация пути через os.path.basename() для предотвращения записи
         # файлов за пределы разрешённой output директории
@@ -206,6 +224,12 @@ class FileWriter(WriterProtocol, ABC):
             return False
 
     def __enter__(self) -> FileWriter:
+        """Входит в контекстный менеджер, открывая файл для записи.
+
+        Returns:
+            Экземпляр FileWriter для использования в блоке with.
+
+        """
         self._file = self._open_file(self._file_path, "w")
         return self
 
@@ -215,6 +239,17 @@ class FileWriter(WriterProtocol, ABC):
         exc_val: BaseException | None,
         exc_tb: types.TracebackType | None,
     ) -> bool:
+        """Выходит из контекстного менеджера, закрывая файл.
+
+        Args:
+            exc_type: Тип исключения (если было).
+            exc_val: Значение исключения (если было).
+            exc_tb: Трассировка стека исключения (если было).
+
+        Returns:
+            False — не подавляет исключения.
+
+        """
         # Проверяем наличие атрибута _file перед закрытием
         if hasattr(self, "_file") and not self._file.closed:
             self._file.close()

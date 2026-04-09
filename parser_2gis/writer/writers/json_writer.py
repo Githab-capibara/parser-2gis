@@ -20,9 +20,22 @@ class JSONWriter(FileWriter):
 
     Записывает элементы в JSON файл в потоковом режиме для предотвращения
     переполнения памяти при больших объёмах данных.
+
+    Example:
+        >>> with JSONWriter("output.json", options) as writer:
+        ...     writer.write({"result": {"items": [...]}})
+
     """
 
     def __enter__(self) -> JSONWriter:
+        """Входит в контекстный менеджер, инициализируя JSON массив.
+
+        Записывает открывающую скобку массива '[' и сбрасывает счётчики.
+
+        Returns:
+            Экземпляр JSONWriter для использования в блоке with.
+
+        """
         super().__enter__()
         self._wrote_count = 0
         self._first_item = True
@@ -31,6 +44,17 @@ class JSONWriter(FileWriter):
         return self
 
     def __exit__(self, *exc_info: Any) -> None:
+        """Выходит из контекстного менеджера, закрывая JSON массив.
+
+        Записывает закрывающую скобку массива ']' и закрывает файл.
+
+        Args:
+            *exc_info: Информация об исключении (exc_type, exc_val, exc_tb).
+
+        Raises:
+            OSError: При ошибке записи закрывающей скобки.
+
+        """
         # Записываем закрывающую скобку массива
         try:
             self._file.write("\n]")

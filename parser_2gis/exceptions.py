@@ -80,8 +80,23 @@ class BaseContextualException(Exception):
     filename: str
 
     def __init__(self, message: str = "", capture_context: bool = True, **kwargs: Any) -> None:
-        # #151: Опциональный захват контекста через inspect.currentframe()
-        # capture_context=False снижает накладные расходы при частом создании исключений
+        """Инициализирует исключение с контекстной информацией.
+
+        Args:
+            message: Текст сообщения об ошибке.
+            capture_context: Если True, захватывает контекст (функция, строка, файл).
+                Установка в False снижает накладные расходы при частом создании исключений.
+            **kwargs: Дополнительные аргументы для базового класса Exception.
+
+        Example:
+            >>> raise MyException("Произошла ошибка")
+            MyException: Произошла ошибка. Функция: my_func, Строка: 42, Файл: /path/to/file.py
+
+            >>> # Без захвата контекста (для производительности)
+            >>> raise MyException("Произошла ошибка", capture_context=False)
+            MyException: Произошла ошибка. Функция: unknown, Строка: 0, Файл: unknown
+
+        """
         if capture_context:
             frame = inspect.currentframe()
             if frame and frame.f_back:

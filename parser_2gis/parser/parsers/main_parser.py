@@ -48,6 +48,7 @@ GET_LINKS_TIMEOUT: int = 30  # Таймаут получения ссылок (3
 GET_UNIQUE_LINKS_TIMEOUT: int = 30  # Таймаут получения уникальных ссылок (30 секунд)
 MAX_RETRY_ATTEMPTS: int = 5  # Максимальное количество попыток получения ссылок
 MAX_LINK_ATTEMPTS: int = 5  # Максимальное количество попыток получения ссылок
+MAX_TOTAL_ITERATIONS: int = MAX_LINK_ATTEMPTS * 2 + 10  # Максимальное общее количество итераций
 
 # Память и оптимизация
 MAX_VISITED_LINKS_SIZE: int = 10000  # Максимальный размер множества посещённых ссылок

@@ -619,7 +619,7 @@ class ChromeRemote:
         # ISSUE-083: Добавляем событие для graceful shutdown потока мониторинга
         shutdown_event = threading.Event()
         # H009: Увеличенный интервал мониторинга до 1 сек для снижения нагрузки на CPU
-        MONITOR_INTERVAL = 1.0
+        monitor_interval = 1.0
 
         def monitor_tab() -> None:
             """Мониторинг вкладки с оптимизированным интервалом."""
@@ -632,7 +632,7 @@ class ChromeRemote:
                 while not self._chrome_tab._stopped.is_set() and not shutdown_event.is_set():
                     current_time = time.time()
 
-                    if current_time - last_check_time >= MONITOR_INTERVAL:
+                    if current_time - last_check_time >= monitor_interval:
                         try:
                             ret = _safe_external_request(
                                 "get", f"{self._dev_url}/json", timeout=6, verify=True
@@ -655,7 +655,7 @@ class ChromeRemote:
 
                     # ISSUE-083: Используем shutdown_event.wait() вместо _stopped.wait()
                     # для поддержки graceful shutdown — поток завершится при установке события
-                    shutdown_event.wait(MONITOR_INTERVAL)
+                    shutdown_event.wait(monitor_interval)
             finally:
                 # ISSUE-083: Гарантированная очистка ресурсов при завершении потока
                 app_logger.debug("Поток мониторинга вкладки завершён")
@@ -671,7 +671,7 @@ class ChromeRemote:
             return
         original_send = self._chrome_tab._send
 
-        def wrapped_send(*args, **kwargs) -> Any:
+        def wrapped_send(*args: Any, **kwargs: Any) -> Any:
             """Обёртка для отправки сообщений в CDP с обработкой UserAbortException.
 
             Args:

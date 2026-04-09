@@ -255,9 +255,21 @@ class CacheFacade:
         self._cache.close()
 
     def __enter__(self) -> CacheFacade:
+        """Входит в контекстный менеджер.
+
+        Returns:
+            Экземпляр CacheFacade для использования в блоке with.
+
+        """
         return self
 
     def __exit__(self, *args: Any) -> None:
+        """Выходит из контекстного менеджера, закрывая кэш.
+
+        Args:
+            *args: Аргументы исключения (exc_type, exc_val, exc_tb).
+
+        """
         self.close()
 
 

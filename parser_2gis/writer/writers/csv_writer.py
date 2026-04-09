@@ -272,6 +272,14 @@ class CSVWriter(FileWriter):
             raise
 
     def __enter__(self) -> CSVWriter:
+        """Входит в контекстный менеджер, инициализируя CSV writer.
+
+        Записывает заголовок CSV файла и сбрасывает счётчик записей.
+
+        Returns:
+            Экземпляр CSVWriter для использования в блоке with.
+
+        """
         super().__enter__()
         self._writer = csv.DictWriter(self._file, self._data_mapping.keys())
         self._writer.writerow(self._data_mapping)  # Запись заголовка
@@ -279,6 +287,18 @@ class CSVWriter(FileWriter):
         return self
 
     def __exit__(self, *exc_info: Any) -> None:
+        """Выходит из контекстного менеджера, выполняя постобработку и закрытие.
+
+        Выполняет:
+        1. Flush всех данных на диск
+        2. Удаление пустых колонок (если включено в опциях)
+        3. Удаление дубликатов (если включено в опциях)
+        4. Закрытие файла
+
+        Args:
+            *exc_info: Информация об исключении (exc_type, exc_val, exc_tb).
+
+        """
         # H011: Выполняем постобработку ДО закрытия файла
         # Постобработка требует доступа к открытому файлу
 

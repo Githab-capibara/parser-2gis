@@ -34,6 +34,7 @@ from parser_2gis.parser.parsers.main_extractor import MainDataExtractor
 from parser_2gis.parser.parsers.main_parser import (
     GET_UNIQUE_LINKS_TIMEOUT,
     MAX_LINK_ATTEMPTS,
+    MAX_TOTAL_ITERATIONS,
     MAX_VISITED_LINKS_SIZE,
     MainPageParser,
 )
@@ -462,7 +463,7 @@ class MainDataProcessor:
         current_page_number = 1
 
         # Максимальное количество итераций цикла для предотвращения бесконечного цикла
-        MAX_TOTAL_ITERATIONS = MAX_LINK_ATTEMPTS * 2 + 10
+        max_total_iterations = MAX_LINK_ATTEMPTS * 2 + 10
         total_iterations = 0
 
         try:
@@ -472,10 +473,10 @@ class MainDataProcessor:
             while True:
                 # Защита от бесконечного цикла по общему числу итераций
                 total_iterations += 1
-                if total_iterations > MAX_TOTAL_ITERATIONS:
+                if total_iterations > max_total_iterations:
                     logger.error(
                         "Достигнут лимит общих итераций цикла (%d). Прекращаем парсинг URL.",
-                        MAX_TOTAL_ITERATIONS,
+                        max_total_iterations,
                     )
                     return
 

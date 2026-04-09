@@ -13,7 +13,7 @@ import logging
 import os
 import threading
 import warnings
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     import queue
@@ -75,8 +75,16 @@ class _LazyLogger:
             cls._initialized = True
         return cls._logger
 
-    def __getattr__(self, name: str):
-        """Делегирует все атрибуты внутреннему логгеру."""
+    def __getattr__(self, name: str) -> Any:
+        """Делегирует все атрибуты внутреннему логгеру.
+
+        Args:
+            name: Имя атрибута для делегирования.
+
+        Returns:
+            Атрибут внутреннего логгера.
+
+        """
         return getattr(self._ensure_initialized(), name)
 
 
@@ -221,9 +229,21 @@ class QueueHandler(logging.Handler):
     Args:
         log_queue: Очередь для передачи записей логов.
 
+    Example:
+        >>> import queue
+        >>> q: queue.Queue[tuple[str, str]] = queue.Queue()
+        >>> handler = QueueHandler(q)
+        >>> handler.emit(logging.LogRecord("test", logging.INFO, "", 0, "msg", (), None))
+
     """
 
     def __init__(self, log_queue: queue.Queue[tuple[str, str]]) -> None:
+        """Инициализирует обработчик очереди логирования.
+
+        Args:
+            log_queue: Очередь для передачи записей логов.
+
+        """
         super().__init__()
         self._log_queue: queue.Queue[tuple[str, str]] = log_queue
 

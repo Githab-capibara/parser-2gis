@@ -176,8 +176,8 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
         raise ValueError(f"item_count не может быть отрицательным: {item_count}")
 
     # Защита от переполнения item_count (максимум 2^31 - 1)
-    MAX_ITEM_COUNT = 2_147_483_647
-    if item_count > MAX_ITEM_COUNT:
+    max_item_count = 2_147_483_647
+    if item_count > max_item_count:
         logger.warning("Переполнение счётчика элементов initialState: %d", item_count)
         return False, item_count
 

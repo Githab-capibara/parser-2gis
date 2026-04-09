@@ -26,9 +26,23 @@ class ChromeException(ExceptionContextMixin, Exception):
     - Номера строки
     - Полной трассировки стека
     - Имени файла
+
+    Example:
+        >>> try:
+        ...     raise ChromeException("Ошибка подключения")
+        ... except ChromeException as e:
+        ...     print(f"Ошибка: {e}")
+
     """
 
     def __init__(self, message: str = "", **kwargs: Any) -> None:
+        """Инициализирует исключение Chrome с контекстной информацией.
+
+        Args:
+            message: Текст сообщения об ошибке.
+            **kwargs: Дополнительные аргументы для базового класса Exception.
+
+        """
         # Делегируем формирование контекста родительскому миксину
         # для избежания дублирования логики
         context = self._capture_context()
@@ -54,9 +68,25 @@ class ChromeUserAbortException(_UserAbortException, ChromeException):
 
 
 class ChromePathNotFound(ChromeException):
-    """Исключение: браузер Chrome не найден."""
+    """Исключение: браузер Chrome не найден.
+
+    Вызывается когда не удалось найти исполняемый файл Chrome
+    в системе или по указанному пути.
+
+    Example:
+        >>> raise ChromePathNotFound("Chrome не найден в /usr/bin/chrome")
+
+    """
 
     def __init__(self, msg: str = "Chrome браузер не найден", *args: Any, **kwargs: Any) -> None:
+        """Инициализирует исключение ненайденного браузера.
+
+        Args:
+            msg: Текст сообщения об ошибке.
+            *args: Позиционные аргументы для базового класса.
+            **kwargs: Именованные аргументы для базового класса.
+
+        """
         super().__init__(msg, *args, **kwargs)
 
 

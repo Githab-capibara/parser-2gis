@@ -20,9 +20,10 @@ def patch_pychrome() -> None:
     - Обрабатывает таймауты websocket без прерывания цикла
     - Логирует websocket исключения при активном соединении
     - Корректно обрабатывает сообщения с id и method
+
     """
 
-    def _recv_loop_patched(self) -> None:
+    def _recv_loop_patched(self) -> None:  # noqa: ANN001 — monkey patch, self определяется контекстом
         while not self._stopped.is_set():
             try:
                 self._ws.settimeout(1)
