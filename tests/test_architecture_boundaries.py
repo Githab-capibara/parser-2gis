@@ -21,7 +21,6 @@ import ast
 import os
 import re
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
 
 import pytest
 from pydantic import BaseModel
@@ -31,7 +30,7 @@ from pydantic import BaseModel
 # =============================================================================
 
 
-def get_module_imports(file_path: Path) -> Set[str]:
+def get_module_imports(file_path: Path) -> set[str]:
     """Извлекает все импорты из Python файла.
 
     Args:
@@ -40,10 +39,10 @@ def get_module_imports(file_path: Path) -> Set[str]:
     Returns:
         Множество импортированных модулей.
     """
-    imports: Set[str] = set()
+    imports: set[str] = set()
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return imports
@@ -64,7 +63,7 @@ def get_module_imports(file_path: Path) -> Set[str]:
     return imports
 
 
-def get_all_python_files(directory: Path, exclude_dirs: List[str] = None) -> List[Path]:
+def get_all_python_files(directory: Path, exclude_dirs: list[str] = None) -> list[Path]:
     """Рекурсивно получает все Python файлы в директории.
 
     Args:
@@ -77,7 +76,7 @@ def get_all_python_files(directory: Path, exclude_dirs: List[str] = None) -> Lis
     if exclude_dirs is None:
         exclude_dirs = ["__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"]
 
-    python_files: List[Path] = []
+    python_files: list[Path] = []
 
     for root, dirs, files in os.walk(directory):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
@@ -89,7 +88,7 @@ def get_all_python_files(directory: Path, exclude_dirs: List[str] = None) -> Lis
     return python_files
 
 
-def get_file_imports_from_module(file_path: Path, module_root: Path) -> Set[str]:
+def get_file_imports_from_module(file_path: Path, module_root: Path) -> set[str]:
     """Получает все относительные импорты из файла в рамках module_root.
 
     Args:
@@ -99,10 +98,10 @@ def get_file_imports_from_module(file_path: Path, module_root: Path) -> Set[str]
     Returns:
         Множество импортированных модулей (относительные пути).
     """
-    imports: Set[str] = set()
+    imports: set[str] = set()
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return imports
@@ -191,7 +190,7 @@ class TestUtilsModulesExist:
         ],
     )
     def test_utils_module_exists_with_functions(
-        self, module_name: str, expected_functions: List[str]
+        self, module_name: str, expected_functions: list[str]
     ) -> None:
         """Проверяет что модуль utils/{module_name}.py существует и содержит функции."""
         project_root = Path(__file__).parent.parent / "parser_2gis"
@@ -203,7 +202,7 @@ class TestUtilsModulesExist:
         content = module_path.read_text(encoding="utf-8")
         tree = ast.parse(content)
 
-        defined_names: List[str] = []
+        defined_names: list[str] = []
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 defined_names.append(node.name)
@@ -256,7 +255,7 @@ class TestNoImportsFromCommon:
         """Проверяет что нет импортов из common.py."""
         project_root = Path(__file__).parent.parent / "parser_2gis"
 
-        violations: List[Tuple[str, int, str]] = []
+        violations: list[tuple[str, int, str]] = []
 
         for py_file in project_root.rglob("*.py"):
             if "tests" in py_file.parts or "__pycache__" in py_file.parts:
@@ -389,7 +388,7 @@ class TestModuleBoundaries:
         project_root = Path(__file__).parent.parent / "parser_2gis"
         parallel_dir = project_root / "parallel"
 
-        violations: List[str] = []
+        violations: list[str] = []
 
         for py_file in parallel_dir.rglob("*.py"):
             if py_file.name.startswith("_") and py_file.name != "__init__.py":
@@ -424,14 +423,14 @@ class TestSeparationOfConcerns:
         content = parallel_parser.read_text(encoding="utf-8")
         tree = ast.parse(content)
 
-        classes: List[str] = []
+        classes: list[str] = []
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 classes.append(node.name)
 
         assert "ParallelCityParser" in classes, "ParallelCityParser должен существовать"
 
-        class_methods: Dict[str, int] = {}
+        class_methods: dict[str, int] = {}
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 method_count = sum(
@@ -514,7 +513,7 @@ class TestSeparationOfConcerns:
             pytest.skip("main.py не существует")
 
         try:
-            with open(main_file, "r", encoding="utf-8") as f:
+            with open(main_file, encoding="utf-8") as f:
                 source = f.read()
             tree = ast.parse(source, filename=str(main_file))
         except (SyntaxError, OSError, UnicodeDecodeError):
@@ -617,7 +616,7 @@ class TestNewModulesExist:
 
         required_modules = ["decorators.py", "sanitizers.py", "url_utils.py", "validation_utils.py"]
 
-        missing: List[str] = []
+        missing: list[str] = []
         for module in required_modules:
             if not (utils_dir / module).exists():
                 missing.append(module)
@@ -639,7 +638,7 @@ class TestNewModulesExist:
             "legacy.py",
         ]
 
-        missing: List[str] = []
+        missing: list[str] = []
         for module in required_modules:
             if not (validation_dir / module).exists():
                 missing.append(module)
@@ -659,7 +658,7 @@ class TestNewModulesExist:
 
         # Опциональные модули которые могут быть перемещены или отсутствовать
 
-        missing: List[str] = []
+        missing: list[str] = []
         for module in required_modules:
             if not (parallel_dir / module).exists():
                 missing.append(module)

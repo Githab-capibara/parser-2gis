@@ -22,7 +22,7 @@ def check_csv_result(result_path, num_records):
         result_path: Путь к CSV файлу.
         num_records: Ожидаемое количество записей.
     """
-    with open(result_path, "r", encoding="utf-8-sig", errors="replace") as f:
+    with open(result_path, encoding="utf-8-sig", errors="replace") as f:
         reader = csv.reader(f)
         assert len(list(reader)) == num_records + 1  # num_records + заголовок
 
@@ -34,7 +34,7 @@ def check_json_result(result_path, num_records):
         result_path: Путь к JSON файлу.
         num_records: Ожидаемое количество записей.
     """
-    with open(result_path, "r", encoding="utf-8-sig", errors="replace") as f:
+    with open(result_path, encoding="utf-8-sig", errors="replace") as f:
         doc = json.load(f)
         assert len(doc) == num_records
 

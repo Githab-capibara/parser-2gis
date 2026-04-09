@@ -75,22 +75,21 @@ class TestCSVWriterErrorHandling:
         - csv.Error обрабатывается корректно
         - Исключение пробрасывается дальше
         """
-        with caplog.at_level(logging.ERROR):
-            with csv_writer:
-                # Mock writer для выбрасывания csv.Error
-                mock_dict_writer = MagicMock()
-                mock_dict_writer.writerow.side_effect = csv.Error("Mocked csv.Error")
-                csv_writer._writer = mock_dict_writer
+        with caplog.at_level(logging.ERROR), csv_writer:
+            # Mock writer для выбрасывания csv.Error
+            mock_dict_writer = MagicMock()
+            mock_dict_writer.writerow.side_effect = csv.Error("Mocked csv.Error")
+            csv_writer._writer = mock_dict_writer
 
-                # Пытаемся записать строку
-                with pytest.raises(csv.Error):
-                    csv_writer._writerow({"name": "Test"})
+            # Пытаемся записать строку
+            with pytest.raises(csv.Error):
+                csv_writer._writerow({"name": "Test"})
 
-                # Проверяем что ошибка была залогирована
-                assert any(
-                    "csv.Error" in record.message or "формата CSV" in record.message
-                    for record in caplog.records
-                )
+            # Проверяем что ошибка была залогирована
+            assert any(
+                "csv.Error" in record.message or "формата CSV" in record.message
+                for record in caplog.records
+            )
 
     def test_csv_writer_io_error_handling(self, csv_writer: CSVWriter, caplog):
         """Тест обработки IOError.
@@ -99,22 +98,21 @@ class TestCSVWriterErrorHandling:
         - IOError обрабатывается корректно
         - Исключение пробрасывается дальше
         """
-        with caplog.at_level(logging.ERROR):
-            with csv_writer:
-                # Mock writer для выбрасывания IOError
-                mock_dict_writer = MagicMock()
-                mock_dict_writer.writerow.side_effect = IOError("Mocked IOError")
-                csv_writer._writer = mock_dict_writer
+        with caplog.at_level(logging.ERROR), csv_writer:
+            # Mock writer для выбрасывания IOError
+            mock_dict_writer = MagicMock()
+            mock_dict_writer.writerow.side_effect = OSError("Mocked IOError")
+            csv_writer._writer = mock_dict_writer
 
-                # Пытаемся записать строку
-                with pytest.raises(IOError):
-                    csv_writer._writerow({"name": "Test"})
+            # Пытаемся записать строку
+            with pytest.raises(IOError):
+                csv_writer._writerow({"name": "Test"})
 
-                # Проверяем что ошибка была залогирована
-                assert any(
-                    "IOError" in record.message or "ввода-вывода" in record.message
-                    for record in caplog.records
-                )
+            # Проверяем что ошибка была залогирована
+            assert any(
+                "IOError" in record.message or "ввода-вывода" in record.message
+                for record in caplog.records
+            )
 
     def test_csv_writer_unicode_error_handling(self, csv_writer: CSVWriter, caplog):
         """Тест обработки UnicodeError.
@@ -123,22 +121,21 @@ class TestCSVWriterErrorHandling:
         - UnicodeError обрабатывается корректно
         - Исключение пробрасывается дальше
         """
-        with caplog.at_level(logging.ERROR):
-            with csv_writer:
-                # Mock writer для выбрасывания UnicodeError
-                mock_dict_writer = MagicMock()
-                mock_dict_writer.writerow.side_effect = UnicodeError("Mocked UnicodeError")
-                csv_writer._writer = mock_dict_writer
+        with caplog.at_level(logging.ERROR), csv_writer:
+            # Mock writer для выбрасывания UnicodeError
+            mock_dict_writer = MagicMock()
+            mock_dict_writer.writerow.side_effect = UnicodeError("Mocked UnicodeError")
+            csv_writer._writer = mock_dict_writer
 
-                # Пытаемся записать строку
-                with pytest.raises(UnicodeError):
-                    csv_writer._writerow({"name": "Test"})
+            # Пытаемся записать строку
+            with pytest.raises(UnicodeError):
+                csv_writer._writerow({"name": "Test"})
 
-                # Проверяем что ошибка была залогирована
-                assert any(
-                    "UnicodeError" in record.message or "кодировки" in record.message
-                    for record in caplog.records
-                )
+            # Проверяем что ошибка была залогирована
+            assert any(
+                "UnicodeError" in record.message or "кодировки" in record.message
+                for record in caplog.records
+            )
 
     def test_csv_writer_post_processor_exception(
         self, temp_output_path, mock_options, caplog, monkeypatch
@@ -292,13 +289,12 @@ class TestCSVWriterErrorHandling:
         - При False запись не выполняется
         """
         # Mock _check_catalog_doc для возвращения False
-        with patch.object(csv_writer, "_check_catalog_doc", return_value=False):
-            with csv_writer:
-                # Пытаемся записать документ
-                csv_writer.write({"test": "data"})
+        with patch.object(csv_writer, "_check_catalog_doc", return_value=False), csv_writer:
+            # Пытаемся записать документ
+            csv_writer.write({"test": "data"})
 
-                # Проверяем что ничего не было записано
-                assert csv_writer._wrote_count == 0
+            # Проверяем что ничего не было записано
+            assert csv_writer._wrote_count == 0
 
     def test_csv_writer_file_open_error(self, tmp_path: Path, mock_options, caplog):
         """Тест обработки ошибки открытия файла.
@@ -365,7 +361,7 @@ class TestCSVWriterErrorHandling:
                 writer._writerow({"name": "Test"})
                 # Mock _file.close для выбрасывания исключения
                 original_close = writer._file.close
-                writer._file.close = MagicMock(side_effect=IOError("Mocked error"))
+                writer._file.close = MagicMock(side_effect=OSError("Mocked error"))
 
             # Выход из with writer блока вызовет __exit__
             # Исключение НЕ выбрасывается — оно логируется

@@ -13,7 +13,7 @@
 
 import threading
 import time
-from typing import Any, List
+from typing import Any
 
 import pytest
 
@@ -63,7 +63,7 @@ class TestParallelParserStatsThreadSafety:
                     parser._stats["total"] += 1
 
         # Запускаем потоки
-        threads: List[threading.Thread] = []
+        threads: list[threading.Thread] = []
         for i in range(num_threads):
             thread = threading.Thread(target=update_stats, args=(i,))
             threads.append(thread)
@@ -188,7 +188,7 @@ class TestParallelParserStatsThreadSafety:
 
         # Количество итераций для создания гонки
         num_iterations = 1000
-        read_errors: List[str] = []
+        read_errors: list[str] = []
 
         def increment_with_read() -> None:
             """Поток который читает и записывает статистику."""

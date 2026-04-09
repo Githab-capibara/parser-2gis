@@ -13,7 +13,6 @@ from __future__ import annotations
 import ast
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
 
 import pytest
 
@@ -34,7 +33,7 @@ class ConfigFieldExtractor:
     def __init__(self, settings_file: Path):
         self.settings_file = settings_file
         self.settings_content = ""
-        self.config_accesses: List[Tuple[str, str, int]] = []  # (section, field, line_number)
+        self.config_accesses: list[tuple[str, str, int]] = []  # (section, field, line_number)
 
     def load_settings(self) -> None:
         """Загружает содержимое файла настроек."""
@@ -43,7 +42,7 @@ class ConfigFieldExtractor:
 
         self.settings_content = self.settings_file.read_text(encoding="utf-8")
 
-    def extract_config_accesses(self) -> List[Tuple[str, str, int]]:
+    def extract_config_accesses(self) -> list[tuple[str, str, int]]:
         """
         Извлекает все обращения к config.<section>.<field> из кода.
 
@@ -67,7 +66,7 @@ class ConfigFieldExtractor:
 
         return self.config_accesses
 
-    def get_unique_accesses(self) -> Set[Tuple[str, str]]:
+    def get_unique_accesses(self) -> set[tuple[str, str]]:
         """Возвращает уникальные обращения к полям конфигурации."""
         if not self.config_accesses:
             self.extract_config_accesses()
@@ -87,11 +86,11 @@ class ConfigModelInspector:
         "log": "LogOptions",
     }
 
-    def __init__(self, config_file: Path, project_root: Optional[Path] = None):
+    def __init__(self, config_file: Path, project_root: Path | None = None):
         self.config_file = config_file
         self.project_root = project_root or config_file.parent.parent
         self.config_content = ""
-        self.model_fields: Dict[str, Set[str]] = {}
+        self.model_fields: dict[str, set[str]] = {}
 
     def load_config(self) -> None:
         """Загружает содержимое файла конфигурации."""
@@ -100,7 +99,7 @@ class ConfigModelInspector:
 
         self.config_content = self.config_file.read_text(encoding="utf-8")
 
-    def extract_model_fields(self) -> Dict[str, Set[str]]:
+    def extract_model_fields(self) -> dict[str, set[str]]:
         """
         Извлекает поля из Pydantic моделей с помощью AST парсинга.
         Сканирует все Python файлы в проекте для поиска моделей.
@@ -151,7 +150,7 @@ class ConfigModelInspector:
                 return True
         return False
 
-    def _extract_fields_from_class(self, class_node: ast.ClassDef) -> Set[str]:
+    def _extract_fields_from_class(self, class_node: ast.ClassDef) -> set[str]:
         """Извлекает имена полей из тела класса."""
         fields = set()
 
@@ -168,7 +167,7 @@ class ConfigModelInspector:
 
         return fields
 
-    def get_fields_for_section(self, section: str) -> Set[str]:
+    def get_fields_for_section(self, section: str) -> set[str]:
         """
         Возвращает набор полей для указанной секции конфигурации.
 
@@ -198,14 +197,14 @@ class ConfigModelInspector:
 class TUIConfigFieldValidator:
     """Валидирует соответствие полей TUI моделям конфигурации."""
 
-    def __init__(self, settings_file: Path, config_file: Path, project_root: Optional[Path] = None):
+    def __init__(self, settings_file: Path, config_file: Path, project_root: Path | None = None):
         self.extractor = ConfigFieldExtractor(settings_file)
         self.inspector = ConfigModelInspector(
             config_file, project_root=project_root or settings_file.parent.parent.parent
         )
-        self.errors: List[Dict] = []
+        self.errors: list[dict] = []
 
-    def validate(self) -> List[Dict]:
+    def validate(self) -> list[dict]:
         """
         Выполняет валидацию всех обращений к конфигурации в TUI.
 

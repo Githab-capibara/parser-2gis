@@ -123,7 +123,7 @@ class TestFileLoggerLogging:
             file_logger.close()
 
             # Читаем файл и проверяем наличие сообщения
-            with open(log_file, "r", encoding="utf-8") as f:
+            with open(log_file, encoding="utf-8") as f:
                 content = f.read()
                 assert "Тестовое сообщение" in content
                 assert "INFO" in content
@@ -147,7 +147,7 @@ class TestFileLoggerLogging:
 
             file_logger.close()
 
-            with open(log_file, "r", encoding="utf-8") as f:
+            with open(log_file, encoding="utf-8") as f:
                 content = f.read()
                 assert "Сообщение 1" in content
                 assert "Предупреждение 2" in content
@@ -177,7 +177,7 @@ class TestFileLoggerLogging:
 
             file_logger.close()
 
-            with open(log_file, "r", encoding="utf-8") as f:
+            with open(log_file, encoding="utf-8") as f:
                 content = f.read()
                 assert "DEBUG сообщение" not in content
                 assert "INFO сообщение" not in content
@@ -206,7 +206,7 @@ class TestFileLoggerContextManager:
 
             # После выхода из контекста обработчик должен быть закрыт
             # Проверяем, что сообщение было записано
-            with open(log_file, "r", encoding="utf-8") as f:
+            with open(log_file, encoding="utf-8") as f:
                 content = f.read()
                 assert "Сообщение в контексте" in content
         finally:
@@ -353,7 +353,7 @@ class TestFileLoggerAdvancedFeatures:
             file_logger.close()
 
             # Проверяем, что оба сообщения записаны
-            with open(log_file, "r", encoding="utf-8") as f:
+            with open(log_file, encoding="utf-8") as f:
                 content = f.read()
                 assert "Сообщение из logger1" in content
                 assert "Сообщение из logger2" in content
@@ -378,7 +378,7 @@ class TestFileLoggerAdvancedFeatures:
             file_logger.close()
 
             # Проверяем, что сообщение записано корректно
-            with open(log_file, "r", encoding="utf-8") as f:
+            with open(log_file, encoding="utf-8") as f:
                 content = f.read()
                 assert "Привет мир! 🌍" in content
                 assert "Тест с кириллицей и эмодзи" in content

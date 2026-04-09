@@ -118,7 +118,7 @@ class TestCSVWriterContactProcessing:
 
         # Читаем результат (файл создается в текущей рабочей директории)
         actual_path = Path.cwd() / "test_output_contacts.csv"
-        with open(actual_path, "r", encoding="utf-8-sig") as f:
+        with open(actual_path, encoding="utf-8-sig") as f:
             content = f.read()
 
         # Проверяем, что второй телефон записан (форматированный)
@@ -178,7 +178,7 @@ class TestCSVWriterContactProcessing:
 
         # Читаем результат (файл создается в текущей рабочей директории)
         actual_path = Path.cwd() / "test_output_contacts.csv"
-        with open(actual_path, "r", encoding="utf-8-sig") as f:
+        with open(actual_path, encoding="utf-8-sig") as f:
             content = f.read()
 
         # Проверяем, что все три телефона записаны (форматированные)

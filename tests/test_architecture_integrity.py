@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
 
 import pytest
 
@@ -29,7 +28,7 @@ import pytest
 # =============================================================================
 
 
-def get_classes_in_file(file_path: Path) -> List[Tuple[str, int, int, int]]:
+def get_classes_in_file(file_path: Path) -> list[tuple[str, int, int, int]]:
     """Получает список классов в файле с их размерами и количеством методов.
 
     Args:
@@ -39,7 +38,7 @@ def get_classes_in_file(file_path: Path) -> List[Tuple[str, int, int, int]]:
         Список кортежей (имя_класса, start_line, end_line, method_count).
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return []
@@ -49,7 +48,7 @@ def get_classes_in_file(file_path: Path) -> List[Tuple[str, int, int, int]]:
     except SyntaxError:
         return []
 
-    classes: List[Tuple[str, int, int, int]] = []
+    classes: list[tuple[str, int, int, int]] = []
 
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef):
@@ -64,7 +63,7 @@ def get_classes_in_file(file_path: Path) -> List[Tuple[str, int, int, int]]:
     return classes
 
 
-def get_functions_in_file(file_path: Path) -> List[Tuple[str, int, int, int]]:
+def get_functions_in_file(file_path: Path) -> list[tuple[str, int, int, int]]:
     """Получает список функций в файле с их размерами и сложностью.
 
     Args:
@@ -74,7 +73,7 @@ def get_functions_in_file(file_path: Path) -> List[Tuple[str, int, int, int]]:
         Список кортежей (имя_функции, start_line, end_line, param_count).
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return []
@@ -84,7 +83,7 @@ def get_functions_in_file(file_path: Path) -> List[Tuple[str, int, int, int]]:
     except SyntaxError:
         return []
 
-    functions: List[Tuple[str, int, int, int]] = []
+    functions: list[tuple[str, int, int, int]] = []
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -99,9 +98,9 @@ def get_functions_in_file(file_path: Path) -> List[Tuple[str, int, int, int]]:
 
 def find_python_files(
     directory: Path,
-    exclude_dirs: Optional[List[str]] = None,
-    exclude_files: Optional[List[str]] = None,
-) -> List[Path]:
+    exclude_dirs: list[str] | None = None,
+    exclude_files: list[str] | None = None,
+) -> list[Path]:
     """Находит все Python файлы в директории.
 
     Args:
@@ -125,7 +124,7 @@ def find_python_files(
     if exclude_files is None:
         exclude_files = ["__init__.py"]
 
-    python_files: List[Path] = []
+    python_files: list[Path] = []
 
     for py_file in directory.rglob("*.py"):
         if any(part in exclude_dirs for part in py_file.parts):
@@ -139,7 +138,7 @@ def find_python_files(
     return python_files
 
 
-def get_imports_in_file(file_path: Path) -> Set[str]:
+def get_imports_in_file(file_path: Path) -> set[str]:
     """Получает все импорты в файле.
 
     Args:
@@ -149,7 +148,7 @@ def get_imports_in_file(file_path: Path) -> Set[str]:
         Множество имён импортируемых модулей.
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return set()
@@ -159,7 +158,7 @@ def get_imports_in_file(file_path: Path) -> Set[str]:
     except SyntaxError:
         return set()
 
-    imports: Set[str] = set()
+    imports: set[str] = set()
 
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom):
@@ -182,7 +181,7 @@ def count_nesting_depth(file_path: Path) -> int:
         Максимальная глубина вложенности.
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return 0
@@ -212,7 +211,7 @@ def count_nesting_depth(file_path: Path) -> int:
     return max_depth
 
 
-def get_protocols_in_file(file_path: Path) -> List[Tuple[str, int]]:
+def get_protocols_in_file(file_path: Path) -> list[tuple[str, int]]:
     """Получает все Protocol классы в файле.
 
     Args:
@@ -222,7 +221,7 @@ def get_protocols_in_file(file_path: Path) -> List[Tuple[str, int]]:
         Список кортежей (имя_protocol, method_count).
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return []
@@ -232,7 +231,7 @@ def get_protocols_in_file(file_path: Path) -> List[Tuple[str, int]]:
     except SyntaxError:
         return []
 
-    protocols: List[Tuple[str, int]] = []
+    protocols: list[tuple[str, int]] = []
 
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef):
@@ -292,7 +291,7 @@ def parser_2gis_root(project_root: Path) -> Path:
 
 
 @pytest.fixture(scope="session")
-def python_files(parser_2gis_root: Path) -> List[Path]:
+def python_files(parser_2gis_root: Path) -> list[Path]:
     """Фикстура возвращает все Python файлы проекта."""
     return find_python_files(parser_2gis_root)
 
@@ -311,7 +310,7 @@ def protocols_file(parser_2gis_root: Path) -> Path:
 class TestSOLIDPrinciples:
     """Тесты на соблюдение SOLID принципов."""
 
-    def test_no_god_classes(self, python_files: List[Path]) -> None:
+    def test_no_god_classes(self, python_files: list[Path]) -> None:
         """Проверка что нет классов >1000 строк.
 
         Классы больше 1000 строк - признак God Object антипаттерна.
@@ -323,8 +322,8 @@ class TestSOLIDPrinciples:
             Тест использует skip для предупреждений о техническом долге.
         """
         critical_classes = ["ParallelCityParser", "ChromeRemote", "Configuration"]
-        violations_critical: List[Tuple[Path, str, int]] = []
-        violations_warning: List[Tuple[Path, str, int]] = []
+        violations_critical: list[tuple[Path, str, int]] = []
+        violations_warning: list[tuple[Path, str, int]] = []
 
         for py_file in python_files:
             classes = get_classes_in_file(py_file)
@@ -360,7 +359,7 @@ class TestSOLIDPrinciples:
                 )
             )
 
-    def test_single_responsibility_principle(self, python_files: List[Path]) -> None:
+    def test_single_responsibility_principle(self, python_files: list[Path]) -> None:
         """Проверка SRP (Single Responsibility Principle).
 
         Классы не должны иметь:
@@ -368,9 +367,9 @@ class TestSOLIDPrinciples:
         - Методы не должны иметь >7 параметров
         - Вложенность не должна превышать 5 уровней
         """
-        class_violations: List[Tuple[Path, str, int]] = []
-        method_violations: List[Tuple[Path, str, int]] = []
-        nesting_violations: List[Tuple[Path, int]] = []
+        class_violations: list[tuple[Path, str, int]] = []
+        method_violations: list[tuple[Path, str, int]] = []
+        nesting_violations: list[tuple[Path, int]] = []
 
         for py_file in python_files:
             # Проверка классов
@@ -471,8 +470,8 @@ class TestSOLIDPrinciples:
         """
         # Ищем все классы парсеров
         parser_dir = parser_2gis_root / "parser"
-        parsers_found: List[
-            Tuple[str, bool, bool]
+        parsers_found: list[
+            tuple[str, bool, bool]
         ] = []  # (name, inherits_base, implements_protocol)
 
         if parser_dir.exists():
@@ -509,7 +508,7 @@ class TestSOLIDPrinciples:
             pytest.skip("protocols.py не найден")
 
         protocols = get_protocols_in_file(protocols_file)
-        violations: List[Tuple[str, int]] = []
+        violations: list[tuple[str, int]] = []
 
         for protocol_name, method_count in protocols:
             if method_count > 10:
@@ -562,18 +561,18 @@ class TestSOLIDPrinciples:
 class TestDRYKISSYAGNI:
     """Тесты на соблюдение DRY, KISS, YAGNI принципов."""
 
-    def test_no_code_duplication(self, python_files: List[Path]) -> None:
+    def test_no_code_duplication(self, python_files: list[Path]) -> None:
         """Проверка дублирования кода.
 
         Ищет одинаковые блоки кода >10 строк.
         Особенно в обработке ошибок, retry логике.
         """
         # Собираем все функции и их содержимое
-        function_bodies: Dict[str, List[Tuple[Path, str]]] = {}
+        function_bodies: dict[str, list[tuple[Path, str]]] = {}
 
         for py_file in python_files:
             try:
-                with open(py_file, "r", encoding="utf-8") as f:
+                with open(py_file, encoding="utf-8") as f:
                     lines = f.readlines()
             except (OSError, UnicodeDecodeError):
                 continue
@@ -613,13 +612,13 @@ class TestDRYKISSYAGNI:
                 f"Обнаружено {len(duplicates)} дубликатов функций (требуется рефакторинг DRY)"
             )
 
-    def test_method_complexity(self, python_files: List[Path]) -> None:
+    def test_method_complexity(self, python_files: list[Path]) -> None:
         """Проверка сложности методов.
 
         Цикломатическая сложность <15.
         Длина метода <50 строк.
         """
-        length_violations: List[Tuple[Path, str, int]] = []
+        length_violations: list[tuple[Path, str, int]] = []
 
         for py_file in python_files:
             functions = get_functions_in_file(py_file)
@@ -650,7 +649,7 @@ class TestDRYKISSYAGNI:
             pytest.skip("protocols.py не найден")
 
         protocols = get_protocols_in_file(protocols_file)
-        unused_protocols: List[str] = []
+        unused_protocols: list[str] = []
 
         for protocol_name, _ in protocols:
             usage_count = check_protocol_usage(protocol_name, parser_2gis_root)
@@ -687,14 +686,14 @@ class TestModularity:
             "utils",
         ]
 
-        coupling_violations: List[Tuple[str, int]] = []
+        coupling_violations: list[tuple[str, int]] = []
 
         for module_name in modules_to_check:
             module_dir = parser_2gis_root / module_name
             if not module_dir.exists():
                 continue
 
-            all_imports: Set[str] = set()
+            all_imports: set[str] = set()
             for py_file in module_dir.glob("*.py"):
                 if py_file.name.startswith("__"):
                     continue
@@ -731,7 +730,7 @@ class TestModularity:
             "cli": ["app", "arguments", "config", "launcher", "main"],
         }
 
-        cohesion_issues: List[Tuple[str, List[str]]] = []
+        cohesion_issues: list[tuple[str, list[str]]] = []
 
         for module_name, expected_files in modules_to_check.items():
             module_dir = parser_2gis_root / module_name
@@ -761,7 +760,7 @@ class TestModularity:
         """
         # Строим граф зависимостей между основными модулями
         core_modules = ["logger", "chrome", "parallel", "parser", "writer", "cache", "utils"]
-        dependencies: Dict[str, Set[str]] = {module: set() for module in core_modules}
+        dependencies: dict[str, set[str]] = {module: set() for module in core_modules}
 
         for module_name in core_modules:
             module_dir = parser_2gis_root / module_name
@@ -778,7 +777,7 @@ class TestModularity:
                         dependencies[module_name].add(imp)
 
         # Ищем циклы через DFS
-        def has_cycle(start: str, visited: Set[str], rec_stack: Set[str]) -> Optional[List[str]]:
+        def has_cycle(start: str, visited: set[str], rec_stack: set[str]) -> list[str] | None:
             visited.add(start)
             rec_stack.add(start)
 
@@ -793,8 +792,8 @@ class TestModularity:
             rec_stack.remove(start)
             return None
 
-        cycles: List[List[str]] = []
-        visited: Set[str] = set()
+        cycles: list[list[str]] = []
+        visited: set[str] = set()
 
         for module in core_modules:
             if module not in visited:
@@ -835,7 +834,7 @@ class TestNewComponents:
             "DatabaseError": parser_2gis_root / "database" / "error_handler.py",
         }
 
-        missing_components: List[str] = []
+        missing_components: list[str] = []
 
         for component_name, file_path in expected_components.items():
             if not file_path.exists():
@@ -956,7 +955,7 @@ class TestSeparationOfConcerns:
 
         business_logic_patterns = ["parse(", "ChromeRemote", "BrowserService", "execute_js"]
 
-        violations: List[Tuple[str, str]] = []
+        violations: list[tuple[str, str]] = []
 
         if cli_dir.exists():
             for py_file in cli_dir.glob("*.py"):
@@ -1046,8 +1045,8 @@ class TestScalability:
         has_executor_type = (
             "executor_type" in content
             or "ExecutorType" in content
-            or "thread" in content
-            and "process" in content
+            or ("thread" in content
+            and "process" in content)
         )
 
         assert has_process_executor, "ThreadCoordinator должен поддерживать ProcessPoolExecutor"

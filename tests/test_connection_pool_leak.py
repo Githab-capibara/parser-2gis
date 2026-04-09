@@ -19,7 +19,6 @@ import sqlite3
 import sys
 import time
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -53,7 +52,7 @@ class TestConnectionPoolCleanupOnExit:
         pool = _ConnectionPool(cache_file, pool_size=5, use_dynamic=False)
 
         # Получаем несколько соединений
-        connections: List[sqlite3.Connection] = []
+        connections: list[sqlite3.Connection] = []
         for i in range(5):
             conn = pool.get_connection()
             connections.append(conn)

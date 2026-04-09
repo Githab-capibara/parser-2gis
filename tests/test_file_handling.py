@@ -244,7 +244,7 @@ class TestCSVFileDescriptorLeak:
 
             # Имитируем ошибку при чтении
             try:
-                with open(temp_path, "r", encoding="utf-8-sig") as f:
+                with open(temp_path, encoding="utf-8-sig") as f:
                     reader = csv.DictReader(f)
                     for i, row in enumerate(reader):
                         if i == 5:
@@ -284,7 +284,7 @@ class TestCSVFileDescriptorLeak:
 
             # Читаем файл успешно
             rows_read = 0
-            with open(temp_path, "r", encoding="utf-8-sig") as f:
+            with open(temp_path, encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     rows_read += 1
@@ -330,7 +330,7 @@ class TestCSVFileDescriptorLeak:
             # Читаем все файлы многократно
             for iteration in range(5):
                 for temp_path in temp_files:
-                    with open(temp_path, "r", encoding="utf-8-sig") as f:
+                    with open(temp_path, encoding="utf-8-sig") as f:
                         reader = csv.DictReader(f)
                         rows = list(reader)
                         assert len(rows) == 50, f"Должно быть 50 строк, прочитано {len(rows)}"
@@ -461,7 +461,7 @@ class TestFileHandlingIntegration:
         def read_csv(thread_id):
             """Читает CSV из потока."""
             rows = []
-            with open(temp_path, "r", encoding="utf-8-sig") as f:
+            with open(temp_path, encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     rows.append(row)

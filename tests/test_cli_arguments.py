@@ -215,9 +215,8 @@ class TestArgumentValidation:
             "--parser.max-retries",
             "0",
         ]
-        with patch.object(sys, "argv", test_args):
-            with pytest.raises(SystemExit):
-                parse_arguments()
+        with patch.object(sys, "argv", test_args), pytest.raises(SystemExit):
+            parse_arguments()
 
     def test_invalid_retry_delay_base_negative(self):
         """Проверка, что отрицательный retry_delay_base вызывает ошибку."""
@@ -229,9 +228,8 @@ class TestArgumentValidation:
             "--parser.retry-delay-base",
             "-1",
         ]
-        with patch.object(sys, "argv", test_args):
-            with pytest.raises(SystemExit):
-                parse_arguments()
+        with patch.object(sys, "argv", test_args), pytest.raises(SystemExit):
+            parse_arguments()
 
     def test_invalid_memory_threshold_low(self):
         """Проверка, что слишком низкий memory_threshold вызывает ошибку."""
@@ -243,9 +241,8 @@ class TestArgumentValidation:
             "--parser.memory-threshold",
             "0",
         ]
-        with patch.object(sys, "argv", test_args):
-            with pytest.raises(SystemExit):
-                parse_arguments()
+        with patch.object(sys, "argv", test_args), pytest.raises(SystemExit):
+            parse_arguments()
 
     def test_invalid_retry_on_network_errors_value(self):
         """Проверка, что недопустимое значение retry-on-network-errors вызывает ошибку."""
@@ -257,9 +254,8 @@ class TestArgumentValidation:
             "--parser.retry-on-network-errors",
             "invalid",
         ]
-        with patch.object(sys, "argv", test_args):
-            with pytest.raises(SystemExit):
-                parse_arguments()
+        with patch.object(sys, "argv", test_args), pytest.raises(SystemExit):
+            parse_arguments()
 
 
 class TestRunShArguments:

@@ -13,7 +13,6 @@
 import os
 import sys
 import time
-from typing import List
 
 from parser_2gis.validation import validate_url
 
@@ -291,7 +290,7 @@ class TestValidateUrlConcurrency:
         import threading
 
         url = "https://2gis.ru/moscow/search/Аптеки"
-        results: List[bool] = []
+        results: list[bool] = []
         lock = threading.Lock()
 
         def worker() -> None:
@@ -320,7 +319,7 @@ class TestValidateUrlConcurrency:
         import threading
 
         urls = [f"https://2gis.ru/city{i}/search/test" for i in range(100)]
-        results: List[bool] = []
+        results: list[bool] = []
         lock = threading.Lock()
 
         def worker(url: str) -> None:

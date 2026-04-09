@@ -141,7 +141,7 @@ class RequestInterceptor:
             app_logger.error("chrome_tab is None в setup_network_interceptors")
             return
 
-        def responseReceived(**kwargs: Any) -> None:  # noqa: N802 — имя должно совпадать с CDP событием
+        def responseReceived(**kwargs: Any) -> None:
             """Обработчик события получения ответа.
 
             Args:
@@ -169,7 +169,7 @@ class RequestInterceptor:
                         if re.match(pattern, response["url"]):
                             self._response_queues[pattern].put(response)
 
-        def loadingFailed(**kwargs: Any) -> None:  # noqa: N802 — имя должно совпадать с CDP событием
+        def loadingFailed(**kwargs: Any) -> None:
             """Обработчик события неудачной загрузки.
 
             Args:
@@ -202,7 +202,7 @@ class RequestInterceptor:
                             if re.match(pattern, request_url):
                                 self._response_queues[pattern].put(response)
 
-        def requestWillBeSent(**kwargs: Any) -> None:  # noqa: N802 — имя должно совпадать с CDP событием
+        def requestWillBeSent(**kwargs: Any) -> None:
             """Обработчик события отправки запроса.
 
             Args:

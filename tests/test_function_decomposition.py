@@ -188,10 +188,10 @@ class TestBrowserInitDecomposition:
         assert hasattr(ProfileManager, "create_profile")
         assert hasattr(ProcessManager, "launch_process")
 
-        assert callable(getattr(BrowserLifecycleManager, "_build_chrome_cmd"))
-        assert callable(getattr(BrowserPathResolver, "resolve_path"))
-        assert callable(getattr(ProfileManager, "create_profile"))
-        assert callable(getattr(ProcessManager, "launch_process"))
+        assert callable(BrowserLifecycleManager._build_chrome_cmd)
+        assert callable(BrowserPathResolver.resolve_path)
+        assert callable(ProfileManager.create_profile)
+        assert callable(ProcessManager.launch_process)
 
     def test_browser_init_decomposed_build_chrome_cmd(self):
         """
@@ -240,8 +240,8 @@ class TestBrowserCloseDecomposition:
         assert hasattr(ProcessManager, "terminate")
         assert hasattr(ProcessManager, "kill")
 
-        assert callable(getattr(ProcessManager, "terminate"))
-        assert callable(getattr(ProcessManager, "kill"))
+        assert callable(ProcessManager.terminate)
+        assert callable(ProcessManager.kill)
 
     def test_browser_close_decomposed_cleanup_profile(self):
         """

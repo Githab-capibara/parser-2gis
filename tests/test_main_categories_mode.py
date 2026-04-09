@@ -12,7 +12,7 @@ import pytest
 # Добавляем путь к пакету
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from parser_2gis.cli.arguments import parse_arguments  # noqa: E402
+from parser_2gis.cli.arguments import parse_arguments
 
 
 class TestCategoriesModeValidation:

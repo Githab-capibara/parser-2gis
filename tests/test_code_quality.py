@@ -12,7 +12,6 @@
 import ast
 import re
 from pathlib import Path
-from typing import List, Tuple
 
 import pytest
 
@@ -30,7 +29,7 @@ class TestCodeQuality:
         return Path(__file__).parent.parent.parent / "parser_2gis"
 
     @pytest.fixture(scope="class")
-    def python_files(self, project_root: Path) -> List[Path]:
+    def python_files(self, project_root: Path) -> list[Path]:
         """Получает список Python файлов.
 
         Args:
@@ -65,7 +64,7 @@ class TestCodeQuality:
         return python_files
 
     @pytest.fixture(scope="class")
-    def parsed_files(self, python_files: List[Path]) -> List[Tuple[Path, ast.AST]]:
+    def parsed_files(self, python_files: list[Path]) -> list[tuple[Path, ast.AST]]:
         """Парсит Python файлы.
 
         Args:
@@ -87,7 +86,7 @@ class TestCodeQuality:
 
         return parsed
 
-    def test_type_hints_presence(self, parsed_files: List[Tuple[Path, ast.AST]]):
+    def test_type_hints_presence(self, parsed_files: list[tuple[Path, ast.AST]]):
         """Тест наличия type hints у публичных функций.
 
         Проверяет:
@@ -129,7 +128,7 @@ class TestCodeQuality:
             f"Примеры: {files_without_hints[:5]}"
         )
 
-    def test_function_length(self, parsed_files: List[Tuple[Path, ast.AST]]):
+    def test_function_length(self, parsed_files: list[tuple[Path, ast.AST]]):
         """Тест длины функций.
 
         Проверяет:
@@ -166,7 +165,7 @@ class TestCodeQuality:
             f"Слишком много длинных функций: {len(long_functions)}. Примеры: {long_functions[:5]}"
         )
 
-    def test_nesting_depth(self, parsed_files: List[Tuple[Path, ast.AST]]):
+    def test_nesting_depth(self, parsed_files: list[tuple[Path, ast.AST]]):
         """Тест глубины вложенности.
 
         Проверяет:
@@ -203,7 +202,7 @@ class TestCodeQuality:
             f"Примеры: {deep_nesting[:5]}"
         )
 
-    def test_magic_numbers(self, parsed_files: List[Tuple[Path, ast.AST]]):
+    def test_magic_numbers(self, parsed_files: list[tuple[Path, ast.AST]]):
         """Тест магических чисел.
 
         Проверяет:
@@ -211,7 +210,7 @@ class TestCodeQuality:
         - Кроме 0, 1, -1, 2, 10, 100
         """
         # Разрешенные магические числа
-        allowed_numbers = {0, 1, -1, 2, 10, 100, 0.0, 1.0}
+        allowed_numbers = {0, 1, -1, 2, 10, 100}
 
         # Паттерн для констант
         constant_pattern = re.compile(r"^[A-Z][A-Z0-9_]*$")
@@ -247,7 +246,7 @@ class TestCodeQuality:
             f"Слишком много магических чисел: {len(magic_numbers)}. Примеры: {magic_numbers[:5]}"
         )
 
-    def test_unicode_error_handling(self, parsed_files: List[Tuple[Path, ast.AST]]):
+    def test_unicode_error_handling(self, parsed_files: list[tuple[Path, ast.AST]]):
         """Тест обработки Unicode ошибок.
 
         Проверяет:
@@ -293,7 +292,7 @@ class TestCodeQuality:
             f"Файлы без обработки Unicode ошибок: {files_without_unicode_handling}"
         )
 
-    def test_docstrings_presence(self, parsed_files: List[Tuple[Path, ast.AST]]):
+    def test_docstrings_presence(self, parsed_files: list[tuple[Path, ast.AST]]):
         """Тест наличия docstrings.
 
         Проверяет:
@@ -336,7 +335,7 @@ class TestCodeQuality:
             f"Примеры: {functions_without_docstrings[:5]}"
         )
 
-    def test_exception_handling_best_practices(self, parsed_files: List[Tuple[Path, ast.AST]]):
+    def test_exception_handling_best_practices(self, parsed_files: list[tuple[Path, ast.AST]]):
         """Тест лучших практик обработки исключений.
 
         Проверяет:

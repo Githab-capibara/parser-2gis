@@ -57,9 +57,8 @@ class TestPoolExceptionHandling:
         # MemoryError в _create_connection пробрасывается без логирования (критическая ошибка)
         with patch.object(
             connection_pool, "_create_connection", side_effect=MemoryError("Mocked MemoryError")
-        ):
-            with pytest.raises(MemoryError):
-                connection_pool.get_connection()
+        ), pytest.raises(MemoryError):
+            connection_pool.get_connection()
 
         # MemoryError пробрасывается без логирования (критическая ошибка)
         # Проверяем что MemoryError не был залогирован (т.к. это критическая ошибка)
@@ -77,9 +76,8 @@ class TestPoolExceptionHandling:
             # OSError при создании соединения
             with patch.object(
                 connection_pool, "_create_connection", side_effect=OSError("Mocked OSError")
-            ):
-                with pytest.raises(OSError):
-                    connection_pool.get_connection()
+            ), pytest.raises(OSError):
+                connection_pool.get_connection()
 
             # Проверяем что OSError был залогирован
             assert any("OSError" in record.message for record in caplog.records)
@@ -95,9 +93,8 @@ class TestPoolExceptionHandling:
             # ValueError при создании соединения
             with patch.object(
                 connection_pool, "_create_connection", side_effect=ValueError("Mocked ValueError")
-            ):
-                with pytest.raises(ValueError):
-                    connection_pool.get_connection()
+            ), pytest.raises(ValueError):
+                connection_pool.get_connection()
 
             # Проверяем что ValueError был залогирован
             assert any("ValueError" in record.message for record in caplog.records)
@@ -113,9 +110,8 @@ class TestPoolExceptionHandling:
             # TypeError при создании соединения
             with patch.object(
                 connection_pool, "_create_connection", side_effect=TypeError("Mocked TypeError")
-            ):
-                with pytest.raises(TypeError):
-                    connection_pool.get_connection()
+            ), pytest.raises(TypeError):
+                connection_pool.get_connection()
 
             # Проверяем что TypeError был залогирован
             assert any("TypeError" in record.message for record in caplog.records)
@@ -130,9 +126,8 @@ class TestPoolExceptionHandling:
         # Exception в _create_connection пробрасывается без логирования
         with patch.object(
             connection_pool, "_create_connection", side_effect=Exception("Mocked Exception")
-        ):
-            with pytest.raises(Exception):
-                connection_pool.get_connection()
+        ), pytest.raises(Exception):
+            connection_pool.get_connection()
 
         # Exception пробрасывается без логирования
         # Проверяем что Exception не был залогирован

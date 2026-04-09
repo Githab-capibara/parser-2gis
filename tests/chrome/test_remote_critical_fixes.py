@@ -195,9 +195,8 @@ class TestConnectInterfaceReturnValue:
         # H3: Используем _check_port_cached вместо _check_port_available
         with patch(
             "parser_2gis.chrome.remote._check_port_cached", side_effect=mock_port_check_count
-        ):
-            with patch("parser_2gis.chrome.remote.time.sleep", return_value=None):
-                result = chrome_remote._connect_interface()
+        ), patch("parser_2gis.chrome.remote.time.sleep", return_value=None):
+            result = chrome_remote._connect_interface()
 
         # Проверяем что было 3 попытки
         assert attempt_count == 3

@@ -291,9 +291,8 @@ class TestRLockUsageForReentrancy:
         # RLock работает при реентерабельности
         rlock_works = True
         try:
-            with parallel_parser._lock:
-                with parallel_parser._lock:
-                    pass
+            with parallel_parser._lock, parallel_parser._lock:
+                pass
         except Exception:
             rlock_works = False
 
@@ -319,9 +318,8 @@ class TestRLockUsageForReentrancy:
             try:
                 count = 0
                 for _ in range(10):
-                    with parallel_parser._lock:
-                        with parallel_parser._lock:
-                            count += 1
+                    with parallel_parser._lock, parallel_parser._lock:
+                        count += 1
                 results[thread_id] = count
             except Exception as e:
                 errors.append((thread_id, e))

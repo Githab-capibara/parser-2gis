@@ -33,7 +33,7 @@ class TestProcessManagerSimplified:
         - Сигнатура корректная
         """
         assert hasattr(process_manager, "terminate")
-        assert callable(getattr(process_manager, "terminate"))
+        assert callable(process_manager.terminate)
 
     def test_kill_method_exists(self, process_manager: ProcessManager) -> None:
         """Тест что kill() method существует.
@@ -43,7 +43,7 @@ class TestProcessManagerSimplified:
         - Сигнатура корректная
         """
         assert hasattr(process_manager, "kill")
-        assert callable(getattr(process_manager, "kill"))
+        assert callable(process_manager.kill)
 
     def test_terminate_calls_process_terminate(self) -> None:
         """Тест что terminate() вызывает process.terminate().

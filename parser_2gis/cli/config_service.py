@@ -122,16 +122,16 @@ class ConfigService:
 
         except OSError as e:
             logger.error("Ошибка при создании директории для конфигурации: %s", e)
-            raise
+            raise OSError(f"Не удалось создать директорию: {path.parent}") from e
         except (TypeError, ValueError) as e:
             logger.error("Ошибка при сериализации конфигурации в JSON: %s", e)
-            raise
+            raise TypeError(f"Ошибка сериализации конфигурации: {e}") from e
         except (MemoryError, KeyboardInterrupt, SystemExit) as e:
             logger.error("Критическая ошибка при сохранении конфигурации: %s", e)
             raise
         except RuntimeError as e:
             logger.error("Непредвиденная ошибка при сохранении конфигурации: %s", e)
-            raise
+            raise RuntimeError(f"Непредвиденная ошибка при сохранении: {e}") from e
 
     @staticmethod
     def load_config(

@@ -6,7 +6,7 @@
 - Retry logic при таймауте
 """
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -25,7 +25,7 @@ class TestableMainPageParser(MainPageParser):
         """Заглушка для теста."""
         pass
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Заглушка для теста."""
         return self._stats
 
@@ -270,15 +270,14 @@ class TestNavigateTimeoutHandling:
         # Mock navigate для выбрасывания TimeoutError
         mock_browser.navigate.side_effect = TimeoutError("Mocked TimeoutError")
 
-        with caplog.at_level(logging.WARNING):
-            with patch("time.sleep"):
-                parser._navigate_to_search("https://2gis.ru/moscow/search/test")
+        with caplog.at_level(logging.WARNING), patch("time.sleep"):
+            parser._navigate_to_search("https://2gis.ru/moscow/search/test")
 
-                # Проверяем что TimeoutError был залогирован
-                assert any(
-                    "Таймаут" in record.message or "Timeout" in record.message
-                    for record in caplog.records
-                )
+            # Проверяем что TimeoutError был залогирован
+            assert any(
+                "Таймаут" in record.message or "Timeout" in record.message
+                for record in caplog.records
+            )
 
     def test_navigate_network_error_with_retry(
         self, mock_chrome_options, mock_parser_options, mock_browser

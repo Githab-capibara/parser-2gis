@@ -4,7 +4,7 @@
 абстрактных методов parse() и get_stats().
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import pytest
 
@@ -19,7 +19,7 @@ class MockFileWriter:
         self.data = []
         self.closed = False
 
-    def write(self, data: Dict[str, Any]) -> None:
+    def write(self, data: dict[str, Any]) -> None:
         """Записывает данные."""
         self.data.append(data)
 
@@ -48,7 +48,7 @@ class MockBrowserService:
         self.get_html_called = True
         return "<html></html>"
 
-    def execute_js(self, js_code: str, timeout: Optional[int] = None) -> Any:
+    def execute_js(self, js_code: str, timeout: int | None = None) -> Any:
         """Выполнить JavaScript код."""
         self.execute_js_called = True
         return None
@@ -85,7 +85,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -109,7 +109,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 writer.write({"test": "data"})
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -127,7 +127,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return {"custom": "stats"}
 
         mock_browser = MockBrowserService()
@@ -143,7 +143,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -158,7 +158,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -179,7 +179,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -194,7 +194,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -210,7 +210,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -226,7 +226,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 self._stats["parsed"] += 1
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -247,7 +247,7 @@ class TestBaseParserABC:
                 self._stats["parsed"] += 1
                 self._stats["custom"] = "value"
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -264,7 +264,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -285,7 +285,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         parser = TestParser(custom_param="test")
@@ -300,7 +300,7 @@ class TestBaseParserABC:
                 self._stats["errors"] += 1
                 raise ValueError("Test error")
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -319,7 +319,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return {"key": "value", "number": 42}
 
         mock_browser = MockBrowserService()
@@ -339,7 +339,7 @@ class TestBaseParserABC:
                     writer.write({"index": i})
                     self._stats["parsed"] += 1
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -357,7 +357,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 self._stats["parsed"] += 1
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -379,7 +379,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 self._stats["custom_field"] += 1
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         parser = TestParser()
@@ -394,7 +394,7 @@ class TestBaseParserABC:
         # Попытка создать класс без реализации parse()
         def define_incomplete_parser1():
             class IncompleteParser1(BaseParser):
-                def get_stats(self) -> Dict[str, Any]:
+                def get_stats(self) -> dict[str, Any]:
                     return {}
 
             return IncompleteParser1
@@ -424,7 +424,7 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()
@@ -440,14 +440,14 @@ class TestBaseParserABC:
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         class TestParser2(BaseParser):
             def parse(self, writer: MockFileWriter) -> None:
                 pass
 
-            def get_stats(self) -> Dict[str, Any]:
+            def get_stats(self) -> dict[str, Any]:
                 return self._stats
 
         mock_browser = MockBrowserService()

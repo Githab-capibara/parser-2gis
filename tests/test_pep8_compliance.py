@@ -14,7 +14,6 @@
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Tuple
 
 import pytest
 
@@ -39,7 +38,7 @@ EXCLUDE_PATTERNS = [
 ]
 
 
-def get_python_files() -> List[Path]:
+def get_python_files() -> list[Path]:
     """
     Получает список всех Python файлов в проекте.
 
@@ -66,7 +65,7 @@ def get_python_files() -> List[Path]:
     return python_files
 
 
-def run_flake8_check(file_path: Path) -> Tuple[int, str, str]:
+def run_flake8_check(file_path: Path) -> tuple[int, str, str]:
     """
     Запускает проверку flake8 для файла.
 
@@ -257,7 +256,7 @@ class TestPEP8ComplianceDetailed:
             if not py_file.exists():
                 continue
             try:
-                with open(py_file, "r", encoding="utf-8") as f:
+                with open(py_file, encoding="utf-8") as f:
                     for line_num, line in enumerate(f, 1):
                         # Проверяем на пробелы в конце строки (перед newline)
                         if line.rstrip("\n\r") != line.rstrip():
@@ -379,7 +378,7 @@ class TestPEP8ComplianceConfiguration:
         if not setup_cfg.exists():
             pytest.skip("setup.cfg не найден")
 
-        with open(setup_cfg, "r", encoding="utf-8") as f:
+        with open(setup_cfg, encoding="utf-8") as f:
             content = f.read()
 
         assert "[flake8]" in content, "setup.cfg должен содержать секцию [flake8]"

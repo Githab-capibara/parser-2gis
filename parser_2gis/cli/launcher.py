@@ -65,7 +65,7 @@ def run_tui_application(tui_type: str = "main") -> int:
         Код завершения (0 - успех, 1 - ошибка).
 
     """
-    Parser2GISTUI, run_new_tui_omsk = _import_tui_main()  # noqa: N806 — переменная хранит ссылку на класс
+    Parser2GISTUI, run_new_tui_omsk = _import_tui_main()
 
     if Parser2GISTUI is None and run_new_tui_omsk is None:
         logger.error("TUI модуль (textual) недоступен")

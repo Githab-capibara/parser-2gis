@@ -20,12 +20,14 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from parser_2gis.config import Configuration, ParserOptions, WriterOptions
+from parser_2gis.config import Configuration
 from parser_2gis.parallel import ParallelCityParser
+from parser_2gis.parser import ParserOptions
 from parser_2gis.utils.data_utils import unwrap_dot_dict
 from parser_2gis.utils.decorators import wait_until_finished
 from parser_2gis.utils.math_utils import floor_to_hundreds
 from parser_2gis.utils.validation_utils import report_from_validation_error
+from parser_2gis.writer import WriterOptions
 
 # ============================================================================
 # floor_to_hundreds тесты (из test_common.py)

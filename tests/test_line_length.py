@@ -11,12 +11,11 @@
 """
 
 import inspect
-from typing import List, Tuple
 
 import pytest
 
 
-def get_source_lines(source: str) -> List[Tuple[int, str]]:
+def get_source_lines(source: str) -> list[tuple[int, str]]:
     """
     Получает строки исходного кода с номерами.
 
@@ -30,7 +29,7 @@ def get_source_lines(source: str) -> List[Tuple[int, str]]:
     return [(i + 1, line) for i, line in enumerate(lines)]
 
 
-def find_long_lines(source: str, max_length: int = 120) -> List[Tuple[int, str, int]]:
+def find_long_lines(source: str, max_length: int = 120) -> list[tuple[int, str, int]]:
     """
     Находит строки длиннее max_length.
 

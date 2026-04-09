@@ -206,9 +206,8 @@ class TestCacheManagerFinallyCleanup:
             # Mock пула для выбрасывания MemoryError при close
             with patch.object(
                 manager._pool, "close", side_effect=MemoryError("Mocked MemoryError")
-            ):
-                with pytest.raises(MemoryError):
-                    manager.close()
+            ), pytest.raises(MemoryError):
+                manager.close()
 
     def test_cache_manager_finalizer_cleanup_keyboard_interrupt(self, temp_cache_dir: Path, caplog):
         """Тест finalizer блока при KeyboardInterrupt.
@@ -227,9 +226,8 @@ class TestCacheManagerFinallyCleanup:
             # Mock пула для выбрасывания KeyboardInterrupt при close
             with patch.object(
                 manager._pool, "close", side_effect=KeyboardInterrupt("Mocked KeyboardInterrupt")
-            ):
-                with pytest.raises(KeyboardInterrupt):
-                    manager.close()
+            ), pytest.raises(KeyboardInterrupt):
+                manager.close()
 
     def test_cache_manager_finalizer_cleanup_system_exit(self, temp_cache_dir: Path, caplog):
         """Тест finalizer блока при SystemExit.

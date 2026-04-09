@@ -16,8 +16,9 @@ import os
 import sqlite3
 import sys
 import tempfile
+from collections.abc import Callable, Generator
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -49,7 +50,7 @@ def mock_oserror() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
-def temp_csv_files(tmp_path: Path) -> Generator[List[Path], None, None]:
+def temp_csv_files(tmp_path: Path) -> Generator[list[Path], None, None]:
     """Фикстура для создания временных CSV файлов.
 
     ИСПОЛЬЗУЕТ: pytest tmp_path fixture (автоматическая очистка после теста)
@@ -62,7 +63,7 @@ def temp_csv_files(tmp_path: Path) -> Generator[List[Path], None, None]:
     """
     import csv
 
-    csv_files: List[Path] = []
+    csv_files: list[Path] = []
     for i in range(3):
         csv_file = tmp_path / f"test_{i}.csv"
         with open(csv_file, "w", newline="", encoding="utf-8") as f:
@@ -267,7 +268,7 @@ def mock_no_such_table_error() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
-def sample_urls() -> List[str]:
+def sample_urls() -> list[str]:
     """Фикстура для примеров URL.
 
     Returns:
@@ -281,7 +282,7 @@ def sample_urls() -> List[str]:
 
 
 @pytest.fixture
-def sample_cache_data() -> Dict[str, Any]:
+def sample_cache_data() -> dict[str, Any]:
     """Фикстура для примера данных кэша.
 
     Returns:
@@ -339,7 +340,7 @@ def temp_files_registry() -> Generator[set, None, None]:
 
 
 @pytest.fixture
-def mock_temp_file_paths(tmp_path: Path) -> Generator[List[Path], None, None]:
+def mock_temp_file_paths(tmp_path: Path) -> Generator[list[Path], None, None]:
     """Фикстура для mock путей временных файлов.
 
     ИСПОЛЬЗУЕТ: pytest tmp_path fixture (автоматическая очистка)
@@ -354,7 +355,7 @@ def mock_temp_file_paths(tmp_path: Path) -> Generator[List[Path], None, None]:
     # Используем TemporaryDirectory для гарантии очистки
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir_path = Path(temp_dir)
-        paths: List[Path] = []
+        paths: list[Path] = []
         for i in range(10):
             temp_file = temp_dir_path / f"temp_file_{i}.tmp"
             temp_file.write_text(f"temp data {i}")
@@ -397,7 +398,7 @@ def ini_file_content(ini_file_path: Path) -> str:
 
 
 @pytest.fixture
-def buffer_constants() -> Dict[str, int]:
+def buffer_constants() -> dict[str, int]:
     """Фикстура для констант буферизации.
 
     Returns:
@@ -418,7 +419,7 @@ def buffer_constants() -> Dict[str, int]:
 
 
 @pytest.fixture
-def poll_constants() -> Dict[str, float]:
+def poll_constants() -> dict[str, float]:
     """Фикстура для констант polling.
 
     Returns:
@@ -443,13 +444,13 @@ def poll_constants() -> Dict[str, float]:
 
 
 @pytest.fixture
-def warning_recorder() -> Generator[List[Warning], None, None]:
+def warning_recorder() -> Generator[list[Warning], None, None]:
     """Фикстура для записи предупреждений.
 
     Yields:
         Список для записи предупреждений.
     """
-    warnings_list: List[Warning] = []
+    warnings_list: list[Warning] = []
 
     with patch("warnings.warn") as mock_warn:
 
@@ -554,7 +555,7 @@ def temp_file(tmp_path: Path) -> str:
 
 
 @pytest.fixture
-def sample_config_dict() -> Dict[str, Any]:
+def sample_config_dict() -> dict[str, Any]:
     """Фикстура для примера конфигурации в виде словаря.
 
     Returns:
@@ -572,7 +573,7 @@ def sample_config_dict() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_org_data() -> Dict[str, Any]:
+def sample_org_data() -> dict[str, Any]:
     """Фикстура для примера данных организации.
 
     Returns:
@@ -624,7 +625,7 @@ def reset_mock_state() -> Generator[None, None, None]:
 
 
 @pytest.fixture
-def mock_response() -> Dict[str, Any]:
+def mock_response() -> dict[str, Any]:
     """Фикстура для мок-ответа.
 
     Returns:

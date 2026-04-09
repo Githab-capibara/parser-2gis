@@ -11,12 +11,11 @@
 """
 
 import inspect
-from typing import List, Tuple
 
 import pytest
 
 
-def get_public_functions(module) -> List[Tuple[str, object]]:
+def get_public_functions(module) -> list[tuple[str, object]]:
     """
     Получает список публичных функций модуля.
 
@@ -35,7 +34,7 @@ def get_public_functions(module) -> List[Tuple[str, object]]:
     return functions
 
 
-def get_public_classes(module) -> List[Tuple[str, object]]:
+def get_public_classes(module) -> list[tuple[str, object]]:
     """
     Получает список публичных классов модуля.
 

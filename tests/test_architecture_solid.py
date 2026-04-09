@@ -19,7 +19,7 @@ from __future__ import annotations
 import ast
 import inspect
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -40,7 +40,7 @@ def count_class_methods(file_path: Path, class_name: str) -> int:
         Количество методов.
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return 0
@@ -60,7 +60,7 @@ def count_class_methods(file_path: Path, class_name: str) -> int:
     return count
 
 
-def get_class_methods(file_path: Path, class_name: str) -> List[str]:
+def get_class_methods(file_path: Path, class_name: str) -> list[str]:
     """Извлекает имена методов класса.
 
     Args:
@@ -71,7 +71,7 @@ def get_class_methods(file_path: Path, class_name: str) -> List[str]:
         Список имён методов.
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return []
@@ -81,7 +81,7 @@ def get_class_methods(file_path: Path, class_name: str) -> List[str]:
     except SyntaxError:
         return []
 
-    methods: List[str] = []
+    methods: list[str] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef) and node.name == class_name:
             for item in node.body:
@@ -91,7 +91,7 @@ def get_class_methods(file_path: Path, class_name: str) -> List[str]:
     return methods
 
 
-def get_method_categories(methods: List[str]) -> Dict[str, List[str]]:
+def get_method_categories(methods: list[str]) -> dict[str, list[str]]:
     """Категоризирует методы по ответственности.
 
     Args:
@@ -100,7 +100,7 @@ def get_method_categories(methods: List[str]) -> Dict[str, List[str]]:
     Returns:
         Словарь {категория: [методы]}.
     """
-    categories: Dict[str, List[str]] = {
+    categories: dict[str, list[str]] = {
         "initialization": [],
         "public_api": [],
         "private_impl": [],

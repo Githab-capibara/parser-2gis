@@ -130,7 +130,7 @@ class TestRelativeImportErrors:
                 continue
 
             filepath = os.path.join(screens_dir, filename)
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 content = f.read()
 
             matches = invalid_pattern.findall(content, re.MULTILINE)

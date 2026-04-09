@@ -18,7 +18,6 @@ import ast
 import importlib
 import sys
 from pathlib import Path
-from typing import Dict, List, Set
 
 import pytest
 
@@ -27,7 +26,7 @@ import pytest
 # =============================================================================
 
 
-def get_module_imports(file_path: Path) -> Set[str]:
+def get_module_imports(file_path: Path) -> set[str]:
     """Извлекает все импорты из Python файла.
 
     Args:
@@ -36,10 +35,10 @@ def get_module_imports(file_path: Path) -> Set[str]:
     Returns:
         Множество импортированных модулей.
     """
-    imports: Set[str] = set()
+    imports: set[str] = set()
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return imports
@@ -60,7 +59,7 @@ def get_module_imports(file_path: Path) -> Set[str]:
     return imports
 
 
-def get_internal_imports(file_path: Path, package_prefix: str = "parser_2gis") -> Set[str]:
+def get_internal_imports(file_path: Path, package_prefix: str = "parser_2gis") -> set[str]:
     """Извлекает внутренние импорты проекта из Python файла.
 
     Args:
@@ -70,10 +69,10 @@ def get_internal_imports(file_path: Path, package_prefix: str = "parser_2gis") -
     Returns:
         Множество внутренних импортов (без префикса пакета).
     """
-    imports: Set[str] = set()
+    imports: set[str] = set()
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
     except (OSError, UnicodeDecodeError):
         return imports
@@ -103,7 +102,7 @@ def get_internal_imports(file_path: Path, package_prefix: str = "parser_2gis") -
 
 def build_dependency_graph(
     directory: Path, package_prefix: str = "parser_2gis"
-) -> Dict[str, Set[str]]:
+) -> dict[str, set[str]]:
     """Строит граф зависимостей между модулями в директории.
 
     Args:
@@ -113,7 +112,7 @@ def build_dependency_graph(
     Returns:
         Словарь зависимостей: модуль -> множество зависимых модулей.
     """
-    dependencies: Dict[str, Set[str]] = {}
+    dependencies: dict[str, set[str]] = {}
 
     for py_file in directory.rglob("*.py"):
         # Пропускаем тесты и кэш
@@ -135,7 +134,7 @@ def build_dependency_graph(
     return dependencies
 
 
-def find_cycles_dfs(dependencies: Dict[str, Set[str]]) -> List[List[str]]:
+def find_cycles_dfs(dependencies: dict[str, set[str]]) -> list[list[str]]:
     """Ищет циклы в графе зависимостей используя DFS.
 
     Args:
@@ -144,10 +143,10 @@ def find_cycles_dfs(dependencies: Dict[str, Set[str]]) -> List[List[str]]:
     Returns:
         Список циклов (каждый цикл - список имён модулей).
     """
-    cycles: List[List[str]] = []
-    visited: Set[str] = set()
-    rec_stack: Set[str] = set()
-    path: List[str] = []
+    cycles: list[list[str]] = []
+    visited: set[str] = set()
+    rec_stack: set[str] = set()
+    path: list[str] = []
 
     def dfs(node: str) -> None:
         visited.add(node)
@@ -341,7 +340,7 @@ class TestNoCyclesDetectedByAST:
         core_modules = ["logger", "chrome", "parallel", "parser", "writer", "cache", "utils"]
 
         # Строим граф зависимостей только для core модулей
-        dependencies: Dict[str, Set[str]] = {module: set() for module in core_modules}
+        dependencies: dict[str, set[str]] = {module: set() for module in core_modules}
 
         for module_name in core_modules:
             module_dir = project_root / module_name
@@ -394,7 +393,7 @@ class TestNoCyclesDetectedByAST:
 
             # Используем AST для поиска реальных импортов а не строковый поиск
             try:
-                with open(py_file, "r", encoding="utf-8") as f:
+                with open(py_file, encoding="utf-8") as f:
                     source = f.read()
                 tree = ast.parse(source)
             except (SyntaxError, OSError, UnicodeDecodeError):

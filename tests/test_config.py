@@ -54,7 +54,7 @@ class TestConfigurationSaveLoad:
             config.save_config()
 
             assert config_path.exists()
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 data = json.load(f)
             assert "version" in data
             assert "log" in data
@@ -237,6 +237,6 @@ class TestConfigurationVersion:
             config = Configuration(path=config_path)
             config.save_config()
 
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 data = json.load(f)
             assert data["version"] == "0.1"

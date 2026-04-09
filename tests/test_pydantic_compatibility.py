@@ -176,7 +176,7 @@ class TestConfigurationSaveWithCompatibility:
             assert config_path.exists()
 
             # Проверяем содержимое
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             assert data["chrome"]["headless"] is True

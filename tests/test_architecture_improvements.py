@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import List, Set, Tuple
 
 import pytest
 
@@ -42,11 +41,11 @@ def read_source_file(relative_path: str) -> str:
         Содержимое файла.
     """
     file_path = PROJECT_ROOT / relative_path
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         return f.read()
 
 
-def get_type_checking_imports(source: str) -> Set[str]:
+def get_type_checking_imports(source: str) -> set[str]:
     """Извлекает импорты из TYPE_CHECKING блока.
 
     Args:
@@ -74,7 +73,7 @@ def get_type_checking_imports(source: str) -> Set[str]:
     return imports
 
 
-def has_guard_clauses(source: str, method_name: str) -> Tuple[bool, int]:
+def has_guard_clauses(source: str, method_name: str) -> tuple[bool, int]:
     """Проверяет наличие Guard Clauses в методе.
 
     Args:
@@ -145,7 +144,7 @@ def get_method_nesting_depth(source: str, method_name: str) -> int:
     return max_depth
 
 
-def has_docstring_with_sections(source: str, class_name: str) -> Tuple[bool, List[str]]:
+def has_docstring_with_sections(source: str, class_name: str) -> tuple[bool, list[str]]:
     """Проверяет наличие docstring с разделами.
 
     Args:

@@ -78,18 +78,16 @@ class TestBrowserPathResolver:
 
         with patch(
             "parser_2gis.chrome.browser.locate_chrome_path", return_value="/usr/bin/google-chrome"
-        ):
-            with patch("os.path.isabs", return_value=True):
-                with patch("os.path.exists", return_value=True):
-                    with patch("os.path.isfile", return_value=True):
-                        with patch("os.access", return_value=True):
-                            with patch("os.path.islink", return_value=False):
-                                with patch(
-                                    "os.path.realpath", return_value="/usr/bin/google-chrome"
-                                ):
-                                    result = path_resolver.resolve_path(mock_options)
+        ), patch("os.path.isabs", return_value=True), patch("os.path.exists", return_value=True):
+            with patch("os.path.isfile", return_value=True):
+                with patch("os.access", return_value=True):
+                    with patch("os.path.islink", return_value=False):
+                        with patch(
+                            "os.path.realpath", return_value="/usr/bin/google-chrome"
+                        ):
+                            result = path_resolver.resolve_path(mock_options)
 
-                                    assert result == "/usr/bin/google-chrome"
+                            assert result == "/usr/bin/google-chrome"
 
     def test_browser_path_resolver_not_found(self, path_resolver: BrowserPathResolver):
         """Тест отсутствия пути к браузеру.
@@ -118,20 +116,19 @@ class TestBrowserPathResolver:
         mock_options = MagicMock()
         mock_options.binary_path = "/usr/bin/chrome"
 
-        with caplog.at_level(logging.WARNING):
-            with patch("os.path.islink", return_value=True):
-                with patch("os.path.realpath", return_value="/usr/bin/google-chrome"):
-                    with patch("os.path.isabs", return_value=True):
-                        with patch("os.path.exists", return_value=True):
-                            with patch("os.path.isfile", return_value=True):
-                                with patch("os.access", return_value=True):
-                                    result = path_resolver.resolve_path(mock_options)
+        with caplog.at_level(logging.WARNING), patch("os.path.islink", return_value=True):
+            with patch("os.path.realpath", return_value="/usr/bin/google-chrome"):
+                with patch("os.path.isabs", return_value=True):
+                    with patch("os.path.exists", return_value=True):
+                        with patch("os.path.isfile", return_value=True):
+                            with patch("os.access", return_value=True):
+                                result = path_resolver.resolve_path(mock_options)
 
-                                    assert result == "/usr/bin/google-chrome"
-                                    assert any(
-                                        "символическую ссылку" in record.message
-                                        for record in caplog.records
-                                    )
+                                assert result == "/usr/bin/google-chrome"
+                                assert any(
+                                    "символическую ссылку" in record.message
+                                    for record in caplog.records
+                                )
 
     def test_browser_path_resolver_relative_path_error(self, path_resolver: BrowserPathResolver):
         """Тест относительного пути.
@@ -578,12 +575,11 @@ class TestBrowserLifecycleManager:
 
         with patch.object(
             manager._process_manager, "_terminate_process_common", return_value=(True, "terminated")
-        ):
-            with patch.object(manager._profile_manager, "cleanup_profile") as mock_cleanup:
-                manager.close()
+        ), patch.object(manager._profile_manager, "cleanup_profile") as mock_cleanup:
+            manager.close()
 
-                # Проверяем что профиль был очищен
-                mock_cleanup.assert_called()
+            # Проверяем что профиль был очищен
+            mock_cleanup.assert_called()
 
     def test_browser_lifecycle_manager_close_idempotent(self, mock_chrome_options: MagicMock):
         """Тест идемпотентности close.

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from dataclasses import fields, is_dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -30,7 +30,7 @@ import pytest
 # =============================================================================
 
 
-def get_dataclass_fields(dataclass_type: type) -> List[str]:
+def get_dataclass_fields(dataclass_type: type) -> list[str]:
     """Извлекает имена всех полей dataclass.
 
     Args:
@@ -59,7 +59,7 @@ def check_dataclass_instantiation(dataclass_type: type, **kwargs: Any) -> bool:
         return False
 
 
-def get_function_annotations(file_path: Path, function_name: str) -> Dict[str, Any]:
+def get_function_annotations(file_path: Path, function_name: str) -> dict[str, Any]:
     """Извлекает аннотации функции из файла.
 
     Args:
@@ -70,13 +70,13 @@ def get_function_annotations(file_path: Path, function_name: str) -> Dict[str, A
         Словарь аннотаций.
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             f.read()
     except (OSError, UnicodeDecodeError):
         return {}
 
     # Упрощённая проверка через строковый анализ
-    annotations: Dict[str, Any] = {}
+    annotations: dict[str, Any] = {}
 
     return annotations
 
@@ -125,8 +125,8 @@ class TestParserRunConfig:
         from parser_2gis.parallel.options import ParallelParserConfig
 
         config = Configuration()
-        cities: List[Dict[str, Any]] = [{"name": "Москва", "domain": "moscow.2gis.ru"}]
-        categories: List[Dict[str, Any]] = [{"name": "Кафе", "id": "cafe"}]
+        cities: list[dict[str, Any]] = [{"name": "Москва", "domain": "moscow.2gis.ru"}]
+        categories: list[dict[str, Any]] = [{"name": "Кафе", "id": "cafe"}]
         output_dir = Path("/tmp/test")
 
         parser_config = ParallelParserConfig(
@@ -221,8 +221,8 @@ class TestParserThreadConfig:
         from parser_2gis.parallel.parallel_parser import ParserThreadConfig
 
         config = Configuration()
-        cities: List[Dict[str, Any]] = [{"name": "Москва"}]
-        categories: List[Dict[str, Any]] = [{"name": "Кафе"}]
+        cities: list[dict[str, Any]] = [{"name": "Москва"}]
+        categories: list[dict[str, Any]] = [{"name": "Кафе"}]
 
         thread_config = ParserThreadConfig(
             cities=cities,

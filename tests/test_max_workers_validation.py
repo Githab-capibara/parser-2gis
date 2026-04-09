@@ -16,7 +16,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -55,13 +55,13 @@ print({const_name})
 
 
 @pytest.fixture
-def sample_cities() -> list[Dict[str, str]]:
+def sample_cities() -> list[dict[str, str]]:
     """Фикстура для примера списка городов."""
     return [{"name": "Москва", "url": "https://2gis.ru/moscow", "code": "moscow"}]
 
 
 @pytest.fixture
-def sample_categories() -> list[Dict[str, Any]]:
+def sample_categories() -> list[dict[str, Any]]:
     """Фикстура для примера списка категорий."""
     return [{"name": "Кафе", "query": "Кафе", "rubric_code": "161"}]
 

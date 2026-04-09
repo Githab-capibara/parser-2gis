@@ -13,7 +13,6 @@
 import ast
 import sys
 from pathlib import Path
-from typing import Dict, List, Set
 
 import pytest
 
@@ -130,7 +129,7 @@ class TestCyclicDependencies:
 class TestASTImportAnalysis:
     """Тесты для AST анализа импортов."""
 
-    def get_module_imports(self, module_path: Path) -> Set[str]:
+    def get_module_imports(self, module_path: Path) -> set[str]:
         """
         Получает список импортов из модуля.
 
@@ -146,7 +145,7 @@ class TestASTImportAnalysis:
         content = module_path.read_text(encoding="utf-8")
         tree = ast.parse(content)
 
-        imports: Set[str] = set()
+        imports: set[str] = set()
 
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
@@ -180,7 +179,7 @@ class TestASTImportAnalysis:
             "writer/writers/csv_writer.py",
         ]
 
-        dependencies: Dict[str, Set[str]] = {}
+        dependencies: dict[str, set[str]] = {}
 
         for module_file in core_modules:
             module_path = project_root / module_file
@@ -189,7 +188,7 @@ class TestASTImportAnalysis:
                 dependencies[module_file] = imports
 
         # Проверяем циклы
-        cycles: List[str] = []
+        cycles: list[str] = []
 
         for module_a, deps_a in dependencies.items():
             for dep in deps_a:

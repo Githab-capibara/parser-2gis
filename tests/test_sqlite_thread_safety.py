@@ -21,7 +21,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -55,8 +55,8 @@ class TestCacheThreadSafety:
         cache = CacheManager(cache_dir, ttl_hours=24)
 
         try:
-            errors: List[Exception] = []
-            results: List[Dict[str, Any]] = []
+            errors: list[Exception] = []
+            results: list[dict[str, Any]] = []
             lock = threading.Lock()
 
             def worker(worker_id: int) -> None:
@@ -125,8 +125,8 @@ class TestCacheThreadSafety:
             test_data = {"key": "value", "number": 42}
             cache.set(url, test_data)
 
-            errors: List[Exception] = []
-            read_results: List[Dict[str, Any]] = []
+            errors: list[Exception] = []
+            read_results: list[dict[str, Any]] = []
             lock = threading.Lock()
 
             def writer() -> None:
@@ -197,7 +197,7 @@ class TestNoProgrammingError:
         cache = CacheManager(cache_dir, ttl_hours=24)
 
         try:
-            errors: List[sqlite3.ProgrammingError] = []
+            errors: list[sqlite3.ProgrammingError] = []
 
             def rapid_worker(worker_id: int) -> None:
                 """Работник для быстрого доступа."""
@@ -241,7 +241,7 @@ class TestNoProgrammingError:
 
         try:
             # Создаем пакет данных
-            items: List[tuple] = []
+            items: list[tuple] = []
             for i in range(50):
                 url = f"https://example.com/batch/{i}"
                 data = {"batch_id": i, "value": f"value_{i}"}
@@ -252,8 +252,8 @@ class TestNoProgrammingError:
             assert saved_count == 50, f"Сохранено {saved_count} вместо 50"
 
             # Пакетное чтение из разных потоков
-            errors: List[sqlite3.ProgrammingError] = []
-            results: List[Dict[str, Any]] = []
+            errors: list[sqlite3.ProgrammingError] = []
+            results: list[dict[str, Any]] = []
             lock = threading.Lock()
 
             def batch_reader(start: int, end: int) -> None:
@@ -315,7 +315,7 @@ class TestCacheDataIntegrity:
         try:
             url = "https://example.com/integrity_test"
             write_count = 100
-            errors: List[Exception] = []
+            errors: list[Exception] = []
             lock = threading.Lock()
 
             def writer(worker_id: int) -> None:
@@ -372,8 +372,8 @@ class TestCacheDataIntegrity:
         try:
             num_workers = 10
             operations_per_worker = 50
-            errors: List[Exception] = []
-            successful_ops: List[int] = []
+            errors: list[Exception] = []
+            successful_ops: list[int] = []
             lock = threading.Lock()
 
             def stress_worker(worker_id: int) -> None:
@@ -448,7 +448,7 @@ class TestCacheDataIntegrity:
 
         try:
             num_urls = 20
-            errors: List[Exception] = []
+            errors: list[Exception] = []
             lock = threading.Lock()
 
             # Сначала записываем данные

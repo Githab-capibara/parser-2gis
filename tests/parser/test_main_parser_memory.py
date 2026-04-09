@@ -9,7 +9,7 @@
 """
 
 from collections import OrderedDict
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -28,7 +28,7 @@ class TestableMainPageParser(MainPageParser):
         """Заглушка для теста."""
         pass
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Заглушка для теста."""
         return self._stats
 
