@@ -142,11 +142,89 @@ class CoordinatorContext:
         return getattr(self._local, "active_coordinator", None)
 
 
-# Глобальный экземпляр контекста (не изменяемое состояние, а контейнер)
-_coordinator_context = CoordinatorContext()
+# =============================================================================
+# COORDINATOR FACTORY (ISSUE 063: Замена модульных singleton на фабрику)
+# =============================================================================
 
-# Общий обработчик сигналов (#62: вынесен в signal_handler.py)
-_signal_handler = create_signal_handler(lambda: _coordinator_context)
+
+class CoordinatorFactory:
+    """Фабрика для создания и управления координаторами.
+
+    ISSUE 063: Заменяет модульные singletons `_coordinator_context` и `_signal_handler`
+    на класс с чётким API для создания координаторов и их контекстов.
+    """
+
+    def __init__(self) -> None:
+        """Инициализирует фабрику координаторов."""
+        self._context = CoordinatorContext()
+
+    def create_coordinator(
+        self,
+        cities: list[dict],
+        categories: list[dict],
+        output_dir: str,
+        config: Configuration,
+        max_workers: int = 3,
+        timeout_per_url: int = DEFAULT_TIMEOUT,
+        error_handler: ParallelErrorHandler | None = None,
+        file_merger: ParallelFileMerger | None = None,
+        parser_factory: Callable[[str, Any, Any], Any] | None = None,
+        writer_factory: Callable[[str, str, Any], Any] | None = None,
+    ) -> ParallelCoordinator:
+        """Создаёт новый экземпляр координатора.
+
+        Args:
+            cities: Список городов.
+            categories: Список категорий.
+            output_dir: Директория вывода.
+            config: Конфигурация.
+            max_workers: Количество рабочих потоков.
+            timeout_per_url: Таймаут на URL.
+            error_handler: Обработчик ошибок (DI).
+            file_merger: Объединитель файлов (DI).
+            parser_factory: Фабрика парсеров (DI, ISSUE 068).
+            writer_factory: Фабрика писателя (DI, ISSUE 068).
+
+        Returns:
+            Новый экземпляр ParallelCoordinator.
+
+        """
+        return ParallelCoordinator(
+            cities=cities,
+            categories=categories,
+            output_dir=output_dir,
+            config=config,
+            max_workers=max_workers,
+            timeout_per_url=timeout_per_url,
+            error_handler=error_handler,
+            file_merger=file_merger,
+            parser_factory=parser_factory,
+            writer_factory=writer_factory,
+        )
+
+    def get_context(self) -> CoordinatorContext:
+        """Возвращает контекст координатора.
+
+        Returns:
+            Экземпляр CoordinatorContext.
+
+        """
+        return self._context
+
+    def create_signal_handler(self) -> Any:
+        """Создаёт обработчик сигналов для координатора.
+
+        Returns:
+            Функция обработчика сигнала.
+
+        """
+        return create_signal_handler(lambda: self._context)
+
+
+# Глобальный экземпляр фабрики для обратной совместимости
+_coordinator_factory = CoordinatorFactory()
+_coordinator_context = _coordinator_factory.get_context()
+_signal_handler = _coordinator_factory.create_signal_handler()
 
 
 class ParallelCoordinator:
@@ -235,6 +313,9 @@ class ParallelCoordinator:
         timeout_per_url: int = DEFAULT_TIMEOUT,
         error_handler: ParallelErrorHandler | None = None,
         file_merger: ParallelFileMerger | None = None,
+        # ISSUE 068: Фабрики parser и writer через конструктор
+        parser_factory: Callable[[str, Any, Any], Any] | None = None,
+        writer_factory: Callable[[str, str, Any], Any] | None = None,
     ) -> None:
         """Инициализация координатора параллельного парсинга.
 
@@ -288,6 +369,10 @@ class ParallelCoordinator:
             self.output_dir, self.config, self._cancel_event, self._lock
         )
         self._progress_reporter: ParallelProgressReporter | None = None
+
+        # ISSUE 068: Фабрики parser и writer через DI
+        self._parser_factory = parser_factory
+        self._writer_factory = writer_factory
 
         self._temp_file_cleanup_timer: TempFileTimer | None = None
         if self.config.parallel.use_temp_file_cleanup:
@@ -382,6 +467,8 @@ class ParallelCoordinator:
     def _create_parser(self, url: str) -> Any | None:
         """Создаёт парсер для указанного URL.
 
+        ISSUE 068: Использует фабрику parser если передана через DI.
+
         Args:
             url: URL для парсинга.
 
@@ -390,6 +477,9 @@ class ParallelCoordinator:
 
         """
         try:
+            # ISSUE 068: Используем фабрику если передана
+            if self._parser_factory is not None:
+                return self._parser_factory(url, self.config.chrome, self.config.parser)
             return get_parser(
                 url, chrome_options=self.config.chrome, parser_options=self.config.parser
             )
@@ -400,6 +490,8 @@ class ParallelCoordinator:
     def _create_writer(self, temp_filepath: Path) -> Any | None:
         """Создаёт writer для временного файла.
 
+        ISSUE 068: Использует фабрику writer если передана через DI.
+
         Args:
             temp_filepath: Путь к временному файлу.
 
@@ -408,6 +500,9 @@ class ParallelCoordinator:
 
         """
         try:
+            # ISSUE 068: Используем фабрику если передана
+            if self._writer_factory is not None:
+                return self._writer_factory(str(temp_filepath), "csv", self.config.writer)
             return get_writer(str(temp_filepath), "csv", self.config.writer)
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             self.log(f"Ошибка создания writer: {e}", "error")

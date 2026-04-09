@@ -86,6 +86,8 @@ class MemoryMonitor:
     Предоставляет методы для получения информации о памяти и проверки
     низкого уровня доступной памяти.
 
+    ISSUE 072: Реализует протокол MemoryManagerProtocol из protocols.py.
+
     Example:
         >>> monitor = MemoryMonitor()
         >>> info = monitor.get_memory_usage()

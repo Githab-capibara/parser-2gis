@@ -22,66 +22,107 @@ except ImportError:
     requests = None  # type: ignore[assignment]
 
 
-# =============================================================================
-# RATE LIMITING ДЛЯ ВНЕШНИХ ЗАПРОСОВ
-# =============================================================================
+class RateLimiterState:
+    """Класс для управления состоянием rate limiting с потокобезопасным доступом.
 
-# ISSUE-003-#7: Инициализируем lock и timestamps при импорте для предотвращения race condition
-# при ленивой инициализации из нескольких потоков
-_rate_limit_lock: threading.Lock = threading.Lock()
-_request_timestamps: deque[float] = deque()
-_min_request_interval: float = 0.1  # Минимальный интервал между запросами (100ms)
-_max_requests_per_second: int = 10  # Максимум запросов в секунду
+    ISSUE 061: Оборачивает модульное изменяемое состояние (_rate_limit_lock,
+    _request_timestamps) в класс с thread-safe доступом.
+    """
+
+    def __init__(
+        self,
+        min_request_interval: float = 0.1,
+        max_requests_per_second: int = 10,
+    ) -> None:
+        """Инициализирует состояние rate limiter.
+
+        Args:
+            min_request_interval: Минимальный интервал между запросами (секунды).
+            max_requests_per_second: Максимум запросов в секунду.
+
+        """
+        self._lock: threading.Lock = threading.Lock()
+        self._request_timestamps: deque[float] = deque()
+        self._min_request_interval: float = min_request_interval
+        self._max_requests_per_second: int = max_requests_per_second
+
+    def enforce_rate_limit(self) -> None:
+        """Принудительное применение rate limiting.
+
+        Ограничивает количество запросов в секунду и минимальный интервал между запросами.
+        Блокирует выполнение пока не будет разрешён следующий запрос.
+
+        Все обращения к _request_timestamps строго внутри with _lock
+        для предотвращения race condition.
+        Sleep вынесен за пределы lock.
+        """
+        now = time.time()
+        sleep_time = 0.0
+
+        with self._lock:
+            # Удаляем старые timestamps (старше 1 секунды)
+            while self._request_timestamps and self._request_timestamps[0] < now - 1.0:
+                self._request_timestamps.popleft()
+
+            # Проверяем лимит запросов в секунду
+            if len(self._request_timestamps) >= self._max_requests_per_second:
+                # Ждём пока oldest timestamp не выйдет за 1 секунду
+                oldest = self._request_timestamps[0]
+                sleep_time = (oldest + 1.0) - now
+                if sleep_time > 0:
+                    # Обновляем now после предполагаемого sleep
+                    now = now + sleep_time
+                    # Снова очищаем старые timestamps (будут неактуальны после sleep)
+                    while self._request_timestamps and self._request_timestamps[0] < now - 1.0:
+                        self._request_timestamps.popleft()
+
+            # Проверяем минимальный интервал между запросами
+            if self._request_timestamps:
+                last_request_time = self._request_timestamps[-1]
+                time_since_last = now - last_request_time
+                if time_since_last < self._min_request_interval:
+                    min_sleep = self._min_request_interval - time_since_last
+                    sleep_time = max(sleep_time, min_sleep)
+
+            # Добавляем текущий timestamp (всегда внутри lock)
+            self._request_timestamps.append(time.time())
+
+        # Sleep вынесен за пределы lock для минимизации времени блокировки
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+
+    def clear(self) -> None:
+        """Очищает timestamps (полезно для тестирования)."""
+        with self._lock:
+            self._request_timestamps.clear()
+
+    @property
+    def request_count(self) -> int:
+        """Возвращает текущее количество timestamps в окне."""
+        with self._lock:
+            return len(self._request_timestamps)
+
+
+# Глобальный экземпляр состояния для обратной совместимости
+_default_state = RateLimiterState()
 
 
 def _enforce_rate_limit() -> None:
     """HIGH 8: Принудительное применение rate limiting.
 
-    Ограничивает количество запросов в секунду и минимальный интервал между запросами.
-    Блокирует выполнение пока не будет разрешён следующий запрос.
-
-    ИСПРАВЛЕНИЕ #1: Все обращения к _request_timestamps строго внутри with _rate_limit_lock
-    для предотвращения race condition при одновременных append/popleft операциях.
-
-    ИСПРАВЛЕНИЕ #12: Sleep вынесен за пределы lock — сначала вычисляем время ожидания
-    внутри lock, затем освобождаем lock и спим снаружи.
-
-    ISSUE 009: Убран ненужный `global` — функция только мутирует deque, но не переназначает его.
+    Делегирует вызов глобальному экземпляру RateLimiterState.
     """
-    now = time.time()
-    sleep_time = 0.0
+    _default_state.enforce_rate_limit()
 
-    with _rate_limit_lock:
-        # Удаляем старые timestamps (старше 1 секунды)
-        while _request_timestamps and _request_timestamps[0] < now - 1.0:
-            _request_timestamps.popleft()
 
-        # Проверяем лимит запросов в секунду
-        if len(_request_timestamps) >= _max_requests_per_second:
-            # Ждём пока oldest timestamp не выйдет за 1 секунду
-            oldest = _request_timestamps[0]
-            sleep_time = (oldest + 1.0) - now
-            if sleep_time > 0:
-                # Обновляем now после предполагаемого sleep
-                now = now + sleep_time
-                # Снова очищаем старые timestamps (будут неактуальны после sleep)
-                while _request_timestamps and _request_timestamps[0] < now - 1.0:
-                    _request_timestamps.popleft()
+def get_rate_limiter_state() -> RateLimiterState:
+    """Возвращает глобальный экземпляр состояния rate limiter.
 
-        # Проверяем минимальный интервал между запросами
-        if _request_timestamps:
-            last_request_time = _request_timestamps[-1]
-            time_since_last = now - last_request_time
-            if time_since_last < _min_request_interval:
-                min_sleep = _min_request_interval - time_since_last
-                sleep_time = max(sleep_time, min_sleep)
+    Returns:
+        Экземпляр RateLimiterState для управления rate limiting.
 
-        # Добавляем текущий timestamp (всегда внутри lock)
-        _request_timestamps.append(time.time())
-
-    # Sleep вынесен за пределы lock для минимизации времени блокировки
-    if sleep_time > 0:
-        time.sleep(sleep_time)
+    """
+    return _default_state
 
 
 def _safe_external_request(
@@ -127,3 +168,11 @@ def _safe_external_request(
 
         app_logger.error("Неожиданная ошибка HTTP запроса к %s: %s", url, e)
         return None
+
+
+__all__ = [
+    "RateLimiterState",
+    "_enforce_rate_limit",
+    "_safe_external_request",
+    "get_rate_limiter_state",
+]

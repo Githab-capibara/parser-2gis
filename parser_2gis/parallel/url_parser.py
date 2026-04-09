@@ -28,6 +28,7 @@ from parser_2gis.delay_utils import apply_startup_delay
 from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger.logger import logger
 from parser_2gis.parallel.cleanup_utils import cleanup_temp_file
+from parser_2gis.parallel.protocols import MemoryMonitorProtocol
 from parser_2gis.parallel.strategies import MEMORY_THRESHOLD_BYTES
 from parser_2gis.protocols import UrlGeneratorProtocol
 from parser_2gis.utils.url_utils import generate_category_url
@@ -63,9 +64,11 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         output_dir: Path,
         config: Configuration,
         timeout_per_url: int = DEFAULT_TIMEOUT,
+        memory_monitor: MemoryMonitorProtocol | None = None,
     ) -> None:
         """Инициализирует парсер URL.
 
+        ISSUE-069: MemoryMonitor принимается через протокол вместо прямого импорта.
         ISSUE-106, ISSUE-107: Добавлена валидация cities и categories на пустой список.
 
         Args:
@@ -74,6 +77,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             output_dir: Папка для сохранения результатов.
             config: Конфигурация парсера.
             timeout_per_url: Таймаут на один URL в секундах.
+            memory_monitor: Монитор памяти через протокол (ISSUE-069).
 
         Raises:
             ValueError: Если cities или categories пустой.
@@ -96,6 +100,8 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         self.output_dir = output_dir
         self.config = config
         self.timeout_per_url = timeout_per_url
+        # ISSUE-069: MemoryMonitor через протокол
+        self._memory_monitor: MemoryMonitorProtocol = memory_monitor or MemoryMonitor()
 
         # Статистика (все операции защищены _lock)
         self._stats: dict[str, int] = {"total": 0, "success": 0, "failed": 0, "skipped": 0}
@@ -163,9 +169,8 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             Кортеж (успех, сообщение).
 
         """
-        # Проверка доступной памяти через инфраструктурный модуль
-        memory_monitor = MemoryMonitor()
-        available_memory = memory_monitor.get_available_memory()
+        # ISSUE-069: Проверка доступной памяти через протокол
+        available_memory = self._memory_monitor.get_available_memory()
         if available_memory < MEMORY_THRESHOLD_BYTES:
             logger.warning(
                 "Low memory (%dMB), skipping %s - %s",

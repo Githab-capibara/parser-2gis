@@ -11,8 +11,9 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     import queue
@@ -82,6 +83,80 @@ class _LazyLogger:
 # Глобальный экземпляр ленивого логгера
 logger = _LazyLogger()
 Logger = logging.Logger
+
+
+class LoggerProvider:
+    """Провайдер для создания и получения именованных логгеров.
+
+    ISSUE 062: Заменяет модульный singleton logger на класс LoggerProvider,
+    который создаёт/получает логгеры с чётким API.
+    """
+
+    _loggers: ClassVar[dict[str, logging.Logger]] = {}
+    _lock: ClassVar[threading.Lock] = threading.Lock()
+
+    @classmethod
+    def get_logger(cls, name: str = _LOGGER_NAME) -> logging.Logger:
+        """Получает или создаёт именованный логгер.
+
+        Args:
+            name: Имя логгера. По умолчанию используется имя приложения.
+
+        Returns:
+            Настроенный экземпляр logging.Logger.
+
+        """
+        with cls._lock:
+            if name not in cls._loggers:
+                log_instance = logging.getLogger(name)
+                if not log_instance.handlers:
+                    handler = logging.StreamHandler()
+                    formatter = _create_formatter(
+                        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                    handler.setFormatter(formatter)
+                    log_instance.addHandler(handler)
+                    log_instance.setLevel(logging.INFO)
+                cls._loggers[name] = log_instance
+            return cls._loggers[name]
+
+    @classmethod
+    def configure_logger(
+        cls,
+        name: str = _LOGGER_NAME,
+        level: str | int = logging.INFO,
+        fmt: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt: str = "%Y-%m-%d %H:%M:%S",
+    ) -> logging.Logger:
+        """Настраивает логгер с заданными параметрами.
+
+        Args:
+            name: Имя логгера.
+            level: Уровень логирования.
+            fmt: Строка формата логов.
+            datefmt: Строка формата даты.
+
+        Returns:
+            Настроенный экземпляр logging.Logger.
+
+        """
+        with cls._lock:
+            log_instance = logging.getLogger(name)
+            if not log_instance.handlers:
+                handler = logging.StreamHandler()
+                formatter = _create_formatter(fmt, datefmt)
+                handler.setFormatter(formatter)
+                log_instance.addHandler(handler)
+                log_instance.setLevel(level)
+            cls._loggers[name] = log_instance
+            return log_instance
+
+    @classmethod
+    def clear(cls) -> None:
+        """Очищает кэш логгеров (полезно для тестирования)."""
+        with cls._lock:
+            cls._loggers.clear()
 
 
 def _create_formatter(fmt: str, datefmt: str) -> logging.Formatter:
@@ -203,10 +278,6 @@ def setup_logger(level: str, fmt: str, datefmt: str) -> None:
     """
     # ISSUE-015: Используем _setup_base_logger для устранения дублирования
     _setup_base_logger(level=level, fmt=fmt, datefmt=datefmt)
-
-
-logger = logging.getLogger(_LOGGER_NAME)
-Logger = logging.Logger
 
 
 def log_parser_start(

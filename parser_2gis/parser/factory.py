@@ -24,11 +24,14 @@ from __future__ import annotations
 import logging
 import re
 import sys
+import threading
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from .parsers import FirmParser, InBuildingParser, MainParser
 from .parsers.base import BaseParser
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from parser_2gis.chrome.options import ChromeOptions
@@ -36,16 +39,113 @@ if TYPE_CHECKING:
     from parser_2gis.protocols import BrowserService
 
 # =============================================================================
-# REGISTRY PATTERN ДЛЯ PARSERS
+# PARSER REGISTRY CLASS (ISSUE 064: Инкапсуляция реестра парсеров)
 # =============================================================================
 
-PARSER_REGISTRY: dict[str, type[BaseParser]] = {}
-"""Реестр зарегистрированных parser классов по названию."""
 
-_PARSER_PATTERNS: list[tuple[type[BaseParser], re.Pattern]] = []
-"""Список кортежей (parser_class, compiled_pattern) для сопоставления URL."""
+class ParserRegistry:
+    """Реестр парсеров с инкапсуляцией и thread-safe доступом.
 
-logger = logging.getLogger(__name__)
+    ISSUE 064: Оборачивает PARSER_REGISTRY и _PARSER_PATTERNS в класс
+    с надлежащей инкапсуляцией.
+    """
+
+    def __init__(self) -> None:
+        """Инициализирует реестр парсеров."""
+        self._registry: dict[str, type[BaseParser]] = {}
+        self._patterns: list[tuple[type[BaseParser], re.Pattern]] = []
+        self._lock = threading.Lock()
+
+    def register(self, parser_cls: type[BaseParser], priority: int = 0) -> None:
+        """Регистрирует класс парсера в реестре.
+
+        Args:
+            parser_cls: Класс парсера.
+            priority: Приоритет (чем выше, тем раньше проверяется).
+
+        """
+        with self._lock:
+            self._registry[parser_cls.__name__] = parser_cls
+
+            try:
+                pattern_str = parser_cls.url_pattern()
+                compiled_pattern = re.compile(pattern_str)
+                self._patterns.append((parser_cls, compiled_pattern))
+
+                # Сортируем по приоритету (убывание) и имени (возрастание)
+                self._patterns.sort(
+                    key=lambda x: (-getattr(x[0], "priority", 0), x[0].__name__)
+                )
+            except (AttributeError, TypeError) as e:
+                logger.warning(
+                    "Парсер %s не имеет url_pattern, пропускаем регистрацию: %s",
+                    parser_cls.__name__,
+                    e,
+                )
+
+    def unregister(self, parser_name: str) -> None:
+        """Удаляет парсер из реестра.
+
+        Args:
+            parser_name: Имя парсера для удаления.
+
+        """
+        with self._lock:
+            self._registry.pop(parser_name, None)
+            self._patterns = [
+                (cls, pat) for cls, pat in self._patterns if cls.__name__ != parser_name
+            ]
+
+    def find_parser(self, url: str) -> type[BaseParser] | None:
+        """Находит парсер по URL.
+
+        Args:
+            url: URL для поиска парсера.
+
+        Returns:
+            Класс парсера или None если не найден.
+
+        """
+        with self._lock:
+            for parser_cls, pattern in self._patterns:
+                if pattern.match(url):
+                    return parser_cls
+        return None
+
+    def get_registry(self) -> dict[str, type[BaseParser]]:
+        """Возвращает копию реестра.
+
+        Returns:
+            Словарь {название_парсера: класс_парсера}.
+
+        """
+        with self._lock:
+            return self._registry.copy()
+
+    def clear(self) -> None:
+        """Очищает реестр."""
+        with self._lock:
+            self._registry.clear()
+            self._patterns.clear()
+
+    @property
+    def patterns(self) -> list[tuple[type[BaseParser], re.Pattern]]:
+        """Возвращает список паттернов (для обратной совместимости).
+
+        Returns:
+            Список кортежей (parser_class, compiled_pattern).
+
+        """
+        with self._lock:
+            return list(self._patterns)
+
+
+# Глобальный экземпляр реестра для обратной совместимости
+_parser_registry = ParserRegistry()
+
+# Алиасы для обратной совместимости
+PARSER_REGISTRY = _parser_registry._registry
+_PARSER_PATTERNS = _parser_registry.patterns
 
 
 def register_parser(priority: int = 0) -> Callable[..., Any]:
@@ -76,22 +176,8 @@ def register_parser(priority: int = 0) -> Callable[..., Any]:
         if priority < 0:
             raise ValueError(f"Приоритет парсера не может быть отрицательным: {priority}")
 
-        # Регистрируем класс в реестре
-        PARSER_REGISTRY[parser_cls.__name__] = parser_cls
-
-        # Компилируем паттерн и добавляем в список
-        try:
-            pattern_str = parser_cls.url_pattern()
-            compiled_pattern = re.compile(pattern_str)
-            _PARSER_PATTERNS.append((parser_cls, compiled_pattern))
-
-            # Сортируем по приоритету (убывание) и имени (возрастание)
-            _PARSER_PATTERNS.sort(key=lambda x: (-getattr(x[0], "priority", 0), x[0].__name__))
-        except (AttributeError, TypeError) as e:
-            # Если у класса нет url_pattern, пропускаем его
-            logger.warning(
-                "Парсер %s не имеет url_pattern, пропускаем регистрацию: %s", parser_cls.__name__, e
-            )
+        # Регистрируем через ParserRegistry
+        _parser_registry.register(parser_cls, priority)
 
         return parser_cls
 
@@ -124,11 +210,17 @@ def get_parser(
         >>> parser.parse()
 
     """
-    for parser_cls, pattern in _PARSER_PATTERNS:
-        if pattern.match(url):
-            return parser_cls(url, chrome_options, parser_options, browser=browser)
+    parser_cls = _parser_registry.find_parser(url)
+    if parser_cls is not None:
+        return parser_cls(url, chrome_options, parser_options, browser=browser)
 
-    # Возвращаем парсер по умолчанию
+    # ISSUE 078: Возвращаем MainParser как явно помеченный fallback
+    from parser_2gis.logger.logger import logger as fallback_logger
+
+    fallback_logger.warning(
+        "Не найден специализированный парсер для URL: %s. Используется MainParser по умолчанию.",
+        url,
+    )
     return MainParser(url, chrome_options, parser_options, browser=browser)
 
 
@@ -139,7 +231,7 @@ def get_registered_parsers() -> dict[str, type[BaseParser]]:
         Словарь {название_парсера: класс_парсера}.
 
     """
-    return PARSER_REGISTRY.copy()
+    return _parser_registry.get_registry()
 
 
 def clear_parser_registry() -> None:
@@ -147,8 +239,17 @@ def clear_parser_registry() -> None:
 
     Полезно для тестирования или перерегистрации парсеров.
     """
-    PARSER_REGISTRY.clear()
-    _PARSER_PATTERNS.clear()
+    _parser_registry.clear()
+
+
+def get_parser_registry() -> ParserRegistry:
+    """Возвращает экземпляр реестра парсеров.
+
+    Returns:
+        Экземпляр ParserRegistry.
+
+    """
+    return _parser_registry
 
 
 # =============================================================================
@@ -229,9 +330,11 @@ auto_discover_parsers()
 __all__ = [
     "PARSER_REGISTRY",
     "_PARSER_PATTERNS",
+    "ParserRegistry",
     "auto_discover_parsers",
     "clear_parser_registry",
     "get_parser",
+    "get_parser_registry",
     "get_registered_parsers",
     "register_parser",
 ]

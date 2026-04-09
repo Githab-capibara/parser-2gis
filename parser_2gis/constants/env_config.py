@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
@@ -270,27 +270,114 @@ class EnvConfig:
 
 
 # =============================================================================
-# LAZY ИНИЦИАЛИЗАЦИЯ ENV CONFIG (SINGLETON PATTERN БЕЗ ГЛОБАЛЬНОГО СОСТОЯНИЯ)
+# ENV CONFIG MANAGER (ISSUE 066: Замена lazy singleton на EnvConfigManager)
 # =============================================================================
 
 
+class EnvConfigManager:
+    """Менеджер конфигурации ENV переменных с чётким API и инвалидацией кэша.
+
+    ISSUE 066: Заменяет lazy singleton на класс с методами для получения,
+    создания и инвалидации конфигурации.
+
+    Example:
+        >>> manager = EnvConfigManager()
+        >>> config = manager.get_config()
+        >>> manager.invalidate()  # Сброс кэша
+        >>> new_config = manager.get_config()  # Пересоздаст конфигурацию
+
+    """
+
+    def __init__(self) -> None:
+        """Инициализирует менеджер конфигурации."""
+        self._instance: EnvConfig | None = None
+        self._lock = __import__("threading").Lock()
+
+    def get_config(self) -> EnvConfig:
+        """Получает экземпляр EnvConfig с lazy инициализацией.
+
+        EnvConfig создаётся только при первом вызове функции.
+        Это предотвращает лишние вычисления при импорте модуля.
+
+        Returns:
+            Экземпляр EnvConfig.
+
+        """
+        with self._lock:
+            if self._instance is None:
+                self._instance = EnvConfig()
+            return self._instance
+
+    def invalidate(self) -> None:
+        """Инвалидирует (сбрасывает) кэшированный экземпляр конфигурации.
+
+        Полезно при изменении ENV переменных во время выполнения,
+        когда требуется перечитать конфигурацию.
+
+        """
+        with self._lock:
+            self._instance = None
+
+    def refresh(self) -> EnvConfig:
+        """Инвалидирует кэш и возвращает новый экземпляр конфигурации.
+
+        Returns:
+            Новый экземпляр EnvConfig.
+
+        """
+        self.invalidate()
+        return self.get_config()
+
+    def is_cached(self) -> bool:
+        """Проверяет, закэширован ли экземпляр конфигурации.
+
+        Returns:
+            True если конфигурация уже создана.
+
+        """
+        with self._lock:
+            return self._instance is not None
+
+
+# Глобальный экземпляр менеджера
+_env_config_manager = EnvConfigManager()
+
+
 def get_env_config() -> EnvConfig:
-    """Получает singleton экземпляр EnvConfig с lazy инициализацией.
+    """Получает экземпляр EnvConfig с lazy инициализацией.
 
     EnvConfig создаётся только при первом вызове функции, а не при импорте модуля.
     Это предотвращает лишние вычисления при импорте и ускоряет запуск модуля.
 
     Returns:
-        Singleton экземпляр EnvConfig.
+        Экземпляр EnvConfig.
 
     Example:
         >>> config = get_env_config()
         >>> print(config.max_workers)  # 50 (или значение из PARSER_MAX_WORKERS)
 
     """
-    if not hasattr(get_env_config, "_instance"):
-        object.__setattr__(get_env_config, "_instance", EnvConfig())
-    return cast(EnvConfig, get_env_config._instance)
+    return _env_config_manager.get_config()
+
+
+def invalidate_env_config() -> None:
+    """Инвалидирует кэшированный экземпляр EnvConfig.
+
+    Вызовите эту функцию после изменения ENV переменных,
+    чтобы перечитать конфигурацию при следующем вызове get_env_config().
+
+    """
+    _env_config_manager.invalidate()
+
+
+def get_env_config_manager() -> EnvConfigManager:
+    """Возвращает менеджер конфигурации ENV переменных.
+
+    Returns:
+        Экземпляр EnvConfigManager.
+
+    """
+    return _env_config_manager
 
 
 def validate_env_int(
@@ -314,4 +401,11 @@ def validate_env_int(
     return get_env_config()._validate_env_int(env_name, default, min_value, max_value)
 
 
-__all__ = ["EnvConfig", "get_env_config", "validate_env_int"]
+__all__ = [
+    "EnvConfig",
+    "EnvConfigManager",
+    "get_env_config",
+    "get_env_config_manager",
+    "invalidate_env_config",
+    "validate_env_int",
+]

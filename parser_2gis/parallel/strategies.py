@@ -22,12 +22,14 @@ from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any
 
 from parser_2gis.constants import DEFAULT_TIMEOUT
 from parser_2gis.delay_utils import apply_startup_delay
 from parser_2gis.logger.logger import logger
 from parser_2gis.parallel.cleanup_utils import cleanup_temp_file
+from parser_2gis.parallel.protocols import MemoryMonitorProtocol
+from parser_2gis.protocols import UrlGeneratorProtocol as UrlGeneratorProtocolBase
 from parser_2gis.utils.temp_file_manager import temp_file_manager
 from parser_2gis.utils.url_utils import generate_category_url
 
@@ -55,29 +57,18 @@ DEFAULT_PARSE_RETRY_DELAY: float = 5.0
 # PROTOCOLS FOR FACTORY INJECTION (ISSUE-030, ISSUE-040)
 # =============================================================================
 
-
-@runtime_checkable
-class MemoryMonitorProtocol(Protocol):
-    """Протокол мониторинга памяти для устранения прямой зависимости.
-
-    ISSUE-040: Определяет интерфейс MemoryMonitor без прямого импорта.
-    """
-
-    def get_available_memory(self) -> int:
-        """Получает доступный объем памяти в байтах."""
-        ...
-
-
 # Type aliases для factory callable
 ParserFactory = Callable[[str, Any, Any], Any]
 WriterFactory = Callable[[str, str, Any], Any]
 
 
-class UrlGenerationStrategy:
+class UrlGenerationStrategy(UrlGeneratorProtocolBase):
     """Стратегия генерации URL для парсинга.
 
     Отвечает за генерацию URL из городов и категорий.
     Поддерживает lazy generation для экономии памяти.
+
+    ISSUE 074, 080: Реализует протокол UrlGeneratorProtocol.
     """
 
     def __init__(
@@ -95,11 +86,11 @@ class UrlGenerationStrategy:
         self.categories = categories
         self._stats_lock = stats_lock
 
-    def generate_all_urls(self, stats: dict) -> list[UrlTuple]:
+    def generate_all_urls(self, stats: dict | None = None) -> list[UrlTuple]:
         """Генерирует все URL для парсинга.
 
         Args:
-            stats: Словарь статистики для обновления.
+            stats: Словарь статистики для обновления (опционально).
 
         Returns:
             Список кортежей (url, category_name, city_name).
@@ -107,8 +98,9 @@ class UrlGenerationStrategy:
         """
         all_urls = list(self.generate_all_urls_lazy())
 
-        with self._stats_lock:
-            stats["total"] = len(all_urls)
+        if stats is not None:
+            with self._stats_lock:
+                stats["total"] = len(all_urls)
 
         logger.info(f"Сгенерировано {len(all_urls)} URL для парсинга")
         return all_urls
@@ -338,8 +330,13 @@ class ParseStrategy:
         city_name: str,
         progress_callback: Callable[[int, int, str], None] | None = None,
         cancel_event: threading.Event | None = None,
+        parser: Any | None = None,
+        writer: Any | None = None,
     ) -> ParserResult:
         """Парсит один URL и сохраняет результат в файл.
+
+        ISSUE 067: parser и writer могут быть переданы как параметры
+        вместо вызова get_parser()/get_writer() напрямую.
 
         Args:
             url: URL для парсинга.
@@ -347,6 +344,8 @@ class ParseStrategy:
             city_name: Название города.
             progress_callback: Функция обновления прогресса.
             cancel_event: Событие отмены.
+            parser: Готовый экземпляр парсера (ISSUE 067).
+            writer: Готовый экземпляр писателя (ISSUE 067).
 
         Returns:
             Кортеж (success, message).
@@ -391,8 +390,9 @@ class ParseStrategy:
                 self._browser_semaphore.acquire()
                 semaphore_acquired = True
 
-            parser = None
-            writer = None
+            # ISSUE 067: Используем переданные parser и writer если они есть
+            local_parser = parser
+            local_writer = writer
 
             try:
                 # Локальные импорты
@@ -402,56 +402,59 @@ class ParseStrategy:
                 # #65-#67: Использует общую утилиту apply_startup_delay
                 apply_startup_delay(self.config, phase="launch", log_func=self._log)
 
-                # Создаём parser и writer с повторными попытками
-                # ISSUE-030: Используем фабрики если переданы, иначе fallback на прямые импорты
-                max_retries = self._max_retries
-                retry_delay = self._retry_delay
+                # Создаём parser и writer если не переданы
+                if local_parser is None or local_writer is None:
+                    max_retries = self._max_retries
+                    retry_delay = self._retry_delay
 
-                for attempt in range(max_retries):
-                    try:
-                        # ISSUE-030: Фабрики для создания parser и writer
-                        if self._writer_factory:
-                            writer = self._writer_factory(
-                                str(temp_filepath), "csv", self.config.writer
-                            )
-                        else:
-                            from parser_2gis.writer import get_writer
+                    for attempt in range(max_retries):
+                        try:
+                            if local_writer is None:
+                                if self._writer_factory:
+                                    local_writer = self._writer_factory(
+                                        str(temp_filepath), "csv", self.config.writer
+                                    )
+                                else:
+                                    from parser_2gis.writer import get_writer
 
-                            writer = get_writer(str(temp_filepath), "csv", self.config.writer)
+                                    local_writer = get_writer(
+                                        str(temp_filepath), "csv", self.config.writer
+                                    )
 
-                        if self._parser_factory:
-                            parser = self._parser_factory(
-                                url, self.config.chrome, self.config.parser
-                            )
-                        else:
-                            from parser_2gis.parser import get_parser
+                            if local_parser is None:
+                                if self._parser_factory:
+                                    local_parser = self._parser_factory(
+                                        url, self.config.chrome, self.config.parser
+                                    )
+                                else:
+                                    from parser_2gis.parser import get_parser
 
-                            parser = get_parser(
-                                url,
-                                chrome_options=self.config.chrome,
-                                parser_options=self.config.parser,
-                            )
-                        break
-                    except ChromeException as chrome_error:
-                        if attempt < max_retries - 1:
-                            self._log(
-                                f"Попытка {attempt + 1}/{max_retries} не удалась: {chrome_error}. "
-                                f"Повтор через {retry_delay:.1f} сек...",
-                                "warning",
-                            )
-                            time.sleep(retry_delay)
-                            retry_delay *= 2
-                        else:
-                            raise
+                                    local_parser = get_parser(
+                                        url,
+                                        chrome_options=self.config.chrome,
+                                        parser_options=self.config.parser,
+                                    )
+                            break
+                        except ChromeException as chrome_error:
+                            if attempt < max_retries - 1:
+                                self._log(
+                                    f"Попытка {attempt + 1}/{max_retries} не удалась: {chrome_error}. "
+                                    f"Повтор через {retry_delay:.1f} сек...",
+                                    "warning",
+                                )
+                                time.sleep(retry_delay)
+                                retry_delay *= 2
+                            else:
+                                raise
 
                 # Выполняем парсинг
                 try:
-                    with parser, writer:
-                        parser.parse(writer)
+                    with local_parser, local_writer:
+                        local_parser.parse(local_writer)
                 except MemoryError as memory_error:
                     logger.error(f"Memory error while parsing {url}: {memory_error}")
-                    if hasattr(parser, "_cache"):
-                        parser._cache.clear()
+                    if hasattr(local_parser, "_cache"):
+                        local_parser._cache.clear()
                     gc.collect()
                     self._update_stats(False)
                     return False, f"MemoryError: {memory_error}"
@@ -552,7 +555,6 @@ __all__ = [
     "DEFAULT_PARSE_RETRY_DELAY",
     "MEMORY_THRESHOLD_BYTES",
     "MemoryCheckStrategy",
-    "MemoryMonitorProtocol",
     "ParseStrategy",
     "ParserFactory",
     "ParserResult",

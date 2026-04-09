@@ -19,6 +19,7 @@ from typing import Any
 from parser_2gis.constants import GC_MEMORY_THRESHOLD_MB
 from parser_2gis.infrastructure import MemoryMonitor
 from parser_2gis.logger.logger import logger
+from parser_2gis.parallel.protocols import MemoryMonitorProtocol
 from parser_2gis.protocols import MemoryManagerProtocol
 
 
@@ -38,17 +39,24 @@ class MemoryManager(MemoryManagerProtocol):
 
     """
 
-    def __init__(self, memory_threshold_mb: int | None = None) -> None:
+    def __init__(
+        self,
+        memory_threshold_mb: int | None = None,
+        memory_monitor: MemoryMonitorProtocol | None = None,
+    ) -> None:
         """Инициализирует менеджер памяти.
 
+        ISSUE-070: MemoryMonitor принимается через протокол вместо прямого импорта.
         ISSUE-152: Использует константу GC_MEMORY_THRESHOLD_MB по умолчанию.
 
         Args:
             memory_threshold_mb: Порог нехватки памяти в мегабайтах.
+            memory_monitor: Монитор памяти через протокол (ISSUE-070).
 
         """
         self._memory_threshold_mb = memory_threshold_mb or GC_MEMORY_THRESHOLD_MB
-        self._memory_monitor = MemoryMonitor()
+        # ISSUE-070: MemoryMonitor через протокол
+        self._memory_monitor: MemoryMonitorProtocol = memory_monitor or MemoryMonitor()
         self._memory_warnings: int = 0
         self._gc_count: int = 0
         # H016: Кэширование результатов проверки памяти

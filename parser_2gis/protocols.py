@@ -370,6 +370,107 @@ class MemoryManagerProtocol(Protocol):
         """Получает статистику использования памяти."""
 
 
+# =============================================================================
+# RETRY STRATEGY PROTOCOL (ISSUE 075)
+# =============================================================================
+
+
+@runtime_checkable
+class RetryStrategy(Protocol):
+    """Протокол стратегии повторных попыток.
+
+    ISSUE 075: Унифицированный протокол для различных стратегий retry.
+    Позволяет использовать разные стратегии (fixed, exponential, linear)
+    через единый интерфейс.
+
+    Example:
+        >>> strategy: RetryStrategy = ExponentialRetryStrategy(max_retries=3, base_delay=1.0)
+        >>> for attempt in range(strategy.max_retries):
+        ...     delay = strategy.get_delay(attempt)
+        ...     if strategy.should_retry(attempt, error):
+        ...         time.sleep(delay)
+
+    """
+
+    @property
+    def max_retries(self) -> int:
+        """Максимальное количество попыток."""
+        ...
+
+    def get_delay(self, attempt: int) -> float:
+        """Возвращает задержку для данной попытки.
+
+        Args:
+            attempt: Номер текущей попытки (0-based).
+
+        Returns:
+            Задержка в секундах.
+
+        """
+        ...
+
+    def should_retry(self, attempt: int, error: Exception | None = None) -> bool:
+        """Определяет, следует ли выполнить повторную попытку.
+
+        Args:
+            attempt: Номер текущей попытки (0-based).
+            error: Произошедшая ошибка (опционально).
+
+        Returns:
+            True если стоит повторить.
+
+        """
+        ...
+
+
+# =============================================================================
+# FILE LOCK STRATEGY PROTOCOL (ISSUE 076)
+# =============================================================================
+
+
+@runtime_checkable
+class FileLockStrategy(Protocol):
+    """Протокол стратегии файловой блокировки.
+
+    ISSUE 076: Абстракция для управления файловыми блокировками.
+    Позволяет использовать разные реализации (fcntl, flock, portable).
+
+    Example:
+        >>> strategy: FileLockStrategy = FcntlLockStrategy(Path("/tmp/lock"))
+        >>> with strategy:
+        ...     if strategy.is_acquired:
+        ...         # Выполняем защищённую операцию
+        ...         pass
+
+    """
+
+    def acquire(self) -> bool:
+        """Получает блокировку.
+
+        Returns:
+            True если блокировка получена.
+
+        """
+        ...
+
+    def release(self) -> None:
+        """Освобождает блокировку."""
+        ...
+
+    @property
+    def is_acquired(self) -> bool:
+        """Проверяет, получена ли блокировка."""
+        ...
+
+    def __enter__(self) -> bool:
+        """Контекстный менеджер: получает блокировку."""
+        ...
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Контекстный менеджер: освобождает блокировку."""
+        ...
+
+
 __all__ = [
     "BrowserContentAccess",
     "BrowserJSExecution",
@@ -397,4 +498,7 @@ __all__ = [
     "UrlGeneratorProtocol",
     # Data Protocols
     "Writer",
+    # Retry Strategy Protocol (ISSUE 075)
+    "FileLockStrategy",
+    "RetryStrategy",
 ]
