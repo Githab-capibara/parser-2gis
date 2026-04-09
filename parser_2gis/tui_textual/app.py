@@ -339,7 +339,7 @@ class TUIApp(App):
         self._state = AppState()  # ISSUE-020: Используем dataclass
         self._file_logger: logging.Logger | None = None
         self._log_file: Path | None = None
-        self._parser: "ParallelCityParser | None" = None
+        self._parser: ParallelCityParser | None = None
         self._running = False
         self._started_at: datetime | None = None
         self._last_notification: dict[str, str] | None = None

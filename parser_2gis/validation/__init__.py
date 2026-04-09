@@ -40,8 +40,6 @@ from .data_validator import (
     validate_string_length,
 )
 
-# Импортируем всё из legacy для обратной совместимости
-from .legacy import *  # noqa: F403
 from .path_validation import (
     PathSafetyValidator,
     PathTraversalError,

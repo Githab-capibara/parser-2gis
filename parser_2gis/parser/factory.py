@@ -284,7 +284,6 @@ def _discover_parsers_via_importlib() -> None:
 
         # Импортируем все модули из пакета parsers
         import importlib.util
-        import os
 
         for _finder, module_name, _is_pkg in getattr(
             __import__("pkgutil"), "_iter_importers", lambda *a: []
