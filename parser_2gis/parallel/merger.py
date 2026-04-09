@@ -541,7 +541,7 @@ class ParallelFileMerger:
     def __init__(
         self,
         output_dir: Path,
-        config: "Configuration",
+        config: Configuration,
         cancel_event: threading.Event,
         lock: threading.RLock,
     ) -> None:

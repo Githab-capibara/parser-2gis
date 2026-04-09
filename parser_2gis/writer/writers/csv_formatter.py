@@ -260,9 +260,9 @@ class CompositeFormatter(BaseFormatter):
 
 __all__ = [
     "BaseFormatter",
+    "CompositeFormatter",
+    "ContactFormatter",
     "PhoneFormatter",
     "SanitizeFormatter",
-    "ContactFormatter",
     "TypeFormatter",
-    "CompositeFormatter",
 ]

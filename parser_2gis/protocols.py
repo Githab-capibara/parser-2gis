@@ -19,9 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from concurrent.futures import Future
-from typing import Any, Protocol, runtime_checkable
-
-from typing_extensions import TypeAlias
+from typing import Any, Protocol, TypeAlias, runtime_checkable
 
 # =============================================================================
 # TYPE ALIASES FOR COMPLEX TYPES
@@ -137,7 +135,7 @@ class Writer(Protocol):
     def close(self) -> None:
         """Закрывает writer и освобождает ресурсы."""
 
-    def __enter__(self) -> "Writer":
+    def __enter__(self) -> Writer:
         """Контекстный менеджер для входа."""
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:

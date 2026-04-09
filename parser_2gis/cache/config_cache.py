@@ -271,4 +271,4 @@ def get_config_cache() -> ConfigCache:
     return get_config_cache._instance  # type: ignore[attr-defined]
 
 
-__all__ = ["ConfigCache", "get_config_cache", "CategoryDict"]
+__all__ = ["CategoryDict", "ConfigCache", "get_config_cache"]

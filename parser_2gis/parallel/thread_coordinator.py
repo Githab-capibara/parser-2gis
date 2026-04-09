@@ -58,11 +58,11 @@ class _CoordinatorContext:
         """Инициализирует контекстный менеджер."""
         self._local = threading.local()
 
-    def set_coordinator(self, coordinator: "ThreadCoordinator | None") -> None:
+    def set_coordinator(self, coordinator: ThreadCoordinator | None) -> None:
         """Устанавливает активный координатор для текущего потока."""
         self._local.active_coordinator = coordinator
 
-    def get_coordinator(self) -> "ThreadCoordinator | None":
+    def get_coordinator(self) -> ThreadCoordinator | None:
         """Получает активный координатор для текущего потока."""
         return getattr(self._local, "active_coordinator", None)
 

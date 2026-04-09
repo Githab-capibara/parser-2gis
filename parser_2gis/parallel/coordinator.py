@@ -123,7 +123,7 @@ class CoordinatorContext:
         """Инициализирует контекстный менеджер."""
         self._local = threading.local()
 
-    def set_coordinator(self, coordinator: "ParallelCoordinator | None") -> None:
+    def set_coordinator(self, coordinator: ParallelCoordinator | None) -> None:
         """Устанавливает активный координатор для текущего потока.
 
         Args:
@@ -132,7 +132,7 @@ class CoordinatorContext:
         """
         self._local.active_coordinator = coordinator
 
-    def get_coordinator(self) -> "ParallelCoordinator | None":
+    def get_coordinator(self) -> ParallelCoordinator | None:
         """Получает активный координатор для текущего потока.
 
         Returns:
@@ -480,16 +480,15 @@ class ParallelCoordinator:
 
             try:
                 # pylint: disable=not-context-manager
-                with parser:
-                    with writer:
-                        try:
-                            parser.parse(writer)
-                        except MemoryError as memory_error:
-                            return self._error_handler.handle_memory_error(
-                                memory_error, temp_filepath, url
-                            )
-                        finally:
-                            logger.debug("Завершена очистка ресурсов парсера")
+                with parser, writer:
+                    try:
+                        parser.parse(writer)
+                    except MemoryError as memory_error:
+                        return self._error_handler.handle_memory_error(
+                            memory_error, temp_filepath, url
+                        )
+                    finally:
+                        logger.debug("Завершена очистка ресурсов парсера")
             finally:
                 self._browser_launch_semaphore.release()
 

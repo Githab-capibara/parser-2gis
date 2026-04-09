@@ -41,7 +41,7 @@ from .data_validator import (
 )
 
 # Импортируем всё из legacy для обратной совместимости
-from .legacy import *  # noqa: F401,F403
+from .legacy import *  # noqa: F403
 from .path_validation import (
     PathSafetyValidator,
     PathTraversalError,

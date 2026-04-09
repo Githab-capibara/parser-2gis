@@ -32,6 +32,17 @@ KODA.md
 # Переменные окружения с секретами
 .env
 
+# ISSUE 004: Паттерны безопасности — предотвращение коммита секретов
+*.pem
+*.crt
+secret*
+token*
+password*
+key*
+.env.*
+# Исключение для примера (разрешено коммитить)
+!.env.example
+
 # Coverage
 .coverage
 htmlcov/

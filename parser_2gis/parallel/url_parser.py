@@ -360,7 +360,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                     browser_semaphore.release()
                 except ValueError:
                     # Семафор уже освобождён — это ожидаемо при конкурентном доступе
-                    pass  # noqa: PIE790 — семафор уже освобождён, ожидаемо
+                    pass
 
             # Переименовываем временный файл в целевой
             self._rename_temp_to_final(temp_filepath, filepath, temp_filename)

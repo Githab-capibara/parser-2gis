@@ -19,9 +19,9 @@
 from __future__ import annotations
 
 import pathlib
+from typing import TypeAlias
 
 from pydantic import BaseModel, ConfigDict, ValidationError
-from typing_extensions import TypeAlias
 
 from .chrome import ChromeOptions
 from .cli.config_service import ConfigService

@@ -130,7 +130,7 @@ class RequestInterceptor:
         with self._requests_lock:
             return self._requests.get(request_id)
 
-    def setup_network_interceptors(self, chrome_tab: "pychrome.Tab") -> None:
+    def setup_network_interceptors(self, chrome_tab: pychrome.Tab) -> None:
         """Устанавливает перехватчики событий Network на вкладку.
 
         Args:
@@ -257,4 +257,4 @@ class RequestInterceptor:
             }
 
 
-__all__ = ["RequestInterceptor", "Request", "Response"]
+__all__ = ["Request", "RequestInterceptor", "Response"]

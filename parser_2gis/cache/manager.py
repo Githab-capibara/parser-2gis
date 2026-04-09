@@ -26,9 +26,7 @@ from functools import lru_cache
 from pathlib import Path
 
 # Импорты для типизации (для совместимости с Python 3.9)
-from typing import Any, Protocol
-
-from typing_extensions import TypeAlias
+from typing import Any, Protocol, TypeAlias
 
 # NOTE: architecture violation — модуль cache не должен зависеть от chrome.constants.
 # Это существующая архитектура, требует рефакторинга для устранения зависимости.
@@ -933,7 +931,7 @@ class CacheManager:
             except (sqlite3.Error, OSError, MemoryError) as rollback_error:
                 app_logger.debug("Ошибка при откате пакетной операции: %s", rollback_error)
             app_logger.error("Ошибка БД при пакетном получении кэша: %s", db_error)
-            results = {url: None for url in urls}
+            results = dict.fromkeys(urls)
         finally:
             self._safe_close_cursor(cursor)
 

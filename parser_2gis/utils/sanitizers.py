@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 import re
-from functools import lru_cache
+from functools import cache
 from typing import Any
 
 from parser_2gis.constants import MAX_COLLECTION_SIZE, MAX_DATA_DEPTH, MAX_DATA_SIZE
@@ -134,7 +134,7 @@ _SENSITIVE_KEY_PATTERN = re.compile(
 )
 
 
-@lru_cache(maxsize=None)
+@cache
 def _is_sensitive_key(key: str) -> bool:
     """Проверяет, является ли ключ чувствительным.
 
@@ -189,9 +189,7 @@ def _check_value_type_and_sensitivity(
     if current_value is None or isinstance(current_value, (str, int, float, bool)):
         result = "<REDACTED>" if current_key and _is_sensitive_key(current_key) else current_value
         if parent is not None and parent_key is not None:
-            if isinstance(parent, dict):
-                parent[parent_key] = result
-            elif isinstance(parent, list):
+            if isinstance(parent, dict) or isinstance(parent, list):
                 parent[parent_key] = result
         else:
             results[id(current_value)] = result
@@ -318,9 +316,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 if current_id in results:
                     result = results[current_id]
                     if parent is not None and parent_key is not None:
-                        if isinstance(parent, dict):
-                            parent[parent_key] = result
-                        elif isinstance(parent, list):
+                        if isinstance(parent, dict) or isinstance(parent, list):
                             parent[parent_key] = result
                     continue
 
@@ -328,9 +324,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 if isinstance(current_value, (dict, list)) and current_id in _visited:
                     result = "<REDACTED>"
                     if parent is not None and parent_key is not None:
-                        if isinstance(parent, dict):
-                            parent[parent_key] = result
-                        elif isinstance(parent, list):
+                        if isinstance(parent, dict) or isinstance(parent, list):
                             parent[parent_key] = result
                     else:
                         results[current_id] = result
@@ -348,9 +342,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                     )
                     result = "<REDACTED>"
                     if parent is not None and parent_key is not None:
-                        if isinstance(parent, dict):
-                            parent[parent_key] = result
-                        elif isinstance(parent, list):
+                        if isinstance(parent, dict) or isinstance(parent, list):
                             parent[parent_key] = result
                     else:
                         results[current_id] = result
@@ -372,9 +364,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                     # Создаём новый словарь для результата
                     new_dict: dict[str, Any] = {}
                     if parent is not None and parent_key is not None:
-                        if isinstance(parent, dict):
-                            parent[parent_key] = new_dict
-                        elif isinstance(parent, list):
+                        if isinstance(parent, dict) or isinstance(parent, list):
                             parent[parent_key] = new_dict
                     else:
                         results[current_id] = new_dict
@@ -403,9 +393,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                     # Создаём новый список нужного размера
                     new_list: list[Any] = [None] * len(current_value)
                     if parent is not None and parent_key is not None:
-                        if isinstance(parent, dict):
-                            parent[parent_key] = new_list
-                        elif isinstance(parent, list):
+                        if isinstance(parent, dict) or isinstance(parent, list):
                             parent[parent_key] = new_list
                     else:
                         results[current_id] = new_list

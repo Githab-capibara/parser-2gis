@@ -4,8 +4,9 @@
 # ИСПРАВЛЕНИЕ 29: Добавлено autoflake для удаления неиспользуемых импортов
 
 repos:
+  # ISSUE 016: Обновлены версии хуков до последних стабильных
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: check-merge-conflict
@@ -20,8 +21,8 @@ repos:
       - id: check-executables-have-shebangs
 
   # ИСПРАВЛЕНИЕ 29: autoflake для удаления неиспользуемых импортов
-  - repo: https://github.com/myint/autoflake
-    rev: v2.2.1
+  - repo: https://github.com/pycqa/autoflake
+    rev: v2.3.1
     hooks:
       - id: autoflake
         args:
@@ -33,7 +34,7 @@ repos:
 
   # ИСПРАВЛЕНИЕ 28: isort для сортировки импортов
   - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+    rev: 6.0.1
     hooks:
       - id: isort
         name: isort (python)
@@ -45,20 +46,18 @@ repos:
 
   # ИСПРАВЛЕНИЕ 27: black для форматирования кода
   - repo: https://github.com/psf/black
-    rev: 24.1.1
+    rev: 25.1.0
     hooks:
       - id: black
         language_version: python3
         args:
           - --line-length=100
-          - --target-version=py38
-          - --target-version=py39
           - --target-version=py310
           - --target-version=py311
           - --target-version=py312
 
   - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
+    rev: 7.1.2
     hooks:
       - id: flake8
         language_version: python3
@@ -67,7 +66,7 @@ repos:
           - --extend-ignore=E203,E501,W503
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
+    rev: v1.15.0
     hooks:
       - id: mypy
         additional_dependencies: [types-requests>=2.31.0]

@@ -120,7 +120,7 @@ class ChromeRemoteFactory(Protocol):
 class CacheManagerFactory(Protocol):
     """Protocol для фабрики CacheManager."""
 
-    def __call__(self, cache_path_obj: Path) -> "CacheManager":
+    def __call__(self, cache_path_obj: Path) -> CacheManager:
         """Создаёт CacheManager."""
 
 

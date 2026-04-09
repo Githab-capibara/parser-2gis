@@ -17,7 +17,7 @@ import os
 import threading
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import NamedTuple, TypeAlias, Union, cast
+from typing import NamedTuple, TypeAlias, cast
 
 # Импорты констант из подмодулей для обратной совместимости
 # NOTE: Циклический импорт: constants -> parser -> parser.options -> utils -> constants
@@ -372,7 +372,7 @@ def get_env_config() -> EnvConfig:
         with _env_config_lock:
             if not hasattr(get_env_config, "_instance"):
                 object.__setattr__(get_env_config, "_instance", EnvConfig())
-    return cast(EnvConfig, getattr(get_env_config, "_instance"))
+    return cast(EnvConfig, get_env_config._instance)
 
 
 # Для обратной совместимости используем __getattr__ для ленивой инициализации
@@ -475,7 +475,7 @@ _STATIC_CONSTANTS_MAPPING: dict[str, int | float | list[str]] = {
 
 
 @lru_cache(maxsize=128)
-def _get_constant_value(name: str) -> Union[int, float, list[str], EnvConfig]:
+def _get_constant_value(name: str) -> int | float | list[str] | EnvConfig:
     """Получает значение константы с кэшированием через lru_cache.
 
     ISSUE-010: Кэширование результатов для устранения повторных вычислений.
@@ -525,7 +525,7 @@ def _reset_constant_cache() -> None:
     _get_constant_value.cache_clear()
 
 
-def __getattr__(name: str) -> Union[int, float, list[str], EnvConfig]:
+def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
     """Ленивая инициализация констант для устранения global singleton (A034).
 
     ISSUE-010: Устранено глобальное состояние _env_config_instance.
@@ -582,7 +582,7 @@ def validate_env_int(
 # ЭКСПОРТИРУЕМЫЕ СИМВОЛЫ
 # =============================================================================
 
-# noqa: F822 - Константы определяются через __getattr__ для lazy инициализации (A034)
+
 __all__: list[str] = [  # noqa: F822
     # Конфигурация ENV
     "EnvConfig",

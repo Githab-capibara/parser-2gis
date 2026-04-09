@@ -48,7 +48,7 @@ class ParallelErrorHandler:
 
     """
 
-    def __init__(self, output_dir: Path, config: "Configuration") -> None:
+    def __init__(self, output_dir: Path, config: Configuration) -> None:
         """Инициализация обработчика ошибок.
 
         Args:

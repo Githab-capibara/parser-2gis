@@ -713,6 +713,9 @@ class TUIApp(App):
             self.call_from_thread(self._parsing_error, str(e))
             # Вернуться в главное меню при ошибке
             self.call_from_thread(self.switch_to_main_menu)
+            # ISSUE 008: Логирование неожиданных исключений вместо молчаливого подавления
+            from parser_2gis.logger import logger as _app_logger
+            _app_logger.exception("Неожиданная ошибка в процессе парсинга: %s", e)
         finally:
             # P0-9: Восстанавливаем оригинальные значения конфигурации
             if "saved_config" in locals():

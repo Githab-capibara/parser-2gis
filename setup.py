@@ -1,7 +1,9 @@
 """
 Скрипт установки для парсера 2GIS.
 
-Определяет метаданные пакета и команды сборки.
+ВНИМАНИЕ: Этот файл оставлен для обратной совместимости.
+Все метаданные пакета перенесены в pyproject.toml (PEP 621).
+Используйте `pip install .` вместо `python setup.py install`.
 """
 
 import pathlib
@@ -59,7 +61,7 @@ class BuildStandaloneCommand(Command):
                 "-n",
                 dist_filename,
                 "--icon",
-                "parser_2gis/data/images/icon.png",
+                "parser_2gis/resources/images/icon.png",
                 "--add-data",
                 f"parser_2gis/data{os.pathsep}parser_2gis/data",
                 "parser_2gis_entry.py",
@@ -95,6 +97,8 @@ if __name__ == "__main__":
             "GitHub": "https://github.com/Githab-capibara/parser-2gis",
             "Changelog": "https://github.com/Githab-capibara/parser-2gis/blob/main/CHANGELOG.md",
         },
+        # ISSUE 006: Обновлена версия pytest
+        # ISSUE 007: Добавлен pytest-asyncio
         install_requires=[
             "pychrome>=0.2.4",
             "pydantic>=2.0.0,<3",
@@ -113,18 +117,20 @@ if __name__ == "__main__":
         ],
         extras_require={
             "dev": [
-                "pytest>=6.2,<8",
+                "pytest>=7.0,<10",
+                "pytest-asyncio>=0.23,<1.0",
                 "tox>=4.0",
-                "pre-commit>=2.6",
+                "pre-commit>=3.5",
                 "wheel>=0.46.2",
                 "pyinstaller>=6.6.0",
             ],
             "tui": ["textual>=0.50.0"],
             "all": [
                 "textual>=0.50.0",
-                "pytest>=6.2,<8",
+                "pytest>=7.0,<10",
+                "pytest-asyncio>=0.23,<1.0",
                 "tox>=4.0",
-                "pre-commit>=2.6",
+                "pre-commit>=3.5",
                 "wheel>=0.46.2",
                 "pyinstaller>=6.6.0",
             ],

@@ -119,7 +119,7 @@ class CitySelectorScreen(Screen):
 
             # Список городов (заполняется динамически в _populate_cities)
             with ScrollableContainer(id="city-list", classes="city-list-container"):
-                pass  # noqa: FURB110 — виджеты добавляются динамически в on_mount
+                pass
 
             # Кнопки
             with Horizontal(classes="button-row"):

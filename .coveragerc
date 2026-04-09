@@ -1,82 +1,13 @@
-# Конфигурация coverage для parser-2gis
-# ИСПРАВЛЕНИЕ 24: Per-file coverage требования
+# ISSUE 015: Дублирование coverage — вся конфигурация перенесена в pyproject.toml
+# Этот файл оставлен для обратной совместимости с legacy инструментами.
+# Используйте [tool.coverage.*] в pyproject.toml для актуальной конфигурации.
 
 [run]
-# Исходный код для измерения coverage
 source = parser_2gis
-# Пропускаем тесты и виртуальное окружение
-omit =
-    */tests/*
-    */venv/*
-    */__pycache__/*
-    */.pytest_cache/*
-    */htmlcov/*
-    # Опциональные модули
-    parser_2gis/tui_textual/*
-# Ветвление для проверки coverage условий
 branch = True
-# Параллельный запуск для поддержки multiprocessing
-parallel = True
-# Конкуренция потоков для thread-safe coverage
-concurrency =
-    thread
-    multiprocessing
 
 [report]
-# Минимальный порог coverage для всего проекта
 fail_under = 85
-# Исключаем определенные паттерны из отчёта
-exclude_lines =
-    # Прагма: no cover
-    pragma: no cover
-    # Отладочный код
-    def __repr__
-    raise AssertionError
-    raise NotImplementedError
-    # TYPE_CHECKING блоки
-    if TYPE_CHECKING:
-    # Импорт для type checking
-    if typing.TYPE_CHECKING:
-    # Абстрактные методы
-    @abstractmethod
-    @abc.abstractmethod
-    # Конфигурация logging
-    if __name__ == .__main__.:
-# Показываем пропущенные строки
-show_missing = True
-# Сортируем по имени файла
-sort = Name
-# Точность отображения процентов
-precision = 2
-# Формат вывода
-skip_empty = True
-# Исключаем файлы с 100% coverage из отчёта (опционально)
-# skip_covered = True
 
 [html]
-# Директория для HTML отчёта
 directory = htmlcov
-# Заголовок HTML страницы
-title = Coverage report for parser-2gis
-
-[xml]
-# Файл для XML отчёта (CI/CD)
-output = coverage.xml
-
-# ИСПРАВЛЕНИЕ 24: Per-file coverage требования
-# Критические модули должны иметь 100% coverage
-# Для enforcement используйте coverage check в CI/CD
-#
-# Критические модули:
-#   - parser_2gis/cache.py (100% required)
-#   - parser_2gis/chrome/browser.py (100% required)
-#   - parser_2gis/validation.py (100% required)
-#
-# Для проверки per-file coverage в CI:
-#   coverage report --fail-under=100 parser_2gis/cache.py
-#   coverage report --fail-under=100 parser_2gis/chrome/browser.py
-#   coverage report --fail-under=100 parser_2gis/validation.py
-
-[json]
-# Файл для JSON отчёта
-output = coverage.json

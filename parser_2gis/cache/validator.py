@@ -228,7 +228,7 @@ class CacheDataValidator:
 
         """
         # Проверяем на __proto__ и другие опасные ключи (prototype pollution)
-        for key in data.keys():
+        for key in data:
             if isinstance(key, str) and key.lower() in self._DANGEROUS_KEYS:
                 app_logger.warning("Обнаружена потенциальная __proto__ атака: ключ '%s'", key)
                 return False

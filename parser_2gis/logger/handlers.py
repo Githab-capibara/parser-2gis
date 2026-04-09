@@ -181,12 +181,12 @@ class FileLogger:
             session_logger.info("=" * 80)
         except (KeyboardInterrupt, SystemExit):
             raise
-        except (OSError, IOError, RuntimeError) as e:
+        except (OSError, RuntimeError) as e:
             # ID:138: Закрываем handler если он был создан но настройка не удалась
             if handler_created and self._file_handler is not None:
                 try:
                     self._file_handler.close()
-                except (OSError, IOError) as handler_close_error:
+                except OSError as handler_close_error:
                     app_logger = logging.getLogger("parser-2gis")
                     app_logger.warning(
                         "Ошибка закрытия обработчика при сбое: %s", handler_close_error
@@ -259,7 +259,7 @@ class FileLogger:
 
                 try:
                     self._file_handler.close()
-                except (OSError, IOError) as e:
+                except OSError as e:
                     session_logger.error(
                         f"Ошибка закрытия файлового обработчика: {e}. "
                         f"Функция: {self.close.__name__}"
@@ -268,14 +268,14 @@ class FileLogger:
                     self._file_handler = None
         except (KeyboardInterrupt, SystemExit):
             raise
-        except (OSError, IOError, RuntimeError) as e:
+        except (OSError, RuntimeError) as e:
             app_logger = logging.getLogger("parser-2gis")
             app_logger.error(
                 "Ошибка при закрытии файлового логгера: %s. Функция: %s", e, self.close.__name__
             )
             # Не пробрасываем ошибку, чтобы не нарушить завершение работы
 
-    def __enter__(self) -> "FileLogger":
+    def __enter__(self) -> FileLogger:
         """Контекстный менеджер для автоматического закрытия.
 
         Returns:

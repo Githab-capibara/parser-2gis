@@ -146,7 +146,7 @@ class CSVPostProcessor:
                 batch_count = 0
                 for idx, row in enumerate(csv_reader):
                     # Проверяем только сложные колонки
-                    for column_name in complex_columns_count.keys():
+                    for column_name in complex_columns_count:
                         if row.get(column_name, "") != "":
                             complex_columns_count[column_name] += 1
 
@@ -164,7 +164,7 @@ class CSVPostProcessor:
 
         except (KeyboardInterrupt, SystemExit):
             raise
-        except (OSError, IOError, RuntimeError) as e:
+        except (OSError, RuntimeError) as e:
             logger.error("Ошибка при чтении CSV для анализа колонок: %s", e)
             raise
 
@@ -297,7 +297,7 @@ class CSVPostProcessor:
 
         except (KeyboardInterrupt, SystemExit):
             raise
-        except (OSError, IOError, RuntimeError) as e:
+        except (OSError, RuntimeError) as e:
             logger.error("Ошибка при записи CSV без пустых колонок: %s", e)
             raise
 

@@ -48,7 +48,7 @@ from .options import MAX_TEMP_FILES, ParallelOptions
 from .parallel_parser import (
     ParallelCityParser,
     ParallelCityParserThread,
-    ParserThreadConfig,  # noqa: F401 - используется для __all__
+    ParserThreadConfig,
 )
 from .progress import ParallelProgressReporter
 from .thread_coordinator import ThreadCoordinator

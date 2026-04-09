@@ -19,11 +19,12 @@ import asyncio
 import logging
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
 
 # ИСПРАВЛЕНИЕ #20: Используем ParamSpec и TypeVar для точной типизации декоратора
-from typing import Any, Callable, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 from parser_2gis.constants import DEFAULT_POLL_INTERVAL as DEFAULT_POLL_INTERVAL_CONST
 from parser_2gis.constants import (

@@ -346,7 +346,7 @@ class TempFileTimer:
             self._cleanup_temp_files()
         except (MemoryError, KeyboardInterrupt, SystemExit):
             raise
-        except (OSError, IOError, RuntimeError) as cleanup_error:
+        except (OSError, RuntimeError) as cleanup_error:
             logger.error(
                 "Ошибка при периодической очистке временных файлов: %s",
                 cleanup_error,
@@ -423,7 +423,7 @@ class TempFileTimer:
 
         except (KeyboardInterrupt, SystemExit):
             raise
-        except (OSError, IOError, RuntimeError) as cleanup_error:
+        except (OSError, RuntimeError) as cleanup_error:
             logger.error(
                 "Ошибка при сканировании директории %s: %s",
                 self._temp_dir,
@@ -452,7 +452,7 @@ class TempFileTimer:
                 self._timer.cancel()
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except (OSError, IOError) as cancel_error:
+            except OSError as cancel_error:
                 logger.debug("Ошибка при отмене таймера: %s", cancel_error)
 
             try:

@@ -316,7 +316,7 @@ class CSVWriter(FileWriter):
                     file_path=self._file_path, encoding=self._options.encoding
                 )
                 deduplicator.remove_duplicates()
-            except (OSError, IOError, RuntimeError) as e:
+            except (OSError, RuntimeError) as e:
                 logger.error("Ошибка при удалении дубликатов: %s", e)
                 logger.warning(
                     "Файл %s может содержать дубликаты. Рекомендуется проверить качество данных.",
@@ -327,7 +327,7 @@ class CSVWriter(FileWriter):
         # чтобы файл закрывался даже при ошибке постобработки
         try:
             super().__exit__(*exc_info)
-        except (OSError, IOError, RuntimeError) as close_error:
+        except (OSError, RuntimeError) as close_error:
             logger.error("Ошибка при закрытии файла: %s", close_error)
 
     def write(self, records: dict[str, Any]) -> None:

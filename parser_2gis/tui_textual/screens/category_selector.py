@@ -119,7 +119,7 @@ class CategorySelectorScreen(Screen):
 
             # Список категорий (заполняется динамически в _populate_categories)
             with ScrollableContainer(id="category-list", classes="category-list-container"):
-                pass  # noqa: FURB110 — виджеты добавляются динамически в on_mount
+                pass
 
             # Кнопки
             with Horizontal(classes="button-row"):

@@ -30,9 +30,7 @@ import time
 import types
 import weakref
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
-
-from typing_extensions import TypeAlias
+from typing import TYPE_CHECKING, Literal, TypeAlias
 
 from parser_2gis.logger.logger import logger as app_logger
 
@@ -1057,7 +1055,7 @@ class ChromeBrowser:
             if hasattr(self, "_lifecycle_manager"):
                 # weakref.finalize() уже зарегистрирован в BrowserLifecycleManager,
                 # дополнительных действий не требуется
-                pass  # noqa: PIE790 — намеренный no-op, finalize уже зарегистрирован
+                pass
         except (OSError, RuntimeError, AttributeError) as del_error:
             app_logger.debug("ChromeBrowser.__del__: ошибка: %s", del_error)
 

@@ -130,7 +130,7 @@ class CSVDeduplicator:
         # ISSUE-160: Проверка на блокировку файла
         if not self._is_file_accessible(self._file_path):
             logger.error("Файл CSV заблокирован или недоступен: %s", self._file_path)
-            raise IOError(f"Файл {self._file_path} заблокирован или недоступен")
+            raise OSError(f"Файл {self._file_path} заблокирован или недоступен")
 
         try:
             optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
@@ -286,7 +286,7 @@ class CSVDeduplicator:
             with open(file_path, "rb"):
                 # Если файл открыт другим процессом с эксклюзивной блокировкой,
                 # это вызовет ошибку. Тело with намеренно пустое — только проверка открытия.
-                pass  # noqa: PIE790 — намеренная проверка доступности файла
+                pass
 
             return True
 

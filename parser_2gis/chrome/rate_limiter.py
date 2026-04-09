@@ -45,9 +45,9 @@ def _enforce_rate_limit() -> None:
 
     ИСПРАВЛЕНИЕ #12: Sleep вынесен за пределы lock — сначала вычисляем время ожидания
     внутри lock, затем освобождаем lock и спим снаружи.
-    """
-    global _request_timestamps
 
+    ISSUE 009: Убран ненужный `global` — функция только мутирует deque, но не переназначает его.
+    """
     now = time.time()
     sleep_time = 0.0
 

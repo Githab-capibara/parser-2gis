@@ -1,2 +1,4 @@
 graft parser_2gis
+# ISSUE 018: Добавлен py.typed для поддержки type hints в установленных пакетах
+include parser_2gis/py.typed
 recursive-exclude * *.pyc *.pyo *.swo *.swp

@@ -20,9 +20,7 @@ from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-from typing_extensions import TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
 
 from parser_2gis.constants import DEFAULT_TIMEOUT
 from parser_2gis.delay_utils import apply_startup_delay
@@ -384,9 +382,8 @@ class ParseStrategy:
 
                 # Выполняем парсинг
                 try:
-                    with parser:
-                        with writer:
-                            parser.parse(writer)
+                    with parser, writer:
+                        parser.parse(writer)
                 except MemoryError as memory_error:
                     logger.error(f"Memory error while parsing {url}: {memory_error}")
                     if hasattr(parser, "_cache"):
@@ -486,13 +483,13 @@ class ParseStrategy:
 
 
 __all__ = [
-    "ParseStrategy",
-    "UrlGenerationStrategy",
-    "MemoryCheckStrategy",
-    "ParserResult",
-    "UrlTuple",
-    "MEMORY_THRESHOLD_BYTES",
     "DEFAULT_MAX_ATTEMPTS",
     "DEFAULT_PARSE_MAX_RETRIES",
     "DEFAULT_PARSE_RETRY_DELAY",
+    "MEMORY_THRESHOLD_BYTES",
+    "MemoryCheckStrategy",
+    "ParseStrategy",
+    "ParserResult",
+    "UrlGenerationStrategy",
+    "UrlTuple",
 ]

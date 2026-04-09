@@ -1,3 +1,88 @@
+# ISSUE 001: PEP 517/518 build system configuration
+[build-system]
+requires = ["setuptools>=68.0", "wheel>=0.46.2"]
+build-backend = "setuptools.build_meta"
+
+# ISSUE 010: PEP 621 — метаданные проекта (перенесены из setup.py)
+[project]
+name = "parser-2gis"
+dynamic = ["version"]
+description = "Парсер сайта 2GIS"
+readme = "README.md"
+license = "LGPL-3.0-or-later"
+requires-python = ">=3.10"
+authors = [
+    {name = "Andy Trofimov", email = "interlark@gmail.com"},
+]
+keywords = ["parser", "scraper", "2gis"]
+classifiers = [
+    "Topic :: Internet",
+    "Topic :: Utilities",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: X11 Applications",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Natural Language :: Russian",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+]
+
+dependencies = [
+    "pychrome>=0.2.4",
+    "pydantic>=2.0.0,<3",
+    "psutil>=5.4.8",
+    "requests>=2.32.4",
+    "xlsxwriter>=3.0.5",
+    "rich>=13.0.0",
+    "tqdm>=4.66.3",
+    "jinja2>=3.1.6",
+    "pillow>=10.3.0",
+    "urllib3>=2.6.3",
+    "setuptools>=78.1.1",
+    "pyyaml>=6.0",
+    "ratelimit>=2.2.1",
+    "tenacity>=8.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # ISSUE 006: Обновлена версия pytest
+    # ISSUE 007: Добавлен pytest-asyncio
+    "pytest>=7.0,<10",
+    "pytest-asyncio>=0.23,<1.0",
+    "tox>=4.0",
+    "pre-commit>=3.5",
+    "wheel>=0.46.2",
+    "pyinstaller>=6.6.0",
+]
+tui = ["textual>=0.50.0"]
+all = [
+    "textual>=0.50.0",
+    "pytest>=7.0,<10",
+    "pytest-asyncio>=0.23,<1.0",
+    "tox>=4.0",
+    "pre-commit>=3.5",
+    "wheel>=0.46.2",
+    "pyinstaller>=6.6.0",
+]
+
+[project.urls]
+Documentation = "https://github.com/Githab-capibara/parser-2gis/wiki"
+Homepage = "https://github.com/Githab-capibara/parser-2gis"
+Changelog = "https://github.com/Githab-capibara/parser-2gis/blob/main/CHANGELOG.md"
+
+[project.scripts]
+parser-2gis = "parser_2gis:main"
+
+# ISSUE 010: setuptools динамическая версия
+[tool.setuptools.dynamic]
+version = {attr = "parser_2gis.version.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["parser_2gis*"]
+
 [tool.ruff]
 # Конфигурация ruff для линтинга и форматирования
 # Синхронизировано с black и isort
@@ -24,11 +109,25 @@ exclude = [
     ".benchmarks",
 ]
 
+# ISSUE 020: Добавлен явный select для правил линтинга
 [tool.ruff.lint]
-# Игнорируемые правила
+select = [
+    "E",       # pycodestyle errors
+    "F",       # pyflakes
+    "W",       # pycodestyle warnings
+    "I",       # isort
+    "UP",      # pyupgrade
+    "B",       # bugbear
+    "C4",      # flake8-comprehensions
+    "SIM",     # flake8-simplify
+    "RUF",     # ruff-specific rules
+]
 ignore = [
     "PLC2801",  # unnecessary-ellipsis - используется в Protocol классах
     "TID252",  # relative imports - допустимы в пакете
+    "RUF001",  # ambiguous-unicode-character-string - русский текст в строках
+    "RUF002",  # ambiguous-unicode-character-docstring - русский текст в докстроках
+    "RUF003",  # ambiguous-unicode-character-comment - русский текст в комментариях
 ]
 
 [tool.ruff.format]
@@ -45,8 +144,8 @@ line-ending = "auto"
 
 # Максимальная длина строки
 line-length = 100
-# Целевые версии Python
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+# ISSUE 011: Удалены устаревшие версии py38, py39
+target-version = ['py310', 'py311', 'py312']
 # Исключаемые директории
 exclude = '''
 /(
@@ -249,37 +348,10 @@ const-rgx = "(_?[A-Z][A-Z0-9_]*|__[A-Z0-9_]+__)$"
 # Имена модулей
 module-rgx = "(_?[a-z0-9_]+)$"
 
-[tool.autoflake]
-# Конфигурация autoflake для удаления неиспользуемых импортов
-# ИСПРАВЛЕНИЕ 29: Autoflake для удаления неиспользуемых импортов
-
-# Удалять все неиспользуемые импорты
-remove_all_unused_imports = true
-# Удалять неиспользуемые переменные
-remove_unused_variables = true
-# Разворачивать звёздочные импорты
-expand_star_imports = true
-# Игнорировать импорты в __init__.py
-ignore_init_module_imports = true
-# Исключаемые директории
-exclude = [
-    ".git",
-    ".mypy_cache",
-    ".tox",
-    ".venv",
-    "build",
-    "dist",
-    "venv",
-    "htmlcov",
-    ".pytest_cache",
-    ".benchmarks",
-]
+# ISSUE 017: Удалён [tool.autoflake] — pre-commit обрабатывает это
 
 [tool.pytest.ini_options]
-# Дублирование настроек pytest для совместимости
-# ИСПРАВЛЕНИЕ 24: Coverage threshold 85%
-
-minversion = "6.0"
+minversion = "7.0"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]

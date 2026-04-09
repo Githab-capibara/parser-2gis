@@ -290,7 +290,7 @@ def get_env_config() -> EnvConfig:
     """
     if not hasattr(get_env_config, "_instance"):
         object.__setattr__(get_env_config, "_instance", EnvConfig())
-    return cast(EnvConfig, getattr(get_env_config, "_instance"))
+    return cast(EnvConfig, get_env_config._instance)
 
 
 def validate_env_int(

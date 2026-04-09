@@ -28,10 +28,9 @@ import time
 import types
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import pychrome
-from typing_extensions import TypeAlias
 from websocket import WebSocketException
 
 from parser_2gis.logger.logger import logger as app_logger
@@ -708,7 +707,7 @@ class ChromeRemote:
         dangerous_chars = ["\x00", "\r", "\n", "\t"]
         for char in dangerous_chars:
             if char in url:
-                raise ValueError(f"URL содержит недопустимый символ: {repr(char)}")
+                raise ValueError(f"URL содержит недопустимый символ: {char!r}")
 
         if self._chrome_tab is None:
             # ISSUE-003-#6: Выбрасываем ChromeException вместо возврата None
@@ -1346,7 +1345,7 @@ class ChromeRemote:
                 app_logger.error("Не удалось получить скриншот: пустой результат")
         except (KeyboardInterrupt, SystemExit):
             raise
-        except (OSError, IOError, RuntimeError) as e:
+        except (OSError, RuntimeError) as e:
             app_logger.error("Ошибка при создании скриншота: %s", e)
             raise
 

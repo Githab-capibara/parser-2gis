@@ -120,7 +120,7 @@ class ConfigMerger:
         return fields_set if fields_set else set()
 
     @staticmethod
-    def _get_logger() -> "Logger":
+    def _get_logger() -> Logger:
         """Получает логгер для предупреждений.
 
         Returns:
