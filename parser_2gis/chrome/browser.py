@@ -30,7 +30,7 @@ import time
 import types
 import weakref
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from typing_extensions import TypeAlias
 
@@ -60,7 +60,23 @@ if TYPE_CHECKING:
 # =============================================================================
 
 # Тип возврата для методов завершения процесса
-ProcessStatus: TypeAlias = tuple[bool, str]
+ProcessStatus: TypeAlias = tuple[
+    bool,
+    Literal[
+        "no_process",
+        "terminated",
+        "terminate_timeout",
+        "already_terminated",
+        "permission_denied",
+        "terminate_error",
+        "killed",
+        "kill_timeout",
+        "already_killed",
+        "killed_forcefully",
+        "kill_permission_denied",
+        "kill_error",
+    ],
+]
 
 
 # =============================================================================

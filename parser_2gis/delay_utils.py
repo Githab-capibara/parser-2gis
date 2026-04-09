@@ -7,13 +7,17 @@ from __future__ import annotations
 
 import random
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     pass
 
 
-def apply_startup_delay(config: object, phase: str = "initial", log_func: object = None) -> float:
+def apply_startup_delay(
+    config: object,
+    phase: str = "initial",
+    log_func: Callable[[str, str], None] | None = None,
+) -> float:
     """Применяет задержку перед запуском парсинга.
 
     Читает параметры задержки из конфигурации, выполняет ``random.uniform``

@@ -6,13 +6,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     pass
 
 
-def extract_category_from_filename(csv_file: Path, log_func: object = None) -> str:
+def extract_category_from_filename(
+    csv_file: Path, log_func: Callable[[str, str], None] | None = None
+) -> str:
     """Извлекает название категории из имени CSV файла.
 
     Формат имени файла: ``{city}_{category}.csv``.
