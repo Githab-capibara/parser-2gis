@@ -14,9 +14,7 @@ if TYPE_CHECKING:
 
 
 def apply_startup_delay(
-    config: object,
-    phase: str = "initial",
-    log_func: Callable[[str, str], None] | None = None,
+    config: object, phase: str = "initial", log_func: Callable[[str, str], None] | None = None
 ) -> float:
     """Применяет задержку перед запуском парсинга.
 

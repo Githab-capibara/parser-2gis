@@ -167,17 +167,13 @@ class ProgressManager:
             try:
                 self._page_bar.close()
             except (ValueError, AttributeError) as e:
-                _logger.warning(
-                    "Ошибка закрытия прогресс-бара страниц: %s", e
-                )
+                _logger.warning("Ошибка закрытия прогресс-бара страниц: %s", e)
 
         if self._record_bar:
             try:
                 self._record_bar.close()
             except (ValueError, AttributeError) as e:
-                _logger.warning(
-                    "Ошибка закрытия прогресс-бара записей: %s", e
-                )
+                _logger.warning("Ошибка закрытия прогресс-бара записей: %s", e)
 
     def finish(self) -> None:
         """Завершение прогресс-бара.
@@ -215,8 +211,7 @@ class ProgressManager:
                 )
         except (RuntimeError, TypeError) as e:
             _logger.exception(
-                "Ошибка при завершении прогресс-бара: %s. "
-                "Статистика: страницы=%d/%d, записи=%d/%d",
+                "Ошибка при завершении прогресс-бара: %s. Статистика: страницы=%d/%d, записи=%d/%d",
                 e,
                 self._stats.current_page,
                 self._stats.total_pages,
@@ -252,9 +247,7 @@ class ProgressManager:
             self._page_bar = None
             self._record_bar = None
         except (RuntimeError, TypeError) as e:
-            _logger.exception(
-                "Ошибка при сбросе прогресс-бара: %s", e
-            )
+            _logger.exception("Ошибка при сбросе прогресс-бара: %s", e)
             raise
 
     @property

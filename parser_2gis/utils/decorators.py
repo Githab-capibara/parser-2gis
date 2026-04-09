@@ -202,11 +202,7 @@ def wait_until_finished(
             """Обёртка вокруг функции с ожиданием завершения операции."""
             # Группировка эффективных параметров в dataclass
             effective_config = WaitConfig(
-                timeout=(
-                    override_timeout
-                    if override_timeout is not None
-                    else decorator_timeout
-                ),
+                timeout=(override_timeout if override_timeout is not None else decorator_timeout),
                 finished=(
                     override_finished
                     if override_finished is not None
