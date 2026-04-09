@@ -6,14 +6,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     pass
 
 
 def cleanup_temp_file(
-    temp_filepath: Path, log_func: object = None, description: str = "Временный файл удалён"
+    temp_filepath: Path,
+    log_func: Callable[[str, str], None] | None = None,
+    description: str = "Временный файл удалён",
 ) -> None:
     """Очищает временный файл.
 
