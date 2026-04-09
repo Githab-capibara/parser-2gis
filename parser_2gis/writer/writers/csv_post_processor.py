@@ -23,7 +23,6 @@ from parser_2gis.logger import logger
 from .csv_buffer_manager import (
     _calculate_optimal_buffer_size,
     _safe_move_file,
-    _should_use_mmap,
     mmap_file_context,
 )
 
@@ -56,6 +55,159 @@ class CSVPostProcessor:
         self._complex_mapping = complex_mapping
         self._encoding = encoding
 
+    def _build_complex_columns_pattern(self) -> Pattern[str] | None:
+        """Строит regex-паттерн для сложных колонок.
+
+        Returns:
+            Скомпилированный паттерн или None.
+
+        """
+        complex_columns = list(self._complex_mapping.keys())
+        if not complex_columns:
+            return None
+        pattern_str = r"^(?:" + "|".join(rf"{x}_\d+" for x in complex_columns) + r")$"
+        return re.compile(pattern_str)
+
+    def _count_complex_columns(
+        self,
+        complex_columns_pattern: Pattern[str] | None,
+    ) -> dict[str, int]:
+        """Подсчитывает непустые значения в сложных колонках.
+
+        Args:
+            complex_columns_pattern: Скомпилированный паттерн.
+
+        Returns:
+            Словарь с подсчётом непустых значений.
+
+        """
+        complex_columns_count: dict[str, int] = {}
+        if complex_columns_pattern is None:
+            return complex_columns_count
+
+        for c in self._data_mapping:
+            if complex_columns_pattern.match(c):
+                complex_columns_count[c] = 0
+
+        try:
+            with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
+                f_csv, _, _,
+            ):
+                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())
+
+                if csv_reader.fieldnames is None or len(csv_reader.fieldnames) == 0:
+                    logger.warning(
+                        "Файл %s пуст или не имеет заголовков. Пропускаем подсчёт колонок.",
+                        self._file_path,
+                    )
+                    return complex_columns_count
+
+                for row in csv_reader:
+                    for column_name in complex_columns_count:
+                        if row.get(column_name, "") != "":
+                            complex_columns_count[column_name] += 1
+
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except (OSError, RuntimeError) as e:
+            logger.error("Ошибка при чтении CSV для анализа колонок: %s", e)
+            raise
+
+        return complex_columns_count
+
+    def _generate_new_mapping(
+        self,
+        complex_columns_count: dict[str, int],
+    ) -> dict[str, Any]:
+        """Генерирует новый маппинг без пустых колонок.
+
+        Args:
+            complex_columns_count: Подсчёт заполненных сложных колонок.
+
+        Returns:
+            Новый маппинг данных.
+
+        """
+        new_data_mapping: dict[str, Any] = {}
+        for k, v in self._data_mapping.items():
+            if k in complex_columns_count:
+                if complex_columns_count[k] > 0:
+                    new_data_mapping[k] = v
+            else:
+                new_data_mapping[k] = v
+
+        # Переименование одиночной сложной колонки
+        complex_columns = list(self._complex_mapping.keys())
+        for column in complex_columns:
+            col_1 = f"{column}_1"
+            col_2 = f"{column}_2"
+            if col_1 in new_data_mapping and col_2 not in new_data_mapping:
+                new_data_mapping[col_1] = TRAILING_NUMBER_PATTERN.sub("", new_data_mapping[col_1])
+
+        return new_data_mapping
+
+    def _write_filtered_csv(self, new_data_mapping: dict[str, Any], tmp_csv_name: str) -> None:
+        """Записывает CSV с отфильтрованными колонками во временный файл.
+
+        Args:
+            new_data_mapping: Новый маппинг данных.
+            tmp_csv_name: Имя временного файла.
+
+        """
+        file_size = os.path.getsize(self._file_path) if os.path.exists(self._file_path) else 0
+        optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
+
+        with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
+            f_csv, _, _,
+        ):
+            f_tmp_csv = None
+            try:
+                f_tmp_csv = open(
+                    tmp_csv_name,
+                    "w",
+                    newline="",
+                    buffering=optimal_write_buffer,
+                    encoding=self._encoding,
+                )
+
+                csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())
+                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())
+
+                if csv_reader.fieldnames is None or len(csv_reader.fieldnames) == 0:
+                    logger.warning(
+                        "Файл %s пуст или не имеет заголовков. Пропускаем обработку.",
+                        self._file_path,
+                    )
+                    return
+
+                csv_writer.writerow(new_data_mapping)
+
+                batch: list[dict[str, Any]] = []
+                batch_size = CSV_BATCH_SIZE
+                total_batches = 0
+
+                for row in csv_reader:
+                    new_row = {k: v for k, v in row.items() if k in new_data_mapping}
+                    batch.append(new_row)
+
+                    if len(batch) >= batch_size:
+                        csv_writer.writerows(batch)
+                        total_batches += 1
+                        batch.clear()
+
+                if batch:
+                    csv_writer.writerows(batch)
+                    total_batches += 1
+
+                logger.debug(
+                    "Запись CSV завершена (всего пакетов: %d, размер пакета: %d)",
+                    total_batches,
+                    batch_size,
+                )
+            finally:
+                if f_tmp_csv is not None and not f_tmp_csv.closed:
+                    f_tmp_csv.close()
+
     def remove_empty_columns(self) -> None:
         """Удаляет пустые колонки из CSV файла.
 
@@ -83,214 +235,28 @@ class CSVPostProcessor:
         if not str(self._file_path).endswith(".csv"):
             raise ValueError(f"Файл должен иметь расширение .csv, получен {self._file_path}")
 
-        complex_columns = list(self._complex_mapping.keys())
+        # ISSUE-088: Используем выделенные методы для анализа колонок
+        complex_columns_pattern = self._build_complex_columns_pattern()
+        complex_columns_count = self._count_complex_columns(complex_columns_pattern)
 
-        # Словарь для подсчёта непустых значений в сложных колонках
-        complex_columns_count: dict[str, int] = {}
-
-        # Оптимизация: компилируем regex паттерн один раз
-        complex_columns_pattern: Pattern[str] | None = None
-        if complex_columns:
-            # Группируем паттерны для корректной работы regex
-            pattern_str = r"^(?:" + "|".join(rf"{x}_\d+" for x in complex_columns) + r")$"
-            complex_columns_pattern = re.compile(pattern_str)
-            for c in self._data_mapping:
-                if complex_columns_pattern.match(c):
-                    complex_columns_count[c] = 0
-
-        # Первый проход: подсчёт непустых значений в сложных колонках
-        file_size: int | None = None
-        try:
-            optimal_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
-
-            # Получаем размер файла для выбора метода чтения
-            try:
-                file_size = os.path.getsize(self._file_path)
-                use_mmap = _should_use_mmap(file_size)
-                logger.info(
-                    "Анализ колонок: размер файла %.2f MB, используется %s",
-                    file_size / (1024 * 1024),
-                    "mmap" if use_mmap else "обычная буферизация",
-                )
-            except OSError as size_error:
-                logger.warning(
-                    "Не удалось получить размер файла для анализа колонок: %s", size_error
-                )
-                use_mmap = False
-
-            # Используем контекстный менеджер для безопасной работы с mmap
-            with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
-                f_csv,
-                _,  # is_mmap не используется
-                _,  # underlying_fp не используется
-            ):
-                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore[arg-type]
-
-                # ИСПРАВЛЕНИЕ 9: Проверка reader.fieldnames на None/пустоту
-                # Это предотвращает ошибки при обработке пустых файлов
-                if csv_reader.fieldnames is None:
-                    logger.warning(
-                        "Файл %s пуст или не имеет заголовков (fieldnames=None). Пропускаем обработку.",
-                        self._file_path,
-                    )
-                    return
-
-                if len(csv_reader.fieldnames) == 0:
-                    logger.warning(
-                        "Файл %s имеет пустой список заголовков. Пропускаем обработку.",
-                        self._file_path,
-                    )
-                    return
-
-                # Используем enumerate с шагом для уменьшения количества итераций
-                batch_count = 0
-                for idx, row in enumerate(csv_reader):
-                    # Проверяем только сложные колонки
-                    for column_name in complex_columns_count:
-                        if row.get(column_name, "") != "":
-                            complex_columns_count[column_name] += 1
-
-                    # Оптимизация: уменьшаем количество проверок через modulo
-                    # вместо проверки на каждой итерации
-                    if (idx + 1) % CSV_BATCH_SIZE == 0:
-                        batch_count += 1
-
-                logger.debug(
-                    "Подсчёт заполненности колонок завершён (обработано пакетов: %d, буфер: %d байт, mmap: %s)",
-                    batch_count,
-                    optimal_buffer,
-                    use_mmap,
-                )
-
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except (OSError, RuntimeError) as e:
-            logger.error("Ошибка при чтении CSV для анализа колонок: %s", e)
-            raise
-
-        # Генерация нового маппинга данных
-        new_data_mapping: dict[str, Any] = {}
-        for k, v in self._data_mapping.items():
-            if k in complex_columns_count:
-                # Оставляем только заполненные сложные колонки
-                if complex_columns_count[k] > 0:
-                    new_data_mapping[k] = v
-            else:
-                new_data_mapping[k] = v
-
-        # Переименование одиночной сложной колонки - удаление суффиксов с цифрами
-        for column in complex_columns:
-            col_1 = f"{column}_1"
-            col_2 = f"{column}_2"
-            if col_1 in new_data_mapping and col_2 not in new_data_mapping:
-                # Удаляем суффикс " 1" из названия колонки
-                new_data_mapping[col_1] = TRAILING_NUMBER_PATTERN.sub("", new_data_mapping[col_1])
+        # Генерация нового маппинга
+        new_data_mapping = self._generate_new_mapping(complex_columns_count)
 
         # Создание временного файла
         file_root, file_ext = os.path.splitext(self._file_path)
         tmp_csv_name = f"{file_root}.removed-columns{file_ext}"
-
-        # ВАЖНО: Флаг для отслеживания создания временного файла
         temp_created = False
 
         try:
-            optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)
-            # Обновляем размер файла для текущего файла
-            if os.path.exists(self._file_path):
-                file_size = os.path.getsize(self._file_path)
-            optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
+            # ISSUE-088: Используем выделенный метод для записи
+            self._write_filtered_csv(new_data_mapping, tmp_csv_name)
+            temp_created = True
 
-            # Определяем метод чтения на основе размера файла
-            try:
-                use_mmap = _should_use_mmap(file_size) if file_size else False
-                logger.info(
-                    "Запись CSV без пустых колонок: размер файла %.2f MB, используется %s",
-                    file_size / (1024 * 1024) if file_size else 0,
-                    "mmap" if use_mmap else "обычная буферизация",
-                )
-            except OSError:
-                use_mmap = False
-
-            # Открываем файлы с mmap или обычной буферизацией
-            # Используем контекстный менеджер для безопасной работы с mmap
-            with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
-                f_csv,
-                _,  # is_mmap не используется
-                _,  # underlying_fp не используется
-            ):
-                f_tmp_csv: Any | None = None
-                try:
-                    f_tmp_csv = open(
-                        tmp_csv_name,
-                        "w",
-                        newline="",
-                        buffering=optimal_write_buffer,
-                        encoding=self._encoding,
-                    )
-                    # ВАЖНО: Помечаем что временный файл создан
-                    temp_created = True
-
-                    csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())  # type: ignore[arg-type]
-                    csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore[arg-type]
-
-                    # ИСПРАВЛЕНИЕ 9: Проверка reader.fieldnames на None/пустоту
-                    # Это предотвращает ошибки при обработке пустых файлов
-                    if csv_reader.fieldnames is None:
-                        logger.warning(
-                            "Файл %s пуст или не имеет заголовков (fieldnames=None). Пропускаем обработку.",
-                            self._file_path,
-                        )
-                        return
-
-                    if len(csv_reader.fieldnames) == 0:
-                        logger.warning(
-                            "Файл %s имеет пустой список заголовков. Пропускаем обработку.",
-                            self._file_path,
-                        )
-                        return
-
-                    # Запись нового заголовка
-                    csv_writer.writerow(new_data_mapping)
-
-                    batch: list[dict[str, Any]] = []
-                    batch_size = CSV_BATCH_SIZE  # Используем увеличенный размер пакета (1000 строк)
-                    total_batches = 0
-
-                    for row in csv_reader:
-                        # Создаём новую строку только с нужными колонками
-                        new_row = {k: v for k, v in row.items() if k in new_data_mapping}
-                        batch.append(new_row)
-
-                        # Записываем пакет при достижении размера
-                        if len(batch) >= batch_size:
-                            csv_writer.writerows(batch)
-                            total_batches += 1
-                            batch.clear()
-
-                    # Записываем оставшиеся строки (неполный пакет)
-                    if batch:
-                        csv_writer.writerows(batch)
-                        total_batches += 1
-
-                    logger.debug(
-                        "Запись CSV завершена (всего пакетов: %d, размер пакета: %d, "
-                        "буфер чтения: %d, буфер записи: %d, mmap: %s)",
-                        total_batches,
-                        batch_size,
-                        optimal_read_buffer,
-                        optimal_write_buffer,
-                        use_mmap,
-                    )
-                finally:
-                    # Гарантированно закрываем файл записи при любом исходе
-                    if f_tmp_csv is not None and not f_tmp_csv.closed:
-                        f_tmp_csv.close()
-
-            # Замена оригинального файла новым с безопасной обработкой
+            # Замена оригинального файла новым
             move_success = _safe_move_file(tmp_csv_name, self._file_path)
             if move_success:
                 logger.info("Удалены пустые колонки из CSV")
-                temp_created = False  # Файл успешно перемещён, очистка не требуется
+                temp_created = False
             else:
                 logger.error("Не удалось переместить файл с удалёнными колонками")
                 raise RuntimeError("Failed to move file with removed columns")
@@ -300,10 +266,7 @@ class CSVPostProcessor:
         except (OSError, RuntimeError) as e:
             logger.error("Ошибка при записи CSV без пустых колонок: %s", e)
             raise
-
         finally:
-            # ВАЖНО: Гарантированная очистка временного файла в любом случае
-            # finally выполняется даже при KeyboardInterrupt и sys.exit()
             if temp_created and os.path.exists(tmp_csv_name):
                 try:
                     os.remove(tmp_csv_name)

@@ -874,7 +874,7 @@ class BrowserLifecycleManager:
             except (KeyboardInterrupt, SystemExit):
                 raise
             except (OSError, RuntimeError) as cleanup_error:
-                app_logger.error(f"Error cleaning up profile in finally: {cleanup_error}")
+                app_logger.error("Error cleaning up profile in finally: %s", cleanup_error)
             # ISSUE-003-#3: Явно вызываем финализатор при normal close,
             try:
                 if self._finalizer is not None and self._finalizer.alive:

@@ -376,10 +376,10 @@ class VisualLogger:
         try:
             print(self.format_message(message, "SUCCESS", Emoji.SUCCESS))
         except OSError as e:
-            _logger.error(f"Ошибка вывода сообщения об успехе: {e}. Сообщение: {message}")
+            _logger.error("Ошибка вывода сообщения об успехе: %s. Сообщение: %s", e, message)
             print(f"✅ {message}")
         except (TypeError, RuntimeError) as e:
-            _logger.exception(f"Неожиданная ошибка при выводе успеха: {e}. Сообщение: {message}")
+            _logger.exception("Неожиданная ошибка при выводе успеха: %s. Сообщение: %s", e, message)
             raise
 
     def print_error(self, message: str) -> None:
@@ -387,10 +387,10 @@ class VisualLogger:
         try:
             print(self.format_message(message, "ERROR", Emoji.ERROR))
         except OSError as e:
-            _logger.error(f"Ошибка вывода сообщения об ошибке: {e}. Сообщение: {message}")
+            _logger.error("Ошибка вывода сообщения об ошибке: %s. Сообщение: %s", e, message)
             print(f"❌ {message}")
         except (TypeError, RuntimeError) as e:
-            _logger.exception(f"Неожиданная ошибка при выводе ошибки: {e}. Сообщение: {message}")
+            _logger.exception("Неожиданная ошибка при выводе ошибки: %s. Сообщение: %s", e, message)
             raise
 
     def print_warning(self, message: str) -> None:
@@ -398,11 +398,11 @@ class VisualLogger:
         try:
             print(self.format_message(message, "WARNING", Emoji.WARNING))
         except OSError as e:
-            _logger.error(f"Ошибка вывода предупреждения: {e}. Сообщение: {message}")
+            _logger.error("Ошибка вывода предупреждения: %s. Сообщение: %s", e, message)
             print(f"⚠️ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(
-                f"Неожиданная ошибка при выводе предупреждения: {e}. Сообщение: {message}"
+                "Неожиданная ошибка при выводе предупреждения: %s. Сообщение: %s", e, message
             )
             raise
 
@@ -411,11 +411,11 @@ class VisualLogger:
         try:
             print(self.format_message(message, "INFO", Emoji.INFO, bold))
         except OSError as e:
-            _logger.error(f"Ошибка вывода информационного сообщения: {e}. Сообщение: {message}")
+            _logger.error("Ошибка вывода информационного сообщения: %s. Сообщение: %s", e, message)
             print(f"ℹ️ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(
-                f"Неожиданная ошибка при выводе информации: {e}. Сообщение: {message}"
+                "Неожиданная ошибка при выводе информации: %s. Сообщение: %s", e, message
             )
             raise
 
@@ -424,10 +424,10 @@ class VisualLogger:
         try:
             print(self.format_message(message, "DEBUG", Emoji.DEBUG))
         except OSError as e:
-            _logger.error(f"Ошибка вывода отладочного сообщения: {e}. Сообщение: {message}")
+            _logger.error("Ошибка вывода отладочного сообщения: %s. Сообщение: %s", e, message)
             print(f"🔍 {message}")
         except (TypeError, RuntimeError) as e:
-            _logger.exception(f"Неожиданная ошибка при выводе отладки: {e}. Сообщение: {message}")
+            _logger.exception("Неожиданная ошибка при выводе отладки: %s. Сообщение: %s", e, message)
             raise
 
 
@@ -441,7 +441,7 @@ def print_header(title: str, subtitle: str | None = None) -> None:
     try:
         visual_logger.print_header(title, subtitle)
     except (OSError, TypeError, RuntimeError) as e:
-        _logger.exception(f"Ошибка в глобальной функции print_header: {e}")
+        _logger.exception("Ошибка в глобальной функции print_header: %s", e)
         raise
 
 
@@ -450,7 +450,7 @@ def print_config(title: str, items: dict[str, str]) -> None:
     try:
         visual_logger.print_config_section(title, items)
     except (OSError, TypeError, RuntimeError) as e:
-        _logger.exception(f"Ошибка в глобальной функции print_config: {e}. Заголовок: {title}")
+        _logger.exception("Ошибка в глобальной функции print_config: %s. Заголовок: %s", e, title)
         raise
 
 
@@ -464,7 +464,7 @@ def print_success(message: str) -> None:
     try:
         visual_logger.print_success(message)
     except (OSError, TypeError, RuntimeError) as e:
-        _logger.exception(f"Ошибка в глобальной функции print_success: {e}. Сообщение: {message}")
+        _logger.exception("Ошибка в глобальной функции print_success: %s. Сообщение: %s", e, message)
         raise
 
 
@@ -473,7 +473,7 @@ def print_error(message: str) -> None:
     try:
         visual_logger.print_error(message)
     except (OSError, TypeError, RuntimeError) as e:
-        _logger.exception(f"Ошибка в глобальной функции print_error: {e}. Сообщение: {message}")
+        _logger.exception("Ошибка в глобальной функции print_error: %s. Сообщение: %s", e, message)
         raise
 
 
@@ -482,7 +482,7 @@ def print_warning(message: str) -> None:
     try:
         visual_logger.print_warning(message)
     except (OSError, TypeError, RuntimeError) as e:
-        _logger.exception(f"Ошибка в глобальной функции print_warning: {e}. Сообщение: {message}")
+        _logger.exception("Ошибка в глобальной функции print_warning: %s. Сообщение: %s", e, message)
         raise
 
 
@@ -491,7 +491,7 @@ def print_info(message: str, bold: bool = False) -> None:
     try:
         visual_logger.print_info(message, bold)
     except (OSError, TypeError, RuntimeError) as e:
-        _logger.exception(f"Ошибка в глобальной функции print_info: {e}. Сообщение: {message}")
+        _logger.exception("Ошибка в глобальной функции print_info: %s. Сообщение: %s", e, message)
         raise
 
 
@@ -500,7 +500,7 @@ def print_debug(message: str) -> None:
     try:
         visual_logger.print_debug(message)
     except (OSError, TypeError, RuntimeError) as e:
-        _logger.exception(f"Ошибка в глобальной функции print_debug: {e}. Сообщение: {message}")
+        _logger.exception("Ошибка в глобальной функции print_debug: %s. Сообщение: %s", e, message)
         raise
 
 
@@ -509,5 +509,5 @@ def print_stats(stats: dict[str, int | str], title: str = "Статистика"
     try:
         visual_logger.print_stats(stats, title)
     except (OSError, TypeError, RuntimeError) as e:
-        _logger.exception(f"Ошибка в глобальной функции print_stats: {e}. Заголовок: {title}")
+        _logger.exception("Ошибка в глобальной функции print_stats: %s. Заголовок: %s", e, title)
         raise

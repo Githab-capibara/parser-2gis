@@ -84,9 +84,36 @@ if TYPE_CHECKING:
 # Задержка между проверками порта в секундах (максимально ускоренная проверка)
 PORT_CHECK_RETRY_DELAY: float = 0.005
 
+# ISSUE-096: Конфигурация запуска Chrome вынесена в класс
+_DEFAULT_MAX_STARTUP_ATTEMPTS: int = 20
+
+
+class ChromeStartupConfig:
+    """Конфигурация запуска Chrome браузера.
+
+    ISSUE-096: Заменяет чтение MAX_STARTUP_ATTEMPTS из env на уровне модуля.
+    """
+
+    @staticmethod
+    def get_max_startup_attempts() -> int:
+        """Получает максимальное количество попыток запуска Chrome.
+
+        Returns:
+            Количество попыток из env или значение по умолчанию (20).
+
+        """
+        try:
+            value = os.environ.get("PARSER_CHROME_MAX_STARTUP_ATTEMPTS")
+            if value is not None:
+                return int(value)
+        except ValueError:
+            pass
+        return _DEFAULT_MAX_STARTUP_ATTEMPTS
+
+
 # Максимальное количество попыток проверки доступности порта при запуске Chrome.
-# Можно переопределить через переменную окружения PARSER_CHROME_MAX_STARTUP_ATTEMPTS.
-MAX_STARTUP_ATTEMPTS: int = int(os.environ.get("PARSER_CHROME_MAX_STARTUP_ATTEMPTS", "20"))
+# ISSUE-096: Использует ChromeStartupConfig для ленивого чтения env.
+MAX_STARTUP_ATTEMPTS: int = ChromeStartupConfig.get_max_startup_attempts()
 
 # Оптимизация: скомпилированный regex паттерн для проверки портов
 _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")

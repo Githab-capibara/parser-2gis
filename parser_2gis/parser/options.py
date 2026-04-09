@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, NonNegativeInt, PositiveInt
+from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt
 
 from parser_2gis.chrome.options import default_memory_limit
 
@@ -74,7 +74,8 @@ class ParserOptions(BaseModel):
 
     skip_404_response: bool = True
     delay_between_clicks: NonNegativeInt = 0
-    max_records: PositiveInt = default_max_records()
+    # ISSUE-099: Вычисляется при создании экземпляра, а не при загрузке модуля
+    max_records: PositiveInt = Field(default_factory=default_max_records)
     use_gc: bool = False
     gc_pages_interval: PositiveInt = _DEFAULT_GC_PAGES_INTERVAL
     retry_on_network_errors: bool = True

@@ -143,6 +143,135 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         self.log(f"Сгенерировано {len(all_urls)} URL для парсинга", "info")
         return all_urls
 
+    def _validate_memory(self, city_name: str, category_name: str) -> bool:
+        """Проверяет доступность памяти.
+
+        Args:
+            city_name: Название города.
+            category_name: Название категории.
+
+        Returns:
+            True если памяти достаточно.
+
+        """
+        available_memory = self._memory_monitor.get_available_memory()
+        if available_memory < MEMORY_THRESHOLD_BYTES:
+            logger.warning(
+                "Low memory (%dMB), skipping %s - %s",
+                available_memory // 1024 // 1024,
+                city_name,
+                category_name,
+            )
+            return False
+        return True
+
+    def _generate_temp_filename(
+        self, safe_city: str, safe_category: str
+    ) -> tuple[str, Path]:
+        """Генерирует уникальное имя временного файла.
+
+        Args:
+            safe_city: Безопасное имя города.
+            safe_category: Безопасное имя категории.
+
+        Returns:
+            Кортеж (temp_filename, temp_filepath).
+
+        """
+        temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
+        temp_filepath = self.output_dir / temp_filename
+        return temp_filename, temp_filepath
+
+    def _create_temp_file_atomically(
+        self, safe_city: str, safe_category: str
+    ) -> Path:
+        """Атомарно создаёт временный файл.
+
+        Args:
+            safe_city: Безопасное имя города.
+            safe_category: Безопасное имя категории.
+
+        Returns:
+            Путь к созданному файлу.
+
+        """
+        temp_filename, temp_filepath = self._generate_temp_filename(safe_city, safe_category)
+
+        for attempt in range(MAX_UNIQUE_NAME_ATTEMPTS):
+            try:
+                temp_fd = os.open(
+                    str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
+                )
+                os.close(temp_fd)
+                logger.log(5, "Временный файл атомарно создан: %s", temp_filename)
+                return temp_filepath
+            except FileExistsError:
+                if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
+                    logger.log(5, "Коллизия имён (попытка %d): генерация нового имени", attempt + 1)
+                    temp_filename, temp_filepath = self._generate_temp_filename(
+                        safe_city, safe_category
+                    )
+                else:
+                    logger.error(
+                        "Не удалось создать уникальный временный файл после %d попыток: %s",
+                        MAX_UNIQUE_NAME_ATTEMPTS,
+                        temp_filename,
+                    )
+                    raise
+            except OSError:
+                if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
+                    logger.log(5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1)
+                    temp_filename, temp_filepath = self._generate_temp_filename(
+                        safe_city, safe_category
+                    )
+                else:
+                    logger.error(
+                        "Не удалось создать временный файл после %d попыток: %s",
+                        MAX_UNIQUE_NAME_ATTEMPTS,
+                        temp_filename,
+                    )
+                    raise
+
+        return temp_filepath
+
+    def _process_parse_result(
+        self,
+        success: bool,
+        city_name: str,
+        category_name: str,
+        filepath: Path | None,
+        progress_callback: Callable[[int, int, str], None] | None,
+    ) -> tuple[bool, str]:
+        """Обрабатывает результат парсинга и обновляет статистику.
+
+        Args:
+            success: Флаг успешности.
+            city_name: Название города.
+            category_name: Название категории.
+            filepath: Путь к файлу результата.
+            progress_callback: Callback прогресса.
+
+        Returns:
+            Кортеж (success, message).
+
+        """
+        with self._lock:
+            if success:
+                self._stats["success"] += 1
+            else:
+                self._stats["failed"] += 1
+            success_count = self._stats["success"]
+            failed_count = self._stats["failed"]
+
+        if progress_callback:
+            progress_callback(success_count, failed_count, filepath.name if filepath else "N/A")
+
+        if success and filepath:
+            self.log(f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info")
+            return True, str(filepath)
+
+        return False, "Ошибка парсинга" if not success else str(filepath) if filepath else "N/A"
+
     def parse_single_url(
         self,
         url: str,
@@ -170,14 +299,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
 
         """
         # ISSUE-069: Проверка доступной памяти через протокол
-        available_memory = self._memory_monitor.get_available_memory()
-        if available_memory < MEMORY_THRESHOLD_BYTES:
-            logger.warning(
-                "Low memory (%dMB), skipping %s - %s",
-                available_memory // 1024 // 1024,
-                city_name,
-                category_name,
-            )
+        if not self._validate_memory(city_name, category_name):
             return False, "Недостаточно памяти"
 
         # Проверяем флаг отмены
@@ -190,57 +312,9 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         filename = f"{safe_city}_{safe_category}.csv"
         filepath = self.output_dir / filename
 
-        # Создаём уникальное временное имя файла
-        temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
-        temp_filepath = self.output_dir / temp_filename
-
-        # Атомарное создание временного файла для предотвращения race condition
-        temp_fd: int | None = None
-        for attempt in range(MAX_UNIQUE_NAME_ATTEMPTS):
-            try:
-                temp_fd = os.open(
-                    str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
-                )
-                os.close(temp_fd)
-                temp_fd = None
-                logger.log(5, "Временный файл атомарно создан: %s", temp_filename)
-                break
-            except FileExistsError:
-                if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
-                    logger.log(5, "Коллизия имён (попытка %d): генерация нового имени", attempt + 1)
-                    temp_filename = (
-                        f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
-                    )
-                    temp_filepath = self.output_dir / temp_filename
-                else:
-                    logger.error(
-                        "Не удалось создать уникальный временный файл после %d попыток: %s",
-                        MAX_UNIQUE_NAME_ATTEMPTS,
-                        temp_filename,
-                    )
-                    raise
-            except OSError:
-                if temp_fd is not None:
-                    try:
-                        os.close(temp_fd)
-                    except OSError as close_error:
-                        logger.log(5, "Ошибка закрытия дескриптора файла: %s", close_error)
-                    temp_fd = None
-                if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
-                    logger.log(
-                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1
-                    )
-                    temp_filename = (
-                        f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
-                    )
-                    temp_filepath = self.output_dir / temp_filename
-                else:
-                    logger.error(
-                        "Не удалось создать временный файл после %d попыток: %s",
-                        MAX_UNIQUE_NAME_ATTEMPTS,
-                        temp_filename,
-                    )
-                    raise
+        # Создаём уникальное временное имя файла атомарно
+        temp_filepath = self._create_temp_file_atomically(safe_city, safe_category)
+        temp_filename = temp_filepath.name
 
         # ИСПРАВЛЕНИЕ #183: Кэшируем значения config перед созданием потока
         # чтобы избежать гонки при чтении из отдельного потока
@@ -332,7 +406,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                         try:
                             parser.parse(writer)
                         except MemoryError as memory_error:
-                            logger.error(f"Memory error while parsing {url}: {memory_error}")
+                            logger.error("Memory error while parsing %s: %s", url, memory_error)
                             # Освобождаем кэш если есть
                             if hasattr(parser, "_cache"):
                                 parser._cache.clear()
@@ -369,18 +443,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
 
             # Переименовываем временный файл в целевой
             self._rename_temp_to_final(temp_filepath, filepath, temp_filename)
-
-            self.log(f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info")
-
-            with self._lock:
-                self._stats["success"] += 1
-                success_count = self._stats["success"]
-                failed_count = self._stats["failed"]
-
-            if progress_callback:
-                progress_callback(success_count, failed_count, filepath.name)
-
-            return True, str(filepath)
+            return self._process_parse_result(True, city_name, category_name, filepath, progress_callback)
 
         # Используем ThreadPoolExecutor для установки таймаута (потокобезопасная альтернатива signal.alarm)
         try:

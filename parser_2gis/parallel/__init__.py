@@ -44,7 +44,6 @@ from .memory_manager import MemoryManager, check_memory_safety, get_memory_manag
 from .merge_csv_handler import MergeCSVHandler
 from .merge_lock_manager import MergeLockManager
 from .merger import (
-    MergeConfig,  # noqa: F401 - используется для типизации
     ParallelFileMerger,
 )
 from .options import MAX_TEMP_FILES, ParallelOptions

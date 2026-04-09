@@ -102,7 +102,7 @@ class UrlGenerationStrategy(UrlGeneratorProtocolBase):
             with self._stats_lock:
                 stats["total"] = len(all_urls)
 
-        logger.info(f"Сгенерировано {len(all_urls)} URL для парсинга")
+        logger.info("Сгенерировано %d URL для парсинга", len(all_urls))
         return all_urls
 
     def generate_all_urls_lazy(self) -> Generator[UrlTuple, None, None]:
@@ -452,7 +452,7 @@ class ParseStrategy:
                     with local_parser, local_writer:
                         local_parser.parse(local_writer)
                 except MemoryError as memory_error:
-                    logger.error(f"Memory error while parsing {url}: {memory_error}")
+                    logger.error("Memory error while parsing %s: %s", url, memory_error)
                     if hasattr(local_parser, "_cache"):
                         local_parser._cache.clear()
                     gc.collect()

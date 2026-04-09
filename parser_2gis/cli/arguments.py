@@ -56,27 +56,13 @@ def _normalize_argv(argv: list[str]) -> list[str]:
     return argv_copy
 
 
-def _create_argument_parser() -> argparse.ArgumentParser:
-    """Создаёт и настраивает парсер аргументов командной строки.
+def _add_main_args(arg_parser: argparse.ArgumentParser) -> None:
+    """Добавляет обязательные аргументы командной строки.
 
-    Returns:
-        Настроенный экземпляр ArgumentParser со всеми группами аргументов.
-
-    Примечание:
-        Функция выделяет логику создания парсера из parse_arguments
-        для уменьшения цикломатической сложности и улучшения читаемости.
+    Args:
+        arg_parser: Экземпляр ArgumentParser.
 
     """
-    patch_argparse_translations()
-    arg_parser = argparse.ArgumentParser(
-        prog="Parser2GIS",
-        description="Парсер данных сайта 2GIS",
-        add_help=False,
-        formatter_class=ArgumentHelpFormatter,
-        argument_default=argparse.SUPPRESS,
-    )
-
-    # Группа: Обязательные аргументы
     main_parser = arg_parser.add_argument_group("Обязательные аргументы")
     main_parser.add_argument(
         "-i", "--url", nargs="+", default=None, required=False, help="URL с выдачей"
@@ -118,7 +104,14 @@ def _create_argument_parser() -> argparse.ArgumentParser:
         help="Формат результирующего файла",
     )
 
-    # Группа: Аргументы браузера
+
+def _add_browser_args(arg_parser: argparse.ArgumentParser) -> None:
+    """Добавляет аргументы браузера.
+
+    Args:
+        arg_parser: Экземпляр ArgumentParser.
+
+    """
     browser_parser = arg_parser.add_argument_group("Аргументы браузера")
     browser_parser.add_argument(
         "--chrome.binary_path",
@@ -157,7 +150,14 @@ def _create_argument_parser() -> argparse.ArgumentParser:
         ),
     )
 
-    # Группа: Аргументы CSV/XLSX
+
+def _add_csv_args(arg_parser: argparse.ArgumentParser) -> None:
+    """Добавляет аргументы CSV/XLSX.
+
+    Args:
+        arg_parser: Экземпляр ArgumentParser.
+
+    """
     csv_parser = arg_parser.add_argument_group("Аргументы CSV/XLSX")
     csv_parser.add_argument(
         "--writer.csv.add-rubrics",
@@ -194,7 +194,14 @@ def _create_argument_parser() -> argparse.ArgumentParser:
         ),
     )
 
-    # Группа: Аргументы парсера
+
+def _add_parser_args(arg_parser: argparse.ArgumentParser) -> None:
+    """Добавляет аргументы парсера.
+
+    Args:
+        arg_parser: Экземпляр ArgumentParser.
+
+    """
     p_parser = arg_parser.add_argument_group("Аргументы парсера")
     p_parser.add_argument("--parser.use-gc", metavar="{yes/no}", help="Включить сборщик мусора")
     p_parser.add_argument(
@@ -312,7 +319,14 @@ def _create_argument_parser() -> argparse.ArgumentParser:
         ),
     )
 
-    # Группа: Прочие аргументы
+
+def _add_other_args(arg_parser: argparse.ArgumentParser) -> None:
+    """Добавляет прочие аргументы.
+
+    Args:
+        arg_parser: Экземпляр ArgumentParser.
+
+    """
     other_parser = arg_parser.add_argument_group("Прочие аргументы")
     other_parser.add_argument(
         "--writer.verbose",
@@ -339,7 +353,14 @@ def _create_argument_parser() -> argparse.ArgumentParser:
         help=textwrap.fill("TUI с парсингом Омска", width=60, subsequent_indent="    "),
     )
 
-    # Группа: Служебные аргументы
+
+def _add_rest_args(arg_parser: argparse.ArgumentParser) -> None:
+    """Добавляет служебные аргументы.
+
+    Args:
+        arg_parser: Экземпляр ArgumentParser.
+
+    """
     rest_parser = arg_parser.add_argument_group("Служебные аргументы")
     rest_parser.add_argument(
         "-v",
@@ -349,6 +370,39 @@ def _create_argument_parser() -> argparse.ArgumentParser:
         help="Показать версию",
     )
     rest_parser.add_argument("-h", "--help", action="help", help="Показать справку")
+
+
+def _create_argument_parser() -> argparse.ArgumentParser:
+    """Создаёт и настраивает парсер аргументов командной строки.
+
+    Returns:
+        Настроенный экземпляр ArgumentParser со всеми группами аргументов.
+
+    Примечание:
+        Функция делегирует создание групп аргументов отдельным функциям:
+        - _add_main_args() - обязательные аргументы
+        - _add_browser_args() - аргументы браузера
+        - _add_csv_args() - аргументы CSV/XLSX
+        - _add_parser_args() - аргументы парсера
+        - _add_other_args() - прочие аргументы
+        - _add_rest_args() - служебные аргументы
+
+    """
+    patch_argparse_translations()
+    arg_parser = argparse.ArgumentParser(
+        prog="Parser2GIS",
+        description="Парсер данных сайта 2GIS",
+        add_help=False,
+        formatter_class=ArgumentHelpFormatter,
+        argument_default=argparse.SUPPRESS,
+    )
+
+    _add_main_args(arg_parser)
+    _add_browser_args(arg_parser)
+    _add_csv_args(arg_parser)
+    _add_parser_args(arg_parser)
+    _add_other_args(arg_parser)
+    _add_rest_args(arg_parser)
 
     return arg_parser
 
@@ -392,4 +446,14 @@ def parse_arguments(argv: list[str] | None = None) -> tuple[argparse.Namespace, 
     return args, config
 
 
-__all__ = ["_create_argument_parser", "_normalize_argv", "parse_arguments"]
+__all__ = [
+    "_add_browser_args",
+    "_add_csv_args",
+    "_add_main_args",
+    "_add_other_args",
+    "_add_parser_args",
+    "_add_rest_args",
+    "_create_argument_parser",
+    "_normalize_argv",
+    "parse_arguments",
+]

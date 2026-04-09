@@ -309,6 +309,107 @@ class MainDataProcessor:
 
         return current_page_number_result, True
 
+    def _check_record_limit(self, collected_records: int) -> bool:
+        """Проверяет достижение лимита записей.
+
+        Args:
+            collected_records: Текущее количество собранных записей.
+
+        Returns:
+            True если лимит достигнут.
+
+        """
+        if collected_records >= self._parser._parser_options.max_records:
+            logger.info(
+                "Достигнут лимит записей (%d), завершаем парсинг", collected_records
+            )
+            return True
+        return False
+
+    def _parse_links_batch(
+        self,
+        links: list,
+        writer: FileWriter,
+        collected_records: int,
+    ) -> int:
+        """Парсит пакет ссылок и возвращает обновлённый счётчик записей.
+
+        Args:
+            links: Список ссылок для парсинга.
+            writer: Файловый писатель.
+            collected_records: Текущее количество записей.
+
+        Returns:
+            Обновлённое количество собранных записей.
+
+        """
+        links_since_gc = 0
+
+        for link in links:
+            if self._check_record_limit(collected_records):
+                return collected_records
+
+            if self._extractor._parse_firm_page(link, writer):
+                collected_records += 1
+                if collected_records >= self._parser._parser_options.max_records:
+                    logger.info(
+                        "Спарсено максимально разрешенное количество записей с данного URL."
+                    )
+                    return collected_records
+
+            links_since_gc += 1
+            if links_since_gc >= GC_LINKS_INTERVAL:
+                gc.collect()
+                links_since_gc = 0
+
+        return collected_records
+
+    def _handle_empty_page(
+        self,
+        consecutive_empty_pages: int,
+        link_attempt_count: int,
+        total_iterations: int,
+        max_total_iterations: int,
+    ) -> bool:
+        """Обрабатывает случай получения пустой страницы.
+
+        Args:
+            consecutive_empty_pages: Счётчик пустых страниц подряд.
+            link_attempt_count: Счётчик попыток получения ссылок.
+            total_iterations: Общее число итераций.
+            max_total_iterations: Максимум итераций.
+
+        Returns:
+            True если нужно прервать парсинг.
+
+        """
+        logger.warning(
+            "Не удалось получить ссылки, переходим к следующей странице. "
+            "(Пустых страниц подряд: %d/%d, Попыток: %d/%d, Итераций: %d/%d)",
+            consecutive_empty_pages,
+            self._parser._parser_options.max_consecutive_empty_pages,
+            link_attempt_count,
+            MAX_LINK_ATTEMPTS,
+            total_iterations,
+            max_total_iterations,
+        )
+
+        if consecutive_empty_pages >= self._parser._parser_options.max_consecutive_empty_pages:
+            logger.error(
+                "Достигнут лимит подряд пустых страниц (%d). Прекращаем парсинг URL.",
+                self._parser._parser_options.max_consecutive_empty_pages,
+            )
+            return True
+
+        if link_attempt_count >= MAX_LINK_ATTEMPTS:
+            logger.error(
+                "Достигнут лимит попыток получения ссылок (%d). Прекращаем парсинг URL.",
+                MAX_LINK_ATTEMPTS,
+            )
+            return True
+
+        return False
+
     def _parse_search_results(
         self,
         writer: FileWriter,
@@ -398,34 +499,12 @@ class MainDataProcessor:
                 if links is None:
                     consecutive_empty_pages += 1
                     link_attempt_count += 1
-                    logger.warning(
-                        "Не удалось получить ссылки, переходим к следующей странице. "
-                        "(Пустых страниц подряд: %d/%d, Попыток: %d/%d, Итераций: %d/%d)",
+                    if self._handle_empty_page(
                         consecutive_empty_pages,
-                        self._parser._parser_options.max_consecutive_empty_pages,
                         link_attempt_count,
-                        MAX_LINK_ATTEMPTS,
                         total_iterations,
                         MAX_TOTAL_ITERATIONS,
-                    )
-
-                    # Если подряд слишком много пустых страниц - прерываем парсинг
-                    if (
-                        consecutive_empty_pages
-                        >= self._parser._parser_options.max_consecutive_empty_pages
                     ):
-                        logger.error(
-                            "Достигнут лимит подряд пустых страниц (%d). Прекращаем парсинг URL.",
-                            self._parser._parser_options.max_consecutive_empty_pages,
-                        )
-                        return
-
-                    # Если слишком много попыток получения ссылок неудачны - прерываем цикл
-                    if link_attempt_count >= MAX_LINK_ATTEMPTS:
-                        logger.error(
-                            "Достигнут лимит попыток получения ссылок (%d). Прекращаем парсинг URL.",
-                            MAX_LINK_ATTEMPTS,
-                        )
                         return
 
                     # Переходим к следующей странице
@@ -443,43 +522,18 @@ class MainDataProcessor:
 
                 # Парсим страницу, если не идём к определённой странице
                 if not walk_page_number:
-                    # Счётчик ссылок для периодической очистки памяти
-                    links_since_gc = 0
-
                     # H015: Ранний выход при достижении лимита записей
-                    if collected_records >= self._parser._parser_options.max_records:
-                        logger.info(
-                            "Достигнут лимит записей (%d) перед началом обработки ссылок",
-                            collected_records,
-                        )
+                    if self._check_record_limit(collected_records):
                         return
 
                     # Итерируемся по собранным ссылкам
-                    for link in links:
-                        # H015: Проверяем лимит ПЕРЕД парсингом для раннего выхода
-                        if collected_records >= self._parser._parser_options.max_records:
-                            logger.info(
-                                "Достигнут лимит записей (%d), завершаем парсинг", collected_records
-                            )
-                            return
-
-                        # Парсим страницу организации
-                        if self._extractor._parse_firm_page(link, writer):
-                            collected_records += 1
-
-                            # Проверяем достижение лимита после каждой успешной записи
-                            if collected_records >= self._parser._parser_options.max_records:
-                                logger.info(
-                                    "Спарсено максимально разрешенное количество записей с данного URL."
-                                )
-                                return
-
-                        # Периодическая очистка памяти
-                        # ISSUE-152: Используем константу вместо магического числа
-                        links_since_gc += 1
-                        if links_since_gc >= GC_LINKS_INTERVAL:
-                            gc.collect()
-                            links_since_gc = 0
+                    collected_records = self._parse_links_batch(
+                        links=links,
+                        writer=writer,
+                        collected_records=collected_records,
+                    )
+                    if self._check_record_limit(collected_records):
+                        return
 
                 # Запускаем сборщик мусора и проверяем использование памяти
                 if current_page_number % self._parser._parser_options.gc_pages_interval == 0:

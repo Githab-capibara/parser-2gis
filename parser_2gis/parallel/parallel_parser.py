@@ -46,6 +46,7 @@ from parser_2gis.constants import (
     PROGRESS_UPDATE_INTERVAL,
 )
 from parser_2gis.logger import log_parser_finish, logger, print_progress
+from parser_2gis.parallel.common.csv_merge_common import merge_csv_files_common
 from parser_2gis.parallel.filename_utils import extract_category_from_filename
 
 # Импорты стратегий ISSUE-002
@@ -645,6 +646,38 @@ class ParallelCityParser:
     # ОСНОВНОЙ МЕТОД ОБЪЕДИНЕНИЯ CSV ФАЙЛОВ
     # =====================================================================
 
+    def _perform_csv_merge(
+        self,
+        csv_files: list[Path],
+        temp_output: Path,
+        output_file_path: Path,
+        progress_callback: Callable[[str], None] | None,
+    ) -> tuple[bool, int, list[Path]]:
+        """Выполняет слияние CSV файлов через общую функцию.
+
+        ISSUE-086: Делегирует merge_csv_files_common из csv_merge_common.py.
+
+        Args:
+            csv_files: Список CSV файлов.
+            temp_output: Путь к временному файлу.
+            output_file_path: Путь к целевому файлу.
+            progress_callback: Callback прогресса.
+
+        Returns:
+            Кортеж (success, total_rows, files_to_delete).
+
+        """
+        return merge_csv_files_common(
+            file_paths=csv_files,
+            output_path=temp_output,
+            encoding=self.config.writer.encoding,
+            buffer_size=MERGE_BUFFER_SIZE,
+            batch_size=MERGE_BATCH_SIZE,
+            log_callback=lambda msg, level: self.log(msg, level),
+            progress_callback=progress_callback,
+            cancel_event=self._cancel_event,
+        )
+
     def merge_csv_files(
         self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
@@ -678,10 +711,6 @@ class ParallelCityParser:
         lock_file_path = self.output_dir / ".merge.lock"
         lock_file_handle = None
         lock_acquired = False
-
-        output_encoding = self.config.writer.encoding
-        buffer_size = MERGE_BUFFER_SIZE
-        batch_size = MERGE_BATCH_SIZE
 
         # БЛОКИРОВКА 1: Получаем lock file
         lock_file_handle, lock_acquired = self._acquire_merge_lock(lock_file_path)
@@ -735,58 +764,24 @@ class ParallelCityParser:
             with self._merge_lock:
                 self._merge_temp_files.append(temp_output)
 
-            with open(
-                temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
-            ) as outfile:
-                temp_file_created = True
-                writer = None
-                total_rows = 0
-                # P0-9: Используем функцию для создания кэша fieldnames
-                fieldnames_cache = _create_merge_fieldnames_cache()
+            # ISSUE-086: Делегируем слияние общей функции
+            merge_success, total_rows, files_to_delete = self._perform_csv_merge(
+                csv_files=csv_files,
+                temp_output=temp_output,
+                output_file_path=output_file_path,
+                progress_callback=progress_callback,
+            )
 
-                for csv_file in csv_files:
-                    if self._cancel_event.is_set():
-                        self.log("Объединение отменено пользователем", "warning")
-                        try:
-                            temp_output.unlink()
-                        except (OSError, RuntimeError, TypeError, ValueError) as e:
-                            self.log(f"Не удалось удалить временный файл при отмене: {e}", "debug")
-                        return False
-
-                    if progress_callback:
-                        progress_callback(f"Обработка: {csv_file.name}")
-
-                    writer, batch_total = self._process_single_csv_file(
-                        csv_file=csv_file,
-                        writer=writer,
-                        outfile=outfile,
-                        buffer_size=buffer_size,
-                        batch_size=batch_size,
-                        fieldnames_cache=fieldnames_cache,
-                    )
-
-                    if batch_total == 0:
-                        continue
-
-                    total_rows += batch_total
-                    files_to_delete.append(csv_file)
-
-                if writer is None:
-                    self.log(
-                        "Все CSV файлы пустые или не имеют заголовков. Объединение невозможно.",
-                        "warning",
-                    )
-
-                    try:
+            if not merge_success:
+                try:
+                    if temp_output.exists():
                         temp_output.unlink()
-                        self.log("Временный файл удалён (все файлы пустые)", "debug")
-                    except (OSError, RuntimeError, TypeError, ValueError) as e:
-                        self.log(f"Не удалось удалить временный файл: {e}", "debug")
+                        self.log("Временный файл удалён (слияние не удалось)", "debug")
+                except (OSError, RuntimeError, TypeError, ValueError) as e:
+                    self.log(f"Не удалось удалить временный файл: {e}", "debug")
 
-                    self._cleanup_merge_lock(lock_file_handle, lock_file_path)
-                    return False
-
-                self.log(f"Объединение завершено. Всего записей: {total_rows}", "info")
+                self._cleanup_merge_lock(lock_file_handle, lock_file_path)
+                return False
 
             try:
                 os.replace(str(temp_output), str(output_file_path))

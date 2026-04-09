@@ -88,6 +88,135 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
+# =============================================================================
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ POLLING
+# =============================================================================
+
+
+def _check_timeout_expired(
+    start_time: float,
+    timeout: int | None,
+    func_name: str,
+    throw_exception: bool,
+) -> tuple[bool, Any]:
+    """Проверяет, истёк ли таймаут.
+
+    Args:
+        start_time: Время начала выполнения.
+        timeout: Таймаут в секундах.
+        func_name: Имя функции.
+        throw_exception: Бросать ли исключение.
+
+    Returns:
+        Кортеж (timeout_expired, result_or_none).
+
+    """
+    if timeout is not None and time.time() - start_time > timeout:
+        timeout_msg = f"Превышено время ожидания для {func_name} ({timeout} сек)"
+        if throw_exception:
+            raise TimeoutError(timeout_msg)
+        logger.warning(timeout_msg)
+        return True, None
+    return False, None
+
+
+def _check_max_retries_exceeded(
+    attempt_count: int,
+    max_retries: int | None,
+    func_name: str,
+    throw_exception: bool,
+) -> tuple[bool, Any]:
+    """Проверяет, превышено ли максимальное количество попыток.
+
+    Args:
+        attempt_count: Текущий счётчик попыток.
+        max_retries: Максимальное количество попыток.
+        func_name: Имя функции.
+        throw_exception: Бросать ли исключение.
+
+    Returns:
+        Кортеж (retries_exceeded, result_or_none).
+
+    """
+    if max_retries is not None and attempt_count >= max_retries:
+        retries_msg = (
+            f"Превышено максимальное количество попыток для {func_name} "
+            f"({max_retries} попыток)"
+        )
+        if throw_exception:
+            raise TimeoutError(retries_msg)
+        logger.warning(retries_msg)
+        return True, None
+    return False, None
+
+
+def _update_poll_interval(
+    use_exponential_backoff: bool,
+    consecutive_failures: int,
+    base_poll_interval: float,
+    max_poll_interval: float,
+) -> float:
+    """Вычисляет следующий интервал опроса.
+
+    Args:
+        use_exponential_backoff: Использовать ли экспоненциальную задержку.
+        consecutive_failures: Количество последовательных неудач.
+        base_poll_interval: Базовый интервал опроса.
+        max_poll_interval: Максимальный интервал опроса.
+
+    Returns:
+        Вычисленный интервал опроса.
+
+    """
+    if use_exponential_backoff and consecutive_failures > 0:
+        return min(
+            base_poll_interval * (2 ** (consecutive_failures - 1)),
+            max_poll_interval,
+        )
+    return base_poll_interval
+
+
+def _handle_execution_error(
+    error: Exception,
+    func_name: str,
+    attempt_count: int,
+    consecutive_failures: int,
+) -> int:
+    """Обрабатывает ошибку выполнения функции.
+
+    Args:
+        error: Произошедшее исключение.
+        func_name: Имя функции.
+        attempt_count: Текущий счётчик попыток.
+        consecutive_failures: Текущий счётчик неудач.
+
+    Returns:
+        Обновлённый счётчик consecutive_failures.
+
+    """
+    if isinstance(error, TimeoutError):
+        raise
+    if isinstance(error, (MemoryError, OSError)):
+        error_type = "MemoryError" if isinstance(error, MemoryError) else "OSError"
+        logger.error(
+            "Критическая ошибка %s при выполнении функции %s (попытка %d): %s",
+            error_type,
+            func_name,
+            attempt_count,
+            error,
+        )
+        raise
+    if isinstance(error, (RuntimeError, ValueError, TypeError)):
+        logger.debug(
+            "Ошибка при выполнении функции %s (попытка %d): %s",
+            func_name,
+            attempt_count,
+            error,
+        )
+        return consecutive_failures + 1
+    return consecutive_failures
+
+
 def _default_predicate(value: Any) -> bool:
     """Предикат по умолчанию для проверки результата.
 
@@ -240,34 +369,25 @@ def wait_until_finished(
 
             # ISSUE-151: Явное условие выхода - цикл по attempt_count вместо while True
             while attempt_count < max_attempts:
-                # ИСПРАВЛЕНИЕ #16: Кэширование time.time() — одна переменная для всех проверок
-                current_time = time.time()
+                # Проверяем таймаут
+                timeout_expired, timeout_result = _check_timeout_expired(
+                    start_time=start_time,
+                    timeout=effective_config.timeout,
+                    func_name=func.__name__,
+                    throw_exception=effective_config.throw_exception,
+                )
+                if timeout_expired:
+                    return timeout_result
 
-                # ISSUE-151: Проверка таймаута в начале цикла
-                if (
-                    effective_config.timeout is not None
-                    and current_time - start_time > effective_config.timeout
-                ):
-                    timeout_msg = f"Превышено время ожидания для {func.__name__} ({effective_config.timeout} сек)"
-                    if effective_config.throw_exception:
-                        raise TimeoutError(timeout_msg)
-                    # Логируем timeout для диагностики
-                    logger.warning(timeout_msg)
-                    return result
-
-                # ISSUE-151: Проверка максимального количества попыток
-                if (
-                    effective_config.max_retries is not None
-                    and attempt_count >= effective_config.max_retries
-                ):
-                    retries_msg = (
-                        f"Превышено максимальное количество попыток для {func.__name__} "
-                        f"({effective_config.max_retries} попыток)"
-                    )
-                    if effective_config.throw_exception:
-                        raise TimeoutError(retries_msg)
-                    logger.warning(retries_msg)
-                    return result
+                # Проверяем максимальное количество попыток
+                retries_exceeded, retries_result = _check_max_retries_exceeded(
+                    attempt_count=attempt_count,
+                    max_retries=effective_config.max_retries,
+                    func_name=func.__name__,
+                    throw_exception=effective_config.throw_exception,
+                )
+                if retries_exceeded:
+                    return retries_result
 
                 attempt_count += 1
 
@@ -276,57 +396,28 @@ def wait_until_finished(
                     if effective_config.finished(result):
                         return result
                     consecutive_failures = 0  # Сброс при успехе
-                except TimeoutError:
-                    # Пробрасываем TimeoutError немедленно
-                    consecutive_failures += 1
-                    raise
-                except MemoryError as e:
-                    # ID:043: MemoryError — критическая ошибка, пробрасываем немедленно
-                    logger.error(
-                        "Критическая ошибка MemoryError при выполнении функции %s (попытка %d): %s",
-                        func.__name__,
-                        attempt_count,
-                        e,
+                except Exception as exc:
+                    consecutive_failures = _handle_execution_error(
+                        error=exc,
+                        func_name=func.__name__,
+                        attempt_count=attempt_count,
+                        consecutive_failures=consecutive_failures,
                     )
-                    raise
-                except OSError as e:
-                    # ID:043: OSError может быть критическим (disk I/O error и т.д.)
-                    logger.error(
-                        "Критическая ошибка OSError при выполнении функции %s (попытка %d): %s",
-                        func.__name__,
-                        attempt_count,
-                        e,
-                    )
-                    raise
-                except (RuntimeError, ValueError, TypeError) as e:
-                    # Логирование остальных ошибок выполнения функции
-                    logger.debug(
-                        "Ошибка при выполнении функции %s (попытка %d): %s",
-                        func.__name__,
-                        attempt_count,
-                        e,
-                    )
-                    consecutive_failures += 1
 
                 # Экспоненциальная задержка для снижения нагрузки на CPU
-                if use_exponential_backoff and consecutive_failures > 0:
-                    # Увеличиваем интервал после каждой неудачи
-                    current_poll_interval = min(
-                        effective_config.poll_interval * (2 ** (consecutive_failures - 1)),
-                        max_poll_interval,
-                    )
-                else:
-                    current_poll_interval = effective_config.poll_interval
+                current_poll_interval = _update_poll_interval(
+                    use_exponential_backoff=use_exponential_backoff,
+                    consecutive_failures=consecutive_failures,
+                    base_poll_interval=effective_config.poll_interval,
+                    max_poll_interval=max_poll_interval,
+                )
 
-                # ИСПРАВЛЕНИЕ 18: Используем Event.wait() вместо time.sleep()
-                # Это позволяет прервать ожидание через stop_event.set() из другого потока
                 # Проверяем stop_event перед ожиданием
                 if stop_event.is_set():
                     logger.warning("Получен сигнал остановки для %s", func.__name__)
                     return result
 
                 # Ждём с использованием Event.wait() вместо time.sleep()
-                # wait() возвращает True если событие установлено, False по таймауту
                 stopped = stop_event.wait(timeout=current_poll_interval)
                 if stopped:
                     logger.warning(

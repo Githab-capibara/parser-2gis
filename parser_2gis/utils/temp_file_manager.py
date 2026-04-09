@@ -274,7 +274,29 @@ class TempFileManager:
         return Path(path)
 
 
-# Singleton экземпляр для глобального использования
+# ISSUE-100: Фабричная функция для создания новых экземпляров TempFileManager
+def create_temp_file_manager(max_files: int = MAX_TEMP_FILES_MONITORING) -> TempFileManager:
+    """Создаёт новый экземпляр TempFileManager.
+
+    ISSUE-100: Позволяет создавать изолированные менеджеры временных файлов
+    вместо использования глобального singleton.
+
+    Args:
+        max_files: Максимальное количество отслеживаемых файлов.
+
+    Returns:
+        Новый экземпляр TempFileManager.
+
+    Example:
+        >>> manager = create_temp_file_manager(max_files=500)
+        >>> manager.register(Path("/tmp/file.csv"))
+
+    """
+    return TempFileManager(max_files=max_files)
+
+
+# Singleton экземпляр для глобального использования (обратная совместимость)
+# ISSUE-100: Рекомендуется использовать create_temp_file_manager() для нового кода
 temp_file_manager = TempFileManager()
 
 
@@ -539,6 +561,7 @@ __all__ = [
     "TEMP_FILE_CLEANUP_INTERVAL",
     # TempFileManager
     "TempFileManager",
+    "create_temp_file_manager",
     # TempFileTimer
     "TempFileTimer",
     # Helper functions
