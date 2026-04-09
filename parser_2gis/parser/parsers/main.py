@@ -87,6 +87,10 @@ class MainParser:
             url=url, chrome_options=chrome_options, parser_options=parser_options, browser=browser
         )
 
+        # Отмечаем, владеет ли парсер браузером (для корректного закрытия)
+        # Если браузер передан извне — не закрываем его при close()
+        self._owns_browser = browser is None
+
         # Создаём экстрактор данных
         self._data_extractor = MainDataExtractor(self._page_parser)
 
@@ -223,9 +227,7 @@ class MainParser:
         Закрывает только если браузер был создан внутри парсера
         (не был передан извне через browser параметр).
         """
-        # ISSUE-135: Заменяем hasattr() на явный атрибут _owns_browser
-        owns_browser = getattr(self._page_parser, "_owns_browser", False)
-        if owns_browser:
+        if self._owns_browser:
             self._page_parser._chrome_remote.stop()
 
     def __enter__(self) -> MainParser:

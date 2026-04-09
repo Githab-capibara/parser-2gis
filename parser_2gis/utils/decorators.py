@@ -191,17 +191,12 @@ def wait_until_finished(
         @wraps(func)
         def inner(
             *args: Any,
-            # Поддерживаем оба варианта: override_* и оригинальные имена
+            # Переопределение параметров на уровне вызова
             override_timeout: int | None = None,
             override_finished: Callable[[Any], bool] | None = None,
             override_throw_exception: bool | None = None,
             override_poll_interval: float | None = None,
             override_max_retries: int | None = None,
-            timeout: int | None = None,
-            finished: Callable[[Any], bool] | None = None,
-            throw_exception: bool | None = None,
-            poll_interval: float | None = None,
-            max_retries: int | None = None,
             **kwargs: Any,
         ) -> Any:
             """Обёртка вокруг функции с ожиданием завершения операции."""
@@ -210,35 +205,27 @@ def wait_until_finished(
                 timeout=(
                     override_timeout
                     if override_timeout is not None
-                    else (timeout if timeout is not None else decorator_timeout)
+                    else decorator_timeout
                 ),
                 finished=(
                     override_finished
                     if override_finished is not None
-                    else (
-                        finished
-                        if finished is not None
-                        else decorator_finished or _default_predicate
-                    )
+                    else decorator_finished or _default_predicate
                 ),
                 throw_exception=(
                     override_throw_exception
                     if override_throw_exception is not None
-                    else (
-                        throw_exception
-                        if throw_exception is not None
-                        else decorator_throw_exception
-                    )
+                    else decorator_throw_exception
                 ),
                 poll_interval=(
                     override_poll_interval
                     if override_poll_interval is not None
-                    else (poll_interval if poll_interval is not None else decorator_poll_interval)
+                    else decorator_poll_interval
                 ),
                 max_retries=(
                     override_max_retries
                     if override_max_retries is not None
-                    else (max_retries if max_retries is not None else decorator_max_retries)
+                    else decorator_max_retries
                 ),
             )
 

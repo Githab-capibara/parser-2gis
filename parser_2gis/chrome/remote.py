@@ -115,6 +115,22 @@ def _check_port_cached(port: int) -> bool:
     return _check_port_available_internal(port, timeout=0.6, retries=1)
 
 
+def get_port_cache_info() -> dict[str, int]:
+    """Возвращает информацию о кэше проверки портов.
+
+    Returns:
+        Словарь с ключами 'hits', 'misses', 'size', 'maxsize'.
+
+    """
+    cache_info = _check_port_cached.cache_info()
+    return {
+        "hits": cache_info.hits,
+        "misses": cache_info.misses,
+        "size": cache_info.currsize,
+        "maxsize": cache_info.maxsize,
+    }
+
+
 def _check_port_available_internal(port: int, timeout: float = 0.6, retries: int = 1) -> bool:
     """Внутренняя функция проверки порта без кэширования.
 
@@ -268,7 +284,6 @@ class ChromeRemote:
         attempt_delay = 0.05
         total_timeout = 60.0
         start_time = time.time()
-        connection_established = False
 
         # ID:111: Используем try/finally для гарантии очистки ресурсов
         try:
@@ -280,10 +295,10 @@ class ChromeRemote:
 
                 try:
                     self._attempt_connection()
-                    connection_established = True
                     return True
                 except (RequestException, WebSocketException, ChromeException, OSError) as e:
                     app_logger.warning("Попытка %d/%d: %s", attempt + 1, max_attempts, e)
+                    # Очистка только при ошибке, не в finally
                     self._cleanup_interface()
                     if attempt < max_attempts - 1:
                         time.sleep(attempt_delay)
@@ -293,9 +308,9 @@ class ChromeRemote:
 
             return False
         finally:
-            # ID:111: Гарантированная очистка при ошибке
-            if not connection_established:
-                self._cleanup_interface()
+            # ID:111: Дополнительная проверка состояния после выхода из цикла
+            if self._chrome_tab is None and self._chrome_interface is None:
+                app_logger.debug("Интерфейс полностью очищен в finally")
 
     def _attempt_connection(self) -> None:
         """Выполняет одну попытку подключения.

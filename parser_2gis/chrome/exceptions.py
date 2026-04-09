@@ -29,15 +29,15 @@ class ChromeException(ExceptionContextMixin, Exception):
     """
 
     def __init__(self, message: str = "", **kwargs: Any) -> None:
-        # Получаем контекст через миксин
-        func_name, line_num, filename = self._capture_context()
-        self.function_name = func_name
-        self.line_number = line_num
-        self.filename = filename
+        # Делегируем формирование контекста родительскому миксину
+        # для избежания дублирования логики
+        context = self._capture_context()
+        self.function_name, self.line_number, self.filename = context
 
-        # Формируем полное сообщение с контекстом
+        # Формируем полное сообщение с контекстом (аналогично BaseContextualException)
+        cleaned_message = message.rstrip(".")
         full_message = (
-            f"{message}. "
+            f"{cleaned_message}. "
             f"Функция: {self.function_name}, "
             f"Строка: {self.line_number}, "
             f"Файл: {self.filename}"

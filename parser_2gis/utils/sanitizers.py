@@ -234,7 +234,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
     # Проверка максимального размера данных перед обработкой
     # Ограничиваем размер repr() для предотвращения переполнения памяти
     try:
-        # P0-8: Ограничиваем размер объекта перед вызовом repr() для защиты от MemoryError
+        # P0-8: Ограничиваем размер объекта перед вызовом repr для защиты от MemoryError
         # Для коллекций проверяем размер до вызова repr
         if isinstance(value, (dict, list, set, tuple)) and len(value) > MAX_COLLECTION_SIZE:
             logger.error(
@@ -245,10 +245,12 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
             raise ValueError(
                 "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки."
             )
-        value_str = repr(value)
+        # Оптимизация: используем str() вместо repr() для меньшего потребления памяти
+        # str() не создаёт полную репрезентацию объекта, а только строковое представление
+        value_str = str(value)
         if len(value_str) > MAX_DATA_SIZE:
             logger.error(
-                "Размер repr() превышает максимальный лимит: %d символов (максимум: %d)",
+                "Размер str() превышает максимальный лимит: %d символов (максимум: %d)",
                 len(value_str),
                 MAX_DATA_SIZE,
             )

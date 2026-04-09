@@ -161,6 +161,24 @@ class ProgressManager:
         if self._record_bar:
             self._record_bar.update(n)
 
+    def _close_bars(self) -> None:
+        """Закрывает все прогресс-бары с безопасной обработкой ошибок."""
+        if self._page_bar:
+            try:
+                self._page_bar.close()
+            except (ValueError, AttributeError) as e:
+                _logger.warning(
+                    "Ошибка закрытия прогресс-бара страниц: %s", e
+                )
+
+        if self._record_bar:
+            try:
+                self._record_bar.close()
+            except (ValueError, AttributeError) as e:
+                _logger.warning(
+                    "Ошибка закрытия прогресс-бара записей: %s", e
+                )
+
     def finish(self) -> None:
         """Завершение прогресс-бара.
 
@@ -174,24 +192,8 @@ class ProgressManager:
         try:
             self._stats.finished_at = time.time()
 
-            # Закрываем прогресс-бары с обработкой ошибок
-            if self._page_bar:
-                try:
-                    self._page_bar.close()
-                except (ValueError, AttributeError) as e:
-                    _logger.warning(
-                        f"Ошибка закрытия прогресс-бара страниц: {e}. "
-                        f"Функция: {self.finish.__name__}"
-                    )
-
-            if self._record_bar:
-                try:
-                    self._record_bar.close()
-                except (ValueError, AttributeError) as e:
-                    _logger.warning(
-                        f"Ошибка закрытия прогресс-бара записей: {e}. "
-                        f"Функция: {self.finish.__name__}"
-                    )
+            # Закрываем прогресс-бары через выделенный метод
+            self._close_bars()
 
             # Выводим итоговую статистику
             if not self._disable:
@@ -202,18 +204,24 @@ class ProgressManager:
                 # Рассчитываем скорость обработки с защитой от деления на ноль
                 records_per_sec = self._stats.current_record / elapsed if elapsed > 0 else 0
 
-                # Выводим результаты через logger вместо print
+                # Выводим результаты через logger с lazy-форматированием
                 _logger.info(
-                    f"✅ Завершено за {elapsed:.1f} сек ({records_per_sec:.1f} записей/сек). "
-                    f"Всего страниц: {self._stats.current_page}, "
-                    f"Всего записей: {self._stats.current_record}"
+                    "Завершено за %.1f сек (%.1f записей/сек). "
+                    "Всего страниц: %d, Всего записей: %d",
+                    elapsed,
+                    records_per_sec,
+                    self._stats.current_page,
+                    self._stats.current_record,
                 )
         except (RuntimeError, TypeError) as e:
             _logger.exception(
-                f"Ошибка при завершении прогресс-бара: {e}. "
-                f"Функция: {self.finish.__name__}, "
-                f"Статистика: страницы={self._stats.current_page}/{self._stats.total_pages}, "
-                f"записи={self._stats.current_record}/{self._stats.total_records}"
+                "Ошибка при завершении прогресс-бара: %s. "
+                "Статистика: страницы=%d/%d, записи=%d/%d",
+                e,
+                self._stats.current_page,
+                self._stats.total_pages,
+                self._stats.current_record,
+                self._stats.total_records,
             )
             raise
 
@@ -237,31 +245,15 @@ class ProgressManager:
 
         """
         try:
-            # Закрываем прогресс-бары с обработкой ошибок
-            if self._page_bar:
-                try:
-                    self._page_bar.close()
-                except (ValueError, AttributeError) as e:
-                    _logger.warning(
-                        f"Ошибка закрытия прогресс-бара страниц при сбросе: {e}. "
-                        f"Функция: {self.reset.__name__}"
-                    )
-
-            if self._record_bar:
-                try:
-                    self._record_bar.close()
-                except (ValueError, AttributeError) as e:
-                    _logger.warning(
-                        f"Ошибка закрытия прогресс-бара записей при сбросе: {e}. "
-                        f"Функция: {self.reset.__name__}"
-                    )
+            # Закрываем прогресс-бары через выделенный метод
+            self._close_bars()
 
             self._stats = ProgressStats()
             self._page_bar = None
             self._record_bar = None
         except (RuntimeError, TypeError) as e:
             _logger.exception(
-                f"Ошибка при сбросе прогресс-бара: {e}. Функция: {self.reset.__name__}"
+                "Ошибка при сбросе прогресс-бара: %s", e
             )
             raise
 
