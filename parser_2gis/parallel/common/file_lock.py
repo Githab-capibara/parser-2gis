@@ -127,17 +127,13 @@ class FileLockManager:
                 lock_fd = None
                 try:
                     lock_fd = os.open(
-                        str(self._lock_file_path),
-                        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
-                        mode=0o600,
+                        str(self._lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
                     )
                     try:
                         self._lock_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
                         lock_fd = None
 
-                        fcntl.flock(
-                            self._lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB
-                        )
+                        fcntl.flock(self._lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                         self._lock_handle.write(f"{os.getpid()}\n")
                         self._lock_handle.flush()
                         self._lock_acquired = True
@@ -156,16 +152,12 @@ class FileLockManager:
                         try:
                             self._lock_handle.close()
                         except OSError as close_error:
-                            self._log(
-                                f"Ошибка при закрытии lock файла: {close_error}", "error"
-                            )
+                            self._log(f"Ошибка при закрытии lock файла: {close_error}", "error")
                     self._lock_handle = None
                     lock_fd = None
 
                     if time.time() - start_time > self._timeout:
-                        self._log(
-                            f"Таймаут ожидания lock файла ({self._timeout} сек)", "error"
-                        )
+                        self._log(f"Таймаут ожидания lock файла ({self._timeout} сек)", "error")
                         return None, False
 
                     time.sleep(1)

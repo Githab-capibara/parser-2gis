@@ -125,7 +125,9 @@ class ParallelLockManager:
                     lock_fd = None
 
                     if time.time() - start_time > MERGE_LOCK_TIMEOUT:
-                        self._log(f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error")
+                        self._log(
+                            f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error"
+                        )
                         return None, False
 
                     time.sleep(1)

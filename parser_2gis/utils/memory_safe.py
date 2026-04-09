@@ -58,11 +58,7 @@ def safe_parse_with_memory_check(
                 return func(*args, **kwargs)
             except MemoryError as memory_error:
                 log_func = getattr(logger, log_level)
-                log_func(
-                    "MemoryError при выполнении %s: %s",
-                    func.__name__,
-                    memory_error,
-                )
+                log_func("MemoryError при выполнении %s: %s", func.__name__, memory_error)
 
                 # Очистка кэша если есть
                 if clear_cache_on_error:

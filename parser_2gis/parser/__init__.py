@@ -6,6 +6,7 @@
 
 ISSUE-041: Устранён цикл импортов — parser.options больше не импортирует из constants.
 """
+
 from .factory import get_parser
 from .options import ParserOptions
 

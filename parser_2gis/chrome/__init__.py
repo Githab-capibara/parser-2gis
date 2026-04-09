@@ -11,11 +11,7 @@ Backward совместимость:
 
 from .browser import ChromeBrowser
 from .browser_builder import ChromeBrowserBuilder
-from .js_executor import (
-    DANGEROUS_JS_PATTERNS,
-    MAX_JS_CODE_LENGTH,
-    _validate_js_code,
-)
+from .js_executor import DANGEROUS_JS_PATTERNS, MAX_JS_CODE_LENGTH, _validate_js_code
 from .options import ChromeOptions
 from .rate_limiter import _safe_external_request
 from .remote import ChromeRemote

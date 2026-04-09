@@ -17,17 +17,9 @@ ISSUE-055: Этот модуль перенаправляет импорты в 
 from __future__ import annotations
 
 # ISSUE-055: Перенаправляем все импорты в консолидированный модуль
-from .path_validation import (
-    PathSafetyValidator as PathValidator,
-)
-from .path_validation import (
-    PathTraversalError,
-)
-from .path_validation import (
-    get_path_safety_validator as get_path_validator,
-)
-from .path_validation import (
-    validate_path_safety as validate_path,
-)
+from .path_validation import PathSafetyValidator as PathValidator
+from .path_validation import PathTraversalError
+from .path_validation import get_path_safety_validator as get_path_validator
+from .path_validation import validate_path_safety as validate_path
 
 __all__ = ["PathTraversalError", "PathValidator", "get_path_validator", "validate_path"]

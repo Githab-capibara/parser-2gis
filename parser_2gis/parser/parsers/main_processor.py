@@ -321,18 +321,11 @@ class MainDataProcessor:
 
         """
         if collected_records >= self._parser._parser_options.max_records:
-            logger.info(
-                "Достигнут лимит записей (%d), завершаем парсинг", collected_records
-            )
+            logger.info("Достигнут лимит записей (%d), завершаем парсинг", collected_records)
             return True
         return False
 
-    def _parse_links_batch(
-        self,
-        links: list,
-        writer: FileWriter,
-        collected_records: int,
-    ) -> int:
+    def _parse_links_batch(self, links: list, writer: FileWriter, collected_records: int) -> int:
         """Парсит пакет ссылок и возвращает обновлённый счётчик записей.
 
         Args:
@@ -529,9 +522,7 @@ class MainDataProcessor:
 
                     # Итерируемся по собранным ссылкам
                     collected_records = self._parse_links_batch(
-                        links=links,
-                        writer=writer,
-                        collected_records=collected_records,
+                        links=links, writer=writer, collected_records=collected_records
                     )
                     if self._check_record_limit(collected_records):
                         return

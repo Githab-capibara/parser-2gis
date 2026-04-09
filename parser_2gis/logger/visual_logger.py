@@ -427,7 +427,9 @@ class VisualLogger:
             _logger.error("Ошибка вывода отладочного сообщения: %s. Сообщение: %s", e, message)
             print(f"🔍 {message}")
         except (TypeError, RuntimeError) as e:
-            _logger.exception("Неожиданная ошибка при выводе отладки: %s. Сообщение: %s", e, message)
+            _logger.exception(
+                "Неожиданная ошибка при выводе отладки: %s. Сообщение: %s", e, message
+            )
             raise
 
 
@@ -464,7 +466,9 @@ def print_success(message: str) -> None:
     try:
         visual_logger.print_success(message)
     except (OSError, TypeError, RuntimeError) as e:
-        _logger.exception("Ошибка в глобальной функции print_success: %s. Сообщение: %s", e, message)
+        _logger.exception(
+            "Ошибка в глобальной функции print_success: %s. Сообщение: %s", e, message
+        )
         raise
 
 
@@ -482,7 +486,9 @@ def print_warning(message: str) -> None:
     try:
         visual_logger.print_warning(message)
     except (OSError, TypeError, RuntimeError) as e:
-        _logger.exception("Ошибка в глобальной функции print_warning: %s. Сообщение: %s", e, message)
+        _logger.exception(
+            "Ошибка в глобальной функции print_warning: %s. Сообщение: %s", e, message
+        )
         raise
 
 

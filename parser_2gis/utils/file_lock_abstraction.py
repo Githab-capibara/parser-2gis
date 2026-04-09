@@ -34,10 +34,7 @@ class BaseLockStrategy:
     """
 
     def __init__(
-        self,
-        lock_path: Path,
-        timeout: int = MERGE_LOCK_TIMEOUT,
-        max_attempts: int = 50,
+        self, lock_path: Path, timeout: int = MERGE_LOCK_TIMEOUT, max_attempts: int = 50
     ) -> None:
         """Инициализирует базовую стратегию блокировки.
 
@@ -110,10 +107,7 @@ class FcntlLockStrategy(BaseLockStrategy):
     """
 
     def __init__(
-        self,
-        lock_path: Path,
-        timeout: int = MERGE_LOCK_TIMEOUT,
-        max_attempts: int = 50,
+        self, lock_path: Path, timeout: int = MERGE_LOCK_TIMEOUT, max_attempts: int = 50
     ) -> None:
         """Инициализирует стратегию блокировки.
 
@@ -150,17 +144,13 @@ class FcntlLockStrategy(BaseLockStrategy):
 
             try:
                 lock_fd = os.open(
-                    str(self._lock_path),
-                    os.O_CREAT | os.O_EXCL | os.O_WRONLY,
-                    mode=0o600,
+                    str(self._lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
                 )
                 try:
                     self._lock_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
                     lock_fd = None
 
-                    fcntl.flock(
-                        self._lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB
-                    )
+                    fcntl.flock(self._lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     self._lock_handle.write(f"{os.getpid()}\n")
                     self._lock_handle.flush()
                     self._acquired = True
@@ -181,9 +171,7 @@ class FcntlLockStrategy(BaseLockStrategy):
 
                 time.sleep(1)
 
-        raise RuntimeError(
-            f"Не удалось получить lock файл после {self._max_attempts} попыток"
-        )
+        raise RuntimeError(f"Не удалось получить lock файл после {self._max_attempts} попыток")
 
     def release(self) -> None:
         """Освобождает блокировку и удаляет файл."""
@@ -216,8 +204,4 @@ class NoOpLockStrategy(BaseLockStrategy):
         self._acquired = False
 
 
-__all__ = [
-    "BaseLockStrategy",
-    "FcntlLockStrategy",
-    "NoOpLockStrategy",
-]
+__all__ = ["BaseLockStrategy", "FcntlLockStrategy", "NoOpLockStrategy"]

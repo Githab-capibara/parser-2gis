@@ -45,10 +45,7 @@ class SignalSubscriptionSystem:
         self._installed: bool = False
 
     def subscribe(
-        self,
-        signal_num: int,
-        callback: Callable[[], Any],
-        description: str = "",
+        self, signal_num: int, callback: Callable[[], Any], description: str = ""
     ) -> SignalSubscriptionSystem:
         """Добавляет подписку на сигнал.
 
@@ -66,11 +63,7 @@ class SignalSubscriptionSystem:
         self._subscriptions[signal_num].append((callback, description))
         return self
 
-    def unsubscribe(
-        self,
-        signal_num: int,
-        callback: Callable[[], Any],
-    ) -> SignalSubscriptionSystem:
+    def unsubscribe(self, signal_num: int, callback: Callable[[], Any]) -> SignalSubscriptionSystem:
         """Удаляет подписку на сигнал.
 
         Args:
@@ -83,9 +76,7 @@ class SignalSubscriptionSystem:
         """
         if signal_num in self._subscriptions:
             self._subscriptions[signal_num] = [
-                (cb, desc)
-                for cb, desc in self._subscriptions[signal_num]
-                if cb is not callback
+                (cb, desc) for cb, desc in self._subscriptions[signal_num] if cb is not callback
             ]
         return self
 
@@ -119,9 +110,7 @@ class SignalSubscriptionSystem:
             try:
                 signal.signal(sig_num, original_handler)
             except (OSError, RuntimeError, ValueError) as e:
-                logger.warning(
-                    "Не удалось восстановить обработчик сигнала %d: %s", sig_num, e
-                )
+                logger.warning("Не удалось восстановить обработчик сигнала %d: %s", sig_num, e)
 
         self._original_handlers.clear()
         self._installed = False

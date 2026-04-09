@@ -60,9 +60,7 @@ class ConfigServiceProtocol(Protocol):
 
     @staticmethod
     def load_config(
-        config_cls: type[BaseModel],
-        config_path: pathlib.Path | None = ...,
-        auto_create: bool = ...,
+        config_cls: type[BaseModel], config_path: pathlib.Path | None = ..., auto_create: bool = ...
     ) -> BaseModel:
         """Загружает конфигурацию из файла."""
         ...
@@ -102,21 +100,31 @@ class Configuration(BaseModel):
 
     # ISSUE-037: Lazy creation через Field(default_factory=...)
     # Фабрики вызываются только при создании экземпляра, не при импорте
-    log: LogOptions = Field(default_factory=lambda: __import__(
-        "parser_2gis.logger", fromlist=["LogOptions"]
-    ).LogOptions())
-    writer: WriterOptions = Field(default_factory=lambda: __import__(
-        "parser_2gis.writer", fromlist=["WriterOptions"]
-    ).WriterOptions())
-    chrome: ChromeOptions = Field(default_factory=lambda: __import__(
-        "parser_2gis.chrome", fromlist=["ChromeOptions"]
-    ).ChromeOptions())
-    parser: ParserOptions = Field(default_factory=lambda: __import__(
-        "parser_2gis.parser", fromlist=["ParserOptions"]
-    ).ParserOptions())
-    parallel: ParallelOptions = Field(default_factory=lambda: __import__(
-        "parser_2gis.parallel", fromlist=["ParallelOptions"]
-    ).ParallelOptions())
+    log: LogOptions = Field(
+        default_factory=lambda: __import__(
+            "parser_2gis.logger", fromlist=["LogOptions"]
+        ).LogOptions()
+    )
+    writer: WriterOptions = Field(
+        default_factory=lambda: __import__(
+            "parser_2gis.writer", fromlist=["WriterOptions"]
+        ).WriterOptions()
+    )
+    chrome: ChromeOptions = Field(
+        default_factory=lambda: __import__(
+            "parser_2gis.chrome", fromlist=["ChromeOptions"]
+        ).ChromeOptions()
+    )
+    parser: ParserOptions = Field(
+        default_factory=lambda: __import__(
+            "parser_2gis.parser", fromlist=["ParserOptions"]
+        ).ParserOptions()
+    )
+    parallel: ParallelOptions = Field(
+        default_factory=lambda: __import__(
+            "parser_2gis.parallel", fromlist=["ParallelOptions"]
+        ).ParallelOptions()
+    )
     path: pathlib.Path | None = None
     version: str = config_version
 
@@ -258,7 +266,4 @@ def _resolve_option_types() -> dict[str, type]:
     }
 
 
-Configuration.model_rebuild(
-    _types_namespace=_resolve_option_types(),
-    raise_errors=True,
-)
+Configuration.model_rebuild(_types_namespace=_resolve_option_types(), raise_errors=True)

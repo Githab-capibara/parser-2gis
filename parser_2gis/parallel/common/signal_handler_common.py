@@ -67,13 +67,10 @@ class MergeSignalHandler:
             try:
                 if temp_file.exists():
                     temp_file.unlink()
-                    self._log(
-                        f"Временный файл удалён при прерывании: {temp_file}", "debug"
-                    )
+                    self._log(f"Временный файл удалён при прерывании: {temp_file}", "debug")
             except (OSError, RuntimeError, ValueError) as cleanup_error:
                 self._log(
-                    f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}",
-                    "error",
+                    f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}", "error"
                 )
 
     def _signal_handler(self, signum: int, frame: types.FrameType | None) -> None:
@@ -95,9 +92,7 @@ class MergeSignalHandler:
             signal.signal(signal.SIGTERM, self._signal_handler)
             self._sigterm_registered = True
         except (OSError, ValueError) as sig_error:
-            self._log(
-                f"Не удалось зарегистрировать обработчики сигналов: {sig_error}", "warning"
-            )
+            self._log(f"Не удалось зарегистрировать обработчики сигналов: {sig_error}", "warning")
 
     def restore(self) -> None:
         """Восстанавливает оригинальные обработчики сигналов."""
@@ -105,9 +100,7 @@ class MergeSignalHandler:
             try:
                 signal.signal(signal.SIGINT, self._old_sigint_handler)
             except (OSError, ValueError, TypeError) as restore_error:
-                self._log(
-                    f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error"
-                )
+                self._log(f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error")
 
         if self._sigterm_registered:
             try:

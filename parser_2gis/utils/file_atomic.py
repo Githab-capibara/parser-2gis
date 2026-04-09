@@ -50,8 +50,7 @@ def atomic_replace(src: Path, dst: Path, log_debug: bool = False) -> bool:
         return True
     except OSError as replace_error:
         app_logger.debug(
-            "Не удалось переименовать файл (OSError): %s. Используем shutil.move",
-            replace_error,
+            "Не удалось переименовать файл (OSError): %s. Используем shutil.move", replace_error
         )
         try:
             shutil.move(str(src), str(dst))
@@ -59,9 +58,7 @@ def atomic_replace(src: Path, dst: Path, log_debug: bool = False) -> bool:
                 app_logger.debug("Файл перемещён через shutil.move: %s → %s", src.name, dst.name)
             return True
         except (OSError, RuntimeError, ValueError) as move_error:
-            app_logger.error(
-                "Не удалось переместить временный файл %s: %s", src, move_error
-            )
+            app_logger.error("Не удалось переместить временный файл %s: %s", src, move_error)
             # Попытка cleanup временного файла
             try:
                 if src.exists():

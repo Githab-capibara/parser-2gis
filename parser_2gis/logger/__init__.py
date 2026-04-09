@@ -27,10 +27,7 @@ from .logger import (
     setup_logger,
 )
 from .options import LogOptions
-from .presentation_bridge import (
-    LoggerPresentationBridge,
-    logger_presentation_bridge,
-)
+from .presentation_bridge import LoggerPresentationBridge, logger_presentation_bridge
 from .visual_logger import (
     ColorCodes,
     Emoji,

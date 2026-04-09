@@ -94,15 +94,11 @@ class MergeLockManager:
                         try:
                             lock_file_handle.close()
                         except (OSError, RuntimeError, ValueError) as close_error:
-                            self._log(
-                                f"Ошибка при закрытии lock файла: {close_error}", "error"
-                            )
+                            self._log(f"Ошибка при закрытии lock файла: {close_error}", "error")
                         lock_file_handle = None
 
                         if time.time() - start_time > self._timeout:
-                            self._log(
-                                f"Таймаут ожидания lock файла ({self._timeout} сек)", "error"
-                            )
+                            self._log(f"Таймаут ожидания lock файла ({self._timeout} сек)", "error")
                             return None, False
 
                         time.sleep(1)
@@ -111,15 +107,11 @@ class MergeLockManager:
                         try:
                             lock_file_handle.close()
                         except (OSError, RuntimeError, ValueError) as close_error:
-                            self._log(
-                                f"Ошибка при закрытии lock файла: {close_error}", "error"
-                            )
+                            self._log(f"Ошибка при закрытии lock файла: {close_error}", "error")
                         lock_file_handle = None
 
                     if time.time() - start_time > self._timeout:
-                        self._log(
-                            f"Таймаут ожидания lock файла ({self._timeout} сек)", "error"
-                        )
+                        self._log(f"Таймаут ожидания lock файла ({self._timeout} сек)", "error")
                         return None, False
 
                     time.sleep(1)

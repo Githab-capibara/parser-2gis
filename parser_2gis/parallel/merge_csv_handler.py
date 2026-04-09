@@ -73,7 +73,9 @@ class MergeCSVHandler:
         """
         category_name = self.extract_category_from_filename(csv_file)
 
-        with open(csv_file, encoding="utf-8-sig", newline="", buffering=self._buffer_size) as infile:
+        with open(
+            csv_file, encoding="utf-8-sig", newline="", buffering=self._buffer_size
+        ) as infile:
             reader = csv.DictReader(infile)
 
             if not reader.fieldnames:
@@ -109,7 +111,9 @@ class MergeCSVHandler:
                 writer.writerows(batch)
                 batch_total += len(batch)
 
-            batch_count = (batch_total // self._batch_size) + (1 if batch_total % self._batch_size else 0)
+            batch_count = (batch_total // self._batch_size) + (
+                1 if batch_total % self._batch_size else 0
+            )
             self._log(
                 f"Файл {csv_file.name} обработан (строк: {batch_total}, пакетов: {batch_count})",
                 "debug",

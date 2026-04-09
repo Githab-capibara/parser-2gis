@@ -80,15 +80,12 @@ def load_json_mmap(
     try:
         if use_mmap:
             app_logger.info(
-                "Файл большой (%.2f MB), используется mmap для чтения",
-                file_size / (1024 * 1024),
+                "Файл большой (%.2f MB), используется mmap для чтения", file_size / (1024 * 1024)
             )
             import mmap as mmap_module
 
             with open(file_path, "rb") as f:
-                mmapped_file = mmap_module.mmap(
-                    f.fileno(), 0, access=mmap_module.ACCESS_READ
-                )
+                mmapped_file = mmap_module.mmap(f.fileno(), 0, access=mmap_module.ACCESS_READ)
                 try:
                     json_data = mmapped_file.read().decode("utf-8")
                     return json.loads(json_data)

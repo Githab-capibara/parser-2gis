@@ -919,12 +919,15 @@ class ParallelCityParser:
         total_tasks = len(self.cities) * len(self.categories)
 
         # ISSUE 115: Генерируем событие начала парсинга
-        self._event_emitter.emit(ParsingEvents.PARSING_STARTED, {
-            "total_tasks": total_tasks,
-            "max_workers": self.max_workers,
-            "cities": [c["name"] for c in self.cities],
-            "categories": len(self.categories),
-        })
+        self._event_emitter.emit(
+            ParsingEvents.PARSING_STARTED,
+            {
+                "total_tasks": total_tasks,
+                "max_workers": self.max_workers,
+                "cities": [c["name"] for c in self.cities],
+                "categories": len(self.categories),
+            },
+        )
 
         if self._temp_file_cleanup_timer is not None:
             try:
@@ -984,9 +987,7 @@ class ParallelCityParser:
                             "success": success_count,
                             "failed": failed_count,
                         }
-                        self._event_emitter.emit(
-                            ParsingEvents.PROGRESS_UPDATE, progress_data
-                        )
+                        self._event_emitter.emit(ParsingEvents.PROGRESS_UPDATE, progress_data)
                         # Для обратной совместимости также логируем прогресс
                         from parser_2gis.logger import print_progress
 

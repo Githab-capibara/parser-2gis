@@ -97,9 +97,7 @@ def get_functions_in_file(file_path: Path) -> list[tuple[str, int, int, int]]:
 
 
 def find_python_files(
-    directory: Path,
-    exclude_dirs: list[str] | None = None,
-    exclude_files: list[str] | None = None,
+    directory: Path, exclude_dirs: list[str] | None = None, exclude_files: list[str] | None = None
 ) -> list[Path]:
     """Находит все Python файлы в директории.
 
@@ -1045,8 +1043,7 @@ class TestScalability:
         has_executor_type = (
             "executor_type" in content
             or "ExecutorType" in content
-            or ("thread" in content
-            and "process" in content)
+            or ("thread" in content and "process" in content)
         )
 
         assert has_process_executor, "ThreadCoordinator должен поддерживать ProcessPoolExecutor"

@@ -154,9 +154,7 @@ class TestLayerBoundaries:
                 continue
             imports = _get_imports(py_file)
             chrome_imports = [imp for imp in imports if "chrome" in imp]
-            assert not chrome_imports, (
-                f"{py_file.name} импортирует chrome: {chrome_imports}"
-            )
+            assert not chrome_imports, f"{py_file.name} импортирует chrome: {chrome_imports}"
 
     def test_writer_does_not_import_chrome(self) -> None:
         """writer слой не должен импортировать chrome."""
@@ -168,9 +166,7 @@ class TestLayerBoundaries:
                 continue
             imports = _get_imports(py_file)
             chrome_imports = [imp for imp in imports if "chrome" in imp]
-            assert not chrome_imports, (
-                f"{py_file.name} импортирует chrome: {chrome_imports}"
-            )
+            assert not chrome_imports, f"{py_file.name} импортирует chrome: {chrome_imports}"
 
     def test_logger_has_no_business_logic_imports(self) -> None:
         """logger не должен импортировать бизнес-логику."""
@@ -185,9 +181,7 @@ class TestLayerBoundaries:
             for imp in imports:
                 for biz_mod in business_modules:
                     if imp.startswith(biz_mod):
-                        pytest.fail(
-                            f"{py_file.name} импортирует бизнес-логику: {imp}"
-                        )
+                        pytest.fail(f"{py_file.name} импортирует бизнес-логику: {imp}")
 
 
 # ============================================================================
@@ -259,12 +253,14 @@ class TestNoCircularImports:
 
 try:
     from parser_2gis.cache.pool import ConnectionPool
+
     POOL_AVAILABLE = True
 except ImportError:
     POOL_AVAILABLE = False
 
 try:
     from parser_2gis.parallel.memory_manager import MemoryManager, _memory_manager_instance
+
     MEMORY_MANAGER_AVAILABLE = True
 except ImportError:
     MEMORY_MANAGER_AVAILABLE = False
@@ -307,6 +303,7 @@ class TestGlobalStateIsolation:
     def test_configuration_is_fresh_on_each_creation(self) -> None:
         """Каждое создание Configuration даёт независимый экземпляр."""
         from parser_2gis.config import Configuration
+
         config1 = Configuration()
         config2 = Configuration()
         # Изменение одного не должно влиять на другой
@@ -317,6 +314,7 @@ class TestGlobalStateIsolation:
 # ============================================================================
 # ISSUE 165: Тесты производительности критических функций
 # ============================================================================
+
 
 class TestPerformanceCriticalFunctions:
     """Тесты производительности критических функций."""
@@ -391,6 +389,7 @@ class TestPerformanceCriticalFunctions:
 
 try:
     from parser_2gis.writer import get_writer
+
     WRITER_AVAILABLE = True
 except ImportError:
     WRITER_AVAILABLE = False
@@ -436,10 +435,16 @@ class TestFullParsingCycleMock:
         writer = CSVWriter(str(output_file), options)
         with writer:
             # Запись данных с корректными полями из data_mapping
-            writer._writerow({
-                "name": "Фирма1", "address": "Адрес1", "point_lat": 0.0,
-                "point_lon": 0.0, "url": "http://test.com", "type": "firm"
-            })
+            writer._writerow(
+                {
+                    "name": "Фирма1",
+                    "address": "Адрес1",
+                    "point_lat": 0.0,
+                    "point_lon": 0.0,
+                    "url": "http://test.com",
+                    "type": "firm",
+                }
+            )
 
         # Проверка что файл создан
         assert output_file.exists()

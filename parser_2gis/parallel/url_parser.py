@@ -165,9 +165,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             return False
         return True
 
-    def _generate_temp_filename(
-        self, safe_city: str, safe_category: str
-    ) -> tuple[str, Path]:
+    def _generate_temp_filename(self, safe_city: str, safe_category: str) -> tuple[str, Path]:
         """Генерирует уникальное имя временного файла.
 
         Args:
@@ -182,9 +180,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         temp_filepath = self.output_dir / temp_filename
         return temp_filename, temp_filepath
 
-    def _create_temp_file_atomically(
-        self, safe_city: str, safe_category: str
-    ) -> Path:
+    def _create_temp_file_atomically(self, safe_city: str, safe_category: str) -> Path:
         """Атомарно создаёт временный файл.
 
         Args:
@@ -220,7 +216,9 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                     raise
             except OSError:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
-                    logger.log(5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1)
+                    logger.log(
+                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1
+                    )
                     temp_filename, temp_filepath = self._generate_temp_filename(
                         safe_city, safe_category
                     )
@@ -443,7 +441,9 @@ class ParallelUrlParser(UrlGeneratorProtocol):
 
             # Переименовываем временный файл в целевой
             self._rename_temp_to_final(temp_filepath, filepath, temp_filename)
-            return self._process_parse_result(True, city_name, category_name, filepath, progress_callback)
+            return self._process_parse_result(
+                True, city_name, category_name, filepath, progress_callback
+            )
 
         # Используем ThreadPoolExecutor для установки таймаута (потокобезопасная альтернатива signal.alarm)
         try:

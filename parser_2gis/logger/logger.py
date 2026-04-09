@@ -120,8 +120,7 @@ class LoggerProvider:
                 if not log_instance.handlers:
                     handler = logging.StreamHandler()
                     formatter = _create_formatter(
-                        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                        "%Y-%m-%d %H:%M:%S",
+                        "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"
                     )
                     handler.setFormatter(formatter)
                     log_instance.addHandler(handler)
@@ -343,8 +342,4 @@ def log_parser_finish(
     from .presentation_bridge import logger_presentation_bridge
 
     # ISSUE 106: Делегируем мосту вместо прямого вызова visual_logger
-    logger_presentation_bridge.log_parser_finish(
-        success=success,
-        stats=stats,
-        duration=duration,
-    )
+    logger_presentation_bridge.log_parser_finish(success=success, stats=stats, duration=duration)

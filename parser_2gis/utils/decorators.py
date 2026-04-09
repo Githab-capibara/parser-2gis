@@ -94,10 +94,7 @@ logger = logging.getLogger(__name__)
 
 
 def _check_timeout_expired(
-    start_time: float,
-    timeout: int | None,
-    func_name: str,
-    throw_exception: bool,
+    start_time: float, timeout: int | None, func_name: str, throw_exception: bool
 ) -> tuple[bool, Any]:
     """Проверяет, истёк ли таймаут.
 
@@ -121,10 +118,7 @@ def _check_timeout_expired(
 
 
 def _check_max_retries_exceeded(
-    attempt_count: int,
-    max_retries: int | None,
-    func_name: str,
-    throw_exception: bool,
+    attempt_count: int, max_retries: int | None, func_name: str, throw_exception: bool
 ) -> tuple[bool, Any]:
     """Проверяет, превышено ли максимальное количество попыток.
 
@@ -140,8 +134,7 @@ def _check_max_retries_exceeded(
     """
     if max_retries is not None and attempt_count >= max_retries:
         retries_msg = (
-            f"Превышено максимальное количество попыток для {func_name} "
-            f"({max_retries} попыток)"
+            f"Превышено максимальное количество попыток для {func_name} ({max_retries} попыток)"
         )
         if throw_exception:
             raise TimeoutError(retries_msg)
@@ -169,18 +162,12 @@ def _update_poll_interval(
 
     """
     if use_exponential_backoff and consecutive_failures > 0:
-        return min(
-            base_poll_interval * (2 ** (consecutive_failures - 1)),
-            max_poll_interval,
-        )
+        return min(base_poll_interval * (2 ** (consecutive_failures - 1)), max_poll_interval)
     return base_poll_interval
 
 
 def _handle_execution_error(
-    error: Exception,
-    func_name: str,
-    attempt_count: int,
-    consecutive_failures: int,
+    error: Exception, func_name: str, attempt_count: int, consecutive_failures: int
 ) -> int:
     """Обрабатывает ошибку выполнения функции.
 
@@ -208,10 +195,7 @@ def _handle_execution_error(
         raise
     if isinstance(error, (RuntimeError, ValueError, TypeError)):
         logger.debug(
-            "Ошибка при выполнении функции %s (попытка %d): %s",
-            func_name,
-            attempt_count,
-            error,
+            "Ошибка при выполнении функции %s (попытка %d): %s", func_name, attempt_count, error
         )
         return consecutive_failures + 1
     return consecutive_failures

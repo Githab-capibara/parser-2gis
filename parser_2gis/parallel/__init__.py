@@ -44,21 +44,11 @@ from .lock_manager import ParallelLockManager
 from .memory_manager import MemoryManager, check_memory_safety, get_memory_manager
 from .merge_csv_handler import MergeCSVHandler
 from .merge_lock_manager import MergeLockManager
-from .merger import (
-    ParallelFileMerger,
-)
+from .merger import ParallelFileMerger
 from .options import MAX_TEMP_FILES, ParallelOptions
-from .parallel_parser import (
-    ParallelCityParser,
-    ParallelCityParserThread,
-    ParserThreadConfig,
-)
+from .parallel_parser import ParallelCityParser, ParallelCityParserThread, ParserThreadConfig
 from .progress import ParallelProgressReporter
-from .protocols import (
-    ConnectionPoolProtocol,
-    EventEmitter,
-    ParsingEvents,
-)
+from .protocols import ConnectionPoolProtocol, EventEmitter, ParsingEvents
 from .signal_handler import create_signal_handler
 from .signal_subscription import SignalSubscriptionSystem
 from .strategies import (

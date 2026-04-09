@@ -73,9 +73,7 @@ class ParserRegistry:
                 self._patterns.append((parser_cls, compiled_pattern))
 
                 # Сортируем по приоритету (убывание) и имени (возрастание)
-                self._patterns.sort(
-                    key=lambda x: (-getattr(x[0], "priority", 0), x[0].__name__)
-                )
+                self._patterns.sort(key=lambda x: (-getattr(x[0], "priority", 0), x[0].__name__))
             except (AttributeError, TypeError) as e:
                 logger.warning(
                     "Парсер %s не имеет url_pattern, пропускаем регистрацию: %s",
@@ -288,10 +286,7 @@ def _discover_parsers_via_importlib() -> None:
         for _finder, module_name, _is_pkg in getattr(
             __import__("pkgutil"), "_iter_importers", lambda *a: []
         )(parsers_pkg, parsers_pkg.__name__, pkg_path):
-            if module_name.startswith("_") or module_name in (
-                "base",
-                "__init__",
-            ):
+            if module_name.startswith("_") or module_name in ("base", "__init__"):
                 continue
 
             try:

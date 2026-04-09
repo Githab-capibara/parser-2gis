@@ -117,9 +117,7 @@ def merge_csv_files_common(
         """Открывает выходной файл с fallback механизмом."""
         try:
             file_obj = open(path, "w", encoding=enc, newline="", buffering=buf_size)
-            _log_message(
-                f"Выходной файл открыт с буфером {buf_size} байт", "debug", log_func
-            )
+            _log_message(f"Выходной файл открыт с буфером {buf_size} байт", "debug", log_func)
             return file_obj, True
         except OSError as output_error:
             error_type = type(output_error).__name__
@@ -130,10 +128,14 @@ def merge_csv_files_common(
             )
 
             if buf_size > 8192:
-                _log_message("Fallback попытка: уменьшаем размер буфера до 8KB", "warning", log_func)
+                _log_message(
+                    "Fallback попытка: уменьшаем размер буфера до 8KB", "warning", log_func
+                )
                 try:
                     file_obj = open(path, "w", encoding=enc, newline="", buffering=8192)
-                    _log_message("Fallback успешен: файл открыт с уменьшенным буфером", "info", log_func)
+                    _log_message(
+                        "Fallback успешен: файл открыт с уменьшенным буфером", "info", log_func
+                    )
                     return file_obj, True
                 except OSError as fallback_error:
                     _log_message(f"Fallback не удался: {fallback_error}", "error", log_func)
@@ -195,9 +197,7 @@ def merge_csv_files_common(
 
                     if reader.fieldnames is None or len(reader.fieldnames) == 0:
                         _log_message(
-                            f"Файл {csv_file} пуст или не имеет заголовков",
-                            "warning",
-                            log_callback,
+                            f"Файл {csv_file} пуст или не имеет заголовков", "warning", log_callback
                         )
                         continue
 
@@ -237,9 +237,7 @@ def merge_csv_files_common(
 
                 except (OSError, csv.Error) as csv_error:
                     _log_message(
-                        f"Ошибка при обработке CSV {csv_file}: {csv_error}",
-                        "error",
-                        log_callback,
+                        f"Ошибка при обработке CSV {csv_file}: {csv_error}", "error", log_callback
                     )
                     continue
                 finally:
@@ -257,41 +255,27 @@ def merge_csv_files_common(
 
             if writer is None:
                 _log_message(
-                    "Все CSV файлы пустые или не имеют заголовков",
-                    "warning",
-                    log_callback,
+                    "Все CSV файлы пустые или не имеют заголовков", "warning", log_callback
                 )
                 return False, 0, []
 
             _log_message(
-                f"Объединение завершено. Всего записей: {total_rows}",
-                "info",
-                log_callback,
+                f"Объединение завершено. Всего записей: {total_rows}", "info", log_callback
             )
             return True, total_rows, files_to_delete
 
     except KeyboardInterrupt:
         _log_message(
-            "Объединение прервано пользователем (KeyboardInterrupt)",
-            "warning",
-            log_callback,
+            "Объединение прервано пользователем (KeyboardInterrupt)", "warning", log_callback
         )
         return False, 0, files_to_delete
 
     except OSError as e:
-        _log_message(
-            f"Критическая ошибка ОС при объединении CSV: {e}",
-            "error",
-            log_callback,
-        )
+        _log_message(f"Критическая ошибка ОС при объединении CSV: {e}", "error", log_callback)
         return False, 0, files_to_delete
 
     except (RuntimeError, TypeError, ValueError, MemoryError) as e:
-        _log_message(
-            f"Непредвиденная ошибка при объединении CSV: {e}",
-            "error",
-            log_callback,
-        )
+        _log_message(f"Непредвиденная ошибка при объединении CSV: {e}", "error", log_callback)
         return False, 0, files_to_delete
 
 

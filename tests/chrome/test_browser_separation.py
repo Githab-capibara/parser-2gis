@@ -76,15 +76,18 @@ class TestBrowserPathResolver:
         mock_options = MagicMock()
         mock_options.binary_path = None
 
-        with patch(
-            "parser_2gis.chrome.browser.locate_chrome_path", return_value="/usr/bin/google-chrome"
-        ), patch("os.path.isabs", return_value=True), patch("os.path.exists", return_value=True):
+        with (
+            patch(
+                "parser_2gis.chrome.browser.locate_chrome_path",
+                return_value="/usr/bin/google-chrome",
+            ),
+            patch("os.path.isabs", return_value=True),
+            patch("os.path.exists", return_value=True),
+        ):
             with patch("os.path.isfile", return_value=True):
                 with patch("os.access", return_value=True):
                     with patch("os.path.islink", return_value=False):
-                        with patch(
-                            "os.path.realpath", return_value="/usr/bin/google-chrome"
-                        ):
+                        with patch("os.path.realpath", return_value="/usr/bin/google-chrome"):
                             result = path_resolver.resolve_path(mock_options)
 
                             assert result == "/usr/bin/google-chrome"
@@ -573,9 +576,14 @@ class TestBrowserLifecycleManager:
         mock_proc.poll.return_value = None
         manager._process_manager._proc = mock_proc
 
-        with patch.object(
-            manager._process_manager, "_terminate_process_common", return_value=(True, "terminated")
-        ), patch.object(manager._profile_manager, "cleanup_profile") as mock_cleanup:
+        with (
+            patch.object(
+                manager._process_manager,
+                "_terminate_process_common",
+                return_value=(True, "terminated"),
+            ),
+            patch.object(manager._profile_manager, "cleanup_profile") as mock_cleanup,
+        ):
             manager.close()
 
             # Проверяем что профиль был очищен

@@ -173,12 +173,7 @@ def _detect_format_from_extension(file_path: str | Path) -> str | None:
     ext = path.suffix.lower().lstrip(".")
 
     # Маппинг расширений на форматы
-    extension_map = {
-        "json": "json",
-        "csv": "csv",
-        "xlsx": "xlsx",
-        "xls": "xlsx",
-    }
+    extension_map = {"json": "json", "csv": "csv", "xlsx": "xlsx", "xls": "xlsx"}
 
     return extension_map.get(ext)
 

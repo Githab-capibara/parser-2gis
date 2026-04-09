@@ -62,12 +62,12 @@ def calculate_optimal_buffer(
                 )
                 return MAX_BUFFER_SIZE, False
             else:
-                app_logger.debug("Используется пользовательский размер буфера: %d байт", custom_buffer)
+                app_logger.debug(
+                    "Используется пользовательский размер буфера: %d байт", custom_buffer
+                )
                 return custom_buffer, False
         except ValueError:
-            app_logger.warning(
-                "Некорректное значение PARSER_CSV_BUFFER_SIZE: %s", env_buffer_size
-            )
+            app_logger.warning("Некорректное значение PARSER_CSV_BUFFER_SIZE: %s", env_buffer_size)
 
     # Определяем размер файла
     if file_size_bytes is None and file_path is not None:

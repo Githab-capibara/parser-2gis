@@ -225,9 +225,7 @@ class EventEmitter:
                 # Логируем ошибку, но не прерываем выполнение других обработчиков
                 from parser_2gis.logger.logger import logger
 
-                logger.warning(
-                    "Ошибка в обработчике события '%s': %s", event, e
-                )
+                logger.warning("Ошибка в обработчике события '%s': %s", event, e)
 
         return results
 
@@ -294,9 +292,7 @@ class FileMergerProtocol(Protocol):
     """
 
     def merge_csv_files(
-        self,
-        output_file: str,
-        progress_callback: Callable[[str], None] | None = None,
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
         """Объединяет CSV файлы в один выходной файл."""
         ...

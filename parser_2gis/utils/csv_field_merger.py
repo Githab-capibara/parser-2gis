@@ -115,9 +115,7 @@ class CSVFieldMerger:
 
         return result
 
-    def add_category_to_row(
-        self, row: dict[str, str], category_name: str
-    ) -> dict[str, str]:
+    def add_category_to_row(self, row: dict[str, str], category_name: str) -> dict[str, str]:
         """Добавляет колонку категории к строке данных.
 
         Args:
@@ -153,9 +151,7 @@ def merge_fieldnames(all_fieldnames: list[list[str]]) -> list[str]:
     return _field_merger.merge_fieldnames(all_fieldnames)
 
 
-def get_fieldnames_with_category(
-    fieldnames: list[str], add_category: bool = True
-) -> list[str]:
+def get_fieldnames_with_category(fieldnames: list[str], add_category: bool = True) -> list[str]:
     """Удобная функция для получения имён полей с категорией.
 
     Args:

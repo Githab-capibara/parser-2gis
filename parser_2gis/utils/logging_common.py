@@ -48,10 +48,7 @@ def log_parsing_completion(
     duration_str = f" ({duration:.2f} сек)" if duration is not None else ""
     path_str = f" → {result_path}" if result_path else ""
 
-    message = (
-        f"Завершён парсинг: {city_name} - {category_name} "
-        f"[{status}]{duration_str}{path_str}"
-    )
+    message = f"Завершён парсинг: {city_name} - {category_name} [{status}]{duration_str}{path_str}"
 
     if success:
         logger.info(message)
@@ -88,8 +85,7 @@ def log_parsing_summary(
     cats_str = f", категорий: {categories_count}" if categories_count else ""
 
     logger.info(
-        "Парсинг завершён. Всего: %d, Успешно: %d, Ошибок: %d, Пропущено: %d, "
-        "Время: %s%s%s",
+        "Парсинг завершён. Всего: %d, Успешно: %d, Ошибок: %d, Пропущено: %d, Время: %s%s%s",
         total,
         success,
         failed,

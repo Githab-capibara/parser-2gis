@@ -68,9 +68,7 @@ class LoggerPresentationBridge:
         from .visual_logger import Emoji, print_config, print_header
 
         # Заголовок
-        print_header(
-            f"{Emoji.START} Parser2GIS запущен", subtitle=f"Версия: {version}"
-        )
+        print_header(f"{Emoji.START} Parser2GIS запущен", subtitle=f"Версия: {version}")
 
         # Основная информация
         main_info = {
@@ -92,10 +90,7 @@ class LoggerPresentationBridge:
                 print_config("📄 Writer", config_summary["writer"])
 
     def log_parser_finish(
-        self,
-        success: bool = True,
-        stats: dict[str, Any] | None = None,
-        duration: str | None = None,
+        self, success: bool = True, stats: dict[str, Any] | None = None, duration: str | None = None
     ) -> None:
         """Логирует завершение парсера через визуальный логгер.
 

@@ -133,9 +133,7 @@ class MemoryCheckStrategy:
     """
 
     def __init__(
-        self,
-        memory_monitor: MemoryMonitorProtocol | None = None,
-        memory_threshold_mb: int = 100,
+        self, memory_monitor: MemoryMonitorProtocol | None = None, memory_threshold_mb: int = 100
     ) -> None:
         """Инициализирует стратегию проверки памяти.
 

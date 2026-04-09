@@ -295,6 +295,38 @@ class TestNoImportsFromCommon:
             + "\n\ncommon.py был удалён. Используйте специализированные модули из utils/."
         )
 
+    def test_no_imports_from_common(self) -> None:
+        """Тест 3: Нигде не должны импортироваться из старого common.py.
+
+        parallel/common/ — это новый пакет с общими утилитами, это допустимо.
+        Проверяем что нет импортов из parser_2gis.common (который был удалён).
+        """
+        project_root = Path(__file__).parent.parent / "parser_2gis"
+        violations = []
+
+        for py_file in get_all_python_files(project_root):
+            if "parallel/common" in str(py_file):
+                continue  # Пропускаем сам пакет parallel/common/
+
+            try:
+                with open(py_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+
+                # Проверяем что нет импортов из parser_2gis.common (не parallel.common)
+                if re.search(r"from\s+parser_2gis\.common\b", content):
+                    violations.append(str(py_file.relative_to(project_root)))
+                if re.search(r"import\s+parser_2gis\.common\b", content):
+                    violations.append(str(py_file.relative_to(project_root)))
+
+            except (SyntaxError, UnicodeDecodeError):
+                continue
+
+        assert len(violations) == 0, (
+            "Обнаружены импорты из parser_2gis.common:\n"
+            + "\n".join(f"  {f}" for f in violations)
+            + "\n\nЭтот модуль был удалён."
+        )
+
 
 # =============================================================================
 # ТЕСТ 4: ГРАНИЦЫ МОДУЛЕЙ (ISOLATION)

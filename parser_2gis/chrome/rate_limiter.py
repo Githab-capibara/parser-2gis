@@ -30,9 +30,7 @@ class RateLimiterState:
     """
 
     def __init__(
-        self,
-        min_request_interval: float = 0.1,
-        max_requests_per_second: int = 10,
+        self, min_request_interval: float = 0.1, max_requests_per_second: int = 10
     ) -> None:
         """Инициализирует состояние rate limiter.
 

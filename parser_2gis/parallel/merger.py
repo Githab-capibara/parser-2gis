@@ -299,8 +299,7 @@ class ParallelFileMerger:
             batch_size=MERGE_BATCH_SIZE,
         )
         self._lock_manager = MergeLockManager(
-            log_callback=lambda msg, level: self.log(msg, level),
-            timeout=MERGE_LOCK_TIMEOUT,
+            log_callback=lambda msg, level: self.log(msg, level), timeout=MERGE_LOCK_TIMEOUT
         )
 
     def log(self, message: str, level: str = "info") -> None:
@@ -374,10 +373,7 @@ class ParallelFileMerger:
         ISSUE-025: Делегирует MergeCSVHandler.
         """
         return self._csv_handler.process_single_csv_file(
-            csv_file=csv_file,
-            writer=writer,
-            outfile=outfile,
-            fieldnames_cache=fieldnames_cache,
+            csv_file=csv_file, writer=writer, outfile=outfile, fieldnames_cache=fieldnames_cache
         )
 
     def merge_csv_files(

@@ -20,11 +20,7 @@ from typing import Any
 from parser_2gis.constants import CSV_BATCH_SIZE
 from parser_2gis.logger import logger
 
-from .csv_buffer_manager import (
-    _calculate_optimal_buffer_size,
-    _safe_move_file,
-    mmap_file_context,
-)
+from .csv_buffer_manager import _calculate_optimal_buffer_size, _safe_move_file, mmap_file_context
 
 # Константы
 TRAILING_NUMBER_PATTERN: Pattern[str] = re.compile(r"\s+\d+$")
@@ -69,8 +65,7 @@ class CSVPostProcessor:
         return re.compile(pattern_str)
 
     def _count_complex_columns(
-        self,
-        complex_columns_pattern: Pattern[str] | None,
+        self, complex_columns_pattern: Pattern[str] | None
     ) -> dict[str, int]:
         """Подсчитывает непустые значения в сложных колонках.
 
@@ -90,9 +85,7 @@ class CSVPostProcessor:
                 complex_columns_count[c] = 0
 
         try:
-            with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
-                f_csv, _, _,
-            ):
+            with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (f_csv, _, _):
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())
 
                 if csv_reader.fieldnames is None or len(csv_reader.fieldnames) == 0:
@@ -115,10 +108,7 @@ class CSVPostProcessor:
 
         return complex_columns_count
 
-    def _generate_new_mapping(
-        self,
-        complex_columns_count: dict[str, int],
-    ) -> dict[str, Any]:
+    def _generate_new_mapping(self, complex_columns_count: dict[str, int]) -> dict[str, Any]:
         """Генерирует новый маппинг без пустых колонок.
 
         Args:
@@ -157,9 +147,7 @@ class CSVPostProcessor:
         file_size = os.path.getsize(self._file_path) if os.path.exists(self._file_path) else 0
         optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
 
-        with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
-            f_csv, _, _,
-        ):
+        with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (f_csv, _, _):
             f_tmp_csv = None
             try:
                 f_tmp_csv = open(
