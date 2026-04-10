@@ -4,6 +4,9 @@
 Объединяет тесты из test_chrome.py и test_integration.py.
 
 Проверяют следующие возможности:
+import pytest
+
+pytestmark = pytest.mark.requires_chrome
 - ChromeOptions валидация
 - ChromeRemote
 - ChromeException и наследники
@@ -16,6 +19,9 @@ import os
 import pathlib
 import tempfile
 from pathlib import Path
+import pytest
+
+pytestmark = pytest.mark.requires_chrome
 
 import pytest
 

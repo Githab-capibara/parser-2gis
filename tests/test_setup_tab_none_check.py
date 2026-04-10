@@ -4,6 +4,9 @@
 Проверяет:
 - Вызов _setup_tab() с None
 - Выбрасывается ChromeException
+import pytest
+
+pytestmark = pytest.mark.requires_chrome
 
 ИСПРАВЛЕНИЕ H9: Явная проверка на None перед использованием _chrome_tab.
 """
@@ -12,6 +15,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import pytest
+
+pytestmark = pytest.mark.requires_chrome
 from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.chrome.remote import ChromeRemote
 

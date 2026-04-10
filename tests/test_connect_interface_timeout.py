@@ -4,6 +4,9 @@
 Проверяет:
 - _connect_interface() имеет таймаут 30 сек
 - Превышение таймаута вызывает ошибку
+import pytest
+
+pytestmark = pytest.mark.requires_chrome
 
 ИСПРАВЛЕНИЕ H3: Общий таймаут на все попытки подключения (суммарно не более 30 сек).
 """
@@ -12,6 +15,9 @@ import time
 from typing import Never
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+pytestmark = pytest.mark.requires_chrome
 import pytest
 
 from parser_2gis.chrome.remote import ChromeRemote
