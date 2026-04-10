@@ -432,7 +432,7 @@ class ApplicationLauncher:
         output_path_obj = Path(output_path)
         # Если путь имеет расширение (например, .csv), это файл - возвращаем родительскую директорию
         if output_path_obj.suffix:
-            return output_path_obj.parent if output_path_obj.parent != Path(".") else Path(".")
+            return output_path_obj.parent if output_path_obj.parent != Path() else Path()
         # Если путь не имеет расширения, считаем его директорией
         return output_path_obj
 

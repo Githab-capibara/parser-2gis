@@ -73,8 +73,7 @@ class ThreadManager:
         if self._executor is None:
             raise RuntimeError("ThreadPoolExecutor не инициализирован")
 
-        future = self._executor.submit(func, *args, **kwargs)
-        return future
+        return self._executor.submit(func, *args, **kwargs)
 
     def execute_all(
         self,

@@ -65,7 +65,7 @@ class InBuildingParser(MainParser):
 
         dom_tree = self._chrome_remote.get_document()
         links = dom_tree.search(valid_link)
-        return links if links else None
+        return links or None
 
     def parse(self, writer: FileWriter) -> None:
         """Парсит URL с организациями.

@@ -117,7 +117,7 @@ class ConfigMerger:
         from parser_2gis.pydantic_compat import get_model_fields_set
 
         fields_set: set[str] | None = get_model_fields_set(model)
-        return fields_set if fields_set else set()
+        return fields_set or set()
 
     @staticmethod
     def _get_logger() -> Logger:

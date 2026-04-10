@@ -207,7 +207,7 @@ def _validate_category_cached(category_tuple: tuple) -> dict[str, Any]:
     return {
         "name": category_tuple[0],
         "query": category_tuple[1],
-        "rubric_code": category_tuple[2] if category_tuple[2] else None,
+        "rubric_code": category_tuple[2] or None,
     }
 
 

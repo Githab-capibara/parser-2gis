@@ -228,7 +228,7 @@ class MainPageParser(BaseParser):
 
             links = dom_tree.search(valid_link)
             # Возвращаем None если ссылки не найдены, иначе список ссылок
-            return links if links else None
+            return links or None
 
         except TimeoutError as timeout_error:
             # Явная обработка TimeoutError - возвращаем None вместо падения

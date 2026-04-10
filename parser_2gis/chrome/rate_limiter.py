@@ -151,8 +151,7 @@ def _safe_external_request(
         timeout = DEFAULT_NETWORK_TIMEOUT
 
     try:
-        response = requests.request(method, url, timeout=timeout, **kwargs)
-        return response
+        return requests.request(method, url, timeout=timeout, **kwargs)
     except requests.exceptions.RequestException as e:
         # Логируем ошибку, но не выбрасываем - пусть вызывающий код решает
         from parser_2gis.logger import logger as app_logger

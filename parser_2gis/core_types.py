@@ -102,7 +102,7 @@ class MergeStats(NamedTuple):
 # Generic container для результатов парсинга
 
 
-class ParseResult(Generic[T]):
+class ParseResult[T]:
     """Универсальный контейнер результата парсинга.
 
     Attributes:

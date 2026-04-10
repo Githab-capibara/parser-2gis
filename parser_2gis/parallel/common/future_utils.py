@@ -35,10 +35,7 @@ def cancel_futures_safely(
         Количество отменённых Future.
 
     """
-    if isinstance(futures, dict):
-        future_list = list(futures.keys())
-    else:
-        future_list = futures
+    future_list = list(futures.keys()) if isinstance(futures, dict) else futures
 
     cancelled_count = 0
     for future in future_list:

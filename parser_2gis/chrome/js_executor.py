@@ -566,6 +566,5 @@ def _sanitize_js_string(value: str) -> str:
     value = value.replace("$", "\\$")
     # Экранируем кавычки
     value = value.replace("'", "\\'")
-    value = value.replace('"', '\\"')
+    return value.replace('"', '\\"')
 
-    return value

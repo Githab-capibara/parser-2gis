@@ -294,12 +294,12 @@ class ParallelFileMerger:
 
         # ISSUE-025: Делегирование специализированным компонентам
         self._csv_handler = MergeCSVHandler(
-            log_callback=lambda msg, level: self.log(msg, level),
+            log_callback=self.log,
             buffer_size=MERGE_BUFFER_SIZE,
             batch_size=MERGE_BATCH_SIZE,
         )
         self._lock_manager = MergeLockManager(
-            log_callback=lambda msg, level: self.log(msg, level), timeout=MERGE_LOCK_TIMEOUT,
+            log_callback=self.log, timeout=MERGE_LOCK_TIMEOUT,
         )
 
     def log(self, message: str, level: str = "info") -> None:

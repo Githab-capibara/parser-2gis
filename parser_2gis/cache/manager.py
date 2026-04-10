@@ -560,8 +560,7 @@ class CacheManager:
                         data, expires_at_str = row
                         expires_at = self._parse_expires_at(expires_at_str)
                         if expires_at and datetime.now(tz=None) <= expires_at:  # noqa: DTZ005
-                            result = self._serializer.deserialize(data)
-                            return result
+                            return self._serializer.deserialize(data)
             except sqlite3.Error as retry_error:
                 app_logger.warning("Повторная попытка не удалась: %s", retry_error)
             finally:

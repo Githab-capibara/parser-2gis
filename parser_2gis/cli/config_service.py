@@ -169,8 +169,7 @@ class ConfigService:
             return config
         elif not config_path.is_file():
             logger.info("Файл конфигурации не найден, используется конфигурация по умолчанию")
-            config = config_cls()  # type: ignore[call-arg]
-            return config
+            return config_cls()  # type: ignore[call-arg]
 
         try:
             with open(config_path, encoding="utf-8") as f:

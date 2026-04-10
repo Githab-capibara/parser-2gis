@@ -690,7 +690,7 @@ class ParallelCityParser:
             encoding=self.config.writer.encoding,
             buffer_size=MERGE_BUFFER_SIZE,
             batch_size=MERGE_BATCH_SIZE,
-            log_callback=lambda msg, level: self.log(msg, level),
+            log_callback=self.log,
             progress_callback=progress_callback,
             cancel_event=self._cancel_event,
         )

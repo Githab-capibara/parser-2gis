@@ -186,7 +186,7 @@ class StatsCollector:
         with self._lock:
             if self.start_time is None:
                 return 0.0
-            end = self.end_time if self.end_time else time.time()
+            end = self.end_time or time.time()
             return end - self.start_time
 
     def get_summary(self) -> StatsSummary:
