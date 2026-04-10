@@ -362,12 +362,12 @@ class ParallelFileMerger:
     def process_single_csv_file(
         self,
         csv_file: Path,
-        writer: csv.DictWriter | None,
+        writer: csv.DictWriter[str] | None,
         outfile: typing.TextIO,
         buffer_size: int,
         batch_size: int,
         fieldnames_cache: dict[tuple[str, ...], list[str]],
-    ) -> tuple[csv.DictWriter | None, int]:
+    ) -> tuple[csv.DictWriter[str] | None, int]:
         """Обрабатывает один CSV файл и добавляет данные в выходной файл.
 
         ISSUE-025: Делегирует MergeCSVHandler.

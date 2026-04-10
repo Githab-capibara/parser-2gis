@@ -330,12 +330,12 @@ def validate_phone(phone: str) -> ValidationResult:
 # ISSUE-154, ISSUE-155: Используем OrderedDict для true LRU кэширования
 # C003: Кэш для валидации конфигурации городов на основе JSON хеша
 # ISSUE-155: Используем OrderedDict для true LRU eviction
-_CITIES_CONFIG_CACHE: OrderedDict[str, list] = OrderedDict()
-_CATEGORIES_CONFIG_CACHE: OrderedDict[str, list] = OrderedDict()
+_CITIES_CONFIG_CACHE: OrderedDict[str, list[Any]] = OrderedDict()
+_CATEGORIES_CONFIG_CACHE: OrderedDict[str, list[Any]] = OrderedDict()
 _CACHE_MAX_SIZE = 256  # LRU eviction при 256 записях
 
 
-def _compute_config_hash(config: list) -> str:
+def _compute_config_hash(config: list[Any]) -> str:
     """Вычисляет SHA256 хеш конфигурации для кэширования.
 
     C003: Хеширование для кэширования результатов валидации.
@@ -347,7 +347,7 @@ def _compute_config_hash(config: list) -> str:
     return hashlib.sha256(config_json.encode("utf-8")).hexdigest()
 
 
-def _evict_cache_if_needed(cache: OrderedDict[str, list], max_size: int = _CACHE_MAX_SIZE) -> None:
+def _evict_cache_if_needed(cache: OrderedDict[str, list[Any]], max_size: int = _CACHE_MAX_SIZE) -> None:
     """LRU eviction для кэша конфигураций.
 
     ISSUE-155: Используем OrderedDict для true LRU eviction.
@@ -358,7 +358,7 @@ def _evict_cache_if_needed(cache: OrderedDict[str, list], max_size: int = _CACHE
         cache.popitem(last=False)
 
 
-def _validate_config_data(config: list, field_name: str, cache: OrderedDict[str, list]) -> list:
+def _validate_config_data(config: list[Any], field_name: str, cache: OrderedDict[str, list[Any]]) -> list[Any]:
     """Универсальная валидация конфигурации городов/категорий.
 
     ISSUE-154: Использует OrderedDict для true LRU кэширования.
@@ -400,7 +400,7 @@ def _validate_config_data(config: list, field_name: str, cache: OrderedDict[str,
     return config
 
 
-def validate_cities_config(cities: list, field_name: str = "cities") -> list:
+def validate_cities_config(cities: list[Any], field_name: str = "cities") -> list[Any]:
     """Валидирует конфигурацию городов для параллельного парсинга.
 
     ISSUE-154: Использует OrderedDict для true LRU кэширования.
@@ -425,7 +425,7 @@ def validate_cities_config(cities: list, field_name: str = "cities") -> list:
     return _validate_config_data(cities, field_name, _CITIES_CONFIG_CACHE)
 
 
-def validate_categories_config(categories: list, field_name: str = "categories") -> list:
+def validate_categories_config(categories: list[Any], field_name: str = "categories") -> list[Any]:
     """Валидирует конфигурацию категорий для параллельного парсинга.
 
     ISSUE-154: Использует OrderedDict для true LRU кэширования.
@@ -451,8 +451,8 @@ def validate_categories_config(categories: list, field_name: str = "categories")
 
 
 def validate_config(
-    config: list, field_name: str, cache: OrderedDict[str, list] | None = None
-) -> list:
+    config: list[Any], field_name: str, cache: OrderedDict[str, list[Any]] | None = None
+) -> list[Any]:
     """Универсальная функция валидации конфигурации (города, категории и т.д.).
 
     Объединяет логику validate_cities_config и validate_categories_config.
@@ -490,7 +490,7 @@ def validate_parallel_config(
     max_workers_limit: int = 100,
     min_timeout: int = 1,
     max_timeout: int = 7200,
-) -> dict:
+) -> dict[str, int]:
     """Валидирует конфигурацию параллельного парсинга.
 
     Args:

@@ -47,7 +47,7 @@ from .utils import free_port, locate_chrome_path
 try:
     import psutil
 except ImportError:
-    psutil = None  # type: ignore[misc]
+    psutil = None
 
 if TYPE_CHECKING:
     from .options import ChromeOptions
@@ -204,10 +204,10 @@ class ProfileManager:
 
     def __init__(self) -> None:
         """Инициализирует менеджер профиля."""
-        self._profile_tempdir: tempfile.TemporaryDirectory | None = None
+        self._profile_tempdir: tempfile.TemporaryDirectory[str] | None = None
         self._profile_path: str | None = None
 
-    def create_profile(self) -> tuple[tempfile.TemporaryDirectory, str]:
+    def create_profile(self) -> tuple[tempfile.TemporaryDirectory[str], str]:
         """Создаёт временную директорию профиля.
 
         Returns:
@@ -293,7 +293,7 @@ class ProfileManager:
         return self._profile_path
 
     @property
-    def profile_tempdir(self) -> tempfile.TemporaryDirectory | None:
+    def profile_tempdir(self) -> tempfile.TemporaryDirectory[str] | None:
         """Возвращает TemporaryDirectory профиля."""
         return self._profile_tempdir
 
@@ -319,12 +319,12 @@ class ProcessManager:
 
     def __init__(self) -> None:
         """Инициализирует менеджер процесса."""
-        self._proc: subprocess.Popen | None = None
+        self._proc: subprocess.Popen[str] | None = None
         self._start_time: float = 0.0
 
     def launch_process(
         self, chrome_cmd: list[str], profile_path: str, chrome_options: ChromeOptions
-    ) -> subprocess.Popen:
+    ) -> subprocess.Popen[str]:
         """Запускает процесс Chrome.
 
         Args:
@@ -354,7 +354,7 @@ class ProcessManager:
             raise TypeError("chrome_cmd не должен содержать None значения")
 
         self._start_time = time.time()
-        proc: subprocess.Popen | None = None
+        proc: subprocess.Popen[str] | None = None
 
         # ID:103, ID:107: Используем try/finally для гарантии очистки ресурсов
         try:
@@ -621,7 +621,7 @@ class ProcessManager:
             return False, "kill_error"
 
     @property
-    def process(self) -> subprocess.Popen | None:
+    def process(self) -> subprocess.Popen[str] | None:
         """Возвращает процесс."""
         return self._proc
 
@@ -771,7 +771,7 @@ class BrowserLifecycleManager:
                     # ignore_errors=True в cleanup_profile уже обрабатывает большинство случаев
                     app_logger.debug("Ошибка при очистке профиля в finally: %s", cleanup_error)
 
-        return self._remote_port  # type: ignore[return-value]
+        return self._remote_port
 
     def _build_chrome_cmd(
         self, binary_path: str, profile_path: str, remote_port: int, chrome_options: ChromeOptions
@@ -885,8 +885,8 @@ class BrowserLifecycleManager:
 
     @staticmethod
     def _cleanup_from_finalizer(
-        proc: subprocess.Popen | None,
-        profile_tempdir: tempfile.TemporaryDirectory | None,
+        proc: subprocess.Popen[str] | None,
+        profile_tempdir: tempfile.TemporaryDirectory[str] | None,
         profile_path: str | None,
     ) -> None:
         """Гарантированная очистка ресурсов через weakref.finalize().
@@ -917,7 +917,7 @@ class BrowserLifecycleManager:
         return self._remote_port
 
     @property
-    def process(self) -> subprocess.Popen | None:
+    def process(self) -> subprocess.Popen[str] | None:
         """Процесс браузера."""
         return self._process_manager.process
 
@@ -1005,7 +1005,7 @@ class ChromeBrowser:
         return self._remote_port
 
     @property
-    def _proc(self) -> subprocess.Popen | None:
+    def _proc(self) -> subprocess.Popen[str] | None:
         """Процесс браузера (для backward compatibility)."""
         return self._lifecycle_manager.process
 

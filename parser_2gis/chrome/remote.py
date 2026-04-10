@@ -60,13 +60,13 @@ from .request_interceptor import Request, RequestInterceptor, Response
 try:
     from ratelimit import limits, sleep_and_retry
 except ImportError:
-    limits = None  # type: ignore[assignment, misc]
-    sleep_and_retry = None  # type: ignore[assignment, misc]
+    limits = None
+    sleep_and_retry = None
 
 try:
     from requests.exceptions import RequestException
 except ImportError:
-    RequestException = Exception  # type: ignore[misc, assignment]
+    RequestException = Exception
 
 # tenacity импортируется из utils.retry при необходимости
 
@@ -141,7 +141,7 @@ def _check_port_cached(port: int) -> bool:
     return _check_port_available_internal(port, timeout=0.6, retries=1)
 
 
-def get_port_cache_info() -> dict[str, int]:
+def get_port_cache_info() -> dict[str, int | None]:
     """Возвращает информацию о кэше проверки портов.
 
     Returns:

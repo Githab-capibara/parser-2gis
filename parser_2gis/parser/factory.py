@@ -53,7 +53,7 @@ class ParserRegistry:
     def __init__(self) -> None:
         """Инициализирует реестр парсеров."""
         self._registry: dict[str, type[BaseParser]] = {}
-        self._patterns: list[tuple[type[BaseParser], re.Pattern]] = []
+        self._patterns: list[tuple[type[BaseParser], re.Pattern[str]]] = []
         self._lock = threading.Lock()
 
     def register(self, parser_cls: type[BaseParser], priority: int = 0) -> None:
@@ -127,7 +127,7 @@ class ParserRegistry:
             self._patterns.clear()
 
     @property
-    def patterns(self) -> list[tuple[type[BaseParser], re.Pattern]]:
+    def patterns(self) -> list[tuple[type[BaseParser], re.Pattern[str]]]:
         """Возвращает список паттернов (для обратной совместимости).
 
         Returns:

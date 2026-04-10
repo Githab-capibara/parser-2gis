@@ -38,9 +38,9 @@ def __getattr__(name: str) -> Any:
         "MMAP_THRESHOLD_BYTES",
     }
     if name in _buffer_names:
-        from parser_2gis.constants import buffer as _mod
+        from parser_2gis.constants import buffer as _buffer_mod
 
-        return getattr(_mod, name)
+        return getattr(_buffer_mod, name)
 
     # Cache constants
     _cache_names = {
@@ -57,16 +57,16 @@ def __getattr__(name: str) -> Any:
         "SHA256_HASH_LENGTH",
     }
     if name in _cache_names:
-        from parser_2gis.constants import cache as _mod
+        from parser_2gis.constants import cache as _cache_mod
 
-        return getattr(_mod, name)
+        return getattr(_cache_mod, name)
 
     # Env config
     _env_names = {"EnvConfig", "get_env_config", "validate_env_int"}
     if name in _env_names:
-        from parser_2gis.constants import env_config as _mod
+        from parser_2gis.constants import env_config as _env_mod
 
-        return getattr(_mod, name)
+        return getattr(_env_mod, name)
 
     # Parser constants
     _parser_names = {
@@ -93,9 +93,9 @@ def __getattr__(name: str) -> Any:
         "TEMP_FILE_CLEANUP_INTERVAL",
     }
     if name in _parser_names:
-        from parser_2gis.constants import parser as _mod
+        from parser_2gis.constants import parser as _parser_mod
 
-        return getattr(_mod, name)
+        return getattr(_parser_mod, name)
 
     # Security constants
     _security_names = {
@@ -123,16 +123,16 @@ def __getattr__(name: str) -> Any:
         "MAX_URL_DECODE_ITERATIONS",
     }
     if name in _security_names:
-        from parser_2gis.constants import security as _mod
+        from parser_2gis.constants import security as _security_mod
 
-        return getattr(_mod, name)
+        return getattr(_security_mod, name)
 
     # Validation constants
     _validation_names = {"MAX_CITIES_COUNT", "MAX_CITIES_FILE_SIZE", "MMAP_CITIES_THRESHOLD"}
     if name in _validation_names:
-        from parser_2gis.constants import validation as _mod
+        from parser_2gis.constants import validation as _validation_mod
 
-        return getattr(_mod, name)
+        return getattr(_validation_mod, name)
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

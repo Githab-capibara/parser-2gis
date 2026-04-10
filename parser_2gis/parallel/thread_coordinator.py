@@ -228,7 +228,7 @@ class ThreadCoordinator:
         self._url_parser._cancel_event = self._cancel_event
 
         executor: Executor | None = None
-        futures: dict[Future, tuple] = {}
+        futures: dict[Future[tuple[bool, str]], tuple[str, str, str]] = {}
 
         try:
             # Создаём executor в зависимости от типа

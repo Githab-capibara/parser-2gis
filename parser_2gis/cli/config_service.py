@@ -193,7 +193,7 @@ class ConfigService:
             return config_cls()  # type: ignore[call-arg]
         except (OSError, RuntimeError, TypeError) as e:
             logger.error("Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=e)
-            return config_cls()  # type: ignore[call-arg]
+            return config_cls()
 
     @staticmethod
     def _backup_corrupted_config(config_path: pathlib.Path) -> None:

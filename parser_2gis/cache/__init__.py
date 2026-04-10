@@ -35,7 +35,7 @@ from .validator import CacheDataValidator
 try:
     import psutil
 except ImportError:
-    psutil = None  # type: ignore[assignment]
+    psutil = None
 
 __all__ = [
     "CONNECTION_MAX_AGE",

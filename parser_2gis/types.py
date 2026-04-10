@@ -67,7 +67,7 @@ class CategoryDict(TypedDict, total=False):
 # Тип для валидации ENV
 
 
-class EnvValidationResult(tuple):
+class EnvValidationResult(tuple[bool, str | None]):
     """Тип для результата валидации ENV.
 
     Кортеж (is_valid: bool, error_message: str | None).

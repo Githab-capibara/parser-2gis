@@ -17,7 +17,7 @@ ISSUE 113: Добавляет паттерн Builder для создания Par
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from parser_2gis.constants import DEFAULT_TIMEOUT
 
@@ -45,7 +45,7 @@ class ParallelCityParserBuilder:
 
     """
 
-    def __init__(self, cities: list[dict], categories: list[dict]) -> None:
+    def __init__(self, cities: list[dict[str, Any]], categories: list[dict[str, Any]]) -> None:
         """Инициализирует builder с обязательными параметрами.
 
         Args:

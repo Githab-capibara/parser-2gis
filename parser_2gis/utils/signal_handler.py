@@ -20,6 +20,7 @@ import signal
 import threading
 import types
 from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger("parser_2gis.utils.signal_handler")
 
@@ -50,8 +51,8 @@ class SignalHandler:
         """
         self._cleanup_callback = cleanup_callback
         self._cancel_event = cancel_event or threading.Event()
-        self._old_sigint_handler: Callable | None = None
-        self._old_sigterm_handler: Callable | None = None
+        self._old_sigint_handler: Callable[[int, types.FrameType | None], Any] | int | None = None
+        self._old_sigterm_handler: Callable[[int, types.FrameType | None], Any] | int | None = None
         self._registered = False
 
     def register(self) -> None:

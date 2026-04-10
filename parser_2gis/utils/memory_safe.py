@@ -65,7 +65,7 @@ def safe_parse_with_memory_check(
                     for arg in args:
                         if hasattr(arg, "_cache"):
                             try:
-                                arg._cache.clear()  # type: ignore[attr-defined]
+                                arg._cache.clear()
                             except (OSError, RuntimeError, AttributeError):
                                 pass
 
