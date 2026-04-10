@@ -65,7 +65,7 @@ def atomic_replace(src: Path, dst: Path, log_debug: bool = False) -> bool:
                     src.unlink()
             except OSError:
                 pass
-            raise move_error
+            raise
 
 
 def safe_file_cleanup(file_path: Path, description: str = "файл") -> bool:

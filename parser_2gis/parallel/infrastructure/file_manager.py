@@ -147,7 +147,7 @@ class FileManager:
                 return True
             except (OSError, RuntimeError, TypeError, ValueError) as move_error:
                 logger.error("Не удалось переместить файл: %s", move_error)
-                raise move_error
+                raise
 
     def cleanup_file(self, file_path: Path) -> bool:
         """Очищает (удаляет) файл.

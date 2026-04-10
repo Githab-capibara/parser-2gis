@@ -194,7 +194,7 @@ class FileLogger:
                 self._file_handler = None
             # Логируем ошибку через logging.warning вместо sys.stderr.write
             app_logger = logging.getLogger("parser-2gis")
-            app_logger.error(
+            app_logger.exception(
                 "Критическая ошибка при настройке файлового обработчика: %s. Функция: %s, Файл: %s",
                 e,
                 self._setup_file_handler.__name__,
@@ -260,7 +260,7 @@ class FileLogger:
                 try:
                     self._file_handler.close()
                 except OSError as e:
-                    session_logger.error(
+                    session_logger.exception(
                         f"Ошибка закрытия файлового обработчика: {e}. "
                         f"Функция: {self.close.__name__}"
                     )
@@ -270,7 +270,7 @@ class FileLogger:
             raise
         except (OSError, RuntimeError) as e:
             app_logger = logging.getLogger("parser-2gis")
-            app_logger.error(
+            app_logger.exception(
                 "Ошибка при закрытии файлового логгера: %s. Функция: %s", e, self.close.__name__
             )
             # Не пробрасываем ошибку, чтобы не нарушить завершение работы

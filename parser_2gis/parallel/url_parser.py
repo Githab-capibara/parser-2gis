@@ -376,7 +376,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                             time.sleep(retry_delay)
                             retry_delay *= 2
                         else:
-                            raise chrome_error
+                            raise
 
                 if parser is None:
                     browser_semaphore.release()
@@ -518,7 +518,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                     f"Не удалось переместить временный файл {temp_filename}: {move_error}", "error"
                 )
                 self._cleanup_temp_file(temp_filepath)
-                raise move_error
+                raise
 
         if move_success:
             self.log(f"Временный файл переименован: {temp_filename} → {filepath.name}", "debug")

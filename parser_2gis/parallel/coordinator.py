@@ -100,7 +100,7 @@ def _atomic_rename_with_retry(
                 time.sleep(0.1 * (attempt + 1))  # Экспоненциальная задержка
             else:
                 log_func(f"Не удалось переместить временный файл {src.name}: {move_error}")
-                raise move_error
+                raise
 
     return False
 
@@ -595,7 +595,7 @@ class ParallelCoordinator:
                 )
             except OSError as move_error:
                 self._error_handler._cleanup_temp_file(temp_filepath)
-                raise move_error
+                raise
 
             if not rename_success:
                 return False, "Не удалось переименовать файл"

@@ -250,7 +250,7 @@ def generate_city_urls(
             urls.append(base_url + rest_url)
 
         except (ValueError, TypeError, MemoryError, OSError) as e:
-            local_logger.error("Ошибка при генерации URL для города %s: %s", city, e)
+            local_logger.exception("Ошибка при генерации URL для города %s: %s", city, e)
             continue
 
     return urls

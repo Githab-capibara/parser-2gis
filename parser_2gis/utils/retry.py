@@ -157,7 +157,7 @@ def retry_with_backoff(
                         # Увеличиваем задержку для следующей попытки (экспоненциальный backoff)
                         current_delay = min(current_delay * backoff_factor, max_delay)
                     else:
-                        log_func.error(
+                        log_func.exception(
                             "Исчерпаны попытки повторения для %s после %d попыток: %s",
                             func_name,
                             max_attempts,

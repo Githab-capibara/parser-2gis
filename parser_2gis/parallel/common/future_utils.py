@@ -92,5 +92,5 @@ def shutdown_executor_safely(executor: Any, wait: bool = True, cancel_futures: b
         logger.debug("ThreadPoolExecutor завершён корректно")
         return True
     except (OSError, RuntimeError, ValueError) as shutdown_error:
-        logger.error("Ошибка при shutdown ThreadPoolExecutor: %s", shutdown_error)
+        logger.exception("Ошибка при shutdown ThreadPoolExecutor: %s", shutdown_error)
         return False

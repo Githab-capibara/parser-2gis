@@ -169,10 +169,10 @@ class TempFileManager:
                 self._logger.debug("Удалён временный файл: %s", file_path)
             except PermissionError as perm_error:
                 error_count += 1
-                self._logger.error("Нет прав на удаление файла %s: %s", file_path, perm_error)
+                self._logger.exception("Нет прав на удаление файла %s: %s", file_path, perm_error)
             except OSError as e:
                 error_count += 1
-                self._logger.error("Ошибка удаления файла %s: %s", file_path, e)
+                self._logger.exception("Ошибка удаления файла %s: %s", file_path, e)
 
         with self._lock:
             self._registry.clear()

@@ -821,7 +821,7 @@ class ParallelCityParser:
                             self.log("Временный файл удалён после ошибки перемещения", "debug")
                     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         self.log(f"Не удалось удалить временный файл: {cleanup_error}", "debug")
-                    raise move_error
+                    raise
 
             for csv_file in files_to_delete:
                 try:

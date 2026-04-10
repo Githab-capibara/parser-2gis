@@ -116,7 +116,7 @@ class EnvConfig:
         try:
             value = int(value_str)
         except ValueError as e:
-            self._logger.error(
+            self._logger.exception(
                 "ENV переменная %s=%s не является целым числом: %s", env_name, value_str, e
             )
             return default

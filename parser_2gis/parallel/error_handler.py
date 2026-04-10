@@ -227,7 +227,7 @@ class ParallelErrorHandler:
                 os.close(fd)
                 logger.log(5, "Временный файл атомарно создан: %s", temp_filename)
                 return temp_filepath
-            except FileExistsError:
+            except FileExistsError as e:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(5, "Коллизия имён (попытка %d): генерация нового имени", attempt + 1)
                     temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{id(self)}.tmp"
@@ -241,7 +241,7 @@ class ParallelErrorHandler:
                     raise RuntimeError(
                         "Не удалось создать уникальный временный файл "
                         f"после {MAX_UNIQUE_NAME_ATTEMPTS} попыток"
-                    )
+                    ) from e
             except OSError:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(

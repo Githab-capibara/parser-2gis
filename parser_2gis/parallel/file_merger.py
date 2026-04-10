@@ -238,7 +238,7 @@ class FileMergerStrategy:
                         temp_output.unlink()
                     except (OSError, RuntimeError, TypeError, ValueError) as unlink_error:
                         self.log(f"Не удалось удалить временный файл: {unlink_error}", "debug")
-                    raise move_error
+                    raise
 
             self.log(f"Временный файл переименован: {temp_output.name} → {output_file}", "debug")
 

@@ -244,7 +244,7 @@ class VisualLogger:
                 print(f"{'=' * width}\n")
         except (OSError, TypeError, RuntimeError) as e:
             # Логгируем ошибку вывода заголовка, но не прерываем работу
-            _logger.error(
+            _logger.exception(
                 "Ошибка вывода заголовка в консоль: %s. Функция: %s, Заголовок: %s",
                 e,
                 self.print_header.__name__,
@@ -282,7 +282,7 @@ class VisualLogger:
                     print(f"  {key}: {value}")
                 print(f"─{'─' * (width - 1)}\n")
         except (OSError, TypeError, RuntimeError) as e:
-            _logger.error(
+            _logger.exception(
                 "Ошибка вывода секции конфигурации: %s. Функция: %s, Заголовок: %s, Параметров: %d",
                 e,
                 self.print_config_section.__name__,
@@ -358,7 +358,7 @@ class VisualLogger:
 
             print()
         except (OSError, TypeError, RuntimeError) as e:
-            _logger.error(
+            _logger.exception(
                 "Ошибка вывода статистики: %s. Функция: %s, Заголовок: %s, Параметров: %d",
                 e,
                 self.print_stats.__name__,
@@ -376,7 +376,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "SUCCESS", Emoji.SUCCESS))
         except OSError as e:
-            _logger.error("Ошибка вывода сообщения об успехе: %s. Сообщение: %s", e, message)
+            _logger.exception("Ошибка вывода сообщения об успехе: %s. Сообщение: %s", e, message)
             print(f"✅ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception("Неожиданная ошибка при выводе успеха: %s. Сообщение: %s", e, message)
@@ -387,7 +387,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "ERROR", Emoji.ERROR))
         except OSError as e:
-            _logger.error("Ошибка вывода сообщения об ошибке: %s. Сообщение: %s", e, message)
+            _logger.exception("Ошибка вывода сообщения об ошибке: %s. Сообщение: %s", e, message)
             print(f"❌ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception("Неожиданная ошибка при выводе ошибки: %s. Сообщение: %s", e, message)
@@ -398,7 +398,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "WARNING", Emoji.WARNING))
         except OSError as e:
-            _logger.error("Ошибка вывода предупреждения: %s. Сообщение: %s", e, message)
+            _logger.exception("Ошибка вывода предупреждения: %s. Сообщение: %s", e, message)
             print(f"⚠️ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(
@@ -411,7 +411,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "INFO", Emoji.INFO, bold))
         except OSError as e:
-            _logger.error("Ошибка вывода информационного сообщения: %s. Сообщение: %s", e, message)
+            _logger.exception("Ошибка вывода информационного сообщения: %s. Сообщение: %s", e, message)
             print(f"ℹ️ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(
@@ -424,7 +424,7 @@ class VisualLogger:
         try:
             print(self.format_message(message, "DEBUG", Emoji.DEBUG))
         except OSError as e:
-            _logger.error("Ошибка вывода отладочного сообщения: %s. Сообщение: %s", e, message)
+            _logger.exception("Ошибка вывода отладочного сообщения: %s. Сообщение: %s", e, message)
             print(f"🔍 {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(

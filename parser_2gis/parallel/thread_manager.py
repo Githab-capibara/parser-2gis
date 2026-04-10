@@ -128,7 +128,7 @@ class ThreadManager:
 
                 except FuturesTimeoutError:
                     failed_count += 1
-                    logger.error(
+                    logger.exception(
                         "Таймаут при парсинге %s - %s (%d сек)",
                         city_name,
                         category_name,
@@ -139,7 +139,7 @@ class ThreadManager:
                     raise
                 except (OSError, RuntimeError, ValueError) as e:
                     failed_count += 1
-                    logger.error("Исключение при парсинге %s - %s: %s", city_name, category_name, e)
+                    logger.exception("Исключение при парсинге %s - %s: %s", city_name, category_name, e)
 
         # Очистка executor в finally-стиле — гарантированно при любом выходе
         self._executor = None
