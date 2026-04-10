@@ -45,10 +45,9 @@ def apply_startup_delay(
     if delay > 0:
         time.sleep(delay)
 
-    if log_func is not None and delay > 0:
-        if phase == "launch":
-            log_func(f"Задержка перед запуском Chrome: {delay:.2f} сек", "debug")
-        else:
-            log_func(f"Начальная задержка: {delay:.2f} сек", "debug")
+    if log_func is not None and delay > 0 and phase == "launch":
+        log_func(f"Задержка перед запуском Chrome: {delay:.2f} сек", "debug")
+    elif log_func is not None and delay > 0:
+        log_func(f"Начальная задержка: {delay:.2f} сек", "debug")
 
     return delay

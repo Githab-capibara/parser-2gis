@@ -948,13 +948,12 @@ class BrowserLifecycleManager:
     def __del__(self) -> None:
         """Деструктор объекта."""
         try:
-            if hasattr(self, "_finalizer") and self._finalizer is not None:
-                if self._finalizer.detach():
-                    self._cleanup_from_finalizer(
-                        self._process_manager.process,
-                        self._profile_manager.profile_tempdir,
-                        self._profile_manager.profile_path,
-                    )
+            if hasattr(self, "_finalizer") and self._finalizer is not None and self._finalizer.detach():
+                self._cleanup_from_finalizer(
+                    self._process_manager.process,
+                    self._profile_manager.profile_tempdir,
+                    self._profile_manager.profile_path,
+                )
                 return
 
             if not self._closed and self._process_manager.is_running():

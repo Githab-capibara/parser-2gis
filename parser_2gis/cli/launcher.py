@@ -72,15 +72,15 @@ def run_tui_application(tui_type: str = "main") -> int:
         return 1
 
     try:
-        if tui_type == "omsk":
-            if run_new_tui_omsk is None:
-                logger.error("TUI режим 'omsk' недоступен")
-                return 1
+        if tui_type == "omsk" and run_new_tui_omsk is None:
+            logger.error("TUI режим 'omsk' недоступен")
+            return 1
+        elif tui_type == "omsk":
             run_new_tui_omsk()
+        elif Parser2GISTUI is None:
+            logger.error("TUI режим 'main' недоступен")
+            return 1
         else:
-            if Parser2GISTUI is None:
-                logger.error("TUI режим 'main' недоступен")
-                return 1
             app = Parser2GISTUI()
             app.run()
         return 0
@@ -374,10 +374,11 @@ class ApplicationLauncher:
                 urls.extend(generated_urls)
 
             # Валидация входных данных
+            if not categories_mode and not urls and not has_cities:
+                logger.error("Не указан источник URL. Используйте -i/--url или --cities")
+                return 1
+
             if not categories_mode:
-                if not urls and not has_cities:
-                    logger.error("Не указан источник URL. Используйте -i/--url или --cities")
-                    return 1
 
                 output_path = getattr(args, "output_path", None)
                 output_format = getattr(args, "format", None)

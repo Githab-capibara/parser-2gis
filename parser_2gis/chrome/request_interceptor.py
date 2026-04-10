@@ -183,9 +183,7 @@ class RequestInterceptor:
             if error_text:
                 status_text = f"error: {error_text}"
             if blocked_reason:
-                if status_text:
-                    status_text += ", "
-                status_text += f"blocked_reason: {blocked_reason}"
+                status_text += (", " if status_text else "") + f"blocked_reason: {blocked_reason}"
 
             request_id = kwargs.get("requestId")
             response: Response = {"status": -1, "statusText": status_text}

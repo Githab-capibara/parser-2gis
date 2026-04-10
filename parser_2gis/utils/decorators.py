@@ -501,12 +501,12 @@ def async_wait_until_finished(
                 # Проверяем таймаут
                 if effective_timeout is not None:
                     elapsed = asyncio.get_running_loop().time() - start_time
-                    if elapsed > effective_timeout:
-                        if effective_throw_exception:
-                            raise TimeoutError(
-                                f"Функция {func.__name__} не завершилась за "
-                                f"{effective_timeout} секунд"
-                            )
+                    if elapsed > effective_timeout and effective_throw_exception:
+                        raise TimeoutError(
+                            f"Функция {func.__name__} не завершилась за "
+                            f"{effective_timeout} секунд"
+                        )
+                    elif elapsed > effective_timeout:
                         return None
 
                 # Вызываем функцию

@@ -202,5 +202,5 @@ class StatsCollector:
                 "error_count": self.error_count,
                 "total": self.success_count + self.error_count,
                 "elapsed_time": self.get_elapsed_time(),
-                "errors": list(self.errors),  # Копия для безопасности
+                "errors": self.errors.copy(),  # Копия для безопасности
             }

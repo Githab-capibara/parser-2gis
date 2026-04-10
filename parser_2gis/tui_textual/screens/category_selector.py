@@ -263,11 +263,10 @@ class CategorySelectorScreen(Screen):
         """
         # Получить оригинальный индекс из атрибута виджета
         original_index = getattr(event.checkbox, "original_index", None)
-        if original_index is not None:
-            if event.value:
-                self._selected_indices.add(original_index)
-            else:
-                self._selected_indices.discard(original_index)
+        if original_index is not None and event.value:
+            self._selected_indices.add(original_index)
+        elif original_index is not None:
+            self._selected_indices.discard(original_index)
 
             self._update_counter()
 

@@ -15,6 +15,7 @@ from __future__ import annotations
 import gc
 import logging
 from collections.abc import Callable
+from contextlib import suppress
 from functools import wraps
 from typing import ParamSpec, TypeVar
 
@@ -64,10 +65,8 @@ def safe_parse_with_memory_check(
                 if clear_cache_on_error:
                     for arg in args:
                         if hasattr(arg, "_cache"):
-                            try:
+                            with suppress(OSError, RuntimeError, AttributeError):
                                 arg._cache.clear()
-                            except (OSError, RuntimeError, AttributeError):
-                                pass
 
                 # Принудительный GC
                 gc.collect()

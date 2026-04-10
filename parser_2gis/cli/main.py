@@ -38,11 +38,10 @@ def _log_startup_info(args: Any, config: Configuration, start_time: datetime) ->
     config_summary = format_config_summary(config, args)
 
     urls_count = len(args.url) if args.url else 0
-    if hasattr(args, "cities") and args.cities:
-        if getattr(args, "categories_mode", False):
-            urls_count = len(args.cities) * len(CATEGORIES_93)
-        else:
-            urls_count = len(args.cities)
+    if hasattr(args, "cities") and args.cities and getattr(args, "categories_mode", False):
+        urls_count = len(args.cities) * len(CATEGORIES_93)
+    elif hasattr(args, "cities") and args.cities:
+        urls_count = len(args.cities)
 
     log_parser_start(
         version=version,

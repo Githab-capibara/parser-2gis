@@ -120,10 +120,8 @@ class CSVPostProcessor:
         """
         new_data_mapping: dict[str, Any] = {}
         for k, v in self._data_mapping.items():
-            if k in complex_columns_count:
-                if complex_columns_count[k] > 0:
-                    new_data_mapping[k] = v
-            else:
+            # Добавляем колонку если она не в complex_columns_count или если count > 0
+            if k not in complex_columns_count or complex_columns_count[k] > 0:
                 new_data_mapping[k] = v
 
         # Переименование одиночной сложной колонки

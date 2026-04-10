@@ -100,7 +100,6 @@ class DOMNode(BaseModel):
             text_parts.append(self.value)
 
         # Рекурсивно собираем текст из дочерних узлов
-        for child in self.children:
-            text_parts.append(child.text)
+        text_parts.extend(child.text for child in self.children)
 
         return "".join(text_parts)

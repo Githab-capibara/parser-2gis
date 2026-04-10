@@ -267,12 +267,12 @@ def validate_path_traversal(file_path: str) -> Path:
     # Это второй уровень защиты на случай если атака прошла первый уровень
     dangerous_patterns: set[str] = {"..", "~", "$", "`", "|", ";", "&", ">", "<", "\n", "\r"}
     for pattern in dangerous_patterns:
-        if pattern in decoded_path:
-            if ".." in pattern:
-                raise ValueError(
-                    f"Path traversal атака обнаружена: {file_path}. "
-                    "Символы '..' не допускаются в пути к файлу."
-                )
+        if pattern in decoded_path and ".." in pattern:
+            raise ValueError(
+                f"Path traversal атака обнаружена: {file_path}. "
+                "Символы '..' не допускаются в пути к файлу."
+            )
+        elif pattern in decoded_path:
             raise ValueError(f"Path содержит запрещённый символ: {pattern!r} в пути {file_path}")
 
     # Шаг 4: Резолвинг symlink через os.path.realpath

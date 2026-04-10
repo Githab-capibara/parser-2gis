@@ -211,13 +211,13 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
             return False, item_count
         return True, item_count
 
-    if isinstance(data, dict):
-        if len(data) > MAX_ITEMS_IN_COLLECTION:
-            logger.warning(
-                "Словарь в initialState превышает максимальное количество элементов: %d", len(data)
-            )
-            return False, item_count
+    if isinstance(data, dict) and len(data) > MAX_ITEMS_IN_COLLECTION:
+        logger.warning(
+            "Словарь в initialState превышает максимальное количество элементов: %d", len(data)
+        )
+        return False, item_count
 
+    if isinstance(data, dict):
         for key, value in data.items():
             if not isinstance(key, str):
                 logger.warning("Некорректный тип ключа в initialState")
@@ -231,13 +231,13 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
                 return False, item_count
         return True, item_count
 
-    if isinstance(data, list):
-        if len(data) > MAX_ITEMS_IN_COLLECTION:
-            logger.warning(
-                "Список в initialState превышает максимальное количество элементов: %d", len(data)
-            )
-            return False, item_count
+    if isinstance(data, list) and len(data) > MAX_ITEMS_IN_COLLECTION:
+        logger.warning(
+            "Список в initialState превышает максимальное количество элементов: %d", len(data)
+        )
+        return False, item_count
 
+    if isinstance(data, list):
         for item in data:
             valid, item_count = _validate_initial_state(item, depth + 1, item_count + 1)
             if not valid:

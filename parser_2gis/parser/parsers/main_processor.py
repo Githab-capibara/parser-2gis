@@ -203,8 +203,7 @@ def get_unique_links(
             visited_set.update(new_link_hrefs)
 
             # ISSUE-133: batch add links to deque
-            for url in new_link_hrefs:
-                visited_links.append(url)
+            visited_links.extend(new_link_hrefs)
 
             # deque автоматически удаляет старые ссылки при превышении maxlen
             if len(visited_links) == max_visited_links:

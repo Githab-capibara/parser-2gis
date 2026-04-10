@@ -260,23 +260,21 @@ def _check_obfuscation_patterns(code: str) -> tuple[bool, str | None]:
 
     # Проверка на обфускацию через множественные escape-последовательности
     escape_count = len(re.findall(r"\\[uUxX0-9]", code))
-    if len(code) > _MIN_CODE_LENGTH_FOR_OBFUSCATION_CHECK:
-        if escape_count / len(code) > _MAX_ESCAPE_RATIO:
-            return (
-                False,
-                "Обнаружена подозрительная обфускация кода "
-                "(множественные escape-последовательности)",
-            )
+    if len(code) > _MIN_CODE_LENGTH_FOR_OBFUSCATION_CHECK and escape_count / len(code) > _MAX_ESCAPE_RATIO:
+        return (
+            False,
+            "Обнаружена подозрительная обфускация кода "
+            "(множественные escape-последовательности)",
+        )
 
     # Проверка на чрезмерное использование специальных символов
     special_chars = re.findall(r'[^a-zA-Z0-9\s_$.(){}[\],;:\'"`=+\-*/<>!&|]', code)
-    if len(code) > _MIN_CODE_LENGTH_FOR_OBFUSCATION_CHECK:
-        if len(special_chars) / len(code) > _MAX_SPECIAL_CHARS_RATIO:
-            return (
-                False,
-                "Обнаружена подозрительная обфускация кода "
-                "(чрезмерное использование специальных символов)",
-            )
+    if len(code) > _MIN_CODE_LENGTH_FOR_OBFUSCATION_CHECK and len(special_chars) / len(code) > _MAX_SPECIAL_CHARS_RATIO:
+        return (
+            False,
+            "Обнаружена подозрительная обфускация кода "
+            "(чрезмерное использование специальных символов)",
+        )
 
     # Проверка на подозрительные переменные с именами типа _0x1234
     if re.search(r"var\s+_[0-9a-fA-F]{4,}\s*=", code) or re.search(

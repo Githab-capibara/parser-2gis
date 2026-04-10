@@ -161,14 +161,14 @@ class ConfigService:
             else:
                 config_path = user_config_path / "parser-2gis.config"
 
-        if not config_path.is_file():
-            if auto_create:
-                config = config_cls(path=config_path)  # type: ignore[call-arg]
-                ConfigService.save_config(config, config_path)
-                logger.debug("Создан файл конфигурации: %s", config_path)
-            else:
-                logger.info("Файл конфигурации не найден, используется конфигурация по умолчанию")
-                config = config_cls()  # type: ignore[call-arg]
+        if not config_path.is_file() and auto_create:
+            config = config_cls(path=config_path)  # type: ignore[call-arg]
+            ConfigService.save_config(config, config_path)
+            logger.debug("Создан файл конфигурации: %s", config_path)
+            return config
+        elif not config_path.is_file():
+            logger.info("Файл конфигурации не найден, используется конфигурация по умолчанию")
+            config = config_cls()  # type: ignore[call-arg]
             return config
 
         try:
