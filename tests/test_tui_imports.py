@@ -16,7 +16,7 @@ import pytest
 class TestTUIImports:
     """Тесты для проверки импортов в TUI модулях."""
 
-    def test_paths_module_importable(self):
+    def test_paths_module_importable(self) -> None:
         """Проверка, что модуль paths импортируется."""
         try:
             from parser_2gis.utils import paths
@@ -26,7 +26,7 @@ class TestTUIImports:
         except ImportError as e:
             pytest.fail(f"Не удалось импортировать parser_2gis.paths: {e}")
 
-    def test_cache_module_importable(self):
+    def test_cache_module_importable(self) -> None:
         """Проверка, что модуль cache импортируется."""
         try:
             from parser_2gis.cache import CacheManager
@@ -35,7 +35,7 @@ class TestTUIImports:
         except ImportError as e:
             pytest.fail(f"Не удалось импортировать parser_2gis.cache: {e}")
 
-    def test_other_screens_imports(self):
+    def test_other_screens_imports(self) -> None:
         """
         Проверка, что other_screens.py не содержит ошибок импорта.
 
@@ -61,7 +61,7 @@ class TestTUIImports:
 class TestTUIModuleImports:
     """Тесты для проверки импортов во всех TUI экранах."""
 
-    def test_all_screens_importable(self):
+    def test_all_screens_importable(self) -> None:
         """Проверка, что все TUI экраны импортируются без ошибок."""
         screens_to_test = [
             "parser_2gis.tui_textual.screens.main_menu",
@@ -79,7 +79,7 @@ class TestTUIModuleImports:
             except ModuleNotFoundError as e:
                 pytest.fail(f"Ошибка импорта в {screen_module}: {e}")
 
-    def test_tui_app_importable(self):
+    def test_tui_app_importable(self) -> None:
         """Проверка, что TUI приложение импортируется без ошибок."""
         try:
             from parser_2gis.tui_textual.app import TUIApp
@@ -99,7 +99,7 @@ class TestRelativeImportErrors:
     когда модуль находится на правильном уровне вложенности.
     """
 
-    def test_no_invalid_relative_imports_in_screens(self):
+    def test_no_invalid_relative_imports_in_screens(self) -> None:
         """
         Проверка отсутствия некорректных относительных импортов в экранах.
 
@@ -142,7 +142,7 @@ class TestRelativeImportErrors:
                 "Обнаружены некорректные относительные импорты в TUI экранах:\n" + "\n".join(errors)
             )
 
-    def test_cache_viewer_screen_imports_correctly(self):
+    def test_cache_viewer_screen_imports_correctly(self) -> None:
         """
         Проверка, что CacheViewerScreen использует правильные импорты.
 
@@ -164,7 +164,7 @@ class TestRelativeImportErrors:
             or "from parser_2gis.paths import" in source
         ), "CacheViewerScreen должен использовать правильный импорт paths"
 
-    def test_cache_viewer_action_clear_imports_correctly(self):
+    def test_cache_viewer_action_clear_imports_correctly(self) -> None:
         """
         Проверка, что action_clear_cache использует правильные импорты.
         """
@@ -190,14 +190,14 @@ class TestRelativeImportErrors:
 class TestCriticalModuleAvailability:
     """Тесты для проверки доступности критических модулей."""
 
-    def test_user_path_function_exists(self):
+    def test_user_path_function_exists(self) -> None:
         """Проверка, что функция user_path существует и вызывается."""
         from parser_2gis.utils.paths import user_path
 
         result = user_path()
         assert isinstance(result, pathlib.Path)
 
-    def test_cache_manager_instantiable(self):
+    def test_cache_manager_instantiable(self) -> None:
         """Проверка, что CacheManager может быть создан."""
         from parser_2gis.cache import CacheManager
 
@@ -205,7 +205,7 @@ class TestCriticalModuleAvailability:
             cache_manager = CacheManager(cache_dir=pathlib.Path(tmpdir))
             assert cache_manager is not None
 
-    def test_config_module_accessible(self):
+    def test_config_module_accessible(self) -> None:
         """Проверка доступности модуля config."""
         try:
             from parser_2gis.config import Configuration
@@ -214,7 +214,7 @@ class TestCriticalModuleAvailability:
         except ImportError as e:
             pytest.fail(f"Не удалось импортировать Configuration: {e}")
 
-    def test_parallel_parser_module_accessible(self):
+    def test_parallel_parser_module_accessible(self) -> None:
         """Проверка доступности модуля parallel_parser."""
         try:
             from parser_2gis.parallel import ParallelCityParser

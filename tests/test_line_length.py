@@ -53,7 +53,7 @@ def find_long_lines(source: str, max_length: int = 120) -> list[tuple[int, str, 
 class TestLineLengthInCacheModule:
     """Тесты для проверки длины строк в cache модуле."""
 
-    def test_cache_manager_no_long_lines(self):
+    def test_cache_manager_no_long_lines(self) -> None:
         """
         Тест 1.1: Проверка длины строк в cache.manager.
 
@@ -68,7 +68,7 @@ class TestLineLengthInCacheModule:
             f"  Строка {ln}: {length} символов" for ln, _, length in long_lines
         )
 
-    def test_cache_pool_no_long_lines(self):
+    def test_cache_pool_no_long_lines(self) -> None:
         """
         Тест 1.2: Проверка длины строк в cache.pool.
 
@@ -87,7 +87,7 @@ class TestLineLengthInCacheModule:
 class TestLineLengthInParallelModule:
     """Тесты для проверки длины строк в parallel модуле."""
 
-    def test_parallel_parser_no_long_lines(self):
+    def test_parallel_parser_no_long_lines(self) -> None:
         """
         Тест 2.1: Проверка длины строк в parallel.parallel_parser.
 
@@ -103,7 +103,7 @@ class TestLineLengthInParallelModule:
             + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
         )
 
-    def test_file_merger_no_long_lines(self):
+    def test_file_merger_no_long_lines(self) -> None:
         """
         Тест 2.2: Проверка длины строк в parallel.file_merger.
 
@@ -116,7 +116,7 @@ class TestLineLengthInParallelModule:
 class TestLineLengthInValidationModule:
     """Тесты для проверки длины строк в validation модуле."""
 
-    def test_url_validator_no_long_lines(self):
+    def test_url_validator_no_long_lines(self) -> None:
         """
         Тест 3.1: Проверка длины строк в validation.url_validator.
 
@@ -132,7 +132,7 @@ class TestLineLengthInValidationModule:
             + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
         )
 
-    def test_data_validator_no_long_lines(self):
+    def test_data_validator_no_long_lines(self) -> None:
         """
         Тест 3.2: Проверка длины строк в validation.data_validator.
 
@@ -152,7 +152,7 @@ class TestLineLengthInValidationModule:
 class TestLineLengthInChromeModule:
     """Тесты для проверки длины строк в chrome модуле."""
 
-    def test_browser_no_long_lines(self):
+    def test_browser_no_long_lines(self) -> None:
         """
         Тест 4.1: Проверка длины строк в chrome.browser.
 
@@ -167,7 +167,7 @@ class TestLineLengthInChromeModule:
             f"  Строка {ln}: {length} символов" for ln, _, length in long_lines
         )
 
-    def test_file_handler_no_long_lines(self):
+    def test_file_handler_no_long_lines(self) -> None:
         """
         Тест 4.2: Проверка длины строк в chrome.file_handler.
 
@@ -186,7 +186,7 @@ class TestLineLengthInChromeModule:
 class TestLineLengthInWriterModule:
     """Тесты для проверки длины строк в writer модуле."""
 
-    def test_csv_writer_no_long_lines(self):
+    def test_csv_writer_no_long_lines(self) -> None:
         """
         Тест 5.1: Проверка длины строк в writer.writers.csv_writer.
 
@@ -202,7 +202,7 @@ class TestLineLengthInWriterModule:
             + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
         )
 
-    def test_json_writer_no_long_lines(self):
+    def test_json_writer_no_long_lines(self) -> None:
         """
         Тест 5.2: Проверка длины строк в writer.writers.json_writer.
 
@@ -218,7 +218,7 @@ class TestLineLengthInWriterModule:
             + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
         )
 
-    def test_xlsx_writer_no_long_lines(self):
+    def test_xlsx_writer_no_long_lines(self) -> None:
         """
         Тест 5.3: Проверка длины строк в writer.writers.xlsx_writer.
 
@@ -238,7 +238,7 @@ class TestLineLengthInWriterModule:
 class TestLineLengthInConfigModule:
     """Тесты для проверки длины строк в config модуле."""
 
-    def test_config_no_long_lines(self):
+    def test_config_no_long_lines(self) -> None:
         """
         Тест 6.1: Проверка длины строк в config.
 
@@ -257,7 +257,7 @@ class TestLineLengthInConfigModule:
 class TestLineLengthInUtilsModule:
     """Тесты для проверки длины строк в utils модуле."""
 
-    def test_data_utils_no_long_lines(self):
+    def test_data_utils_no_long_lines(self) -> None:
         """
         Тест 7.1: Проверка длины строк в utils.data_utils.
 
@@ -272,7 +272,7 @@ class TestLineLengthInUtilsModule:
             f"  Строка {ln}: {length} символов" for ln, _, length in long_lines
         )
 
-    def test_url_utils_no_long_lines(self):
+    def test_url_utils_no_long_lines(self) -> None:
         """
         Тест 7.2: Проверка длины строк в utils.url_utils.
 
@@ -291,7 +291,7 @@ class TestLineLengthInUtilsModule:
 class TestLineLengthExceptions:
     """Тесты для проверки исключений из правила длины строк."""
 
-    def test_url_in_comments_allowed(self):
+    def test_url_in_comments_allowed(self) -> None:
         """
         Тест 8.1: Проверка что URL в комментариях допускаются.
 
@@ -303,7 +303,7 @@ class TestLineLengthExceptions:
         assert len(long_url) > 120, f"URL должен быть длиннее 120 символов (сейчас {len(long_url)})"
         # Но это не ошибка так как это не код
 
-    def test_docstring_examples_allowed(self):
+    def test_docstring_examples_allowed(self) -> None:
         """
         Тест 8.2: Проверка что примеры в docstring допускаются.
 
@@ -321,7 +321,7 @@ class TestLineLengthExceptions:
 class TestLineLengthComprehensive:
     """Комплексные тесты для проверки длины строк."""
 
-    def test_all_core_modules_no_long_lines(self):
+    def test_all_core_modules_no_long_lines(self) -> None:
         """
         Тест 9.1: Комплексная проверка всех основных модулей.
 

@@ -18,6 +18,7 @@ from unittest.mock import patch
 import pytest
 
 from parser_2gis.utils.temp_file_manager import TempFileTimer
+from typing import Never
 
 
 class TestTempFileTimerStop:
@@ -236,7 +237,7 @@ class TestTempFileTimerCallback:
 
         cleanup_called = {"count": 0}
 
-        def mock_cleanup():
+        def mock_cleanup() -> None:
             cleanup_called["count"] += 1
 
         timer._cleanup_temp_files = mock_cleanup
@@ -281,7 +282,7 @@ class TestTempFileTimerCallback:
         timer = TempFileTimer(temp_dir=tmp_path, interval=60)
         timer._is_running = True
 
-        def mock_cleanup_error():
+        def mock_cleanup_error() -> Never:
             raise OSError("Cleanup failed")
 
         timer._cleanup_temp_files = mock_cleanup_error
@@ -311,7 +312,7 @@ class TestTempFileTimerEdgeCases:
         # Mock очистки для имитации длительной операции
         cleanup_completed = threading.Event()
 
-        def slow_cleanup():
+        def slow_cleanup() -> None:
             """Медленная очистка."""
             time.sleep(1)
             cleanup_completed.set()

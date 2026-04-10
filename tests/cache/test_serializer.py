@@ -10,7 +10,7 @@ from parser_2gis.cache.serializer import JsonSerializer
 class TestJsonSerializerConstruction:
     """Тесты конструирования JsonSerializer."""
 
-    def test_default_construction(self):
+    def test_default_construction(self) -> None:
         """JsonSerializer создаётся без ошибок."""
         serializer = JsonSerializer()
         assert serializer is not None
@@ -31,7 +31,7 @@ class TestJsonSerializerSerialize:
             pytest.param({}, "", id="empty_dict"),
         ],
     )
-    def test_serialize_returns_json_string(self, data, expected_contains):
+    def test_serialize_returns_json_string(self, data, expected_contains) -> None:
         """Сериализация возвращает корректную JSON строку."""
         serializer = JsonSerializer()
         result = serializer.serialize(data)
@@ -42,7 +42,7 @@ class TestJsonSerializerSerialize:
         parsed = json.loads(result)
         assert parsed == data
 
-    def test_serialize_invalid_data_raises(self):
+    def test_serialize_invalid_data_raises(self) -> None:
         """Сериализация некорректных данных выбрасывает TypeError."""
         serializer = JsonSerializer()
         # set не сериализуется в JSON по умолчанию
@@ -62,20 +62,20 @@ class TestJsonSerializerDeserialize:
             pytest.param("{}", {}, id="empty_dict"),
         ],
     )
-    def test_deserialize_returns_dict(self, data, expected):
+    def test_deserialize_returns_dict(self, data, expected) -> None:
         """Десериализация возвращает ожидаемый словарь."""
         serializer = JsonSerializer()
         result = serializer.deserialize(data)
         assert result == expected
         assert isinstance(result, dict)
 
-    def test_deserialize_non_dict_raises_typeerror(self):
+    def test_deserialize_non_dict_raises_typeerror(self) -> None:
         """Десериализация не-dict данных выбрасывает TypeError."""
         serializer = JsonSerializer()
         with pytest.raises(TypeError):
             serializer.deserialize("[1, 2, 3]")
 
-    def test_deserialize_invalid_json_raises_valueerror(self):
+    def test_deserialize_invalid_json_raises_valueerror(self) -> None:
         """Десериализация невалидного JSON выбрасывает ValueError."""
         serializer = JsonSerializer()
         with pytest.raises((ValueError, json.JSONDecodeError)):

@@ -10,13 +10,13 @@ from parser_2gis.validation.path_validator import PathValidator, get_path_valida
 class TestPathValidatorConstruction:
     """Тесты конструирования PathValidator."""
 
-    def test_default_construction(self):
+    def test_default_construction(self) -> None:
         """PathValidator создаётся с дефолтными настройками."""
         validator = PathValidator()
         assert validator is not None
         assert len(validator._allowed_base_dirs) > 0
 
-    def test_custom_base_dirs(self):
+    def test_custom_base_dirs(self) -> None:
         """PathValidator с кастомными директориями."""
         custom_dirs = [Path("/custom/path")]
         validator = PathValidator(allowed_base_dirs=custom_dirs)
@@ -26,7 +26,7 @@ class TestPathValidatorConstruction:
 class TestPathValidatorValidate:
     """Тесты метода validate."""
 
-    def test_safe_path_no_error(self, tmp_path):
+    def test_safe_path_no_error(self, tmp_path) -> None:
         """Безопасный путь не выбрасывает ошибок."""
         validator = PathValidator(allowed_base_dirs=[tmp_path])
         safe_path = str(tmp_path / "subdir" / "file.txt")
@@ -35,21 +35,21 @@ class TestPathValidatorValidate:
     @pytest.mark.parametrize(
         "forbidden_char", ["..", "~", "$", "`", "|", ";", "&", "\\", "\n", "\r"]
     )
-    def test_forbidden_characters_raise_error(self, forbidden_char, tmp_path):
+    def test_forbidden_characters_raise_error(self, forbidden_char, tmp_path) -> None:
         """Запрещённые символы вызывают ValueError."""
         validator = PathValidator(allowed_base_dirs=[tmp_path])
         bad_path = str(tmp_path / f"file{forbidden_char}name.txt")
         with pytest.raises(ValueError, match="запрещённый символ"):
             validator.validate(bad_path)
 
-    def test_too_long_path_raises_error(self):
+    def test_too_long_path_raises_error(self) -> None:
         """Слишком длинный путь вызывает ValueError."""
         validator = PathValidator()
         long_path = "a" * (validator._MAX_PATH_LENGTH + 100)
         with pytest.raises(ValueError, match="превышает максимальную длину"):
             validator.validate(long_path)
 
-    def test_empty_path_returns_early(self, tmp_path):
+    def test_empty_path_returns_early(self, tmp_path) -> None:
         """Пустой путь возвращается рано без ошибок."""
         validator = PathValidator(allowed_base_dirs=[tmp_path])
         validator.validate("")  # Не должно выбросить исключений
@@ -58,7 +58,7 @@ class TestPathValidatorValidate:
 class TestPathValidatorValidateMultiple:
     """Тесты validate_multiple."""
 
-    def test_multiple_safe_paths_no_error(self, tmp_path):
+    def test_multiple_safe_paths_no_error(self, tmp_path) -> None:
         """Несколько безопасных путей не вызывают ошибок."""
         validator = PathValidator(allowed_base_dirs=[tmp_path])
         paths = {"path1": str(tmp_path / "file1.txt"), "path2": str(tmp_path / "file2.txt")}
@@ -68,18 +68,18 @@ class TestPathValidatorValidateMultiple:
 class TestPathValidatorGlobalFunctions:
     """Тесты глобальных функций."""
 
-    def test_get_path_validator_returns_singleton(self):
+    def test_get_path_validator_returns_singleton(self) -> None:
         """get_path_validator возвращает PathValidator."""
         validator = get_path_validator()
         assert isinstance(validator, PathValidator)
 
-    def test_get_path_validator_returns_same_instance(self):
+    def test_get_path_validator_returns_same_instance(self) -> None:
         """get_path_validator возвращает один и тот же экземпляр."""
         v1 = get_path_validator()
         v2 = get_path_validator()
         assert v1 is v2
 
-    def test_validate_path_wrapper(self, tmp_path):
+    def test_validate_path_wrapper(self, tmp_path) -> None:
         """validate_path обёртка работает корректно."""
         # Используем текущую рабочую директорию как разрешённую
         safe_path = str(tmp_path / "safe_file.txt")

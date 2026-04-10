@@ -24,11 +24,11 @@ from parser_2gis.resources.categories_93 import (
 class TestCategories93:
     """Тесты для списка из 93 категорий."""
 
-    def test_categories_count(self):
+    def test_categories_count(self) -> None:
         """Проверка количества категорий."""
         assert len(CATEGORIES_93) == 93, "Должно быть ровно 93 категории"
 
-    def test_categories_structure(self):
+    def test_categories_structure(self) -> None:
         """Проверка структуры каждой категории."""
         required_keys = {"name", "query"}
 
@@ -48,13 +48,13 @@ class TestCategories93:
                     f"rubric_code категории {i} должен быть строкой или None"
                 )
 
-    def test_get_categories_list(self):
+    def test_get_categories_list(self) -> None:
         """Проверка функции get_categories_list."""
         categories = get_categories_list()
         assert len(categories) == 93
         assert categories == CATEGORIES_93
 
-    def test_get_category_by_name_found(self):
+    def test_get_category_by_name_found(self) -> None:
         """Проверка поиска категории по названию (успешный)."""
         # Ищем известные категории
         cafe = get_category_by_name("Кафе")
@@ -66,12 +66,12 @@ class TestCategories93:
         assert restaurants is not None
         assert restaurants["name"] == "Рестораны"
 
-    def test_get_category_by_name_not_found(self):
+    def test_get_category_by_name_not_found(self) -> None:
         """Проверка поиска категории по названию (не найдено)."""
         result = get_category_by_name("Несуществующая категория")
         assert result is None
 
-    def test_get_category_by_name_case_insensitive(self):
+    def test_get_category_by_name_case_insensitive(self) -> None:
         """Проверка что поиск регистронезависимый."""
         cafe_lower = get_category_by_name("кафе")
         cafe_upper = get_category_by_name("КАФЕ")
@@ -86,7 +86,7 @@ class TestCategories93:
 class TestGenerateUrlsForCity:
     """Тесты для генерации URL по городам и категориям."""
 
-    def test_generate_urls_single_category(self):
+    def test_generate_urls_single_category(self) -> None:
         """Проверка генерации URL для одной категории."""
         city = {"code": "moscow", "domain": "ru", "name": "Москва", "country_code": "ru"}
 
@@ -101,7 +101,7 @@ class TestGenerateUrlsForCity:
         assert "rubricId/161" in urls[0]
         assert "filters/sort=name" in urls[0]
 
-    def test_generate_urls_multiple_categories(self):
+    def test_generate_urls_multiple_categories(self) -> None:
         """Проверка генерации URL для нескольких категорий."""
         city = {"code": "spb", "domain": "ru", "name": "Санкт-Петербург", "country_code": "ru"}
 
@@ -116,7 +116,7 @@ class TestGenerateUrlsForCity:
         assert len(urls) == 3
         assert all("2gis.ru/spb" in url for url in urls)
 
-    def test_generate_urls_without_rubric(self):
+    def test_generate_urls_without_rubric(self) -> None:
         """Проверка генерации URL без рубрики."""
         city = {"code": "kazan", "domain": "ru", "name": "Казань", "country_code": "ru"}
 
@@ -129,7 +129,7 @@ class TestGenerateUrlsForCity:
         # Проверяем кодированный URL
         assert f"search/{urllib.parse.quote('Бургерные')}" in urls[0]
 
-    def test_generate_urls_all_93_categories(self):
+    def test_generate_urls_all_93_categories(self) -> None:
         """Проверка генерации URL для всех 93 категорий."""
         city = {"code": "moscow", "domain": "ru", "name": "Москва", "country_code": "ru"}
 

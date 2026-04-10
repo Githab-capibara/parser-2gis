@@ -22,7 +22,7 @@ from parser_2gis.parser import ParserOptions
 class TestParserArgumentsRegistration:
     """Тесты регистрации аргументов парсера."""
 
-    def test_parser_max_retries_argument(self):
+    def test_parser_max_retries_argument(self) -> None:
         """Проверка, что --parser.max-retries зарегистрирован и работает."""
         test_args = [
             "parser-2gis",
@@ -36,7 +36,7 @@ class TestParserArgumentsRegistration:
             _args, config = parse_arguments()
             assert config.parser.max_retries == 5
 
-    def test_parser_retry_on_network_errors_argument(self):
+    def test_parser_retry_on_network_errors_argument(self) -> None:
         """Проверка, что --parser.retry-on-network-errors зарегистрирован и работает."""
         test_args = [
             "parser-2gis",
@@ -50,7 +50,7 @@ class TestParserArgumentsRegistration:
             _args, config = parse_arguments()
             assert config.parser.retry_on_network_errors is True
 
-    def test_parser_retry_on_network_errors_no(self):
+    def test_parser_retry_on_network_errors_no(self) -> None:
         """Проверка, что --parser.retry-on-network-errors no работает."""
         test_args = [
             "parser-2gis",
@@ -64,7 +64,7 @@ class TestParserArgumentsRegistration:
             _args, config = parse_arguments()
             assert config.parser.retry_on_network_errors is False
 
-    def test_parser_retry_delay_base_argument(self):
+    def test_parser_retry_delay_base_argument(self) -> None:
         """Проверка, что --parser.retry-delay-base зарегистрирован и работает."""
         test_args = [
             "parser-2gis",
@@ -78,7 +78,7 @@ class TestParserArgumentsRegistration:
             _args, config = parse_arguments()
             assert config.parser.retry_delay_base == 2
 
-    def test_parser_memory_threshold_argument(self):
+    def test_parser_memory_threshold_argument(self) -> None:
         """Проверка, что --parser.memory-threshold зарегистрирован и работает."""
         test_args = [
             "parser-2gis",
@@ -100,7 +100,7 @@ class TestAllParserOptionsArguments:
         """Получает все поля из ParserOptions."""
         return list(ParserOptions.model_fields.keys())
 
-    def test_all_parser_options_have_cli_arguments(self):
+    def test_all_parser_options_have_cli_arguments(self) -> None:
         """
         Проверка, что все поля ParserOptions имеют соответствующие CLI аргументы.
 
@@ -182,7 +182,7 @@ class TestAllParserOptionsArguments:
                     # Если возникла ошибка парсинга - аргумент не зарегистрирован
                     pytest.fail(f"Аргумент {cli_arg} не зарегистрирован в argparse")
 
-    def test_parser_options_default_values_via_cli(self):
+    def test_parser_options_default_values_via_cli(self) -> None:
         """Проверка, что значения по умолчанию из ParserOptions совпадают с CLI."""
         test_args = ["parser-2gis", "--cities", "omsk", "--categories-mode"]
         with patch.object(sys, "argv", test_args):
@@ -205,7 +205,7 @@ class TestAllParserOptionsArguments:
 class TestArgumentValidation:
     """Тесты валидации аргументов."""
 
-    def test_invalid_max_retries_zero(self):
+    def test_invalid_max_retries_zero(self) -> None:
         """Проверка, что max_retries=0 вызывает ошибку."""
         test_args = [
             "parser-2gis",
@@ -218,7 +218,7 @@ class TestArgumentValidation:
         with patch.object(sys, "argv", test_args), pytest.raises(SystemExit):
             parse_arguments()
 
-    def test_invalid_retry_delay_base_negative(self):
+    def test_invalid_retry_delay_base_negative(self) -> None:
         """Проверка, что отрицательный retry_delay_base вызывает ошибку."""
         test_args = [
             "parser-2gis",
@@ -231,7 +231,7 @@ class TestArgumentValidation:
         with patch.object(sys, "argv", test_args), pytest.raises(SystemExit):
             parse_arguments()
 
-    def test_invalid_memory_threshold_low(self):
+    def test_invalid_memory_threshold_low(self) -> None:
         """Проверка, что слишком низкий memory_threshold вызывает ошибку."""
         test_args = [
             "parser-2gis",
@@ -244,7 +244,7 @@ class TestArgumentValidation:
         with patch.object(sys, "argv", test_args), pytest.raises(SystemExit):
             parse_arguments()
 
-    def test_invalid_retry_on_network_errors_value(self):
+    def test_invalid_retry_on_network_errors_value(self) -> None:
         """Проверка, что недопустимое значение retry-on-network-errors вызывает ошибку."""
         test_args = [
             "parser-2gis",
@@ -266,7 +266,7 @@ class TestRunShArguments:
     которые не зарегистрированы в main.py.
     """
 
-    def test_run_sh_default_arguments(self):
+    def test_run_sh_default_arguments(self) -> None:
         """
         Проверка, что все аргументы из run.sh (без параметров) работают.
 
@@ -316,7 +316,7 @@ class TestRunShArguments:
             assert config.parser.max_retries == 3
             assert config.parser.retry_on_network_errors is True
 
-    def test_run_sh_custom_arguments(self):
+    def test_run_sh_custom_arguments(self) -> None:
         """Проверка кастомных значений аргументов из run.sh."""
         test_args = [
             "parser-2gis",

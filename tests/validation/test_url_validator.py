@@ -24,12 +24,12 @@ class TestValidateUrl:
             pytest.param("", False, id="empty_string"),
         ],
     )
-    def test_validate_url(self, url, expected_valid):
+    def test_validate_url(self, url, expected_valid) -> None:
         """Валидация URL."""
         result = validate_url(url)
         assert result.is_valid is expected_valid
 
-    def test_long_url_exceeds_max_length(self):
+    def test_long_url_exceeds_max_length(self) -> None:
         """URL длиннее 2048 символов невалиден."""
         long_url = "https://example.com/" + "a" * 3000
         result = validate_url(long_url)
@@ -47,7 +47,7 @@ class TestIsValidUrl:
             pytest.param("ftp://example.com", False, id="invalid_scheme"),
         ],
     )
-    def test_is_valid_url(self, url, expected):
+    def test_is_valid_url(self, url, expected) -> None:
         """Упрощённая проверка URL."""
         assert is_valid_url(url) is expected
 
@@ -55,7 +55,7 @@ class TestIsValidUrl:
 class TestClearUrlCache:
     """Тесты clear_url_cache."""
 
-    def test_clear_cache_no_error(self):
+    def test_clear_cache_no_error(self) -> None:
         """Очистка кэша не выбрасывает ошибок."""
         # Сначала валидируем URL чтобы.populate кэш
         validate_url("https://example.com")

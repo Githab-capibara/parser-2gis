@@ -46,7 +46,7 @@ class TestPoolExceptionHandling:
         yield pool
         pool.close()
 
-    def test_pool_memory_error_handling(self, connection_pool: ConnectionPool, caplog):
+    def test_pool_memory_error_handling(self, connection_pool: ConnectionPool, caplog) -> None:
         """Тест обработки MemoryError в ConnectionPool.
 
         Проверяет:
@@ -67,7 +67,7 @@ class TestPoolExceptionHandling:
         # Проверяем что MemoryError не был залогирован (т.к. это критическая ошибка)
         assert not any("MemoryError" in record.message for record in caplog.records)
 
-    def test_pool_os_error_handling(self, connection_pool: ConnectionPool, caplog):
+    def test_pool_os_error_handling(self, connection_pool: ConnectionPool, caplog) -> None:
         """Тест обработки OSError в ConnectionPool.
 
         Проверяет:
@@ -88,7 +88,7 @@ class TestPoolExceptionHandling:
             # Проверяем что OSError был залогирован
             assert any("OSError" in record.message for record in caplog.records)
 
-    def test_pool_value_error_handling(self, connection_pool: ConnectionPool, caplog):
+    def test_pool_value_error_handling(self, connection_pool: ConnectionPool, caplog) -> None:
         """Тест обработки ValueError в ConnectionPool.
 
         Проверяет:
@@ -110,7 +110,7 @@ class TestPoolExceptionHandling:
             # Проверяем что ValueError был залогирован
             assert any("ValueError" in record.message for record in caplog.records)
 
-    def test_pool_type_error_handling(self, connection_pool: ConnectionPool, caplog):
+    def test_pool_type_error_handling(self, connection_pool: ConnectionPool, caplog) -> None:
         """Тест обработки TypeError в ConnectionPool.
 
         Проверяет:
@@ -130,7 +130,7 @@ class TestPoolExceptionHandling:
             # Проверяем что TypeError был залогирован
             assert any("TypeError" in record.message for record in caplog.records)
 
-    def test_pool_generic_exception_handling(self, connection_pool: ConnectionPool, caplog):
+    def test_pool_generic_exception_handling(self, connection_pool: ConnectionPool, caplog) -> None:
         """Тест обработки общего Exception в ConnectionPool.
 
         Проверяет:
@@ -150,7 +150,7 @@ class TestPoolExceptionHandling:
         # Проверяем что Exception не был залогирован
         assert not any("Mocked Exception" in record.message for record in caplog.records)
 
-    def test_pool_cleanup_after_exception(self, temp_db_path: Path):
+    def test_pool_cleanup_after_exception(self, temp_db_path: Path) -> None:
         """Тест очистки ресурсов после исключения.
 
         Проверяет:
@@ -177,7 +177,7 @@ class TestPoolExceptionHandling:
 
     def test_pool_return_connection_exception_handling(
         self, connection_pool: ConnectionPool, caplog
-    ):
+    ) -> None:
         """Тест обработки исключений при возврате соединения.
 
         Проверяет:
@@ -203,7 +203,7 @@ class TestPoolExceptionHandling:
             # Проверяем логирование
             assert any("sqlite3.Error" in record.message for record in caplog.records)
 
-    def test_pool_close_exception_handling(self, connection_pool: ConnectionPool, caplog):
+    def test_pool_close_exception_handling(self, connection_pool: ConnectionPool, caplog) -> None:
         """Тест обработки исключений при закрытии пула.
 
         Проверяет:
@@ -221,7 +221,7 @@ class TestPoolExceptionHandling:
             # Проверяем что ошибка была залогирована
             assert any("sqlite3.Error" in record.message for record in caplog.records)
 
-    def test_dynamic_pool_size_memory_error(self, caplog):
+    def test_dynamic_pool_size_memory_error(self, caplog) -> None:
         """Тест обработки MemoryError в _calculate_dynamic_pool_size.
 
         Проверяет:
@@ -244,7 +244,7 @@ class TestPoolExceptionHandling:
                 # Проверяем логирование
                 assert any("MemoryError" in record.message for record in caplog.records)
 
-    def test_dynamic_pool_size_os_error(self, caplog):
+    def test_dynamic_pool_size_os_error(self, caplog) -> None:
         """Тест обработки OSError в _calculate_dynamic_pool_size.
 
         Проверяет:
@@ -266,7 +266,7 @@ class TestPoolExceptionHandling:
                 assert isinstance(result, int)
                 assert result > 0
 
-    def test_dynamic_pool_size_value_error(self, caplog):
+    def test_dynamic_pool_size_value_error(self, caplog) -> None:
         """Тест обработки ValueError в _calculate_dynamic_pool_size.
 
         Проверяет:
@@ -288,7 +288,7 @@ class TestPoolExceptionHandling:
                 assert isinstance(result, int)
                 assert result > 0
 
-    def test_dynamic_pool_size_type_error(self, caplog):
+    def test_dynamic_pool_size_type_error(self, caplog) -> None:
         """Тест обработки TypeError в _calculate_dynamic_pool_size.
 
         Проверяет:
@@ -310,7 +310,7 @@ class TestPoolExceptionHandling:
                 assert isinstance(result, int)
                 assert result > 0
 
-    def test_pool_context_manager_exception_handling(self, temp_db_path: Path, caplog):
+    def test_pool_context_manager_exception_handling(self, temp_db_path: Path, caplog) -> None:
         """Тест обработки исключений в контекстном менеджере.
 
         Проверяет:
@@ -330,7 +330,7 @@ class TestPoolExceptionHandling:
                 "Ошибка при закрытии пула" in record.message for record in caplog.records
             )
 
-    def test_pool_weakref_finalizer_exception_handling(self, temp_db_path: Path, caplog):
+    def test_pool_weakref_finalizer_exception_handling(self, temp_db_path: Path, caplog) -> None:
         """Тест обработки исключений в weakref.finalizer.
 
         Проверяет:

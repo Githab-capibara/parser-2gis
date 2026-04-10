@@ -10,7 +10,7 @@ from parser_2gis.utils.sanitizers import _sanitize_value
 class TestSanitizeValueThreadSafety:
     """Тесты для проверки потокобезопасности _sanitize_value."""
 
-    def test_concurrent_sanitization_no_crash(self):
+    def test_concurrent_sanitization_no_crash(self) -> None:
         """Параллельная санитизация не должна вызывать краш."""
         test_data = {
             "user": {"name": "John", "password": "secret123"},
@@ -33,7 +33,7 @@ class TestSanitizeValueThreadSafety:
         errors = [r for r in results if r[1] == "error"]
         assert len(errors) == 0, f"Errors occurred: {errors}"
 
-    def test_concurrent_calls_isolated(self):
+    def test_concurrent_calls_isolated(self) -> None:
         """Параллельные вызовы должны быть изолированы."""
 
         def create_test_data(password_value):
@@ -56,7 +56,7 @@ class TestSanitizeValueThreadSafety:
         for orig_pwd, redacted_pwd in results:
             assert redacted_pwd == "<REDACTED>", f"Original: {orig_pwd}, Got: {redacted_pwd}"
 
-    def test_deep_nesting_thread_safety(self):
+    def test_deep_nesting_thread_safety(self) -> None:
         """Глубокая вложенность должна работать корректно в многопоточном режиме."""
 
         def create_nested_dict(depth):
@@ -75,7 +75,7 @@ class TestSanitizeValueThreadSafety:
 
         assert len(results) == 5
 
-    def test_large_collection_thread_safety(self):
+    def test_large_collection_thread_safety(self) -> None:
         """Большие коллекции должны обрабатываться корректно."""
 
         def create_large_dict(size):
@@ -98,7 +98,7 @@ class TestSanitizeValueThreadSafety:
 
         assert len(results) == 5
 
-    def test_cyclic_reference_thread_safety(self):
+    def test_cyclic_reference_thread_safety(self) -> None:
         """Циклические ссылки должны обрабатываться корректно."""
         test_data = {"level1": {"level2": {}}}
         test_data["level1"]["level2"]["parent"] = test_data["level1"]
@@ -112,11 +112,11 @@ class TestSanitizeValueThreadSafety:
         for t in threads:
             t.join()
 
-    def test_sensitive_data_not_leaked_between_threads(self):
+    def test_sensitive_data_not_leaked_between_threads(self) -> None:
         """Конфиденциальные данные не должны утекать между потоками."""
         passwords = ["pass1", "pass2", "pass3"]
 
-        def worker(password, results_list):
+        def worker(password, results_list) -> None:
             data = {"username": "user", "password": password}
             result = _sanitize_value(data)
             results_list.append(result)

@@ -34,11 +34,11 @@ class TestValidateCachedDataDecomposition:
     """Тесты для разбиения функции validate_cached_data."""
 
     @pytest.fixture(autouse=True)
-    def setup_validator(self):
+    def setup_validator(self) -> None:
         """Создаёт экземпляр CacheDataValidator для всех тестов."""
         self.validator = CacheDataValidator()
 
-    def test_validate_cached_data_decomposed_numeric_valid(self):
+    def test_validate_cached_data_decomposed_numeric_valid(self) -> None:
         """
         Тест 1.1: Проверка валидации числовых данных.
 
@@ -51,7 +51,7 @@ class TestValidateCachedDataDecomposition:
         assert self.validator._check_numeric(-100) is True
         assert self.validator._check_numeric(1e10) is True
 
-    def test_validate_cached_data_decomposed_numeric_invalid(self):
+    def test_validate_cached_data_decomposed_numeric_invalid(self) -> None:
         """
         Тест 1.2: Проверка валидации некорректных числовых данных.
 
@@ -62,7 +62,7 @@ class TestValidateCachedDataDecomposition:
         assert self.validator._check_numeric(float("inf")) is False
         assert self.validator._check_numeric(float("-inf")) is False
 
-    def test_validate_cached_data_decomposed_string_valid(self):
+    def test_validate_cached_data_decomposed_string_valid(self) -> None:
         """
         Тест 1.3: Проверка валидации строковых данных.
 
@@ -74,7 +74,7 @@ class TestValidateCachedDataDecomposition:
         assert self.validator._check_string("a" * 100) is True
         assert self.validator._check_string("a" * MAX_STRING_LENGTH) is True
 
-    def test_validate_cached_data_decomposed_string_invalid(self):
+    def test_validate_cached_data_decomposed_string_invalid(self) -> None:
         """
         Тест 1.4: Проверка валидации некорректных строковых данных.
 
@@ -84,7 +84,7 @@ class TestValidateCachedDataDecomposition:
         too_long_string = "a" * (MAX_STRING_LENGTH + 1)
         assert self.validator._check_string(too_long_string) is False
 
-    def test_validate_cached_data_decomposed_dict_valid(self):
+    def test_validate_cached_data_decomposed_dict_valid(self) -> None:
         """
         Тест 1.5: Проверка валидации словарей.
 
@@ -94,7 +94,7 @@ class TestValidateCachedDataDecomposition:
         valid_dict = {"name": "Test", "value": 42, "nested": {"key": "value"}, "list": [1, 2, 3]}
         assert self.validator._check_dict(valid_dict, depth=0) is True
 
-    def test_validate_cached_data_decomposed_dict_invalid_proto(self):
+    def test_validate_cached_data_decomposed_dict_invalid_proto(self) -> None:
         """
         Тест 1.6: Проверка валидации словарей с опасными ключами.
 
@@ -107,7 +107,7 @@ class TestValidateCachedDataDecomposition:
         dangerous_dict2 = {"constructor": {"prototype": {"isAdmin": True}}}
         assert self.validator._check_dict(dangerous_dict2, depth=0) is False
 
-    def test_validate_cached_data_decomposed_dict_depth_limit(self):
+    def test_validate_cached_data_decomposed_dict_depth_limit(self) -> None:
         """
         Тест 1.7: Проверка валидации глубины вложенности словарей.
 
@@ -122,7 +122,7 @@ class TestValidateCachedDataDecomposition:
 
         assert self.validator.validate(deep_dict) is False
 
-    def test_validate_cached_data_decomposed_list_valid(self):
+    def test_validate_cached_data_decomposed_list_valid(self) -> None:
         """
         Тест 1.8: Проверка валидации списков.
 
@@ -132,7 +132,7 @@ class TestValidateCachedDataDecomposition:
         valid_list = [1, "two", 3.0, None, True, {"key": "value"}]
         assert self.validator._check_list(valid_list, depth=0) is True
 
-    def test_validate_cached_data_decomposed_list_invalid(self):
+    def test_validate_cached_data_decomposed_list_invalid(self) -> None:
         """
         Тест 1.9: Проверка валидации некорректных списков.
 
@@ -142,7 +142,7 @@ class TestValidateCachedDataDecomposition:
         invalid_list = [1, {"__proto__": {"isAdmin": True}}]
         assert self.validator._check_list(invalid_list, depth=0) is False
 
-    def test_validate_cached_data_decomposed_comprehensive(self):
+    def test_validate_cached_data_decomposed_comprehensive(self) -> None:
         """
         Тест 1.10: Комплексная проверка валидации данных кэша.
 
@@ -169,7 +169,7 @@ class TestValidateCachedDataDecomposition:
 class TestBrowserInitDecomposition:
     """Тесты для разбиения функции инициализации браузера."""
 
-    def test_browser_init_decomposed_methods_exist(self):
+    def test_browser_init_decomposed_methods_exist(self) -> None:
         """
         Тест 2.1: Проверка что методы декомпозиции существуют.
 
@@ -193,7 +193,7 @@ class TestBrowserInitDecomposition:
         assert callable(ProfileManager.create_profile)
         assert callable(ProcessManager.launch_process)
 
-    def test_browser_init_decomposed_build_chrome_cmd(self):
+    def test_browser_init_decomposed_build_chrome_cmd(self) -> None:
         """
         Тест 2.2: Проверка функции формирования команды Chrome.
 
@@ -228,7 +228,7 @@ class TestBrowserInitDecomposition:
 class TestBrowserCloseDecomposition:
     """Тесты для разбиения функции закрытия браузера."""
 
-    def test_browser_close_decomposed_methods_exist(self):
+    def test_browser_close_decomposed_methods_exist(self) -> None:
         """
         Тест 3.1: Проверка что методы декомпозиции существуют.
 
@@ -243,7 +243,7 @@ class TestBrowserCloseDecomposition:
         assert callable(ProcessManager.terminate)
         assert callable(ProcessManager.kill)
 
-    def test_browser_close_decomposed_cleanup_profile(self):
+    def test_browser_close_decomposed_cleanup_profile(self) -> None:
         """
         Тест 3.2: Проверка функции очистки профиля.
 
@@ -266,7 +266,7 @@ class TestBrowserCloseDecomposition:
 class TestCleanupOrphanedProfilesDecomposition:
     """Тесты для разбиения функции очистки осиротевших профилей."""
 
-    def test_cleanup_orphaned_profiles_decomposed_functions_exist(self):
+    def test_cleanup_orphaned_profiles_decomposed_functions_exist(self) -> None:
         """
         Тест 4.1: Проверка что функции декомпозиции существуют.
 
@@ -279,7 +279,7 @@ class TestCleanupOrphanedProfilesDecomposition:
         assert callable(_safe_remove_profile)
         assert callable(cleanup_orphaned_profiles)
 
-    def test_cleanup_orphaned_profiles_decomposed_process_profile(self, tmp_path):
+    def test_cleanup_orphaned_profiles_decomposed_process_profile(self, tmp_path) -> None:
         """
         Тест 4.2: Проверка функции обработки одного профиля.
 
@@ -299,7 +299,7 @@ class TestCleanupOrphanedProfilesDecomposition:
         assert result is False
         assert profile_dir.exists()
 
-    def test_cleanup_orphaned_profiles_decomposed_full_cleanup(self, tmp_path):
+    def test_cleanup_orphaned_profiles_decomposed_full_cleanup(self, tmp_path) -> None:
         """
         Тест 4.3: Комплексная проверка функции cleanup_orphaned_profiles.
 

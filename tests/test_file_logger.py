@@ -22,7 +22,7 @@ from parser_2gis.logger import FileLogger
 class TestFileLoggerInitialization:
     """Тесты для инициализации FileLogger."""
 
-    def test_file_logger_without_file(self):
+    def test_file_logger_without_file(self) -> None:
         """Проверка создания FileLogger без файла логов."""
         # Отключаем автоматическую сессию, чтобы log_file остался None
         file_logger = FileLogger(log_file=None, auto_session=False)
@@ -31,7 +31,7 @@ class TestFileLoggerInitialization:
         assert file_logger.log_file is None
         assert not file_logger.is_enabled
 
-    def test_file_logger_with_file(self):
+    def test_file_logger_with_file(self) -> None:
         """Проверка создания FileLogger с файлом логов."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             log_file = Path(f.name)
@@ -46,13 +46,13 @@ class TestFileLoggerInitialization:
             if log_file.exists():
                 log_file.unlink()
 
-    def test_file_logger_default_level(self):
+    def test_file_logger_default_level(self) -> None:
         """Проверка уровня логирования по умолчанию."""
         file_logger = FileLogger()
 
         assert file_logger is not None
 
-    def test_file_logger_custom_level(self):
+    def test_file_logger_custom_level(self) -> None:
         """Проверка кастомного уровня логирования."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             log_file = Path(f.name)
@@ -66,7 +66,7 @@ class TestFileLoggerInitialization:
             if log_file.exists():
                 log_file.unlink()
 
-    def test_file_logger_invalid_level(self):
+    def test_file_logger_invalid_level(self) -> None:
         """Проверка валидации некорректного уровня логирования."""
         with pytest.raises(ValueError, match="Некорректный уровень логирования"):
             FileLogger(log_level="INVALID_LEVEL")
@@ -75,7 +75,7 @@ class TestFileLoggerInitialization:
 class TestFileLoggerSetup:
     """Тесты для настройки FileLogger."""
 
-    def test_file_logger_creates_directory(self):
+    def test_file_logger_creates_directory(self) -> None:
         """Проверка создания директории для логов."""
         with tempfile.TemporaryDirectory() as tmpdir:
             log_file = Path(tmpdir) / "logs" / "parser.log"
@@ -86,7 +86,7 @@ class TestFileLoggerSetup:
             assert log_file.parent.exists()
             assert log_file.parent.is_dir()
 
-    def test_file_logger_setup_logger(self):
+    def test_file_logger_setup_logger(self) -> None:
         """Проверка настройки логгера."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             log_file = Path(f.name)
@@ -107,7 +107,7 @@ class TestFileLoggerSetup:
 class TestFileLoggerLogging:
     """Тесты для записи логов в файл."""
 
-    def test_file_logger_writes_to_file(self):
+    def test_file_logger_writes_to_file(self) -> None:
         """Проверка записи логов в файл."""
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             log_file = Path(f.name)
@@ -131,7 +131,7 @@ class TestFileLoggerLogging:
             if log_file.exists():
                 log_file.unlink()
 
-    def test_file_logger_multiple_messages(self):
+    def test_file_logger_multiple_messages(self) -> None:
         """Проверка записи нескольких сообщений."""
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             log_file = Path(f.name)
@@ -159,7 +159,7 @@ class TestFileLoggerLogging:
             if log_file.exists():
                 log_file.unlink()
 
-    def test_file_logger_level_filtering(self):
+    def test_file_logger_level_filtering(self) -> None:
         """Проверка фильтрации по уровню логирования."""
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             log_file = Path(f.name)
@@ -191,7 +191,7 @@ class TestFileLoggerLogging:
 class TestFileLoggerContextManager:
     """Тесты для контекстного менеджера FileLogger."""
 
-    def test_file_logger_context_manager(self):
+    def test_file_logger_context_manager(self) -> None:
         """Проверка работы контекстного менеджера."""
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             log_file = Path(f.name)
@@ -213,7 +213,7 @@ class TestFileLoggerContextManager:
             if log_file.exists():
                 log_file.unlink()
 
-    def test_file_logger_context_manager_close(self):
+    def test_file_logger_context_manager_close(self) -> None:
         """Проверка закрытия через контекстный менеджер."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             log_file = Path(f.name)
@@ -234,7 +234,7 @@ class TestFileLoggerContextManager:
 class TestFileLoggerProperties:
     """Тесты для свойств FileLogger."""
 
-    def test_file_logger_log_file_property(self):
+    def test_file_logger_log_file_property(self) -> None:
         """Проверка свойства log_file."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             log_file = Path(f.name)
@@ -247,7 +247,7 @@ class TestFileLoggerProperties:
             if log_file.exists():
                 log_file.unlink()
 
-    def test_file_logger_is_enabled_property(self):
+    def test_file_logger_is_enabled_property(self) -> None:
         """Проверка свойства is_enabled."""
         # Включено
         with tempfile.NamedTemporaryFile(delete=False) as f:
@@ -268,7 +268,7 @@ class TestFileLoggerProperties:
 class TestFileLoggerClose:
     """Тесты для закрытия FileLogger."""
 
-    def test_file_logger_close(self):
+    def test_file_logger_close(self) -> None:
         """Проверка закрытия FileLogger."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             log_file = Path(f.name)
@@ -283,7 +283,7 @@ class TestFileLoggerClose:
             if log_file.exists():
                 log_file.unlink()
 
-    def test_file_logger_close_multiple_times(self):
+    def test_file_logger_close_multiple_times(self) -> None:
         """Проверка многократного закрытия FileLogger."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             log_file = Path(f.name)
@@ -303,7 +303,7 @@ class TestFileLoggerClose:
 class TestFileLoggerAdvancedFeatures:
     """Тесты для продвинутых возможностей FileLogger."""
 
-    def test_file_logger_custom_max_bytes(self):
+    def test_file_logger_custom_max_bytes(self) -> None:
         """Проверка кастомного максимального размера файла."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             log_file = Path(f.name)
@@ -317,7 +317,7 @@ class TestFileLoggerAdvancedFeatures:
             if log_file.exists():
                 log_file.unlink()
 
-    def test_file_logger_custom_backup_count(self):
+    def test_file_logger_custom_backup_count(self) -> None:
         """Проверка кастомного количества резервных копий."""
         with tempfile.NamedTemporaryFile(delete=False) as f:
             log_file = Path(f.name)
@@ -331,7 +331,7 @@ class TestFileLoggerAdvancedFeatures:
             if log_file.exists():
                 log_file.unlink()
 
-    def test_file_logger_multiple_loggers(self):
+    def test_file_logger_multiple_loggers(self) -> None:
         """Проверка работы с несколькими логгерами."""
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             log_file = Path(f.name)
@@ -361,7 +361,7 @@ class TestFileLoggerAdvancedFeatures:
             if log_file.exists():
                 log_file.unlink()
 
-    def test_file_logger_special_characters(self):
+    def test_file_logger_special_characters(self) -> None:
         """Проверка записи специальных символов в лог."""
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".log") as f:
             log_file = Path(f.name)

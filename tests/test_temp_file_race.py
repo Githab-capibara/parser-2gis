@@ -10,12 +10,12 @@ from parser_2gis.utils.temp_file_manager import temp_file_manager
 
 
 # Вспомогательные функции для обратной совместимости
-def register_temp_file(path):
+def register_temp_file(path) -> None:
     """Регистрирует временный файл."""
     temp_file_manager.register(path)
 
 
-def unregister_temp_file(path):
+def unregister_temp_file(path) -> None:
     """Удаляет временный файл из реестра."""
     temp_file_manager.unregister(path)
 
@@ -31,7 +31,7 @@ def cleanup_temp_file_registry():
 class TestTempFileRaceCondition:
     """Тесты для проверки race condition в регистрации временных файлов."""
 
-    def test_concurrent_registration_no_duplicates(self):
+    def test_concurrent_registration_no_duplicates(self) -> None:
         """Параллельная регистрация не должна создавать дубликаты."""
 
         def worker(worker_id):
@@ -55,7 +55,7 @@ class TestTempFileRaceCondition:
             f"но только {len(unique_files)} уникальных"
         )
 
-    def test_concurrent_registration_and_unregistration(self):
+    def test_concurrent_registration_and_unregistration(self) -> None:
         """Параллельная регистрация и удаление должны быть безопасны."""
         num_workers = 10
         files_per_worker = 5
@@ -89,11 +89,11 @@ class TestTempFileRaceCondition:
                 f"Реестр должен быть пуст, но содержит {len(temp_file_manager._registry)} файлов"
             )
 
-    def test_thread_safe_registry_operations(self):
+    def test_thread_safe_registry_operations(self) -> None:
         """Операции реестра должны быть потокобезопасными."""
         errors = []
 
-        def worker(worker_id):
+        def worker(worker_id) -> None:
             try:
                 for i in range(20):
                     file_path = Path(f"/tmp/test_thread_{worker_id}_{i}.tmp")

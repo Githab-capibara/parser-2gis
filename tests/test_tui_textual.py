@@ -36,7 +36,7 @@ class TestTUIApp:
     """Тесты для основного приложения TUI."""
 
     @pytest.mark.asyncio
-    async def test_app_initialization(self):
+    async def test_app_initialization(self) -> None:
         """Тест 1: Проверка инициализации приложения."""
         app = TUIApp()
         assert app is not None
@@ -47,7 +47,7 @@ class TestTUIApp:
         assert app.selected_categories == []
 
     @pytest.mark.asyncio
-    async def test_app_config_loading(self):
+    async def test_app_config_loading(self) -> None:
         """Тест 2: Проверка загрузки конфигурации."""
         app = TUIApp()
         config = app.get_config()
@@ -57,7 +57,7 @@ class TestTUIApp:
         assert hasattr(config, "writer")
 
     @pytest.mark.asyncio
-    async def test_app_state_management(self):
+    async def test_app_state_management(self) -> None:
         """Тест 3: Проверка управления состоянием."""
         app = TUIApp()
 
@@ -73,7 +73,7 @@ class TestTUIApp:
         assert app.get_state("selected_categories") == ["Аптеки", "Рестораны"]
 
     @pytest.mark.asyncio
-    async def test_app_cities_loading(self):
+    async def test_app_cities_loading(self) -> None:
         """Тест 4: Проверка загрузки городов."""
         app = TUIApp()
         cities = app.get_cities()
@@ -84,7 +84,7 @@ class TestTUIApp:
             assert "country_code" in cities[0]
 
     @pytest.mark.asyncio
-    async def test_app_categories_loading(self):
+    async def test_app_categories_loading(self) -> None:
         """Тест 5: Проверка загрузки категорий."""
         app = TUIApp()
         categories = app.get_categories()
@@ -101,21 +101,21 @@ class TestTUIApp:
 class TestTUIScreens:
     """Тесты для экранов TUI."""
 
-    def test_main_menu_screen_creation(self):
+    def test_main_menu_screen_creation(self) -> None:
         """Тест 6: Проверка создания главного меню."""
         screen = MainMenuScreen()
         assert screen is not None
         # Проверка, что экран имеет правильные атрибуты
         assert hasattr(screen, "compose")
 
-    def test_city_selector_screen_creation(self):
+    def test_city_selector_screen_creation(self) -> None:
         """Тест 7: Проверка создания экрана выбора городов."""
         screen = CitySelectorScreen()
         assert screen is not None
         assert hasattr(screen, "_cities")
         assert hasattr(screen, "_selected_indices")
 
-    def test_category_selector_screen_creation(self):
+    def test_category_selector_screen_creation(self) -> None:
         """Тест 8: Проверка создания экрана выбора категорий."""
         screen = CategorySelectorScreen()
         assert screen is not None
@@ -124,13 +124,13 @@ class TestTUIScreens:
         assert hasattr(screen, "_filtered_categories")
         assert hasattr(screen, "_selected_indices")
 
-    def test_browser_settings_screen_creation(self):
+    def test_browser_settings_screen_creation(self) -> None:
         """Тест 9: Проверка создания экрана настроек браузера."""
         screen = BrowserSettingsScreen()
         assert screen is not None
         assert hasattr(screen, "compose")
 
-    def test_parsing_screen_creation(self):
+    def test_parsing_screen_creation(self) -> None:
         """Тест 10: Проверка создания экрана парсинга."""
         screen = ParsingScreen()
         assert screen is not None
@@ -143,7 +143,7 @@ class TestTUIScreens:
 class TestTUINavigation:
     """Тесты для навигации в TUI."""
 
-    def test_screen_registration(self):
+    def test_screen_registration(self) -> None:
         """Тест навигации между экранами."""
         _app = TUIApp()
 
@@ -162,7 +162,7 @@ class TestTUINavigation:
 class TestTUIBindings:
     """Тесты для горячих клавиш."""
 
-    def test_bindings_defined(self):
+    def test_bindings_defined(self) -> None:
         """Тест горячих клавиш."""
         _app = TUIApp()
 
@@ -179,7 +179,7 @@ class TestTUIBindings:
 class TestTUIIntegration:
     """Интеграционные тесты TUI."""
 
-    def test_app_has_all_methods(self):
+    def test_app_has_all_methods(self) -> None:
         """Тест полного рабочего процесса."""
         _app = TUIApp()
 
@@ -197,14 +197,14 @@ class TestTUIIntegration:
 class TestTUIUtils:
     """Тесты для утилит TUI."""
 
-    def test_parser2gistui_wrapper(self):
+    def test_parser2gistui_wrapper(self) -> None:
         """Тест обёртки Parser2GISTUI."""
         wrapper = Parser2GISTUI()
         assert wrapper is not None
         assert hasattr(wrapper, "_app")
         assert isinstance(wrapper._app, TUIApp)
 
-    def test_run_tui_function(self):
+    def test_run_tui_function(self) -> None:
         """Тест функции run_tui."""
         from parser_2gis.tui_textual.app import run_tui
 

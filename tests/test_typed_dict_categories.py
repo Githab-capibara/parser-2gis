@@ -17,7 +17,7 @@ import pytest
 class TestCategoryTypedDict:
     """Тесты для проверки TypedDict категорий."""
 
-    def test_get_category_by_name_returns_typed_dict(self):
+    def test_get_category_by_name_returns_typed_dict(self) -> None:
         """
         Тест 4.1: Проверка get_category_by_name.
 
@@ -53,7 +53,7 @@ class TestCategoryTypedDict:
         assert result["query"] == "Кафе"
         assert result["rubric_code"] == "161"
 
-    def test_get_category_by_name_returns_none_for_unknown(self):
+    def test_get_category_by_name_returns_none_for_unknown(self) -> None:
         """
         Тест 4.2: Проверка get_category_by_name для несуществующей категории.
 
@@ -68,7 +68,7 @@ class TestCategoryTypedDict:
         # Проверяем что результат None
         assert result is None, "Для несуществующей категории должен вернуться None"
 
-    def test_all_categories_have_required_fields(self):
+    def test_all_categories_have_required_fields(self) -> None:
         """
         Проверка что все категории в CATEGORIES_93 имеют требуемые поля.
 
@@ -104,7 +104,7 @@ class TestCategoryTypedDict:
 class TestCategoryFunctions:
     """Тесты для вспомогательных функций категорий."""
 
-    def test_get_categories_list_returns_all(self):
+    def test_get_categories_list_returns_all(self) -> None:
         """
         Проверка что get_categories_list возвращает все категории.
         """
@@ -115,7 +115,7 @@ class TestCategoryFunctions:
         assert len(result) == 93
         assert result is CATEGORIES_93  # Тот же объект
 
-    def test_generate_urls_for_city(self):
+    def test_generate_urls_for_city(self) -> None:
         """
         Проверка генерации URL для города.
         """
@@ -144,7 +144,7 @@ class TestCategoryFunctions:
         assert "Кафе" in decoded_url
         assert "rubricId/161" in urls[0]
 
-    def test_generate_urls_for_city_with_none_rubric(self):
+    def test_generate_urls_for_city_with_none_rubric(self) -> None:
         """
         Проверка генерации URL для категории без rubric_code.
         """
@@ -169,7 +169,7 @@ class TestCategoryFunctions:
 class TestTypeChecking:
     """Тесты для проверки type checking через mypy."""
 
-    def test_mypy_passes_on_categories_module(self):
+    def test_mypy_passes_on_categories_module(self) -> None:
         """
         Тест 4.3: Проверка type checking.
 

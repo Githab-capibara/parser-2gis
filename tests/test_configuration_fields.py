@@ -18,28 +18,28 @@ from parser_2gis.writer import WriterOptions
 class TestChromeOptionsFields:
     """Тесты для проверки полей ChromeOptions."""
 
-    def test_startup_delay_field_exists(self):
+    def test_startup_delay_field_exists(self) -> None:
         """Проверка наличия поля startup_delay в ChromeOptions."""
         options = ChromeOptions()
         assert hasattr(options, "startup_delay")
 
-    def test_startup_delay_default_value(self):
+    def test_startup_delay_default_value(self) -> None:
         """Проверка значения по умолчанию startup_delay."""
         options = ChromeOptions()
         assert options.startup_delay == 0
 
-    def test_startup_delay_custom_value(self):
+    def test_startup_delay_custom_value(self) -> None:
         """Проверка установки кастомного значения startup_delay."""
         options = ChromeOptions(startup_delay=5)
         assert options.startup_delay == 5
 
-    def test_startup_delay_assignment(self):
+    def test_startup_delay_assignment(self) -> None:
         """Проверка динамического присваивания startup_delay."""
         options = ChromeOptions()
         options.startup_delay = 10
         assert options.startup_delay == 10
 
-    def test_startup_delay_type_validation(self):
+    def test_startup_delay_type_validation(self) -> None:
         """Проверка валидации типа startup_delay."""
         # Должно работать с целыми числами
         options = ChromeOptions(startup_delay=0)
@@ -48,7 +48,7 @@ class TestChromeOptionsFields:
         options = ChromeOptions(startup_delay=100)
         assert options.startup_delay == 100
 
-    def test_all_chrome_fields_used_in_tui(self):
+    def test_all_chrome_fields_used_in_tui(self) -> None:
         """
         Проверка, что все поля, используемые в TUI settings.py,
         существуют в ChromeOptions.
@@ -86,7 +86,7 @@ class TestChromeOptionsFields:
 class TestParserOptionsFields:
     """Тесты для проверки полей ParserOptions."""
 
-    def test_all_parser_fields_used_in_tui(self):
+    def test_all_parser_fields_used_in_tui(self) -> None:
         """
         Проверка, что все поля, используемые в TUI settings.py,
         существуют в ParserOptions.
@@ -118,7 +118,7 @@ class TestParserOptionsFields:
 class TestWriterOptionsFields:
     """Тесты для проверки полей WriterOptions."""
 
-    def test_all_writer_fields_used_in_tui(self):
+    def test_all_writer_fields_used_in_tui(self) -> None:
         """
         Проверка, что все поля, используемые в TUI settings.py,
         существуют в WriterOptions.
@@ -156,7 +156,7 @@ class TestWriterOptionsFields:
 class TestConfigurationFieldAccess:
     """Тесты для проверки доступа к полям конфигурации."""
 
-    def test_configuration_chrome_field_assignment(self):
+    def test_configuration_chrome_field_assignment(self) -> None:
         """Проверка присваивания полей chrome в конфигурации."""
         config = Configuration()
 
@@ -173,7 +173,7 @@ class TestConfigurationFieldAccess:
         assert config.chrome.memory_limit == 512
         assert config.chrome.startup_delay == 0
 
-    def test_configuration_parser_field_assignment(self):
+    def test_configuration_parser_field_assignment(self) -> None:
         """Проверка присваивания полей parser в конфигурации."""
         config = Configuration()
 
@@ -185,7 +185,7 @@ class TestConfigurationFieldAccess:
         assert config.parser.delay_between_clicks == 500
         assert config.parser.max_retries == 3
 
-    def test_configuration_writer_field_assignment(self):
+    def test_configuration_writer_field_assignment(self) -> None:
         """Проверка присваивания полей writer в конфигурации."""
         config = Configuration()
 
@@ -199,7 +199,7 @@ class TestConfigurationFieldAccess:
         assert config.writer.csv.add_comments is False
         assert config.writer.csv.remove_duplicates is True
 
-    def test_configuration_save_load_preserves_fields(self):
+    def test_configuration_save_load_preserves_fields(self) -> None:
         """
         Проверка, что сохранение и загрузка конфигурации
         сохраняет все поля.
@@ -240,7 +240,7 @@ class TestTUIFieldCompatibility:
     и проверяют, что все поля существуют и могут быть установлены.
     """
 
-    def test_browser_settings_screen_fields(self):
+    def test_browser_settings_screen_fields(self) -> None:
         """
         Эмуляция кода из BrowserSettingsScreen.on_button_pressed.
         Проверяет, что все поля могут быть установлены.
@@ -272,7 +272,7 @@ class TestTUIFieldCompatibility:
         assert config.chrome.memory_limit == 512
         assert config.chrome.startup_delay == 0
 
-    def test_parser_settings_screen_fields(self):
+    def test_parser_settings_screen_fields(self) -> None:
         """
         Эмуляция кода из ParserSettingsScreen.on_button_pressed.
         Проверяет, что все поля могут быть установлены.
@@ -294,7 +294,7 @@ class TestTUIFieldCompatibility:
         assert config.parser.delay_between_clicks == 500
         assert config.parser.max_retries == 3
 
-    def test_output_settings_screen_fields(self):
+    def test_output_settings_screen_fields(self) -> None:
         """
         Эмуляция кода из OutputSettingsScreen.on_button_pressed.
         Проверяет, что все поля могут быть установлены.
@@ -328,7 +328,7 @@ class TestMissingFieldDetection:
     используемые в TUI.
     """
 
-    def test_detect_missing_chrome_field(self):
+    def test_detect_missing_chrome_field(self) -> None:
         """
         Тест должен упасть, если в ChromeOptions отсутствует поле.
         """
@@ -340,7 +340,7 @@ class TestMissingFieldDetection:
         except (ValueError, AttributeError) as e:
             pytest.fail(f"Поле startup_delay отсутствует в ChromeOptions: {e}")
 
-    def test_detect_missing_parser_field(self):
+    def test_detect_missing_parser_field(self) -> None:
         """
         Тест должен упасть, если в ParserOptions отсутствует поле.
         """
@@ -352,7 +352,7 @@ class TestMissingFieldDetection:
         except (ValueError, AttributeError) as e:
             pytest.fail(f"Поле max_records отсутствует в ParserOptions: {e}")
 
-    def test_detect_missing_writer_field(self):
+    def test_detect_missing_writer_field(self) -> None:
         """
         Тест должен упасть, если в WriterOptions отсутствует поле.
         """

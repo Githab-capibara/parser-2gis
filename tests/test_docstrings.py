@@ -74,7 +74,7 @@ def has_valid_docstring(obj) -> bool:
 class TestDocstringsInCacheModule:
     """Тесты для проверки docstrings в модуле cache."""
 
-    def test_cache_manager_has_docstring(self):
+    def test_cache_manager_has_docstring(self) -> None:
         """
         Тест 1.1: Проверка docstring у CacheManager.
 
@@ -86,7 +86,7 @@ class TestDocstringsInCacheModule:
         assert doc is not None, "CacheManager должен иметь docstring"
         assert len(doc.strip()) > 0, "Docstring CacheManager не должен быть пустым"
 
-    def test_cache_manager_methods_have_docstrings(self):
+    def test_cache_manager_methods_have_docstrings(self) -> None:
         """
         Тест 1.2: Проверка docstrings у методов CacheManager.
 
@@ -106,7 +106,7 @@ class TestDocstringsInCacheModule:
             assert doc is not None, f"Метод {method_name} должен иметь docstring"
             assert len(doc.strip()) > 0, f"Docstring метода {method_name} не должен быть пустым"
 
-    def test_cache_pool_has_docstring(self):
+    def test_cache_pool_has_docstring(self) -> None:
         """
         Тест 1.3: Проверка docstring у ConnectionPool.
 
@@ -122,7 +122,7 @@ class TestDocstringsInCacheModule:
 class TestDocstringsInChromeModule:
     """Тесты для проверки docstrings в модуле chrome."""
 
-    def test_chrome_browser_has_docstring(self):
+    def test_chrome_browser_has_docstring(self) -> None:
         """
         Тест 2.1: Проверка docstring у ChromeBrowser.
 
@@ -134,7 +134,7 @@ class TestDocstringsInChromeModule:
         assert doc is not None, "ChromeBrowser должен иметь docstring"
         assert len(doc.strip()) > 0, "Docstring ChromeBrowser не должен быть пустым"
 
-    def test_chrome_browser_methods_have_docstrings(self):
+    def test_chrome_browser_methods_have_docstrings(self) -> None:
         """
         Тест 2.2: Проверка docstrings у методов ChromeBrowser.
 
@@ -154,7 +154,7 @@ class TestDocstringsInChromeModule:
             assert doc is not None, f"Метод {method_name} должен иметь docstring"
             assert len(doc.strip()) > 0, f"Docstring метода {method_name} не должен быть пустым"
 
-    def test_file_logger_has_docstring(self):
+    def test_file_logger_has_docstring(self) -> None:
         """
         Тест 2.3: Проверка docstring у FileLogger.
 
@@ -170,7 +170,7 @@ class TestDocstringsInChromeModule:
 class TestDocstringsInParallelModule:
     """Тесты для проверки docstrings в модуле parallel_parser."""
 
-    def test_parallel_city_parser_has_docstring(self):
+    def test_parallel_city_parser_has_docstring(self) -> None:
         """
         Тест 3.1: Проверка docstring у ParallelCityParser.
 
@@ -182,7 +182,7 @@ class TestDocstringsInParallelModule:
         assert doc is not None, "ParallelCityParser должен иметь docstring"
         assert len(doc.strip()) > 0, "Docstring ParallelCityParser не должен быть пустым"
 
-    def test_parallel_city_parser_methods_have_docstrings(self):
+    def test_parallel_city_parser_methods_have_docstrings(self) -> None:
         """
         Тест 3.2: Проверка docstrings у методов ParallelCityParser.
 
@@ -203,7 +203,7 @@ class TestDocstringsInParallelModule:
             assert doc is not None, f"Метод {method_name} должен иметь docstring"
             assert len(doc.strip()) > 0, f"Docstring метода {method_name} не должен быть пустым"
 
-    def test_parser_thread_config_has_docstring(self):
+    def test_parser_thread_config_has_docstring(self) -> None:
         """
         Тест 3.3: Проверка docstring у ParserThreadConfig.
 
@@ -219,7 +219,7 @@ class TestDocstringsInParallelModule:
 class TestDocstringsInValidationModule:
     """Тесты для проверки docstrings в модуле validation."""
 
-    def test_validate_url_has_docstring(self):
+    def test_validate_url_has_docstring(self) -> None:
         """
         Тест 4.1: Проверка docstring у validate_url().
 
@@ -231,7 +231,7 @@ class TestDocstringsInValidationModule:
         assert doc is not None, "Функция validate_url должна иметь docstring"
         assert len(doc.strip()) > 0, "Docstring validate_url не должен быть пустым"
 
-    def test_validate_positive_int_has_docstring(self):
+    def test_validate_positive_int_has_docstring(self) -> None:
         """
         Тест 4.2: Проверка docstring у validate_positive_int().
 
@@ -243,7 +243,7 @@ class TestDocstringsInValidationModule:
         assert doc is not None, "Функция validate_positive_int должна иметь docstring"
         assert len(doc.strip()) > 0, "Docstring validate_positive_int не должен быть пустым"
 
-    def test_validation_result_has_docstring(self):
+    def test_validation_result_has_docstring(self) -> None:
         """
         Тест 4.3: Проверка docstring у ValidationResult.
 
@@ -259,7 +259,7 @@ class TestDocstringsInValidationModule:
 class TestDocstringsInConfigModule:
     """Тесты для проверки docstrings в модуле config."""
 
-    def test_configuration_has_docstring(self):
+    def test_configuration_has_docstring(self) -> None:
         """
         Тест 5.1: Проверка docstring у Configuration.
 
@@ -271,7 +271,7 @@ class TestDocstringsInConfigModule:
         assert doc is not None, "Configuration должен иметь docstring"
         assert len(doc.strip()) > 0, "Docstring Configuration не должен быть пустым"
 
-    def test_configuration_methods_have_docstrings(self):
+    def test_configuration_methods_have_docstrings(self) -> None:
         """
         Тест 5.2: Проверка docstrings у методов Configuration.
 
@@ -295,7 +295,7 @@ class TestDocstringsInConfigModule:
 class TestDocstringsInWriterModule:
     """Тесты для проверки docstrings в модуле writer."""
 
-    def test_csv_writer_has_docstring(self):
+    def test_csv_writer_has_docstring(self) -> None:
         """
         Тест 6.1: Проверка docstring у CSVWriter.
 
@@ -307,7 +307,7 @@ class TestDocstringsInWriterModule:
         assert doc is not None, "CSVWriter должен иметь docstring"
         assert len(doc.strip()) > 0, "Docstring CSVWriter не должен быть пустым"
 
-    def test_json_writer_has_docstring(self):
+    def test_json_writer_has_docstring(self) -> None:
         """
         Тест 6.2: Проверка docstring у JSONWriter.
 
@@ -319,7 +319,7 @@ class TestDocstringsInWriterModule:
         assert doc is not None, "JSONWriter должен иметь docstring"
         assert len(doc.strip()) > 0, "Docstring JSONWriter не должен быть пустым"
 
-    def test_xlsx_writer_has_docstring(self):
+    def test_xlsx_writer_has_docstring(self) -> None:
         """
         Тест 6.3: Проверка docstring у XLSXWriter.
 
@@ -335,7 +335,7 @@ class TestDocstringsInWriterModule:
 class TestDocstringQuality:
     """Тесты для проверки качества docstrings."""
 
-    def test_docstring_starts_with_capital(self):
+    def test_docstring_starts_with_capital(self) -> None:
         """
         Тест 7.1: Проверка что docstring начинается с заглавной буквы.
 
@@ -347,7 +347,7 @@ class TestDocstringQuality:
         assert doc is not None
         assert doc.strip()[0].isupper(), "Docstring должен начинаться с заглавной буквы"
 
-    def test_docstring_contains_russian_text(self):
+    def test_docstring_contains_russian_text(self) -> None:
         """
         Тест 7.2: Проверка что docstring содержит русский текст.
 
@@ -361,7 +361,7 @@ class TestDocstringQuality:
         has_cyrillic = any("\u0400" <= c <= "\u04ff" for c in doc)
         assert has_cyrillic, "Docstring должен содержать русский текст"
 
-    def test_docstring_not_too_short(self):
+    def test_docstring_not_too_short(self) -> None:
         """
         Тест 7.3: Проверка что docstring не слишком короткий.
 
@@ -377,7 +377,7 @@ class TestDocstringQuality:
 class TestModuleDocstrings:
     """Тесты для проверки docstrings модулей."""
 
-    def test_cache_module_has_docstring(self):
+    def test_cache_module_has_docstring(self) -> None:
         """
         Тест 8.1: Проверка docstring у модуля cache.manager.
 
@@ -389,7 +389,7 @@ class TestModuleDocstrings:
         assert doc is not None, "Модуль cache.manager должен иметь docstring"
         assert len(doc.strip()) > 0, "Docstring модуля cache.manager не должен быть пустым"
 
-    def test_browser_module_has_docstring(self):
+    def test_browser_module_has_docstring(self) -> None:
         """
         Тест 8.2: Проверка docstring у модуля chrome.browser.
 
@@ -401,7 +401,7 @@ class TestModuleDocstrings:
         assert doc is not None, "Модуль chrome.browser должен иметь docstring"
         assert len(doc.strip()) > 0, "Docstring модуля chrome.browser не должен быть пустым"
 
-    def test_parallel_parser_module_has_docstring(self):
+    def test_parallel_parser_module_has_docstring(self) -> None:
         """
         Тест 8.3: Проверка docstring у модуля parallel.parallel_parser.
 
@@ -415,7 +415,7 @@ class TestModuleDocstrings:
             "Docstring модуля parallel.parallel_parser не должен быть пустым"
         )
 
-    def test_validation_module_has_docstring(self):
+    def test_validation_module_has_docstring(self) -> None:
         """
         Тест 8.4: Проверка docstring у модуля validation.url_validator.
 

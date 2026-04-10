@@ -19,20 +19,21 @@ from parser_2gis.chrome.exceptions import (
 from parser_2gis.parser.exceptions import ParserException
 from parser_2gis.version import config_version, version
 from parser_2gis.writer.exceptions import WriterUnknownFileFormat
+from typing import Never
 
 
 class TestVersion:
     """Тесты для версии."""
 
-    def test_version_exists(self):
+    def test_version_exists(self) -> None:
         """Проверка существования версии."""
         assert version is not None
 
-    def test_version_is_string(self):
+    def test_version_is_string(self) -> None:
         """Проверка, что версия - строка."""
         assert isinstance(version, str)
 
-    def test_version_format(self):
+    def test_version_format(self) -> None:
         """Проверка формата версии."""
         # Версия должна быть в формате X.Y.Z
         parts = version.split(".")
@@ -40,12 +41,12 @@ class TestVersion:
         for part in parts:
             assert part.isdigit() or part.replace(".", "").isdigit()
 
-    def test_version_from_init(self):
+    def test_version_from_init(self) -> None:
         """Проверка версии из __init__.py."""
         assert __version__ is not None
         assert __version__ == version
 
-    def test_version_current(self):
+    def test_version_current(self) -> None:
         """Проверка текущей версии."""
         # Версия может обновляться, проверяем что она в формате X.Y.Z
         assert version is not None
@@ -58,15 +59,15 @@ class TestVersion:
 class TestConfigVersion:
     """Тесты для версии конфигурации."""
 
-    def test_config_version_exists(self):
+    def test_config_version_exists(self) -> None:
         """Проверка существования версии конфигурации."""
         assert config_version is not None
 
-    def test_config_version_is_string(self):
+    def test_config_version_is_string(self) -> None:
         """Проверка, что версия конфигурации - строка."""
         assert isinstance(config_version, str)
 
-    def test_config_version_format(self):
+    def test_config_version_format(self) -> None:
         """Проверка формата версии конфигурации."""
         # Версия должна быть в формате X.Y
         parts = config_version.split(".")
@@ -74,7 +75,7 @@ class TestConfigVersion:
         for part in parts:
             assert part.isdigit() or part.replace(".", "").isdigit()
 
-    def test_config_version_current(self):
+    def test_config_version_current(self) -> None:
         """Проверка текущей версии конфигурации."""
         assert config_version == "0.1"
 
@@ -82,7 +83,7 @@ class TestConfigVersion:
 class TestChromeExceptions:
     """Тесты для исключений Chrome."""
 
-    def test_chrome_exception_base(self):
+    def test_chrome_exception_base(self) -> None:
         """Проверка базового исключения Chrome."""
         exc = ChromeException("Test error")
         # Новое сообщение включает контекстную информацию
@@ -92,7 +93,7 @@ class TestChromeExceptions:
         assert "Файл:" in str(exc)
         assert isinstance(exc, Exception)
 
-    def test_chrome_path_not_found(self):
+    def test_chrome_path_not_found(self) -> None:
         """Проверка исключения ChromePathNotFound."""
         path = "/usr/bin/google-chrome"
         exc = ChromePathNotFound(path)
@@ -100,7 +101,7 @@ class TestChromeExceptions:
         assert isinstance(exc, ChromeException)
         assert isinstance(exc, Exception)
 
-    def test_chrome_runtime_exception(self):
+    def test_chrome_runtime_exception(self) -> None:
         """Проверка исключения ChromeRuntimeException."""
         exc = ChromeRuntimeException("Runtime error")
         # Новое сообщение включает контекстную информацию
@@ -110,7 +111,7 @@ class TestChromeExceptions:
         assert isinstance(exc, ChromeException)
         assert isinstance(exc, Exception)
 
-    def test_chrome_user_abort_exception(self):
+    def test_chrome_user_abort_exception(self) -> None:
         """Проверка исключения ChromeUserAbortException."""
         exc = ChromeUserAbortException("User aborted")
         # Новое сообщение включает контекстную информацию
@@ -120,7 +121,7 @@ class TestChromeExceptions:
         assert isinstance(exc, ChromeException)
         assert isinstance(exc, Exception)
 
-    def test_chrome_exception_hierarchy(self):
+    def test_chrome_exception_hierarchy(self) -> None:
         """Проверка иерархии исключений Chrome."""
         assert issubclass(ChromePathNotFound, ChromeException)
         assert issubclass(ChromeRuntimeException, ChromeException)
@@ -131,7 +132,7 @@ class TestChromeExceptions:
 class TestParserException:
     """Тесты для исключения ParserException."""
 
-    def test_parser_exception_creation(self):
+    def test_parser_exception_creation(self) -> None:
         """Проверка создания исключения."""
         exc = ParserException("Parser error")
         # Новое сообщение включает контекстную информацию
@@ -140,7 +141,7 @@ class TestParserException:
         assert "Строка:" in str(exc)
         assert isinstance(exc, Exception)
 
-    def test_parser_exception_with_args(self):
+    def test_parser_exception_with_args(self) -> None:
         """Проверка исключения с аргументами."""
         # Новый конструктор поддерживает только одно сообщение
         exc = ParserException("Error with details")
@@ -151,13 +152,13 @@ class TestParserException:
 class TestWriterException:
     """Тесты для исключения WriterException."""
 
-    def test_writer_unknown_file_format(self):
+    def test_writer_unknown_file_format(self) -> None:
         """Проверка исключения WriterUnknownFileFormat."""
         exc = WriterUnknownFileFormat(".txt")
         assert ".txt" in str(exc)
         assert isinstance(exc, Exception)
 
-    def test_writer_unknown_file_format_with_path(self):
+    def test_writer_unknown_file_format_with_path(self) -> None:
         """Проверка исключения с путём."""
         exc = WriterUnknownFileFormat("/path/to/file.xyz")
         assert ".xyz" in str(exc) or "/path/to/file.xyz" in str(exc)
@@ -167,27 +168,27 @@ class TestWriterException:
 class TestExceptionUsage:
     """Тесты для использования исключений."""
 
-    def test_raise_chrome_exception(self):
+    def test_raise_chrome_exception(self) -> Never:
         """Проверка выбрасывания ChromeException."""
         with pytest.raises(ChromeException):
             raise ChromeException("Test")
 
-    def test_raise_parser_exception(self):
+    def test_raise_parser_exception(self) -> Never:
         """Проверка выбрасывания ParserException."""
         with pytest.raises(ParserException):
             raise ParserException("Test")
 
-    def test_raise_writer_exception(self):
+    def test_raise_writer_exception(self) -> Never:
         """Проверка выбрасывания WriterUnknownFileFormat."""
         with pytest.raises(WriterUnknownFileFormat):
             raise WriterUnknownFileFormat(".unknown")
 
-    def test_catch_chrome_subclass_as_chrome(self):
+    def test_catch_chrome_subclass_as_chrome(self) -> Never:
         """Проверка перехвата подкласса как ChromeException."""
         with pytest.raises(ChromeException):
             raise ChromePathNotFound("/path")
 
-    def test_exception_inheritance_chain(self):
+    def test_exception_inheritance_chain(self) -> None:
         """Проверка цепочки наследования."""
         exc = ChromePathNotFound("/path")
         assert isinstance(exc, ChromeException)
@@ -198,7 +199,7 @@ class TestExceptionUsage:
 class TestExceptionMessages:
     """Тесты для сообщений исключений."""
 
-    def test_chrome_exception_message(self):
+    def test_chrome_exception_message(self) -> None:
         """Проверка сообщения ChromeException."""
         messages = ["Error 1", "Error 2", "Some error message"]
         for msg in messages:
@@ -208,7 +209,7 @@ class TestExceptionMessages:
             assert "Функция:" in str(exc)
             assert "Строка:" in str(exc)
 
-    def test_parser_exception_message(self):
+    def test_parser_exception_message(self) -> None:
         """Проверка сообщения ParserException."""
         messages = ["Error 1", "Error 2", "Some error message"]
         for msg in messages:
@@ -218,7 +219,7 @@ class TestExceptionMessages:
             assert "Функция:" in str(exc)
             assert "Строка:" in str(exc)
 
-    def test_chrome_path_not_found_message(self):
+    def test_chrome_path_not_found_message(self) -> None:
         """Проверка сообщения ChromePathNotFound."""
         paths = ["/usr/bin/chrome", "C:\\Chrome\\chrome.exe", "~/chrome"]
         for path in paths:

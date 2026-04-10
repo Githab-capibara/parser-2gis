@@ -88,7 +88,7 @@ def category_screen_extended(mock_app_extended):
 class TestCategorySelectorBasic:
     """Базовые тесты загрузки и фильтрации категорий."""
 
-    def test_populate_categories_no_duplicate_ids(self, category_screen):
+    def test_populate_categories_no_duplicate_ids(self, category_screen) -> None:
         """
         Проверяет, что повторный вызов _populate_categories не создаёт дубликатов ID.
 
@@ -114,7 +114,7 @@ class TestCategorySelectorBasic:
             "Обнаружены дубликаты original_index!"
         )
 
-    def test_populate_categories_after_search_filter(self, category_screen):
+    def test_populate_categories_after_search_filter(self, category_screen) -> None:
         """
         Проверяет работу фильтрации поиска и повторного заполнения.
 
@@ -149,7 +149,7 @@ class TestCategorySelectorBasic:
 class TestCategorySelectorGlobalConstant:
     """Тесты для проверки работы с глобальной константой CATEGORIES_93."""
 
-    def test_categories_93_no_original_index_initially(self):
+    def test_categories_93_no_original_index_initially(self) -> None:
         """
         Проверяет, что CATEGORIES_93 не содержит original_index изначально.
 
@@ -160,7 +160,7 @@ class TestCategorySelectorGlobalConstant:
                 f"Категория '{cat.get('name')}' уже содержит original_index в глобальной константе!"
             )
 
-    def test_categories_copy_preserves_original_index_uniqueness(self):
+    def test_categories_copy_preserves_original_index_uniqueness(self) -> None:
         """
         Проверяет, что копирование категорий сохраняет уникальность original_index.
 
@@ -186,7 +186,7 @@ class TestCategorySelectorGlobalConstant:
         for cat in CATEGORIES_93:
             assert "original_index" not in cat, f"Категория '{cat.get('name')}' была мутирована!"
 
-    def test_filter_preserves_original_index_uniqueness(self):
+    def test_filter_preserves_original_index_uniqueness(self) -> None:
         """
         Проверяет, что фильтрация сохраняет уникальность original_index.
 
@@ -214,7 +214,7 @@ class TestCategorySelectorGlobalConstant:
     @pytest.mark.parametrize(
         "query", ["а", "о", "р", "к"], ids=["letter_a", "letter_o", "letter_r", "letter_k"]
     )
-    def test_multiple_filters_no_duplicate_ids(self, query):
+    def test_multiple_filters_no_duplicate_ids(self, query) -> None:
         """
         Проверяет отсутствие дубликатов ID при множественных фильтрациях.
 
@@ -232,7 +232,7 @@ class TestCategorySelectorGlobalConstant:
         # Проверить уникальность
         assert len(ids) == len(filtered), f"Дубликаты ID при фильтрации '{query}': {ids}"
 
-    def test_checkbox_ids_generation_from_original_index(self):
+    def test_checkbox_ids_generation_from_original_index(self) -> None:
         """
         Проверяет генерацию ID checkbox из original_index.
 
@@ -256,7 +256,7 @@ class TestCategorySelectorGlobalConstant:
         for checkbox_id in checkbox_ids:
             assert checkbox_id.startswith("category-"), f"Неверный формат ID: {checkbox_id}"
 
-    def test_all_93_categories_have_unique_original_index(self):
+    def test_all_93_categories_have_unique_original_index(self) -> None:
         """
         Проверяет уникальность original_index для всех 93 категорий.
 
@@ -280,7 +280,7 @@ class TestCategorySelectorGlobalConstant:
         assert min(original_indices) == 0, "Минимальный original_index должен быть 0"
         assert max(original_indices) == 92, "Максимальный original_index должен быть 92"
 
-    def test_shallow_copy_causes_mutation_bug(self):
+    def test_shallow_copy_causes_mutation_bug(self) -> None:
         """
         Демонстрирует баг с поверхностным копированием.
 
@@ -307,7 +307,7 @@ class TestCategorySelectorGlobalConstant:
         for cat in CATEGORIES_93:
             cat.pop("original_index", None)
 
-    def test_deep_copy_prevents_mutation_bug(self):
+    def test_deep_copy_prevents_mutation_bug(self) -> None:
         """
         Проверяет, что глубокое копирование предотвращает мутацию.
 
@@ -336,7 +336,7 @@ class TestCategorySelectorGlobalConstant:
 class TestCategorySelectorDuplicatePrevention:
     """Тесты для предотвращения DuplicateIds ошибки в UI."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Настройка перед каждым тестом."""
         self.screen = CategorySelectorScreen()
         mock_app = Mock()
@@ -352,7 +352,7 @@ class TestCategorySelectorDuplicatePrevention:
         self.screen.query_one = Mock(return_value=self.mock_container)
         self.screen._load_categories()
 
-    def test_populate_categories_clears_previous_widgets(self):
+    def test_populate_categories_clears_previous_widgets(self) -> None:
         """
         Проверяет, что _populate_categories очищает предыдущие чекбоксы
         перед добавлением новых.
@@ -383,7 +383,7 @@ class TestCategorySelectorDuplicatePrevention:
         # Ensure _checkboxes list was cleared and repopulated
         assert len(self.screen._checkboxes) == 1
 
-    def test_populate_categories_with_empty_filter(self):
+    def test_populate_categories_with_empty_filter(self) -> None:
         """
         Проверяет, что _populate_categories работает корректно с пустым фильтром.
         """
@@ -400,7 +400,7 @@ class TestCategorySelectorDuplicatePrevention:
         # Verify _checkboxes is empty
         assert len(self.screen._checkboxes) == 0
 
-    def test_populate_categories_prevents_duplicate_ids(self):
+    def test_populate_categories_prevents_duplicate_ids(self) -> None:
         """
         Проверяет, что _populate_categories предотвращает создание дублирующихся ID.
         """
@@ -450,7 +450,7 @@ class TestCategorySelectorDuplicatePrevention:
 class TestCategorySelectorFilterScenarios:
     """Тесты сценариев фильтрации категорий."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Настройка перед каждым тестом."""
         self.screen = CategorySelectorScreen()
         mock_app = Mock()
@@ -468,7 +468,7 @@ class TestCategorySelectorFilterScenarios:
         self.screen.query_one = Mock(return_value=self.mock_container)
         self.screen._load_categories()
 
-    def test_initial_populate_no_duplicate_original_index(self):
+    def test_initial_populate_no_duplicate_original_index(self) -> None:
         """
         Проверяет, что начальная загрузка не создаёт дубликатов original_index.
         """
@@ -479,7 +479,7 @@ class TestCategorySelectorFilterScenarios:
         assert len(original_indices) == len(set(original_indices))
         assert len(original_indices) == 5  # 5 категорий
 
-    def test_filter_then_populate_no_duplicates(self):
+    def test_filter_then_populate_no_duplicates(self) -> None:
         """
         Проверяет, что фильтрация с последующим _populate_categories
         не создаёт дубликатов.
@@ -503,7 +503,7 @@ class TestCategorySelectorFilterScenarios:
         # Проверить, что original_index сохранился корректно
         assert second_indices[0] == 0  # "Кафе" имеет original_index = 0
 
-    def test_multiple_filter_cycles_no_duplicates(self):
+    def test_multiple_filter_cycles_no_duplicates(self) -> None:
         """
         Проверяет, что многократная фильтрация не создаёт дубликатов.
 
@@ -546,7 +546,7 @@ class TestCategorySelectorFilterScenarios:
         ],
         ids=["letter_k", "letter_a", "letter_o", "letter_r", "letter_i"],
     )
-    def test_filter_by_letter(self, letter, expected_count):
+    def test_filter_by_letter(self, letter, expected_count) -> None:
         """
         Проверяет фильтрацию по различным буквам.
 
@@ -568,7 +568,7 @@ class TestCategorySelectorFilterScenarios:
         expected_indices = {cat["original_index"] for cat in self.screen._filtered_categories}
         assert set(indices) == expected_indices
 
-    def test_clear_filter_restores_all_categories(self):
+    def test_clear_filter_restores_all_categories(self) -> None:
         """
         Проверяет, что очистка фильтра восстанавливает все категории.
 

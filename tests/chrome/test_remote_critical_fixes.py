@@ -84,7 +84,7 @@ class TestConnectInterfaceReturnValue:
         """
         call_count = 0
 
-        def mock_port_check(*args, **kwargs):
+        def mock_port_check(*args, **kwargs) -> bool:
             nonlocal call_count
             call_count += 1
             return False  # Порт свободен
@@ -187,7 +187,7 @@ class TestConnectInterfaceReturnValue:
         """
         attempt_count = 0
 
-        def mock_port_check_count(*args, **kwargs):
+        def mock_port_check_count(*args, **kwargs) -> bool:
             nonlocal attempt_count
             attempt_count += 1
             return False

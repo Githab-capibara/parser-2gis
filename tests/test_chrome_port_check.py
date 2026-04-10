@@ -13,7 +13,7 @@ from parser_2gis.chrome.remote import _check_port_available, _check_port_availab
 class TestPortCheckLogic:
     """Тесты логики проверки порта Chrome."""
 
-    def test_check_port_available_returns_true_when_port_free(self):
+    def test_check_port_available_returns_true_when_port_free(self) -> None:
         """Проверяет, что _check_port_available возвращает True, когда порт свободен."""
         # Находим свободный порт
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -24,7 +24,7 @@ class TestPortCheckLogic:
         result = _check_port_available(free_port, timeout=0.5, retries=1)
         assert result is True, "Функция должна вернуть True для свободного порта"
 
-    def test_check_port_available_returns_false_when_port_busy(self):
+    def test_check_port_available_returns_false_when_port_busy(self) -> None:
         """Проверяет, что _check_port_available возвращает False, когда порт занят."""
         # Занимаем порт
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -37,7 +37,7 @@ class TestPortCheckLogic:
             result = _check_port_available(busy_port, timeout=0.5, retries=1)
             assert result is False, "Функция должна вернуть False для занятого порта"
 
-    def test_port_check_logic_for_chrome_startup(self):
+    def test_port_check_logic_for_chrome_startup(self) -> None:
         """
         Проверяет логику ожидания запуска Chrome.
 
@@ -61,7 +61,7 @@ class TestPortCheckLogic:
                 "условие 'not _check_port_available(port)' должно быть True"
             )
 
-    def test_port_check_logic_for_chrome_not_started(self):
+    def test_port_check_logic_for_chrome_not_started(self) -> None:
         """
         Проверяет логику ожидания запуска Chrome, когда Chrome не запустился.
 
@@ -82,7 +82,7 @@ class TestPortCheckLogic:
             "Когда Chrome не запущен, условие 'not _check_port_available(port)' должно быть False"
         )
 
-    def test_port_check_logic_for_connect_interface(self):
+    def test_port_check_logic_for_connect_interface(self) -> None:
         """
         Проверяет логику подключения к Chrome DevTools.
 
@@ -106,7 +106,7 @@ class TestPortCheckLogic:
                 "условие 'if _check_port_available(port)' должно быть False"
             )
 
-    def test_port_check_internal_consistency(self):
+    def test_port_check_internal_consistency(self) -> None:
         """Проверяет консистентность между _check_port_available и _check_port_available_internal."""
         # Находим свободный порт
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -121,7 +121,7 @@ class TestPortCheckLogic:
             "должны возвращать одинаковый результат"
         )
 
-    def test_port_check_with_multiple_retries(self):
+    def test_port_check_with_multiple_retries(self) -> None:
         """Проверяет работу функции с несколькими попытками."""
         # Находим свободный порт
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

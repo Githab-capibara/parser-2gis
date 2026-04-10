@@ -17,12 +17,13 @@ from parser_2gis.cache import CacheManager
 from parser_2gis.cache.pool import ConnectionPool as _ConnectionPool
 from parser_2gis.chrome.browser import cleanup_orphaned_profiles
 from parser_2gis.chrome.file_handler import FileLogger
+from typing import Never
 
 
 class TestSpecificSqliteException:
     """Тесты для специфической обработки sqlite3.Error."""
 
-    def test_specific_sqlite_exception_database_locked(self, tmp_path, caplog):
+    def test_specific_sqlite_exception_database_locked(self, tmp_path, caplog) -> None:
         """
         Тест 1.1: Проверка обработки ошибки "database is locked".
 
@@ -51,7 +52,7 @@ class TestSpecificSqliteException:
         finally:
             cache.close()
 
-    def test_specific_sqlite_exception_disk_io_error(self, tmp_path, caplog):
+    def test_specific_sqlite_exception_disk_io_error(self, tmp_path, caplog) -> None:
         """
         Тест 1.2: Проверка обработки ошибки "disk I/O error".
 
@@ -75,7 +76,7 @@ class TestSpecificSqliteException:
         finally:
             cache.close()
 
-    def test_specific_sqlite_exception_no_such_table(self, tmp_path, caplog):
+    def test_specific_sqlite_exception_no_such_table(self, tmp_path, caplog) -> None:
         """
         Тест 1.3: Проверка обработки ошибки "no such table".
 
@@ -99,7 +100,7 @@ class TestSpecificSqliteException:
         finally:
             cache.close()
 
-    def test_specific_sqlite_exception_connection_pool(self, tmp_path):
+    def test_specific_sqlite_exception_connection_pool(self, tmp_path) -> None:
         """
         Тест 1.4: Проверка обработки sqlite3.Error в connection pool.
 
@@ -122,7 +123,7 @@ class TestSpecificSqliteException:
         finally:
             pool.close_all()
 
-    def test_specific_sqlite_exception_rollback_error(self, tmp_path, caplog):
+    def test_specific_sqlite_exception_rollback_error(self, tmp_path, caplog) -> None:
         """
         Тест 1.5: Проверка обработки ошибки при rollback.
 
@@ -152,7 +153,7 @@ class TestSpecificSqliteException:
 class TestSpecificOsException:
     """Тесты для специфической обработки OSError."""
 
-    def test_specific_os_exception_file_handler_create_dir(self, caplog):
+    def test_specific_os_exception_file_handler_create_dir(self, caplog) -> None:
         """
         Тест 2.1: Проверка обработки OSError при создании директории.
 
@@ -176,7 +177,7 @@ class TestSpecificOsException:
                 or "Permission denied" in error_message
             )
 
-    def test_specific_os_exception_file_handler_open(self, tmp_path, caplog):
+    def test_specific_os_exception_file_handler_open(self, tmp_path, caplog) -> None:
         """
         Тест 2.2: Проверка обработки OSError при открытии файла.
 
@@ -187,7 +188,7 @@ class TestSpecificOsException:
 
         from parser_2gis.logger.handlers import FileLogger
 
-        def failing_open(*args, **kwargs):
+        def failing_open(*args, **kwargs) -> Never:
             raise OSError("File access denied")
 
         with patch.object(builtins, "open", failing_open):
@@ -198,7 +199,7 @@ class TestSpecificOsException:
             # Ошибка была залогирована
             assert "File access denied" in caplog.text or "Ошибка создания" in caplog.text
 
-    def test_specific_os_exception_orphaned_profiles(self, tmp_path, caplog):
+    def test_specific_os_exception_orphaned_profiles(self, tmp_path, caplog) -> None:
         """
         Тест 2.4: Проверка обработки OSError при очистке осиротевших профилей.
 
@@ -222,7 +223,7 @@ class TestSpecificOsException:
                 or "Permission denied" in caplog.text
             )
 
-    def test_specific_os_exception_profile_stat(self, tmp_path, caplog):
+    def test_specific_os_exception_profile_stat(self, tmp_path, caplog) -> None:
         """
         Тест 2.5: Проверка обработки OSError при stat профиля.
 
@@ -249,7 +250,7 @@ class TestSpecificOsException:
 class TestSpecificValueException:
     """Тесты для специфической обработки ValueError."""
 
-    def test_specific_value_exception_invalid_log_level(self, caplog):
+    def test_specific_value_exception_invalid_log_level(self, caplog) -> None:
         """
         Тест 3.1: Проверка обработки ValueError при некорректном уровне логирования.
 
@@ -263,7 +264,7 @@ class TestSpecificValueException:
         # Проверяем что сообщение содержит информацию об ошибке
         assert "Некорректный уровень логирования" in str(exc_info.value)
 
-    def test_specific_value_exception_invalid_ttl(self, tmp_path):
+    def test_specific_value_exception_invalid_ttl(self, tmp_path) -> None:
         """
         Тест 3.2: Проверка обработки ValueError при некорректном TTL.
 
@@ -279,7 +280,7 @@ class TestSpecificValueException:
         # Проверяем что сообщение содержит информацию об ошибке
         assert "должен быть положительным числом" in str(exc_info.value)
 
-    def test_specific_value_exception_invalid_ttl_type(self, tmp_path):
+    def test_specific_value_exception_invalid_ttl_type(self, tmp_path) -> None:
         """
         Тест 3.3: Проверка обработки ValueError при некорректном типе TTL.
 
@@ -295,7 +296,7 @@ class TestSpecificValueException:
         # Проверяем что сообщение содержит информацию об ошибке
         assert "должен быть целым числом" in str(exc_info.value)
 
-    def test_specific_value_exception_browser_path(self, tmp_path):
+    def test_specific_value_exception_browser_path(self, tmp_path) -> None:
         """
         Тест 3.4: Проверка обработки ValueError при некорректном пути к браузеру.
 
@@ -308,7 +309,7 @@ class TestSpecificValueException:
         with pytest.raises(FileNotFoundError, match="не существует"):
             resolver._validate_binary_path("/nonexistent/chrome/path")
 
-    def test_specific_value_exception_browser_path_directory(self, tmp_path):
+    def test_specific_value_exception_browser_path_directory(self, tmp_path) -> None:
         """
         Тест 3.5: Проверка обработки ValueError при пути к директории.
 
@@ -329,7 +330,7 @@ class TestSpecificValueException:
 class TestSpecificExceptionComprehensive:
     """Комплексные тесты для специфической обработки исключений."""
 
-    def test_specific_exception_sqlite_vs_os(self, tmp_path):
+    def test_specific_exception_sqlite_vs_os(self, tmp_path) -> None:
         """
         Тест 4.1: Различение sqlite3.Error и OSError.
 
@@ -370,7 +371,7 @@ class TestSpecificExceptionComprehensive:
         finally:
             cache.close()
 
-    def test_specific_exception_value_vs_type(self, tmp_path):
+    def test_specific_exception_value_vs_type(self, tmp_path) -> None:
         """
         Тест 4.2: Различение ValueError и TypeError.
 
@@ -387,7 +388,7 @@ class TestSpecificExceptionComprehensive:
         with pytest.raises(TypeError):
             CacheManager(cache_dir, ttl_hours=None)  # type: ignore
 
-    def test_specific_exception_chained(self, tmp_path, caplog):
+    def test_specific_exception_chained(self, tmp_path, caplog) -> None:
         """
         Тест 4.3: Проверка цепочки исключений.
 

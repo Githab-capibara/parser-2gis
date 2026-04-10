@@ -15,7 +15,7 @@ except ImportError:
 
 
 @pytest.mark.skipif(not PYSOCKS_AVAILABLE, reason="PySocks не установлен")
-def test_pysocks_installed():
+def test_pysocks_installed() -> None:
     """Проверяет что PySocks установлен и доступен."""
     try:
         import socks  # PySocks provides 'socks' module
@@ -26,7 +26,7 @@ def test_pysocks_installed():
 
 
 @pytest.mark.skipif(not PYSOCKS_AVAILABLE, reason="PySocks не установлен")
-def test_urllib3_socks_warning_not_present(caplog):
+def test_urllib3_socks_warning_not_present(caplog) -> None:
     """Проверяет что предупреждение о SOCKS зависимостях в urllib3 не появляется."""
     # Capture warnings
     with warnings.catch_warnings(record=True) as w:
@@ -48,7 +48,7 @@ def test_urllib3_socks_warning_not_present(caplog):
 
 
 @pytest.mark.skipif(not PYSOCKS_AVAILABLE, reason="PySocks не установлен")
-def test_optional_dependency_pysocks_installed():
+def test_optional_dependency_pysocks_installed() -> None:
     """Проверяет что опциональная зависимость PySocks учтена в requirements."""
     # This test ensures that if someone tries to use SOCKS functionality,
     # PySocks is available

@@ -15,7 +15,7 @@ import pytest
 from parser_2gis import main as parser_main
 
 
-def check_csv_result(result_path, num_records):
+def check_csv_result(result_path, num_records) -> None:
     """Проверка CSV вывода.
 
     Args:
@@ -27,7 +27,7 @@ def check_csv_result(result_path, num_records):
         assert len(list(reader)) == num_records + 1  # num_records + заголовок
 
 
-def check_json_result(result_path, num_records):
+def check_json_result(result_path, num_records) -> None:
     """Проверка JSON вывода.
 
     Args:
@@ -46,7 +46,7 @@ testdata = [["csv", check_csv_result], ["json", check_json_result]]
 @pytest.mark.parametrize("format, result_checker", testdata)
 @pytest.mark.requires_network
 @pytest.mark.requires_chrome
-def test_parser(monkeypatch, format, result_checker, num_records=5):
+def test_parser(monkeypatch, format, result_checker, num_records=5) -> None:
     """Парсинг TOP `num_records` записей и проверка результирующего файла.
 
     Args:

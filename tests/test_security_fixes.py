@@ -32,7 +32,7 @@ class TestCSVInjection:
     """Тесты для защиты от CSV injection атак."""
 
     @pytest.fixture(autouse=True)
-    def setup_formatter(self):
+    def setup_formatter(self) -> None:
         """Создаёт SanitizeFormatter для тестов."""
         self.formatter = SanitizeFormatter()
 

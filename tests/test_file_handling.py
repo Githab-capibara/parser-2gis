@@ -29,12 +29,12 @@ MAX_TEMP_FILES = 1000  # Значение по умолчанию из TempFileM
 
 
 # Вспомогательные функции для обратной совместимости с тестами
-def register_temp_file(path):
+def register_temp_file(path) -> None:
     """Регистрирует временный файл через temp_file_manager."""
     temp_file_manager.register(path)
 
 
-def unregister_temp_file(path):
+def unregister_temp_file(path) -> None:
     """Удаляет временный файл из реестра."""
     temp_file_manager.unregister(path)
 
@@ -52,15 +52,15 @@ def cleanup_all_temp_files():
 class TestRaceConditionTempFiles:
     """Тесты для проблемы 2: Race condition с временными файлами."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Очистка реестра временных файлов перед каждым тестом."""
         temp_file_manager._registry.clear()
 
-    def teardown_method(self):
+    def teardown_method(self) -> None:
         """Очистка реестра временных файлов после каждого теста."""
         temp_file_manager._registry.clear()
 
-    def test_atomic_temp_file_creation(self):
+    def test_atomic_temp_file_creation(self) -> None:
         """
         Тест 1: Атомарное создание временных файлов.
 
@@ -88,7 +88,7 @@ class TestRaceConditionTempFiles:
             if temp_path.exists():
                 temp_path.unlink()
 
-    def test_temp_file_cleanup(self):
+    def test_temp_file_cleanup(self) -> None:
         """
         Тест 2: Корректная очистка временных файлов.
 
@@ -127,7 +127,7 @@ class TestRaceConditionTempFiles:
                 if temp_path.exists():
                     temp_path.unlink()
 
-    def test_parallel_file_registration(self):
+    def test_parallel_file_registration(self) -> None:
         """
         Тест 3: Параллельная запись без конфликтов.
 
@@ -139,7 +139,7 @@ class TestRaceConditionTempFiles:
         registered_files = []
         lock = threading.Lock()
 
-        def register_files(thread_id):
+        def register_files(thread_id) -> None:
             """Регистрирует файлы из потока."""
             thread_files = []
             for i in range(files_per_thread):
@@ -186,7 +186,7 @@ class TestRaceConditionTempFiles:
             cleanup_all_temp_files()
             temp_file_manager._registry.clear()
 
-    def test_lru_eviction_on_limit(self):
+    def test_lru_eviction_on_limit(self) -> None:
         """
         Дополнительный тест: LRU eviction при достижении лимита.
 
@@ -223,7 +223,7 @@ class TestRaceConditionTempFiles:
 class TestCSVFileDescriptorLeak:
     """Тесты для проблемы 8: Утечка файловых дескрипторов при чтении CSV."""
 
-    def test_csv_file_close_on_error(self):
+    def test_csv_file_close_on_error(self) -> None:
         """
         Тест 1: Закрытие файлов при ошибке чтения.
 
@@ -264,7 +264,7 @@ class TestCSVFileDescriptorLeak:
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
 
-    def test_csv_file_close_on_success(self):
+    def test_csv_file_close_on_success(self) -> None:
         """
         Тест 2: Закрытие файлов при нормальном завершении.
 
@@ -304,7 +304,7 @@ class TestCSVFileDescriptorLeak:
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
 
-    def test_open_file_descriptor_count(self):
+    def test_open_file_descriptor_count(self) -> None:
         """
         Тест 3: Проверка количества открытых файловых дескрипторов.
 
@@ -389,7 +389,7 @@ class TestCSVFileDescriptorLeak:
 class TestFileHandlingIntegration:
     """Интеграционные тесты для обработки файлов."""
 
-    def test_temp_file_registry_thread_safety(self):
+    def test_temp_file_registry_thread_safety(self) -> None:
         """
         Интеграционный тест: Потокобезопасность реестра временных файлов.
 
@@ -398,7 +398,7 @@ class TestFileHandlingIntegration:
         operations = []
         lock = threading.Lock()
 
-        def register_and_unregister(thread_id):
+        def register_and_unregister(thread_id) -> None:
             """Регистрирует и удаляет файлы из потока."""
             temp_files = []
             try:
@@ -442,7 +442,7 @@ class TestFileHandlingIntegration:
             cleanup_all_temp_files()
             temp_file_manager._registry.clear()
 
-    def test_concurrent_csv_operations(self):
+    def test_concurrent_csv_operations(self) -> None:
         """
         Интеграционный тест: Параллельные операции с CSV.
 
@@ -458,7 +458,7 @@ class TestFileHandlingIntegration:
 
         results = []
 
-        def read_csv(thread_id):
+        def read_csv(thread_id) -> None:
             """Читает CSV из потока."""
             rows = []
             with open(temp_path, encoding="utf-8-sig") as f:

@@ -65,20 +65,20 @@ class MockBrowserService:
 class TestBaseParserABC:
     """Тесты абстрактного базового класса BaseParser."""
 
-    def test_base_parser_is_abstract(self):
+    def test_base_parser_is_abstract(self) -> None:
         """Тест 1: BaseParser является абстрактным классом."""
         # Проверяем что BaseParser имеет абстрактные методы
         assert hasattr(BaseParser, "__abstractmethods__")
         assert "parse" in BaseParser.__abstractmethods__
         assert "get_stats" in BaseParser.__abstractmethods__
 
-    def test_cannot_instantiate_base_parser(self):
+    def test_cannot_instantiate_base_parser(self) -> None:
         """Тест 2: Нельзя создать экземпляр BaseParser напрямую."""
         # Попытка создать экземпляр должна вызвать TypeError
         with pytest.raises(TypeError):
             BaseParser()
 
-    def test_concrete_parser_can_be_instantiated(self):
+    def test_concrete_parser_can_be_instantiated(self) -> None:
         """Тест 3: Можно создать экземпляр конкретного парсера."""
 
         class ConcreteParser(BaseParser):
@@ -92,17 +92,17 @@ class TestBaseParserABC:
         parser = ConcreteParser(browser=mock_browser)
         assert isinstance(parser, BaseParser)
 
-    def test_parse_method_is_abstract(self):
+    def test_parse_method_is_abstract(self) -> None:
         """Тест 4: Метод parse() является абстрактным."""
         # Проверяем что parse в абстрактных методах
         assert "parse" in BaseParser.__abstractmethods__
 
-    def test_get_stats_method_is_abstract(self):
+    def test_get_stats_method_is_abstract(self) -> None:
         """Тест 5: Метод get_stats() является абстрактным."""
         # Проверяем что get_stats в абстрактных методах
         assert "get_stats" in BaseParser.__abstractmethods__
 
-    def test_concrete_parser_implements_parse(self):
+    def test_concrete_parser_implements_parse(self) -> None:
         """Тест 6: Конкретный парсер реализует parse()."""
 
         class TestParser(BaseParser):
@@ -120,7 +120,7 @@ class TestBaseParserABC:
         assert len(mock_writer.data) == 1
         assert mock_writer.data[0] == {"test": "data"}
 
-    def test_concrete_parser_implements_get_stats(self):
+    def test_concrete_parser_implements_get_stats(self) -> None:
         """Тест 7: Конкретный парсер реализует get_stats()."""
 
         class TestParser(BaseParser):
@@ -136,7 +136,7 @@ class TestBaseParserABC:
 
         assert stats == {"custom": "stats"}
 
-    def test_base_parser_has_stats_attribute(self):
+    def test_base_parser_has_stats_attribute(self) -> None:
         """Тест 8: BaseParser имеет атрибут _stats."""
 
         class TestParser(BaseParser):
@@ -151,7 +151,7 @@ class TestBaseParserABC:
         assert hasattr(parser, "_stats")
         assert isinstance(parser._stats, dict)
 
-    def test_base_parser_default_stats(self):
+    def test_base_parser_default_stats(self) -> None:
         """Тест 9: BaseParser имеет значения статистики по умолчанию."""
 
         class TestParser(BaseParser):
@@ -172,7 +172,7 @@ class TestBaseParserABC:
         assert stats["errors"] == 0
         assert stats["skipped"] == 0
 
-    def test_parser_inherits_from_base_parser(self):
+    def test_parser_inherits_from_base_parser(self) -> None:
         """Тест 10: Парсер наследуется от BaseParser."""
 
         class TestParser(BaseParser):
@@ -187,7 +187,7 @@ class TestBaseParserABC:
         assert issubclass(TestParser, BaseParser)
         assert isinstance(parser, BaseParser)
 
-    def test_parse_method_signature(self):
+    def test_parse_method_signature(self) -> None:
         """Тест 11: Сигнатура метода parse() правильная."""
 
         class TestParser(BaseParser):
@@ -203,7 +203,7 @@ class TestBaseParserABC:
         mock_writer = MockFileWriter()
         parser.parse(mock_writer)
 
-    def test_get_stats_method_signature(self):
+    def test_get_stats_method_signature(self) -> None:
         """Тест 12: Сигнатура метода get_stats() правильная."""
 
         class TestParser(BaseParser):
@@ -219,7 +219,7 @@ class TestBaseParserABC:
 
         assert isinstance(stats, dict)
 
-    def test_multiple_parsers_isolation(self):
+    def test_multiple_parsers_isolation(self) -> None:
         """Тест 13: Несколько парсеров изолированы друг от друга."""
 
         class TestParser(BaseParser):
@@ -239,7 +239,7 @@ class TestBaseParserABC:
         assert parser1.get_stats()["parsed"] == 2
         assert parser2.get_stats()["parsed"] == 0
 
-    def test_parser_stats_modification(self):
+    def test_parser_stats_modification(self) -> None:
         """Тест 14: Можно модифицировать статистику парсера."""
 
         class TestParser(BaseParser):
@@ -257,7 +257,7 @@ class TestBaseParserABC:
         assert parser._stats["parsed"] == 1
         assert parser._stats["custom"] == "value"
 
-    def test_parser_repr(self):
+    def test_parser_repr(self) -> None:
         """Тест 15: Метод __repr__() работает корректно."""
 
         class TestParser(BaseParser):
@@ -274,7 +274,7 @@ class TestBaseParserABC:
         assert "TestParser" in repr_str
         assert "parsed=0" in repr_str
 
-    def test_parser_with_custom_init(self):
+    def test_parser_with_custom_init(self) -> None:
         """Тест 16: Парсер с кастомным __init__."""
 
         class TestParser(BaseParser):
@@ -292,7 +292,7 @@ class TestBaseParserABC:
         assert parser.custom_param == "test"
         assert isinstance(parser, BaseParser)
 
-    def test_parser_exception_handling_in_parse(self):
+    def test_parser_exception_handling_in_parse(self) -> None:
         """Тест 17: Обработка исключений в parse()."""
 
         class TestParser(BaseParser):
@@ -312,7 +312,7 @@ class TestBaseParserABC:
 
         assert parser.get_stats()["errors"] == 1
 
-    def test_parser_get_stats_returns_dict(self):
+    def test_parser_get_stats_returns_dict(self) -> None:
         """Тест 18: get_stats() возвращает словарь."""
 
         class TestParser(BaseParser):
@@ -330,7 +330,7 @@ class TestBaseParserABC:
         assert stats["key"] == "value"
         assert stats["number"] == 42
 
-    def test_parser_writer_interaction(self):
+    def test_parser_writer_interaction(self) -> None:
         """Тест 19: Взаимодействие парсера с writer."""
 
         class TestParser(BaseParser):
@@ -350,7 +350,7 @@ class TestBaseParserABC:
         assert len(mock_writer.data) == 5
         assert parser.get_stats()["parsed"] == 5
 
-    def test_parser_multiple_parse_calls(self):
+    def test_parser_multiple_parse_calls(self) -> None:
         """Тест 20: Несколько вызовов parse()."""
 
         class TestParser(BaseParser):
@@ -368,7 +368,7 @@ class TestBaseParserABC:
 
         assert parser.get_stats()["parsed"] == 3
 
-    def test_parser_subclass_override_stats(self):
+    def test_parser_subclass_override_stats(self) -> None:
         """Тест 21: Переопределение _stats в подклассе."""
 
         class TestParser(BaseParser):
@@ -388,7 +388,7 @@ class TestBaseParserABC:
         assert parser._stats["custom_field"] == 1
         assert "parsed" in parser._stats
 
-    def test_parser_abstractmethod_enforcement(self):
+    def test_parser_abstractmethod_enforcement(self) -> None:
         """Тест 22: Принудительная реализация абстрактных методов."""
 
         # Попытка создать класс без реализации parse()
@@ -417,7 +417,7 @@ class TestBaseParserABC:
         with pytest.raises(TypeError):
             IncompleteParser2()
 
-    def test_parser_isinstance_check(self):
+    def test_parser_isinstance_check(self) -> None:
         """Тест 23: Проверка isinstance для парсеров."""
 
         class TestParser(BaseParser):
@@ -433,7 +433,7 @@ class TestBaseParserABC:
         assert isinstance(parser, BaseParser)
         assert isinstance(parser, TestParser)
 
-    def test_parser_type_check(self):
+    def test_parser_type_check(self) -> None:
         """Тест 24: Проверка type для парсеров."""
 
         class TestParser1(BaseParser):

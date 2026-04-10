@@ -46,7 +46,7 @@ class TestBrowserPathResolver:
         options.binary_path = None
         return options
 
-    def test_browser_path_resolver_with_explicit_path(self, path_resolver: BrowserPathResolver):
+    def test_browser_path_resolver_with_explicit_path(self, path_resolver: BrowserPathResolver) -> None:
         """Тест разрешения пути с явным указанием пути к браузеру.
 
         Проверяет:
@@ -66,7 +66,7 @@ class TestBrowserPathResolver:
 
                                 assert result == "/usr/bin/google-chrome"
 
-    def test_browser_path_resolver_auto_detect(self, path_resolver: BrowserPathResolver):
+    def test_browser_path_resolver_auto_detect(self, path_resolver: BrowserPathResolver) -> None:
         """Тест автоматического обнаружения пути к браузеру.
 
         Проверяет:
@@ -92,7 +92,7 @@ class TestBrowserPathResolver:
 
                             assert result == "/usr/bin/google-chrome"
 
-    def test_browser_path_resolver_not_found(self, path_resolver: BrowserPathResolver):
+    def test_browser_path_resolver_not_found(self, path_resolver: BrowserPathResolver) -> None:
         """Тест отсутствия пути к браузеру.
 
         Проверяет:
@@ -107,7 +107,7 @@ class TestBrowserPathResolver:
 
     def test_browser_path_resolver_symlink_resolution(
         self, path_resolver: BrowserPathResolver, caplog
-    ):
+    ) -> None:
         """Тест разрешения символических ссылок.
 
         Проверяет:
@@ -133,7 +133,7 @@ class TestBrowserPathResolver:
                                     for record in caplog.records
                                 )
 
-    def test_browser_path_resolver_relative_path_error(self, path_resolver: BrowserPathResolver):
+    def test_browser_path_resolver_relative_path_error(self, path_resolver: BrowserPathResolver) -> None:
         """Тест относительного пути.
 
         Проверяет:
@@ -146,7 +146,7 @@ class TestBrowserPathResolver:
             with pytest.raises(ValueError, match="абсолютным"):
                 path_resolver.resolve_path(mock_options)
 
-    def test_browser_path_resolver_not_exists_error(self, path_resolver: BrowserPathResolver):
+    def test_browser_path_resolver_not_exists_error(self, path_resolver: BrowserPathResolver) -> None:
         """Тест несуществующего пути.
 
         Проверяет:
@@ -160,7 +160,7 @@ class TestBrowserPathResolver:
                 with pytest.raises(FileNotFoundError):
                     path_resolver.resolve_path(mock_options)
 
-    def test_browser_path_resolver_not_file_error(self, path_resolver: BrowserPathResolver):
+    def test_browser_path_resolver_not_file_error(self, path_resolver: BrowserPathResolver) -> None:
         """Тест пути к директории.
 
         Проверяет:
@@ -175,7 +175,7 @@ class TestBrowserPathResolver:
                     with pytest.raises(ValueError, match="файл"):
                         path_resolver.resolve_path(mock_options)
 
-    def test_browser_path_resolver_not_executable_error(self, path_resolver: BrowserPathResolver):
+    def test_browser_path_resolver_not_executable_error(self, path_resolver: BrowserPathResolver) -> None:
         """Тест неисполняемого файла.
 
         Проверяет:
@@ -204,7 +204,7 @@ class TestProfileManager:
         """
         return ProfileManager()
 
-    def test_profile_manager_create_profile(self, profile_manager: ProfileManager):
+    def test_profile_manager_create_profile(self, profile_manager: ProfileManager) -> None:
         """Тест создания профиля.
 
         Проверяет:
@@ -217,7 +217,7 @@ class TestProfileManager:
         assert profile_path is not None
         assert os.path.exists(profile_path)
 
-    def test_profile_manager_cleanup_profile(self, profile_manager: ProfileManager):
+    def test_profile_manager_cleanup_profile(self, profile_manager: ProfileManager) -> None:
         """Тест очистки профиля.
 
         Проверяет:
@@ -230,7 +230,7 @@ class TestProfileManager:
         # Профиль должен быть удалён
         assert not os.path.exists(profile_path)
 
-    def test_profile_manager_cleanup_fallback(self, caplog):
+    def test_profile_manager_cleanup_fallback(self, caplog) -> None:
         """Тест fallback очистки профиля.
 
         Проверяет:
@@ -248,7 +248,7 @@ class TestProfileManager:
                 # Проверяем что fallback был вызван
                 mock_rmtree.assert_called_once()
 
-    def test_profile_manager_cleanup_exception_logging(self, caplog):
+    def test_profile_manager_cleanup_exception_logging(self, caplog) -> None:
         """Тест логирования исключений при очистке.
 
         Проверяет:
@@ -268,7 +268,7 @@ class TestProfileManager:
                     # Проверяем что ошибка была залогирована
                     assert any("OSError" in record.message for record in caplog.records)
 
-    def test_profile_manager_properties(self, profile_manager: ProfileManager):
+    def test_profile_manager_properties(self, profile_manager: ProfileManager) -> None:
         """Тест свойств ProfileManager.
 
         Проверяет:
@@ -298,7 +298,7 @@ class TestProcessManager:
         """
         return ProcessManager()
 
-    def test_process_manager_launch_process_silent(self, process_manager: ProcessManager):
+    def test_process_manager_launch_process_silent(self, process_manager: ProcessManager) -> None:
         """Тест запуска процесса в тихом режиме.
 
         Проверяет:
@@ -323,7 +323,7 @@ class TestProcessManager:
             assert call_args.kwargs["stderr"] == subprocess.DEVNULL
             assert call_args.kwargs["stdout"] == subprocess.DEVNULL
 
-    def test_process_manager_launch_process_verbose(self, process_manager: ProcessManager):
+    def test_process_manager_launch_process_verbose(self, process_manager: ProcessManager) -> None:
         """Тест запуска процесса в обычном режиме.
 
         Проверяет:
@@ -346,7 +346,7 @@ class TestProcessManager:
             call_args = mock_popen.call_args
             assert call_args.kwargs.get("stderr") != subprocess.DEVNULL
 
-    def test_process_manager_launch_process_exception(self, process_manager: ProcessManager):
+    def test_process_manager_launch_process_exception(self, process_manager: ProcessManager) -> None:
         """Тест исключения при запуске процесса.
 
         Проверяет:
@@ -368,7 +368,7 @@ class TestProcessManager:
                 # Проверяем что профиль был очищен
                 mock_rmtree.assert_called_once()
 
-    def test_process_manager_terminate_graceful_success(self, process_manager: ProcessManager):
+    def test_process_manager_terminate_graceful_success(self, process_manager: ProcessManager) -> None:
         """Тест корректного завершения процесса.
 
         Проверяет:
@@ -395,7 +395,7 @@ class TestProcessManager:
         assert "terminated" in status
         mock_proc.terminate.assert_called_once()
 
-    def test_process_manager_terminate_graceful_timeout(self, process_manager: ProcessManager):
+    def test_process_manager_terminate_graceful_timeout(self, process_manager: ProcessManager) -> None:
         """Тест таймаута при корректном завершении.
 
         Проверяет:
@@ -423,7 +423,7 @@ class TestProcessManager:
         assert success is False
         assert status == "terminate_timeout"
 
-    def test_process_manager_terminate_forceful_success(self, process_manager: ProcessManager):
+    def test_process_manager_terminate_forceful_success(self, process_manager: ProcessManager) -> None:
         """Тест принудительного завершения процесса.
 
         Проверяет:
@@ -450,7 +450,7 @@ class TestProcessManager:
         assert "killed" in status
         mock_proc.kill.assert_called_once()
 
-    def test_process_manager_is_running(self, process_manager: ProcessManager):
+    def test_process_manager_is_running(self, process_manager: ProcessManager) -> None:
         """Тест проверки состояния процесса.
 
         Проверяет:
@@ -466,7 +466,7 @@ class TestProcessManager:
 
         assert process_manager.is_running() is True
 
-    def test_process_manager_properties(self, process_manager: ProcessManager):
+    def test_process_manager_properties(self, process_manager: ProcessManager) -> None:
         """Тест свойств ProcessManager.
 
         Проверяет:
@@ -503,7 +503,7 @@ class TestBrowserLifecycleManager:
         options.memory_limit = 2048
         return options
 
-    def test_browser_lifecycle_manager_init(self, mock_chrome_options: MagicMock):
+    def test_browser_lifecycle_manager_init(self, mock_chrome_options: MagicMock) -> None:
         """Тест инициализации BrowserLifecycleManager.
 
         Проверяет:
@@ -518,7 +518,7 @@ class TestBrowserLifecycleManager:
         assert isinstance(manager._profile_manager, ProfileManager)
         assert isinstance(manager._process_manager, ProcessManager)
 
-    def test_browser_lifecycle_manager_init_success(self, mock_chrome_options: MagicMock):
+    def test_browser_lifecycle_manager_init_success(self, mock_chrome_options: MagicMock) -> None:
         """Тест успешной инициализации браузера.
 
         Проверяет:
@@ -537,7 +537,7 @@ class TestBrowserLifecycleManager:
                         assert port == 9222
                         mock_launch.assert_called_once()
 
-    def test_browser_lifecycle_manager_init_exception(self, mock_chrome_options: MagicMock):
+    def test_browser_lifecycle_manager_init_exception(self, mock_chrome_options: MagicMock) -> None:
         """Тест исключения при инициализации.
 
         Проверяет:
@@ -560,7 +560,7 @@ class TestBrowserLifecycleManager:
                         # Проверяем что профиль был очищен
                         mock_cleanup.assert_called()
 
-    def test_browser_lifecycle_manager_close(self, mock_chrome_options: MagicMock):
+    def test_browser_lifecycle_manager_close(self, mock_chrome_options: MagicMock) -> None:
         """Тест закрытия браузера.
 
         Проверяет:
@@ -588,7 +588,7 @@ class TestBrowserLifecycleManager:
             # Проверяем что профиль был очищен
             mock_cleanup.assert_called()
 
-    def test_browser_lifecycle_manager_close_idempotent(self, mock_chrome_options: MagicMock):
+    def test_browser_lifecycle_manager_close_idempotent(self, mock_chrome_options: MagicMock) -> None:
         """Тест идемпотентности close.
 
         Проверяет:
@@ -605,7 +605,7 @@ class TestBrowserLifecycleManager:
                 mock_terminate.assert_not_called()
                 mock_cleanup.assert_not_called()
 
-    def test_browser_lifecycle_manager_build_chrome_cmd(self, mock_chrome_options: MagicMock):
+    def test_browser_lifecycle_manager_build_chrome_cmd(self, mock_chrome_options: MagicMock) -> None:
         """Тест построения команды Chrome.
 
         Проверяет:
@@ -629,7 +629,7 @@ class TestBrowserLifecycleManager:
 
     def test_browser_lifecycle_manager_build_chrome_cmd_headless(
         self, mock_chrome_options: MagicMock
-    ):
+    ) -> None:
         """Тест построения команды Chrome в headless режиме.
 
         Проверяет:
@@ -651,7 +651,7 @@ class TestBrowserLifecycleManager:
 
     def test_browser_lifecycle_manager_build_chrome_cmd_disable_images(
         self, mock_chrome_options: MagicMock
-    ):
+    ) -> None:
         """Тест построения команды Chrome с отключенными изображениями.
 
         Проверяет:
@@ -670,7 +670,7 @@ class TestBrowserLifecycleManager:
 
         assert "--blink-settings=imagesEnabled=false" in cmd
 
-    def test_browser_lifecycle_manager_weakref_finalizer(self, mock_chrome_options: MagicMock):
+    def test_browser_lifecycle_manager_weakref_finalizer(self, mock_chrome_options: MagicMock) -> None:
         """Тест weakref.finalizer для гарантированной очистки.
 
         Проверяет:
@@ -681,7 +681,7 @@ class TestBrowserLifecycleManager:
         assert hasattr(manager, "_finalizer")
         assert manager._finalizer is not None
 
-    def test_browser_lifecycle_manager_cleanup_from_finalizer(self, mock_chrome_options: MagicMock):
+    def test_browser_lifecycle_manager_cleanup_from_finalizer(self, mock_chrome_options: MagicMock) -> None:
         """Тест очистки из finalizer.
 
         Проверяет:

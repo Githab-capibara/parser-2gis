@@ -26,19 +26,19 @@ class TestComputeCrc32Cached:
             pytest.param("hash3", "", id="empty"),
         ],
     )
-    def test_compute_crc32_returns_int(self, data_json_hash, data_json):
+    def test_compute_crc32_returns_int(self, data_json_hash, data_json) -> None:
         """compute_crc32_cached возвращает целое число."""
         result = compute_crc32_cached(data_json_hash, data_json)
         assert isinstance(result, int)
         assert 0 <= result <= 0xFFFFFFFF
 
-    def test_same_data_same_crc(self):
+    def test_same_data_same_crc(self) -> None:
         """Одинаковые данные дают одинаковый CRC."""
         crc1 = compute_crc32_cached("h1", "test_data")
         crc2 = compute_crc32_cached("h1", "test_data")
         assert crc1 == crc2
 
-    def test_different_data_different_crc(self):
+    def test_different_data_different_crc(self) -> None:
         """Разные данные дают разный CRC."""
         crc1 = compute_crc32_cached("h1", "data1")
         crc2 = compute_crc32_cached("h1", "data2")
@@ -48,7 +48,7 @@ class TestComputeCrc32Cached:
 class TestComputeDataJsonHash:
     """Тесты compute_data_json_hash."""
 
-    def test_returns_sha256_hex(self):
+    def test_returns_sha256_hex(self) -> None:
         """compute_data_json_hash возвращает SHA256 хеш."""
         result = compute_data_json_hash('{"key":"value"}')
         assert isinstance(result, str)
@@ -56,19 +56,19 @@ class TestComputeDataJsonHash:
         # Проверяем что это валидный hex
         int(result, 16)
 
-    def test_same_input_same_hash(self):
+    def test_same_input_same_hash(self) -> None:
         """Одинаковый вход даёт одинаковый хеш."""
         h1 = compute_data_json_hash("test")
         h2 = compute_data_json_hash("test")
         assert h1 == h2
 
-    def test_different_input_different_hash(self):
+    def test_different_input_different_hash(self) -> None:
         """Разный вход даёт разный хеш."""
         h1 = compute_data_json_hash("data1")
         h2 = compute_data_json_hash("data2")
         assert h1 != h2
 
-    def test_matches_hashlib_sha256(self):
+    def test_matches_hashlib_sha256(self) -> None:
         """Хеш совпадает с hashlib.sha256."""
         data = "test data"
         expected = hashlib.sha256(data.encode("utf-8")).hexdigest()
@@ -87,24 +87,24 @@ class TestHashUrl:
             pytest.param("https://2gis.ru/msk/search/apteki", id="complex_url"),
         ],
     )
-    def test_hash_url_returns_sha256_hex(self, url):
+    def test_hash_url_returns_sha256_hex(self, url) -> None:
         """hash_url возвращает SHA256 hex строку."""
         result = hash_url(url)
         assert isinstance(result, str)
         assert len(result) == 64
         int(result, 16)
 
-    def test_hash_url_none_raises_valueerror(self):
+    def test_hash_url_none_raises_valueerror(self) -> None:
         """hash_url с None выбрасывает ValueError."""
         with pytest.raises(ValueError):
             hash_url(None)
 
-    def test_hash_url_empty_string_raises_valueerror(self):
+    def test_hash_url_empty_string_raises_valueerror(self) -> None:
         """hash_url с пустой строкой выбрасывает ValueError."""
         with pytest.raises(ValueError):
             hash_url("")
 
-    def test_hash_url_non_string_raises_typeerror(self):
+    def test_hash_url_non_string_raises_typeerror(self) -> None:
         """hash_url с не-string выбрасывает TypeError."""
         with pytest.raises(TypeError):
             hash_url(123)
@@ -125,7 +125,7 @@ class TestValidateHash:
             pytest.param("", False, id="empty_string"),
         ],
     )
-    def test_validate_hash(self, hash_val, expected):
+    def test_validate_hash(self, hash_val, expected) -> None:
         """Валидация хеша."""
         result = validate_hash(hash_val)
         assert result is expected
@@ -134,7 +134,7 @@ class TestValidateHash:
 class TestParseExpiresAt:
     """Тесты parse_expires_at."""
 
-    def test_valid_iso_format(self):
+    def test_valid_iso_format(self) -> None:
         """Парсинг валидной ISO даты."""
         result = parse_expires_at("2025-01-01T12:00:00")
         assert result is not None
@@ -142,7 +142,7 @@ class TestParseExpiresAt:
         assert result.month == 1
         assert result.day == 1
 
-    def test_invalid_format_returns_none(self):
+    def test_invalid_format_returns_none(self) -> None:
         """Парсинг невалидной даты возвращает None."""
         result = parse_expires_at("not_a_date")
         assert result is None
@@ -151,18 +151,18 @@ class TestParseExpiresAt:
 class TestIsCacheExpired:
     """Тесты is_cache_expired."""
 
-    def test_none_expires_is_expired(self):
+    def test_none_expires_is_expired(self) -> None:
         """None expires_at считается истёкшим."""
         assert is_cache_expired(None) is True
 
-    def test_past_date_is_expired(self):
+    def test_past_date_is_expired(self) -> None:
         """Дата в прошлом считается истёкшей."""
         from datetime import datetime, timedelta
 
         past = datetime.now() - timedelta(hours=1)
         assert is_cache_expired(past) is True
 
-    def test_future_date_not_expired(self):
+    def test_future_date_not_expired(self) -> None:
         """Дата в будущем не считается истёкшей."""
         from datetime import datetime, timedelta
 
@@ -173,7 +173,7 @@ class TestIsCacheExpired:
 class TestGetCacheSizeMb:
     """Тесты get_cache_size_mb."""
 
-    def test_nonexistent_file_returns_zero(self, tmp_path):
+    def test_nonexistent_file_returns_zero(self, tmp_path) -> None:
         """Несуществующий файл возвращает 0.0."""
         non_existent = tmp_path / "nonexistent.db"
         result = get_cache_size_mb(non_existent)

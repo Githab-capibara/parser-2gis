@@ -90,7 +90,7 @@ class TestVisitedLinksMemoryLimit:
 
     def test_visited_links_ordered_dict_limit(
         self, mock_chrome_options, mock_parser_options, mock_browser
-    ):
+    ) -> None:
         """Тест ограничения размера OrderedDict для visited_links.
 
         Проверяет:
@@ -120,7 +120,7 @@ class TestVisitedLinksMemoryLimit:
 
     def test_visited_links_memory_optimization(
         self, mock_chrome_options, mock_parser_options, mock_browser
-    ):
+    ) -> None:
         """Тест оптимизации памяти visited_links.
 
         Проверяет:
@@ -149,7 +149,7 @@ class TestVisitedLinksMemoryLimit:
 
     def test_visited_links_thread_safety(
         self, mock_chrome_options, mock_parser_options, mock_browser
-    ):
+    ) -> None:
         """Тест потокобезопасности visited_links.
 
         Проверяет:
@@ -162,7 +162,7 @@ class TestVisitedLinksMemoryLimit:
         visited_links_lock = threading.RLock()
         max_size = 1000
 
-        def add_links(start, count):
+        def add_links(start, count) -> None:
             for i in range(start, start + count):
                 url = f"https://example.com/link_{i}"
                 with visited_links_lock:
@@ -189,7 +189,7 @@ class TestVisitedLinksMemoryLimit:
 
     def test_visited_links_cleanup_on_memory_pressure(
         self, mock_chrome_options, mock_parser_options, mock_browser
-    ):
+    ) -> None:
         """Тест очистки visited_links при нехватке памяти.
 
         Проверяет:
@@ -274,7 +274,7 @@ class TestNavigateTimeoutHandling:
 
     def test_navigate_timeout_handling(
         self, mock_chrome_options, mock_parser_options, mock_browser
-    ):
+    ) -> None:
         """Тест обработки TimeoutError в _navigate_to_search.
 
         Проверяет:
@@ -305,7 +305,7 @@ class TestNavigateTimeoutHandling:
 
     def test_navigate_success_after_retry(
         self, mock_chrome_options, mock_parser_options, mock_browser
-    ):
+    ) -> None:
         """Тест успешной навигации после retry.
 
         Проверяет:
@@ -336,7 +336,7 @@ class TestNavigateTimeoutHandling:
 
     def test_navigate_network_error_handling(
         self, mock_chrome_options, mock_parser_options, mock_browser
-    ):
+    ) -> None:
         """Тест обработки ошибок сети в навигации.
 
         Проверяет:

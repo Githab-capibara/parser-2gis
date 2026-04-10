@@ -15,13 +15,13 @@ class TestFunctionVisitor(ast.NodeVisitor):
         self.empty_tests = []
         self.all_tests = []
 
-    def visit_FunctionDef(self, node):
+    def visit_FunctionDef(self, node) -> None:
         if node.name.startswith("test_"):
             self.all_tests.append(node.name)
             self._check_test_function(node)
         self.generic_visit(node)
 
-    def _check_test_function(self, node):
+    def _check_test_function(self, node) -> None:
         """Проверяет, содержит ли тест ассерты или другие проверки."""
         has_assert = self._has_assertions(node)
         has_mock_assert = self._has_mock_assertions(node)
@@ -46,7 +46,7 @@ class TestFunctionVisitor(ast.NodeVisitor):
         end = node.end_lineno
         return "\n".join(self.source_lines[start:end])
 
-    def _has_assertions(self, node):
+    def _has_assertions(self, node) -> bool:
         """Проверяет наличие assert, pytest.raises, pytest.warns и т.д."""
         for child in ast.walk(node):
             # Проверка assert statement
@@ -71,7 +71,7 @@ class TestFunctionVisitor(ast.NodeVisitor):
                         return True
         return False
 
-    def _has_mock_assertions(self, node):
+    def _has_mock_assertions(self, node) -> bool:
         """Проверяет наличие mock.assert_called и подобных."""
         for child in ast.walk(node):
             if isinstance(child, ast.Call):
@@ -87,7 +87,7 @@ class TestFunctionVisitor(ast.NodeVisitor):
                             return True
         return False
 
-    def _has_print(self, node):
+    def _has_print(self, node) -> bool:
         """Проверяет наличие print() в тесте."""
         for child in ast.walk(node):
             if isinstance(child, ast.Call):
@@ -95,7 +95,7 @@ class TestFunctionVisitor(ast.NodeVisitor):
                     return True
         return False
 
-    def _has_only_pass_or_ellipsis(self, node):
+    def _has_only_pass_or_ellipsis(self, node) -> bool:
         """Проверяет, содержит ли функция только pass или ..."""
         if len(node.body) == 1:
             stmt = node.body[0]
@@ -139,7 +139,7 @@ def analyze_test_file(filepath):
         return []
 
 
-def main():
+def main() -> None:
     test_dir = Path("/home/d/parser-2gis/tests")
 
     all_empty_tests = []

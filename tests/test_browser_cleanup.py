@@ -20,7 +20,7 @@ import pytest
 class TestCleanupOrphanedProfiles:
     """Тесты для функции cleanup_orphaned_profiles()."""
 
-    def test_cleanup_removes_old_profiles(self, tmp_path, caplog):
+    def test_cleanup_removes_old_profiles(self, tmp_path, caplog) -> None:
         """
         Тест 3.1: Проверка cleanup_orphaned_profiles().
 
@@ -57,7 +57,7 @@ class TestCleanupOrphanedProfiles:
             assert not old_profile.exists(), "Старый профиль не был удален"
             assert new_profile.exists(), "Новый профиль был ошибочно удален"
 
-    def test_cleanup_handles_missing_marker(self, tmp_path, caplog):
+    def test_cleanup_handles_missing_marker(self, tmp_path, caplog) -> None:
         """
         Проверка обработки профилей без маркера.
 
@@ -82,7 +82,7 @@ class TestCleanupOrphanedProfiles:
             assert deleted_count == 1
             assert not old_profile.exists()
 
-    def test_cleanup_handles_permission_error(self, tmp_path, caplog):
+    def test_cleanup_handles_permission_error(self, tmp_path, caplog) -> None:
         """
         Проверка обработки ошибок прав доступа.
 
@@ -114,7 +114,7 @@ class TestCleanupOrphanedProfiles:
 class TestTemporaryDirectoryCleanup:
     """Тесты для проверки TemporaryDirectory и очистки профиля."""
 
-    def test_temporary_directory_cleanup(self):
+    def test_temporary_directory_cleanup(self) -> None:
         """
         Тест 3.2: Проверка TemporaryDirectory для профиля.
 
@@ -167,7 +167,7 @@ class TestTemporaryDirectoryCleanup:
                     # (может не быть Chrome в системе)
                     pytest.skip(f"Не удалось создать браузер: {e}")
 
-    def test_context_manager_cleanup(self):
+    def test_context_manager_cleanup(self) -> None:
         """
         Проверка очистки профиля через контекстный менеджер.
 
@@ -213,7 +213,7 @@ class TestTemporaryDirectoryCleanup:
 class TestSignalHandlerCleanup:
     """Тесты для проверки signal handler и очистки ресурсов."""
 
-    def test_signal_handler_calls_cleanup(self, caplog):
+    def test_signal_handler_calls_cleanup(self, caplog) -> None:
         """
         Тест 3.3: Проверка signal handler для очистки.
 
@@ -255,7 +255,7 @@ class TestSignalHandlerCleanup:
                     except Exception as e:
                         pytest.skip(f"Не удалось создать браузер: {e}")
 
-    def test_close_handles_terminate_timeout(self, caplog):
+    def test_close_handles_terminate_timeout(self, caplog) -> None:
         """
         Проверка обработки таймаута при завершении процесса.
 

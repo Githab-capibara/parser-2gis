@@ -68,7 +68,7 @@ class TestCSVWriterErrorHandling:
         except Exception:
             pass
 
-    def test_csv_writer_csv_error_handling(self, csv_writer: CSVWriter, caplog):
+    def test_csv_writer_csv_error_handling(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки csv.Error.
 
         Проверяет:
@@ -91,7 +91,7 @@ class TestCSVWriterErrorHandling:
                 for record in caplog.records
             )
 
-    def test_csv_writer_io_error_handling(self, csv_writer: CSVWriter, caplog):
+    def test_csv_writer_io_error_handling(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки IOError.
 
         Проверяет:
@@ -114,7 +114,7 @@ class TestCSVWriterErrorHandling:
                 for record in caplog.records
             )
 
-    def test_csv_writer_unicode_error_handling(self, csv_writer: CSVWriter, caplog):
+    def test_csv_writer_unicode_error_handling(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки UnicodeError.
 
         Проверяет:
@@ -139,7 +139,7 @@ class TestCSVWriterErrorHandling:
 
     def test_csv_writer_post_processor_exception(
         self, temp_output_path, mock_options, caplog, monkeypatch
-    ):
+    ) -> None:
         """Тест обработки исключений в постпроцессоре.
 
         Проверяет:
@@ -176,7 +176,7 @@ class TestCSVWriterErrorHandling:
 
     def test_csv_writer_deduplicator_exception(
         self, temp_output_path, mock_options, caplog, monkeypatch
-    ):
+    ) -> None:
         """Тест обработки исключений в дедупликаторе.
 
         Проверяет:
@@ -213,7 +213,7 @@ class TestCSVWriterErrorHandling:
                 for record in caplog.records
             ), f"Ошибка не найдена в логах: {[r.message for r in caplog.records]}"
 
-    def test_csv_writer_extract_raw_validation_error(self, csv_writer: CSVWriter, caplog):
+    def test_csv_writer_extract_raw_validation_error(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки ValidationError при извлечении данных.
 
         Проверяет:
@@ -234,7 +234,7 @@ class TestCSVWriterErrorHandling:
                 "Некорректная структура документа" in record.message for record in caplog.records
             )
 
-    def test_csv_writer_extract_raw_key_error(self, csv_writer: CSVWriter, caplog):
+    def test_csv_writer_extract_raw_key_error(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки KeyError при извлечении данных.
 
         Проверяет:
@@ -250,7 +250,7 @@ class TestCSVWriterErrorHandling:
             # Проверяем что результат пустой словарь
             assert result == {}
 
-    def test_csv_writer_extract_raw_type_error(self, csv_writer: CSVWriter, caplog):
+    def test_csv_writer_extract_raw_type_error(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки TypeError при извлечении данных.
 
         Проверяет:
@@ -266,7 +266,7 @@ class TestCSVWriterErrorHandling:
             # Проверяем что результат пустой словарь
             assert result == {}
 
-    def test_csv_writer_extract_raw_index_error(self, csv_writer: CSVWriter, caplog):
+    def test_csv_writer_extract_raw_index_error(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки IndexError при извлечении данных.
 
         Проверяет:
@@ -282,7 +282,7 @@ class TestCSVWriterErrorHandling:
             # Проверяем что результат пустой словарь
             assert result == {}
 
-    def test_csv_writer_check_catalog_doc_false(self, csv_writer: CSVWriter):
+    def test_csv_writer_check_catalog_doc_false(self, csv_writer: CSVWriter) -> None:
         """Тест _check_catalog_doc возвращающего False.
 
         Проверяет:
@@ -296,7 +296,7 @@ class TestCSVWriterErrorHandling:
             # Проверяем что ничего не было записано
             assert csv_writer._wrote_count == 0
 
-    def test_csv_writer_file_open_error(self, tmp_path: Path, mock_options, caplog):
+    def test_csv_writer_file_open_error(self, tmp_path: Path, mock_options, caplog) -> None:
         """Тест обработки ошибки открытия файла.
 
         Проверяет:
@@ -314,7 +314,7 @@ class TestCSVWriterErrorHandling:
                 with writer:
                     pass
 
-    def test_csv_writer_context_manager_exception(self, temp_output_path, mock_options, caplog):
+    def test_csv_writer_context_manager_exception(self, temp_output_path, mock_options, caplog) -> None:
         """Тест обработки исключений в контекстном менеджере.
 
         Проверяет:
@@ -346,7 +346,7 @@ class TestCSVWriterErrorHandling:
             # Проверяем что данные были записаны (строка с Test)
             assert "Test" in content
 
-    def test_csv_writer_close_exception(self, temp_output_path, mock_options, caplog):
+    def test_csv_writer_close_exception(self, temp_output_path, mock_options, caplog) -> None:
         """Тест обработки исключений при закрытии.
 
         Проверяет:

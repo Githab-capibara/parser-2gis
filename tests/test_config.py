@@ -22,7 +22,7 @@ from parser_2gis.config import Configuration
 class TestConfigurationCreation:
     """Тесты для создания конфигурации."""
 
-    def test_create_default_config(self):
+    def test_create_default_config(self) -> None:
         """Проверка создания конфигурации по умолчанию."""
         config = Configuration()
         assert config.log is not None
@@ -31,12 +31,12 @@ class TestConfigurationCreation:
         assert config.parser is not None
         assert config.version == "0.1"
 
-    def test_config_path_is_none_by_default(self):
+    def test_config_path_is_none_by_default(self) -> None:
         """Проверка, что path=None по умолчанию."""
         config = Configuration()
         assert config.path is None
 
-    def test_config_with_custom_path(self):
+    def test_config_with_custom_path(self) -> None:
         """Проверка создания конфигурации с указанным путём."""
         custom_path = pathlib.Path("/tmp/test.config")
         config = Configuration(path=custom_path)
@@ -46,7 +46,7 @@ class TestConfigurationCreation:
 class TestConfigurationSaveLoad:
     """Тесты для сохранения и загрузки конфигурации."""
 
-    def test_save_config(self):
+    def test_save_config(self) -> None:
         """Проверка сохранения конфигурации."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / "test.config"
@@ -60,7 +60,7 @@ class TestConfigurationSaveLoad:
             assert "log" in data
             assert "writer" in data
 
-    def test_load_config_auto_create(self):
+    def test_load_config_auto_create(self) -> None:
         """Проверка автоматического создания конфигурации."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / "test.config"
@@ -69,7 +69,7 @@ class TestConfigurationSaveLoad:
             assert config_path.exists()
             assert config.path == config_path
 
-    def test_load_config_existing(self):
+    def test_load_config_existing(self) -> None:
         """Проверка загрузки существующей конфигурации."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / "test.config"
@@ -85,7 +85,7 @@ class TestConfigurationSaveLoad:
             assert loaded_config.chrome.headless is True
             assert loaded_config.path == config_path
 
-    def test_load_config_invalid_json(self):
+    def test_load_config_invalid_json(self) -> None:
         """Проверка загрузки с невалидным JSON."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / "test.config"
@@ -98,7 +98,7 @@ class TestConfigurationSaveLoad:
             config = Configuration.load_config(config_path)
             assert isinstance(config, Configuration)
 
-    def test_load_config_invalid_validation(self):
+    def test_load_config_invalid_validation(self) -> None:
         """Проверка загрузки с ошибкой валидации."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / "test.config"
@@ -116,7 +116,7 @@ class TestConfigurationSaveLoad:
 class TestConfigurationMerge:
     """Тесты для слияния конфигураций."""
 
-    def test_merge_simple_values(self):
+    def test_merge_simple_values(self) -> None:
         """Проверка слияния простых значений."""
         config1 = Configuration()
         config2 = Configuration()
@@ -132,7 +132,7 @@ class TestConfigurationMerge:
         config_merged = Configuration(**config1_dict)
         assert config_merged.chrome.headless is True
 
-    def test_merge_nested_values(self):
+    def test_merge_nested_values(self) -> None:
         """Проверка слияния вложенных значений."""
         config1 = Configuration()
         if hasattr(config1, "model_dump"):
@@ -146,7 +146,7 @@ class TestConfigurationMerge:
         assert config_merged.parser.max_records == 100
         assert config_merged.parser.delay_between_clicks == 500
 
-    def test_merge_preserves_original(self):
+    def test_merge_preserves_original(self) -> None:
         """Проверка, что слияние не меняет исходную конфигурацию."""
         config1 = Configuration()
         config2 = Configuration()
@@ -169,22 +169,22 @@ class TestConfigurationMerge:
 class TestConfigurationValidation:
     """Тесты для валидации конфигурации."""
 
-    def test_validation_invalid_headless(self):
+    def test_validation_invalid_headless(self) -> None:
         """Проверка валидации невалидного headless."""
         with pytest.raises(ValidationError):
             Configuration(chrome={"headless": "invalid"})
 
-    def test_validation_invalid_memory_limit(self):
+    def test_validation_invalid_memory_limit(self) -> None:
         """Проверка валидации невалидного memory_limit."""
         with pytest.raises(ValidationError):
             Configuration(chrome={"memory_limit": -1})
 
-    def test_validation_invalid_max_records(self):
+    def test_validation_invalid_max_records(self) -> None:
         """Проверка валидации невалидного max_records."""
         with pytest.raises(ValidationError):
             Configuration(parser={"max_records": 0})
 
-    def test_validation_valid_config(self):
+    def test_validation_valid_config(self) -> None:
         """Проверка валидации корректной конфигурации."""
         config = Configuration(
             chrome={
@@ -203,7 +203,7 @@ class TestConfigurationValidation:
 class TestConfigurationAutoCreate:
     """Тесты для автоматического создания конфигурации."""
 
-    def test_load_nonexistent_with_auto_create(self):
+    def test_load_nonexistent_with_auto_create(self) -> None:
         """Проверка загрузки с авто-созданием."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / "nonexistent.config"
@@ -212,7 +212,7 @@ class TestConfigurationAutoCreate:
             assert config_path.exists()
             assert config.path == config_path
 
-    def test_load_nonexistent_without_auto_create(self):
+    def test_load_nonexistent_without_auto_create(self) -> None:
         """Проверка загрузки без авто-создания."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / "nonexistent.config"
@@ -225,12 +225,12 @@ class TestConfigurationAutoCreate:
 class TestConfigurationVersion:
     """Тесты для версии конфигурации."""
 
-    def test_config_version(self):
+    def test_config_version(self) -> None:
         """Проверка версии конфигурации."""
         config = Configuration()
         assert config.version == "0.1"
 
-    def test_config_version_in_json(self):
+    def test_config_version_in_json(self) -> None:
         """Проверка версии в JSON."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = pathlib.Path(tmpdir) / "test.config"

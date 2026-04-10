@@ -47,7 +47,7 @@ def parsing_screen(mock_app):
 class TestStopParsingFix:
     """Тесты для проверки исправления бага с зависанием."""
 
-    def test_stop_parsing_uses_app_stop_parsing_method(self, parsing_screen, mock_app):
+    def test_stop_parsing_uses_app_stop_parsing_method(self, parsing_screen, mock_app) -> None:
         """Тест проверяет что остановка использует app.stop_parsing() вместо app.running = False.
 
         Это критически важный тест! Ранее при нажатии 'Стоп' использовалось
@@ -70,7 +70,7 @@ class TestStopParsingFix:
 
         mock_app.stop_parsing.assert_called_once()
 
-    def test_stop_parsing_does_not_set_app_running_false(self, parsing_screen, mock_app):
+    def test_stop_parsing_does_not_set_app_running_false(self, parsing_screen, mock_app) -> None:
         """Тест проверяет что НЕ используется app.running = False.
 
         Ранее использовался некорректный подход:
@@ -93,7 +93,7 @@ class TestStopParsingFix:
 
         mock_app.running = "SHOULD_NOT_CHANGE"
 
-    def test_on_mount_resets_flags(self, parsing_screen, mock_app):
+    def test_on_mount_resets_flags(self, parsing_screen, mock_app) -> None:
         """Тест проверяет что при входе на экран парсинга флаги сбрасываются.
 
         Это важно для корректной работы при повторном запуске парсинга
@@ -116,7 +116,7 @@ class TestStopParsingFix:
         assert parsing_screen._stopping is False
         assert parsing_screen._parsing_started is False
 
-    def test_on_mount_allows_repeated_parsing(self, parsing_screen, mock_app):
+    def test_on_mount_allows_repeated_parsing(self, parsing_screen, mock_app) -> None:
         """Тест проверяет что можно повторно запустить парсинг.
 
         Сценарий:
@@ -140,7 +140,7 @@ class TestStopParsingFix:
 
         assert parsing_screen._parsing_started is True
 
-    def test_stop_parsing_returns_to_menu_safely(self, parsing_screen, mock_app):
+    def test_stop_parsing_returns_to_menu_safely(self, parsing_screen, mock_app) -> None:
         """Тест проверяет безопасный возврат в меню после остановки.
 
         Ожидаемое поведение:
@@ -161,11 +161,11 @@ class TestStopParsingFix:
 class TestAppStopParsingMethod:
     """Тесты для проверки метода app.stop_parsing()."""
 
-    def test_stop_parsing_method_exists(self, mock_app):
+    def test_stop_parsing_method_exists(self, mock_app) -> None:
         """Тест проверяет что метод stop_parsing существует в TUIApp."""
         assert hasattr(TUIApp, "stop_parsing")
 
-    def test_stop_parsing_sets_running_flag(self, mock_app):
+    def test_stop_parsing_sets_running_flag(self, mock_app) -> None:
         """Тест проверяет что stop_parsing устанавливает флаг _running в False."""
         app = TUIApp()
         app._running = True
@@ -176,7 +176,7 @@ class TestAppStopParsingMethod:
 
         assert app._running is False
 
-    def test_stop_parsing_sends_notification(self, mock_app):
+    def test_stop_parsing_sends_notification(self, mock_app) -> None:
         """Тест проверяет что stop_parsing отправляет уведомление."""
         app = TUIApp()
         app._running = True

@@ -3,7 +3,7 @@
 import pytest
 
 
-def test_textual_is_installed():
+def test_textual_is_installed() -> None:
     """Проверяет что textual импортируется."""
     try:
         import textual  # noqa: F401
@@ -11,7 +11,7 @@ def test_textual_is_installed():
         pytest.fail("textual не установлен. Установите: pip install textual")
 
 
-def test_textual_version():
+def test_textual_version() -> None:
     """Проверяет минимальную версию textual."""
     import textual
     from packaging import version
@@ -24,7 +24,7 @@ def test_textual_version():
     )
 
 
-def test_textual_widgets_importable():
+def test_textual_widgets_importable() -> None:
     """Проверяет что основные виджеты textual доступны."""
     try:
         from textual.app import App, ComposeResult  # noqa: F401

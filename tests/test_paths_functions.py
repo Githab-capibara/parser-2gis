@@ -16,7 +16,7 @@ import pathlib
 class TestPathsModuleFunctions:
     """Тесты для проверки наличия и работы функций в модуле paths."""
 
-    def test_data_path_exists(self):
+    def test_data_path_exists(self) -> None:
         """Проверка, что функция data_path существует и работает."""
         from parser_2gis.utils.paths import data_path
 
@@ -24,7 +24,7 @@ class TestPathsModuleFunctions:
         assert isinstance(result, pathlib.Path)
         assert result.exists()
 
-    def test_user_path_exists(self):
+    def test_user_path_exists(self) -> None:
         """Проверка, что функция user_path существует и работает."""
         from parser_2gis.utils.paths import user_path
 
@@ -36,21 +36,21 @@ class TestPathsModuleFunctions:
         data_path_result = user_path(is_config=False)
         assert isinstance(data_path_result, pathlib.Path)
 
-    def test_image_path_exists(self):
+    def test_image_path_exists(self) -> None:
         """Проверка, что функция image_path существует."""
         from parser_2gis.utils.paths import image_path
 
         # Проверяем, что функция определена
         assert callable(image_path)
 
-    def test_image_data_exists(self):
+    def test_image_data_exists(self) -> None:
         """Проверка, что функция image_data существует."""
         from parser_2gis.utils.paths import image_data
 
         # Проверяем, что функция определена
         assert callable(image_data)
 
-    def test_cache_path_exists(self):
+    def test_cache_path_exists(self) -> None:
         """
         Проверка, что функция cache_path существует и работает.
 
@@ -69,7 +69,7 @@ class TestPathsModuleFunctions:
         # Проверяем, что путь содержит 'parser-2gis'
         assert "parser-2gis" in str(result)
 
-    def test_cache_path_uses_xdg_cache_home(self):
+    def test_cache_path_uses_xdg_cache_home(self) -> None:
         """
         Проверка, что cache_path использует XDG_CACHE_HOME.
 
@@ -105,7 +105,7 @@ class TestPathsModuleFunctions:
             # Очищаем кэш для возврата к оригинальному поведению
             cache_path.cache_clear()
 
-    def test_cache_path_fallback_to_home_cache(self):
+    def test_cache_path_fallback_to_home_cache(self) -> None:
         """
         Проверка, что cache_path fallback на ~/.cache.
 
@@ -149,7 +149,7 @@ class TestTUIPathImports:
     в CacheViewerScreen, когда используется несуществующая функция.
     """
 
-    def test_cache_viewer_screen_can_import_cache_path(self):
+    def test_cache_viewer_screen_can_import_cache_path(self) -> None:
         """
         Проверка, что CacheViewerScreen может импортировать cache_path.
 
@@ -163,7 +163,7 @@ class TestTUIPathImports:
         result = cache_path()
         assert isinstance(result, pathlib.Path)
 
-    def test_other_screens_module_has_valid_imports(self):
+    def test_other_screens_module_has_valid_imports(self) -> None:
         """
         Проверка, что other_screens.py имеет валидные импорты.
 
@@ -180,7 +180,7 @@ class TestTUIPathImports:
         assert hasattr(other_screens, "CacheViewerScreen")
         assert hasattr(other_screens, "AboutScreen")
 
-    def test_all_paths_functions_used_in_tui_are_available(self):
+    def test_all_paths_functions_used_in_tui_are_available(self) -> None:
         """
         Проверка, что все функции paths, используемые в TUI, доступны.
 

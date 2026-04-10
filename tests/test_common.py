@@ -37,31 +37,31 @@ from parser_2gis.writer import WriterOptions
 class TestFloorToHundreds:
     """Тесты для функции floor_to_hundreds."""
 
-    def test_floor_to_hundreds_with_exact_hundred(self):
+    def test_floor_to_hundreds_with_exact_hundred(self) -> None:
         """Проверка округления до сотен для точных значений."""
         assert floor_to_hundreds(100) == 100
         assert floor_to_hundreds(200) == 200
         assert floor_to_hundreds(1000) == 1000
 
-    def test_floor_to_hundreds_with_rounding_down(self):
+    def test_floor_to_hundreds_with_rounding_down(self) -> None:
         """Проверка округления вниз до сотен."""
         assert floor_to_hundreds(150) == 100
         assert floor_to_hundreds(199) == 100
         assert floor_to_hundreds(250) == 200
         assert floor_to_hundreds(999) == 900
 
-    def test_floor_to_hundreds_with_float(self):
+    def test_floor_to_hundreds_with_float(self) -> None:
         """Проверка работы с плавающими числами."""
         assert floor_to_hundreds(150.5) == 100
         assert floor_to_hundreds(199.99) == 100
 
-    def test_floor_to_hundreds_with_small_numbers(self):
+    def test_floor_to_hundreds_with_small_numbers(self) -> None:
         """Проверка работы с числами меньше 100."""
         assert floor_to_hundreds(50) == 0
         assert floor_to_hundreds(99) == 0
         assert floor_to_hundreds(0) == 0
 
-    def test_floor_to_hundreds_with_negative(self):
+    def test_floor_to_hundreds_with_negative(self) -> None:
         """Проверка работы с отрицательными числами."""
         assert floor_to_hundreds(-50) == -100
         assert floor_to_hundreds(-150) == -200
@@ -75,29 +75,29 @@ class TestFloorToHundreds:
 class TestUnwrapDotDict:
     """Тесты для функции unwrap_dot_dict."""
 
-    def test_unwrap_simple_path(self):
+    def test_unwrap_simple_path(self) -> None:
         """Проверка разворачивания простого пути."""
         input_dict = {"a.b": "value"}
         expected = {"a": {"b": "value"}}
         assert unwrap_dot_dict(input_dict) == expected
 
-    def test_unwrap_nested_paths(self):
+    def test_unwrap_nested_paths(self) -> None:
         """Проверка разворачивания вложенных путей."""
         input_dict = {"a.b.c": "value1", "a.b.d": "value2"}
         expected = {"a": {"b": {"c": "value1", "d": "value2"}}}
         assert unwrap_dot_dict(input_dict) == expected
 
-    def test_unwrap_multiple_top_level(self):
+    def test_unwrap_multiple_top_level(self) -> None:
         """Проверка разворачивания нескольких верхнеуровневых ключей."""
         input_dict = {"a.b": "value1", "c.d": "value2"}
         expected = {"a": {"b": "value1"}, "c": {"d": "value2"}}
         assert unwrap_dot_dict(input_dict) == expected
 
-    def test_unwrap_empty_dict(self):
+    def test_unwrap_empty_dict(self) -> None:
         """Проверка разворачивания пустого словаря."""
         assert unwrap_dot_dict({}) == {}
 
-    def test_unwrap_preserves_values(self):
+    def test_unwrap_preserves_values(self) -> None:
         """Проверка сохранения значений разных типов."""
         input_dict = {
             "a.int": 42,
@@ -115,7 +115,7 @@ class TestUnwrapDotDict:
         assert result["a"]["list"] == [1, 2, 3]
         assert result["a"]["dict"] == {"nested": "value"}
 
-    def test_unwrap_dot_dict_with_deep_nesting(self):
+    def test_unwrap_dot_dict_with_deep_nesting(self) -> None:
         """Проверка unwrap_dot_dict с глубокой вложенностью."""
         dot_dict = {"level1.level2.level3.level4": "value"}
         result = unwrap_dot_dict(dot_dict)
@@ -136,7 +136,7 @@ class TestReportFromValidationError:
         name: str
         age: int
 
-    def test_report_with_invalid_value(self):
+    def test_report_with_invalid_value(self) -> None:
         """Проверка отчёта с невалидным значением."""
         try:
             self.SimpleModel(name="test", age="invalid")
@@ -146,7 +146,7 @@ class TestReportFromValidationError:
             assert report["age"]["invalid_value"] == "invalid"
             assert "error_message" in report["age"]
 
-    def test_report_without_dict(self):
+    def test_report_without_dict(self) -> None:
         """Проверка отчёта без словаря значений."""
         try:
             self.SimpleModel(name="test", age="invalid")
@@ -155,7 +155,7 @@ class TestReportFromValidationError:
             assert "age" in report
             assert "error_message" in report["age"]
 
-    def test_report_with_multiple_errors(self):
+    def test_report_with_multiple_errors(self) -> None:
         """Проверка отчёта с несколькими ошибками."""
         try:
             self.SimpleModel(name=123, age="invalid")
@@ -163,7 +163,7 @@ class TestReportFromValidationError:
             report = report_from_validation_error(e)
             assert "name" in report or "age" in report
 
-    def test_report_with_missing_value(self):
+    def test_report_with_missing_value(self) -> None:
         """Проверка отчёта с отсутствующим значением."""
         try:
             self.SimpleModel(name="test", age="invalid")
@@ -181,7 +181,7 @@ class TestReportFromValidationError:
 class TestConfigurationRobustness:
     """Тесты для устойчивости конфигурации."""
 
-    def test_configuration_with_extreme_values(self):
+    def test_configuration_with_extreme_values(self) -> None:
         """Проверка конфигурации с экстремальными значениями."""
         config = Configuration()
 
@@ -192,7 +192,7 @@ class TestConfigurationRobustness:
         config.parser.max_records = 10000
         assert config.parser.max_records == 10000
 
-    def test_parser_options_defaults(self):
+    def test_parser_options_defaults(self) -> None:
         """Проверка значений по умолчанию в ParserOptions."""
         opts = ParserOptions()
         assert opts.max_records is not None
@@ -200,7 +200,7 @@ class TestConfigurationRobustness:
         assert opts.max_retries > 0
         assert opts.retry_delay_base > 0
 
-    def test_writer_options_encoding(self):
+    def test_writer_options_encoding(self) -> None:
         """Проверка кодировки в WriterOptions."""
         opts = WriterOptions()
         assert opts.encoding in ["utf-8", "utf-16", "utf-8-sig"]
@@ -214,12 +214,12 @@ class TestConfigurationRobustness:
 class TestCommonFunctionRobustness:
     """Тесты для устойчивости функций в common.py."""
 
-    def test_wait_until_finished_decorator_basic(self):
+    def test_wait_until_finished_decorator_basic(self) -> None:
         """Проверка декоратора wait_until_finished."""
         call_count = 0
 
         @wait_until_finished(timeout=5, finished=lambda x: x is True)
-        def test_func():
+        def test_func() -> bool:
             nonlocal call_count
             call_count += 1
             return True
@@ -237,7 +237,7 @@ class TestCommonFunctionRobustness:
 class TestParallelParserRobustness:
     """Тесты для устойчивости параллельного парсера."""
 
-    def test_parallel_parser_stop_method(self):
+    def test_parallel_parser_stop_method(self) -> None:
         """Проверка метода stop() парсера."""
         config = Configuration()
         cities = [{"name": "Moscow", "id": 1}]
@@ -247,7 +247,7 @@ class TestParallelParserRobustness:
         # Должно работать без исключений
         parser.stop()
 
-    def test_parallel_parser_logging_thread_safe(self):
+    def test_parallel_parser_logging_thread_safe(self) -> None:
         """Проверка потокобезопасного логирования в парсере."""
         config = Configuration()
         cities = [{"name": "Moscow", "id": 1}]
@@ -256,7 +256,7 @@ class TestParallelParserRobustness:
         parser = ParallelCityParser(cities, categories, "/tmp", config)
         results = []
 
-        def log_messages(idx):
+        def log_messages(idx) -> None:
             """Логировать сообщения из потока."""
             try:
                 for i in range(10):
@@ -284,7 +284,7 @@ class TestParallelParserRobustness:
 class TestErrorHandlingComprehensive:
     """Комплексные тесты для обработки ошибок."""
 
-    def test_configuration_merge_is_callable(self):
+    def test_configuration_merge_is_callable(self) -> None:
         """Проверка что merge_with работает без ошибок."""
         config1 = Configuration()
 
@@ -297,7 +297,7 @@ class TestErrorHandlingComprehensive:
         assert config1 is not None
         assert config1.chrome is not None
 
-    def test_configuration_load_with_corrupted_json(self, tmp_path):
+    def test_configuration_load_with_corrupted_json(self, tmp_path) -> None:
         """Проверка загрузки конфигурации с поврежденным JSON."""
         config_file = tmp_path / "corrupted.json"
         config_file.write_text("{invalid json}")
@@ -315,12 +315,12 @@ class TestErrorHandlingComprehensive:
 class TestConcurrencyPatterns:
     """Тесты для паттернов многопоточности."""
 
-    def test_multiple_configurations_in_threads(self):
+    def test_multiple_configurations_in_threads(self) -> None:
         """Проверка создания конфигураций в разных потоках."""
         configs = []
         errors = []
 
-        def create_config(idx):
+        def create_config(idx) -> None:
             """Создать конфигурацию в потоке."""
             try:
                 config = Configuration()
@@ -336,12 +336,12 @@ class TestConcurrencyPatterns:
         assert len(errors) == 0, f"Ошибки при создании конфигурации: {errors}"
         assert len(configs) == 10
 
-    def test_configuration_modification_isolation(self):
+    def test_configuration_modification_isolation(self) -> None:
         """Проверка изоляции при модификации конфигурации в потоках."""
         config = Configuration()
         results = []
 
-        def modify_config(value):
+        def modify_config(value) -> None:
             """Модифицировать конфигурацию в потоке."""
             try:
                 config.parser.max_records = value * 100
@@ -372,7 +372,7 @@ class TestConcurrencyPatterns:
 class TestBoundaryConditions:
     """Тесты граничных условий."""
 
-    def test_parser_with_single_city(self):
+    def test_parser_with_single_city(self) -> None:
         """Проверка парсера с одним городом."""
         config = Configuration()
         cities = [{"name": "Omsk", "id": 56}]
@@ -382,7 +382,7 @@ class TestBoundaryConditions:
         assert len(parser.cities) == 1
         assert len(parser.categories) == 1
 
-    def test_parser_with_many_workers(self):
+    def test_parser_with_many_workers(self) -> None:
         """Проверка парсера с максимальным количеством рабочих потоков."""
         config = Configuration()
         cities = [{"name": "Moscow", "id": 1}]
@@ -392,12 +392,12 @@ class TestBoundaryConditions:
         parser = ParallelCityParser(cities, categories, "/tmp", config, max_workers=20)
         assert parser.max_workers == 20
 
-    def test_wait_until_finished_timeout_decorator(self):
+    def test_wait_until_finished_timeout_decorator(self) -> None:
         """Проверка декоратора wait_until_finished с таймаутом."""
         call_count = 0
 
         @wait_until_finished(timeout=0.5, finished=lambda x: False, throw_exception=False)
-        def slow_func():
+        def slow_func() -> bool:
             nonlocal call_count
             call_count += 1
             return False
@@ -406,7 +406,7 @@ class TestBoundaryConditions:
         slow_func()
         assert call_count >= 1
 
-    def test_parallel_parser_url_generation(self):
+    def test_parallel_parser_url_generation(self) -> None:
         """Проверка генерации URL в параллельном парсере."""
         config = Configuration()
         cities = [

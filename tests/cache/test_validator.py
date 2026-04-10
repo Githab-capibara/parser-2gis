@@ -8,7 +8,7 @@ from parser_2gis.cache.validator import CacheDataValidator
 class TestCacheDataValidatorConstruction:
     """Тесты конструирования CacheDataValidator."""
 
-    def test_default_construction(self):
+    def test_default_construction(self) -> None:
         """CacheDataValidator создаётся без ошибок."""
         validator = CacheDataValidator()
         assert validator is not None
@@ -38,13 +38,13 @@ class TestCacheDataValidatorValidate:
             pytest.param({"constructor": "attack"}, False, id="constructor_pollution"),
         ],
     )
-    def test_validate(self, data, expected):
+    def test_validate(self, data, expected) -> None:
         """Валидация различных типов данных."""
         validator = CacheDataValidator()
         result = validator.validate(data)
         assert result is expected
 
-    def test_validate_deep_dict_exceeds_depth(self):
+    def test_validate_deep_dict_exceeds_depth(self) -> None:
         """Валидация глубоко вложенных данных превышает лимит."""
         validator = CacheDataValidator()
         # Создаём структуру с глубиной больше max_depth
@@ -56,7 +56,7 @@ class TestCacheDataValidatorValidate:
         result = validator.validate(deep_data)
         assert result is False
 
-    def test_validate_long_string_exceeds_limit(self):
+    def test_validate_long_string_exceeds_limit(self) -> None:
         """Валидация длинной строки превышает лимит."""
         validator = CacheDataValidator()
         long_string = "a" * (validator.max_string_length + 1)
@@ -77,7 +77,7 @@ class TestCacheDataValidatorSqlInjection:
             pytest.param("UNION SELECT * FROM users", False, id="union_injection"),
         ],
     )
-    def test_sql_injection_detection(self, data, expected):
+    def test_sql_injection_detection(self, data, expected) -> None:
         """Обнаружение SQL-инъекций в строках."""
         validator = CacheDataValidator()
         result = validator.validate(data)

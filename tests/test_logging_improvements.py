@@ -17,7 +17,7 @@ import pytest
 class TestErrorLogging:
     """Тесты для проверки логирования ошибок."""
 
-    def test_error_logging_with_context(self, caplog):
+    def test_error_logging_with_context(self, caplog) -> None:
         """
         Тест 7.1: Проверка логирования ошибок.
 
@@ -42,7 +42,7 @@ class TestErrorLogging:
         assert file_name in caplog.text
         assert error_detail in caplog.text
 
-    def test_signal_handler_error_logging(self, caplog):
+    def test_signal_handler_error_logging(self, caplog) -> None:
         """
         Проверка что signal_handler логирует ошибки с деталями.
         """
@@ -62,7 +62,7 @@ class TestErrorLogging:
         # Handler должен корректно unregister
         assert handler._registered is False
 
-    def test_parallel_parser_error_logging(self, caplog, tmp_path):
+    def test_parallel_parser_error_logging(self, caplog, tmp_path) -> None:
         """
         Проверка что parallel_parser логирует ошибки merge.
         """
@@ -101,7 +101,7 @@ class TestErrorLogging:
 class TestLoggingLevels:
     """Тесты для проверки уровней логирования."""
 
-    def test_critical_errors_on_error_level(self, caplog):
+    def test_critical_errors_on_error_level(self, caplog) -> None:
         """
         Тест 7.2: Проверка что критичные ошибки на ERROR.
 
@@ -119,7 +119,7 @@ class TestLoggingLevels:
         assert caplog.records[0].levelname == "ERROR"
         assert "Критичная ошибка" in caplog.text
 
-    def test_non_critical_on_debug_warning(self, caplog):
+    def test_non_critical_on_debug_warning(self, caplog) -> None:
         """
         Проверка что некритичные ошибки на DEBUG/WARNING.
 
@@ -144,7 +144,7 @@ class TestLoggingLevels:
         assert warning_record.levelname == "WARNING"
         assert debug_record.levelname == "DEBUG"
 
-    def test_cleanup_errors_on_warning(self, caplog):
+    def test_cleanup_errors_on_warning(self, caplog) -> None:
         """
         Проверка что ошибки очистки на WARNING.
 
@@ -167,7 +167,7 @@ class TestLoggingLevels:
 class TestLoggingContext:
     """Тесты для проверки контекста в логах."""
 
-    def test_log_messages_contain_variable_names(self, caplog):
+    def test_log_messages_contain_variable_names(self, caplog) -> None:
         """
         Тест 7.3: Проверка что сообщения содержат имена переменных.
 
@@ -189,7 +189,7 @@ class TestLoggingContext:
         assert category in caplog.text
         assert url in caplog.text
 
-    def test_log_messages_contain_operation_details(self, caplog):
+    def test_log_messages_contain_operation_details(self, caplog) -> None:
         """
         Проверка что сообщения содержат детали операции.
         """
@@ -211,7 +211,7 @@ class TestLoggingContext:
         assert str(files_count) in caplog.text
         assert output_file in caplog.text
 
-    def test_exception_logging_with_traceback(self, caplog):
+    def test_exception_logging_with_traceback(self, caplog) -> None:
         """
         Проверка что исключения логируются с traceback.
         """
@@ -236,7 +236,7 @@ class TestLoggingContext:
 class TestLoggerConfiguration:
     """Тесты для проверки конфигурации логгера."""
 
-    def test_logger_has_handlers(self):
+    def test_logger_has_handlers(self) -> None:
         """
         Проверка что логгер имеет обработчики.
         """
@@ -249,7 +249,7 @@ class TestLoggerConfiguration:
         assert isinstance(logger.name, str)
         assert logger.name == "parser-2gis"
 
-    def test_logger_level_configuration(self):
+    def test_logger_level_configuration(self) -> None:
         """
         Проверка что уровень логгера настраивается.
         """

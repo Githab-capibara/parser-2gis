@@ -31,7 +31,7 @@ class TestTUILoggerInitialization:
     """Тесты для проверки корректной инициализации логгера в TUIApp."""
 
     @pytest.mark.asyncio
-    async def test_app_log_is_not_none(self):
+    async def test_app_log_is_not_none(self) -> None:
         """Тест: app.log не должен быть None после инициализации.
 
         Этот тест выявляет проблему, когда self._logger перезаписывается
@@ -46,7 +46,7 @@ class TestTUILoggerInitialization:
         )
 
     @pytest.mark.asyncio
-    async def test_app_logger_is_logger_instance(self):
+    async def test_app_logger_is_logger_instance(self) -> None:
         """Тест: app._logger должен быть экземпляром Logger (Textual).
 
         Проверяем, что внутренний атрибут _logger не был перезаписан
@@ -63,7 +63,7 @@ class TestTUILoggerInitialization:
         )
 
     @pytest.mark.asyncio
-    async def test_file_logger_does_not_override_textual_logger(self):
+    async def test_file_logger_does_not_override_textual_logger(self) -> None:
         """Тест: Файловый логгер не должен перезаписывать _logger Textual.
 
         Этот тест проверяет, что файловый логгер использует отдельный

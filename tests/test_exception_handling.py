@@ -16,7 +16,7 @@ import pytest
 class TestExceptionHandlingInCacheManager:
     """Тесты для проверки обработки исключений в CacheManager."""
 
-    def test_cache_get_raises_exception_on_invalid_url(self):
+    def test_cache_get_raises_exception_on_invalid_url(self) -> None:
         """
         Тест 1.1: Проверка что cache.get() вызывает исключение на некорректном URL.
 
@@ -35,7 +35,7 @@ class TestExceptionHandlingInCacheManager:
             result = cache.get("http://test.com")
             assert result is None  # Кэш пуст
 
-    def test_cache_set_handles_invalid_data(self):
+    def test_cache_set_handles_invalid_data(self) -> None:
         """
         Тест 1.2: Проверка обработки некорректных данных в cache.set().
 
@@ -54,7 +54,7 @@ class TestExceptionHandlingInCacheManager:
             with pytest.raises(TypeError, match="не могут быть None"):
                 cache.set("http://test.com", None)
 
-    def test_cache_close_works_without_error(self):
+    def test_cache_close_works_without_error(self) -> None:
         """
         Тест 1.3: Проверка что cache.close() работает без ошибок.
 
@@ -78,7 +78,7 @@ class TestExceptionHandlingInCacheManager:
 class TestExceptionHandlingInFileLogger:
     """Тесты для проверки обработки исключений в FileLogger."""
 
-    def test_file_logger_handles_invalid_path(self, tmp_path, caplog):
+    def test_file_logger_handles_invalid_path(self, tmp_path, caplog) -> None:
         """
         Тест 2.1: Проверка обработки некорректного пути в FileLogger.
 
@@ -105,7 +105,7 @@ class TestExceptionHandlingInFileLogger:
         # Проверяем что файл был создан (FileLogger создаёт директорию)
         assert invalid_path.exists()
 
-    def test_file_logger_handles_permission_error(self, tmp_path, caplog):
+    def test_file_logger_handles_permission_error(self, tmp_path, caplog) -> None:
         """
         Тест 2.2: Проверка обработки ошибки разрешений в FileLogger.
 
@@ -137,7 +137,7 @@ class TestExceptionHandlingInFileLogger:
 class TestExceptionHandlingInParallelParser:
     """Тесты для проверки обработки исключений в ParallelCityParser."""
 
-    def test_parallel_parser_merge_handles_missing_files(self, tmp_path, caplog):
+    def test_parallel_parser_merge_handles_missing_files(self, tmp_path, caplog) -> None:
         """
         Тест 3.1: Проверка обработки отсутствующих файлов при слиянии.
 
@@ -171,7 +171,7 @@ class TestExceptionHandlingInParallelParser:
             for record in caplog.records
         )
 
-    def test_parallel_parser_handles_exceptions(self, caplog, tmp_path):
+    def test_parallel_parser_handles_exceptions(self, caplog, tmp_path) -> None:
         """
         Тест 3.2: Проверка обработки исключений в параллельном парсере.
 
@@ -196,7 +196,7 @@ class TestExceptionHandlingInParallelParser:
 class TestExceptionHandlingInDataValidator:
     """Тесты для проверки обработки исключений в валидаторах данных."""
 
-    def test_validate_positive_int_logs_error(self, caplog):
+    def test_validate_positive_int_logs_error(self, caplog) -> None:
         """
         Тест 4.1: Проверка обработки ошибки в validate_positive_int().
 
@@ -220,7 +220,7 @@ class TestExceptionHandlingInDataValidator:
         assert "не менее" in str(exc_info.value)
         assert "-1" in str(exc_info.value)
 
-    def test_validate_url_logs_warning(self, caplog):
+    def test_validate_url_logs_warning(self, caplog) -> None:
         """
         Тест 4.2: Проверка логирования предупреждения в validate_url().
 
@@ -241,7 +241,7 @@ class TestExceptionHandlingInDataValidator:
 class TestExceptionHandlingWithContext:
     """Тесты для проверки что исключения логируются с контекстом."""
 
-    def test_exception_logged_with_variable_context(self, caplog):
+    def test_exception_logged_with_variable_context(self, caplog) -> None:
         """
         Тест 5.1: Проверка что исключения логируются с контекстом переменных.
 
@@ -264,7 +264,7 @@ class TestExceptionHandlingWithContext:
         assert var_name in caplog.text, "Имя переменной должно быть в сообщении"
         assert operation in caplog.text, "Операция должна быть в сообщении"
 
-    def test_exception_logged_with_file_context(self, caplog):
+    def test_exception_logged_with_file_context(self, caplog) -> None:
         """
         Тест 5.2: Проверка что исключения логируются с контекстом файла.
 
@@ -288,7 +288,7 @@ class TestExceptionHandlingWithContext:
 class TestExceptionNotSwallowed:
     """Тесты для проверки что исключения не проглатываются."""
 
-    def test_exception_propagates_to_caller(self):
+    def test_exception_propagates_to_caller(self) -> None:
         """
         Тест 6.1: Проверка что исключения не проглатываются.
 
@@ -304,7 +304,7 @@ class TestExceptionNotSwallowed:
         assert "--test.arg" in str(exc_info.value)
         assert "1" in str(exc_info.value)
 
-    def test_cache_exception_propagates_on_none_url(self):
+    def test_cache_exception_propagates_on_none_url(self) -> None:
         """
         Тест 6.2: Проверка что исключения кэша распространяются.
 

@@ -33,7 +33,7 @@ class TestSubprocessArgumentsValidation:
         options.memory_limit = 2048
         return options
 
-    def test_subprocess_binary_path_validation(self, mock_chrome_options):
+    def test_subprocess_binary_path_validation(self, mock_chrome_options) -> None:
         """Тест валидации пути к бинарнику.
 
         Проверяет:
@@ -54,7 +54,7 @@ class TestSubprocessArgumentsValidation:
         with pytest.raises(ValueError, match="файл"):
             manager._path_resolver._validate_binary_path("/tmp")
 
-    def test_subprocess_profile_path_validation(self, mock_chrome_options):
+    def test_subprocess_profile_path_validation(self, mock_chrome_options) -> None:
         """Тест валидации пути к профилю.
 
         Проверяет:
@@ -74,7 +74,7 @@ class TestSubprocessArgumentsValidation:
         # Проверяем что путь к профилю добавлен в команду
         assert any("--user-data-dir=" in arg for arg in cmd)
 
-    def test_subprocess_memory_limit_validation(self, mock_chrome_options):
+    def test_subprocess_memory_limit_validation(self, mock_chrome_options) -> None:
         """Тест валидации memory_limit.
 
         Проверяет:
@@ -109,7 +109,7 @@ class TestSubprocessArgumentsValidation:
         # Проверяем что memory_limit установлен корректно
         assert any("--max-old-space-size=4096" in arg for arg in cmd)
 
-    def test_subprocess_remote_port_validation(self, mock_chrome_options):
+    def test_subprocess_remote_port_validation(self, mock_chrome_options) -> None:
         """Тест валидации remote_port.
 
         Проверяет:
@@ -128,7 +128,7 @@ class TestSubprocessArgumentsValidation:
         # Проверяем что remote-port добавлен корректно
         assert any("--remote-debugging-port=9222" in arg for arg in cmd)
 
-    def test_subprocess_command_injection_prevention(self, mock_chrome_options):
+    def test_subprocess_command_injection_prevention(self, mock_chrome_options) -> None:
         """Тест предотвращения command injection.
 
         Проверяет:
@@ -164,7 +164,7 @@ class TestSubprocessArgumentsValidation:
             # Проверяем что аргументы были переданы как список
             assert call_args.args[0] == chrome_cmd
 
-    def test_subprocess_shell_false_usage(self, mock_chrome_options):
+    def test_subprocess_shell_false_usage(self, mock_chrome_options) -> None:
         """Тест использования shell=False.
 
         Проверяет:
@@ -190,7 +190,7 @@ class TestSubprocessArgumentsValidation:
             )
             assert isinstance(chrome_cmd, list)
 
-    def test_subprocess_invalid_memory_limit(self, mock_chrome_options):
+    def test_subprocess_invalid_memory_limit(self, mock_chrome_options) -> None:
         """Тест невалидного memory_limit.
 
         Проверяет:
@@ -225,7 +225,7 @@ class TestSubprocessArgumentsValidation:
         # Проверяем что большое значение было использовано
         assert any("--max-old-space-size=1048576" in arg for arg in cmd)
 
-    def test_subprocess_invalid_port(self, mock_chrome_options):
+    def test_subprocess_invalid_port(self, mock_chrome_options) -> None:
         """Тест невалидного порта.
 
         Проверяет:
@@ -256,7 +256,7 @@ class TestSubprocessArgumentsValidation:
         # Проверяем что большой порт был использован
         assert any("--remote-debugging-port=99999" in arg for arg in cmd)
 
-    def test_subprocess_path_traversal_prevention(self, mock_chrome_options):
+    def test_subprocess_path_traversal_prevention(self, mock_chrome_options) -> None:
         """Тест предотвращения path traversal.
 
         Проверяет:
@@ -276,7 +276,7 @@ class TestSubprocessArgumentsValidation:
         # Проверяем что путь был нормализован
         assert any("--user-data-dir=" in arg for arg in cmd)
 
-    def test_subprocess_special_characters_in_path(self, mock_chrome_options):
+    def test_subprocess_special_characters_in_path(self, mock_chrome_options) -> None:
         """Тест специальных символов в путях.
 
         Проверяет:
@@ -296,7 +296,7 @@ class TestSubprocessArgumentsValidation:
         # Проверяем что путь был добавлен в команду
         assert any("--user-data-dir=" in arg for arg in cmd)
 
-    def test_process_manager_launch_with_invalid_args(self):
+    def test_process_manager_launch_with_invalid_args(self) -> None:
         """Тест запуска процесса с невалидными аргументами.
 
         Проверяет:
@@ -314,7 +314,7 @@ class TestSubprocessArgumentsValidation:
                 chrome_cmd=[], profile_path="/tmp/profile", chrome_options=mock_options
             )
 
-    def test_process_manager_launch_with_none_args(self):
+    def test_process_manager_launch_with_none_args(self) -> None:
         """Тест запуска процесса с None аргументами.
 
         Проверяет:
@@ -333,7 +333,7 @@ class TestSubprocessArgumentsValidation:
                 chrome_options=mock_options,
             )
 
-    def test_browser_lifecycle_manager_cmd_validation(self, mock_chrome_options):
+    def test_browser_lifecycle_manager_cmd_validation(self, mock_chrome_options) -> None:
         """Тест валидации команды в BrowserLifecycleManager.
 
         Проверяет:

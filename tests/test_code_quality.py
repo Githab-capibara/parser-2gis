@@ -86,7 +86,7 @@ class TestCodeQuality:
 
         return parsed
 
-    def test_type_hints_presence(self, parsed_files: list[tuple[Path, ast.AST]]):
+    def test_type_hints_presence(self, parsed_files: list[tuple[Path, ast.AST]]) -> None:
         """Тест наличия type hints у публичных функций.
 
         Проверяет:
@@ -128,7 +128,7 @@ class TestCodeQuality:
             f"Примеры: {files_without_hints[:5]}"
         )
 
-    def test_function_length(self, parsed_files: list[tuple[Path, ast.AST]]):
+    def test_function_length(self, parsed_files: list[tuple[Path, ast.AST]]) -> None:
         """Тест длины функций.
 
         Проверяет:
@@ -165,7 +165,7 @@ class TestCodeQuality:
             f"Слишком много длинных функций: {len(long_functions)}. Примеры: {long_functions[:5]}"
         )
 
-    def test_nesting_depth(self, parsed_files: list[tuple[Path, ast.AST]]):
+    def test_nesting_depth(self, parsed_files: list[tuple[Path, ast.AST]]) -> None:
         """Тест глубины вложенности.
 
         Проверяет:
@@ -202,7 +202,7 @@ class TestCodeQuality:
             f"Примеры: {deep_nesting[:5]}"
         )
 
-    def test_magic_numbers(self, parsed_files: list[tuple[Path, ast.AST]]):
+    def test_magic_numbers(self, parsed_files: list[tuple[Path, ast.AST]]) -> None:
         """Тест магических чисел.
 
         Проверяет:
@@ -246,7 +246,7 @@ class TestCodeQuality:
             f"Слишком много магических чисел: {len(magic_numbers)}. Примеры: {magic_numbers[:5]}"
         )
 
-    def test_unicode_error_handling(self, parsed_files: list[tuple[Path, ast.AST]]):
+    def test_unicode_error_handling(self, parsed_files: list[tuple[Path, ast.AST]]) -> None:
         """Тест обработки Unicode ошибок.
 
         Проверяет:
@@ -292,7 +292,7 @@ class TestCodeQuality:
             f"Файлы без обработки Unicode ошибок: {files_without_unicode_handling}"
         )
 
-    def test_docstrings_presence(self, parsed_files: list[tuple[Path, ast.AST]]):
+    def test_docstrings_presence(self, parsed_files: list[tuple[Path, ast.AST]]) -> None:
         """Тест наличия docstrings.
 
         Проверяет:
@@ -335,7 +335,7 @@ class TestCodeQuality:
             f"Примеры: {functions_without_docstrings[:5]}"
         )
 
-    def test_exception_handling_best_practices(self, parsed_files: list[tuple[Path, ast.AST]]):
+    def test_exception_handling_best_practices(self, parsed_files: list[tuple[Path, ast.AST]]) -> None:
         """Тест лучших практик обработки исключений.
 
         Проверяет:

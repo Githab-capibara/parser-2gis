@@ -19,7 +19,7 @@ import pytest
 class TestCacheManagerTypeHints:
     """Тесты для проверки типизации параметров CacheManager."""
 
-    def test_cache_manager_accepts_path_object(self):
+    def test_cache_manager_accepts_path_object(self) -> None:
         """Проверка, что CacheManager принимает Path объект."""
         from parser_2gis.cache import CacheManager
 
@@ -30,7 +30,7 @@ class TestCacheManagerTypeHints:
             assert cache_manager is not None
             cache_manager.close()
 
-    def test_cache_manager_accepts_string_path(self):
+    def test_cache_manager_accepts_string_path(self) -> None:
         """Проверка, что CacheManager принимает строку как путь."""
         from parser_2gis.cache import CacheManager
 
@@ -41,7 +41,7 @@ class TestCacheManagerTypeHints:
             assert cache_manager is not None
             cache_manager.close()
 
-    def test_cache_manager_rejects_invalid_string_directly(self):
+    def test_cache_manager_rejects_invalid_string_directly(self) -> None:
         """Проверка, что передача строки вместо Path вызывает TypeError.
 
         Этот тест документирует ожидаемое поведение:
@@ -57,7 +57,7 @@ class TestCacheManagerTypeHints:
                 # Симулируем ошибку: попытка использовать строку вместо Path
                 _ = cache_dir_str / "cache.db"  # type: ignore
 
-    def test_cache_dir_path_object_used_in_operations(self):
+    def test_cache_dir_path_object_used_in_operations(self) -> None:
         """Проверка, что CacheManager создаёт файл кэша из Path.
 
         Тест проверяет:
@@ -82,7 +82,7 @@ class TestCacheManagerTypeHints:
 
             cache_manager.close()
 
-    def test_cache_manager_initializes_directory(self):
+    def test_cache_manager_initializes_directory(self) -> None:
         """Проверка, что CacheManager создаёт директорию кэша."""
         from parser_2gis.cache import CacheManager
 

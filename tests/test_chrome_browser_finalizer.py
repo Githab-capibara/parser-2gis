@@ -9,7 +9,7 @@ from parser_2gis.chrome.browser import BrowserLifecycleManager, ProcessManager
 class TestChromeBrowserFinalizer:
     """Тесты для weakref.finalize() в ChromeBrowser."""
 
-    def test_finalizer_is_registered(self):
+    def test_finalizer_is_registered(self) -> None:
         """Finalizer должен быть зарегистрирован после инициализации."""
         options = MagicMock()
         options.binary_path = None
@@ -27,7 +27,7 @@ class TestChromeBrowserFinalizer:
                     assert hasattr(manager, "_finalizer")
                     assert manager._finalizer is not None
 
-    def test_cleanup_from_finalizer_static_method(self):
+    def test_cleanup_from_finalizer_static_method(self) -> None:
         """_cleanup_from_finalizer должен работать как статический метод."""
         with patch("subprocess.Popen") as mock_popen:
             mock_proc = MagicMock()
@@ -41,7 +41,7 @@ class TestChromeBrowserFinalizer:
             mock_proc.terminate.assert_called_once()
             mock_tempdir.cleanup.assert_called_once()
 
-    def test_finalizer_detach_on_del(self):
+    def test_finalizer_detach_on_del(self) -> None:
         """__del__ должен использовать finalizer.detach() если доступно."""
         options = MagicMock()
         options.binary_path = None
@@ -65,11 +65,11 @@ class TestChromeBrowserFinalizer:
 
                     mock_finalizer.detach.assert_called_once()
 
-    def test_cleanup_handles_none_proc(self):
+    def test_cleanup_handles_none_proc(self) -> None:
         """Очистка должна обрабатывать None процесс."""
         BrowserLifecycleManager._cleanup_from_finalizer(None, None, None)
 
-    def test_cleanup_handles_already_terminated_proc(self):
+    def test_cleanup_handles_already_terminated_proc(self) -> None:
         """Очистка должна обрабатывать уже завершённый процесс."""
         mock_proc = MagicMock()
         mock_proc.poll.return_value = 0
@@ -81,7 +81,7 @@ class TestChromeBrowserFinalizer:
         mock_proc.terminate.assert_not_called()
         mock_tempdir.cleanup.assert_called_once()
 
-    def test_cleanup_kills_hung_process(self):
+    def test_cleanup_kills_hung_process(self) -> None:
         """Очистка должна убивать зависший процесс."""
         with patch("subprocess.Popen") as mock_popen:
             mock_proc = MagicMock()
@@ -97,7 +97,7 @@ class TestChromeBrowserFinalizer:
             mock_proc.kill.assert_called_once()
             mock_tempdir.cleanup.assert_called_once()
 
-    def test_atexit_false_set(self):
+    def test_atexit_false_set(self) -> None:
         """Finalizer должен иметь atexit=False."""
         options = MagicMock()
         options.binary_path = None

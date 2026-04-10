@@ -97,7 +97,7 @@ class TestRLockUsageForReentrancy:
         """
         lock_acquired_count = 0
 
-        def nested_lock_operations():
+        def nested_lock_operations() -> None:
             nonlocal lock_acquired_count
             with parallel_parser._lock:
                 lock_acquired_count += 1
@@ -121,11 +121,11 @@ class TestRLockUsageForReentrancy:
         """
         deadlock_detected = False
 
-        def outer_call():
+        def outer_call() -> None:
             with parallel_parser._lock:
                 inner_call()
 
-        def inner_call():
+        def inner_call() -> None:
             with parallel_parser._lock:
                 pass
 
@@ -146,7 +146,7 @@ class TestRLockUsageForReentrancy:
         counter = {"value": 0}
         errors = []
 
-        def increment():
+        def increment() -> None:
             try:
                 for _ in range(100):
                     with parallel_parser._lock:
@@ -190,7 +190,7 @@ class TestRLockUsageForReentrancy:
         """
         errors = []
 
-        def update_stats():
+        def update_stats() -> None:
             try:
                 for _ in range(100):
                     with parallel_parser._lock:
@@ -227,7 +227,7 @@ class TestRLockUsageForReentrancy:
 
         errors = []
 
-        def log_messages():
+        def log_messages() -> None:
             try:
                 for i in range(50):
                     parallel_parser.log(f"Test message {i}", "debug")
@@ -258,7 +258,7 @@ class TestRLockUsageForReentrancy:
         operation_log = []
         lock = parallel_parser._lock
 
-        def complex_operation(operation_id: str):
+        def complex_operation(operation_id: str) -> None:
             with lock:
                 operation_log.append(f"{operation_id}_start")
                 # Вложенная операция
@@ -314,7 +314,7 @@ class TestRLockUsageForReentrancy:
         results = {}
         errors = []
 
-        def thread_worker(thread_id: int):
+        def thread_worker(thread_id: int) -> None:
             try:
                 count = 0
                 for _ in range(10):

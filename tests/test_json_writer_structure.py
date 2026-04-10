@@ -26,42 +26,42 @@ class TestJSONWriterStructure:
         writer._first_item = True
         return writer
 
-    def test_non_dict_returns_silently(self, mock_writer):
+    def test_non_dict_returns_silently(self, mock_writer) -> None:
         """Не словарь должен пропускаться без записи."""
         mock_writer._writedoc("not a dict")
         mock_writer._file.write.assert_not_called()
 
-    def test_missing_result_key_returns_silently(self, mock_writer):
+    def test_missing_result_key_returns_silently(self, mock_writer) -> None:
         """Отсутствующий ключ 'result' должен пропускаться."""
         mock_writer._writedoc({"data": "value"})
         mock_writer._file.write.assert_not_called()
 
-    def test_result_not_dict_returns_silently(self, mock_writer):
+    def test_result_not_dict_returns_silently(self, mock_writer) -> None:
         """'result' не являющийся словарём должен пропускаться."""
         mock_writer._writedoc({"result": "not a dict"})
         mock_writer._file.write.assert_not_called()
 
-    def test_missing_items_key_returns_silently(self, mock_writer):
+    def test_missing_items_key_returns_silently(self, mock_writer) -> None:
         """Отсутствующий ключ 'items' должен пропускаться."""
         mock_writer._writedoc({"result": {"data": "value"}})
         mock_writer._file.write.assert_not_called()
 
-    def test_empty_items_list_returns_silently(self, mock_writer):
+    def test_empty_items_list_returns_silently(self, mock_writer) -> None:
         """Пустой список 'items' должен пропускаться."""
         mock_writer._writedoc({"result": {"items": []}})
         mock_writer._file.write.assert_not_called()
 
-    def test_items_not_list_returns_silently(self, mock_writer):
+    def test_items_not_list_returns_silently(self, mock_writer) -> None:
         """'items' не являющийся списком должен пропускаться."""
         mock_writer._writedoc({"result": {"items": "not a list"}})
         mock_writer._file.write.assert_not_called()
 
-    def test_valid_structure_writes(self, mock_writer):
+    def test_valid_structure_writes(self, mock_writer) -> None:
         """Валидная структура должна записываться."""
         mock_writer._writedoc({"result": {"items": [{"name": "Test"}]}})
         mock_writer._file.write.assert_called()
 
-    def test_valid_structure_with_verbose_logs_name(self):
+    def test_valid_structure_with_verbose_logs_name(self) -> None:
         """Валидная структура с verbose должна логировать имя."""
         options = MagicMock()
         options.verbose = True

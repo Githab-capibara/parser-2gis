@@ -20,7 +20,7 @@ import pytest
 class TestDirectImports:
     """Тесты для проверки прямых импортов модулей."""
 
-    def test_import_cache_manager(self):
+    def test_import_cache_manager(self) -> None:
         """
         Тест 1.1: Проверка импорта cache.manager.
 
@@ -31,7 +31,7 @@ class TestDirectImports:
         assert manager is not None
         assert hasattr(manager, "CacheManager")
 
-    def test_import_parallel_parser(self):
+    def test_import_parallel_parser(self) -> None:
         """
         Тест 1.2: Проверка импорта parallel.parallel_parser.
 
@@ -42,7 +42,7 @@ class TestDirectImports:
         assert parallel_parser is not None
         assert hasattr(parallel_parser, "ParallelCityParser")
 
-    def test_import_validation(self):
+    def test_import_validation(self) -> None:
         """
         Тест 1.3: Проверка импорта validation.
 
@@ -53,7 +53,7 @@ class TestDirectImports:
         assert url_validator is not None
         assert data_validator is not None
 
-    def test_import_chrome_browser(self):
+    def test_import_chrome_browser(self) -> None:
         """
         Тест 1.4: Проверка импорта chrome.browser.
 
@@ -64,7 +64,7 @@ class TestDirectImports:
         assert browser is not None
         assert hasattr(browser, "ChromeBrowser")
 
-    def test_import_writer(self):
+    def test_import_writer(self) -> None:
         """
         Тест 1.5: Проверка импорта writer.
 
@@ -78,7 +78,7 @@ class TestDirectImports:
 class TestCyclicDependencies:
     """Тесты для проверки отсутствия циклических зависимостей."""
 
-    def test_no_cache_parallel_cycle(self):
+    def test_no_cache_parallel_cycle(self) -> None:
         """
         Тест 2.1: Проверка отсутствия цикла cache <-> parallel.
 
@@ -94,7 +94,7 @@ class TestCyclicDependencies:
         # Parallel не должен импортироваться в cache
         assert "parser_2gis.parallel" not in str(cache_module.__file__)
 
-    def test_no_validation_chrome_cycle(self):
+    def test_no_validation_chrome_cycle(self) -> None:
         """
         Тест 2.2: Проверка отсутствия цикла validation <-> chrome.
 
@@ -109,7 +109,7 @@ class TestCyclicDependencies:
         assert url_validator is not None
         assert browser is not None
 
-    def test_no_config_writer_cycle(self):
+    def test_no_config_writer_cycle(self) -> None:
         """
         Тест 2.3: Проверка отсутствия цикла config <-> writer.
 
@@ -161,7 +161,7 @@ class TestASTImportAnalysis:
 
         return imports
 
-    def test_core_modules_no_direct_cycle(self):
+    def test_core_modules_no_direct_cycle(self) -> None:
         """
         Тест 3.1: Проверка отсутствия прямых циклов в основных модулях.
 
@@ -203,7 +203,7 @@ class TestASTImportAnalysis:
 
         assert len(cycles) == 0, f"Обнаружены циклические зависимости: {cycles}"
 
-    def test_no_self_import(self):
+    def test_no_self_import(self) -> None:
         """
         Тест 3.2: Проверка отсутствия самоимпорта.
 
@@ -236,7 +236,7 @@ class TestASTImportAnalysis:
 class TestTYPE_CHECKINGImports:
     """Тесты для проверки использования TYPE_CHECKING."""
 
-    def test_cache_manager_uses_type_checking(self):
+    def test_cache_manager_uses_type_checking(self) -> None:
         """
         Тест 4.1: Проверка использования TYPE_CHECKING в cache.manager.
 
@@ -248,7 +248,7 @@ class TestTYPE_CHECKINGImports:
         assert manager is not None
         assert hasattr(manager, "CacheManager")
 
-    def test_parallel_parser_uses_type_checking(self):
+    def test_parallel_parser_uses_type_checking(self) -> None:
         """
         Тест 4.2: Проверка использования TYPE_CHECKING в parallel_parser.
 
@@ -260,7 +260,7 @@ class TestTYPE_CHECKINGImports:
 
         assert "TYPE_CHECKING" in module_source
 
-    def test_config_has_conditional_imports(self):
+    def test_config_has_conditional_imports(self) -> None:
         """
         Тест 4.3: Проверка что config использует условные импорты.
 
@@ -276,7 +276,7 @@ class TestTYPE_CHECKINGImports:
 class TestImportOrder:
     """Тесты для проверки порядка импортов."""
 
-    def test_standard_library_first(self):
+    def test_standard_library_first(self) -> None:
         """
         Тест 5.1: Проверка что стандартная библиотека импортируется первой.
 
@@ -304,7 +304,7 @@ class TestImportOrder:
         # Стандартная библиотека должна быть до local импортов
         assert len(stdlib_imports) > 0 or len(third_party_imports) > 0
 
-    def test_no_wildcard_imports(self):
+    def test_no_wildcard_imports(self) -> None:
         """
         Тест 5.2: Проверка отсутствия wildcard импортов.
 
@@ -333,7 +333,7 @@ class TestImportOrder:
 class TestModuleInitialization:
     """Тесты для проверки инициализации модулей."""
 
-    def test_cache_module_init(self):
+    def test_cache_module_init(self) -> None:
         """
         Тест 6.1: Проверка инициализации cache модуля.
 
@@ -343,7 +343,7 @@ class TestModuleInitialization:
 
         assert hasattr(cache_package, "CacheManager")
 
-    def test_parallel_module_init(self):
+    def test_parallel_module_init(self) -> None:
         """
         Тест 6.2: Проверка инициализации parallel модуля.
 
@@ -353,7 +353,7 @@ class TestModuleInitialization:
 
         assert hasattr(parallel_package, "ParallelCityParser")
 
-    def test_validation_module_init(self):
+    def test_validation_module_init(self) -> None:
         """
         Тест 6.3: Проверка инициализации validation модуля.
 
@@ -368,7 +368,7 @@ class TestModuleInitialization:
 class TestImportPerformance:
     """Тесты для проверки производительности импортов."""
 
-    def test_import_time_cache_manager(self):
+    def test_import_time_cache_manager(self) -> None:
         """
         Тест 7.1: Проверка времени импорта cache.manager.
 
@@ -390,7 +390,7 @@ class TestImportPerformance:
         # Импорт не должен занимать больше 5 секунд
         assert elapsed < 5.0, f"Импорт cache.manager занял {elapsed:.2f} секунд"
 
-    def test_import_time_parallel_parser(self):
+    def test_import_time_parallel_parser(self) -> None:
         """
         Тест 7.2: Проверка времени импорта parallel.parallel_parser.
 

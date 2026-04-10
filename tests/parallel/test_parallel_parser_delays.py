@@ -55,7 +55,7 @@ class TestParallelParserDelays:
 
     def test_initial_delay_uses_configured_range(
         self, mock_parse_strategy: ParseStrategy, tmp_path: Path
-    ):
+    ) -> None:
         """Тест, что начальная задержка использует настроенный диапазон.
 
         Проверяет:
@@ -75,7 +75,7 @@ class TestParallelParserDelays:
 
     def test_launch_delay_uses_configured_range(
         self, mock_parse_strategy: ParseStrategy, tmp_path: Path
-    ):
+    ) -> None:
         """Тест, что задержка запуска использует настроенный диапазон.
 
         Проверяет:

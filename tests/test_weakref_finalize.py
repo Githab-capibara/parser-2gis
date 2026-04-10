@@ -16,7 +16,7 @@ from parser_2gis.utils.temp_file_manager import TempFileTimer
 class TestWeakrefFinalize:
     """Тесты использования weakref.finalize в проекте."""
 
-    def test_connection_pool_has_finalizer(self):
+    def test_connection_pool_has_finalizer(self) -> None:
         """Тест 1: _ConnectionPool имеет weakref.finalize."""
         import tempfile
 
@@ -30,7 +30,7 @@ class TestWeakrefFinalize:
             # Проверяем что finalizer активен
             assert pool._finalizer.alive, "Finalizer должен быть активен"
 
-    def test_cache_manager_has_finalizer(self):
+    def test_cache_manager_has_finalizer(self) -> None:
         """Тест 2: CacheManager имеет weakref.finalize."""
         import tempfile
 
@@ -44,7 +44,7 @@ class TestWeakrefFinalize:
             # Проверяем что finalizer активен
             assert cache._finalizer.alive, "Finalizer должен быть активен"
 
-    def test_temp_file_timer_has_finalizer(self):
+    def test_temp_file_timer_has_finalizer(self) -> None:
         """Тест 3: TempFileTimer имеет механизмы очистки."""
         import tempfile
 
@@ -58,7 +58,7 @@ class TestWeakrefFinalize:
             # Проверяем что изначально не запущен
             assert timer._is_running is False, "Timer изначально не должен быть запущен"
 
-    def test_weakref_returns_object(self):
+    def test_weakref_returns_object(self) -> None:
         """Тест 4: weakref возвращает объект."""
         import tempfile
 
@@ -69,7 +69,7 @@ class TestWeakrefFinalize:
             # Проверяем что weakref возвращает объект
             assert weak_ref() is cache, "weakref должен возвращать объект"
 
-    def test_finalizer_is_callable(self):
+    def test_finalizer_is_callable(self) -> None:
         """Тест 5: Finalizer является вызываемым объектом."""
         import tempfile
 
@@ -79,7 +79,7 @@ class TestWeakrefFinalize:
             # Finalizer должен быть вызываемым
             assert callable(cache._finalizer), "Finalizer должен быть вызываемым"
 
-    def test_finalizer_detach(self):
+    def test_finalizer_detach(self) -> None:
         """Тест 6: Finalizer можно отключить."""
         import tempfile
 
@@ -93,11 +93,11 @@ class TestWeakrefFinalize:
             # Finalizer должен быть отключён
             assert not finalizer.alive, "Finalizer должен быть отключён"
 
-    def test_weakref_callback_called(self):
+    def test_weakref_callback_called(self) -> None:
         """Тест 7: weakref callback вызывается при удалении объекта."""
         callback_called = {"value": False}
 
-        def callback(ref):
+        def callback(ref) -> None:
             callback_called["value"] = True
 
         # Создаём простой объект с weakref callback
@@ -114,7 +114,7 @@ class TestWeakrefFinalize:
         # Callback должен быть вызван
         assert callback_called["value"], "weakref callback должен быть вызван"
 
-    def test_finalizer_with_static_cleanup(self):
+    def test_finalizer_with_static_cleanup(self) -> None:
         """Тест 8: Finalizer использует статический метод очистки."""
         import tempfile
 
@@ -125,7 +125,7 @@ class TestWeakrefFinalize:
             # Это видно по аргументам finalizer
             assert cache._finalizer.alive, "Finalizer должен быть активен"
 
-    def test_multiple_objects_have_finalizers(self):
+    def test_multiple_objects_have_finalizers(self) -> None:
         """Тест 9: Несколько объектов имеют finalizer."""
         import tempfile
 
@@ -142,7 +142,7 @@ class TestWeakrefFinalize:
                 # Оба finalizer должны быть активны
                 assert all(f.alive for f in finalizers), "Все finalizer должны быть активны"
 
-    def test_finalizer_prevents_circular_reference_leak(self):
+    def test_finalizer_prevents_circular_reference_leak(self) -> None:
         """Тест 10: Finalizer работает с циклическими ссылками."""
         import tempfile
 
@@ -158,7 +158,7 @@ class TestWeakrefFinalize:
             assert cache1._finalizer.alive, "Finalizer 1 должен быть активен"
             assert cache2._finalizer.alive, "Finalizer 2 должен быть активен"
 
-    def test_finalizer_registered_for_cleanup(self):
+    def test_finalizer_registered_for_cleanup(self) -> None:
         """Тест 11: Finalizer зарегистрирован для очистки."""
         import tempfile
 
@@ -168,7 +168,7 @@ class TestWeakrefFinalize:
             # Finalizer должен быть зарегистрирован
             assert cache._finalizer is not None, "Finalizer должен быть зарегистрирован"
 
-    def test_weakref_finalizer_independence(self):
+    def test_weakref_finalizer_independence(self) -> None:
         """Тест 12: weakref и finalizer независимы."""
         import tempfile
 
@@ -182,7 +182,7 @@ class TestWeakrefFinalize:
                 "weakref и finalizer должны быть разными типами"
             )
 
-    def test_finalizer_cleanup_method_exists(self):
+    def test_finalizer_cleanup_method_exists(self) -> None:
         """Тест 13: Метод очистки для finalizer существует."""
         import tempfile
 
@@ -194,7 +194,7 @@ class TestWeakrefFinalize:
                 "Метод _cleanup_cache_manager должен существовать"
             )
 
-    def test_connection_pool_cleanup_method_exists(self):
+    def test_connection_pool_cleanup_method_exists(self) -> None:
         """Тест 14: Метод очистки для _ConnectionPool существует."""
         import tempfile
 

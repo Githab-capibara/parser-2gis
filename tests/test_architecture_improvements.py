@@ -127,7 +127,7 @@ def get_method_nesting_depth(source: str, method_name: str) -> int:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == method_name:
 
-                def count_depth(n, current_depth=0):
+                def count_depth(n, current_depth=0) -> None:
                     nonlocal max_depth
                     max_depth = max(max_depth, current_depth)
                     for child in ast.iter_child_nodes(n):
@@ -196,7 +196,7 @@ def has_docstring_with_sections(source: str, class_name: str) -> tuple[bool, lis
 class TestTypeCheckingImports:
     """Тесты на использование TYPE_CHECKING для уменьшения связанности."""
 
-    def test_parallel_parser_has_type_checking_imports(self):
+    def test_parallel_parser_has_type_checking_imports(self) -> None:
         """Тест наличия TYPE_CHECKING импортов в parallel_parser.py.
 
         Проверяет:
@@ -216,7 +216,7 @@ class TestTypeCheckingImports:
             "Должны быть импорты в TYPE_CHECKING блоке для уменьшения связанности"
         )
 
-    def test_parallel_parser_local_imports_in_method(self):
+    def test_parallel_parser_local_imports_in_method(self) -> None:
         """Тест локальных импортов в методе parse_single_url.
 
         Проверяет:
@@ -259,7 +259,7 @@ class TestTypeCheckingImports:
 class TestGuardClauses:
     """Тесты на использование Guard Clauses и Early Return pattern."""
 
-    def test_chrome_remote_get_response_body_guard_clauses(self):
+    def test_chrome_remote_get_response_body_guard_clauses(self) -> None:
         """Тест Guard Clauses в методе get_response_body.
 
         Проверяет:
@@ -279,7 +279,7 @@ class TestGuardClauses:
         depth = get_method_nesting_depth(source, "get_response_body")
         assert depth <= 3, f"Вложенность get_response_body должна быть <= 3 (текущая: {depth})"
 
-    def test_chrome_remote_stop_early_return(self):
+    def test_chrome_remote_stop_early_return(self) -> None:
         """Тест Early Return в методе stop.
 
         Проверяет:
@@ -332,7 +332,7 @@ class TestProtocolDocumentation:
             "CacheWriter",
         ],
     )
-    def test_protocol_has_docstring_with_sections(self, protocol_name):
+    def test_protocol_has_docstring_with_sections(self, protocol_name) -> None:
         """Тест наличия docstring с разделами у Protocol.
 
         Проверяет:
@@ -350,7 +350,7 @@ class TestProtocolDocumentation:
             f"{protocol_name} должен иметь минимум 1 раздел в docstring (найдено: {sections})"
         )
 
-    def test_logger_protocol_documented(self):
+    def test_logger_protocol_documented(self) -> None:
         """Тест документирования LoggerProtocol."""
         source = read_source_file("protocols.py")
 
@@ -369,7 +369,7 @@ class TestProtocolDocumentation:
 class TestConfigServiceResponsibility:
     """Тесты на разделение ответственности ConfigService."""
 
-    def test_config_service_has_docstring(self):
+    def test_config_service_has_docstring(self) -> None:
         """Тест наличия docstring у ConfigService.
 
         Проверяет:
@@ -385,7 +385,7 @@ class TestConfigServiceResponsibility:
             "ConfigService должен описывать свою ответственность"
         )
 
-    def test_config_service_module_docstring(self):
+    def test_config_service_module_docstring(self) -> None:
         """Тест наличия docstring у модуля config_service.
 
         Проверяет:
@@ -417,7 +417,7 @@ class TestConfigServiceResponsibility:
 class TestArchitecturalImprovementsIntegration:
     """Интеграционные тесты архитектурных улучшений."""
 
-    def test_all_improvements_applied(self):
+    def test_all_improvements_applied(self) -> None:
         """Тест применения всех архитектурных улучшений.
 
         Проверяет:
@@ -444,7 +444,7 @@ class TestArchitecturalImprovementsIntegration:
         config_service_source = read_source_file("cli/config_service.py")
         assert '"""' in config_service_source
 
-    def test_no_circular_dependencies_introduced(self):
+    def test_no_circular_dependencies_introduced(self) -> None:
         """Тест отсутствия циклических зависимостей после улучшений.
 
         Проверяет:

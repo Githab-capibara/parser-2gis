@@ -11,13 +11,13 @@ from parser_2gis.pydantic_compat import get_model_dump, get_model_fields_set
 class TestPydanticCompatibility:
     """Тесты для проверки работы с Pydantic v2."""
 
-    def test_pydantic_v2_detected(self):
+    def test_pydantic_v2_detected(self) -> None:
         """Проверка, что используется Pydantic v2."""
         import pydantic
 
         assert pydantic.VERSION.startswith("2.")
 
-    def test_get_model_dump_returns_dict(self):
+    def test_get_model_dump_returns_dict(self) -> None:
         """
         Тест 1: Проверка, что get_model_dump возвращает словарь.
 
@@ -32,7 +32,7 @@ class TestPydanticCompatibility:
         assert "writer" in result
         assert "log" in result
 
-    def test_get_model_dump_with_exclude(self):
+    def test_get_model_dump_with_exclude(self) -> None:
         """
         Тест 2: Проверка, что get_model_dump поддерживает exclude.
 
@@ -45,7 +45,7 @@ class TestPydanticCompatibility:
         assert "chrome" in result
         assert "version" in result
 
-    def test_get_model_fields_set_returns_set(self):
+    def test_get_model_fields_set_returns_set(self) -> None:
         """
         Тест 3: Проверка, что get_model_fields_set возвращает set.
 
@@ -58,7 +58,7 @@ class TestPydanticCompatibility:
         # При создании по умолчанию поля могут быть пустыми (Pydantic v2)
         # или содержать все поля (Pydantic v1) - проверяем только тип
 
-    def test_get_model_fields_set_with_custom_values(self):
+    def test_get_model_fields_set_with_custom_values(self) -> None:
         """
         Тест 4: Проверка, что get_model_fields_set отслеживает изменённые поля.
 
@@ -86,7 +86,7 @@ class TestPydanticCompatibility:
         assert isinstance(original_fields, set)
         assert isinstance(new_fields, set)
 
-    def test_configuration_serialization_roundtrip(self):
+    def test_configuration_serialization_roundtrip(self) -> None:
         """
         Тест 5: Проверка полной сериализации/десериализации конфигурации.
 
@@ -113,7 +113,7 @@ class TestPydanticCompatibility:
 class TestArgumentHelpFormatterCompatibility:
     """Тесты для ArgumentHelpFormatter, который использует model_dump."""
 
-    def test_argument_help_formatter_initialization(self):
+    def test_argument_help_formatter_initialization(self) -> None:
         """
         Тест 6: Проверка инициализации ArgumentHelpFormatter.
 
@@ -127,7 +127,7 @@ class TestArgumentHelpFormatterCompatibility:
         assert hasattr(formatter, "_default_config")
         assert isinstance(formatter._default_config, dict)
 
-    def test_argument_help_formatter_default_values(self):
+    def test_argument_help_formatter_default_values(self) -> None:
         """
         Тест 7: Проверка, что форматер получает значения по умолчанию.
 
@@ -154,7 +154,7 @@ class TestArgumentHelpFormatterCompatibility:
 class TestConfigurationSaveWithCompatibility:
     """Тесты для сохранения конфигурации с использованием совместимого API."""
 
-    def test_save_config_uses_compatible_method(self):
+    def test_save_config_uses_compatible_method(self) -> None:
         """
         Тест 8: Проверка, что save_config использует совместимый метод.
 

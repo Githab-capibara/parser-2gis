@@ -37,13 +37,13 @@ class BuildStandaloneCommand(Command):
     description = "Сборка автономного приложения с помощью PyInstaller"
     user_options = []
 
-    def initialize_options(self):
+    def initialize_options(self) -> None:
         pass
 
-    def finalize_options(self):
+    def finalize_options(self) -> None:
         pass
 
-    def run(self):
+    def run(self) -> None:
         import os
         import shutil
         import subprocess

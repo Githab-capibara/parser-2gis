@@ -14,6 +14,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from parser_2gis.chrome.remote import ChromeRemote
+from typing import Never
 
 
 class TestConnectInterfaceTimeout:
@@ -53,7 +54,7 @@ class TestConnectInterfaceTimeout:
         start_time = time.time()
         elapsed_time = 0.0
 
-        def mock_check_port(*args, **kwargs):
+        def mock_check_port(*args, **kwargs) -> bool:
             nonlocal elapsed_time
             elapsed_time = time.time() - start_time
             return False  # Порт не доступен
@@ -100,7 +101,7 @@ class TestConnectInterfaceTimeout:
 
         call_count = 0
 
-        def mock_check_port_with_timeout(*args, **kwargs):
+        def mock_check_port_with_timeout(*args, **kwargs) -> bool:
             nonlocal call_count
             call_count += 1
             return False
@@ -153,7 +154,7 @@ class TestConnectInterfaceTimeout:
 
         attempt_count = 0
 
-        def mock_attempt_connection(*args, **kwargs):
+        def mock_attempt_connection(*args, **kwargs) -> Never:
             nonlocal attempt_count
             attempt_count += 1
             from parser_2gis.chrome.exceptions import ChromeException

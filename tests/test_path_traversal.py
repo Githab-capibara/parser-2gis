@@ -13,12 +13,12 @@ from parser_2gis.writer.factory import get_writer
 class TestPathTraversalValidation:
     """Тесты для функции validate_path_traversal."""
 
-    def test_empty_path_raises(self):
+    def test_empty_path_raises(self) -> None:
         """Пустой путь должен вызывать ValueError."""
         with pytest.raises(ValueError, match="не может быть пустым"):
             validate_path_traversal("")
 
-    def test_absolute_path_valid(self):
+    def test_absolute_path_valid(self) -> None:
         """Абсолютный путь должен проходить валидацию."""
         with tempfile.TemporaryDirectory() as tmpdir:
             test_path = Path(tmpdir) / "output.json"
@@ -26,7 +26,7 @@ class TestPathTraversalValidation:
             assert result.is_absolute()
             assert result.parent == Path(tmpdir)
 
-    def test_normalized_absolute_path(self):
+    def test_normalized_absolute_path(self) -> None:
         """Нормализованный абсолютный путь должен работать."""
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "subdir" / "file.json"
@@ -34,12 +34,12 @@ class TestPathTraversalValidation:
             assert result.is_absolute()
             assert result.parts[-2:] == ("subdir", "file.json")
 
-    def test_dollar_in_path_raises(self):
+    def test_dollar_in_path_raises(self) -> None:
         """Путь с долларом должен вызывать ValueError."""
         with pytest.raises(ValueError):
             validate_path_traversal("/data/$var/file.json")
 
-    def test_mkdir_for_parent_creates_directory(self):
+    def test_mkdir_for_parent_creates_directory(self) -> None:
         """Валидация должна создавать родительскую директорию."""
         with tempfile.TemporaryDirectory() as tmpdir:
             test_path = Path(tmpdir) / "newdir" / "nested" / "output.json"
@@ -50,12 +50,12 @@ class TestPathTraversalValidation:
 class TestGetWriterPathValidation:
     """Тесты для функции get_writer с валидацией пути."""
 
-    def test_malicious_path_handled(self):
+    def test_malicious_path_handled(self) -> None:
         """Вредоносный путь должен отклоняться с ValueError."""
         with pytest.raises(ValueError, match="Path traversal"):
             get_writer("../../../etc/passwd", "json", None)
 
-    def test_unknown_format_raises(self):
+    def test_unknown_format_raises(self) -> None:
         """Неизвестный формат должен вызывать WriterUnknownFileFormat."""
         with tempfile.TemporaryDirectory() as tmpdir:
             test_path = Path(tmpdir) / "output.xyz"

@@ -642,7 +642,7 @@ class TestStatePersistenceAcrossScreens:
         """
 
         # Настроим mock для update_state чтобы он обновлял _state
-        def update_state_impl(**kwargs):
+        def update_state_impl(**kwargs) -> None:
             for key, value in kwargs.items():
                 if key in mock_tui_app._state:
                     mock_tui_app._state[key] = value
