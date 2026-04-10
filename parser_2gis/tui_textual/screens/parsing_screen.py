@@ -166,7 +166,7 @@ class ParsingScreen(Screen):
         self._stopping = False
         self._parsing_started = False
 
-        self._start_time = datetime.now()
+        self._start_time = datetime.now(tz=None)
         self._add_log("[bold green]Запуск парсинга...[/]")
 
         # Получить выбранные города и категории
@@ -298,7 +298,7 @@ class ParsingScreen(Screen):
 
         elapsed = "00:00:00"
         if self._start_time:
-            delta = datetime.now() - self._start_time
+            delta = datetime.now(tz=None) - self._start_time
             elapsed = str(delta).split(".")[0]
 
         stats_display.update(

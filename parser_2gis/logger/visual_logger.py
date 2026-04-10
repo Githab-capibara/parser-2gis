@@ -153,7 +153,7 @@ class VisualLogger:
             Строка времени.
 
         """
-        return datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        return datetime.now(tz=None).strftime("%H:%M:%S.%f")[:-3]
 
     def format_message(
         self, message: str, level: str = "INFO", emoji: str | None = None, bold: bool = False

@@ -15,7 +15,7 @@ import functools
 import hashlib
 import sqlite3
 import zlib
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from parser_2gis.constants import SHA256_HASH_LENGTH
@@ -170,7 +170,7 @@ def is_cache_expired(expires_at: datetime | None) -> bool:
     if expires_at is None:
         return True
 
-    return datetime.now() > expires_at
+    return datetime.now(timezone.utc) > expires_at
 
 
 __all__ = [

@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from parser_2gis.cli.arguments import parse_arguments
@@ -63,7 +63,7 @@ def main() -> None:
 
     ISSUE-045: Использует общую функцию run_tui_application для устранения дублирования.
     """
-    start_datetime = datetime.now()
+    start_datetime = datetime.now(timezone.utc)
     args, command_line_config = parse_arguments()
 
     # Обработка TUI интерфейсов - ISSUE-045: используем общую функцию
