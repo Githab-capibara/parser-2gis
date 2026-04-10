@@ -199,6 +199,7 @@ class EnvConfig:
             Используется object.__setattr__() вместо прямого присваивания,
             так как dataclass может быть frozen (frozen=True), что запрещает
             обычное присваивание атрибутов после инициализации.
+
         """
         # Инициализация logger
         object.__setattr__(self, "_logger", logging.getLogger("parser_2gis.constants.env_config"))

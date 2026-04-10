@@ -103,6 +103,7 @@ class AdaptiveLimits:
 
         Returns:
             None. Устанавливает внутреннее состояние _city_size и _adaptive_limit.
+
         """
         if not self._records_on_first_pages:
             return

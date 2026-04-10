@@ -9,6 +9,7 @@
 
 import sqlite3
 from pathlib import Path
+from typing import Never
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,7 +18,6 @@ from parser_2gis.cache import CacheManager
 from parser_2gis.cache.pool import ConnectionPool as _ConnectionPool
 from parser_2gis.chrome.browser import cleanup_orphaned_profiles
 from parser_2gis.chrome.file_handler import FileLogger
-from typing import Never
 
 
 class TestSpecificSqliteException:

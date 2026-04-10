@@ -304,7 +304,7 @@ class ApplicationLauncher:
             )
 
             def progress_callback(success: int, failed: int, filename: str) -> None:
-                """Callback для обновления прогресса."""
+                """Записать информацию о прогрессе парсинга в лог."""
                 logger.info("Прогресс: успешно=%d, ошибок=%d, файл=%s", success, failed, filename)
 
             # Определяем имя выходного файла

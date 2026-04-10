@@ -82,15 +82,14 @@ class TestBrowserPathResolver:
                 return_value="/usr/bin/google-chrome",
             ),
             patch("os.path.isabs", return_value=True),
-            patch("os.path.exists", return_value=True),
+            patch("os.path.exists", return_value=True),patch("os.path.isfile", return_value=True)
         ):
-            with patch("os.path.isfile", return_value=True):
-                with patch("os.access", return_value=True):
-                    with patch("os.path.islink", return_value=False):
-                        with patch("os.path.realpath", return_value="/usr/bin/google-chrome"):
-                            result = path_resolver.resolve_path(mock_options)
+            with patch("os.access", return_value=True):
+                with patch("os.path.islink", return_value=False):
+                    with patch("os.path.realpath", return_value="/usr/bin/google-chrome"):
+                        result = path_resolver.resolve_path(mock_options)
 
-                            assert result == "/usr/bin/google-chrome"
+                        assert result == "/usr/bin/google-chrome"
 
     def test_browser_path_resolver_not_found(self, path_resolver: BrowserPathResolver) -> None:
         """Тест отсутствия пути к браузеру.

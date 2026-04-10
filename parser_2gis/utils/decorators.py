@@ -228,8 +228,7 @@ def wait_until_finished(
     max_poll_interval: float = MAX_POLL_INTERVAL,
     max_retries: int | None = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Декоратор опрашивает обёрнутую функцию до истечения времени или пока
-    предикат `finished` не вернёт `True`.
+    """Декоратор опрашивает обёрнутую функцию до истечения времени.
 
     ИСПРАВЛЕНИЕ 18:
     - Добавлен максимальный таймаут (timeout параметр)

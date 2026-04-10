@@ -8,6 +8,7 @@
 - Обычные ошибки — возврат None
 """
 
+import contextlib
 import sqlite3
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -32,10 +33,8 @@ class TestHandleDbErrorRetry:
         """Создаёт CacheManager для тестов."""
         manager = CacheManager(temp_cache_dir, ttl_hours=24, pool_size=2)
         yield manager
-        try:
+        with contextlib.suppress(Exception):
             manager.close()
-        except Exception:
-            pass
 
     def test_database_is_locked_triggers_retry(self, cache_manager: CacheManager) -> None:
         """Тест 1: 'database is locked' вызывает retry."""

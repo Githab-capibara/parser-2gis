@@ -194,12 +194,11 @@ class TestASTImportAnalysis:
             for _dep in deps_a:
                 # Ищем обратную зависимость
                 for module_b, deps_b in dependencies.items():
-                    if module_a != module_b:
-                        if module_a in deps_b:
-                            pair = tuple(sorted([module_a, module_b]))
-                            cycle_str = f"{pair[0]} <-> {pair[1]}"
-                            if cycle_str not in cycles:
-                                cycles.append(cycle_str)
+                    if module_a != module_b and module_a in deps_b:
+                        pair = tuple(sorted([module_a, module_b]))
+                        cycle_str = f"{pair[0]} <-> {pair[1]}"
+                        if cycle_str not in cycles:
+                            cycles.append(cycle_str)
 
         assert len(cycles) == 0, f"Обнаружены циклические зависимости: {cycles}"
 
@@ -379,7 +378,7 @@ class TestImportPerformance:
         start = time.time()
 
         # Очищаем кэш импортов
-        modules_to_remove = [k for k in sys.modules.keys() if k.startswith("parser_2gis.cache")]
+        modules_to_remove = [k for k in sys.modules if k.startswith("parser_2gis.cache")]
         for mod in modules_to_remove:
             del sys.modules[mod]
 
@@ -401,7 +400,7 @@ class TestImportPerformance:
         start = time.time()
 
         # Очищаем кэш импортов
-        modules_to_remove = [k for k in sys.modules.keys() if k.startswith("parser_2gis.parallel")]
+        modules_to_remove = [k for k in sys.modules if k.startswith("parser_2gis.parallel")]
         for mod in modules_to_remove:
             del sys.modules[mod]
 

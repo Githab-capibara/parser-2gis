@@ -107,6 +107,7 @@ class CSVDeduplicator:
 
             Для файлов >10MB используется mmap для экономии памяти.
             Для файлов <=10MB используется обычная буферизация.
+
         """
         file_root, file_ext = os.path.splitext(self._file_path)
         tmp_csv_name = f"{file_root}.deduplicated{file_ext}"

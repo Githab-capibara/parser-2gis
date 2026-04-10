@@ -117,13 +117,12 @@ class TestVisitedLinksCleanup:
         cleanup_counter = 5
         links_removed_below = 0
 
-        if cleanup_counter >= 5:
-            if len(visited_links) > max_size * 0.5:
-                target_remove = int(len(visited_links) * 0.5)
-                for _ in range(target_remove):
-                    if visited_links:
-                        visited_links.popitem(last=False)
-                        links_removed_below += 1
+        if cleanup_counter >= 5 and len(visited_links) > max_size * 0.5:
+            target_remove = int(len(visited_links) * 0.5)
+            for _ in range(target_remove):
+                if visited_links:
+                    visited_links.popitem(last=False)
+                    links_removed_below += 1
 
         # Очистка не должна произойти (меньше 50%)
         assert links_removed_below == 0

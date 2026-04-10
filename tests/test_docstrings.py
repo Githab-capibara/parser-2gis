@@ -66,9 +66,7 @@ def has_valid_docstring(obj) -> bool:
     doc = inspect.getdoc(obj)
     if doc is None:
         return False
-    if len(doc.strip()) == 0:
-        return False
-    return True
+    return len(doc.strip()) != 0
 
 
 class TestDocstringsInCacheModule:

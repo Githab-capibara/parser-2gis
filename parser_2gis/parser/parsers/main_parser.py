@@ -244,8 +244,7 @@ class MainPageParser(BaseParser):
             return None
 
     def _add_xhr_counter(self) -> None:
-        """Внедряет old-school обёртку вокруг XMLHttpRequest
-        для отслеживания всех ожидающих запросов к сайту 2GIS.
+        """Внедряет обёртку вокруг XMLHttpRequest для отслеживания запросов.
 
         ISSUE-141: Добавлен docstring с описанием формата JavaScript.
 

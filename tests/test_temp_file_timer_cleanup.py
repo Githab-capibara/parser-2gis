@@ -13,12 +13,12 @@
 import threading
 import time
 from pathlib import Path
+from typing import Never
 from unittest.mock import patch
 
 import pytest
 
 from parser_2gis.utils.temp_file_manager import TempFileTimer
-from typing import Never
 
 
 class TestTempFileTimerStop:

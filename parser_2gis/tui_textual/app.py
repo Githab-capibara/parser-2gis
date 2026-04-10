@@ -632,7 +632,7 @@ class TUIApp(App):
             self.update_state(total_urls=total_urls)
 
             def progress_callback(success: int, failed: int, filename: str) -> None:
-                """Callback для обновления прогресса парсинга.
+                """Обновить прогресс парсинга в интерфейсе приложения.
 
                 Args:
                     success: Количество успешных операций

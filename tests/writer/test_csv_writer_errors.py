@@ -7,6 +7,7 @@
 - Обработку UnicodeError
 """
 
+import contextlib
 import csv
 import logging
 from pathlib import Path
@@ -63,10 +64,8 @@ class TestCSVWriterErrorHandling:
         """
         writer = CSVWriter(file_path=str(temp_output_path), options=mock_options)
         yield writer
-        try:
+        with contextlib.suppress(Exception):
             writer.close()
-        except Exception:
-            pass
 
     def test_csv_writer_csv_error_handling(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки csv.Error.

@@ -189,7 +189,7 @@ class TestSingleResponsibilityPrinciple:
         ]
 
         # Разрешаем также log и вспомогательные методы
-        allowed_methods = error_methods + ["log", "create_unique_temp_file", "retry_with_backoff"]
+        allowed_methods = [*error_methods, "log", "create_unique_temp_file", "retry_with_backoff"]
 
         assert len(allowed_methods) >= len(methods) * 0.8, (
             "ParallelErrorHandler должен иметь >=80% методов для обработки ошибок"
@@ -215,13 +215,7 @@ class TestSingleResponsibilityPrinciple:
         ]
 
         # Разрешаем также log и вспомогательные методы
-        allowed_methods = merge_methods + [
-            "log",
-            "extract_category_from_filename",
-            "process_single_csv_file",
-            "acquire_merge_lock",
-            "cleanup_merge_lock",
-        ]
+        allowed_methods = [*merge_methods, "log", "extract_category_from_filename", "process_single_csv_file", "acquire_merge_lock", "cleanup_merge_lock"]
 
         assert len(allowed_methods) >= len(methods) * 0.9, (
             "ParallelFileMerger должен иметь >=90% методов для слияния файлов"
@@ -381,7 +375,7 @@ class TestInterfaceSegregationPrinciple:
 
         # Callback Protocol являются Callable и имеют __call__ метод
         for protocol in [CleanupCallback, ProgressCallback]:
-            assert hasattr(protocol, "__call__") or protocol is not None, (
+            assert callable(protocol) or protocol is not None, (
                 f"{protocol.__name__} должен быть Callable Protocol"
             )
 

@@ -12,7 +12,7 @@ class TestPathValidatorConstruction:
 
     def test_default_construction(self) -> None:
         """PathValidator создаётся с дефолтными настройками."""
-        validator = PathValidator()
+        validator = get_path_validator()
         assert validator is not None
         assert len(validator._allowed_base_dirs) > 0
 
@@ -30,7 +30,7 @@ class TestPathValidatorValidate:
         """Безопасный путь не выбрасывает ошибок."""
         validator = PathValidator(allowed_base_dirs=[tmp_path])
         safe_path = str(tmp_path / "subdir" / "file.txt")
-        validator.validate(safe_path)  # Не должно выбросить исключений
+        validator.validate_safety(safe_path)  # Не должно выбросить исключений
 
     @pytest.mark.parametrize(
         "forbidden_char", ["..", "~", "$", "`", "|", ";", "&", "\\", "\n", "\r"]
@@ -40,19 +40,19 @@ class TestPathValidatorValidate:
         validator = PathValidator(allowed_base_dirs=[tmp_path])
         bad_path = str(tmp_path / f"file{forbidden_char}name.txt")
         with pytest.raises(ValueError, match="запрещённый символ"):
-            validator.validate(bad_path)
+            validator.validate_safety(bad_path)
 
     def test_too_long_path_raises_error(self) -> None:
         """Слишком длинный путь вызывает ValueError."""
         validator = PathValidator()
         long_path = "a" * (validator._MAX_PATH_LENGTH + 100)
         with pytest.raises(ValueError, match="превышает максимальную длину"):
-            validator.validate(long_path)
+            validator.validate_safety(long_path)
 
     def test_empty_path_returns_early(self, tmp_path) -> None:
         """Пустой путь возвращается рано без ошибок."""
         validator = PathValidator(allowed_base_dirs=[tmp_path])
-        validator.validate("")  # Не должно выбросить исключений
+        validator.validate_safety("")  # Не должно выбросить исключений
 
 
 class TestPathValidatorValidateMultiple:

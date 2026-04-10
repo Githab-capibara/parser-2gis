@@ -47,9 +47,8 @@ def _get_imports(file_path: Path) -> set[str]:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     imports.add(alias.name)
-            elif isinstance(node, ast.ImportFrom):
-                if node.module:
-                    imports.add(node.module)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imports.add(node.module)
     except (OSError, UnicodeDecodeError, SyntaxError):
         pass
     return imports
@@ -98,7 +97,7 @@ def _detect_cycles(graph: dict[str, set[str]]) -> list[list[str]]:
                         _dfs(neighbor, visited, rec_stack, path)
                     elif neighbor in rec_stack:
                         cycle_start = path.index(neighbor)
-                        cycles.append(path[cycle_start:] + [neighbor])
+                        cycles.append([*path[cycle_start:], neighbor])
                 path.pop()
                 rec_stack.discard(node)
 
@@ -425,8 +424,8 @@ class TestFullParsingCycleMock:
         if not WRITER_AVAILABLE:
             pytest.skip("writer недоступен")
 
-        from parser_2gis.writer.writers.csv_writer import CSVWriter
         from parser_2gis.writer.options import WriterOptions
+        from parser_2gis.writer.writers.csv_writer import CSVWriter
 
         output_file = tmp_path / "output.csv"
         options = WriterOptions()

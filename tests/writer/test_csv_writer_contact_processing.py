@@ -6,6 +6,7 @@
 - Продолжение обработки следующих контактов при пропуске текущего
 """
 
+import contextlib
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -61,10 +62,8 @@ class TestCSVWriterContactProcessing:
         """
         writer = CSVWriter(file_path=str(temp_output_path), options=mock_options)
         yield writer
-        try:
+        with contextlib.suppress(Exception):
             writer.close()
-        except Exception:
-            pass
         # Удаляем файл после теста
         actual_path = Path.cwd() / "test_output_contacts.csv"
         if actual_path.exists():

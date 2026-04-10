@@ -782,7 +782,7 @@ class TestModularity:
                 if neighbor not in visited:
                     cycle = has_cycle(neighbor, visited, rec_stack)
                     if cycle:
-                        return [start] + cycle
+                        return [start, *cycle]
                 elif neighbor in rec_stack:
                     return [start, neighbor]
 

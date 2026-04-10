@@ -482,7 +482,7 @@ class ProcessManager:
             return False, error_status
 
     def terminate(self, process_pid: int, timeout: int = 5) -> ProcessStatus:
-        """Завершает процесс через terminate() (graceful shutdown).
+        """Завершает процесс корректно (graceful shutdown).
 
         H2: Упрощённый метод для корректного завершения процесса.
         Объединяет логику terminate_process_graceful.
@@ -509,7 +509,7 @@ class ProcessManager:
         )
 
     def kill(self, process_pid: int, timeout: int = 10) -> ProcessStatus:
-        """Принудительно завершает процесс через kill() (forceful shutdown).
+        """Принудительно завершает процесс (forceful shutdown).
 
         H2: Упрощённый метод для принудительного завершения процесса.
         Объединяет логику terminate_process_forceful.
@@ -1249,6 +1249,7 @@ _PROCESS_CACHE_TTL = 5.0  # секунд
 
 def _is_profile_in_use(profile_path: Path) -> bool:
     """Проверяет, используется ли профиль активным процессом Chrome.
+
     - Проверяет активные процессы перед удалением профиля
     - Предотвращает удаление активных профилей.
 
@@ -1348,6 +1349,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
 
 def _safe_remove_profile(profile_path: Path) -> None:
     """Безопасно удаляет профиль Chrome с обработкой ошибок.
+
     - Проверяет активные процессы перед удалением
     - Обрабатывает ошибки удаления файлов.
 

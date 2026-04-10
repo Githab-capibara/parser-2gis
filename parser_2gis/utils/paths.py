@@ -122,7 +122,8 @@ def user_path(is_config: bool = True) -> pathlib.Path:
 
 @lru_cache(maxsize=256)
 def image_path(basename: str, ext: str | None = None) -> str:
-    """Получает путь к изображению `basename`.`ext`.
+    """Получает путь к изображению.
+
     Расширение игнорируется, если `ext` установлен в `None`.
 
     Кэширование:
@@ -200,7 +201,8 @@ def image_path(basename: str, ext: str | None = None) -> str:
 
 @lru_cache
 def image_data(basename: str, ext: str | None = None) -> bytes:
-    """Получает данные изображения `basename`.`ext`.
+    """Получает данные изображения.
+
     Расширение игнорируется, если `ext` установлен в `None`.
 
     Args:

@@ -88,7 +88,7 @@ class TestPortSelectionOS:
         original_setsockopt = socket.socket.setsockopt
 
         def mock_setsockopt(
-            sock: socket.socket, level: int, optname: int, value: int = None
+            sock: socket.socket, level: int, optname: int, value: int | None = None
         ) -> None:
             captured_setsockopt_calls.append((level, optname, value))
             return original_setsockopt(sock, level, optname, value)

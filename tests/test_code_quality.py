@@ -260,27 +260,25 @@ class TestCodeQuality:
             has_unicode_handling = False
 
             for node in ast.walk(tree):
-                if isinstance(node, ast.ExceptHandler):
-                    if node.type is not None:
-                        # Проверяем тип исключения
-                        if isinstance(node.type, ast.Name):
-                            if node.type.id in (
+                if isinstance(node, ast.ExceptHandler) and node.type is not None:
+                    # Проверяем тип исключения
+                    if isinstance(node.type, ast.Name):
+                        if node.type.id in (
+                            "UnicodeEncodeError",
+                            "UnicodeDecodeError",
+                            "UnicodeError",
+                        ):
+                            has_unicode_handling = True
+                            break
+                    elif isinstance(node.type, ast.Tuple):
+                        for elt in node.type.elts:
+                            if isinstance(elt, ast.Name) and elt.id in (
                                 "UnicodeEncodeError",
                                 "UnicodeDecodeError",
                                 "UnicodeError",
                             ):
                                 has_unicode_handling = True
                                 break
-                        elif isinstance(node.type, ast.Tuple):
-                            for elt in node.type.elts:
-                                if isinstance(elt, ast.Name):
-                                    if elt.id in (
-                                        "UnicodeEncodeError",
-                                        "UnicodeDecodeError",
-                                        "UnicodeError",
-                                    ):
-                                        has_unicode_handling = True
-                                        break
 
             # Проверяем файлы которые работают с текстом
             if file_path.name in ("csv_writer.py", "path_utils.py", "serializer.py"):
@@ -346,9 +344,8 @@ class TestCodeQuality:
 
         for _file_path, tree in parsed_files:
             for node in ast.walk(tree):
-                if isinstance(node, ast.ExceptHandler):
-                    if node.type is None:
-                        bare_except_count += 1
+                if isinstance(node, ast.ExceptHandler) and node.type is None:
+                    bare_except_count += 1
 
         # Разрешаем до 5 bare except
         assert bare_except_count <= 5, f"Слишком много bare except: {bare_except_count}"

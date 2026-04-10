@@ -7,6 +7,7 @@
 - Гарантированную очистку ресурсов при SystemExit
 """
 
+import contextlib
 import logging
 import sqlite3
 from pathlib import Path
@@ -46,10 +47,8 @@ class TestCacheManagerFinallyCleanup:
         """
         manager = CacheManager(temp_cache_dir, ttl_hours=24, pool_size=5)
         yield manager
-        try:
+        with contextlib.suppress(Exception):
             manager.close()
-        except Exception:
-            pass
 
     def test_cache_manager_finally_cleanup_memory_error(self, cache_manager: CacheManager, caplog) -> None:
         """Тест очистки ресурсов при MemoryError.

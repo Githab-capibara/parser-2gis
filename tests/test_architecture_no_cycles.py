@@ -52,9 +52,8 @@ def get_module_imports(file_path: Path) -> set[str]:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 imports.add(alias.name)
-        elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                imports.add(node.module)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imports.add(node.module)
 
     return imports
 
@@ -159,7 +158,7 @@ def find_cycles_dfs(dependencies: dict[str, set[str]]) -> list[list[str]]:
             elif neighbor in rec_stack:
                 # Нашли цикл
                 cycle_start = path.index(neighbor)
-                cycle = path[cycle_start:] + [neighbor]
+                cycle = [*path[cycle_start:], neighbor]
                 cycles.append(cycle)
 
         path.pop()

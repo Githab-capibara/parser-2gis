@@ -9,12 +9,12 @@
 """
 
 import time
+from typing import Never
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from parser_2gis.chrome.remote import ChromeRemote
-from typing import Never
 
 
 class TestConnectInterfaceTimeout:

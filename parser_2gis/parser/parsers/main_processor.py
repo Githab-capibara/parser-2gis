@@ -84,6 +84,7 @@ def check_and_optimize_memory(
 
     Returns:
         Кортеж (memory_check_counter, visited_links_cleanup_counter).
+
     """
     memory_check_counter += 1
     visited_links_cleanup_counter += 1
@@ -179,6 +180,7 @@ def get_unique_links(
 
     Returns:
         Список уникальных DOM-узлов ссылок или None при ошибке.
+
     """
     try:
         links = parser._get_links()
