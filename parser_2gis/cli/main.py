@@ -48,7 +48,7 @@ def _log_startup_info(args: Any, config: Configuration, start_time: datetime) ->
         version=version,
         urls_count=urls_count,
         output_path=output_path_str,
-        format=format_str,
+        output_format=format_str,
         config_summary=config_summary,
     )
 

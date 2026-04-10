@@ -300,7 +300,7 @@ def setup_logger(level: str, fmt: str, datefmt: str) -> None:
 
 
 def log_parser_start(
-    version: str, urls_count: int, output_path: str, format: str, config_summary: dict | None = None
+    version: str, urls_count: int, output_path: str, output_format: str, config_summary: dict | None = None
 ) -> None:
     """Логирует запуск парсера с подробной информацией.
 
@@ -310,7 +310,7 @@ def log_parser_start(
         version: Версия парсера.
         urls_count: Количество URL для парсинга.
         output_path: Путь к выходному файлу.
-        format: Формат выходного файла.
+        output_format: Формат выходного файла.
         config_summary: Краткая сводка конфигурации.
 
     """
@@ -321,7 +321,7 @@ def log_parser_start(
         version=version,
         urls_count=urls_count,
         output_path=output_path,
-        format=format,
+        output_format=output_format,
         config_summary=config_summary,
     )
 
