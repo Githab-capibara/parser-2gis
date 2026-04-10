@@ -617,7 +617,7 @@ class TUIApp(App):
         """
         try:
             self._running = True
-            self._started_at = datetime.now(tz=None)
+            self._started_at = datetime.now(tz=None)  # noqa: DTZ005
 
             # Проверка флага остановки перед началом работы
             if not self._running:

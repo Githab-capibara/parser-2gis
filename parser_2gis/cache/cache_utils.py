@@ -171,7 +171,7 @@ def is_cache_expired(expires_at: datetime | None) -> bool:
         return True
 
     # Используем local time (tz=None) т.к. parse_expires_at возвращает naive datetime
-    return datetime.now(tz=None) > expires_at
+    return datetime.now(tz=None) > expires_at  # noqa: DTZ005
 
 
 __all__ = [

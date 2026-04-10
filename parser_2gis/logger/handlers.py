@@ -114,7 +114,7 @@ class FileLogger:
         self._log_dir.mkdir(parents=True, exist_ok=True)
 
         # Генерируем имя файла с датой и временем
-        timestamp = datetime.now(tz=None).strftime("%Y-%m-%d_%H-%M-%S")
+        timestamp = datetime.now(tz=None).strftime("%Y-%m-%d_%H-%M-%S")  # noqa: DTZ005
         return self._log_dir / f"parser_{timestamp}.log"
 
     def _setup_file_handler(self) -> None:
@@ -174,7 +174,7 @@ class FileLogger:
             session_logger = logging.getLogger("parser-2gis")
             session_logger.info("=" * 80)
             session_logger.info("НАЧАЛО НОВОЙ СЕССИИ")
-            session_logger.info("Время запуска: %s", datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S"))
+            session_logger.info("Время запуска: %s", datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S"))  # noqa: DTZ005
             # Проверяем, что файл лога существует перед вызовом absolute()
             if self._log_file:
                 session_logger.info("Файл лога: %s", self._log_file.absolute())
@@ -253,7 +253,7 @@ class FileLogger:
                 session_logger.info("=" * 80)
                 session_logger.info("ЗАВЕРШЕНИЕ СЕССИИ")
                 session_logger.info(
-                    "Время завершения: %s", datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")
+                    "Время завершения: %s", datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S"),  # noqa: DTZ005
                 )
                 session_logger.info("=" * 80)
 
