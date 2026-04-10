@@ -76,7 +76,7 @@ class SemaphoreManager:
                 f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
             )
 
-    def acquire(self, blocking: bool = True, timeout: float | None = None) -> bool:
+    def acquire(self, *, blocking: bool = True, timeout: float | None = None) -> bool:
         """Захватывает слот семафора.
 
         Args:

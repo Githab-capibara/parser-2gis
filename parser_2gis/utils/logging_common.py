@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 def log_parsing_completion(
     city_name: str,
     category_name: str,
+    *,
     success: bool,
     duration: float | None = None,
     result_path: str | None = None,

@@ -94,7 +94,7 @@ logger = logging.getLogger(__name__)
 
 
 def _check_timeout_expired(
-    start_time: float, timeout: int | None, func_name: str, throw_exception: bool
+    start_time: float, timeout: int | None, func_name: str, *, throw_exception: bool
 ) -> tuple[bool, Any]:
     """Проверяет, истёк ли таймаут.
 
@@ -118,7 +118,7 @@ def _check_timeout_expired(
 
 
 def _check_max_retries_exceeded(
-    attempt_count: int, max_retries: int | None, func_name: str, throw_exception: bool
+    attempt_count: int, max_retries: int | None, func_name: str, *, throw_exception: bool
 ) -> tuple[bool, Any]:
     """Проверяет, превышено ли максимальное количество попыток.
 
@@ -144,6 +144,7 @@ def _check_max_retries_exceeded(
 
 
 def _update_poll_interval(
+    *,
     use_exponential_backoff: bool,
     consecutive_failures: int,
     base_poll_interval: float,
@@ -222,6 +223,7 @@ def _default_predicate(value: Any) -> bool:
 def wait_until_finished(
     timeout: int | None = None,
     finished: Callable[[Any], bool] | None = None,
+    *,
     throw_exception: bool = True,
     poll_interval: float = DEFAULT_POLL_INTERVAL,
     use_exponential_backoff: bool = True,
@@ -419,6 +421,7 @@ def wait_until_finished(
 def async_wait_until_finished(
     timeout: int | None = None,
     finished: Callable[[Any], bool] | None = None,
+    *,
     throw_exception: bool = True,
     poll_interval: float = DEFAULT_POLL_INTERVAL,
     use_exponential_backoff: bool = True,

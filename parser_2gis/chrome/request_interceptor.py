@@ -85,7 +85,7 @@ class RequestInterceptor:
                     del self._response_queues[pattern]
                 app_logger.debug("Удалён паттерн ответа: %s", pattern)
 
-    def get_response(self, pattern: str, block: bool = False) -> Response | None:
+    def get_response(self, pattern: str, *, block: bool = False) -> Response | None:
         """Получает ответ по паттерну.
 
         Args:

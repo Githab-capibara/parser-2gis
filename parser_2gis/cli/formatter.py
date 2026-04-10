@@ -95,7 +95,7 @@ class ArgumentHelpFormatter(argparse.HelpFormatter):
         return help_string
 
 
-def patch_argparse_translations(force: bool = False) -> None:
+def patch_argparse_translations(*, force: bool = False) -> None:
     """Патчит gettext в argparse для перевода строк на русский язык.
 
     Заменяет стандартные сообщения argparse на русские аналоги.

@@ -84,6 +84,7 @@ def retry_with_backoff(
     delay: float = 1.0,
     backoff_factor: float = 2.0,
     max_delay: float = DEFAULT_MAX_RETRY_DELAY,
+    *,
     jitter: bool = True,
     exceptions: RetryableException = DEFAULT_RETRY_EXCEPTIONS,
     logger_name: str | None = None,

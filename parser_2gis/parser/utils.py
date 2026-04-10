@@ -42,7 +42,7 @@ _BLOCKED_EXTRA_REQUESTS: tuple[str, ...] = (
 
 
 @functools.lru_cache(maxsize=2)
-def blocked_requests(extended: bool = False) -> tuple[str, ...]:
+def blocked_requests(*, extended: bool = False) -> tuple[str, ...]:
     """Получить список заблокированных запросов.
 
     Включает метрику, логирование, аналитику, счётчики, рекламу и т.д.

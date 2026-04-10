@@ -712,7 +712,7 @@ class TUIApp(App):
                 finally:
                     self._cleanup_in_progress = False
 
-    def _parsing_complete(self, success: bool) -> None:
+    def _parsing_complete(self, success: bool) -> None:  # noqa: FBT001
         """Обработка завершения парсинга."""
         screen = self.screen
         if hasattr(screen, "on_parsing_complete"):

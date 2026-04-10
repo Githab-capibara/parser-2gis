@@ -70,6 +70,7 @@ class ArgumentValidator:
         min_val: int,
         max_val: float,
         error_name: str,
+        *,
         convert_to_int: bool = False,
     ) -> None:
         """Валидирует CLI аргумент и выводит ошибку при некорректном значении.

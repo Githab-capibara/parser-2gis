@@ -79,7 +79,7 @@ class BaseContextualException(Exception):
     line_number: int
     filename: str
 
-    def __init__(self, message: str = "", capture_context: bool = True, **kwargs: Any) -> None:
+    def __init__(self, message: str = "", *, capture_context: bool = True, **kwargs: Any) -> None:
         """Инициализирует исключение с контекстной информацией.
 
         Args:

@@ -267,7 +267,7 @@ class MergerProtocol(Protocol):
 class ProgressReporterProtocol(Protocol):
     """Protocol для репортёра прогресса."""
 
-    def update_progress(self, success: bool, filename: str) -> None:
+    def update_progress(self, *, success: bool, filename: str) -> None:
         """Обновляет прогресс."""
 
     def get_stats(self) -> dict[str, Any]:

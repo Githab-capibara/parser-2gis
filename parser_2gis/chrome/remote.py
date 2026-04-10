@@ -916,7 +916,7 @@ class ChromeRemote:
         with self._requests_lock:
             return [*self._requests.values()]
 
-    def get_document(self, full: bool = True) -> DOMNode:
+    def get_document(self, *, full: bool = True) -> DOMNode:
         """Получает DOM-дерево документа."""
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в get_document")

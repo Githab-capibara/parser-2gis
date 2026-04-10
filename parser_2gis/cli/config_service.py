@@ -137,6 +137,7 @@ class ConfigService:
     def load_config(
         config_cls: type[BaseModel],
         config_path: pathlib.Path | None = None,
+        *,
         auto_create: bool = True,
     ) -> BaseModel:
         """Загружает конфигурацию из файла.

@@ -376,7 +376,7 @@ class ParsingScreen(Screen):
         # Безопасный возврат в меню после остановки
         self._return_to_menu()
 
-    def on_parsing_complete(self, success: bool) -> None:
+    def on_parsing_complete(self, success: bool) -> None:  # noqa: FBT001
         """Обработать завершение парсинга.
 
         Args:

@@ -157,6 +157,7 @@ class ConnectionPool:
         self,
         cache_file: Path,
         pool_size: int | None = None,
+        *,
         use_dynamic: bool = False,  # Для обратной совместимости
     ) -> None:
         """Инициализация пула соединений.

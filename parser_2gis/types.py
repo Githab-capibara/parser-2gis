@@ -73,7 +73,7 @@ class EnvValidationResult(tuple[bool, str | None]):
     Кортеж (is_valid: bool, error_message: str | None).
     """
 
-    def __new__(cls, is_valid: bool, error_message: str | None = None) -> EnvValidationResult:
+    def __new__(cls, *, is_valid: bool, error_message: str | None = None) -> EnvValidationResult:
         """Создаёт результат валидации.
 
         Args:

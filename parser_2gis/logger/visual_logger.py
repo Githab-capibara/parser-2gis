@@ -114,7 +114,7 @@ class VisualLogger:
     - Прогресс-бары
     """
 
-    def __init__(self, use_colors: bool | None = None, use_emoji: bool = True) -> None:
+    def __init__(self, *, use_colors: bool | None = None, use_emoji: bool = True) -> None:
         """Инициализация визуального логгера.
 
         Args:
@@ -156,7 +156,7 @@ class VisualLogger:
         return datetime.now(tz=None).strftime("%H:%M:%S.%f")[:-3]  # noqa: DTZ005
 
     def format_message(
-        self, message: str, level: str = "INFO", emoji: str | None = None, bold: bool = False
+        self, message: str, level: str = "INFO", emoji: str | None = None, *, bold: bool = False
     ) -> str:
         """Форматирует сообщение с цветом и emoji.
 
@@ -301,6 +301,7 @@ class VisualLogger:
         total: int,
         prefix: str = "Прогресс",
         length: int = 40,
+        *,
         show_percent: bool = True,
         show_count: bool = True,
     ) -> str:
@@ -406,10 +407,10 @@ class VisualLogger:
             )
             raise
 
-    def print_info(self, message: str, bold: bool = False) -> None:
+    def print_info(self, message: str, *, bold: bool = False) -> None:
         """Печатает информационное сообщение."""
         try:
-            print(self.format_message(message, "INFO", Emoji.INFO, bold))
+            print(self.format_message(message, "INFO", Emoji.INFO, bold=bold))
         except OSError as e:
             _logger.exception("Ошибка вывода информационного сообщения: %s. Сообщение: %s", e, message)
             print(f"ℹ️ {message}")
@@ -492,10 +493,10 @@ def print_warning(message: str) -> None:
         raise
 
 
-def print_info(message: str, bold: bool = False) -> None:
+def print_info(message: str, *, bold: bool = False) -> None:
     """Выводит информационное сообщение."""
     try:
-        visual_logger.print_info(message, bold)
+        visual_logger.print_info(message, bold=bold)
     except (OSError, TypeError, RuntimeError) as e:
         _logger.exception("Ошибка в глобальной функции print_info: %s. Сообщение: %s", e, message)
         raise

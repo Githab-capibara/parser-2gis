@@ -234,6 +234,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
 
     def _process_parse_result(
         self,
+        *,
         success: bool,
         city_name: str,
         category_name: str,
@@ -442,7 +443,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             # Переименовываем временный файл в целевой
             self._rename_temp_to_final(temp_filepath, filepath, temp_filename)
             return self._process_parse_result(
-                True, city_name, category_name, filepath, progress_callback
+                success=True, city_name=city_name, category_name=category_name, filepath=filepath, progress_callback=progress_callback
             )
 
         # Используем ThreadPoolExecutor для установки таймаута (потокобезопасная альтернатива signal.alarm)

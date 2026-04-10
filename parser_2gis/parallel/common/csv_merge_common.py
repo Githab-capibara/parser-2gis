@@ -45,7 +45,7 @@ def _log_message(
         log_callback(msg, level)
 
 
-def _get_cached_fieldnames(fieldnames_tuple: tuple[str, ...], add_category: bool) -> list[str]:
+def _get_cached_fieldnames(fieldnames_tuple: tuple[str, ...], *, add_category: bool) -> list[str]:
     """Вычисляет fieldnames с добавлением колонки категории.
 
     Args:
@@ -201,7 +201,7 @@ def merge_csv_files_common(
 
                     fieldnames_key = tuple(reader.fieldnames)
                     if fieldnames_key not in fieldnames_cache:
-                        fieldnames = _get_cached_fieldnames(fieldnames_key, True)
+                        fieldnames = _get_cached_fieldnames(fieldnames_key, add_category=True)
                         fieldnames_cache[fieldnames_key] = fieldnames
                     else:
                         fieldnames = fieldnames_cache[fieldnames_key]

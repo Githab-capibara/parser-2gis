@@ -95,7 +95,7 @@ def _create_merge_fieldnames_cache() -> dict[tuple[str, ...], list[str]]:
 
 
 @lru_cache(maxsize=256)
-def _get_cached_fieldnames(fieldnames_tuple: tuple[str, ...], add_category: bool) -> list[str]:
+def _get_cached_fieldnames(fieldnames_tuple: tuple[str, ...], *, add_category: bool) -> list[str]:
     """Кэширует вычисление fieldnames с добавлением колонки категории.
 
     P0-9: LRU кэш на 256 записей для предотвращения повторных вычислений
@@ -626,7 +626,7 @@ class ParallelCityParser:
             fieldnames_key = tuple(reader.fieldnames)
             # P0-9: Сначала проверяем локальный кэш, затем используем lru_cache
             if fieldnames_key not in fieldnames_cache:
-                fieldnames = _get_cached_fieldnames(fieldnames_key, True)
+                fieldnames = _get_cached_fieldnames(fieldnames_key, add_category=True)
                 fieldnames_cache[fieldnames_key] = fieldnames
             else:
                 fieldnames = fieldnames_cache[fieldnames_key]

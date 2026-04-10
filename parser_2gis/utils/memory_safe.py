@@ -30,6 +30,7 @@ DEFAULT_MEMORY_THRESHOLD_MB = 100
 
 def safe_parse_with_memory_check(
     _memory_threshold_mb: int = DEFAULT_MEMORY_THRESHOLD_MB,
+    *,
     clear_cache_on_error: bool = True,
     log_level: str = "error",
 ) -> Callable[[Callable[P, R]], Callable[P, R | None]]:

@@ -24,6 +24,7 @@ DEFAULT_MMAP_THRESHOLD = 1 * 1024 * 1024
 def load_json_mmap(
     file_path: Path,
     threshold_bytes: int = DEFAULT_MMAP_THRESHOLD,
+    *,
     validate_size: bool = True,
     max_file_size: int | None = None,
 ) -> Any:

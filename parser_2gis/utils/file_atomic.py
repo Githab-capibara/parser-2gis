@@ -18,7 +18,7 @@ from pathlib import Path
 from parser_2gis.logger import logger as app_logger
 
 
-def atomic_replace(src: Path, dst: Path, log_debug: bool = False) -> bool:
+def atomic_replace(src: Path, dst: Path, *, log_debug: bool = False) -> bool:
     """Атомарно заменяет файл dst файлом src.
 
     Использует os.replace() для атомарной замены. Если os.replace() не удаётся

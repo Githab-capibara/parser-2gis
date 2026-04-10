@@ -93,7 +93,7 @@ class Schedule(BaseModel):
     # Дата конца изменений в расписании работы. Формат: "YYYY-MM-DD"
     date_to: str | None = None
 
-    def to_str(self, join_char: str, add_comment: bool = False) -> str:
+    def to_str(self, join_char: str, *, add_comment: bool = False) -> str:
         """Расписание как строка.
 
         Args:

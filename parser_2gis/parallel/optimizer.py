@@ -307,7 +307,7 @@ class ParallelOptimizer:
 
         return task
 
-    def complete_task(self, task: ParallelTask, success: bool) -> None:
+    def complete_task(self, task: ParallelTask, *, success: bool) -> None:
         """Отмечает задачу как завершенную.
 
         Args:
@@ -434,7 +434,7 @@ class ParallelOptimizer:
                     try:
                         task = futures[future]
                         success, _ = future.result(timeout=300)
-                        self.complete_task(task, success)
+                        self.complete_task(task, success=success)
                         completed.append(future)
 
                         if success:
@@ -453,7 +453,7 @@ class ParallelOptimizer:
                         logger.error(
                             "Ошибка в задаче %s - %s: %s", task.city_name, task.category_name, e
                         )
-                        self.complete_task(task, False)
+                        self.complete_task(task, success=False)
                         completed.append(future)
                         failed_count += 1
 

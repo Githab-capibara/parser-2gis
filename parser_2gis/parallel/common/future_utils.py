@@ -75,7 +75,7 @@ def get_future_result_safely(
         return False, default
 
 
-def shutdown_executor_safely(executor: Any, wait: bool = True, cancel_futures: bool = True) -> bool:
+def shutdown_executor_safely(executor: Any, *, wait: bool = True, cancel_futures: bool = True) -> bool:
     """Безопасно завершает ThreadPoolExecutor.
 
     Args:

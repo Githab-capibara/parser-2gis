@@ -79,7 +79,7 @@ class ProgressManager:
 
     """
 
-    def __init__(self, disable: bool = False) -> None:
+    def __init__(self, *, disable: bool = False) -> None:
         """Инициализация менеджера прогресса.
 
         Args:

@@ -142,7 +142,7 @@ class ContactFormatter(BaseFormatter):
 
     """
 
-    def __init__(self, add_comments: bool = False) -> None:
+    def __init__(self, *, add_comments: bool = False) -> None:
         """Инициализирует ContactFormatter.
 
         Args:

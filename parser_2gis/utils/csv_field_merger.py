@@ -71,7 +71,7 @@ class CSVFieldMerger:
         return merged
 
     def get_fieldnames_with_category(
-        self, original_fieldnames: list[str], add_category: bool = True
+        self, original_fieldnames: list[str], *, add_category: bool = True
     ) -> list[str]:
         """Возвращает имена полей с добавлением колонки категории.
 
@@ -148,7 +148,7 @@ def merge_fieldnames(all_fieldnames: list[list[str]]) -> list[str]:
     return _field_merger.merge_fieldnames(all_fieldnames)
 
 
-def get_fieldnames_with_category(fieldnames: list[str], add_category: bool = True) -> list[str]:
+def get_fieldnames_with_category(fieldnames: list[str], *, add_category: bool = True) -> list[str]:
     """Удобная функция для получения имён полей с категорией.
 
     Args:
@@ -159,7 +159,7 @@ def get_fieldnames_with_category(fieldnames: list[str], add_category: bool = Tru
         Список имён полей с категорией.
 
     """
-    return _field_merger.get_fieldnames_with_category(fieldnames, add_category)
+    return _field_merger.get_fieldnames_with_category(fieldnames, add_category=add_category)
 
 
 __all__ = [

@@ -96,7 +96,7 @@ def data_path() -> pathlib.Path:
     return resources_path()
 
 
-def user_path(is_config: bool = True) -> pathlib.Path:
+def user_path(*, is_config: bool = True) -> pathlib.Path:
     """Получает пользовательский путь для Linux Ubuntu.
 
     Примечание:

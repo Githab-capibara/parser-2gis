@@ -313,7 +313,7 @@ class ParseStrategy:
         # #63: Использует общую утилиту из cleanup_utils.py
         cleanup_temp_file(temp_filepath, description="Временный файл удалён")
 
-    def _update_stats(self, success: bool) -> None:
+    def _update_stats(self, *, success: bool) -> None:
         """Обновляет статистику."""
         with self._stats_lock:
             if success:
@@ -454,7 +454,7 @@ class ParseStrategy:
                     if hasattr(local_parser, "_cache"):
                         local_parser._cache.clear()
                     gc.collect()
-                    self._update_stats(False)
+                    self._update_stats(success=False)
                     return False, f"MemoryError: {memory_error}"
 
                 # Переименовываем файл
@@ -468,7 +468,7 @@ class ParseStrategy:
                     shutil.move(str(temp_filepath), str(filepath))
 
                 self._log(f"Завершён парсинг: {city_name} - {category_name} → {filepath}", "info")
-                self._update_stats(True)
+                self._update_stats(success=True)
 
                 if progress_callback:
                     with self._stats_lock:
@@ -481,7 +481,7 @@ class ParseStrategy:
             except ChromeException as chrome_error:
                 self._log(f"Ошибка Chrome после {max_retries} попыток: {chrome_error}", "error")
                 self._cleanup_temp_file(temp_filepath)
-                self._update_stats(False)
+                self._update_stats(success=False)
                 return False, f"Ошибка Chrome: {chrome_error}"
 
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as parse_error:
@@ -489,7 +489,7 @@ class ParseStrategy:
                     f"Ошибка при парсинге {city_name} - {category_name}: {parse_error}", "error"
                 )
                 self._cleanup_temp_file(temp_filepath)
-                self._update_stats(False)
+                self._update_stats(success=False)
 
                 if progress_callback:
                     with self._stats_lock:
@@ -520,7 +520,7 @@ class ParseStrategy:
                         "error",
                     )
                     self._cleanup_temp_file(temp_filepath)
-                    self._update_stats(False)
+                    self._update_stats(success=False)
 
                     if progress_callback:
                         with self._stats_lock:
@@ -533,7 +533,7 @@ class ParseStrategy:
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             self._log(f"Ошибка парсинга {city_name} - {category_name}: {e}", "error")
             self._cleanup_temp_file(temp_filepath)
-            self._update_stats(False)
+            self._update_stats(success=False)
 
             if progress_callback:
                 with self._stats_lock:

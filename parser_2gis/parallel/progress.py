@@ -82,7 +82,7 @@ class ParallelProgressReporter:
         log_func = getattr(logger, level)
         log_func(message)
 
-    def update_progress(self, success: bool, filename: str = "N/A", force: bool = False) -> None:
+    def update_progress(self, *, success: bool, filename: str = "N/A", force: bool = False) -> None:
         """Обновляет прогресс парсинга.
 
         H019: Throttling обновлений для снижения нагрузки на CPU.

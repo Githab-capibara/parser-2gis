@@ -328,7 +328,7 @@ def log_parser_start(
 
 
 def log_parser_finish(
-    success: bool = True, stats: dict | None = None, duration: str | None = None
+    *, success: bool = True, stats: dict | None = None, duration: str | None = None
 ) -> None:
     """Логирует завершение парсера.
 

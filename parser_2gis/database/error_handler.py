@@ -58,7 +58,7 @@ class DatabaseError(Exception):
 
 
 def handle_db_errors(
-    retry_count: int = 3, retry_delay: float = 0.5, reraise_critical: bool = True
+    retry_count: int = 3, retry_delay: float = 0.5, *, reraise_critical: bool = True
 ) -> Callable[[F], F]:
     """Декоратор для обработки ошибок базы данных.
 

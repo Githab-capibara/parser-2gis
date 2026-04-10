@@ -83,6 +83,7 @@ def _append_contact(
     contact_type: str,
     priority_fields: list[str],
     formatter: Callable[[str], str] | None,
+    *,
     add_comments: bool,
 ) -> None:
     """Добавляет контакт в data.
@@ -559,7 +560,7 @@ class CSVWriter(FileWriter):
                 "youtube",
                 "skype",
             ):
-                _append_contact(data, contact_group, t, ["url"], None, add_comments)
+                _append_contact(data, contact_group, t, ["url"], None, add_comments=add_comments)
 
             # Удаляем параметры из URL WhatsApp
             for field, value in data.items():
@@ -568,7 +569,7 @@ class CSVWriter(FileWriter):
 
             # Текстовые значения (email, skype и т.д.)
             for t in ("email", "skype"):
-                _append_contact(data, contact_group, t, ["value"], None, add_comments)
+                _append_contact(data, contact_group, t, ["value"], None, add_comments=add_comments)
 
             # Телефоны (поле `value` иногда содержит нерелевантные данные,
             # поэтому предпочитаем парсить поле `text`.
@@ -579,7 +580,7 @@ class CSVWriter(FileWriter):
                 "phone",
                 ["text", "value"],
                 self._phone_formatter.format,
-                add_comments,
+                add_comments=add_comments,
             )
 
         # Режим работы объекта

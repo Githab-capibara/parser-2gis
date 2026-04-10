@@ -157,7 +157,7 @@ def _get_http_cache() -> _HTTPCache:
     return _get_http_cache._instance  # type: ignore[attr-defined]
 
 
-def _get_cache_key(method: str, url: str, verify_ssl: bool) -> tuple:
+def _get_cache_key(method: str, url: str, *, verify_ssl: bool) -> tuple:
     """Создаёт ключ кэша для HTTP запроса.
 
     Args:

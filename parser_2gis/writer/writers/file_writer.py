@@ -127,7 +127,7 @@ class FileWriter(WriterProtocol, ABC):
         open_kwargs.update(kwargs)
         return open(file_path, mode, **open_kwargs)
 
-    def _check_catalog_doc(self, catalog_doc: Any, verbose: bool = True) -> bool:
+    def _check_catalog_doc(self, catalog_doc: Any, *, verbose: bool = True) -> bool:
         """Проверяет JSON-документ Catalog Item API на ошибки.
 
         ISSUE-168: Добавлено описание формата ошибки в meta.
