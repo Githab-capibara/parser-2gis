@@ -19,7 +19,6 @@ from collections.abc import Callable
 from pathlib import Path
 
 
-
 class MergeSignalHandler:
     """Обработчик сигналов для merge операций.
 
@@ -67,7 +66,7 @@ class MergeSignalHandler:
                     self._log(f"Временный файл удалён при прерывании: {temp_file}", "debug")
             except (OSError, RuntimeError, ValueError) as cleanup_error:
                 self._log(
-                    f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}", "error"
+                    f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}", "error",
                 )
 
     def _signal_handler(self, signum: int, frame: types.FrameType | None) -> None:
@@ -104,7 +103,7 @@ class MergeSignalHandler:
                 signal.signal(signal.SIGTERM, self._old_sigterm_handler)
             except (OSError, ValueError, TypeError) as restore_error:
                 self._log(
-                    f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
+                    f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error",
                 )
 
     def __enter__(self) -> MergeSignalHandler:

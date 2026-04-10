@@ -9,7 +9,6 @@ from collections.abc import Callable
 from pathlib import Path
 
 
-
 def cleanup_temp_file(
     temp_filepath: Path,
     log_func: Callable[[str, str], None] | None = None,
@@ -39,5 +38,5 @@ def cleanup_temp_file(
             log_func(f"{description}: {temp_filepath.name}", "debug")
     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
         log_func(
-            f"Не удалось удалить временный файл {temp_filepath.name}: {cleanup_error}", "warning"
+            f"Не удалось удалить временный файл {temp_filepath.name}: {cleanup_error}", "warning",
         )

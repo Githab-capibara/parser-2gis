@@ -16,8 +16,6 @@ ISSUE 077: Создаёт CSVFieldMerger класс для:
 
 from __future__ import annotations
 
-
-
 CATEGORY_COLUMN_NAME = "Категория"
 """Имя колонки категории, добавляемой при слиянии."""
 
@@ -71,7 +69,7 @@ class CSVFieldMerger:
         return merged
 
     def get_fieldnames_with_category(
-        self, original_fieldnames: list[str], *, add_category: bool = True
+        self, original_fieldnames: list[str], *, add_category: bool = True,
     ) -> list[str]:
         """Возвращает имена полей с добавлением колонки категории.
 

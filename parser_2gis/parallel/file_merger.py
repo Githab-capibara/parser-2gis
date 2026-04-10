@@ -88,7 +88,7 @@ class FileMergerStrategy:
             log_func(message)
 
     def merge_csv_files(
-        self, output_file: str, progress_callback: Callable[[str], None] | None = None
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None,
     ) -> bool:
         """Объединяет все CSV файлы в один с добавлением колонки "Категория".
 
@@ -173,7 +173,7 @@ class FileMergerStrategy:
                 self._merge_temp_files.append(temp_output)
 
             with open(
-                temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
+                temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size,
             ) as outfile:
                 writer = None
                 total_rows = 0
@@ -341,17 +341,17 @@ class FileMergerStrategy:
                             os.kill(lock_pid, 0)
                             # Процесс существует - это не осиротевший lock
                             self.log(
-                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем..."
+                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             # Процесс не существует - это осиротевший lock
                             self.log(
-                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек, PID: {lock_pid})"
+                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек, PID: {lock_pid})",
                             )
                             lock_file_path.unlink()
                     else:
                         self.log(
-                            "Lock файл существует (возраст: %.0f сек), ожидаем...", level="warning"
+                            "Lock файл существует (возраст: %.0f сек), ожидаем...", level="warning",
                         )
                 except OSError as e:
                     self.log(f"Ошибка проверки lock файла: {e}")
@@ -363,7 +363,7 @@ class FileMergerStrategy:
                 try:
                     # Атомарное создание файла - вернёт ошибку если файл уже существует
                     lock_fd = os.open(
-                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
+                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644,
                     )
                     lock_file_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
                     lock_fd = None  # Теперь файл управляется через lock_file_handle
@@ -410,7 +410,7 @@ class FileMergerStrategy:
         return typing.cast("tuple[typing.TextIO | None, bool]", (lock_file_handle, lock_acquired))
 
     def _cleanup_merge_lock(
-        self, lock_file_handle: typing.TextIO | None, lock_file_path: Path
+        self, lock_file_handle: typing.TextIO | None, lock_file_path: Path,
     ) -> None:
         """Очищает и удаляет lock файл.
 

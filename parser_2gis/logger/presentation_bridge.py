@@ -90,7 +90,7 @@ class LoggerPresentationBridge:
                 print_config("📄 Writer", config_summary["writer"])
 
     def log_parser_finish(
-        self, *, success: bool = True, stats: dict[str, Any] | None = None, duration: str | None = None
+        self, *, success: bool = True, stats: dict[str, Any] | None = None, duration: str | None = None,
     ) -> None:
         """Логирует завершение парсера через визуальный логгер.
 

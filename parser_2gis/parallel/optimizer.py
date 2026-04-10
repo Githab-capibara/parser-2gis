@@ -139,7 +139,7 @@ class ParallelOptimizer:
                 self._max_memory_mb = int(available_memory_mb * self._memory_percent_threshold)
                 # Ограничиваем разумным диапазоном: минимум 512 MB, максимум 8192 MB
                 self._max_memory_mb = max(
-                    MIN_MEMORY_LIMIT_MB, min(self._max_memory_mb, MAX_MEMORY_LIMIT_MB)
+                    MIN_MEMORY_LIMIT_MB, min(self._max_memory_mb, MAX_MEMORY_LIMIT_MB),
                 )
                 logger.debug(
                     "Автоматически определён лимит памяти: %d MB (доступно: %.0f MB, процент: %.0f%%)",
@@ -212,7 +212,7 @@ class ParallelOptimizer:
             available, _ = self.check_resources()
             if not available:
                 logger.warning(
-                    "Ресурсы ограничены, задача не добавлена: %s - %s", city_name, category_name
+                    "Ресурсы ограничены, задача не добавлена: %s - %s", city_name, category_name,
                 )
                 return
             # Оптимизация 3.5: Queue потокобезопасен, но блокировка гарантирует атомарность
@@ -220,7 +220,7 @@ class ParallelOptimizer:
             self._stats["total_tasks"] += 1
 
         logger.debug(
-            "Добавлена задача: %s - %s (приоритет: %d)", city_name, category_name, priority
+            "Добавлена задача: %s - %s (приоритет: %d)", city_name, category_name, priority,
         )
 
     def check_resources(self) -> tuple[bool, float]:
@@ -451,7 +451,7 @@ class ParallelOptimizer:
                     except (OSError, ValueError, RuntimeError) as e:
                         task = futures[future]
                         logger.error(
-                            "Ошибка в задаче %s - %s: %s", task.city_name, task.category_name, e
+                            "Ошибка в задаче %s - %s: %s", task.city_name, task.category_name, e,
                         )
                         self.complete_task(task, success=False)
                         completed.append(future)
@@ -466,7 +466,7 @@ class ParallelOptimizer:
                     time.sleep(SHORT_CHECK_INTERVAL)
 
         logger.info(
-            "Параллельный парсинг завершен. Успешно: %d, Ошибок: %d", success_count, failed_count
+            "Параллельный парсинг завершен. Успешно: %d, Ошибок: %d", success_count, failed_count,
         )
 
         return failed_count == 0

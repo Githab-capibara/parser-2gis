@@ -117,7 +117,7 @@ class EnvConfig:
             value = int(value_str)
         except ValueError as e:
             self._logger.exception(
-                "ENV переменная %s=%s не является целым числом: %s", env_name, value_str, e
+                "ENV переменная %s=%s не является целым числом: %s", env_name, value_str, e,
             )
             return default
 
@@ -321,7 +321,7 @@ class EnvConfig:
 
         for entry in env_validations:
             value = self._validate_env_int(
-                entry.env_name, entry.default, entry.min_value, entry.max_value
+                entry.env_name, entry.default, entry.min_value, entry.max_value,
             )
             object.__setattr__(self, entry.attr_name, value)
             self._logger.info(entry.log_template, value)
@@ -528,7 +528,7 @@ def __getattr__(name: str) -> int | float | list[str] | EnvConfig:
 
 
 def validate_env_int(
-    env_name: str, default: int, min_value: int | None = None, max_value: int | None = None
+    env_name: str, default: int, min_value: int | None = None, max_value: int | None = None,
 ) -> int:
     """Валидирует ENV переменную как целое число в допустимом диапазоне.
 

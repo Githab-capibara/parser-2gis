@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 
 def _log_message(
-    msg: str, level: str = "debug", log_callback: Callable[[str, str], None] | None = None
+    msg: str, level: str = "debug", log_callback: Callable[[str, str], None] | None = None,
 ) -> None:
     """Общая функция для логирования через callback.
 
@@ -127,13 +127,13 @@ def _acquire_merge_lock(
                     lock_file_handle.close()
                 except (OSError, RuntimeError, ValueError) as close_error:
                     _log_message(
-                        f"Ошибка при закрытии lock файла: {close_error}", "error", log_callback
+                        f"Ошибка при закрытии lock файла: {close_error}", "error", log_callback,
                     )
                 lock_file_handle = None
 
                 if time.time() - start_time > timeout:
                     _log_message(
-                        f"Таймаут ожидания lock файла ({timeout} сек)", "error", log_callback
+                        f"Таймаут ожидания lock файла ({timeout} сек)", "error", log_callback,
                     )
                     return None, False
 
@@ -144,7 +144,7 @@ def _acquire_merge_lock(
                     lock_file_handle.close()
                 except (OSError, RuntimeError, ValueError) as close_error:
                     _log_message(
-                        f"Ошибка при закрытии lock файла: {close_error}", "error", log_callback
+                        f"Ошибка при закрытии lock файла: {close_error}", "error", log_callback,
                     )
                 lock_file_handle = None
 
@@ -199,7 +199,7 @@ def _merge_csv_files(
 
 
 def _cleanup_source_files(
-    file_paths: list[Path], log_callback: Callable[[str, str], None] | None = None
+    file_paths: list[Path], log_callback: Callable[[str, str], None] | None = None,
 ) -> int:
     """Очищает исходные файлы после объединения.
 
@@ -223,7 +223,7 @@ def _cleanup_source_files(
 
 
 def _validate_merged_file(
-    output_path: Path, log_callback: Callable[[str, str], None] | None = None
+    output_path: Path, log_callback: Callable[[str, str], None] | None = None,
 ) -> bool:
     """Валидирует объединённый файл.
 
@@ -299,7 +299,7 @@ class ParallelFileMerger:
             batch_size=MERGE_BATCH_SIZE,
         )
         self._lock_manager = MergeLockManager(
-            log_callback=lambda msg, level: self.log(msg, level), timeout=MERGE_LOCK_TIMEOUT
+            log_callback=lambda msg, level: self.log(msg, level), timeout=MERGE_LOCK_TIMEOUT,
         )
 
     def log(self, message: str, level: str = "info") -> None:
@@ -347,7 +347,7 @@ class ParallelFileMerger:
         return self._lock_manager.acquire_lock(lock_file_path)
 
     def cleanup_merge_lock(
-        self, lock_file_handle: typing.TextIO | None, lock_file_path: Path
+        self, lock_file_handle: typing.TextIO | None, lock_file_path: Path,
     ) -> None:
         """Очищает и удаляет lock файл.
 
@@ -373,11 +373,11 @@ class ParallelFileMerger:
         ISSUE-025: Делегирует MergeCSVHandler.
         """
         return self._csv_handler.process_single_csv_file(
-            csv_file=csv_file, writer=writer, outfile=outfile, fieldnames_cache=fieldnames_cache
+            csv_file=csv_file, writer=writer, outfile=outfile, fieldnames_cache=fieldnames_cache,
         )
 
     def merge_csv_files(
-        self, output_file: str, progress_callback: Callable[[str], None] | None = None
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None,
     ) -> bool:
         """Объединяет все CSV файлы в один с добавлением колонки "Категория".
 
@@ -461,7 +461,7 @@ class ParallelFileMerger:
                 self._merge_temp_files.append(temp_output)
 
             with open(
-                temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
+                temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size,
             ) as outfile:
                 temp_file_created = True
                 writer = None
@@ -566,7 +566,7 @@ class ParallelFileMerger:
                     signal.signal(signal.SIGINT, old_sigint_handler)
                 except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
                     self.log(
-                        f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error"
+                        f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error",
                     )
 
             if sigterm_registered:
@@ -574,7 +574,7 @@ class ParallelFileMerger:
                     signal.signal(signal.SIGTERM, old_sigterm_handler)
                 except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
                     self.log(
-                        f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
+                        f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error",
                     )
 
             temp_file_manager.unregister(temp_output)
@@ -585,7 +585,7 @@ class ParallelFileMerger:
                     self.log("Временный файл удалён в блоке finally (защита от утечек)", "debug")
                 except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                     self.log(
-                        f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning"
+                        f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning",
                     )
 
             with self._merge_lock:

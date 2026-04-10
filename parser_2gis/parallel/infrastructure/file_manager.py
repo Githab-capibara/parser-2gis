@@ -70,7 +70,7 @@ class FileManager:
         for attempt in range(MAX_UNIQUE_NAME_ATTEMPTS):
             try:
                 temp_fd = os.open(
-                    str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
+                    str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644,
                 )
                 os.close(temp_fd)
                 temp_fd = None
@@ -100,7 +100,7 @@ class FileManager:
                     temp_fd = None
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(
-                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1
+                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1,
                     )
                     temp_filename = (
                         f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
@@ -137,12 +137,12 @@ class FileManager:
             return True
         except OSError as replace_error:
             logger.debug(
-                "Не удалось переименовать файл (OSError): %s. Используем shutil.move", replace_error
+                "Не удалось переименовать файл (OSError): %s. Используем shutil.move", replace_error,
             )
             try:
                 shutil.move(str(src_path), str(dst_path))
                 logger.debug(
-                    "Файл перемещён через shutil.move: %s → %s", src_path.name, dst_path.name
+                    "Файл перемещён через shutil.move: %s → %s", src_path.name, dst_path.name,
                 )
                 return True
             except (OSError, RuntimeError, TypeError, ValueError) as move_error:
@@ -186,7 +186,7 @@ class FileManager:
         return deleted_count
 
     def acquire_lock(
-        self, lock_file_path: Path, timeout: int = MAX_LOCK_FILE_AGE
+        self, lock_file_path: Path, timeout: int = MAX_LOCK_FILE_AGE,
     ) -> tuple[int | None, bool]:
         """Получает блокировку файла.
 
@@ -220,12 +220,12 @@ class FileManager:
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             logger.debug(
-                                "Удаление осиротевшего lock файла (возраст: %.0f сек)", lock_age
+                                "Удаление осиротевшего lock файла (возраст: %.0f сек)", lock_age,
                             )
                             lock_file_path.unlink()
                     else:
                         logger.warning(
-                            "Lock файл существует (возраст: %.0f сек), ожидаем...", lock_age
+                            "Lock файл существует (возраст: %.0f сек), ожидаем...", lock_age,
                         )
                 except OSError as e:
                     logger.debug("Ошибка проверки lock файла: %s", e)
@@ -235,7 +235,7 @@ class FileManager:
             while not lock_acquired:
                 try:
                     lock_fd = os.open(
-                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
+                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644,
                     )
                     # Получаем exclusive lock
                     fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -252,7 +252,7 @@ class FileManager:
                             os.close(lock_fd)
                         except OSError as close_error:
                             logger.debug(
-                                "Ошибка при закрытии fd lock файла (игнорируется): %s", close_error
+                                "Ошибка при закрытии fd lock файла (игнорируется): %s", close_error,
                             )
                     lock_fd = None
 

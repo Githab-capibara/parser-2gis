@@ -20,9 +20,9 @@ __all__ = [
     # Валидация JS (для backward совместимости)
     "DANGEROUS_JS_PATTERNS",
     "MAX_JS_CODE_LENGTH",
+    "ChromeBrowser",
     # ISSUE 114: Builder для ChromeBrowser
     "ChromeBrowserBuilder",
-    "ChromeBrowser",
     "ChromeOptions",
     # Основные классы
     "ChromeRemote",

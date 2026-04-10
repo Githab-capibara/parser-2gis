@@ -168,19 +168,19 @@ class ThreadCoordinator:
         """
         if max_workers < MIN_WORKERS:
             raise ValueError(
-                f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}"
+                f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}",
             )
         if max_workers > MAX_WORKERS:
             raise ValueError(
-                f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
+                f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}",
             )
         if timeout_per_url < MIN_TIMEOUT:
             raise ValueError(
-                f"timeout_per_url должен быть не менее {MIN_TIMEOUT}, получено {timeout_per_url}"
+                f"timeout_per_url должен быть не менее {MIN_TIMEOUT}, получено {timeout_per_url}",
             )
         if timeout_per_url > MAX_TIMEOUT:
             raise ValueError(
-                f"timeout_per_url не должен превышать {MAX_TIMEOUT}, получено {timeout_per_url}"
+                f"timeout_per_url не должен превышать {MAX_TIMEOUT}, получено {timeout_per_url}",
             )
 
     @staticmethod
@@ -196,7 +196,7 @@ class ThreadCoordinator:
         """
         if executor_type not in ("thread", "process"):
             raise ValueError(
-                f"executor_type должен быть 'thread' или 'process', получено {executor_type}"
+                f"executor_type должен быть 'thread' или 'process', получено {executor_type}",
             )
 
     def log(self, message: str, level: str = "info") -> None:
@@ -242,7 +242,7 @@ class ThreadCoordinator:
             # Отправляем задачи на выполнение
             futures = {
                 executor.submit(
-                    self._parse_url_task, url, category_name, city_name, progress_callback
+                    self._parse_url_task, url, category_name, city_name, progress_callback,
                 ): (url, category_name, city_name)
                 for url, category_name, city_name in all_urls
             }
@@ -279,7 +279,7 @@ class ThreadCoordinator:
                 signal.signal(signal.SIGINT, old_signal_handler)
             except (ValueError, TypeError) as signal_error:
                 logger.debug(
-                    "Ошибка при восстановлении обработчика SIGINT (игнорируется): %s", signal_error
+                    "Ошибка при восстановлении обработчика SIGINT (игнорируется): %s", signal_error,
                 )
 
             if executor is not None:

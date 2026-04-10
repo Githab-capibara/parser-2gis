@@ -17,7 +17,6 @@ from pathlib import Path
 from pydantic import BaseModel, ValidationError
 
 
-
 class ConfigValidator:
     """Валидатор конфигураций.
 
@@ -112,12 +111,12 @@ class ConfigValidator:
                 from parser_2gis.logger.logger import logger as lazy_logger
 
                 lazy_logger.warning(
-                    "Создана резервная копия повреждённой конфигурации: %s", backup_path
+                    "Создана резервная копия повреждённой конфигурации: %s", backup_path,
                 )
                 renamed_path = config_path.with_suffix(config_path.suffix + ".corrupted")
                 config_path.rename(renamed_path)
                 lazy_logger.warning(
-                    "Оригинальный файл переименован: %s -> %s", config_path, renamed_path
+                    "Оригинальный файл переименован: %s -> %s", config_path, renamed_path,
                 )
             else:
                 from parser_2gis.logger.logger import logger as lazy_logger

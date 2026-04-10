@@ -95,11 +95,11 @@ class FileLockManager:
                                 lock_pid = int(f.read().strip())
                             os.kill(lock_pid, 0)
                             self._log(
-                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем..."
+                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             self._log(
-                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек)"
+                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек)",
                             )
                             self._lock_file_path.unlink()
                     else:
@@ -121,13 +121,13 @@ class FileLockManager:
                         "error",
                     )
                     raise RuntimeError(
-                        f"Не удалось получить lock файл после {self._max_lock_attempts} попыток"
+                        f"Не удалось получить lock файл после {self._max_lock_attempts} попыток",
                     )
 
                 lock_fd = None
                 try:
                     lock_fd = os.open(
-                        str(self._lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
+                        str(self._lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600,
                     )
                     try:
                         self._lock_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
@@ -144,7 +144,7 @@ class FileLockManager:
                                 os.close(lock_fd)
                             except OSError as close_error:
                                 self._log(
-                                    f"Ошибка при закрытии fd lock файла: {close_error}", "debug"
+                                    f"Ошибка при закрытии fd lock файла: {close_error}", "debug",
                                 )
 
                 except (OSError, FileExistsError):

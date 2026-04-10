@@ -45,7 +45,7 @@ class SignalSubscriptionSystem:
         self._installed: bool = False
 
     def subscribe(
-        self, signal_num: int, callback: Callable[[], Any], description: str = ""
+        self, signal_num: int, callback: Callable[[], Any], description: str = "",
     ) -> SignalSubscriptionSystem:
         """Добавляет подписку на сигнал.
 

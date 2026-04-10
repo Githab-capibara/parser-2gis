@@ -30,7 +30,7 @@ class RateLimiterState:
     """
 
     def __init__(
-        self, min_request_interval: float = 0.1, max_requests_per_second: int = 10
+        self, min_request_interval: float = 0.1, max_requests_per_second: int = 10,
     ) -> None:
         """Инициализирует состояние rate limiter.
 
@@ -124,7 +124,7 @@ def get_rate_limiter_state() -> RateLimiterState:
 
 
 def _safe_external_request(
-    method: str = "GET", url: str = "", timeout: int | None = None, **kwargs: Any
+    method: str = "GET", url: str = "", timeout: int | None = None, **kwargs: Any,
 ) -> requests.Response | None:
     """Безопасный внешний запрос с rate limiting.
 

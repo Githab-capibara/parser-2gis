@@ -63,7 +63,7 @@ def calculate_optimal_buffer(
                 return MAX_BUFFER_SIZE, False
             else:
                 app_logger.debug(
-                    "Используется пользовательский размер буфера: %d байт", custom_buffer
+                    "Используется пользовательский размер буфера: %d байт", custom_buffer,
                 )
                 return custom_buffer, False
         except ValueError:

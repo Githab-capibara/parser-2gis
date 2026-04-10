@@ -16,7 +16,6 @@ from typing import TextIO
 from parser_2gis.constants import MAX_LOCK_FILE_AGE, MERGE_LOCK_TIMEOUT
 
 
-
 class MergeLockManager:
     """Управление блокировками при операциях слияния.
 

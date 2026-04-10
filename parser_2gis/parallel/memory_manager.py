@@ -156,7 +156,7 @@ class MemoryManager(MemoryManagerProtocol):
         return collected
 
     def handle_memory_error(
-        self, error: MemoryError, context: str = "", cache_object: Any | None = None
+        self, error: MemoryError, context: str = "", cache_object: Any | None = None,
     ) -> None:
         """Обрабатывает MemoryError.
 

@@ -83,17 +83,19 @@ __all__ = [
     "PROGRESS_UPDATE_INTERVAL",
     # Константы очистки
     "TEMP_FILE_CLEANUP_INTERVAL",
-    # ISSUE 113: Builder для ParallelCityParser
-    "ParallelCityParserBuilder",
+    # ISSUE 107, 112, 115: Новые протоколы и EventEmitter
+    "ConnectionPoolProtocol",
+    "EventEmitter",
     "FileMergerStrategy",
     "MemoryCheckStrategy",
     "MemoryManager",
     "MemoryMonitorProtocol",
     "MergeCSVHandler",
     "MergeLockManager",
-    "create_signal_handler",
     # Основные классы (старые для обратной совместимости)
     "ParallelCityParser",
+    # ISSUE 113: Builder для ParallelCityParser
+    "ParallelCityParserBuilder",
     "ParallelCityParserThread",
     # Основные классы (новые)
     "ParallelCoordinator",
@@ -106,23 +108,21 @@ __all__ = [
     "ParallelProgressReporter",
     "ParallelRunConfig",
     "ParallelUrlParser",
-    # ISSUE 107, 112, 115: Новые протоколы и EventEmitter
-    "ConnectionPoolProtocol",
-    "EventEmitter",
-    "ParsingEvents",
-    # ISSUE 116: Система подписки на сигналы
-    "SignalSubscriptionSystem",
     # ISSUE-030, 040: Стратегии с DI
     "ParseStrategy",
     "ParserFactory",
     "ParserResult",
     "ParserThreadConfig",  # Deprecated: используйте ParallelRunConfig
+    "ParsingEvents",
+    # ISSUE 116: Система подписки на сигналы
+    "SignalSubscriptionSystem",
     "ThreadCoordinator",
     "ThreadManager",
     "UrlGenerationStrategy",
     "UrlTuple",
     "WriterFactory",
     "check_memory_safety",
+    "create_signal_handler",
     # Функции управления памятью
     "get_memory_manager",
 ]

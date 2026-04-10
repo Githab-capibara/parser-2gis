@@ -11,7 +11,6 @@ from typing import Any
 from parser_2gis.logger import logger
 
 
-
 def create_signal_handler(context_getter: Any) -> Any:
     """Создаёт обработчик сигналов SIGINT для координатора.
 

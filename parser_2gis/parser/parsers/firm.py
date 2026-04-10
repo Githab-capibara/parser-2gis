@@ -213,7 +213,7 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
 
     if isinstance(data, dict) and len(data) > MAX_ITEMS_IN_COLLECTION:
         logger.warning(
-            "Словарь в initialState превышает максимальное количество элементов: %d", len(data)
+            "Словарь в initialState превышает максимальное количество элементов: %d", len(data),
         )
         return False, item_count
 
@@ -233,7 +233,7 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
 
     if isinstance(data, list) and len(data) > MAX_ITEMS_IN_COLLECTION:
         logger.warning(
-            "Список в initialState превышает максимальное количество элементов: %d", len(data)
+            "Список в initialState превышает максимальное количество элементов: %d", len(data),
         )
         return False, item_count
 
@@ -341,7 +341,7 @@ class FirmParser(MainParser):
 
             if mime_type != "text/html":
                 logger.error(
-                    "Неверный тип MIME ответа: %s", document_response.get("mimeType", "неизвестно")
+                    "Неверный тип MIME ответа: %s", document_response.get("mimeType", "неизвестно"),
                 )
                 return
 
@@ -396,7 +396,7 @@ class FirmParser(MainParser):
 
             # Записываем API документ в файл
             writer.write(
-                {"result": {"items": [firm_data["data"]]}, "meta": firm_data.get("meta", {})}
+                {"result": {"items": [firm_data["data"]]}, "meta": firm_data.get("meta", {})},
             )
 
         except MemoryError as memory_error:

@@ -88,7 +88,7 @@ class JSONWriter(FileWriter):
         items = result.get("items")
         if not isinstance(items, list) or len(items) == 0:
             logger.warning(
-                "catalog_doc['result']['items'] пуст или не является списком, пропускаем"
+                "catalog_doc['result']['items'] пуст или не является списком, пропускаем",
             )
             return
 

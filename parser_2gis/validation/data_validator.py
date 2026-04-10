@@ -190,7 +190,7 @@ def validate_non_empty_list(value: list[Any], field_name: str) -> list[Any]:
 
 
 def validate_list_length(
-    value: list[Any], min_length: int, max_length: int, field_name: str
+    value: list[Any], min_length: int, max_length: int, field_name: str,
 ) -> list[Any]:
     """Валидирует длину списка.
 
@@ -254,7 +254,7 @@ def validate_email(email: str) -> ValidationResult:
 
     if len(email) > 254:
         return ValidationResult(
-            is_valid=False, error=f"Email слишком длинный (максимум 254 символа): {email[:50]}..."
+            is_valid=False, error=f"Email слишком длинный (максимум 254 символа): {email[:50]}...",
         )
 
     # Сначала пробуем стандартный ASCII email
@@ -451,7 +451,7 @@ def validate_categories_config(categories: list[Any], field_name: str = "categor
 
 
 def validate_config(
-    config: list[Any], field_name: str, cache: OrderedDict[str, list[Any]] | None = None
+    config: list[Any], field_name: str, cache: OrderedDict[str, list[Any]] | None = None,
 ) -> list[Any]:
     """Универсальная функция валидации конфигурации (города, категории и т.д.).
 
@@ -516,15 +516,15 @@ def validate_parallel_config(
         raise ValueError(f"max_workers должен быть не менее {min_workers} (получено {max_workers})")
     if max_workers > max_workers_limit:
         raise ValueError(
-            f"max_workers слишком большой: {max_workers} (максимум: {max_workers_limit})"
+            f"max_workers слишком большой: {max_workers} (максимум: {max_workers_limit})",
         )
     if timeout_per_url < min_timeout:
         raise ValueError(
-            f"timeout_per_url должен быть не менее {min_timeout} секунд (получено {timeout_per_url})"
+            f"timeout_per_url должен быть не менее {min_timeout} секунд (получено {timeout_per_url})",
         )
     if timeout_per_url > max_timeout:
         raise ValueError(
-            f"timeout_per_url слишком большой: {timeout_per_url} секунд (максимум: {max_timeout})"
+            f"timeout_per_url слишком большой: {timeout_per_url} секунд (максимум: {max_timeout})",
         )
 
     return {"max_workers": max_workers, "timeout_per_url": timeout_per_url}

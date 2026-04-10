@@ -46,7 +46,7 @@ _SENSITIVE_KEYS_PASSWORDS: frozenset[str] = frozenset(
         "admin_password",
         "db_password",
         "database_password",
-    }
+    },
 )
 
 # Токены доступа и сессии
@@ -65,7 +65,7 @@ _SENSITIVE_KEYS_TOKENS: frozenset[str] = frozenset(
         "accesskey",
         "access-key",
         "secret_token",
-    }
+    },
 )
 
 # Секретные ключи и криптография
@@ -84,12 +84,12 @@ _SENSITIVE_KEYS_SECRETS: frozenset[str] = frozenset(
         "encryption_key",
         "master_key",
         "client_secret",
-    }
+    },
 )
 
 # Аутентификация и авторизация
 _SENSITIVE_KEYS_AUTH: frozenset[str] = frozenset(
-    {"auth", "authorization", "credential", "bearer", "jwt", "oauth", "oauth_token"}
+    {"auth", "authorization", "credential", "bearer", "jwt", "oauth", "oauth_token"},
 )
 
 # Ключи доступа к сервисам
@@ -103,12 +103,12 @@ _SENSITIVE_KEYS_SERVICE_KEYS: frozenset[str] = frozenset(
         "ssh-private-key",
         "gpg_key",
         "pgp_key",
-    }
+    },
 )
 
 # Сертификаты и SSL
 _SENSITIVE_KEYS_CERTIFICATES: frozenset[str] = frozenset(
-    {"certificate", "cert_key", "ssl_key", "tls_key"}
+    {"certificate", "cert_key", "ssl_key", "tls_key"},
 )
 
 # Подключения к базам данных
@@ -241,7 +241,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 MAX_COLLECTION_SIZE,
             )
             raise ValueError(
-                "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки."
+                "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки.",
             )
         # Оптимизация: используем str() вместо repr() для меньшего потребления памяти
         # str() не создаёт полную репрезентацию объекта, а только строковое представление
@@ -253,14 +253,14 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 MAX_DATA_SIZE,
             )
             raise ValueError(
-                "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки."
+                "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки.",
             )
     except MemoryError as size_check_error:
         logger.critical(
-            "Нехватка памяти при проверке размера данных: %s", size_check_error, exc_info=True
+            "Нехватка памяти при проверке размера данных: %s", size_check_error, exc_info=True,
         )
         raise ValueError(
-            "Нехватка памяти при проверке размера данных. Данные слишком большие для обработки."
+            "Нехватка памяти при проверке размера данных. Данные слишком большие для обработки.",
         ) from size_check_error
 
     try:
@@ -289,7 +289,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                     )
                     raise ValueError(
                         f"Глубина вложенности данных ({current_depth}) превышает максимальную "
-                        f"({MAX_DATA_DEPTH}). Это может указывать на циклические ссылки или атаку."
+                        f"({MAX_DATA_DEPTH}). Это может указывать на циклические ссылки или атаку.",
                     )
 
                 # Проверка количества обработанных элементов
@@ -302,12 +302,12 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                     )
                     raise ValueError(
                         f"Количество обработанных элементов ({processed_count}) превышает "
-                        f"максимальное ({MAX_COLLECTION_SIZE}). Это может указывать на атаку."
+                        f"максимальное ({MAX_COLLECTION_SIZE}). Это может указывать на атаку.",
                     )
 
                 # Используем выделенную функцию для проверки типа и чувствительности
                 handled, _ = _check_value_type_and_sensitivity(
-                    current_value, current_key, parent, parent_key, results
+                    current_value, current_key, parent, parent_key, results,
                 )
                 if handled:
                     continue
@@ -358,7 +358,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                         )
                         raise ValueError(
                             f"Размер словаря ({len(current_value)}) превышает максимальный "
-                            f"({MAX_COLLECTION_SIZE})."
+                            f"({MAX_COLLECTION_SIZE}).",
                         )
 
                     # Создаём новый словарь для результата
@@ -373,7 +373,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                     # Increment depth by 1
                     next_depth = current_depth + 1
                     for k, v in reversed(
-                        current_value.items()
+                        current_value.items(),
                     ):  # FIX #18: Inefficient list comprehension
                         stack.append((v, k, new_dict, k, next_depth))
 
@@ -387,7 +387,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                         )
                         raise ValueError(
                             f"Размер списка ({len(current_value)}) превышает максимальный "
-                            f"({MAX_COLLECTION_SIZE})."
+                            f"({MAX_COLLECTION_SIZE}).",
                         )
 
                     # Создаём новый список нужного размера
@@ -406,11 +406,11 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
 
             except MemoryError as mem_error:
                 logger.critical(
-                    "Критическая нехватка памяти при обработке данных: %s", mem_error, exc_info=True
+                    "Критическая нехватка памяти при обработке данных: %s", mem_error, exc_info=True,
                 )
                 raise ValueError(
                     "Нехватка памяти при очистке данных. "
-                    "Данные слишком большие для обработки в памяти."
+                    "Данные слишком большие для обработки в памяти.",
                 ) from mem_error
             except ValueError:
                 # Пробрасываем ValueError без изменений
@@ -437,11 +437,11 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
 
     except MemoryError as memory_error:
         logger.critical(
-            "Критическая нехватка памяти в _sanitize_value: %s", memory_error, exc_info=True
+            "Критическая нехватка памяти в _sanitize_value: %s", memory_error, exc_info=True,
         )
         raise ValueError(
             "Нехватка памяти при очистке чувствительных данных. "
-            "Рекомендуется уменьшить размер входных данных."
+            "Рекомендуется уменьшить размер входных данных.",
         ) from memory_error
     except ValueError:
         # Пробрасываем ValueError без изменений

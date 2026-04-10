@@ -79,7 +79,7 @@ def _should_use_mmap(file_size_bytes: int) -> bool:
 
 @contextmanager
 def mmap_file_context(
-    file_path: str, mode: str = "r", encoding: str = "utf-8"
+    file_path: str, mode: str = "r", encoding: str = "utf-8",
 ) -> Generator[tuple[io.TextIOWrapper | object, bool, object | None], None, None]:
     """Контекстный менеджер для безопасной работы с файлами через mmap.
 
@@ -218,7 +218,7 @@ def _close_file_safely(file_obj: object | None) -> None:
 
 
 def _calculate_optimal_buffer_size(
-    file_path: str | None = None, file_size_bytes: int | None = None
+    file_path: str | None = None, file_size_bytes: int | None = None,
 ) -> int:
     """Рассчитывает оптимальный размер буфера для чтения/записи CSV файлов.
 
@@ -333,7 +333,7 @@ def _fallback_copy_and_remove(src: str, dst: str) -> bool:
         return False
     except (TypeError, RuntimeError) as fallback_error:
         logger.error(
-            "Fallback copy+delete не удался: %s (%s)", fallback_error, type(fallback_error).__name__
+            "Fallback copy+delete не удался: %s (%s)", fallback_error, type(fallback_error).__name__,
         )
         return False
 
@@ -376,7 +376,7 @@ def _safe_move_file(src: str, dst: str) -> bool:
             except OSError as remove_error:
                 # ISSUE-116: Обработка OSError при os.remove
                 logger.warning(
-                    "OSError при удалении source файла %s после move: %s", src, remove_error
+                    "OSError при удалении source файла %s после move: %s", src, remove_error,
                 )
 
         return True
@@ -384,7 +384,7 @@ def _safe_move_file(src: str, dst: str) -> bool:
     except OSError as move_error:
         # ISSUE-115: Обработка OSError при shutil.move
         logger.warning(
-            "shutil.move не удался (OSError: %s), используем fallback copy+delete", move_error
+            "shutil.move не удался (OSError: %s), используем fallback copy+delete", move_error,
         )
         return _fallback_copy_and_remove(src, dst)
 

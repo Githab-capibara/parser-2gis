@@ -157,7 +157,7 @@ class TempFileManager:
                         continue
                 except (OSError, RuntimeError) as access_error:
                     self._logger.warning(
-                        "Ошибка проверки прав доступа к %s: %s", file_path, access_error
+                        "Ошибка проверки прав доступа к %s: %s", file_path, access_error,
                     )
                     error_count += 1
                     # Критическая ошибка — прерываем очистку
@@ -210,7 +210,7 @@ class TempFileManager:
             return list(self._registry)
 
     def create_unique_temp_file(
-        self, directory: str | Path, prefix: str = "parser_", suffix: str = ".tmp"
+        self, directory: str | Path, prefix: str = "parser_", suffix: str = ".tmp",
     ) -> Path:
         """Создаёт уникальный временный файл и регистрирует его.
 
@@ -388,7 +388,7 @@ class TempFileTimer:
             raise
         except (OSError, RuntimeError, ValueError) as schedule_error:
             logger.error(
-                "Ошибка при планировании следующей очистки: %s", schedule_error, exc_info=True
+                "Ошибка при планировании следующей очистки: %s", schedule_error, exc_info=True,
             )
 
     def _cleanup_temp_files(self) -> int:
@@ -561,10 +561,10 @@ __all__ = [
     "TEMP_FILE_CLEANUP_INTERVAL",
     # TempFileManager
     "TempFileManager",
-    "create_temp_file_manager",
     # TempFileTimer
     "TempFileTimer",
     # Helper functions
     "create_temp_file",
+    "create_temp_file_manager",
     "temp_file_manager",
 ]

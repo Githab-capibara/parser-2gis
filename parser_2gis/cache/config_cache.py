@@ -86,7 +86,7 @@ class ConfigCache:
 
     # ISSUE-087: Используем @lru_cache на методе класса вместо создания на экземпляре
     def __init__(
-        self, cities_cache_size: int = CITIES_CACHE_SIZE, categories_cache_size: int = 4
+        self, cities_cache_size: int = CITIES_CACHE_SIZE, categories_cache_size: int = 4,
     ) -> None:
         """Инициализация кэша конфигураций.
 
@@ -132,7 +132,7 @@ class ConfigCache:
                     MAX_CITIES_FILE_SIZE,
                 )
                 raise ValueError(
-                    f"Файл {cities_path} слишком большой ({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
+                    f"Файл {cities_path} слишком большой ({file_size} > {MAX_CITIES_FILE_SIZE} байт)",
                 )
 
             logger.debug("Размер файла городов: %d байт", file_size)
@@ -165,18 +165,18 @@ class ConfigCache:
 
             if not isinstance(all_cities, list):
                 logger.error(
-                    "Файл городов должен содержать список, а не %s", type(all_cities).__name__
+                    "Файл городов должен содержать список, а не %s", type(all_cities).__name__,
                 )
                 raise ValueError(
-                    f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
+                    f"Файл городов должен содержать список, получен {type(all_cities).__name__}",
                 )
 
             if len(all_cities) > MAX_CITIES_COUNT:
                 logger.error(
-                    "Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT
+                    "Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT,
                 )
                 raise ValueError(
-                    f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}"
+                    f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}",
                 )
 
             for i, city in enumerate(all_cities):
@@ -190,7 +190,7 @@ class ConfigCache:
         except UnicodeDecodeError as e:
             logger.error("Ошибка кодировки при чтении файла городов: %s", e)
             raise ValueError(
-                f"Файл городов имеет некорректную кодировку (ожидалась UTF-8): {e}"
+                f"Файл городов имеет некорректную кодировку (ожидалась UTF-8): {e}",
             ) from e
         except json.JSONDecodeError as e:
             logger.error("Ошибка парсинга JSON в файле городов: %s", e)

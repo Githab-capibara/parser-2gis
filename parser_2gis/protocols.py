@@ -195,7 +195,7 @@ class BrowserScreenshot(Protocol):
 
 @runtime_checkable
 class BrowserService(
-    BrowserNavigation, BrowserContentAccess, BrowserJSExecution, BrowserScreenshot, Protocol
+    BrowserNavigation, BrowserContentAccess, BrowserJSExecution, BrowserScreenshot, Protocol,
 ):
     """Абстракция браузера для разрыва связи между chrome/ и parser/."""
 
@@ -243,12 +243,12 @@ class ErrorHandlerProtocol(Protocol):
         """Обрабатывает MemoryError."""
 
     def handle_timeout_error(
-        self, temp_file: Any, city_name: str, category_name: str, timeout: int
+        self, temp_file: Any, city_name: str, category_name: str, timeout: int,
     ) -> tuple[bool, str]:
         """Обрабатывает таймаут."""
 
     def handle_other_error(
-        self, error: Exception, temp_file: Any, city_name: str, category_name: str
+        self, error: Exception, temp_file: Any, city_name: str, category_name: str,
     ) -> tuple[bool, str]:
         """Обрабатывает другие ошибки."""
 
@@ -258,7 +258,7 @@ class MergerProtocol(Protocol):
     """Protocol для объединителя файлов."""
 
     def merge_csv_files(
-        self, output_file: str, progress_callback: Callable[[str], None] | None = None
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None,
     ) -> bool:
         """Объединяет CSV файлы."""
 
@@ -362,7 +362,7 @@ class MemoryManagerProtocol(Protocol):
         """Выполняет принудительный сбор мусора."""
 
     def handle_memory_error(
-        self, error: MemoryError, context: str = "", cache_object: Any | None = None
+        self, error: MemoryError, context: str = "", cache_object: Any | None = None,
     ) -> None:
         """Обрабатывает MemoryError."""
 
@@ -484,6 +484,8 @@ __all__ = [
     "CleanupCallback",
     # Parallel Parsing Protocols
     "ErrorHandlerProtocol",
+    # Retry Strategy Protocol (ISSUE 075)
+    "FileLockStrategy",
     # Callback Protocols
     "LoggerProtocol",
     # Memory Manager Protocol (ISSUE-019)
@@ -494,11 +496,9 @@ __all__ = [
     "PathValidatorProtocol",
     "ProgressCallback",
     "ProgressReporterProtocol",
+    "RetryStrategy",
     "ThreadCoordinatorProtocol",
     "UrlGeneratorProtocol",
     # Data Protocols
     "Writer",
-    # Retry Strategy Protocol (ISSUE 075)
-    "FileLockStrategy",
-    "RetryStrategy",
 ]

@@ -306,7 +306,7 @@ class ParsingScreen(Screen):
             f"Категория: {self._current_category or '-'}\n"
             f"Успешно: [green]{self._success_count}[/]\n"
             f"Ошибок: [red]{self._error_count}[/]\n"
-            f"Время: {elapsed}"
+            f"Время: {elapsed}",
         )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

@@ -254,7 +254,7 @@ def _check_obfuscation_patterns(code: str) -> tuple[bool, str | None]:
     """
     # Проверка на split('').reverse().join() - техника обфускации
     if re.search(
-        r'split\s*\(\s*["\"]["\"]\s*\)\s*\.reverse\s*\(\)\s*\.join\s*\(', code, re.IGNORECASE
+        r'split\s*\(\s*["\"]["\"]\s*\)\s*\.reverse\s*\(\)\s*\.join\s*\(', code, re.IGNORECASE,
     ):
         return False, "Обнаружена обфускация через split().reverse().join()"
 
@@ -278,7 +278,7 @@ def _check_obfuscation_patterns(code: str) -> tuple[bool, str | None]:
 
     # Проверка на подозрительные переменные с именами типа _0x1234
     if re.search(r"var\s+_[0-9a-fA-F]{4,}\s*=", code) or re.search(
-        r"let\s+_[0-9a-fA-F]{4,}\s*=", code
+        r"let\s+_[0-9a-fA-F]{4,}\s*=", code,
     ):
         return False, "Обнаружена обфускация кода (подозрительные имена переменных)"
 
@@ -532,7 +532,7 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
 
     # Проверка на self-executing функции с обфускацией
     if re.search(
-        r"\(function\s*\([^)]*\)\s*\{[^}]*\}\s*\)\.call\s*\(", normalized_code, re.IGNORECASE
+        r"\(function\s*\([^)]*\)\s*\{[^}]*\}\s*\)\.call\s*\(", normalized_code, re.IGNORECASE,
     ):
         app_logger.debug("Обнаружена self-executing функция с .call() - допустимо")
 
