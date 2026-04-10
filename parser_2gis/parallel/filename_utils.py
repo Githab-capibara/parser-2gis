@@ -9,8 +9,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    pass
 
 
 def extract_category_from_filename(

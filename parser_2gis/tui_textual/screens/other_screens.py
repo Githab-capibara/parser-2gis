@@ -169,7 +169,6 @@ class CacheViewerScreen(Screen):
         для удаления всех данных из кэша. После очистки обновляет
         отображение статистики и данных.
         """
-
         from parser_2gis.cache import CacheManager
         from parser_2gis.utils.paths import cache_path
 

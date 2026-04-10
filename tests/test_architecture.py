@@ -145,7 +145,7 @@ class TestLayerBoundaries:
         assert not violations, "Нарушения границ слоёв:\n" + "\n".join(violations)
 
     def test_cache_does_not_import_chrome(self) -> None:
-        """cache слой не должен импортировать chrome."""
+        """Cache слой не должен импортировать chrome."""
         cache_path = PACKAGE_ROOT / "cache"
         if not cache_path.exists():
             pytest.skip("cache модуль не найден")
@@ -157,7 +157,7 @@ class TestLayerBoundaries:
             assert not chrome_imports, f"{py_file.name} импортирует chrome: {chrome_imports}"
 
     def test_writer_does_not_import_chrome(self) -> None:
-        """writer слой не должен импортировать chrome."""
+        """Writer слой не должен импортировать chrome."""
         writer_path = PACKAGE_ROOT / "writer"
         if not writer_path.exists():
             pytest.skip("writer модуль не найден")
@@ -169,7 +169,7 @@ class TestLayerBoundaries:
             assert not chrome_imports, f"{py_file.name} импортирует chrome: {chrome_imports}"
 
     def test_logger_has_no_business_logic_imports(self) -> None:
-        """logger не должен импортировать бизнес-логику."""
+        """Logger не должен импортировать бизнес-логику."""
         logger_path = PACKAGE_ROOT / "logger"
         if not logger_path.exists():
             pytest.skip("logger модуль не найден")

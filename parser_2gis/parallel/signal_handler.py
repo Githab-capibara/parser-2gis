@@ -10,8 +10,6 @@ from typing import TYPE_CHECKING, Any
 
 from parser_2gis.logger import logger
 
-if TYPE_CHECKING:
-    pass
 
 
 def create_signal_handler(context_getter: Any) -> Any:

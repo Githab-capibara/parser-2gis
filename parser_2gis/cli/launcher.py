@@ -206,12 +206,11 @@ class ApplicationLauncher:
         # Обработка TUI режимов
         if getattr(args, "tui_new_omsk", False):
             return self._run_tui_mode(args, tui_type="omsk")
-        elif getattr(args, "tui_new", False):
+        if getattr(args, "tui_new", False):
             return self._run_tui_mode(args, tui_type="main")
-        elif getattr(args, "parallel_workers", 1) > 1 or getattr(args, "cities", None):
+        if getattr(args, "parallel_workers", 1) > 1 or getattr(args, "cities", None):
             return self._run_parallel_mode(args)
-        else:
-            return self._run_cli_mode(args)
+        return self._run_cli_mode(args)
 
     def _setup_signal_handlers(self) -> None:
         """Настройка обработчиков сигналов SIGINT и SIGTERM.
@@ -321,9 +320,8 @@ class ApplicationLauncher:
             if result:
                 logger.info("Парсинг успешно завершён")
                 return 0
-            else:
-                logger.error("Парсинг завершён с ошибками")
-                return 1
+            logger.error("Парсинг завершён с ошибками")
+            return 1
 
         except (FileNotFoundError, ValueError, OSError) as e:
             logger.error("Ошибка при загрузке городов или конфигурации: %s", e)

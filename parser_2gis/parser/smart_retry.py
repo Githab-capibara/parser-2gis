@@ -81,9 +81,8 @@ class SmartRetryManager:
                 )
                 return True
             # Если не было записей - конец категории, не нужно retry
-            else:
-                logger.info("404 без записей. Завершаем парсинг.")
-                return False
+            logger.info("404 без записей. Завершаем парсинг.")
+            return False
 
         # 403 ошибки (блокировка) - не retry, но логируем
         if "403" in error_lower:

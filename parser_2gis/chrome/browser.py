@@ -442,27 +442,26 @@ class ProcessManager:
                 # H013: Очищаем ссылку на процесс после завершения
                 self._proc = None
                 return True, process_status
-            else:
-                # Процесс ещё работает, ждём завершения с timeout
-                try:
-                    self._proc.wait(timeout=timeout)
-                    app_logger.info(
-                        "Chrome браузер %s завершён (PID: %d, время ожидания: %d сек)",
-                        terminate_method,
-                        process_pid,
-                        timeout,
-                    )
-                    # H013: Очищаем ссылку на процесс после завершения
-                    self._proc = None
-                    return True, success_status
-                except subprocess.TimeoutExpired:
-                    app_logger.warning(
-                        "Таймаут (%d сек) при %s Chrome PID %d",
-                        timeout,
-                        terminate_method,
-                        process_pid,
-                    )
-                    return False, timeout_status
+            # Процесс ещё работает, ждём завершения с timeout
+            try:
+                self._proc.wait(timeout=timeout)
+                app_logger.info(
+                    "Chrome браузер %s завершён (PID: %d, время ожидания: %d сек)",
+                    terminate_method,
+                    process_pid,
+                    timeout,
+                )
+                # H013: Очищаем ссылку на процесс после завершения
+                self._proc = None
+                return True, success_status
+            except subprocess.TimeoutExpired:
+                app_logger.warning(
+                    "Таймаут (%d сек) при %s Chrome PID %d",
+                    timeout,
+                    terminate_method,
+                    process_pid,
+                )
+                return False, timeout_status
 
         except ProcessLookupError as proc_error:
             app_logger.debug("Процесс уже завершён: %s", proc_error)
@@ -552,60 +551,59 @@ class ProcessManager:
                 # H013: Очищаем ссылку на процесс после завершения
                 self._proc = None
                 return True, process_status
-            else:
-                # Процесс всё ещё работает после kill(), ждём с timeout
+            # Процесс всё ещё работает после kill(), ждём с timeout
+            try:
+                self._proc.wait(timeout=timeout)
+                app_logger.info(
+                    "Chrome браузер принудительно завершён (PID: %d, время ожидания: %d сек)",
+                    process_pid,
+                    timeout,
+                )
+                # H013: Очищаем ссылку на процесс после завершения
+                self._proc = None
+                return True, "killed"
+            except subprocess.TimeoutExpired:
+                # P1-10: Добавляем принудительное завершение через kill() после timeout
+                app_logger.error(
+                    "Таймаут (%d сек) после SIGKILL для PID %d - "
+                    "применяем принудительное завершение",
+                    timeout,
+                    process_pid,
+                )
                 try:
-                    self._proc.wait(timeout=timeout)
-                    app_logger.info(
-                        "Chrome браузер принудительно завершён (PID: %d, время ожидания: %d сек)",
-                        process_pid,
-                        timeout,
-                    )
-                    # H013: Очищаем ссылку на процесс после завершения
-                    self._proc = None
-                    return True, "killed"
-                except subprocess.TimeoutExpired:
-                    # P1-10: Добавляем принудительное завершение через kill() после timeout
-                    app_logger.error(
-                        "Таймаут (%d сек) после SIGKILL для PID %d - "
-                        "применяем принудительное завершение",
-                        timeout,
-                        process_pid,
-                    )
-                    try:
-                        # Принудительное завершение процесса и всех дочерних процессов
-                        if psutil is None:
-                            raise ImportError("psutil не установлен")
-                        ps_proc = psutil.Process(process_pid)
-                        children = ps_proc.children(recursive=True)
-                        for child in children:
-                            try:
-                                child.kill()
-                            except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-                                # Процесс уже завершён или нет доступа — ожидаемо при форс-килли
-                                # ИСПРАВЛЕНИЕ #4: Добавлено логирование для диагностики
-                                app_logger.debug(
-                                    "Не удалось завершить дочерний процесс PID %d: %s",
-                                    child.pid if hasattr(child, "pid") else "unknown",
-                                    e,
-                                )
+                    # Принудительное завершение процесса и всех дочерних процессов
+                    if psutil is None:
+                        raise ImportError("psutil не установлен")
+                    ps_proc = psutil.Process(process_pid)
+                    children = ps_proc.children(recursive=True)
+                    for child in children:
+                        try:
+                            child.kill()
+                        except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                            # Процесс уже завершён или нет доступа — ожидаемо при форс-килли
+                            # ИСПРАВЛЕНИЕ #4: Добавлено логирование для диагностики
+                            app_logger.debug(
+                                "Не удалось завершить дочерний процесс PID %d: %s",
+                                child.pid if hasattr(child, "pid") else "unknown",
+                                e,
+                            )
 
-                        ps_proc.kill()
-                        app_logger.info(
-                            "Процесс PID %d и его дочерние процессы принудительно завершены",
-                            process_pid,
-                        )
-                        return True, "killed_forcefully"
-                    except (
-                        psutil.NoSuchProcess,
-                        psutil.AccessDenied,
-                        ImportError,
-                        FileNotFoundError,
-                    ) as e:
-                        app_logger.error(
-                            "Не удалось принудительно завершить процесс PID %d: %s", process_pid, e
-                        )
-                        return False, "kill_timeout"
+                    ps_proc.kill()
+                    app_logger.info(
+                        "Процесс PID %d и его дочерние процессы принудительно завершены",
+                        process_pid,
+                    )
+                    return True, "killed_forcefully"
+                except (
+                    psutil.NoSuchProcess,
+                    psutil.AccessDenied,
+                    ImportError,
+                    FileNotFoundError,
+                ) as e:
+                    app_logger.error(
+                        "Не удалось принудительно завершить процесс PID %d: %s", process_pid, e
+                    )
+                    return False, "kill_timeout"
 
         except ProcessLookupError as proc_error:
             app_logger.debug("Процесс уже завершён (kill): %s", proc_error)
@@ -1172,8 +1170,7 @@ def _process_orphaned_profile(item: Path, current_time: float, max_age_seconds: 
 
     if marker_file.exists():
         return _check_profile_age_and_delete(item, marker_file, current_time, max_age_seconds)
-    else:
-        return _check_profile_age_by_dir(item, current_time, max_age_seconds)
+    return _check_profile_age_by_dir(item, current_time, max_age_seconds)
 
 
 def cleanup_orphaned_profiles(

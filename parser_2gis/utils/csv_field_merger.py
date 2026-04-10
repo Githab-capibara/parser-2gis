@@ -18,8 +18,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    pass
 
 CATEGORY_COLUMN_NAME = "Категория"
 """Имя колонки категории, добавляемой при слиянии."""

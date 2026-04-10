@@ -237,7 +237,6 @@ class TestProfileManager:
         - shutil.rmtree используется как fallback
         - Логирование работает корректно
         """
-
         manager = ProfileManager()
         tempdir, profile_path = manager.create_profile()
 

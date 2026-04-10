@@ -220,7 +220,6 @@ class TestSignalHandlerCleanup:
         Отправляет SIGTERM процессу.
         Проверяет что cleanup_resources вызван.
         """
-
         # Mock функции очистки
         with patch("parser_2gis.chrome.browser.app_logger") as mock_logger:
             # Создаем тестовую ситуацию

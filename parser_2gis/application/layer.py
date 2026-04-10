@@ -45,7 +45,6 @@ class ParserFactoryProtocol(Protocol):
         browser: BrowserService | None = None,
     ) -> BaseParser:
         """Создаёт парсер."""
-        pass
 
 
 # =============================================================================

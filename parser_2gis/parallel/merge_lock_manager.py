@@ -15,8 +15,6 @@ from typing import TYPE_CHECKING, TextIO
 
 from parser_2gis.constants import MAX_LOCK_FILE_AGE, MERGE_LOCK_TIMEOUT
 
-if TYPE_CHECKING:
-    pass
 
 
 class MergeLockManager:

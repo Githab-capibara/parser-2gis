@@ -56,7 +56,6 @@ class XLSXWriter(FileWriter):
         """
         # #154: Заглушка вместо NotImplementedError — данные записываются через CSV,
         # а конвертация происходит в __exit__()
-        pass
 
     def __exit__(self, *exc_info: Any) -> None:
         """Закрывает файл и выполняет конвертацию CSV в XLSX.

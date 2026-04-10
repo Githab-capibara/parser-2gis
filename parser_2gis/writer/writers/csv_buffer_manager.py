@@ -293,14 +293,13 @@ def _calculate_optimal_buffer_size(
             optimal_size,
         )
         return optimal_size
-    else:
-        # Для обычных файлов используем стандартный буфер
-        logger.debug(
-            "Файл стандартного размера (%.2f MB), используется стандартный буфер: %d байт",
-            file_size_bytes / (1024 * 1024),
-            DEFAULT_BUFFER_SIZE,
-        )
-        return DEFAULT_BUFFER_SIZE
+    # Для обычных файлов используем стандартный буфер
+    logger.debug(
+        "Файл стандартного размера (%.2f MB), используется стандартный буфер: %d байт",
+        file_size_bytes / (1024 * 1024),
+        DEFAULT_BUFFER_SIZE,
+    )
+    return DEFAULT_BUFFER_SIZE
 
 
 def _fallback_copy_and_remove(src: str, dst: str) -> bool:

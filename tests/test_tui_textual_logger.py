@@ -58,7 +58,7 @@ class TestTUILoggerInitialization:
             "app._logger не должен быть None. "
             "Проверьте, что __init__ не перезаписывает _logger после super().__init__()"
         )
-        assert not isinstance(app._logger, type(None)), (
+        assert not (app._logger is None), (
             "app._logger не должен быть None после инициализации"
         )
 

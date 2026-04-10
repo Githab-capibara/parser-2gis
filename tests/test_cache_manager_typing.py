@@ -47,7 +47,6 @@ class TestCacheManagerTypeHints:
         Этот тест документирует ожидаемое поведение:
         CacheManager ожидает Path объект, а не строку.
         """
-
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_dir_str = str(tmpdir)
 

@@ -509,10 +509,9 @@ class MainDataProcessor:
                         return
                     current_page_number = next_page
                     continue
-                else:
-                    # Ссылки успешно получены - сбрасываем счётчики
-                    consecutive_empty_pages = 0
-                    link_attempt_count = 0
+                # Ссылки успешно получены - сбрасываем счётчики
+                consecutive_empty_pages = 0
+                link_attempt_count = 0
 
                 # Парсим страницу, если не идём к определённой странице
                 if not walk_page_number:

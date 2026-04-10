@@ -76,7 +76,7 @@ class TestRLockUsageForReentrancy:
             max_workers=2,
             timeout_per_url=60,
         )
-        yield parser
+        return parser
 
     def test_rlock_is_used_for_main_lock(self, parallel_parser: ParallelCityParser) -> None:
         """Тест 1: RLock используется для основной блокировки.

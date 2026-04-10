@@ -23,8 +23,6 @@ from typing import TYPE_CHECKING, Any
 
 from parser_2gis.constants import MAX_LOCK_FILE_AGE, MERGE_LOCK_TIMEOUT
 
-if TYPE_CHECKING:
-    pass
 
 
 class BaseLockStrategy:

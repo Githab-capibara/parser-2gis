@@ -40,7 +40,6 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         OSError: Если произошла ошибка операционной системы.
 
     """
-
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)
         raise FileNotFoundError(f"Файл {cities_path} не найден")
@@ -158,7 +157,6 @@ def load_cities_json_lazy(cities_path: Path) -> None:
         ...     print(f"Город: {city['name']}, код: {city['code']}")
 
     """
-
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)
         raise FileNotFoundError(f"Файл {cities_path} не найден")

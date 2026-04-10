@@ -39,13 +39,11 @@ class TestValidateInitialState:
 
     def test_nan_rejected(self):
         """NaN должен быть отклонён."""
-
         valid, _ = _validate_initial_state(float("nan"))
         assert not valid
 
     def test_infinity_rejected(self):
         """Infinity должен быть отклонён."""
-
         valid, _ = _validate_initial_state(float("inf"))
         assert not valid
 
@@ -60,7 +58,7 @@ class TestValidateInitialState:
         assert not valid
 
     def test_onerror_handler_rejected(self):
-        """onerror handler должен быть отклонён."""
+        """Onerror handler должен быть отклонён."""
         valid, _ = _validate_initial_state('<img src=x onerror="alert(1)">')
         assert not valid
 

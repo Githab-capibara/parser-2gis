@@ -79,7 +79,7 @@ class TestDOMNodeText:
     """Тесты свойства text."""
 
     def test_text_returns_node_value(self):
-        """text возвращает значение текстового узла."""
+        """Text возвращает значение текстового узла."""
         node = DOMNode(
             nodeId=1,
             backendNodeId=100,
@@ -93,7 +93,7 @@ class TestDOMNodeText:
         assert node.text == "Hello"
 
     def test_text_includes_children(self, nested_dom_node):
-        """text включает текст дочерних узлов."""
+        """Text включает текст дочерних узлов."""
         assert "Hello World" in nested_dom_node.text
 
 
@@ -101,18 +101,18 @@ class TestDOMNodeSearch:
     """Тесты метода search."""
 
     def test_search_finds_matching_nodes(self, nested_dom_node):
-        """search находит узлы по предикату."""
+        """Search находит узлы по предикату."""
         results = nested_dom_node.search(lambda n: n.type == 3)
         assert len(results) == 1
         assert results[0].value == "Hello World"
 
     def test_search_no_matches(self, sample_dom_node):
-        """search возвращает пустой список при отсутствии совпадений."""
+        """Search возвращает пустой список при отсутствии совпадений."""
         results = sample_dom_node.search(lambda n: n.type == 999)
         assert len(results) == 0
 
     def test_search_finds_self(self, sample_dom_node):
-        """search может найти сам узел."""
+        """Search может найти сам узел."""
         results = sample_dom_node.search(lambda n: n.id == 1)
         assert len(results) == 1
         assert results[0].id == 1

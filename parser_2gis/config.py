@@ -192,7 +192,7 @@ class Configuration(BaseModel):
         )
         from typing import cast
 
-        return cast(Configuration, result)
+        return cast("Configuration", result)
 
     def validate(self) -> tuple[bool, list[str]]:  # pylint: disable=arguments-renamed
         """Валидирует конфигурацию.

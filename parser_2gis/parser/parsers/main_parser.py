@@ -400,9 +400,8 @@ class MainPageParser(BaseParser):
             if n_page in available_pages:
                 self._chrome_remote.perform_click(available_pages[n_page])
                 return n_page
-            else:
-                logger.warning("Страница %d недоступна для перехода", n_page)
-                return None
+            logger.warning("Страница %d недоступна для перехода", n_page)
+            return None
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             logger.error("Ошибка при переходе на страницу %d: %s", n_page, e)
             return None
@@ -498,11 +497,10 @@ class MainPageParser(BaseParser):
             )
             time.sleep(delay)
             return True  # Продолжаем попытки
-        else:
-            logger.error(
-                "[%s] Таймаут навигации по URL %s: %s", error_class.__name__, url, timeout_error
-            )
-            return False
+        logger.error(
+            "[%s] Таймаут навигации по URL %s: %s", error_class.__name__, url, timeout_error
+        )
+        return False
 
     def _handle_navigation_error(
         self, url: str, navigate_error: Exception, retry_attempt: int
@@ -613,11 +611,10 @@ class MainPageParser(BaseParser):
             )
             time.sleep(delay)
             return True  # Продолжаем попытки
-        else:
-            logger.error(
-                "[NavigationNetworkError] Исчерпаны все попытки для URL %s: %s", url, navigate_error
-            )
-            return False
+        logger.error(
+            "[NavigationNetworkError] Исчерпаны все попытки для URL %s: %s", url, navigate_error
+        )
+        return False
 
     def _calculate_retry_delay(self, retry_attempt: int) -> float:
         """Вычисляет задержку перед повторной попыткой.

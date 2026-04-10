@@ -568,7 +568,7 @@ class ParallelCityParser:
                     self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
             return None, False
 
-        return cast(tuple[TextIO | None, bool], (lock_file_handle, lock_acquired))
+        return cast("tuple[TextIO | None, bool]", (lock_file_handle, lock_acquired))
 
     def _cleanup_merge_lock(self, lock_file_handle: TextIO | None, lock_file_path: Path) -> None:
         """Очищает и удаляет lock файл.

@@ -26,7 +26,6 @@ class TestableMainPageParser(MainPageParser):
 
     def parse(self, writer: FileWriter) -> None:
         """Заглушка для теста."""
-        pass
 
     def get_stats(self) -> dict[str, Any]:
         """Заглушка для теста."""

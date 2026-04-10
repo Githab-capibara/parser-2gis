@@ -23,8 +23,6 @@ from typing import TYPE_CHECKING, NamedTuple, cast
 # Значения констант определены напрямую вместо импорта из .parser
 # Для обратной совместимости в конце модуля используется __getattr__
 
-if TYPE_CHECKING:
-    pass
 
 # =============================================================================
 # КОНСТАНТЫ ДЛЯ PARSE_MAX_WORKERS (DEFAULT/MIN/MAX)
@@ -358,7 +356,7 @@ def get_env_config() -> EnvConfig:
         with _env_config_lock:
             if not hasattr(get_env_config, "_instance"):
                 object.__setattr__(get_env_config, "_instance", EnvConfig())
-    return cast(EnvConfig, get_env_config._instance)
+    return cast("EnvConfig", get_env_config._instance)
 
 
 # Для обратной совместимости используем __getattr__ для ленивой инициализации

@@ -17,8 +17,6 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ValidationError
 
-if TYPE_CHECKING:
-    pass
 
 
 class ConfigValidator:

@@ -407,7 +407,7 @@ class FileMergerStrategy:
                     self.log(f"Ошибка при закрытии lock файла: {close_error}", "error")
             return None, False
 
-        return typing.cast(tuple[typing.TextIO | None, bool], (lock_file_handle, lock_acquired))
+        return typing.cast("tuple[typing.TextIO | None, bool]", (lock_file_handle, lock_acquired))
 
     def _cleanup_merge_lock(
         self, lock_file_handle: typing.TextIO | None, lock_file_path: Path

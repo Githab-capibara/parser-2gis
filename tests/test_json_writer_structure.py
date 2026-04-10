@@ -58,7 +58,6 @@ class TestJSONWriterStructure:
 
     def test_valid_structure_writes(self, mock_writer):
         """Валидная структура должна записываться."""
-
         mock_writer._writedoc({"result": {"items": [{"name": "Test"}]}})
         mock_writer._file.write.assert_called()
 

@@ -333,11 +333,10 @@ class TestSOLIDPrinciples:
                         violations_critical.append((py_file, class_name, class_lines))
                     elif class_lines > 500:
                         violations_warning.append((py_file, class_name, class_lines))
-                else:
-                    if class_lines > 500:
-                        violations_critical.append((py_file, class_name, class_lines))
-                    elif class_lines > 300:
-                        violations_warning.append((py_file, class_name, class_lines))
+                elif class_lines > 500:
+                    violations_critical.append((py_file, class_name, class_lines))
+                elif class_lines > 300:
+                    violations_warning.append((py_file, class_name, class_lines))
 
         # Критичные нарушения (>1000 строк) — skip как warning
         if violations_critical:

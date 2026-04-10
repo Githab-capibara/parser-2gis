@@ -28,8 +28,6 @@ from typing import TYPE_CHECKING, TextIO
 from parser_2gis.constants import MERGE_BATCH_SIZE, MERGE_BUFFER_SIZE
 from parser_2gis.parallel.filename_utils import extract_category_from_filename
 
-if TYPE_CHECKING:
-    pass
 
 
 def _log_message(

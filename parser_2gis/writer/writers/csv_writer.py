@@ -238,7 +238,7 @@ class CSVWriter(FileWriter):
 
         return {
             **data_mapping,
-            **{"point_lat": "Широта", "point_lon": "Долгота", "url": CSV_URL_HEADER, "type": "Тип"},
+            "point_lat": "Широта", "point_lon": "Долгота", "url": CSV_URL_HEADER, "type": "Тип",
         }
 
     def _writerow(self, row: dict[str, Any]) -> None:

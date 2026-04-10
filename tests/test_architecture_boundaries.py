@@ -309,7 +309,7 @@ class TestNoImportsFromCommon:
                 continue  # Пропускаем сам пакет parallel/common/
 
             try:
-                with open(py_file, "r", encoding="utf-8") as f:
+                with open(py_file, encoding="utf-8") as f:
                     content = f.read()
 
                 # Проверяем что нет импортов из parser_2gis.common (не parallel.common)

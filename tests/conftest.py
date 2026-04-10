@@ -73,7 +73,7 @@ def temp_csv_files(tmp_path: Path) -> Generator[list[Path], None, None]:
                 writer.writerow([f"value_{i}_{j}", f"data_{i}_{j}", f"category_{i}"])
         csv_files.append(csv_file)
 
-    yield csv_files
+    return csv_files
     # Очистка не требуется - tmp_path очищается автоматически pytest
 
 

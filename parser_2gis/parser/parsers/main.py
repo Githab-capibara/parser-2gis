@@ -126,9 +126,9 @@ class MainParser:
         # 2GIS автоматически перенаправляет пользователя в начало (anti-bot защита).
         # Если в URL найден аргумент страницы, мы должны вручную перейти к ней сначала.
 
-        url = re.sub(r"/page/\d+", "", self._url, flags=re.I)
+        url = re.sub(r"/page/\d+", "", self._url, flags=re.IGNORECASE)
 
-        page_match = re.search(r"/page/(?P<page_number>\d+)", self._url, re.I)
+        page_match = re.search(r"/page/(?P<page_number>\d+)", self._url, re.IGNORECASE)
         start_page = int(page_match.group("page_number")) if page_match else None
 
         # ISSUE-133: Используем deque с maxlen для автоматического LRU eviction

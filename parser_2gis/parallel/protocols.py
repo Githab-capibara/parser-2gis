@@ -12,8 +12,6 @@ from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-if TYPE_CHECKING:
-    pass
 
 type UrlTuple = tuple[str, str, str]  # (url, category_name, city_name)
 

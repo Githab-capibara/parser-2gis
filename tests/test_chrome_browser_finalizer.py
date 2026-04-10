@@ -83,7 +83,6 @@ class TestChromeBrowserFinalizer:
 
     def test_cleanup_kills_hung_process(self):
         """Очистка должна убивать зависший процесс."""
-
         with patch("subprocess.Popen") as mock_popen:
             mock_proc = MagicMock()
             mock_proc.poll.side_effect = [None, None, 0]

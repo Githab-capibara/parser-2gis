@@ -21,7 +21,7 @@ long_description = README_PATH.read_text(encoding="utf-8")
 long_description_content_type = "text/markdown"
 
 match = re.search(
-    r'^version\s*=\s*[\'"](?P<version>.+?)[\'"]', VERSION_PATH.read_text(encoding="utf-8"), re.M
+    r'^version\s*=\s*[\'"](?P<version>.+?)[\'"]', VERSION_PATH.read_text(encoding="utf-8"), re.MULTILINE
 )
 if not match:
     raise RuntimeError(

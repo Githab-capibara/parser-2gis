@@ -528,6 +528,7 @@ class ParallelCoordinator:
 
         C014: Lazy loading для снижения потребления памяти.
         #146: Использует itertools.product для эффективного создания комбинаций.
+
         Yields:
             Кортеж (url, category_name, city_name).
 

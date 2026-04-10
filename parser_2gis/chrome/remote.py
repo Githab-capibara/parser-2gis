@@ -410,9 +410,8 @@ class ChromeRemote:
             if result.get("result") and result["result"].get("value") == 2:
                 app_logger.debug("Проверка соединения пройдена")
                 return True
-            else:
-                app_logger.warning("Проверка соединения вернула неожиданный результат: %s", result)
-                return False
+            app_logger.warning("Проверка соединения вернула неожиданный результат: %s", result)
+            return False
 
         except (OSError, RuntimeError, AttributeError, KeyError) as e:
             app_logger.warning("Ошибка при проверке соединения: %s", e)
@@ -692,9 +691,8 @@ class ChromeRemote:
                 if tab_detached.is_set():
                     app_logger.debug("Вкладка была остановлена: %s", e)
                     raise pychrome.RuntimeException("Вкладка была остановлена") from e
-                else:
-                    app_logger.debug("UserAbortException при отправке: %s", e)
-                    raise
+                app_logger.debug("UserAbortException при отправке: %s", e)
+                raise
 
         self._chrome_tab._send = wrapped_send
 

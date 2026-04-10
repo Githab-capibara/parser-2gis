@@ -164,15 +164,12 @@ class MemoryMonitorProtocol:
 
     def get_available_memory(self) -> int:
         """Получает доступный объём памяти в байтах."""
-        pass
 
     def get_memory_usage(self) -> MemoryInfo:
         """Получает полную информацию об использовании памяти."""
-        pass
 
     def is_low_memory(self, threshold_mb: float = 100.0) -> bool:
         """Проверяет низкий уровень памяти."""
-        pass
 
 
 # =============================================================================
