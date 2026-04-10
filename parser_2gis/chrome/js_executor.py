@@ -542,7 +542,7 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
 
 
 def _sanitize_js_string(value: str) -> str:
-    """Санитизирует строку для безопасного использования в JavaScript.
+    r"""Санитизирует строку для безопасного использования в JavaScript.
 
     Args:
         value: Исходная строка.

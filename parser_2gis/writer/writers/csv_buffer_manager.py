@@ -342,7 +342,7 @@ def _safe_move_file(src: str, dst: str) -> bool:
     """Безопасное перемещение файла с fallback на copy+delete.
     - Обрабатывает ошибку shutil.move() с fallback на copy+delete
     - Проверяет существование файла после move
-    - Удаляет source файл если move успешен но source остался
+    - Удаляет source файл если move успешен но source остался.
 
     Args:
         src: Путь к исходному файлу

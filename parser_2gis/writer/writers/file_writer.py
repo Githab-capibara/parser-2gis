@@ -56,7 +56,7 @@ class FileWriter(WriterProtocol, ABC):
         self._options = writer_options
 
     def _validate_file_path(self, file_path: str) -> str:
-        """Валидирует путь к файлу на предмет Path traversal атак.
+        r"""Валидирует путь к файлу на предмет Path traversal атак.
 
         Args:
             file_path: Путь к файлу для валидации.

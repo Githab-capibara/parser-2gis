@@ -28,7 +28,7 @@ _logger = logging.getLogger("parser-2gis.visual_logger")
 
 
 class ColorCodes:
-    """ANSI коды цветов для терминала.
+    r"""ANSI коды цветов для терминала.
 
     Все коды используют формат ESC[Nm где ESC = \\033.
     """

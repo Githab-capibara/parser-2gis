@@ -42,7 +42,7 @@ class CSVDeduplicator:
         self._encoding = encoding
 
     def _hash_row(self, row: str) -> str:
-        """Вычисляет хеш строки с Unicode-нормализацией.
+        r"""Вычисляет хеш строки с Unicode-нормализацией.
 
         ISSUE-158: Добавлен docstring с описанием алгоритма хеширования.
 

@@ -1,4 +1,4 @@
-"""Пакет application для Parser2GIS.  # noqa: RUF002
+"""Пакет application для Parser2GIS.  # noqa: RUF002.
 
 Предоставляет фасады для упрощения взаимодействия с основными компонентами:
 - ParserFacade: фасад для парсеров
