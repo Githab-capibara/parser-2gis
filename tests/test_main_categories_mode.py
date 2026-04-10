@@ -54,7 +54,7 @@ class TestCategoriesModeValidation:
                 "csv",
             ],
         ):
-            args, config = parse_arguments()
+            args, _config = parse_arguments()
 
             assert args.cities == ["omsk"]
             assert args.categories_mode is True
@@ -85,7 +85,7 @@ class TestCategoriesModeValidation:
                 "csv",
             ],
         ):
-            args, config = parse_arguments()
+            args, _config = parse_arguments()
 
             assert args.cities == ["omsk"]
             assert args.url is None
@@ -125,7 +125,7 @@ class TestCategoriesModeValidation:
                 "csv",
             ],
         ):
-            args, config = parse_arguments()
+            args, _config = parse_arguments()
 
             assert args.url is not None
             assert args.cities == ["omsk"]
@@ -162,7 +162,7 @@ class TestParallelWorkersValidation:
                 "csv",
             ],
         ):
-            args, config = parse_arguments()
+            args, _config = parse_arguments()
 
             # Проверяем что parallel.max_workers имеет значение по умолчанию
             # Аргумент парсится как 'parallel.max_workers' (с точкой в имени)
@@ -198,7 +198,7 @@ class TestParallelWorkersValidation:
                 "csv",
             ],
         ):
-            args, config = parse_arguments()
+            args, _config = parse_arguments()
 
             assert hasattr(args, "parallel.max_workers")
             assert getattr(args, "parallel.max_workers") == 5

@@ -17,7 +17,7 @@ import os
 import threading
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import TYPE_CHECKING, NamedTuple, cast
+from typing import NamedTuple, cast
 
 # ISSUE-041: Разрыв цикла constants -> parser -> parser.options -> utils -> constants
 # Значения констант определены напрямую вместо импорта из .parser

@@ -22,19 +22,19 @@ class TestValidateInitialState:
         """Bool должен проходить валидацию."""
         valid, count = _validate_initial_state(True)
         assert valid
-        valid, count = _validate_initial_state(False)
+        valid, _count = _validate_initial_state(False)
         assert valid
 
     def test_int_float_returns_true(self):
         """Int и float должны проходить валидацию."""
         valid, count = _validate_initial_state(42)
         assert valid
-        valid, count = _validate_initial_state(3.14)
+        valid, _count = _validate_initial_state(3.14)
         assert valid
 
     def test_string_returns_true(self):
         """Строка должна проходить валидацию."""
-        valid, count = _validate_initial_state("normal string")
+        valid, _count = _validate_initial_state("normal string")
         assert valid
 
     def test_nan_rejected(self):

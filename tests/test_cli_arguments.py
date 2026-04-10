@@ -33,7 +33,7 @@ class TestParserArgumentsRegistration:
             "5",
         ]
         with patch.object(sys, "argv", test_args):
-            args, config = parse_arguments()
+            _args, config = parse_arguments()
             assert config.parser.max_retries == 5
 
     def test_parser_retry_on_network_errors_argument(self):
@@ -47,7 +47,7 @@ class TestParserArgumentsRegistration:
             "yes",
         ]
         with patch.object(sys, "argv", test_args):
-            args, config = parse_arguments()
+            _args, config = parse_arguments()
             assert config.parser.retry_on_network_errors is True
 
     def test_parser_retry_on_network_errors_no(self):
@@ -61,7 +61,7 @@ class TestParserArgumentsRegistration:
             "no",
         ]
         with patch.object(sys, "argv", test_args):
-            args, config = parse_arguments()
+            _args, config = parse_arguments()
             assert config.parser.retry_on_network_errors is False
 
     def test_parser_retry_delay_base_argument(self):
@@ -75,7 +75,7 @@ class TestParserArgumentsRegistration:
             "2",
         ]
         with patch.object(sys, "argv", test_args):
-            args, config = parse_arguments()
+            _args, config = parse_arguments()
             assert config.parser.retry_delay_base == 2
 
     def test_parser_memory_threshold_argument(self):
@@ -89,7 +89,7 @@ class TestParserArgumentsRegistration:
             "4096",
         ]
         with patch.object(sys, "argv", test_args):
-            args, config = parse_arguments()
+            _args, config = parse_arguments()
             assert config.parser.memory_threshold == 4096
 
 
@@ -172,7 +172,7 @@ class TestAllParserOptionsArguments:
 
             with patch.object(sys, "argv", test_args):
                 try:
-                    args, config = parse_arguments()
+                    _args, config = parse_arguments()
                     # Если парсинг прошёл без ошибки - аргумент зарегистрирован
                     # Проверяем что config имеет ожидаемое поле
                     assert hasattr(config.parser, field.replace("-", "_")), (
@@ -186,7 +186,7 @@ class TestAllParserOptionsArguments:
         """Проверка, что значения по умолчанию из ParserOptions совпадают с CLI."""
         test_args = ["parser-2gis", "--cities", "omsk", "--categories-mode"]
         with patch.object(sys, "argv", test_args):
-            args, config = parse_arguments()
+            _args, config = parse_arguments()
 
             # Проверяем значения по умолчанию
             assert config.parser.skip_404_response is True

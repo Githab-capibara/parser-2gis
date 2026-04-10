@@ -116,7 +116,7 @@ class TestPEP8Compliance:
         for py_file in key_files:
             if not py_file.exists():
                 continue
-            returncode, stdout, stderr = run_flake8_check(py_file)
+            returncode, stdout, _stderr = run_flake8_check(py_file)
 
             if returncode != 0:
                 # Фильтруем только E302 нарушения
@@ -148,7 +148,7 @@ class TestPEP8Compliance:
         for py_file in key_files:
             if not py_file.exists():
                 continue
-            returncode, stdout, stderr = run_flake8_check(py_file)
+            returncode, stdout, _stderr = run_flake8_check(py_file)
 
             if returncode != 0:
                 # Фильтруем только E305 нарушения
@@ -181,7 +181,7 @@ class TestPEP8Compliance:
         for py_file in key_files:
             if not py_file.exists():
                 continue
-            returncode, stdout, stderr = run_flake8_check(py_file)
+            returncode, stdout, _stderr = run_flake8_check(py_file)
 
             if returncode != 0:
                 # Фильтруем только W293 нарушения
@@ -219,7 +219,7 @@ class TestPEP8ComplianceSpecificFiles:
         if not full_path.exists():
             pytest.skip(f"Файл {file_path} не найден")
 
-        returncode, stdout, stderr = run_flake8_check(full_path)
+        _returncode, stdout, _stderr = run_flake8_check(full_path)
 
         # Фильтруем только интересующие нас нарушения
         relevant_violations = []
@@ -286,7 +286,7 @@ class TestPEP8ComplianceDetailed:
         violations = []
 
         for py_file in python_files:
-            returncode, stdout, stderr = run_flake8_check(py_file)
+            returncode, stdout, _stderr = run_flake8_check(py_file)
 
             if returncode != 0:
                 for line in stdout.splitlines():

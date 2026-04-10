@@ -223,7 +223,7 @@ class TestProfileManager:
         Проверяет:
         - Профиль удаляется после cleanup
         """
-        tempdir, profile_path = profile_manager.create_profile()
+        _tempdir, profile_path = profile_manager.create_profile()
 
         profile_manager.cleanup_profile()
 
@@ -238,7 +238,7 @@ class TestProfileManager:
         - Логирование работает корректно
         """
         manager = ProfileManager()
-        tempdir, profile_path = manager.create_profile()
+        tempdir, _profile_path = manager.create_profile()
 
         # Mock cleanup для выбрасывания исключения
         with patch.object(tempdir, "cleanup", side_effect=OSError("Mocked OSError")):
@@ -257,7 +257,7 @@ class TestProfileManager:
         import logging
 
         manager = ProfileManager()
-        tempdir, profile_path = manager.create_profile()
+        tempdir, _profile_path = manager.create_profile()
 
         # Mock cleanup и rmtree для выбрасывания исключений
         with patch.object(tempdir, "cleanup", side_effect=OSError("Mocked OSError")):

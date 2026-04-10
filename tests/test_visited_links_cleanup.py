@@ -49,7 +49,7 @@ class TestVisitedLinksCleanup:
 
         # Симулируем 5 вызовов process_page
         cleanup_counter = 0
-        for call_num in range(5):
+        for _call_num in range(5):
             cleanup_counter += 1
 
             # На 5-м вызове проверяем условие очистки
@@ -85,7 +85,7 @@ class TestVisitedLinksCleanup:
         cleanup_counter = 0
         cleanup_performed = False
 
-        for i in range(10):
+        for _i in range(10):
             cleanup_counter += 1
 
             if cleanup_counter >= 5:

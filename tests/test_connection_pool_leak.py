@@ -53,7 +53,7 @@ class TestConnectionPoolCleanupOnExit:
 
         # Получаем несколько соединений
         connections: list[sqlite3.Connection] = []
-        for i in range(5):
+        for _i in range(5):
             conn = pool.get_connection()
             connections.append(conn)
 
@@ -91,7 +91,7 @@ class TestConnectionPoolCleanupOnExit:
             """Создаёт пул и забывает о нём."""
             pool = _ConnectionPool(cache_file, pool_size=3, use_dynamic=False)
             # Получаем несколько соединений
-            for i in range(3):
+            for _i in range(3):
                 pool.get_connection()
                 # Не закрываем явно - полагаемся на __del__
 
@@ -121,7 +121,7 @@ class TestConnectionPoolCleanupOnExit:
         pool = _ConnectionPool(cache_file, pool_size=5, use_dynamic=False)
 
         # Получаем несколько соединений
-        for i in range(5):
+        for _i in range(5):
             pool.get_connection()
 
         # Проверяем что соединения созданы
@@ -161,7 +161,7 @@ class TestConnectionPoolCleanupOnError:
 
             # Получаем соединения
             connections = []
-            for i in range(3):
+            for _i in range(3):
                 conn = pool.get_connection()
                 connections.append(conn)
 
@@ -281,7 +281,7 @@ class TestConnectionPoolContextManager:
         with _ConnectionPool(cache_file, pool_size=3, use_dynamic=False) as pool:
             # Получаем соединения
             connections = []
-            for i in range(3):
+            for _i in range(3):
                 conn = pool.get_connection()
                 connections.append(conn)
 
@@ -313,7 +313,7 @@ class TestConnectionPoolContextManager:
             with _ConnectionPool(cache_file, pool_size=3, use_dynamic=False) as pool:
                 # Получаем соединения
                 connections = []
-                for i in range(3):
+                for _i in range(3):
                     conn = pool.get_connection()
                     connections.append(conn)
 

@@ -143,7 +143,7 @@ class TestCacheThreadSafety:
             def reader() -> None:
                 """Поток для чтения данных."""
                 try:
-                    for i in range(10):
+                    for _i in range(10):
                         result = cache.get(url)
                         if result is not None:
                             with lock:

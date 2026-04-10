@@ -98,7 +98,7 @@ class TestParallelMemoryErrorHandling:
             city_name = "Москва"
 
             # Вызываем parse_single_url с MemoryError
-            success, message = parser.parse_single_url(
+            success, _message = parser.parse_single_url(
                 url=url, category_name=category_name, city_name=city_name, progress_callback=None
             )
 
@@ -149,7 +149,7 @@ class TestParallelMemoryErrorHandling:
             category_name = "Рестораны"
             city_name = "Москва"
 
-            success, message = parser.parse_single_url(
+            success, _message = parser.parse_single_url(
                 url=url, category_name=category_name, city_name=city_name, progress_callback=None
             )
 
@@ -173,7 +173,7 @@ class TestParallelMemoryErrorHandling:
             category_name = "Рестораны"
             city_name = "Москва"
 
-            success, message = parser.parse_single_url(
+            success, _message = parser.parse_single_url(
                 url=url, category_name=category_name, city_name=city_name, progress_callback=None
             )
 

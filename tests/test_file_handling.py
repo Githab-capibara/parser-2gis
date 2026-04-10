@@ -195,7 +195,7 @@ class TestRaceConditionTempFiles:
         # Создаём больше файлов чем лимит
         temp_files = []
         try:
-            for i in range(MAX_TEMP_FILES + 50):
+            for _i in range(MAX_TEMP_FILES + 50):
                 with tempfile.NamedTemporaryFile(delete=False) as tmp:
                     temp_path = Path(tmp.name)
                     temp_files.append(temp_path)
@@ -246,7 +246,7 @@ class TestCSVFileDescriptorLeak:
             try:
                 with open(temp_path, encoding="utf-8-sig") as f:
                     reader = csv.DictReader(f)
-                    for i, row in enumerate(reader):
+                    for i, _row in enumerate(reader):
                         if i == 5:
                             raise ValueError("Имитация ошибки при чтении")
             except ValueError:
@@ -286,7 +286,7 @@ class TestCSVFileDescriptorLeak:
             rows_read = 0
             with open(temp_path, encoding="utf-8-sig") as f:
                 reader = csv.DictReader(f)
-                for row in reader:
+                for _row in reader:
                     rows_read += 1
 
             file_descriptors_after = self._count_open_fds()
@@ -328,7 +328,7 @@ class TestCSVFileDescriptorLeak:
             fds_before = self._count_open_fds()
 
             # Читаем все файлы многократно
-            for iteration in range(5):
+            for _iteration in range(5):
                 for temp_path in temp_files:
                     with open(temp_path, encoding="utf-8-sig") as f:
                         reader = csv.DictReader(f)
@@ -362,7 +362,7 @@ class TestCSVFileDescriptorLeak:
                 import resource
 
                 # Получаем максимальное количество дескрипторов
-                soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+                _soft, _hard = resource.getrlimit(resource.RLIMIT_NOFILE)
                 # Подсчитываем открытые через lsof
                 import subprocess
 

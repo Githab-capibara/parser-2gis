@@ -56,7 +56,7 @@ class TestParallelParserStatsThreadSafety:
 
         # Функция которая обновляет статистику
         def update_stats(thread_id: int) -> None:
-            for i in range(operations_per_thread):
+            for _i in range(operations_per_thread):
                 # Обновляем статистику через публичные методы которые используют lock
                 with parser._lock:
                     parser._stats["success"] += 1
@@ -214,7 +214,7 @@ class TestParallelParserStatsThreadSafety:
         # Запускаем множество потоков
         num_threads = 10
         threads = []
-        for i in range(num_threads):
+        for _i in range(num_threads):
             thread = threading.Thread(target=increment_with_read)
             threads.append(thread)
             thread.start()

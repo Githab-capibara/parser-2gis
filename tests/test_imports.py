@@ -191,7 +191,7 @@ class TestASTImportAnalysis:
         cycles: list[str] = []
 
         for module_a, deps_a in dependencies.items():
-            for dep in deps_a:
+            for _dep in deps_a:
                 # Ищем обратную зависимость
                 for module_b, deps_b in dependencies.items():
                     if module_a != module_b:

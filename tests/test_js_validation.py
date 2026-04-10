@@ -39,7 +39,7 @@ class TestValidateJsCode:
             window.scrollTo(0, 100);
             const data = { name: 'test', value: 123 };
         """
-        is_valid, error = _validate_js_code(valid_js)
+        is_valid, _error = _validate_js_code(valid_js)
         assert is_valid is True
         # error может быть None или пустой строкой для валидного кода
 
@@ -58,7 +58,7 @@ class TestValidateJsCode:
             /* Многострочный комментарий */
             var y = 20;
         """
-        is_valid, error = _validate_js_code(js_with_comments)
+        is_valid, _error = _validate_js_code(js_with_comments)
         assert is_valid is True
 
 
@@ -68,7 +68,7 @@ class TestJsLengthCheck:
     def test_js_length_within_limit(self) -> None:
         """Тест JavaScript кода в пределах лимита длины."""
         js_code = "var x = 10;" * 100  # ~1300 символов
-        is_valid, error = _check_js_length(js_code, max_length=10000)
+        is_valid, _error = _check_js_length(js_code, max_length=10000)
         assert is_valid is True
 
     def test_js_length_exceeds_limit(self) -> None:
@@ -93,7 +93,7 @@ class TestDangerousEncodingCheck:
     def test_no_dangerous_encoding(self) -> None:
         """Тест отсутствия опасных кодировок."""
         js_code = "var str = 'normal string';"
-        is_valid, error = _check_dangerous_encoding(js_code)
+        is_valid, _error = _check_dangerous_encoding(js_code)
         assert is_valid is True
 
     def test_atob_function_detected(self) -> None:
@@ -117,7 +117,7 @@ class TestBase64FunctionsCheck:
     def test_no_base64_functions(self) -> None:
         """Тест отсутствия base64 функций."""
         js_code = "var x = 10; console.log(x);"
-        is_valid, error = _check_base64_functions(js_code)
+        is_valid, _error = _check_base64_functions(js_code)
         assert is_valid is True
 
     def test_fromcharcode_detected(self) -> None:
@@ -134,7 +134,7 @@ class TestStringConversionFunctionsCheck:
     def test_no_string_conversion(self) -> None:
         """Тест отсутствия функций преобразования строк."""
         js_code = "var x = 10; var y = 20;"
-        is_valid, error = _check_string_conversion_functions(js_code)
+        is_valid, _error = _check_string_conversion_functions(js_code)
         assert is_valid is True
 
     def test_fromcharcode_detected(self) -> None:
@@ -151,7 +151,7 @@ class TestConcatenationBypassCheck:
     def test_no_concatenation_bypass(self) -> None:
         """Тест отсутствия обхода конкатенацией."""
         js_code = "var str = 'hello' + 'world';"
-        is_valid, error = _check_concatenation_bypass(js_code)
+        is_valid, _error = _check_concatenation_bypass(js_code)
         assert is_valid is True
 
     def test_suspicious_concatenation(self) -> None:
@@ -168,7 +168,7 @@ class TestObfuscationPatternsCheck:
     def test_no_obfuscation(self) -> None:
         """Тест отсутствия обфускации."""
         js_code = "var functionName = 'clear';"
-        is_valid, error = _check_obfuscation_patterns(js_code)
+        is_valid, _error = _check_obfuscation_patterns(js_code)
         assert is_valid is True
 
     def test_hex_escape_detected(self) -> None:
@@ -185,7 +185,7 @@ class TestPrototypePollutionCheck:
     def test_no_prototype_pollution(self) -> None:
         """Тест отсутствия prototype pollution."""
         js_code = "var obj = { name: 'test' };"
-        is_valid, error = _check_prototype_pollution(js_code)
+        is_valid, _error = _check_prototype_pollution(js_code)
         assert is_valid is True
 
     def test_proto_detected(self) -> None:
@@ -209,7 +209,7 @@ class TestDangerousConstructorsCheck:
     def test_no_dangerous_constructors(self) -> None:
         """Тест отсутствия опасных конструкторов."""
         js_code = "var obj = new Object(); var arr = new Array();"
-        is_valid, error = _check_dangerous_constructors(js_code)
+        is_valid, _error = _check_dangerous_constructors(js_code)
         assert is_valid is True
 
     def test_function_constructor_detected(self) -> None:
@@ -233,7 +233,7 @@ class TestBracketAccessCheck:
     def test_no_suspicious_bracket_access(self) -> None:
         """Тест отсутствия подозрительного доступа через скобки."""
         js_code = "var value = obj['key'];"
-        is_valid, error = _check_bracket_access(js_code)
+        is_valid, _error = _check_bracket_access(js_code)
         assert is_valid is True
 
     def test_window_bracket_access_detected(self) -> None:
@@ -250,7 +250,7 @@ class TestReflectAndApplyCheck:
     def test_no_reflect_apply(self) -> None:
         """Тест отсутствия Reflect и apply."""
         js_code = "var result = obj.method();"
-        is_valid, error = _check_reflect_and_apply(js_code)
+        is_valid, _error = _check_reflect_and_apply(js_code)
         assert is_valid is True
 
     def test_reflect_detected(self) -> None:
@@ -274,7 +274,7 @@ class TestArrayAndRegexpCheck:
     def test_no_array_regexp(self) -> None:
         """Тест отсутствия Array.from и RegExp."""
         js_code = "var arr = [1, 2, 3]; var regex = /test/;"
-        is_valid, error = _check_array_and_regexp(js_code)
+        is_valid, _error = _check_array_and_regexp(js_code)
         assert is_valid is True
 
     def test_array_from_detected(self) -> None:
@@ -309,7 +309,7 @@ class TestValidateJsCodeIntegration:
                 return 'done';
             })();
         """
-        is_valid, error = _validate_js_code(complex_js)
+        is_valid, _error = _validate_js_code(complex_js)
         assert is_valid is True
 
     def test_validate_malicious_js(self) -> None:

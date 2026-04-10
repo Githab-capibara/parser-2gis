@@ -301,7 +301,7 @@ class TestValidateUrlConcurrency:
 
         # Запускаем 10 потоков
         threads = []
-        for i in range(10):
+        for _i in range(10):
             thread = threading.Thread(target=worker)
             threads.append(thread)
             thread.start()

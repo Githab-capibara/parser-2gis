@@ -63,7 +63,7 @@ class TestProcessManagerSimplified:
         process_manager._proc = mock_process
 
         # Вызываем terminate
-        success, status = process_manager.terminate(12345, timeout=5)
+        _success, _status = process_manager.terminate(12345, timeout=5)
 
         # Проверяем что terminate был вызван
         mock_process.terminate.assert_called_once()
@@ -86,7 +86,7 @@ class TestProcessManagerSimplified:
         process_manager._proc = mock_process
 
         # Вызываем kill
-        success, status = process_manager.kill(12345, timeout=10)
+        _success, _status = process_manager.kill(12345, timeout=10)
 
         # Проверяем что kill был вызван
         mock_process.kill.assert_called_once()
@@ -127,7 +127,7 @@ class TestProcessManagerSimplified:
 
         process_manager._proc = mock_process
 
-        success, status = process_manager.kill(12345, timeout=10)
+        _success, status = process_manager.kill(12345, timeout=10)
 
         # Проверяем что таймаут обработан
         # Примечание: в реальной реализации может возвращать True если poll() показывает завершение

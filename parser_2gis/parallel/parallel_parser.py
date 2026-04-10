@@ -782,7 +782,7 @@ class ParallelCityParser:
                 self._merge_temp_files.append(temp_output)
 
             # ISSUE-086: Делегируем слияние общей функции
-            merge_success, total_rows, files_to_delete = self._perform_csv_merge(
+            merge_success, _total_rows, files_to_delete = self._perform_csv_merge(
                 csv_files=csv_files,
                 temp_output=temp_output,
                 output_file_path=output_file_path,

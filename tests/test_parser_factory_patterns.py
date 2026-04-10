@@ -13,7 +13,7 @@ class TestParserPatternsCompiled:
         """Паттерны должны быть предкомпилированы."""
         assert len(_PARSER_PATTERNS) == 3
 
-        for parser_cls, pattern in _PARSER_PATTERNS:
+        for _parser_cls, pattern in _PARSER_PATTERNS:
             assert isinstance(pattern, re.Pattern)
             assert pattern.pattern is not None
 

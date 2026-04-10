@@ -10,7 +10,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 
 type UrlTuple = tuple[str, str, str]  # (url, category_name, city_name)

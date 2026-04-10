@@ -145,7 +145,7 @@ def main():
     all_empty_tests = []
     files_analyzed = 0
 
-    for root, dirs, files in os.walk(test_dir):
+    for root, _dirs, files in os.walk(test_dir):
         for file in files:
             if file.startswith("test_") and file.endswith(".py"):
                 filepath = os.path.join(root, file)
@@ -183,7 +183,7 @@ def main():
             # Показать первые 3 строки кода для понимания что делает тест
             lines = test["source"].split("\n")
             print("      Код:")
-            for i, line in enumerate(lines[:5]):
+            for _i, line in enumerate(lines[:5]):
                 print(f"        {line}")
             if len(lines) > 5:
                 print(f"        ... (ещё {len(lines) - 5} строк)")

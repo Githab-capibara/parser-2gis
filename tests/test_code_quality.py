@@ -344,7 +344,7 @@ class TestCodeQuality:
         """
         bare_except_count = 0
 
-        for file_path, tree in parsed_files:
+        for _file_path, tree in parsed_files:
             for node in ast.walk(tree):
                 if isinstance(node, ast.ExceptHandler):
                     if node.type is None:

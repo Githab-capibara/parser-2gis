@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import types
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from parser_2gis.logger import logger
 

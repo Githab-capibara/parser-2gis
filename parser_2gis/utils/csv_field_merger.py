@@ -16,7 +16,6 @@ ISSUE 077: Создаёт CSVFieldMerger класс для:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 
 
 CATEGORY_COLUMN_NAME = "Категория"
