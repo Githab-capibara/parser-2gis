@@ -137,18 +137,18 @@ class SignalSubscriptionSystem:
         """
         return len(self._subscriptions.get(signal_num, []))
 
-    def _create_handler(self, signal_num: int) -> Callable[[int, types.FrameType | None], None]:
+    def _create_handler(self, _signal_num: int) -> Callable[[int, types.FrameType | None], None]:
         """Создаёт обработчик сигнала для заданного номера.
 
         Args:
-            signal_num: Номер сигнала.
+            _signal_num: Номер сигнала.
 
         Returns:
             Функция-обработчик сигнала.
 
         """
 
-        def handler(signum: int, frame: types.FrameType | None) -> None:
+        def handler(signum: int, _frame: types.FrameType | None) -> None:
             signal_name = signal.Signals(signum).name if hasattr(signal, "Signals") else str(signum)
             logger.info("Получен сигнал %s, выполняются обработчики...", signal_name)
 

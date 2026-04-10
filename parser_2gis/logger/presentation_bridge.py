@@ -49,7 +49,7 @@ class LoggerPresentationBridge:
         version: str,
         urls_count: int,
         output_path: str,
-        output_format: str,
+        _output_format: str,
         config_summary: dict[str, Any] | None = None,
     ) -> None:
         """Логирует запуск парсера через визуальный логгер.
@@ -58,7 +58,7 @@ class LoggerPresentationBridge:
             version: Версия парсера.
             urls_count: Количество URL для парсинга.
             output_path: Путь к выходному файлу.
-            output_format: Формат выходного файла.
+            _output_format: Формат выходного файла.
             config_summary: Краткая сводка конфигурации.
 
         """

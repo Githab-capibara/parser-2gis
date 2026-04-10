@@ -56,12 +56,12 @@ class ParserRegistry:
         self._patterns: list[tuple[type[BaseParser], re.Pattern[str]]] = []
         self._lock = threading.Lock()
 
-    def register(self, parser_cls: type[BaseParser], priority: int = 0) -> None:
+    def register(self, parser_cls: type[BaseParser], _priority: int = 0) -> None:
         """Регистрирует класс парсера в реестре.
 
         Args:
             parser_cls: Класс парсера.
-            priority: Приоритет (чем выше, тем раньше проверяется).
+            _priority: Приоритет (чем выше, тем раньше проверяется).
 
         """
         with self._lock:
@@ -284,7 +284,7 @@ def _discover_parsers_via_importlib() -> None:
         import importlib.util
 
         for _finder, module_name, _is_pkg in getattr(
-            __import__("pkgutil"), "_iter_importers", lambda *a: []
+            __import__("pkgutil"), "_iter_importers", lambda *_: []
         )(parsers_pkg, parsers_pkg.__name__, pkg_path):
             if module_name.startswith("_") or module_name in ("base", "__init__"):
                 continue

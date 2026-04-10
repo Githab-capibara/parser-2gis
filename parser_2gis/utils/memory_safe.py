@@ -28,7 +28,7 @@ DEFAULT_MEMORY_THRESHOLD_MB = 100
 
 
 def safe_parse_with_memory_check(
-    memory_threshold_mb: int = DEFAULT_MEMORY_THRESHOLD_MB,
+    _memory_threshold_mb: int = DEFAULT_MEMORY_THRESHOLD_MB,
     clear_cache_on_error: bool = True,
     log_level: str = "error",
 ) -> Callable[[Callable[P, R]], Callable[P, R | None]]:
@@ -39,7 +39,7 @@ def safe_parse_with_memory_check(
     - parallel/url_parser.py (parse_single_url — MemoryError handling)
 
     Args:
-        memory_threshold_mb: Порог памяти в MB.
+        _memory_threshold_mb: Порог памяти в MB (зарезервировано для будущего использования).
         clear_cache_on_error: Очищать ли кэш при MemoryError.
         log_level: Уровень логирования ошибок.
 

@@ -225,13 +225,13 @@ class ApplicationLauncher:
             self._signal_handler.register()
         logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через ApplicationLauncher")
 
-    def _run_tui_mode(self, args: argparse.Namespace, tui_type: str = "main") -> int:
+    def _run_tui_mode(self, _args: argparse.Namespace, tui_type: str = "main") -> int:
         """Запуск TUI режима.
 
         ISSUE-045: Использует общую функцию run_tui_application для устранения дублирования.
 
         Args:
-            args: Аргументы командной строки.
+            _args: Аргументы командной строки.
             tui_type: Тип TUI ("main" или "omsk").
 
         Returns:

@@ -79,7 +79,7 @@ class SignalHandler:
         if self._registered:
             return
 
-        def handler(signum: int, frame: types.FrameType | None) -> None:
+        def handler(signum: int, _frame: types.FrameType | None) -> None:
             """Обработчик сигналов прерывания."""
             logger.warning("Получен сигнал %d, инициализация завершения...", signum)
             self._cancel_event.set()

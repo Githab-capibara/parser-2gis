@@ -23,12 +23,12 @@ def create_signal_handler(context_getter: Any) -> Any:
 
     """
 
-    def _signal_handler(signum: int, frame: types.FrameType | None) -> None:
+    def _signal_handler(_signum: int, _frame: types.FrameType | None) -> None:
         """Глобальный обработчик сигналов SIGINT (Ctrl+C).
 
         Args:
-            signum: Номер сигнала.
-            frame: Текущий фрейм.
+            _signum: Номер сигнала.
+            _frame: Текущий фрейм.
 
         """
         coordinator = context_getter().get_coordinator()

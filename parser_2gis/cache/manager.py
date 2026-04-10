@@ -498,13 +498,13 @@ class CacheManager:
         return self._serializer.deserialize(data)
 
     def _handle_cache_miss(
-        self, cursor: sqlite3.Cursor, url_hash: str, conn: sqlite3.Connection
+        self, _cursor: sqlite3.Cursor, _url_hash: str, conn: sqlite3.Connection
     ) -> None:
         """Обрабатывает промах кэша.
 
         Args:
-            cursor: Курсор базы данных sqlite3.
-            url_hash: Хеш URL.
+            _cursor: Курсор базы данных sqlite3.
+            _url_hash: Хеш URL.
             conn: Соединение базы данных sqlite3.
 
         """

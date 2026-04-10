@@ -667,7 +667,7 @@ class ParallelCityParser:
         self,
         csv_files: list[Path],
         temp_output: Path,
-        output_file_path: Path,
+        _output_file_path: Path,
         progress_callback: Callable[[str], None] | None,
     ) -> tuple[bool, int, list[Path]]:
         """Выполняет слияние CSV файлов через общую функцию.
@@ -677,7 +677,7 @@ class ParallelCityParser:
         Args:
             csv_files: Список CSV файлов.
             temp_output: Путь к временному файлу.
-            output_file_path: Путь к целевому файлу.
+            _output_file_path: Путь к целевому файлу.
             progress_callback: Callback прогресса.
 
         Returns:

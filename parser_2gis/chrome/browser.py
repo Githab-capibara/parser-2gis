@@ -887,14 +887,14 @@ class BrowserLifecycleManager:
     def _cleanup_from_finalizer(
         proc: subprocess.Popen[str] | None,
         profile_tempdir: tempfile.TemporaryDirectory[str] | None,
-        profile_path: str | None,
+        _profile_path: str | None,
     ) -> None:
         """Гарантированная очистка ресурсов через weakref.finalize().
 
         Args:
             proc: Процесс браузера.
             profile_tempdir: Временная директория профиля.
-            profile_path: Путь к профилю.
+            _profile_path: Путь к профилю.
 
         """
         try:

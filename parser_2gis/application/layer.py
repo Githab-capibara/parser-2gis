@@ -219,13 +219,13 @@ class CacheFacade:
         """
         return self._cache.get(key)
 
-    def set(self, key: str, value: Any, ttl: int = 3600) -> None:
+    def set(self, key: str, value: Any, _ttl: int = 3600) -> None:
         """Устанавливает значение в кэш.
 
         Args:
             key: Ключ для установки.
             value: Значение для кэширования.
-            ttl: Время жизни в секундах (не используется, оставлено для обратной совместимости).
+            _ttl: Время жизни в секундах (не используется, оставлено для обратной совместимости).
 
         """
         self._cache.set(key, value)

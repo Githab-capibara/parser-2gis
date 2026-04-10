@@ -205,7 +205,7 @@ def _clear_port_cache() -> None:
     _check_port_cached.cache_clear()
 
 
-def invalidate_port_cache(port: int) -> None:
+def invalidate_port_cache(_port: int) -> None:
     """Инвалидирует кэш для конкретного порта.
 
     ISSUE-003-#17: Поскольку lru_cache не поддерживает удаление отдельных записей,

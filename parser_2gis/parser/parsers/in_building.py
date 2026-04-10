@@ -40,11 +40,11 @@ class InBuildingParser(MainParser):
         return r"https?://2gis\.[^/]+/[^/]+/inside/.*"
 
     @wait_until_finished(timeout=1.5, throw_exception=False, poll_interval=0.01)
-    def _get_links(self, timeout: float = 1.5) -> list[DOMNode] | None:
+    def _get_links(self, _timeout: float = 1.5) -> list[DOMNode] | None:
         """Извлекает конкретные ссылки узлов DOM из текущего снимка DOM.
 
         Args:
-            timeout: Таймаут ожидания завершения операции в секундах (по умолчанию 1.5).
+            _timeout: Таймаут ожидания завершения операции в секундах (по умолчанию 1.5).
 
         Returns:
             Список DOM-узлов ссылок или None при ошибке.
