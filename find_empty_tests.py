@@ -82,17 +82,18 @@ class TestFunctionVisitor(ast.NodeVisitor):
                     # Проверка вызовых методов mock
                     if isinstance(func.value, ast.Name) and func.value.id == "mock":
                         return True
-                    if isinstance(func.value, ast.Attribute):
-                        if func.value.attr in ("mock", "return_value"):
-                            return True
+                    if isinstance(func.value, ast.Attribute) and func.value.attr in (
+                        "mock",
+                        "return_value",
+                    ):
+                        return True
         return False
 
     def _has_print(self, node) -> bool:
         """Проверяет наличие print() в тесте."""
         for child in ast.walk(node):
-            if isinstance(child, ast.Call):
-                if isinstance(child.func, ast.Name) and child.func.id == "print":
-                    return True
+            if isinstance(child, ast.Call) and isinstance(child.func, ast.Name) and child.func.id == "print":
+                return True
         return False
 
     def _has_only_pass_or_ellipsis(self, node) -> bool:
@@ -101,9 +102,12 @@ class TestFunctionVisitor(ast.NodeVisitor):
             stmt = node.body[0]
             if isinstance(stmt, ast.Pass):
                 return True
-            if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
-                if stmt.value.value is ... or stmt.value.value is None:
-                    return True
+            if (
+                isinstance(stmt, ast.Expr)
+                and isinstance(stmt.value, ast.Constant)
+                and (stmt.value.value is ... or stmt.value.value is None)
+            ):
+                return True
         return False
 
     def _has_only_object_creation(self, node):

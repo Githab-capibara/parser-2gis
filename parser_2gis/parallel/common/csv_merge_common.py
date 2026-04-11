@@ -113,7 +113,7 @@ def merge_csv_files_common(
     ) -> tuple[TextIO | None, bool]:
         """Открывает выходной файл с fallback механизмом."""
         try:
-            file_obj = open(path, "w", encoding=enc, newline="", buffering=buf_size)
+            file_obj = open(path, "w", encoding=enc, newline="", buffering=buf_size)  # noqa: SIM115
             _log_message(f"Выходной файл открыт с буфером {buf_size} байт", "debug", log_func)
             return file_obj, True
         except OSError as output_error:
@@ -129,7 +129,7 @@ def merge_csv_files_common(
                     "Fallback попытка: уменьшаем размер буфера до 8KB", "warning", log_func
                 )
                 try:
-                    file_obj = open(path, "w", encoding=enc, newline="", buffering=8192)
+                    file_obj = open(path, "w", encoding=enc, newline="", buffering=8192)  # noqa: SIM115
                     _log_message(
                         "Fallback успешен: файл открыт с уменьшенным буфером", "info", log_func
                     )
@@ -161,7 +161,7 @@ def merge_csv_files_common(
 
                 infile = None
                 try:
-                    infile = open(csv_file, encoding="utf-8-sig", newline="", buffering=buffer_size)
+                    infile = open(csv_file, encoding="utf-8-sig", newline="", buffering=buffer_size)  # noqa: SIM115
                 except OSError as file_error:
                     error_type = type(file_error).__name__
                     _log_message(

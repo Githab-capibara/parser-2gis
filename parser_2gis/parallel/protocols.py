@@ -39,14 +39,17 @@ class ConnectionPoolProtocol(Protocol):
 
     def get_connection(self) -> Any:
         """Получает соединение из пула."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def return_connection(self, conn: Any) -> None:
         """Возвращает соединение в пул."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def close(self) -> None:
         """Закрывает все соединения в пуле."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
 
@@ -270,14 +273,17 @@ class CoordinatorProtocol(Protocol):
         merge_callback: Callable[[str], None] | None = None,
     ) -> bool:
         """Запускает параллельный парсинг всех городов и категорий."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def stop(self) -> None:
         """Останавливает парсинг."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def get_statistics(self) -> dict[str, Any]:
         """Возвращает статистику парсинга."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
 
@@ -292,6 +298,7 @@ class FileMergerProtocol(Protocol):
         self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
         """Объединяет CSV файлы в один выходной файл."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
 
@@ -304,18 +311,22 @@ class TempFileManagerProtocol(Protocol):
 
     def register(self, file_path: Path) -> None:
         """Регистрирует временный файл для последующей очистки."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def unregister(self, file_path: Path) -> None:
         """Удаляет файл из реестра."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def cleanup_all(self) -> tuple[int, int]:
         """Очищает все зарегистрированные временные файлы."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def get_count(self) -> int:
         """Возвращает количество зарегистрированных файлов."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
 
@@ -329,14 +340,17 @@ class SignalHandlerProtocol(Protocol):
 
     def __call__(self, signum: int, frame: Any | None) -> None:
         """Вызывается при получении сигнала."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def is_interrupt_requested(self) -> bool:
         """Проверяет, запрошена ли прерывание."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def reset(self) -> None:
         """Сбрасывает состояние обработчика сигналов."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
 
@@ -349,6 +363,7 @@ class MemoryMonitorProtocol(Protocol):
 
     def get_available_memory(self) -> int:
         """Получает доступный объем памяти в байтах."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
 

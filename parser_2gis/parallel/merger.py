@@ -113,8 +113,7 @@ def _acquire_merge_lock(
     start_time = time.time()
     while not lock_acquired:
         try:
-            # pylint: disable=consider-using-with
-            lock_file_handle = open(lock_file_path, "w", encoding="utf-8")
+            lock_file_handle = open(lock_file_path, "w", encoding="utf-8")  # noqa: SIM115, pylint: disable=consider-using-with
             try:
                 fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                 lock_file_handle.write(f"{os.getpid()}\n")

@@ -481,6 +481,7 @@ class RetryStrategy(Protocol):
     @property
     def max_retries(self) -> int:
         """Максимальное количество попыток."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def get_delay(self, attempt: int) -> float:
@@ -493,6 +494,7 @@ class RetryStrategy(Protocol):
             Задержка в секундах.
 
         """
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def should_retry(self, attempt: int, error: Exception | None = None) -> bool:
@@ -506,6 +508,7 @@ class RetryStrategy(Protocol):
             True если стоит повторить.
 
         """
+        # pylint: disable=unnecessary-ellipsis
         ...
 
 
@@ -537,23 +540,28 @@ class FileLockStrategy(Protocol):
             True если блокировка получена.
 
         """
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def release(self) -> None:
         """Освобождает блокировку."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     @property
     def is_acquired(self) -> bool:
         """Проверяет, получена ли блокировка."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def __enter__(self) -> bool:
         """Контекстный менеджер: получает блокировку."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def __exit__(self, _exc_type: Any, _exc_val: Any, _exc_tb: Any) -> None:
         """Контекстный менеджер: освобождает блокировку."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
 

@@ -132,7 +132,7 @@ def mmap_file_context(
                 file_size / (1024 * 1024),
             )
             # Открываем файл в бинарном режиме
-            underlying_fp = open(file_path, "rb")
+            underlying_fp = open(file_path, "rb")  # noqa: SIM115
             # Создаём mmap объект
             mmapped_file = mmap.mmap(underlying_fp.fileno(), 0, access=mmap.ACCESS_READ)
             # Оборачиваем в TextIOWrapper для текстового чтения
@@ -144,7 +144,7 @@ def mmap_file_context(
                 "Файл стандартного размера (%.2f MB <= 10 MB), используется обычная буферизация",
                 file_size / (1024 * 1024),
             )
-            fallback_file = open(file_path, mode, encoding=encoding)
+            fallback_file = open(file_path, mode, encoding=encoding)  # noqa: SIM115
             yield fallback_file, False, None
 
     except (OSError, TypeError, RuntimeError) as error:
@@ -157,7 +157,7 @@ def mmap_file_context(
         # Закрываем ресурсы если они были открыты
         _cleanup_mmap_resources(underlying_fp, mmapped_file)
         # Fallback на обычную буферизацию
-        fallback_file = open(file_path, mode, encoding=encoding)
+        fallback_file = open(file_path, mode, encoding=encoding)  # noqa: SIM115
         try:
             yield fallback_file, False, None
         finally:

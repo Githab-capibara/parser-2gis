@@ -37,18 +37,22 @@ class ITuiApp(Protocol):
     # -------------------------------------------------------------------------
     def get_cities(self) -> list[dict[str, Any]]:
         """Возвращает список доступных городов."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def get_categories(self) -> list[dict[str, str | int]]:
         """Возвращает список категорий."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def get_config(self) -> Configuration:
         """Возвращает текущую конфигурацию."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def save_config(self) -> None:
         """Сохраняет конфигурацию."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     # -------------------------------------------------------------------------
@@ -56,18 +60,22 @@ class ITuiApp(Protocol):
     # -------------------------------------------------------------------------
     def switch_screen(self, screen_id: str) -> None:
         """Переключает активный экран."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def pop_screen(self) -> None:
         """Возвращает к предыдущему экрану."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def push_screen(self, screen_id: str) -> None:
         """Добавляет новый экран в стек."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def exit(self) -> None:
         """Завершает работу приложения."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     # -------------------------------------------------------------------------
@@ -75,10 +83,12 @@ class ITuiApp(Protocol):
     # -------------------------------------------------------------------------
     def start_parsing(self, cities: list[dict], categories: list[dict]) -> None:
         """Запускает процесс парсинга."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def stop_parsing(self) -> None:
         """Останавливает процесс парсинга."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     # -------------------------------------------------------------------------
@@ -86,8 +96,10 @@ class ITuiApp(Protocol):
     # -------------------------------------------------------------------------
     def notify(self, message: str, *, title: str = "", timeout: float = 5) -> None:
         """Отправляет уведомление."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     def notify_user(self, message: str, level: str = "info") -> None:
         """Отправляет уведомление пользователю."""
+        # pylint: disable=unnecessary-ellipsis
         ...

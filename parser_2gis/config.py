@@ -56,6 +56,7 @@ class ConfigServiceProtocol(Protocol):
     @staticmethod
     def save_config(config: BaseModel, path: pathlib.Path) -> None:
         """Сохраняет конфигурацию в файл."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
     @staticmethod
@@ -63,6 +64,7 @@ class ConfigServiceProtocol(Protocol):
         config_cls: type[BaseModel], config_path: pathlib.Path | None = ..., auto_create: bool = ...
     ) -> BaseModel:
         """Загружает конфигурацию из файла."""
+        # pylint: disable=unnecessary-ellipsis
         ...
 
 

@@ -341,7 +341,7 @@ class VisualLogger:
                 len(stats),
             )
             # Фолбэк: простой вывод
-            for _key, value in stats.items():
+            for _key, _value in stats.items():
                 pass
 
     def print_success(self, message: str) -> None:
