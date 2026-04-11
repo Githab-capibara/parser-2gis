@@ -617,7 +617,7 @@ class TUIApp(App):
         """
         try:
             self._running = True
-            self._started_at = datetime.now(tz=None)  # noqa: DTZ005
+            self._started_at = datetime.now(tz=None)
 
             # Проверка флага остановки перед началом работы
             if not self._running:
@@ -712,7 +712,7 @@ class TUIApp(App):
                 finally:
                     self._cleanup_in_progress = False
 
-    def _parsing_complete(self, success: bool) -> None:  # noqa: FBT001
+    def _parsing_complete(self, success: bool) -> None:
         """Обработка завершения парсинга."""
         screen = self.screen
         if hasattr(screen, "on_parsing_complete"):

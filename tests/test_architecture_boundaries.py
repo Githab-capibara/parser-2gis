@@ -294,7 +294,7 @@ class TestNoImportsFromCommon:
             + "\n\ncommon.py был удалён. Используйте специализированные модули из utils/."
         )
 
-    def test_no_imports_from_common(self) -> None:
+    def test_no_imports_from_parser_2gis_common(self) -> None:
         """Тест 3: Нигде не должны импортироваться из старого common.py.
 
         parallel/common/ — это новый пакет с общими утилитами, это допустимо.

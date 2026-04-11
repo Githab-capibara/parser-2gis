@@ -62,7 +62,7 @@ def main() -> None:
 
     ISSUE-045: Использует общую функцию run_tui_application для устранения дублирования.
     """
-    start_datetime = datetime.now(tz=None)  # noqa: DTZ005
+    start_datetime = datetime.now(tz=None)
     args, command_line_config = parse_arguments()
 
     # Обработка TUI интерфейсов - ISSUE-045: используем общую функцию

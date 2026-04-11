@@ -88,7 +88,7 @@ class ParsingOrchestrator:
 
         """
         self._state.running = True
-        self._state.started_at = datetime.now(tz=None)  # noqa: DTZ005
+        self._state.started_at = datetime.now(tz=None)
         self._state.total_urls = total_urls
         self._state.success_count = 0
         self._state.error_count = 0

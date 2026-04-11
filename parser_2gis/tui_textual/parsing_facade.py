@@ -96,7 +96,7 @@ class ParsingFacade:
                 progress_callback(success, failed, filename)
 
         try:
-            output_file = f"парсинг_{datetime.now(tz=None).strftime('%Y%m%d_%H%M%S')}.csv"  # noqa: DTZ005
+            output_file = f"парсинг_{datetime.now(tz=None).strftime('%Y%m%d_%H%M%S')}.csv"
             result = self._parser.run(
                 output_file=output_file, progress_callback=internal_progress_callback,
             )

@@ -18,7 +18,7 @@ from unittest.mock import patch
 
 import pytest
 
-from parser_2gis.cache.cache_utils import compute_crc32_cached, compute_data_json_hash
+from parser_2gis.cache.cache_utils import compute_crc32_cached
 from parser_2gis.cache.manager import CacheManager
 
 # =============================================================================

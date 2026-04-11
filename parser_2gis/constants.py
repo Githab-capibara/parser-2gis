@@ -568,7 +568,7 @@ def validate_env_int(
 # =============================================================================
 
 
-__all__: list[str] = [  # noqa: F822
+__all__: list[str] = [
     "CHROME_STARTUP_DELAY",
     "CONNECTION_MAX_AGE",
     "CSV_BATCH_SIZE",

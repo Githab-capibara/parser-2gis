@@ -60,7 +60,7 @@ class ConfigServiceProtocol(Protocol):
 
     @staticmethod
     def load_config(
-        config_cls: type[BaseModel], config_path: pathlib.Path | None = ..., auto_create: bool = ...,  # noqa: FBT001
+        config_cls: type[BaseModel], config_path: pathlib.Path | None = ..., auto_create: bool = ...,
     ) -> BaseModel:
         """Загружает конфигурацию из файла."""
         ...

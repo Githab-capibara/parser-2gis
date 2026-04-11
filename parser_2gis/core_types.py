@@ -14,7 +14,7 @@ ISSUE-041: Содержит базовые типы для shared type definitio
 
 from __future__ import annotations
 
-from typing import Any, Generic, NamedTuple, Protocol, TypeVar
+from typing import Any, NamedTuple, Protocol, TypeVar
 
 # Type variables для дженериков
 T = TypeVar("T")

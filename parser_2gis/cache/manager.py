@@ -559,7 +559,7 @@ class CacheManager:
                     if row:
                         data, expires_at_str = row
                         expires_at = self._parse_expires_at(expires_at_str)
-                        if expires_at and datetime.now(tz=None) <= expires_at:  # noqa: DTZ005
+                        if expires_at and datetime.now(tz=None) <= expires_at:
                             return self._serializer.deserialize(data)
             except sqlite3.Error as retry_error:
                 app_logger.warning("Повторная попытка не удалась: %s", retry_error)
@@ -783,7 +783,7 @@ class CacheManager:
         url_hash = self._hash_url(url)
 
         # Используем одну временную метку для всех операций в методе
-        now = datetime.now(tz=None)  # noqa: DTZ005
+        now = datetime.now(tz=None)
         expires_at = now + self._ttl
 
         # ID:072: Обработка MemoryError при сериализации
@@ -961,7 +961,7 @@ class CacheManager:
         skipped_count = 0
 
         # Используем одну временную метку для всех операций в методе
-        now = datetime.now(tz=None)  # noqa: DTZ005
+        now = datetime.now(tz=None)
         expires_at = now + self._ttl
 
         # Оптимизация: сериализация в один проход, затем пакетная вставка
@@ -1084,7 +1084,7 @@ class CacheManager:
         cursor = conn.cursor()
 
         try:
-            current_time = datetime.now(tz=None)  # noqa: DTZ005
+            current_time = datetime.now(tz=None)
 
             cursor.execute(self.DELETE_EXPIRED_SQL, (current_time.isoformat(),))
             deleted_count = cursor.rowcount
@@ -1187,7 +1187,7 @@ class CacheManager:
             cursor.execute(self.COUNT_ALL_SQL)
             total = cursor.fetchone()[0]
 
-            current_time = datetime.now(tz=None)  # noqa: DTZ005
+            current_time = datetime.now(tz=None)
 
             cursor.execute(self.COUNT_EXPIRED_SQL, (current_time.isoformat(),))
             expired = cursor.fetchone()[0]

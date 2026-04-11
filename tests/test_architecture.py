@@ -258,7 +258,10 @@ except ImportError:
     POOL_AVAILABLE = False
 
 try:
-    from parser_2gis.parallel.memory_manager import MemoryManager, _memory_manager_instance
+    from parser_2gis.parallel.memory_manager import (  # noqa: F401
+        MemoryManager,
+        _memory_manager_instance,
+    )
 
     MEMORY_MANAGER_AVAILABLE = True
 except ImportError:
@@ -387,7 +390,7 @@ class TestPerformanceCriticalFunctions:
 # ============================================================================
 
 try:
-    from parser_2gis.writer import get_writer
+    from parser_2gis.writer import get_writer  # noqa: F401
 
     WRITER_AVAILABLE = True
 except ImportError:
