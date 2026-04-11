@@ -35,7 +35,6 @@ from parser_2gis.utils.url_utils import generate_category_url
 
 if TYPE_CHECKING:
     from parser_2gis.config import Configuration
-    from parser_2gis.writer.factory import Any
 
 # Type aliases
 type ParserResult = tuple[bool, str]  # (success, message)

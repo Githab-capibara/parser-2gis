@@ -194,7 +194,7 @@ class Configuration(BaseModel):
 
         return cast("Configuration", result)
 
-    def validate(self) -> tuple[bool, list[str]]:  # pylint: disable=arguments-renamed
+    def validate_config(self) -> tuple[bool, list[str]]:  # pylint: disable=arguments-renamed
         """Валидирует конфигурацию.
 
         Делегирует операцию классу ConfigValidator.

@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 from parser_2gis.chrome.dom import DOMNode
 from parser_2gis.logger import logger
-from parser_2gis.parser.parsers.base import BaseParser
+from parser_2gis.parser.parsers.base import BaseParser, ParserStats
 from parser_2gis.protocols import BrowserService
 from parser_2gis.shared_config_constants import CATALOG_API_PATTERN
 from parser_2gis.utils.decorators import wait_until_finished
@@ -718,14 +718,14 @@ class MainPageParser(BaseParser):
             "Используйте MainParser.parse() вместо этого."
         )
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> ParserStats:
         """Получение статистики парсера.
 
         Returns:
             Словарь со статистикой парсера.
 
         """
-        return dict(self._stats)
+        return dict(self._stats)  # type: ignore[return-value]
 
     def __enter__(self) -> MainPageParser:
         """Контекстный менеджер: вход.

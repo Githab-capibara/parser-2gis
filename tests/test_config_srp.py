@@ -151,7 +151,7 @@ class TestConfiguration:
         """Тестирует метод validate."""
         config = Configuration()
 
-        result = config.validate()
+        result = config.validate_config()
 
         # validate возвращает кортеж (bool, list[str])
         assert isinstance(result, tuple)

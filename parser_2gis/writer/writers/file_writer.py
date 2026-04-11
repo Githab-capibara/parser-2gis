@@ -11,6 +11,7 @@ ISSUE-031: Реализует протокол Writer из protocols.py.
 from __future__ import annotations
 
 import os
+import tempfile
 import types
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -92,7 +93,7 @@ class FileWriter(WriterProtocol, ABC):
 
         # Если после нормализации путь изменился, проверяем допустимые директории
         # ISSUE-003-#11: Разрешаем пути в tempfile и output директориях
-        allowed_prefixes = (os.getcwd(), "/tmp", "/var/tmp", os.path.join(os.getcwd(), "output"))
+        allowed_prefixes = (os.getcwd(), tempfile.gettempdir(), os.path.join(os.getcwd(), "output"))
         if normalized_path != base_name and not normalized_path.startswith(allowed_prefixes):
             # Путь содержит директорию отличную от текущей
             raise ValueError(

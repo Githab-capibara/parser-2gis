@@ -144,9 +144,9 @@ class MainDataExtractor:
         # H006: Проверяем кэш перед парсингом
         link_url = self._get_link_url(link)
         if link_url and link_url in self._extracted_data_cache:
-            doc = self._extracted_data_cache[link_url]
+            cached_doc = self._extracted_data_cache[link_url]
             try:
-                writer.write(doc)
+                writer.write(cached_doc)
                 logger.debug("Данные получены из кэша для %s", link_url[:50] if link_url else "N/A")
                 return True
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as write_error:

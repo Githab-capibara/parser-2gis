@@ -35,7 +35,7 @@ from parser_2gis.utils.url_utils import generate_category_url
 
 if TYPE_CHECKING:
     from parser_2gis.config import Configuration
-    from parser_2gis.parser import BaseParser
+    from parser_2gis.parser.parsers.base import BaseParser
 
 
 class ParallelUrlParser(UrlGeneratorProtocol):

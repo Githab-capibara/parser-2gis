@@ -473,7 +473,7 @@ class TestFullParsingCycleMock:
         from parser_2gis.config import Configuration
 
         config = Configuration()
-        is_valid, errors = config.validate()
+        is_valid, errors = config.validate_config()
         # Конфигурация по умолчанию должна быть валидной
         assert is_valid or not errors  # Либо валидна, либо есть ошибки
 

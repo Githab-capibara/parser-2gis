@@ -140,7 +140,7 @@ class FcntlLockStrategy(BaseLockStrategy):
                 return False
 
             try:
-                lock_fd = os.open(
+                lock_fd: int | None = os.open(
                     str(self._lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
                 )
                 try:

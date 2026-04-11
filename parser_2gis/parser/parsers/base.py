@@ -1,6 +1,6 @@
 """Абстрактный базовый класс для всех парсеров.
 
-Предоставляет ABC (Abstract Base Class) BaseParser с обязательными методами:
+Предоставляет ABC (Abstract Base Class) BaseParser с обязательмыми методами:
 - parse() — основной метод парсинга
 - get_stats() — получение статистики парсинга
 
@@ -11,17 +11,17 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Self
 
 if TYPE_CHECKING:
     from parser_2gis.protocols import BrowserService
     from parser_2gis.writer import FileWriter
 
 
-class ParserStats(TypedDict):
-    """TypedDict для статистики парсера.
+class ParserStats(dict[str, int]):
+    """TypedDict-совместимый словарь для статистики парсера.
 
-    P1-7: Замена dict[str, Any] на TypedDict для лучшей типизации.
+    P1-7: Замена dict[str, Any] на типизированный словарь для лучшей типизации.
     """
 
     parsed: int
@@ -36,37 +36,6 @@ class BaseParser(ABC):
     Каждый парсер должен реализовать следующие абстрактные методы:
     - parse() — основной метод парсинга данных
     - get_stats() — получение статистики работы парсера
-
-    Пример использования:
-        >>> from parser_2gis.protocols import BrowserService
-        >>> class MyParser(BaseParser):
-        ...     def __init__(self, browser: BrowserService):
-        ...         super().__init__(browser)
-        ...
-        ...     def parse(self, writer: FileWriter) -> None:
-        ...         # Реализация парсинга
-        ...         pass
-        ...
-        ...     def get_stats(self) -> Dict[str, Any]:
-        ...         # Возврат статистики
-        ...         return {"parsed": 100}
-
-    Пример наследования:
-        >>> from parser_2gis.parser.parsers.base import BaseParser
-        >>> from parser_2gis.protocols import BrowserService
-        >>> from parser_2gis.writer import FileWriter
-        >>>
-        >>> class FirmParser(BaseParser):
-        ...     def __init__(self, browser: BrowserService):
-        ...         super().__init__(browser)
-        ...         self._stats = {"parsed": 0, "errors": 0}
-        ...
-        ...     def parse(self, writer: FileWriter) -> None:
-        ...         # Парсинг данных фирмы
-        ...         self._stats["parsed"] += 1
-        ...
-        ...     def get_stats(self) -> Dict[str, Any]:
-        ...         return self._stats
 
     Attributes:
         _browser: Объект BrowserService для работы с браузером.
@@ -85,7 +54,25 @@ class BaseParser(ABC):
 
         """
         self._browser = browser
-        self._stats: ParserStats = {"parsed": 0, "errors": 0, "skipped": 0}
+        self._stats: ParserStats = ParserStats(parsed=0, errors=0, skipped=0)
+
+    def __enter__(self) -> Self:
+        """Контекстный менеджер — вход.
+
+        Returns:
+            Экземпляр парсера.
+
+        """
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object | None,
+    ) -> None:
+        """Контекстный менеджер — выход. Никого не глотает исключения."""
+        return None
 
     @property
     def _chrome_remote(self) -> BrowserService:
@@ -101,20 +88,8 @@ class BaseParser(ABC):
     def parse(self, writer: FileWriter) -> None:
         """Основной метод парсинга данных.
 
-        Этот метод должен быть реализован в каждом конкретном парсере
-        и содержать логику извлечения данных из источника.
-
         Args:
             writer: Объект FileWriter для записи распарсенных данных.
-
-        Raises:
-            NotImplementedError: Если метод не реализован в дочернем классе.
-
-        Пример реализации:
-            >>> def parse(self, writer: FileWriter) -> None:
-            ...     data = self._extract_data()
-            ...     writer.write(data)
-            ...     self._stats["parsed"] += 1
 
         """
         raise NotImplementedError("Subclasses must implement this method")  # pragma: no cover
@@ -123,25 +98,8 @@ class BaseParser(ABC):
     def get_stats(self) -> ParserStats:
         """Получение статистики работы парсера.
 
-        Этот метод должен быть реализован в каждом конкретном парсере
-        и возвращать словарь со статистикой работы.
-
         Returns:
-            Словарь со статистикой парсера. Обычно включает:
-            - parsed: количество распарсенных элементов
-            - errors: количество ошибок
-            - skipped: количество пропущенных элементов
-
-        Raises:
-            NotImplementedError: Если метод не реализован в дочернем классе.
-
-        Пример реализации:
-            >>> def get_stats(self) -> ParserStats:
-            ...     return {
-            ...         "parsed": self._stats["parsed"],
-            ...         "errors": self._stats["errors"],
-            ...         "skipped": self._stats["skipped"],
-            ...     }
+            Словарь со статистикой парсера.
 
         """
         raise NotImplementedError("Subclasses must implement this method")  # pragma: no cover

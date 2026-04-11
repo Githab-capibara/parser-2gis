@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import itertools
 import shutil
 import signal
@@ -809,10 +810,8 @@ class ParallelCoordinator:
             _coordinator_context.set_coordinator(
                 None
             )  # ISSUE-009: Вместо _active_coordinator = None
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 signal.signal(signal.SIGINT, old_signal_handler)
-            except (ValueError, TypeError):
-                pass  # Игнорируем ошибки при восстановлении обработчика
 
             if executor is not None:
                 try:

@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import threading
 import unicodedata
 import urllib.parse
@@ -137,7 +138,8 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
                 target = part_path.resolve()
                 # Если symlink ведёт в запрещённую директорию — ошибка
                 target_str = str(target)
-                if not target_str.startswith("/tmp"):
+                temp_dir = tempfile.gettempdir()
+                if not target_str.startswith(temp_dir):
                     for forbidden_dir in forbidden_dirs:
                         if target_str == forbidden_dir or target_str.startswith(
                             forbidden_dir + "/"
@@ -148,7 +150,8 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
                             )
 
     # P0-11: Единая проверка запрещённых директорий
-    if not resolved_path_str.startswith("/tmp"):
+    temp_dir = tempfile.gettempdir()
+    if not resolved_path_str.startswith(temp_dir):
         for forbidden_dir in forbidden_dirs:
             if resolved_path_str == forbidden_dir or resolved_path_str.startswith(
                 forbidden_dir + "/"
