@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import os
-import sys
 import tempfile
 import threading
 import time
@@ -183,9 +182,9 @@ class TempFileManager:
                 success_count,
                 error_count,
             )
-        except (ValueError, OSError) as log_error:
+        except (ValueError, OSError):
             # Логгер закрыт, игнорируем но логируем в stderr
-            print(f"[TempFileManager] Ошибка логирования: {log_error}", file=sys.stderr)
+            pass
 
         return success_count, error_count
 

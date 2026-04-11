@@ -74,7 +74,7 @@ class LoggerPresentationBridge:
         main_info = {
             "URL для парсинга": str(urls_count),
             "Выходной файл": output_path,
-            "Формат": format.upper(),
+            "Формат": output_format.upper(),
         }
         print_config("📋 Основная информация", main_info)
 

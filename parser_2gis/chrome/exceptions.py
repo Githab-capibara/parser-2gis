@@ -10,10 +10,18 @@
 добавления контекстной информации об ошибках.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from pychrome.exceptions import RuntimeException as _RuntimeException
-from pychrome.exceptions import UserAbortException as _UserAbortException
+if TYPE_CHECKING:
+    from pychrome.exceptions import RuntimeException as _RuntimeException
+    from pychrome.exceptions import UserAbortException as _UserAbortException
+else:
+    try:
+        from pychrome.exceptions import RuntimeException as _RuntimeException
+        from pychrome.exceptions import UserAbortException as _UserAbortException
+    except ImportError:
+        _RuntimeException = RuntimeError  # type: ignore[misc]
+        _UserAbortException = RuntimeError  # type: ignore[misc]
 
 from parser_2gis.exceptions import ExceptionContextMixin
 

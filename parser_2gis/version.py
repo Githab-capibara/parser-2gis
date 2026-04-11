@@ -11,7 +11,7 @@
     Версия конфигурации: 0.1
 """
 
-from typing import Literal, overload
+from typing import Any
 
 VERSION: str = "2.1.12"
 """Версия пакета."""
@@ -24,13 +24,7 @@ CONFIG_VERSION: str = "0.1"
 __all__ = ["CONFIG_VERSION", "VERSION", "__version__", "version"]
 
 
-@overload
-def __getattr__(name: Literal["version"]) -> str: ...
-@overload
-def __getattr__(name: Literal["config_version"]) -> str: ...
-
-
-def __getattr__(name: str) -> str:
+def __getattr__(name: str) -> Any:
     """Ленивые алиасы для обратной совместимости.
 
     Args:

@@ -19,12 +19,12 @@ import asyncio
 import logging
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from functools import wraps
 
 # ИСПРАВЛЕНИЕ #20: Используем ParamSpec и TypeVar для точной типизации декоратора
-from typing import Any, Coroutine, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 # ISSUE-041: Разрыв цикла imports — константы polling определены напрямую
 # чтобы utils.decorators не зависел от constants (через parser.options -> utils)
@@ -430,9 +430,7 @@ def async_wait_until_finished(
     poll_interval: float = DEFAULT_POLL_INTERVAL,
     use_exponential_backoff: bool = True,
     max_poll_interval: float = MAX_POLL_INTERVAL,
-) -> Callable[
-    [Callable[P, Coroutine[Any, Any, R]]], Callable[P, Coroutine[Any, Any, R]]
-]:
+) -> Callable[[Callable[P, Coroutine[Any, Any, R]]], Callable[P, Coroutine[Any, Any, R]]]:
     """Async версия декоратора wait_until_finished для asyncio.
 
     - Использует asyncio.sleep() вместо time.sleep()

@@ -43,7 +43,7 @@ def locate_chrome_path() -> str | None:
         path = shutil.which(f)
         if path:
             # Валидация пути через realpath для предотвращения атак
-            return os.path.realpath(path)
+            return str(os.path.realpath(path))
 
     # H004: Поиск только в наиболее вероятных директориях (сокращённый список)
     # Большинство систем устанавливают Chrome в /usr/bin или /opt/google/chrome
@@ -54,7 +54,7 @@ def locate_chrome_path() -> str | None:
             binary_path = os.path.join(d, f)
             if os.path.isfile(binary_path):
                 # Валидация пути через realpath для предотвращения атак
-                return os.path.realpath(binary_path)
+                return str(os.path.realpath(binary_path))
 
     return None
 

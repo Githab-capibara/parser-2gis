@@ -10,7 +10,7 @@ import pathlib
 import re
 import sys
 
-from setuptools import Command, setup
+from setuptools import Command, setup  # type: ignore[misc]
 
 PACKAGE_NAME = "parser_2gis"
 ROOT_DIR = pathlib.Path(__file__).parent
@@ -35,7 +35,7 @@ class BuildStandaloneCommand(Command):
     """Собственная команда для сборки автономного приложения."""
 
     description = "Сборка автономного приложения с помощью PyInstaller"
-    user_options = []
+    user_options: list[tuple[str, str | None, str]] = []
 
     def initialize_options(self) -> None:
         pass

@@ -23,7 +23,7 @@ def patch_pychrome() -> None:
 
     """
 
-    def _recv_loop_patched(self) -> None:
+    def _recv_loop_patched(self: pychrome.tab.Tab) -> None:
         while not self._stopped.is_set():
             try:
                 self._ws.settimeout(1)

@@ -9,8 +9,9 @@ from __future__ import annotations
 import fcntl
 import os
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Any, TextIO
+from typing import Any, TextIO
 
 from parser_2gis.constants import MAX_LOCK_FILE_AGE, MERGE_LOCK_TIMEOUT
 

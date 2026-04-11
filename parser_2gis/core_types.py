@@ -141,7 +141,7 @@ class ParseResult[T]:
         return cls(value=value, success=True)
 
     @classmethod
-    def fail(cls, error: str) -> ParseResult[None]:
+    def fail(cls, error: str) -> ParseResult[Any]:
         """Создаёт результат с ошибкой.
 
         Args:

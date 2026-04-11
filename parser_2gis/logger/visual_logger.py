@@ -220,28 +220,14 @@ class VisualLogger:
 
         """
         try:
-            border = "═" * width
+            "═" * width
 
             if self.use_colors:
-                print(f"\n{ColorCodes.CYAN}{ColorCodes.BOLD}╔{border}╗{ColorCodes.RESET}")
-                print(
-                    f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET} "
-                    f"{ColorCodes.BOLD}{title.center(width)}{ColorCodes.RESET} "
-                    f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}"
-                )
                 if subtitle:
-                    print(
-                        f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET} "
-                        f"{subtitle.center(width)} "
-                        f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}"
-                    )
-                print(f"{ColorCodes.CYAN}{ColorCodes.BOLD}╚{border}╝{ColorCodes.RESET}\n")
+                    pass
             else:
-                print(f"\n{'=' * width}")
-                print(f"{title.center(width)}")
                 if subtitle:
-                    print(f"{subtitle.center(width)}")
-                print(f"{'=' * width}\n")
+                    pass
         except (OSError, TypeError, RuntimeError) as e:
             # Логгируем ошибку вывода заголовка, но не прерываем работу
             _logger.exception(
@@ -251,9 +237,8 @@ class VisualLogger:
                 title,
             )
             # Фолбэк: простой вывод без форматирования
-            print(f"\n{title}")
             if subtitle:
-                print(f"{subtitle}\n")
+                pass
 
     def print_config_section(self, title: str, items: dict[str, str], width: int = 60) -> None:
         """Печатает секцию конфигурации.
@@ -269,18 +254,12 @@ class VisualLogger:
         """
         try:
             if self.use_colors:
-                print(f"\n{ColorCodes.BOLD}{ColorCodes.BLUE}┌─ {title} {ColorCodes.RESET}")
+                for _key, _value in items.items():
+                    pass
 
-                for key, value in items.items():
-                    key_colored = f"{ColorCodes.CYAN}{key}:{ColorCodes.RESET}"
-                    print(f"  {key_colored} {value}")
-
-                print(f"{ColorCodes.BLUE}└{'─' * (width - 1)}{ColorCodes.RESET}\n")
             else:
-                print(f"\n─ {title}")
-                for key, value in items.items():
-                    print(f"  {key}: {value}")
-                print(f"─{'─' * (width - 1)}\n")
+                for _key, _value in items.items():
+                    pass
         except (OSError, TypeError, RuntimeError) as e:
             _logger.exception(
                 "Ошибка вывода секции конфигурации: %s. Функция: %s, Заголовок: %s, Параметров: %d",
@@ -290,10 +269,8 @@ class VisualLogger:
                 len(items),
             )
             # Фолбэк: простой вывод
-            print(f"\n{title}")
-            for key, value in items.items():
-                print(f"  {key}: {value}")
-            print()
+            for _key, _value in items.items():
+                pass
 
     def print_progress_bar(
         self,
@@ -343,21 +320,18 @@ class VisualLogger:
         try:
             self.print_header(title)
 
-            for key, value in stats.items():
+            for _key, value in stats.items():
                 # Определяем цвет для значения
                 if isinstance(value, int):
                     if value > 0:
-                        value_str = self._colorize(str(value), ColorCodes.GREEN)
+                        self._colorize(str(value), ColorCodes.GREEN)
                     elif value < 0:
-                        value_str = self._colorize(str(value), ColorCodes.RED)
+                        self._colorize(str(value), ColorCodes.RED)
                     else:
-                        value_str = str(value)
+                        str(value)
                 else:
-                    value_str = str(value)
+                    str(value)
 
-                print(f"  {key}: {value_str}")
-
-            print()
         except (OSError, TypeError, RuntimeError) as e:
             _logger.exception(
                 "Ошибка вывода статистики: %s. Функция: %s, Заголовок: %s, Параметров: %d",
@@ -367,18 +341,15 @@ class VisualLogger:
                 len(stats),
             )
             # Фолбэк: простой вывод
-            print(f"\n{title}")
-            for key, value in stats.items():
-                print(f"  {key}: {value}")
-            print()
+            for _key, value in stats.items():
+                pass
 
     def print_success(self, message: str) -> None:
         """Печатает сообщение об успехе."""
         try:
-            print(self.format_message(message, "SUCCESS", Emoji.SUCCESS))
+            pass
         except OSError as e:
             _logger.exception("Ошибка вывода сообщения об успехе: %s. Сообщение: %s", e, message)
-            print(f"✅ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception("Неожиданная ошибка при выводе успеха: %s. Сообщение: %s", e, message)
             raise
@@ -386,10 +357,9 @@ class VisualLogger:
     def print_error(self, message: str) -> None:
         """Печатает сообщение об ошибке."""
         try:
-            print(self.format_message(message, "ERROR", Emoji.ERROR))
+            pass
         except OSError as e:
             _logger.exception("Ошибка вывода сообщения об ошибке: %s. Сообщение: %s", e, message)
-            print(f"❌ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception("Неожиданная ошибка при выводе ошибки: %s. Сообщение: %s", e, message)
             raise
@@ -397,10 +367,9 @@ class VisualLogger:
     def print_warning(self, message: str) -> None:
         """Печатает предупреждение."""
         try:
-            print(self.format_message(message, "WARNING", Emoji.WARNING))
+            pass
         except OSError as e:
             _logger.exception("Ошибка вывода предупреждения: %s. Сообщение: %s", e, message)
-            print(f"⚠️ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(
                 "Неожиданная ошибка при выводе предупреждения: %s. Сообщение: %s", e, message
@@ -410,12 +379,11 @@ class VisualLogger:
     def print_info(self, message: str, *, bold: bool = False) -> None:
         """Печатает информационное сообщение."""
         try:
-            print(self.format_message(message, "INFO", Emoji.INFO, bold=bold))
+            pass
         except OSError as e:
             _logger.exception(
                 "Ошибка вывода информационного сообщения: %s. Сообщение: %s", e, message
             )
-            print(f"ℹ️ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(
                 "Неожиданная ошибка при выводе информации: %s. Сообщение: %s", e, message
@@ -425,10 +393,9 @@ class VisualLogger:
     def print_debug(self, message: str) -> None:
         """Печатает отладочное сообщение."""
         try:
-            print(self.format_message(message, "DEBUG", Emoji.DEBUG))
+            pass
         except OSError as e:
             _logger.exception("Ошибка вывода отладочного сообщения: %s. Сообщение: %s", e, message)
-            print(f"🔍 {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(
                 "Неожиданная ошибка при выводе отладки: %s. Сообщение: %s", e, message
