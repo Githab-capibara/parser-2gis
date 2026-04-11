@@ -138,7 +138,7 @@ class Writer(Protocol):
     def __enter__(self) -> Writer:
         """Контекстный менеджер для входа."""
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(self, _exc_type: Any, _exc_val: Any, _exc_tb: Any) -> None:
         """Контекстный менеджер для выхода."""
 
 
@@ -466,7 +466,7 @@ class FileLockStrategy(Protocol):
         """Контекстный менеджер: получает блокировку."""
         ...
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(self, _exc_type: Any, _exc_val: Any, _exc_tb: Any) -> None:
         """Контекстный менеджер: освобождает блокировку."""
         ...
 

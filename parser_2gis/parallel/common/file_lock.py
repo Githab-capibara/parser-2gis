@@ -200,6 +200,6 @@ class FileLockManager:
         """Контекстный менеджер: получает блокировку."""
         return self.acquire()
 
-    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
+    def __exit__(self, _exc_type: object, _exc_val: object, _exc_tb: object) -> None:
         """Контекстный менеджер: освобождает блокировку."""
         self.release()

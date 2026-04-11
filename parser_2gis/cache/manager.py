@@ -1247,14 +1247,14 @@ class CacheManager:
         return self
 
     def __exit__(
-        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any
+        self, _exc_type: type[BaseException] | None, _exc_val: BaseException | None, _exc_tb: Any
     ) -> None:
         """Закрывает все соединения при выходе из контекста.
 
         Args:
-            exc_type: Тип исключения (если было выброшено).
-            exc_val: Значение исключения (если было выброшено).
-            exc_tb: Трассировка исключения (если было выброшено).
+            _exc_type: Тип исключения (если было выброшено).
+            _exc_val: Значение исключения (если было выброшено).
+            _exc_tb: Трассировка исключения (если было выброшено).
 
         """
         self.close()

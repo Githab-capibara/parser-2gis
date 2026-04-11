@@ -528,14 +528,14 @@ class ConnectionPool:
         return self
 
     def __exit__(
-        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any
+        self, _exc_type: type[BaseException] | None, _exc_val: BaseException | None, _exc_tb: Any
     ) -> None:
         """Контекстный менеджер: выход.
 
         Args:
-            exc_type: Тип исключения (если произошло).
-            exc_val: Значение исключения (если произошло).
-            exc_tb: Трассировка исключения (если произошло).
+            _exc_type: Тип исключения (если произошло).
+            _exc_val: Значение исключения (если произошло).
+            _exc_tb: Трассировка исключения (если произошло).
 
         Примечание:
             Гарантирует закрытие всех соединений даже при возникновении исключений.

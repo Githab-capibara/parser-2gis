@@ -99,9 +99,7 @@ class FileLogger:
                 # вместо тихого sys.stderr.write для видимости проблемы
                 app_logger = logging.getLogger("parser-2gis")
                 app_logger.warning(
-                    "Не удалось инициализировать файловый логгер: %s. Файл: %s",
-                    e,
-                    self._log_file,
+                    "Не удалось инициализировать файловый логгер: %s. Файл: %s", e, self._log_file
                 )
                 # Не пробрасываем ошибку дальше, чтобы приложение
                 # могло работать без файлового логгера
@@ -292,7 +290,7 @@ class FileLogger:
         return self
 
     def __exit__(
-        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any
+        self, _exc_type: type[BaseException] | None, _exc_val: BaseException | None, _exc_tb: Any
     ) -> None:
         """Автоматическое закрытие при выходе из контекста."""
         self.close()

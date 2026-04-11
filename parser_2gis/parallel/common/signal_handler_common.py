@@ -47,8 +47,8 @@ class MergeSignalHandler:
         """
         self._log_callback = log_callback
         self._temp_files_ref = temp_files_ref or []
-        self._old_sigint_handler = None
-        self._old_sigterm_handler = None
+        self._old_sigint_handler: int | None = None
+        self._old_sigterm_handler: int | None = None
         self._sigint_registered = False
         self._sigterm_registered = False
 
@@ -111,6 +111,6 @@ class MergeSignalHandler:
         self.register()
         return self
 
-    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
+    def __exit__(self, _exc_type: object, _exc_val: object, _exc_tb: object) -> None:
         """Контекстный менеджер: восстанавливает обработчики."""
         self.restore()

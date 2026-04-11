@@ -90,7 +90,7 @@ class BaseLockStrategy:
         """Контекстный менеджер: получает блокировку."""
         return self.acquire()
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(self, _exc_type: Any, _exc_val: Any, _exc_tb: Any) -> None:
         """Контекстный менеджер: освобождает блокировку."""
         if self._acquired:
             self.release()
