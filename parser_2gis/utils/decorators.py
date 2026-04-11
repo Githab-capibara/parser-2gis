@@ -183,7 +183,7 @@ def _handle_execution_error(
 
     """
     if isinstance(error, TimeoutError):
-        raise
+        raise error
     if isinstance(error, (MemoryError, OSError)):
         error_type = "MemoryError" if isinstance(error, MemoryError) else "OSError"
         logger.error(
@@ -193,7 +193,7 @@ def _handle_execution_error(
             attempt_count,
             error,
         )
-        raise
+        raise error
     if isinstance(error, (RuntimeError, ValueError, TypeError)):
         logger.debug(
             "Ошибка при выполнении функции %s (попытка %d): %s", func_name, attempt_count, error,
