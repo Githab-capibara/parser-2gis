@@ -96,7 +96,8 @@ def _atomic_rename_with_retry(
         except OSError as move_error:
             if attempt < max_attempts - 1:
                 log_func(
-                    f"Попытка {attempt + 1}/{max_attempts} не удалась: {move_error}. Повтор...", "debug"
+                    f"Попытка {attempt + 1}/{max_attempts} не удалась: {move_error}. Повтор...",
+                    "debug",
                 )
                 time.sleep(0.1 * (attempt + 1))  # Экспоненциальная задержка
             else:
@@ -367,7 +368,10 @@ class ParallelCoordinator:
         # H3: Dependency Injection с fallback на создание по умолчанию
         self._error_handler = error_handler or ParallelErrorHandler(self.output_dir, self.config)
         self._file_merger = file_merger or ParallelFileMerger(
-            self.output_dir, self.config, self._cancel_event, self._lock  # type: ignore[arg-type]
+            self.output_dir,
+            self.config,
+            self._cancel_event,
+            self._lock,  # type: ignore[arg-type]
         )
         self._progress_reporter: ParallelProgressReporter | None = None
 

@@ -921,9 +921,7 @@ class CacheManager:
 
                 data, checksum, expires_at_str = hash_to_data[url_hash]
                 # P0-9: Передаём url_hash для устранения повторного вычисления
-                result = self._handle_cache_hit(
-                    data, checksum, expires_at_str, conn, url_hash
-                )
+                result = self._handle_cache_hit(data, checksum, expires_at_str, conn, url_hash)
                 results[url] = result
 
             conn.commit()

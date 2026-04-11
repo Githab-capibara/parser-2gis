@@ -285,7 +285,9 @@ class ApplicationLauncher:
                     retry_on_network_errors=self.config.parser.retry_on_network_errors,
                 ),
                 writer=WriterOptions(  # type: ignore[call-arg]
-                    format=self.config.writer.format, encoding="utf-8-sig", deduplicate=True  # type: ignore[attr-defined]
+                    format=self.config.writer.format,
+                    encoding="utf-8-sig",
+                    deduplicate=True,  # type: ignore[attr-defined]
                 ),
             )
 
