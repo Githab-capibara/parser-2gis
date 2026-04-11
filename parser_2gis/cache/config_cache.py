@@ -268,8 +268,8 @@ def get_config_cache() -> ConfigCache:
 
     """
     if not hasattr(get_config_cache, "_instance"):
-        get_config_cache._instance = ConfigCache()
-    return get_config_cache._instance  # type: ignore[attr-defined]
+        get_config_cache._instance = ConfigCache()  # type: ignore[attr-defined]
+    return get_config_cache._instance  # type: ignore[attr-defined,no-any-return]
 
 
 __all__ = ["CategoryDict", "ConfigCache", "get_config_cache"]

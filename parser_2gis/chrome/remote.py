@@ -1096,13 +1096,47 @@ class ChromeRemote:
         )
         _execute_script_internal = _execute_script_internal_impl
 
-    def perform_click(self, dom_node: DOMNode, timeout: int | None = None) -> None:
+    def _click_by_selector(self, selector: str) -> None:
+        """Выполняет клик по CSS селектору через Runtime.callFunctionOn.
+
+        Args:
+            selector: CSS селектор элемента для клика.
+        """
+        if self._chrome_tab is None:
+            app_logger.error("Chrome tab не инициализирован в _click_by_selector")
+            return
+        try:
+            script = f"""
+                (function() {{
+                    var el = document.querySelector('{selector}');
+                    if (el) {{ el.click(); return true; }}
+                    return false;
+                }})()
+            """
+            result = self._chrome_tab.Runtime.evaluate(expression=script)
+            if not result or not result.get("result", {}).get("value"):
+                app_logger.warning("Элемент не найден по селектору: %s", selector)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except (OSError, RuntimeError, ConnectionError) as e:
+            app_logger.error("Ошибка при клике по селектору %s: %s", selector, e)
+
+    def perform_click(self, dom_node: DOMNode | str, timeout: int | None = None) -> None:
         """Выполняет клик мыши на DOM-узле.
 
         Оптимизировано: использует Input.dispatchMouseEvent для прямого клика
         по координатам элемента (быстрее чем resolveNode + callFunctionOn).
         Fallback на стандартный метод при ошибке.
+
+        Args:
+            dom_node: DOMNode для клика или CSS селектор (строка).
+            timeout: Таймаут в секундах (опционально).
         """
+        if isinstance(dom_node, str):
+            # CSS селектор — используем стандартный метод
+            self._click_by_selector(dom_node)
+            return
+
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в perform_click")
             return

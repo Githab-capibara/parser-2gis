@@ -220,7 +220,7 @@ def get_memory_manager() -> MemoryManager:
     """
     if not hasattr(get_memory_manager, "_instance"):
         get_memory_manager._instance = MemoryManager()  # type: ignore[attr-defined]
-    return get_memory_manager._instance  # type: ignore[return-value]
+    return get_memory_manager._instance  # type: ignore[attr-defined,no-any-return]
 
 
 def check_memory_safety(context: str = "") -> bool:

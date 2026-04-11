@@ -221,11 +221,11 @@ class BrowserService(
 
         """
 
-    def perform_click(self, selector: str) -> None:
+    def perform_click(self, selector: str | "DOMNode") -> None:
         """Выполнить клик по элементу.
 
         Args:
-            selector: CSS селектор элемента.
+            selector: CSS селектор элемента или DOMNode.
 
         """
 

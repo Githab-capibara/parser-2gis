@@ -216,4 +216,4 @@ def get_semaphore_manager(max_workers: int = 3) -> SemaphoreManager:
         get_semaphore_manager._instance = SemaphoreManager(max_workers=max_workers)  # type: ignore[attr-defined]
     elif get_semaphore_manager._instance.max_workers != max_workers:  # type: ignore[attr-defined]
         get_semaphore_manager._instance = SemaphoreManager(max_workers=max_workers)  # type: ignore[attr-defined]
-    return get_semaphore_manager._instance  # type: ignore[return-value]
+    return get_semaphore_manager._instance  # type: ignore[attr-defined,no-any-return]

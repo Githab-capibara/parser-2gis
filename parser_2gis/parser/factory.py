@@ -68,7 +68,7 @@ class ParserRegistry:
             self._registry[parser_cls.__name__] = parser_cls
 
             try:
-                pattern_str = parser_cls.url_pattern()
+                pattern_str = parser_cls.url_pattern()  # type: ignore[attr-defined]
                 compiled_pattern = re.compile(pattern_str)
                 self._patterns.append((parser_cls, compiled_pattern))
 
@@ -187,7 +187,7 @@ def get_parser(
     chrome_options: ChromeOptions,
     parser_options: ParserOptions,
     browser: BrowserService | None = None,
-) -> BaseParser:
+) -> BaseParser | MainParser:
     """Фабричная функция для получения парсера.
 
     Использует реестр для сопоставления URL с соответствующим парсером.
@@ -210,7 +210,8 @@ def get_parser(
     """
     parser_cls = _parser_registry.find_parser(url)
     if parser_cls is not None:
-        return parser_cls(url, chrome_options, parser_options, browser=browser)
+        # Парсеры в реестре имеют конструкторы с параметрами (url, chrome_options, parser_options, browser)
+        return parser_cls(url, chrome_options, parser_options, browser=browser)  # type: ignore[arg-type, misc]
 
     # ISSUE 078: Возвращаем MainParser как явно помеченный fallback
     from parser_2gis.logger.logger import logger as fallback_logger

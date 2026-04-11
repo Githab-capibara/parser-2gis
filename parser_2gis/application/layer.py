@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from parser_2gis.chrome.remote import ChromeRemote
     from parser_2gis.parser.options import ParserOptions
     from parser_2gis.parser.parsers.base import BaseParser
+    from parser_2gis.parser.parsers.main import MainParser
     from parser_2gis.protocols import BrowserService
     from parser_2gis.writer import FileWriter
 
@@ -91,7 +92,7 @@ class ParserFacade:
         chrome_options: ChromeOptions,
         parser_options: ParserOptions,
         browser: BrowserService | None = None,
-    ) -> BaseParser:
+    ) -> BaseParser | MainParser:
         """Фабрика парсеров по умолчанию.
 
         Args:

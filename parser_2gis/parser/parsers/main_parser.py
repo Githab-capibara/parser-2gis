@@ -136,6 +136,8 @@ class MainPageParser(BaseParser):
             response_patterns = [CATALOG_API_PATTERN]
             browser = ChromeRemote(chrome_options, response_patterns)
 
+        # Mypy не может сузить тип после переназначения — используем assert
+        assert browser is not None, "browser должен быть создан к этому моменту"
         # Инициализируем базовый класс только browser аргументом
         # BaseParser принимает только browser, остальные аргументы обрабатываются здесь
         super().__init__(browser)
@@ -743,7 +745,7 @@ class MainPageParser(BaseParser):
         if not self._blocked_requests_added:
             from parser_2gis.parser.utils import blocked_requests
 
-            blocked_urls = blocked_requests(extended=self._chrome_options.disable_images)
+            blocked_urls = list(blocked_requests(extended=self._chrome_options.disable_images))
             self._chrome_remote.add_blocked_requests(blocked_urls)
             self._blocked_requests_added = True
 

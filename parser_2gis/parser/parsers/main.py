@@ -29,6 +29,7 @@ from parser_2gis.protocols import BrowserService
 
 if TYPE_CHECKING:
     from parser_2gis.chrome import ChromeOptions
+    from parser_2gis.chrome.remote import ChromeRemote
     from parser_2gis.parser.options import ParserOptions
     from parser_2gis.writer import FileWriter
 
@@ -96,6 +97,15 @@ class MainParser:
 
         # Создаём процессор данных
         self._data_processor = MainDataProcessor(self._page_parser)
+
+    @property
+    def _chrome_remote(self) -> ChromeRemote:
+        """Делегирует доступ к ChromeRemote через page_parser.
+
+        Предоставляет backward compatibility для дочерних классов
+        (FirmParser, InBuildingParser), которые обращаются к _chrome_remote напрямую.
+        """
+        return self._page_parser._chrome_remote
 
     @staticmethod
     def url_pattern() -> str:

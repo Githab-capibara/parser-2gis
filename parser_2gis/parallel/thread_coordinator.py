@@ -75,7 +75,7 @@ def _get_coordinator_context() -> _CoordinatorContext:
     """Лениво создаёт и возвращает глобальный контекст координатора."""
     if not hasattr(_get_coordinator_context, "_instance"):
         _get_coordinator_context._instance = _CoordinatorContext()  # type: ignore[attr-defined]
-    return _get_coordinator_context._instance  # type: ignore[return-value]
+    return _get_coordinator_context._instance  # type: ignore[attr-defined,no-any-return]
 
 
 # Общий обработчик сигналов (#62: вынесен в signal_handler.py)
