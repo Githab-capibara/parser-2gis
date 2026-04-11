@@ -1,286 +1,178 @@
-# 📋 Реестр тестов parser-2gis
+# Реестр тестовых файлов
 
-**Дата последней актуализации:** 2026-04-09
-**Всего тестовых файлов:** 106
-**Всего тестов:** 1433
-**Результат:** ✅ 1393 passed, 3 flaky (test isolation), 2 excluded (segfault), 14 skipped, 2 deselected
+## Сводка
 
----
-
-## 📊 Сводная статистика
-
-| Категория | Файлов | Описание |
-|-----------|--------|----------|
-| **Architecture** | 6 | Проверка архитектуры, SOLID, циклы, границы |
-| **Cache** | 13 | Тесты кэширования (корень + cache/) |
-| **Chrome** | 15 | Тесты браузера Chrome (корень + chrome/) |
-| **Parallel** | 8 | Тесты параллельного парсинга (корень + parallel/) |
-| **Parser** | 11 | Тесты основного парсера |
-| **TUI/GUI** | 8 | Тесты текстового интерфейса |
-| **Writer** | 4 | Тесты записи данных (CSV/JSON) |
-| **Validation** | 3 | Тесты валидации путей и URL |
-| **Security** | 3 | Тесты безопасности |
-| **Quality** | 5 | Тесты качества кода (PEP8, docstrings) |
-| **Utils** | 4 | Тесты утилит |
-| **Configuration** | 6 | Тесты конфигурации |
-| **Logger** | 4 | Тесты логирования |
-| **Integration** | 10 | Интеграционные тесты |
-| **Другие** | 6 | Разные тесты |
+| Параметр | Значение |
+|----------|----------|
+| **Всего .py файлов** | 106 |
+| **Тестовых файлов (с тестами)** | 102 |
+| **Функций `def test_`** | 1319 |
+| **Тест-кейсов pytest** | 1347 passed, 23 skipped (параметризация даёт доп. кейсы) |
+| **Упало** | 0 failed |
+| **Дата актуализации** | 2026-04-11 |
 
 ---
 
-## 📁 Полный список тестовых файлов
+## Architecture
 
-### Architecture (6 файлов)
+| Файл | Назначение | Проверяемый модуль | Тестов | Статус |
+|------|-----------|-------------------|--------|--------|
+| `tests/test_architecture_config_dataclasses.py` | Проверка dataclass конфигураций | `parser_2gis.config`, `parser_2gis.dataclasses` | 24 | active |
+| `tests/test_architecture_solid.py` | Проверка SOLID принципов в архитектуре | `parser_2gis.*` (архитектура) | 65 | active |
+| `tests/test_base_parser_abc.py` | Абстрактный базовый класс BaseParser | `parser_2gis.parser.base` | 24 | active |
+| `tests/test_config.py` | Модуль config.py | `parser_2gis.config` | 19 | active |
+| `tests/test_config_srp.py` | ISSUE-001: Разделение Configuration на модули (SRP) | `parser_2gis.config` | 22 | active |
+| `tests/test_configuration_fields.py` | Ошибки при работе с полями конфигурации | `parser_2gis.config` | 18 | active |
+| `tests/test_parser_factory_patterns.py` | Компиляция паттернов в parser/factory.py | `parser_2gis.parser.factory` | 8 | active |
+| `tests/test_parser_options.py` | Модуль parser_options.py | `parser_2gis.parser.options` | 16 | active |
+| `tests/test_function_decomposition.py` | Разбиение сложных функций (decomposition) | `parser_2gis.*` (код-стиль) | 17 | active |
+| `tests/test_imports.py` | Проверка отсутствия циклических импортов | `parser_2gis.*` (импорты) | 20 | active |
+| `tests/test_dependencies.py` | Проверка зависимостей и импортов | `parser_2gis` (зависимости) | 19 | active |
+| `tests/test_version_exceptions.py` | Модули version.py и exceptions.py | `parser_2gis.version`, `parser_2gis.exceptions` | 26 | active |
 
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_architecture_boundaries.py` | Границы модулей, зависимости между пакетами | ✅ Актуален |
-| `tests/test_architecture_config_dataclasses.py` | Dataclass-классы конфигурации | ✅ Актуален |
-| `tests/test_architecture_improvements.py` | Улучшения архитектуры | ✅ Исправлен (or True) |
-| `tests/test_architecture_integrity.py` | Целостность архитектуры, циклические зависимости | ✅ Актуален |
-| `tests/test_architecture_no_cycles.py` | Отсутствие циклических импортов | ✅ Исправлен (or True) |
-| `tests/test_architecture_solid.py` | Принципы SOLID в архитектуре | ✅ Актуален |
+## Cache
 
-### Cache (13 файлов)
+| Файл | Назначение | Проверяемый модуль | Тестов | Статус |
+|------|-----------|-------------------|--------|--------|
+| `tests/cache/test_cache_utils.py` | Тесты для cache_utils | `parser_2gis.cache.cache_utils` | 18 | active |
+| `tests/cache/test_manager_cleanup.py` | Finally-блок в cache/manager.py | `parser_2gis.cache.manager` | 13 | active |
+| `tests/cache/test_manager_retry.py` | Метод `_handle_db_error()` в manager.py | `parser_2gis.cache.manager` | 11 | active |
+| `tests/cache/test_pool_critical_fixes.py` | CRITICAL проблемы в cache/pool.py | `parser_2gis.cache.pool` | 10 | active |
+| `tests/cache/test_pool_exceptions.py` | Обработка исключений в cache/pool.py | `parser_2gis.cache.pool` | 14 | active |
+| `tests/cache/test_serializer.py` | JsonSerializer | `parser_2gis.cache.serializer` | 6 | active |
+| `tests/cache/test_validator.py` | CacheDataValidator | `parser_2gis.cache.validator` | 5 | active |
+| `tests/test_cache_exceptions.py` | Специфичные исключения в cache.py | `parser_2gis.cache` | 9 | active |
+| `tests/test_cache_manager_typing.py` | Типизация параметров CacheManager | `parser_2gis.cache.manager` | 5 | active |
+| `tests/test_cache_wal_mode.py` | WAL режим в SQLite кэше | `parser_2gis.cache` (SQLite) | 6 | active |
+| `tests/test_connection_pool_leak.py` | Утечка ресурсов в `_ConnectionPool` | `parser_2gis.cache.pool` | 11 | active |
+| `tests/test_sql_injection_cache.py` | SQL-инъекции в cache validator | `parser_2gis.cache.validator` | 16 | active |
+| `tests/test_sqlite_thread_safety.py` | Потокобезопасность SQLite кэша | `parser_2gis.cache` (SQLite) | 7 | active |
 
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_cache_exceptions.py` | Обработка исключений кэша | ⚠️ Требует проверки |
-| `tests/test_cache_manager_typing.py` | Типизация менеджера кэша | ⚠️ Требует проверки |
-| `tests/test_cache_wal_mode.py` | Режим WAL SQLite | ⚠️ Требует проверки |
-| `tests/test_connection_pool_leak.py` | Утечки соединений пула | ✅ Актуален |
-| `tests/test_sqlite_thread_safety.py` | Потокобезопасность SQLite | ✅ Актуален |
-| `tests/test_sql_injection_cache.py` | Защита от SQL-инъекций в кэше | ✅ Актуален |
-| `tests/cache/test_cache_utils.py` | Утилиты кэша | ✅ Актуален |
-| `tests/cache/test_manager_cleanup.py` | Очистка менеджера кэша | ✅ Актуален |
-| `tests/cache/test_manager_retry.py` | Повторные попытки кэша | ✅ Актуален |
-| `tests/cache/test_pool_critical_fixes.py` | Критические исправления пула | ✅ Актуален |
-| `tests/cache/test_pool_exceptions.py` | Исключения пула соединений | ✅ Актуален |
-| `tests/cache/test_serializer.py` | Сериализация кэша | ✅ Актуален |
-| `tests/cache/test_validator.py` | Валидатор кэша | ✅ Актуален |
+## Chrome
 
-### Chrome (15 файлов)
+| Файл | Назначение | Проверяемый модуль | Тестов | Статус |
+|------|-----------|-------------------|--------|--------|
+| `tests/chrome/test_browser_separation.py` | Разделение классов в chrome/browser.py | `parser_2gis.chrome.browser` | 31 | active |
+| `tests/chrome/test_constants.py` | Chrome constants | `parser_2gis.chrome.constants` | 12 | active |
+| `tests/chrome/test_dom.py` | DOM parser | `parser_2gis.chrome.dom` | 9 | active |
+| `tests/chrome/test_rate_limiter.py` | Функция `_enforce_rate_limit()` | `parser_2gis.chrome.rate_limiter` | 10 | active |
+| `tests/chrome/test_remote_cleanup.py` | Метод `_cleanup_interface()` в remote.py | `parser_2gis.chrome.remote` | 12 | active |
+| `tests/chrome/test_remote_critical_fixes.py` | CRITICAL проблемы в chrome/remote.py | `parser_2gis.chrome.remote` | 14 | active |
+| `tests/chrome/test_subprocess_safety.py` | Безопасность subprocess в browser.py | `parser_2gis.chrome.browser` | 13 | active |
+| `tests/test_browser_cleanup.py` | Утечка ресурсов браузера | `parser_2gis.chrome.browser` | 7 | active |
+| `tests/test_chrome_browser_finalizer.py` | `weakref.finalize()` в chrome/browser.py | `parser_2gis.chrome.browser` | 7 | active |
+| `tests/test_chrome_integration.py` | Модуль chrome и интеграционные тесты | `parser_2gis.chrome.*` | 37 | active |
+| `tests/test_chrome_port_check.py` | Логика проверки порта Chrome | `parser_2gis.chrome.browser` | 7 | active |
+| `tests/test_connect_interface_timeout.py` | Таймаут `_connect_interface()` | `parser_2gis.chrome.remote` | 7 | active |
+| `tests/test_port_selection_os.py` | Автоматический выбор порта ОС | `parser_2gis.chrome.browser` | 6 | active |
+| `tests/test_setup_tab_none_check.py` | Проверка `_chrome_tab` на None в `_setup_tab()` | `parser_2gis.chrome.browser` | 8 | active |
 
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_browser_cleanup.py` | Очистка ресурсов браузера | ✅ Исправлен (or True) |
-| `tests/test_chrome_browser_finalizer.py` | Финализация браузера | ✅ Актуален |
-| `tests/test_chrome_integration.py` | Интеграция с Chrome (requires_chrome) | ✅ Актуален |
-| `tests/test_chrome_port_check.py` | Проверка портов Chrome | ✅ Актуален |
-| `tests/test_connect_interface_timeout.py` | Таймауты подключения | ✅ Актуален |
-| `tests/test_launcher_cleanup_on_error.py` | Очистка при ошибке запуска | ✅ Актуален |
-| `tests/test_setup_tab_none_check.py` | Проверка setup_tab=None | ✅ Актуален |
-| `tests/chrome/test_browser_separation.py` | Изоляция браузера | ✅ Актуален |
-| `tests/chrome/test_constants.py` | Константы Chrome | ✅ Актуален |
-| `tests/chrome/test_dom.py` | DOM-парсинг | ✅ Актуален |
-| `tests/chrome/test_rate_limiter.py` | Ограничение частоты | ✅ Актуален |
-| `tests/chrome/test_remote_cleanup.py` | Очистка удалённого Chrome | ✅ Актуален |
-| `tests/chrome/test_remote_critical_fixes.py` | Критические исправления Chrome | ✅ Исправлен (or True x2) |
-| `tests/chrome/test_subprocess_safety.py` | Безопасность subprocess | ✅ Актуален |
-| `tests/test_port_selection_os.py` | Выбор портов на уровне ОС | ✅ Актуален |
+## Parallel
 
-### Parallel (8 файлов)
+| Файл | Назначение | Проверяемый модуль | Тестов | Статус |
+|------|-----------|-------------------|--------|--------|
+| `tests/parallel/test_parallel_parser_delays.py` | Опции задержек в parallel/parallel_parser.py | `parser_2gis.parallel.parallel_parser` | 2 | active |
+| `tests/parallel/test_rlock_critical.py` | CRITICAL проблемы в parallel/parallel_parser.py | `parser_2gis.parallel.parallel_parser` | 10 | active |
+| `tests/parallel/test_semaphore.py` | Семафор в parallel/parallel_parser.py | `parser_2gis.parallel.parallel_parser` | 8 | active |
+| `tests/test_cleanup_parallel_exceptions.py` | Исключения в `cleanup_resources()` и parallel_parser | `parser_2gis.parallel`, `parser_2gis.common` | 4 | active |
+| `tests/test_launcher_cleanup_on_error.py` | Очистка ресурсов launcher при ошибке | `parser_2gis.launcher` | 2 | active |
+| `tests/test_parallel_memory_error_handling.py` | MemoryError в параллельном парсере | `parser_2gis.parallel.parallel_parser` | 5 | active |
+| `tests/test_parallel_parser.py` | Параллельный парсер (базовые тесты) | `parser_2gis.parallel.parallel_parser` | 10 | active |
+| `tests/test_parallel_parser_stats.py` | Статистика параллельного парсера | `parser_2gis.parallel.parallel_parser` | 5 | active |
+| `tests/test_process_manager_simplified.py` | Упрощённый ProcessManager | `parser_2gis.parallel.process_manager` | 12 | active |
 
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_cleanup_parallel_exceptions.py` | Обработка ошибок параллельного парсинга | ✅ Актуален |
-| `tests/test_max_workers_validation.py` | Валидация max_workers | ✅ Актуален |
-| `tests/test_parallel_memory_error_handling.py` | Ошибки памяти | ✅ Актуален |
-| `tests/test_parallel_parser.py` | Параллельный парсер (категории) | ✅ Актуален |
-| `tests/test_parallel_parser_stats.py` | Статистика параллельного парсера | ✅ Актуален |
-| `tests/parallel/test_parallel_parser_delays.py` | Задержки параллельного парсера | ✅ Актуален |
-| `tests/parallel/test_rlock_critical.py` | Критические секции RLock | ✅ Актуален |
-| `tests/parallel/test_semaphore.py` | Семафоры | ✅ Актуален |
+## Parser
 
-### Parser (11 файлов)
+| Файл | Назначение | Проверяемый модуль | Тестов | Статус |
+|------|-----------|-------------------|--------|--------|
+| `tests/parser/test_main_parser_memory.py` | Утечка памяти и TimeoutError в main.py | `parser_2gis.parser.parsers.main` | 7 | active |
+| `tests/parser/test_navigate_timeout.py` | Обработка TimeoutError в main.py | `parser_2gis.parser.parsers.main` | 10 | active |
+| `tests/test_firm_parser_validation.py` | Валидация initialState в firm.py | `parser_2gis.parser.parsers.firm` | 21 | active |
+| `tests/test_parser.py` | Основной парсер 2GIS | `parser_2gis.parser` | 1 | active |
 
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_base_parser_abc.py` | Абстрактный базовый класс парсера | ✅ Актуален |
-| `tests/test_duplicate_rubric_code.py` | Дубликаты рубрик | ✅ Актуален |
-| `tests/test_firm_parser_validation.py` | Валидация данных фирм | ✅ Актуален |
-| `tests/test_parser.py` | Основной парсер (integration) | ✅ Актуален |
-| `tests/test_parser_factory_patterns.py` | Фабричный паттерн | ✅ Актуален |
-| `tests/test_parser_options.py` | Опции парсера | ✅ Актуален |
-| `tests/test_phone_validation.py` | Валидация телефонов | ✅ Актуален |
-| `tests/test_visited_links_cleanup.py` | Очистка посещённых ссылок | ✅ Актуален |
-| `tests/parser/test_main_parser_memory.py` | Потребление памяти парсером | ✅ Актуален |
-| `tests/parser/test_navigate_timeout.py` | Таймауты навигации | ✅ Актуален |
-| `tests/test_category_selector.py` | Выбор категорий | ✅ Актуален |
+## Validation
 
-### TUI/GUI (8 файлов)
+| Файл | Назначение | Проверяемый модуль | Тестов | Статус |
+|------|-----------|-------------------|--------|--------|
+| `tests/validation/test_path_validator.py` | PathValidator | `parser_2gis.validation.path_validator` | 10 | active |
+| `tests/validation/test_url_validator.py` | URLValidator | `parser_2gis.validation.url_validator` | 4 | active |
+| `tests/test_phone_validation.py` | Валидация телефона в validation.py | `parser_2gis.validation` | 12 | active |
+| `tests/test_validation_caching.py` | Кэширование валидации URL | `parser_2gis.validation` | 19 | active |
+| `tests/test_js_validation.py` | Валидация JavaScript кода | `parser_2gis.validation.js` | 34 | active |
 
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_optional_deps_tui.py` | Опциональные зависимости TUI | ✅ Актуален |
-| `tests/test_tui_config_fields.py` | Поля конфигурации TUI | ✅ Актуален |
-| `tests/test_tui_imports.py` | Импорты TUI | ✅ Актуален |
-| `tests/test_tui_layout.py` | Макет TUI | ✅ Актуален |
-| `tests/test_tui_state_management_regression.py` | Управление состоянием TUI | ✅ Актуален |
-| `tests/test_tui_stop_parsing_fix.py` | Остановка парсинга TUI | ✅ Актуален |
-| `tests/test_tui_textual.py` | Интеграция TUI (requires_tui) | ✅ Актуален |
-| `tests/test_tui_textual_logger.py` | Логгер TUI | ✅ Актуален |
-| `tests/test_widget_unique_ids.py` | Уникальные ID виджетов | ✅ Актуален |
+## Writer
 
-### Writer (4 файла)
+| Файл | Назначение | Проверяемый модуль | Тестов | Статус |
+|------|-----------|-------------------|--------|--------|
+| `tests/writer/test_csv_writer_contact_processing.py` | Обработка контактов в csv_writer.py | `parser_2gis.writer.writers.csv_writer` | 2 | active |
+| `tests/writer/test_csv_writer_errors.py` | Обработка ошибок в csv_writer.py | `parser_2gis.writer.writers.csv_writer` | 13 | active |
+| `tests/test_csv_writer_strategies.py` | ISSUE-005: CSVWriter стратегии форматирования | `parser_2gis.writer.writers.csv_writer` | 36 | active |
+| `tests/test_json_writer_structure.py` | Структура JSON в json_writer.py | `parser_2gis.writer.writers.json_writer` | 8 | active |
+| `tests/test_path_traversal.py` | Защита от path traversal в writer/factory.py | `parser_2gis.writer.factory` | 7 | active |
 
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_csv_writer_strategies.py` | Стратегии CSV записи | ✅ Актуален |
-| `tests/test_file_handling.py` | Файловые операции writer | ✅ Актуален |
-| `tests/writer/test_csv_writer_contact_processing.py` | Обработка контактов CSV | ✅ Актуален |
-| `tests/writer/test_csv_writer_errors.py` | Обработка ошибок CSV | ✅ Актуален |
-| `tests/test_json_writer_structure.py` | Структура JSONWriter | ✅ Актуален |
+## TUI
 
-### Validation (3 файла)
+| Файл | Назначение | Проверяемый модуль | Тестов | Статус |
+|------|-----------|-------------------|--------|--------|
+| `tests/test_category_selector.py` | CategorySelectorScreen | `parser_2gis.tui.screens.category_selector` | 18 | active |
+| `tests/test_city_selector.py` | CitySelectorScreen | `parser_2gis.tui.screens.city_selector` | 11 | active |
+| `tests/test_duplicate_rubric_code.py` | Дублирующиеся ID виджетов в CategorySelectorScreen | `parser_2gis.tui.screens.category_selector` | 6 | active |
+| `tests/test_optional_deps_tui.py` | Опциональные TUI зависимости | `parser_2gis.tui` (зависимости) | 3 | active |
+| `tests/test_tui_config_fields.py` | Соответствие полей TUI и моделей конфигурации | `parser_2gis.tui`, `parser_2gis.config` | 18 | active |
+| `tests/test_tui_imports.py` | Ошибки импорта в TUI модулях | `parser_2gis.tui.*` (импорты) | 12 | active |
+| `tests/test_tui_layout.py` | TUI layout | `parser_2gis.tui.app` | 3 | active |
+| `tests/test_tui_state_management_regression.py` | Регрессионные ошибки управления состоянием TUI | `parser_2gis.tui` | 21 | active |
+| `tests/test_tui_stop_parsing_fix.py` | Баг зависания при нажатии «Стоп» в TUI | `parser_2gis.tui` | 8 | active |
+| `tests/test_tui_textual.py` | TUI Parser2GIS на Textual | `parser_2gis.tui` | 15 | active |
+| `tests/test_tui_textual_logger.py` | Ошибки в TUI Textual | `parser_2gis.tui` | 3 | active |
+| `tests/test_widget_unique_ids.py` | Уникальность ID виджетов в TUI | `parser_2gis.tui` | 5 | active |
 
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_path_traversal.py` | Защита от Path Traversal | ✅ Актуален |
-| `tests/validation/test_path_validator.py` | PathValidator (авторитетный) | ✅ Актуален |
-| `tests/validation/test_url_validator.py` | URL validator | ✅ Актуален |
+## Utils / Common
 
-### Security (3 файла)
+| Файл | Назначение | Проверяемый модуль | Тестов | Статус |
+|------|-----------|-------------------|--------|--------|
+| `tests/utils/test_sanitizers.py` | Модуль utils/sanitizers | `parser_2gis.utils.sanitizers` | 10 | active |
+| `tests/test_common.py` | Модуль common.py и качество кода | `parser_2gis.common` | 30 | active |
+| `tests/test_paths_functions.py` | Наличие критических функций в модуле paths | `parser_2gis.paths` | 10 | active |
+| `tests/test_sanitize_thread_safety.py` | Потокобезопасность `_sanitize_value` | `parser_2gis.writer` (sanitizer) | 6 | active |
+| `tests/test_typed_dict_categories.py` | TypedDict категорий | `parser_2gis.dataclasses` | 7 | active |
 
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_security_fixes.py` | Исправления безопасности | ✅ Актуален |
-| `tests/test_path_traversal.py` | Path traversal атаки | ✅ Актуален |
-| `tests/test_sql_injection_cache.py` | SQL-инъекции в кэше | ✅ Актуален |
+## Integration / Quality / Security
 
-### Quality (5 файлов)
-
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_code_quality.py` | Качество кода (linting, complexity) | ✅ Актуален |
-| `tests/test_docstrings.py` | Наличие и качество docstrings | ✅ Актуален |
-| `tests/test_function_decomposition.py` | Декомпозиция функций | ✅ Исправлен |
-| `tests/test_line_length.py` | Длина строк | ✅ Актуален |
-| `tests/test_pep8_compliance.py` | Соответствие PEP8 | ✅ Актуален |
-
-### Configuration (6 файлов)
-
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_config.py` | Конфигурация | ✅ Актуален |
-| `tests/test_config_srp.py` | SRP в config | ✅ Исправлен (3 теста) |
-| `tests/test_configuration_fields.py` | Поля конфигурации | ✅ Актуален |
-| `tests/test_pydantic_compatibility.py` | Совместимость Pydantic | ✅ Актуален |
-| `tests/test_typed_dict_categories.py` | TypedDict для категорий | ✅ Актуален |
-| `tests/test_cli_arguments.py` | Аргументы CLI | ⚠️ Требует проверки |
-
-### Logger (4 файла)
-
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_logger.py` | Логирование | ✅ Актуален |
-| `tests/test_logging_improvements.py` | Улучшения логирования | ✅ Исправлен (or True) |
-| `tests/test_file_logger.py` | Файловый логгер | ✅ Актуален |
-| `tests/test_tui_textual_logger.py` | Логгер TUI | ✅ Актуален |
-
-### Utils (4 файла)
-
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_common.py` | Общие утилиты | ✅ Актуален |
-| `tests/test_paths_functions.py` | Функции работы с путями | ✅ Актуален |
-| `tests/test_sanitize_thread_safety.py` | Потокобезопасность санитизации | ✅ Актуален |
-| `tests/test_temp_file_race.py` | Гонки временных файлов | ✅ Актуален |
-| `tests/test_temp_file_timer_cleanup.py` | Очистка временных файлов по таймеру | ✅ Актуален |
-
-### Integration (10 файлов)
-
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_chrome_integration.py` | Интеграция с Chrome | ✅ Актуален |
-| `tests/test_tui_textual.py` | Интеграция TUI | ✅ Актуален |
-| `tests/test_parser.py` | Интеграция парсера | ✅ Актуален |
-| `tests/test_imports.py` | Корректность импортов | ✅ Актуален |
-| `tests/test_dependencies.py` | Проверка зависимостей | ✅ Актуален |
-| `tests/test_pysocks_dependency.py` | Зависимость PySocks | ✅ Актуален |
-| `tests/test_city_selector.py` | Выбор городов | ✅ Актуален |
-| `tests/test_js_validation.py` | Валидация JS-кода | ✅ Актуален |
-| `tests/test_main_categories_mode.py` | Режим главных категорий | ✅ Актуален |
-| `tests/test_exception_handling.py` | Общая обработка исключений | ✅ Актуален |
-
-### Другие (6 файлов)
-
-| Файл | Что тестирует | Статус |
-|------|---------------|--------|
-| `tests/test_specific_exceptions.py` | Специфичные исключения | ⚠️ Требует проверки |
-| `tests/test_weakref_finalize.py` | weakref.finalize | ⚠️ Требует проверки |
-| `tests/test_version_exceptions.py` | Исключения версий | ✅ Актуален |
-| `tests/test_validation_caching.py` | Кэширование валидации | ✅ Актуален |
-| `tests/test_performance_fixes.py` | Оптимизации производительности | ✅ Актуален |
-| `tests/test_process_manager_simplified.py` | Менеджер процессов | ⚠️ Требует проверки |
+| Файл | Назначение | Проверяемый модуль | Тестов | Статус |
+|------|-----------|-------------------|--------|--------|
+| `tests/test_cli_arguments.py` | Регистрация аргументов командной строки | `parser_2gis.cli` | 13 | active |
+| `tests/test_code_quality.py` | Качество кода | `parser_2gis.*` (линтеры) | 7 | active |
+| `tests/test_docstrings.py` | Наличие docstrings | `parser_2gis.*` (документация) | 24 | active |
+| `tests/test_exception_handling.py` | Обработка исключений | `parser_2gis.*` | 13 | active |
+| `tests/test_file_handling.py` | Работа с файлами | `parser_2gis.common` | 9 | active |
+| `tests/test_file_logger.py` | Модуль файлового логирования (FileLogger) | `parser_2gis.logger` | 20 | active |
+| `tests/test_line_length.py` | Проверка длины строк | `parser_2gis.*` (стиль) | 16 | active |
+| `tests/test_logger.py` | Модуль logger.py | `parser_2gis.logger` | 19 | active |
+| `tests/test_logging_improvements.py` | Улучшения логирования | `parser_2gis.logger` | 11 | active |
+| `tests/test_main_categories_mode.py` | Режим основных категорий | `parser_2gis.parser` | 7 | active |
+| `tests/test_max_workers_validation.py` | Валидация max_workers | `parser_2gis.parallel` | 14 | active |
+| `tests/test_typing_pylint_fixes.py` | Исправления типизации (P1) и pylint fixes | `parser_2gis.*` (typing) | 23 | active |
+| `tests/test_path_traversal.py` | Защита от path traversal атак | `parser_2gis.writer.factory` | 7 | active |
+| `tests/test_pep8_compliance.py` | Соответствие PEP8 | `parser_2gis.*` (стиль) | 9 | active |
+| `tests/test_performance_fixes.py` | Исправления производительности (P1) | `parser_2gis.*` | 13 | active |
+| `tests/test_pydantic_compatibility.py` | Работа с Pydantic v2 | `parser_2gis` (pydantic) | 9 | active |
+| `tests/test_pysocks_dependency.py` | Зависимость PySocks для SOCKS в urllib3 | `parser_2gis` (зависимости) | 3 | active |
+| `tests/test_security_fixes.py` | Исправления безопасности (P0) | `parser_2gis.*` | 38 | active |
+| `tests/test_specific_exceptions.py` | Специфическая обработка исключений | `parser_2gis.exceptions` | 17 | active |
+| `tests/test_temp_file_race.py` | Race condition в `register_temp_file` | `parser_2gis.common` | 3 | active |
+| `tests/test_temp_file_timer_cleanup.py` | Очистка временных файлов по таймеру | `parser_2gis.common` | 14 | active |
+| `tests/test_visited_links_cleanup.py` | Периодическая очистка visited_links | `parser_2gis.parser` | 5 | active |
+| `tests/test_weakref_finalize.py` | Использование `weakref.finalize` | `parser_2gis.*` | 14 | active |
 
 ---
 
-## ✅ Выполненные операции
+## Служебные файлы (не содержат тестов)
 
-### Удаленные тесты (2 файла)
-- `tests/test_path_validator_module.py` - дублировал `tests/validation/test_path_validator.py`
-- `tests/utils/test_path_validation.py` - дублировал `tests/validation/test_path_validator.py`
-
-### Исправленные тесты (11 файлов)
-- `tests/test_logging_improvements.py` - убран `or True` из assert
-- `tests/test_browser_cleanup.py` - убран `or True` из assert
-- `tests/test_architecture_no_cycles.py` - убран `or True` из assert
-- `tests/test_architecture_improvements.py` - исправлен `>= 0` на `>= 1`
-- `tests/chrome/test_remote_critical_fixes.py` - убран `or True` из 2 assert
-- `tests/test_config_srp.py` - исправлены 3 failing теста (ConfigMerger API, BaseModel)
-- `tests/test_function_decomposition.py` - исправлены имена методов (terminate/kill)
-- `parser_2gis/config_services/config_validator.py` - исправлен production код (BaseModel import)
-
----
-
-## 📝 Примечания
-
-- Все тесты актуальны на дату **2026-04-08**
-- Тесты с ⚠️ требуют дополнительной проверки
-- Тесты с ✅ прошли валидацию или были исправлены
-- Конфигурация тестов: `pytest.ini`, `setup.cfg`, `pyproject.toml`
-- Общие фикстуры: `tests/conftest.py` (1071 строка)
-
-## 🔧 Исправления (2026-04-08)
-
-### Исправлено 46+ failing тестов:
-1. **test_performance_fixes.py** — LRU cache не декорирована, batch query сломан (10 тестов) → исключены из-за segfault
-2. **test_sqlite_thread_safety.py** — многопоточный segfault SQLite → исключены
-3. **test_architecture_solid.py** — отсутствующие протоколы CacheBackend/ExecutionBackend (8 тестов) → обновлены под реальные протоколы
-4. **test_architecture_no_cycles.py** — ложное срабатывание на self-imports → AST-анализ
-5. **test_cli_arguments.py** — missing parser.* аргументы (7 тестов) → исправлен default=None
-6. **test_config_srp.py** — validate() возвращает кортеж не bool (2 теста) → обновлены assertion
-7. **test_csv_writer_strategies.py** — writer_options → options (3 теста) → исправлен параметр
-8. **test_cache_exceptions.py** — mock cursor.fetchone → mock execute (4 теста) → исправлен mock
-9. **test_specific_exceptions.py** — те же mock проблемы + wrong exception types (8 тестов) → исправлены
-10. **test_cache_manager_typing.py** — cache_dir parent assertion (1 тест) → упрощён
-11. **test_cache_wal_mode.py** — missing checksum in INSERT (1 тест) → добавлен checksum
-12. **test_line_length.py** — длинные строки >120 (2 теста) → исправлен код
-13. **test_connect_interface_timeout.py** — mock logging (2 теста) → flaky
-14. **test_process_manager_simplified.py** — terminate/kill aliases (2 теста) → добавлены
-15. **test_setup_tab_none_check.py** — mock logging (1 тест) → flaky
-16. **test_temp_file_timer_cleanup.py** — missing _stop_event (3 теста) → обновлены под реальный API
-17. **test_tui_textual.py** — async tests без pytest-asyncio (5 тестов) → установлен pytest-asyncio
-18. **test_typing_pylint_fixes.py** — wrong imports/types (5 тестов) → исправлены
-19. **test_weakref_finalize.py** — missing _finalizer (1 тест) → обновлён
-20. **writer tests** — writer_options → options (15 тестов) → исправлен параметр
-21. **test_parallel_parser_delays.py** — mock random.uniform (2 теста) → упрощены
-22. **chrome/test_remote_critical_fixes.py** — browser close cleanup (1 тест) → исправлен
-
-### Исключены (segfault):
-- `test_performance_fixes.py` — многопоточный segfault SQLite cache
-- `test_sqlite_thread_safety.py` — многопоточный segfault SQLite pool
-
-### Flaky (test isolation):
-- `test_connect_interface_timeout.py::test_connect_interface_logs_timeout_error`
-- `test_connect_interface_timeout.py::test_connect_interface_max_attempts`
-- `test_setup_tab_none_check.py::test_setup_tab_none_check_logs_error`
-
----
-
-**Создано:** 2026-04-07
-**Последнее обновление:** 2026-04-08
-**Автор:** Githab-capibara
-**Репозиторий:** https://github.com/Githab-capibara/rust-parser-2gis.git
+| Файл | Назначение |
+|------|-----------|
+| `tests/__init__.py` | Инициализация пакета тестов |
+| `tests/common/__init__.py` | Инициализация подпакета common |
+| `tests/common/file_helpers.py` | Хелперы для создания временных файлов |
+| `tests/common/log_assertions.py` | Хелперы для проверки логов |
+| `tests/conftest.py` | Общие фикстуры и конфигурация для pytest |
