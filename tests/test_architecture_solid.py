@@ -26,7 +26,6 @@ import importlib
 import inspect
 import os
 import re
-import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -974,7 +973,14 @@ class TestSingleResponsibilityPrinciple:
             or "lock" in m.lower()
         ]
 
-        allowed_methods = [*merge_methods, "log", "extract_category_from_filename", "process_single_csv_file", "acquire_merge_lock", "cleanup_merge_lock"]
+        allowed_methods = [
+            *merge_methods,
+            "log",
+            "extract_category_from_filename",
+            "process_single_csv_file",
+            "acquire_merge_lock",
+            "cleanup_merge_lock",
+        ]
 
         assert len(allowed_methods) >= len(methods) * 0.9, (
             "ParallelFileMerger должен иметь >=90% методов для слияния файлов"

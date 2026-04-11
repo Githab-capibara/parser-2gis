@@ -58,9 +58,7 @@ class TestTUILoggerInitialization:
             "app._logger не должен быть None. "
             "Проверьте, что __init__ не перезаписывает _logger после super().__init__()"
         )
-        assert app._logger is not None, (
-            "app._logger не должен быть None после инициализации"
-        )
+        assert app._logger is not None, "app._logger не должен быть None после инициализации"
 
     @pytest.mark.asyncio
     async def test_file_logger_does_not_override_textual_logger(self) -> None:

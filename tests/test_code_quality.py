@@ -333,7 +333,9 @@ class TestCodeQuality:
             f"Примеры: {functions_without_docstrings[:5]}"
         )
 
-    def test_exception_handling_best_practices(self, parsed_files: list[tuple[Path, ast.AST]]) -> None:
+    def test_exception_handling_best_practices(
+        self, parsed_files: list[tuple[Path, ast.AST]]
+    ) -> None:
         """Тест лучших практик обработки исключений.
 
         Проверяет:

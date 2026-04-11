@@ -313,7 +313,9 @@ class TestCSVWriterErrorHandling:
                 with writer:
                     pass
 
-    def test_csv_writer_context_manager_exception(self, temp_output_path, mock_options, caplog) -> None:
+    def test_csv_writer_context_manager_exception(
+        self, temp_output_path, mock_options, caplog
+    ) -> None:
         """Тест обработки исключений в контекстном менеджере.
 
         Проверяет:

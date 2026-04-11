@@ -50,7 +50,9 @@ class TestCacheManagerFinallyCleanup:
         with contextlib.suppress(Exception):
             manager.close()
 
-    def test_cache_manager_finally_cleanup_memory_error(self, cache_manager: CacheManager, caplog) -> None:
+    def test_cache_manager_finally_cleanup_memory_error(
+        self, cache_manager: CacheManager, caplog
+    ) -> None:
         """Тест очистки ресурсов при MemoryError.
 
         Проверяет:
@@ -103,7 +105,9 @@ class TestCacheManagerFinallyCleanup:
                 # Проверяем что cursor.close() был вызван (finally блок выполнился)
                 assert mock_cursor.close.called
 
-    def test_cache_manager_finally_cleanup_system_exit(self, cache_manager: CacheManager, caplog) -> None:
+    def test_cache_manager_finally_cleanup_system_exit(
+        self, cache_manager: CacheManager, caplog
+    ) -> None:
         """Тест очистки ресурсов при SystemExit.
 
         Проверяет:
@@ -130,7 +134,9 @@ class TestCacheManagerFinallyCleanup:
                 # Проверяем что cursor.close() был вызван (finally блок выполнился)
                 assert mock_cursor.close.called
 
-    def test_cache_manager_finally_cleanup_sqlite_error(self, cache_manager: CacheManager, caplog) -> None:
+    def test_cache_manager_finally_cleanup_sqlite_error(
+        self, cache_manager: CacheManager, caplog
+    ) -> None:
         """Тест очистки ресурсов при sqlite3.Error.
 
         Проверяет:
@@ -159,7 +165,9 @@ class TestCacheManagerFinallyCleanup:
                 # Проверяем что cursor.close() был вызван (finally блок выполнился)
                 assert mock_cursor.close.called
 
-    def test_cache_manager_finally_cleanup_os_error(self, cache_manager: CacheManager, caplog) -> None:
+    def test_cache_manager_finally_cleanup_os_error(
+        self, cache_manager: CacheManager, caplog
+    ) -> None:
         """Тест очистки ресурсов при OSError.
 
         Проверяет:
@@ -188,7 +196,9 @@ class TestCacheManagerFinallyCleanup:
                 # Проверяем что cursor.close() был вызван (finally блок выполнился)
                 assert mock_cursor.close.called
 
-    def test_cache_manager_finalizer_cleanup_memory_error(self, temp_cache_dir: Path, caplog) -> None:
+    def test_cache_manager_finalizer_cleanup_memory_error(
+        self, temp_cache_dir: Path, caplog
+    ) -> None:
         """Тест finalizer блока при MemoryError.
 
         Проверяет:
@@ -209,7 +219,9 @@ class TestCacheManagerFinallyCleanup:
             ):
                 manager.close()
 
-    def test_cache_manager_finalizer_cleanup_keyboard_interrupt(self, temp_cache_dir: Path, caplog) -> None:
+    def test_cache_manager_finalizer_cleanup_keyboard_interrupt(
+        self, temp_cache_dir: Path, caplog
+    ) -> None:
         """Тест finalizer блока при KeyboardInterrupt.
 
         Проверяет:
@@ -234,7 +246,9 @@ class TestCacheManagerFinallyCleanup:
             ):
                 manager.close()
 
-    def test_cache_manager_finalizer_cleanup_system_exit(self, temp_cache_dir: Path, caplog) -> None:
+    def test_cache_manager_finalizer_cleanup_system_exit(
+        self, temp_cache_dir: Path, caplog
+    ) -> None:
         """Тест finalizer блока при SystemExit.
 
         Проверяет:
@@ -277,7 +291,9 @@ class TestCacheManagerFinallyCleanup:
                 # Проверяем что cursor.close() был вызван (finally блок выполнился)
                 assert mock_cursor.close.called
 
-    def test_cache_manager_clear_expired_finally_cleanup(self, cache_manager: CacheManager, caplog) -> None:
+    def test_cache_manager_clear_expired_finally_cleanup(
+        self, cache_manager: CacheManager, caplog
+    ) -> None:
         """Тест finally блока в методе clear_expired.
 
         Проверяет:
@@ -305,7 +321,9 @@ class TestCacheManagerFinallyCleanup:
                 # Проверяем что cursor.close() был вызван (finally блок выполнился)
                 assert mock_cursor.close.called
 
-    def test_cache_manager_get_stats_finally_cleanup(self, cache_manager: CacheManager, caplog) -> None:
+    def test_cache_manager_get_stats_finally_cleanup(
+        self, cache_manager: CacheManager, caplog
+    ) -> None:
         """Тест finally блока в методе get_stats.
 
         Проверяет:
@@ -353,7 +371,9 @@ class TestCacheManagerFinallyCleanup:
             except (RuntimeError, sqlite3.Error):
                 pass
 
-    def test_cache_manager_batch_operations_finally(self, cache_manager: CacheManager, caplog) -> None:
+    def test_cache_manager_batch_operations_finally(
+        self, cache_manager: CacheManager, caplog
+    ) -> None:
         """Тест finally блока в пакетных операциях.
 
         Проверяет:
