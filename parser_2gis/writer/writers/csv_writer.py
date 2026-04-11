@@ -562,7 +562,9 @@ class CSVWriter(FileWriter):
                 "youtube",
                 "skype",
             ):
-                _append_contact(data, contact_group, t, ["url"], None, add_comments=add_comments)  # type: ignore[arg-type]
+                _append_contact(  # type: ignore[arg-type]
+                    data, contact_group, t, ["url"], None, add_comments=add_comments
+                )
 
             # Удаляем параметры из URL WhatsApp
             for field, value in data.items():
@@ -571,7 +573,9 @@ class CSVWriter(FileWriter):
 
             # Текстовые значения (email, skype и т.д.)
             for t in ("email", "skype"):
-                _append_contact(data, contact_group, t, ["value"], None, add_comments=add_comments)  # type: ignore[arg-type]
+                _append_contact(  # type: ignore[arg-type]
+                    data, contact_group, t, ["value"], None, add_comments=add_comments
+                )
 
             # Телефоны (поле `value` иногда содержит нерелевантные данные,
             # поэтому предпочитаем парсить поле `text`.
