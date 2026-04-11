@@ -163,34 +163,34 @@ class ConfigService:
                 config_path = user_config_path / "parser-2gis.config"
 
         if not config_path.is_file() and auto_create:
-            config = config_cls(path=config_path)  # type: ignore[call-arg]
+            config = config_cls(path=config_path)
             ConfigService.save_config(config, config_path)
             logger.debug("Создан файл конфигурации: %s", config_path)
             return config
         elif not config_path.is_file():
             logger.info("Файл конфигурации не найден, используется конфигурация по умолчанию")
-            return config_cls()  # type: ignore[call-arg]
+            return config_cls()
 
         try:
             with open(config_path, encoding="utf-8") as f:
                 config_data = f.read()
         except (FileNotFoundError, PermissionError, OSError) as file_error:
             logger.error("Ошибка чтения файла конфигурации: %s", file_error)
-            return config_cls()  # type: ignore[call-arg]
+            return config_cls()
 
         try:
             config = model_validate_json(config_data, config_cls)
             config.path = config_path  # type: ignore[attr-defined]
-            return config  # type: ignore[return-value]
+            return config
 
         except ValidationError as e:
             logger.warning("Ошибка валидации конфигурации")
             ConfigService._backup_corrupted_config(config_path)
             ConfigService._log_validation_errors(e)
-            return config_cls()  # type: ignore[call-arg]
+            return config_cls()
         except (json.JSONDecodeError, ValueError) as json_error:
             logger.error("Повреждённый JSON в конфигурации: %s", json_error)
-            return config_cls()  # type: ignore[call-arg]
+            return config_cls()
         except (OSError, RuntimeError, TypeError) as e:
             logger.error("Непредвиденная ошибка при загрузке конфигурации: %s", e, exc_info=e)
             return config_cls()

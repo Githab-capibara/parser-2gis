@@ -18,7 +18,7 @@ class ParsingScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
         Binding("escape", "stop_parsing", "Стоп"),
         Binding("p", "toggle_pause", "Пауза"),
     ]

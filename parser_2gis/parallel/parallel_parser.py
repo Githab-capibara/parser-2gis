@@ -282,7 +282,7 @@ class ParallelCityParser:
 
         # Таймер очистки временных файлов
         self._temp_file_cleanup_timer: TempFileTimer | None = None
-        if self.config.parallel.use_temp_file_cleanup:  # type: ignore[attr-defined]
+        if self.config.parallel.use_temp_file_cleanup:
             try:
                 self._temp_file_cleanup_timer = TempFileTimer(
                     temp_dir=self.output_dir,
@@ -1179,7 +1179,7 @@ class ParallelCityParserThread:
         """Проксирует доступ к методу log парсера."""
         self._parser.log(message, level)
 
-    def run(self) -> None:  # type: ignore[override]
+    def run(self) -> None:
         """Точка входа потока."""
         try:
             output_file = self._output_file or str(self.output_dir / "merged_result.csv")

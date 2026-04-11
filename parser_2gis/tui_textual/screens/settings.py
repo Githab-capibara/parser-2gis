@@ -40,7 +40,7 @@ class BrowserSettingsScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
         Binding("escape", "go_back", "Назад"),
         Binding("r", "reset", "Сброс"),
     ]
@@ -201,7 +201,7 @@ class ParserSettingsScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
         Binding("escape", "go_back", "Назад"),
         Binding("r", "reset", "Сброс"),
     ]
@@ -372,7 +372,7 @@ class OutputSettingsScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
         Binding("escape", "go_back", "Назад"),
         Binding("r", "reset", "Сброс"),
     ]

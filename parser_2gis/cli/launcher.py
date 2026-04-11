@@ -279,13 +279,13 @@ class ApplicationLauncher:
                     headless=self.config.chrome.headless,
                     disable_images=self.config.chrome.disable_images,
                 ),
-                parser=ParserOptions(
+                parser=ParserOptions(  # type: ignore[call-arg]
                     max_records=self.config.parser.max_records,
                     delay_ms=self.config.parser.delay_between_clicks,
                     retry_on_network_errors=self.config.parser.retry_on_network_errors,
                 ),
-                writer=WriterOptions(
-                    format=self.config.writer.format, encoding="utf-8-sig", deduplicate=True
+                writer=WriterOptions(  # type: ignore[call-arg]
+                    format=self.config.writer.format, encoding="utf-8-sig", deduplicate=True  # type: ignore[attr-defined]
                 ),
             )
 
@@ -296,7 +296,7 @@ class ApplicationLauncher:
             # Создаём парсер
             parser = ParallelCityParser(
                 cities=selected_cities,
-                categories=CATEGORIES_93,
+                categories=CATEGORIES_93,  # type: ignore[arg-type]
                 output_dir=str(output_dir),
                 config=config,
                 max_workers=self.config.parallel.max_workers,
@@ -309,7 +309,7 @@ class ApplicationLauncher:
 
             # Определяем имя выходного файла
             # Используем формат из конфигурации для определения расширения
-            output_extension = self.config.writer.format or "csv"
+            output_extension = self.config.writer.format or "csv"  # type: ignore[attr-defined]
             output_file = self._get_output_filename(args, f"all_categories.{output_extension}")
             output_file_path = output_dir / output_file
 
@@ -391,7 +391,7 @@ class ApplicationLauncher:
                     return 1
 
             # Запуск CLI приложения
-            cli_app(urls, output_path, output_format, self.config)
+            cli_app(urls, output_path, output_format, self.config)  # type: ignore[arg-type]
             return 0
 
         except KeyboardInterrupt:

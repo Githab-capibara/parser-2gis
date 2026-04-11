@@ -178,7 +178,7 @@ class CSVDeduplicator:
                     batch_size = HASH_BATCH_SIZE
 
                     for line_num, line in enumerate(f_csv, 1):  # type: ignore[arg-type]
-                        line_str: str = line  # type: ignore[assignment]
+                        line_str: str = line
                         try:
                             # Вычисляем хеш строки
                             line_hash = self._hash_row(line_str)

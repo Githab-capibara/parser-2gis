@@ -90,17 +90,17 @@ def _atomic_rename_with_retry(
 
             # Используем shutil.move для кроссплатформенности
             shutil.move(str(src), str(dst))
-            log_func(f"Временный файл перемещён: {src.name} → {dst.name}", level="debug")
+            log_func(f"Временный файл перемещён: {src.name} → {dst.name}", "debug")
             return True
 
         except OSError as move_error:
             if attempt < max_attempts - 1:
                 log_func(
-                    f"Попытка {attempt + 1}/{max_attempts} не удалась: {move_error}. Повтор..."
+                    f"Попытка {attempt + 1}/{max_attempts} не удалась: {move_error}. Повтор...", "debug"
                 )
                 time.sleep(0.1 * (attempt + 1))  # Экспоненциальная задержка
             else:
-                log_func(f"Не удалось переместить временный файл {src.name}: {move_error}")
+                log_func(f"Не удалось переместить временный файл {src.name}: {move_error}", "error")
                 raise
 
     return False
@@ -367,7 +367,7 @@ class ParallelCoordinator:
         # H3: Dependency Injection с fallback на создание по умолчанию
         self._error_handler = error_handler or ParallelErrorHandler(self.output_dir, self.config)
         self._file_merger = file_merger or ParallelFileMerger(
-            self.output_dir, self.config, self._cancel_event, self._lock
+            self.output_dir, self.config, self._cancel_event, self._lock  # type: ignore[arg-type]
         )
         self._progress_reporter: ParallelProgressReporter | None = None
 
@@ -738,7 +738,7 @@ class ParallelCoordinator:
 
         self._progress_reporter = ParallelProgressReporter(
             total_tasks=total_tasks,
-            lock=self._lock,
+            lock=self._lock,  # type: ignore[arg-type]
             progress_callback=progress_callback,
             merge_callback=merge_callback,
         )

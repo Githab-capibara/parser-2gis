@@ -17,7 +17,7 @@ from typing import Any
 from .constants import DEFAULT_NETWORK_TIMEOUT
 
 try:
-    import requests  # type: ignore[import-untyped]
+    import requests
 except ImportError:
     requests = None  # type: ignore[assignment]
 

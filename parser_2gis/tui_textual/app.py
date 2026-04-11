@@ -308,7 +308,7 @@ class TUIApp(App):
     """
 
     # Горячие клавиши
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
         Binding("q", "quit", "Выход", priority=True),
         Binding("escape", "go_back", "Назад", priority=True),
         Binding("d", "toggle_dark", "Тёмная тема"),

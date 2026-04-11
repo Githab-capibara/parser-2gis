@@ -423,7 +423,7 @@ class CacheManager:
         cursor = conn.execute(self.SELECT_SQL, (url_hash,))
         row = cursor.fetchone()
         cursor.close()
-        return row  # type: ignore[return-value]
+        return row  # type: ignore[no-any-return]
 
     def _parse_expires_at(self, expires_at_str: str) -> datetime | None:
         """Парсит строку даты истечения кэша.
@@ -921,8 +921,8 @@ class CacheManager:
 
                 data, checksum, expires_at_str = hash_to_data[url_hash]
                 # P0-9: Передаём url_hash для устранения повторного вычисления
-                result = self._handle_cache_hit_with_hash(
-                    data, checksum, expires_at_str, cursor, url_hash, conn
+                result = self._handle_cache_hit(
+                    data, checksum, expires_at_str, conn, url_hash
                 )
                 results[url] = result
 

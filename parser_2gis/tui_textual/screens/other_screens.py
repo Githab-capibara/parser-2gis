@@ -16,7 +16,7 @@ class CacheViewerScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
         Binding("escape", "go_back", "Назад"),
         Binding("c", "clear_cache", "Очистить кэш"),
     ]
@@ -191,7 +191,7 @@ class AboutScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [Binding("escape", "go_back", "Назад")]
+    BINDINGS: ClassVar[list[Binding]] = [Binding("escape", "go_back", "Назад")]  # type: ignore[assignment]
 
     CSS = """
     /* Центрирование экрана информации */

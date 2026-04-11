@@ -10,7 +10,7 @@ import pathlib
 import re
 import sys
 
-from setuptools import Command, setup  # type: ignore[misc]
+from setuptools import Command, setup
 
 PACKAGE_NAME = "parser_2gis"
 ROOT_DIR = pathlib.Path(__file__).parent

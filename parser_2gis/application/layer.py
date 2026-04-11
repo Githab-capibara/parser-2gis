@@ -12,6 +12,7 @@ ISSUE-014: Dependency Injection — зависимости внедряются 
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 from parser_2gis.shared_config_constants import CATALOG_API_PATTERN
@@ -203,7 +204,7 @@ class CacheFacade:
         if cache_manager is not None:
             self._cache: CacheManager = cache_manager
         elif cache_path is not None:
-            self._cache = CacheManager(cache_path)
+            self._cache = CacheManager(Path(cache_path))
         else:
             raise ValueError("cache_path или cache_manager обязателен")
 
@@ -324,7 +325,7 @@ class BrowserFacade:
             self._chrome_options = None
         elif chrome_options is not None:
             self._chrome_options = chrome_options
-            self._browser_factory = None
+            self._browser_factory = None  # type: ignore[assignment]
         else:
             raise ValueError("Необходимо передать chrome_options или browser_factory")
 
@@ -338,7 +339,7 @@ class BrowserFacade:
 
         """
         if self._browser_factory is not None:
-            return self._browser_factory()  # type: ignore[no-any-return]
+            return self._browser_factory()  # type: ignore[return-value]
 
         from parser_2gis.chrome.remote import ChromeRemote
 
@@ -357,8 +358,8 @@ class BrowserFacade:
         """
         own_browser = browser
         if own_browser is None:
-            own_browser = self.create_browser()
-        own_browser.navigate(url)
+            own_browser = self.create_browser()  # type: ignore[assignment]
+        own_browser.navigate(url)  # type: ignore[union-attr]
 
     def get_html(self, browser: BrowserService) -> str:
         """Получает HTML страницы.

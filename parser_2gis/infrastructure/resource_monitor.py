@@ -164,15 +164,15 @@ class MemoryMonitorProtocol:
 
     def get_available_memory(self) -> int:
         """Получает доступный объём памяти в байтах."""
-        ...  # pragma: no cover  # pylint: disable=unnecessary-ellipsis
+        raise NotImplementedError  # pragma: no cover
 
     def get_memory_usage(self) -> MemoryInfo:
         """Получает полную информацию об использовании памяти."""
-        ...  # pragma: no cover  # pylint: disable=unnecessary-ellipsis
+        raise NotImplementedError  # pragma: no cover
 
     def is_low_memory(self, threshold_mb: float = 100.0) -> bool:
         """Проверяет низкий уровень памяти."""
-        ...  # pragma: no cover  # pylint: disable=unnecessary-ellipsis
+        raise NotImplementedError  # pragma: no cover
 
 
 # =============================================================================

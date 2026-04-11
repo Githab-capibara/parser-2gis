@@ -16,7 +16,7 @@ class MainMenuScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [Binding("q", "quit", "Выход")]
+    BINDINGS: ClassVar[list[Binding]] = [Binding("q", "quit", "Выход")]  # type: ignore[assignment]
 
     CSS = """
     /* Центрирование главного экрана меню */
