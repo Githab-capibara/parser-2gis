@@ -68,8 +68,8 @@ class BaseParser(ABC):
     def __exit__(
         self,
         exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: object | None,
+        _exc_val: BaseException | None,
+        _exc_tb: object | None,
     ) -> None:
         """Контекстный менеджер — выход. Никого не глотает исключения."""
         return None
