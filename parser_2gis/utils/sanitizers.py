@@ -315,9 +315,8 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 # Проверяем на циклические ссылки
                 if current_id in results:
                     result = results[current_id]
-                    if parent is not None and parent_key is not None:
-                        if isinstance(parent, (dict, list)):
-                            parent[parent_key] = result
+                    if parent is not None and parent_key is not None and isinstance(parent, (dict, list)):
+                        parent[parent_key] = result
                     continue
 
                 # Проверяем на циклические ссылки для изменяемых типов

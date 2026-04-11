@@ -376,17 +376,18 @@ class CSVWriter(FileWriter):
                     if isinstance(item, dict):
                         # Проверка строковых полей на опасные конструкции
                         for key, value in item.items():
-                            if isinstance(value, str):
-                                # Проверка на потенциальные XSS атаки (regex для обходных конструкций)
-                                if re.search(r"<\s*script|javascript\s*:", value, re.IGNORECASE):
-                                    logger.warning(
-                                        "Обнаружена подозрительная конструкция в поле %s: %s",
-                                        key,
-                                        value[:100],
-                                    )
-                                    raise ValueError(
-                                        f"Обнаружена потенциальная XSS атака в поле {key}",
-                                    )
+                            # Проверка на потенциальные XSS атаки (regex для обходных конструкций)
+                            if isinstance(value, str) and re.search(
+                                r"<\s*script|javascript\s*:", value, re.IGNORECASE
+                            ):
+                                logger.warning(
+                                    "Обнаружена подозрительная конструкция в поле %s: %s",
+                                    key,
+                                    value[:100],
+                                )
+                                raise ValueError(
+                                    f"Обнаружена потенциальная XSS атака в поле {key}",
+                                )
 
         if not self._check_catalog_doc(records):
             return

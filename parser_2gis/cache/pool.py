@@ -263,9 +263,8 @@ class ConnectionPool:
                 should_reuse = False
                 if age is not None:
                     age = time.time() - age
-                    if age <= _get_connection_max_age_env():
-                        if self._is_connection_valid(conn_obj):
-                            should_reuse = True
+                    if age <= _get_connection_max_age_env() and self._is_connection_valid(conn_obj):
+                        should_reuse = True
                     # Если устарело — нужно пересоздать под блокировкой
 
                 if should_reuse:

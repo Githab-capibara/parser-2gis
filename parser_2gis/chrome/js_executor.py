@@ -227,11 +227,12 @@ def _check_concatenation_bypass(code: str) -> tuple[bool, str | None]:
         for match in matches:
             # Проверяем, образует ли конкатенация опасное слово
             concatenated = "".join(match).lower()
-            if dangerous in concatenated:
-                # Дополнительная проверка: это действительно обход или легитимный код?
-                # Если опасное слово не является полным словом в конкатенации - пропускаем
-                if concatenated == dangerous or dangerous in concatenated.split(dangerous):
-                    return False, f"Обнаружена подозрительная конкатенация строк с {dangerous}"
+            # Дополнительная проверка: это действительно обход или легитимный код?
+            # Если опасное слово не является полным словом в конкатенации - пропускаем
+            if dangerous in concatenated and (
+                concatenated == dangerous or dangerous in concatenated.split(dangerous)
+            ):
+                return False, f"Обнаружена подозрительная конкатенация строк с {dangerous}"
 
     # Дополнительная проверка на конкатенацию с array join
     if re.search(r'\[\s*["\'][^"\']*["\']\s*\]\s*\.\s*join\s*\(', code, re.IGNORECASE):
@@ -395,10 +396,11 @@ def _check_reflect_and_apply(code: str) -> tuple[bool, str | None]:
         return False, "Function.prototype.apply/call запрещён"
 
     # 3. apply/call с аргументами, которые могут быть кодом
-    if re.search(r"\.\s*(?:apply|call)\s*\(\s*this\s*,\s*\[", code, re.IGNORECASE):
-        # Проверяем, содержит ли массив строки с кодом
-        if re.search(r"\.\s*(?:apply|call)\s*\(\s*this\s*,\s*\[\s*['\"]", code, re.IGNORECASE):
-            return False, "apply/call с строковыми аргументами запрещён"
+    # Проверяем, содержит ли массив строки с кодом
+    if re.search(
+        r"\.\s*(?:apply|call)\s*\(\s*this\s*,\s*\[\s*['\"]", code, re.IGNORECASE
+    ) and re.search(r"\.\s*(?:apply|call)\s*\(\s*this\s*,\s*\[", code, re.IGNORECASE):
+        return False, "apply/call с строковыми аргументами запрещён"
 
     return True, None
 
@@ -504,10 +506,11 @@ def _validate_js_code(code: str, max_length: int = MAX_JS_CODE_LENGTH) -> tuple[
 
     # Проверка на потенциальные base64 строки (длинные последовательности base64 символов)
     base64_pattern = re.compile(r"[A-Za-z0-9+/]{50,}={0,2}")
-    if base64_pattern.search(normalized_code):
-        # Проверяем не является ли это легитимными данными (например, image data)
-        if "atob" in normalized_code.lower() or "btoa" in normalized_code.lower():
-            return False, "Обнаружено использование base64 с функциями atob/btoa"
+    # Проверяем не является ли это легитимными данными (например, image data)
+    if base64_pattern.search(normalized_code) and (
+        "atob" in normalized_code.lower() or "btoa" in normalized_code.lower()
+    ):
+        return False, "Обнаружено использование base64 с функциями atob/btoa"
 
     # Проверка максимальной длины
     is_length_valid, length_error = _check_js_length(normalized_code, max_length)
