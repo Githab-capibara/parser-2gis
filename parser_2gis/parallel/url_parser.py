@@ -400,23 +400,24 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                 return False, f"Ошибка инициализации: {init_error}"
 
             try:
-                with parser:
-                    with get_writer(str(temp_filepath), "csv", cached_config.writer) as writer:
-                        try:
-                            parser.parse(writer)
-                        except MemoryError as memory_error:
-                            logger.error("Memory error while parsing %s: %s", url, memory_error)
-                            # Освобождаем кэш если есть
-                            if hasattr(parser, "_cache"):
-                                parser._cache.clear()
-                            # Принудительный GC через memory_manager
-                            if hasattr(self, "_memory_manager"):
-                                self._memory_manager.force_gc()
-                            else:
-                                gc.collect()
-                            raise
-                        finally:
-                            logger.debug("Завершена очистка ресурсов парсера")
+                with parser, get_writer(
+                    str(temp_filepath), "csv", cached_config.writer
+                ) as writer:
+                    try:
+                        parser.parse(writer)
+                    except MemoryError as memory_error:
+                        logger.error("Memory error while parsing %s: %s", url, memory_error)
+                        # Освобождаем кэш если есть
+                        if hasattr(parser, "_cache"):
+                            parser._cache.clear()
+                        # Принудительный GC через memory_manager
+                        if hasattr(self, "_memory_manager"):
+                            self._memory_manager.force_gc()
+                        else:
+                            gc.collect()
+                        raise
+                    finally:
+                        logger.debug("Завершена очистка ресурсов парсера")
             except MemoryError as memory_error:
                 self.log(
                     f"MemoryError при парсинге {city_name} - {category_name}: {memory_error}",
