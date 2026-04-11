@@ -28,7 +28,7 @@ import time
 import types
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import pychrome
 from websocket import WebSocketException
@@ -350,7 +350,7 @@ class ChromeRemote:
         from urllib.parse import urlparse
 
         parsed_url = urlparse(self._dev_url)
-        port = int(parsed_url.port)
+        port = int(parsed_url.port or 0)
 
         if _check_port_cached(port):
             raise ChromeException(f"Порт {port} свободен (Chrome ещё не слушает)")
@@ -821,7 +821,7 @@ class ChromeRemote:
                     "Ошибка декодирования тела ответа (requestId: %s): %s", request_id, decode_error
                 )
             return ""
-        return response_data.get("body", "")
+        return response_data.get("body", "")  # type: ignore[no-any-return]
 
     @wait_until_finished(timeout=7200, throw_exception=False, poll_interval=0.005)  # 2 часа
     def get_response_body(self, response: Response) -> str:
@@ -909,13 +909,13 @@ class ChromeRemote:
     @wait_until_finished(timeout=None, throw_exception=False)
     def get_responses(self) -> list[Response]:
         """Получает собранные ответы."""
-        with self._requests_lock:
-            return [x["response"] for x in self._requests.values() if "response" in x]
+        with self._requests_lock:  # type: ignore[attr-defined]
+            return [x["response"] for x in self._requests.values() if "response" in x]  # type: ignore[attr-defined]
 
     def get_requests(self) -> list[Request]:
         """Получает записанные запросы."""
-        with self._requests_lock:
-            return [*self._requests.values()]
+        with self._requests_lock:  # type: ignore[attr-defined]
+            return [*self._requests.values()]  # type: ignore[attr-defined]
 
     def get_document(self, *, full: bool = True) -> DOMNode:
         """Получает DOM-дерево документа."""
@@ -1032,7 +1032,7 @@ class ChromeRemote:
             len(combined_script),
         )
 
-        return self._execute_script_internal(combined_script, timeout)
+        return self._execute_script_internal(combined_script, timeout)  # type: ignore[no-any-return]
 
     def _execute_script_internal_impl(self, expression: str, timeout: int = 300) -> Any:  # 5 минут
         """Внутренний метод выполнения скрипта."""
@@ -1041,14 +1041,14 @@ class ChromeRemote:
         def execute_target() -> None:
             """Внутренняя функция для выполнения скрипта."""
             try:
-                eval_result = self._chrome_tab.Runtime.evaluate(
+                eval_result = self._chrome_tab.Runtime.evaluate(  # type: ignore[union-attr]
                     expression=expression, returnByValue=True
                 )
                 result["value"] = eval_result["result"].get("value", None)
             except (KeyboardInterrupt, SystemExit):
                 raise
             except (pychrome.CallMethodException, OSError, RuntimeError, KeyError) as e:
-                result["error"] = e
+                result["error"] = e  # type: ignore[assignment]
                 app_logger.warning("Ошибка при выполнении скрипта: %s", e)
 
         try:
@@ -1272,7 +1272,7 @@ class ChromeRemote:
         _exc_type: type[BaseException] | None,
         _exc_val: BaseException | None,
         _exc_tb: types.TracebackType | None,
-    ) -> bool:
+    ) -> Literal[False]:
         """Контекстный менеджер: выход.
 
         Args:
@@ -1335,7 +1335,7 @@ class ChromeRemote:
                 expression="document.documentElement.outerHTML", returnByValue=True, timeout=20000
             )
             if result and "result" in result:
-                return result["result"].get("value", "")
+                return result["result"].get("value", "")  # type: ignore[no-any-return]
             return ""
         except (KeyboardInterrupt, SystemExit):
             raise

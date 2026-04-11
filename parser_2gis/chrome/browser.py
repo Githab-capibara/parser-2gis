@@ -401,7 +401,7 @@ class ProcessManager:
         already_terminated_status: str,
         permission_denied_status: str,
         error_status: str,
-    ) -> ProcessStatus:
+    ) -> tuple[bool, str]:
         """Общая логика завершения процесса для terminate и kill.
 
         Args:
@@ -478,7 +478,7 @@ class ProcessManager:
             )
             return False, error_status
 
-    def terminate(self, process_pid: int, timeout: int = 5) -> ProcessStatus:
+    def terminate(self, process_pid: int, timeout: int = 5) -> tuple[bool, str]:
         """Завершает процесс корректно (graceful shutdown).
 
         H2: Упрощённый метод для корректного завершения процесса.
@@ -505,7 +505,7 @@ class ProcessManager:
             error_status="terminate_error",
         )
 
-    def kill(self, process_pid: int, timeout: int = 10) -> ProcessStatus:
+    def kill(self, process_pid: int, timeout: int = 10) -> tuple[bool, str]:
         """Принудительно завершает процесс (forceful shutdown).
 
         H2: Упрощённый метод для принудительного завершения процесса.
@@ -639,11 +639,11 @@ class ProcessManager:
         return self._start_time
 
     # Алиасы для обратной совместимости
-    def terminate_process_graceful(self, process_pid: int) -> ProcessStatus:
+    def terminate_process_graceful(self, process_pid: int) -> tuple[bool, str]:
         """Алиас для terminate() для обратной совместимости."""
         return self.terminate(process_pid, timeout=5)
 
-    def terminate_process_forceful(self, process_pid: int) -> ProcessStatus:
+    def terminate_process_forceful(self, process_pid: int) -> tuple[bool, str]:
         """Алиас для kill() для обратной совместимости."""
         return self.kill(process_pid, timeout=10)
 
@@ -704,7 +704,7 @@ class BrowserLifecycleManager:
             self._profile_manager.profile_tempdir,
             self._profile_manager.profile_path,
         )
-        self._finalizer.atexit = False
+        self._finalizer.atexit = False  # type: ignore[misc]
 
     def init(self) -> int:
         """Инициализирует браузер Chrome.
@@ -937,7 +937,7 @@ class BrowserLifecycleManager:
         _exc_type: type[BaseException] | None,
         _exc_val: BaseException | None,
         _exc_tb: types.TracebackType | None,
-    ) -> bool:
+    ) -> Literal[False]:
         """Закрывает браузер при выходе из контекста."""
         self.close()
         return False
@@ -1042,7 +1042,7 @@ class ChromeBrowser:
         _exc_type: type[BaseException] | None,
         _exc_val: BaseException | None,
         _exc_tb: types.TracebackType | None,
-    ) -> bool:
+    ) -> Literal[False]:
         """Закрывает браузер при выходе из контекста."""
         self.close()
         return False
