@@ -134,7 +134,7 @@ class MainPageParser(BaseParser):
 
             # Паттерн ответа "Catalog Item Document" - должен совпадать с _item_response_pattern
             response_patterns = [CATALOG_API_PATTERN]
-            browser = ChromeRemote(chrome_options, response_patterns)
+            browser = ChromeRemote(chrome_options, response_patterns)  # type: ignore[assignment]
 
         # Mypy не может сузить тип после переназначения — используем assert
         assert browser is not None, "browser должен быть создан к этому моменту"

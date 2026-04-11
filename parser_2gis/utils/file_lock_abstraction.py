@@ -144,12 +144,13 @@ class FcntlLockStrategy(BaseLockStrategy):
                     str(self._lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
                 )
                 try:
-                    self._lock_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
+                    lock_handle = os.fdopen(lock_fd, "w", encoding="utf-8")  # type: ignore[assignment]
                     lock_fd = None
 
-                    fcntl.flock(self._lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    self._lock_handle.write(f"{os.getpid()}\n")
-                    self._lock_handle.flush()
+                    fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    lock_handle.write(f"{os.getpid()}\n")
+                    lock_handle.flush()
+                    self._lock_handle = lock_handle
                     self._acquired = True
                     return True
                 finally:
