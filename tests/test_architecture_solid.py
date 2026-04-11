@@ -2318,7 +2318,7 @@ class TestTypeCheckingImports:
 
     def test_parallel_parser_has_type_checking_imports(self) -> None:
         """Тест наличия TYPE_CHECKING импортов в parallel_parser.py."""
-        source = read_source_file("parallel/parallel_parser.py")
+        source = read_source_file("parser_2gis/parallel/parallel_parser.py")
         type_checking_imports = get_type_checking_imports(source)
 
         assert "TYPE_CHECKING" in source, (
@@ -2331,7 +2331,7 @@ class TestTypeCheckingImports:
 
     def test_parallel_parser_local_imports_in_method(self) -> None:
         """Тест локальных импортов в методе parse_single_url."""
-        source = read_source_file("parallel/parallel_parser.py")
+        source = read_source_file("parser_2gis/parallel/parallel_parser.py")
 
         assert "parse_single_url" in source, "Метод parse_single_url должен существовать"
 
@@ -2365,7 +2365,7 @@ class TestGuardClauses:
 
     def test_chrome_remote_get_response_body_guard_clauses(self) -> None:
         """Тест Guard Clauses в методе get_response_body."""
-        source = read_source_file("chrome/remote.py")
+        source = read_source_file("parser_2gis/chrome/remote.py")
 
         has_guard, early_returns = has_guard_clauses(source, "get_response_body")
 
@@ -2378,7 +2378,7 @@ class TestGuardClauses:
 
     def test_chrome_remote_stop_early_return(self) -> None:
         """Тест Early Return в методе stop."""
-        source = read_source_file("chrome/remote.py")
+        source = read_source_file("parser_2gis/chrome/remote.py")
 
         has_stop_tab = "_stop_chrome_tab" in source
         has_stop_browser = "_stop_chrome_browser" in source
@@ -2423,7 +2423,7 @@ class TestProtocolDocumentation:
     )
     def test_protocol_has_docstring_with_sections(self, protocol_name) -> None:
         """Тест наличия docstring с разделами у Protocol."""
-        source = read_source_file("protocols.py")
+        source = read_source_file("parser_2gis/protocols.py")
 
         has_docstring, sections = has_docstring_with_sections(source, protocol_name)
 
@@ -2434,7 +2434,7 @@ class TestProtocolDocumentation:
 
     def test_logger_protocol_documented(self) -> None:
         """Тест документирования LoggerProtocol."""
-        source = read_source_file("protocols.py")
+        source = read_source_file("parser_2gis/protocols.py")
 
         has_docstring, sections = has_docstring_with_sections(source, "LoggerProtocol")
 
