@@ -493,12 +493,9 @@ class FileMergerStrategy:
                 writer.writerows(batch)
                 batch_total += len(batch)
 
-            batch_count = (batch_total // batch_size) + (
-                1 if batch_total % batch_size else 0
-            )
+            batch_count = (batch_total // batch_size) + (1 if batch_total % batch_size else 0)
             self.log(
-                f"Файл {csv_file.name} обработан "
-                f"(строк: {batch_total}, пакетов: {batch_count})",
+                f"Файл {csv_file.name} обработан (строк: {batch_total}, пакетов: {batch_count})",
                 level="debug",
             )
 
