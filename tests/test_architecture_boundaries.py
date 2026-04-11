@@ -251,13 +251,19 @@ class TestNoImportsFromCommon:
     """Тесты на отсутствие импортов из common.py."""
 
     def test_no_imports_from_common(self) -> None:
-        """Проверяет что нет импортов из common.py."""
+        """Проверяет что нет импортов из старого common.py.
+
+        parallel/common/ — это легитимный пакет с общими утилитами, его импорты допустимы.
+        """
         project_root = Path(__file__).parent.parent / "parser_2gis"
 
         violations: list[tuple[str, int, str]] = []
 
         for py_file in project_root.rglob("*.py"):
             if "tests" in py_file.parts or "__pycache__" in py_file.parts:
+                continue
+            # Пропускаем сам пакет parallel/common/
+            if "parallel/common" in str(py_file):
                 continue
 
             try:
@@ -266,7 +272,7 @@ class TestNoImportsFromCommon:
 
                 for node in ast.walk(tree):
                     if isinstance(node, ast.ImportFrom):
-                        if node.module and "common" in node.module:
+                        if node.module and "common" in node.module and "parallel.common" not in node.module:
                             violations.append(
                                 (
                                     str(py_file.relative_to(project_root)),
@@ -276,7 +282,7 @@ class TestNoImportsFromCommon:
                             )
                     elif isinstance(node, ast.Import):
                         for alias in node.names:
-                            if "common" in alias.name:
+                            if "common" in alias.name and "parallel.common" not in alias.name:
                                 violations.append(
                                     (
                                         str(py_file.relative_to(project_root)),
@@ -289,7 +295,7 @@ class TestNoImportsFromCommon:
                 continue
 
         assert len(violations) == 0, (
-            "Обнаружены импорты из common.py:\n"
+            "Обнаружены импорты из старого common.py:\n"
             + "\n".join(f"  {f}:{line}: {i}" for f, line, i in violations)
             + "\n\ncommon.py был удалён. Используйте специализированные модули из utils/."
         )
@@ -374,7 +380,11 @@ class TestModuleBoundaries:
             )
 
     def test_constants_no_other_module_imports(self) -> None:
-        """constants.py не должен импортировать другие модули проекта."""
+        """constants.py может импортировать только из своих подмодулей.
+
+        constants.py — фасад для подпакета parser_2gis.constants.
+        Он реэкспортирует константы из buffer, cache, env_config, parser, security, validation.
+        """
         project_root = Path(__file__).parent.parent / "parser_2gis"
         constants_file = project_root / "constants.py"
 
@@ -384,13 +394,24 @@ class TestModuleBoundaries:
         imports = get_module_imports(constants_file)
 
         parser_2gis_imports = {imp for imp in imports if imp.startswith("parser_2gis")}
-        allowed_imports = {"typing", "os", "typing.Optional"}
+        # Разрешены импорты из подмодулей constants.*, а также typing
+        allowed_imports = {
+            "typing",
+            "os",
+            "typing.Optional",
+            "parser_2gis.constants.buffer",
+            "parser_2gis.constants.cache",
+            "parser_2gis.constants.env_config",
+            "parser_2gis.constants.parser",
+            "parser_2gis.constants.security",
+            "parser_2gis.constants.validation",
+        }
 
         illegal_imports = parser_2gis_imports - allowed_imports
 
         assert len(illegal_imports) == 0, (
-            f"constants.py импортирует другие модули: {illegal_imports}. "
-            "constants.py должен содержать только константы без зависимостей от других модулей."
+            f"constants.py импортирует непредназначенные модули: {illegal_imports}. "
+            "constants.py может импортировать только свои подмодули parser_2gis.constants.*."
         )
 
     def test_logger_does_not_import_business_logic(self) -> None:
