@@ -58,7 +58,7 @@ def _is_relative_to(path: pathlib.Path, other: pathlib.Path) -> bool:
     """
     try:
         # Python 3.9+ - используем встроенный метод
-        return path.is_relative_to(other)  # type: ignore[attr-defined]
+        return path.is_relative_to(other)
     except AttributeError:
         # Python <3.9 - используем os.path.realpath + проверка префикса
         abs_path = os.path.realpath(str(path))

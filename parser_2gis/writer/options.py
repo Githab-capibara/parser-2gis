@@ -18,7 +18,7 @@ from parser_2gis.constants import CSV_COLUMNS_PER_ENTITY
 # а в V1 — `validator` (импорт из pydantic). Блок try/except определяет
 # версию на этапе импорта и выбирает подходящий декоратор.
 try:
-    from pydantic import field_validator  # type: ignore[attr-defined]
+    from pydantic import field_validator
 
     PYDANTIC_V2 = True
 except ImportError:

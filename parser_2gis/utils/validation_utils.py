@@ -194,7 +194,7 @@ def _validate_city(city: Any, field_name: str = "city") -> dict[str, Any]:
 # ОБОСНОВАНИЕ: Уменьшение размера кэша снижает потребление памяти
 # при сохранении приемлемой производительности для большинства сценариев.
 @lru_cache(maxsize=1024)
-def _validate_category_cached(category_tuple: tuple) -> dict[str, Any]:
+def _validate_category_cached(category_tuple: tuple[str, ...]) -> dict[str, Any]:
     """Кэшированная версия валидации категории.
 
     Кэширование:

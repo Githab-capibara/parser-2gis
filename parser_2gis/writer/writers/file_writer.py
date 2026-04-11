@@ -14,7 +14,7 @@ import os
 import types
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any
+from typing import IO, TYPE_CHECKING, Any, Literal
 
 from parser_2gis.constants import HTTP_STATUS_OK
 from parser_2gis.logger import logger
@@ -238,7 +238,7 @@ class FileWriter(WriterProtocol, ABC):
         _exc_type: type[BaseException] | None,
         _exc_val: BaseException | None,
         _exc_tb: types.TracebackType | None,
-    ) -> bool:
+    ) -> Literal[False]:
         """Выходит из контекстного менеджера, закрывая файл.
 
         Args:

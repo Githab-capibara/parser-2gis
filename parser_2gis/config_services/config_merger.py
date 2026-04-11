@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from parser_2gis.logger.logger import Logger
+    from parser_2gis.logger.logger import Logger, _LazyLogger
 
 
 class ConfigMerger:
@@ -120,7 +120,7 @@ class ConfigMerger:
         return fields_set or set()
 
     @staticmethod
-    def _get_logger() -> Logger:
+    def _get_logger() -> Logger | _LazyLogger:
         """Получает логгер для предупреждений.
 
         Returns:

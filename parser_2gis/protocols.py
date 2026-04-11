@@ -149,7 +149,7 @@ class Parser(Protocol):
     def parse(self) -> list[dict[str, Any]]:
         """Выполняет парсинг данных."""
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """Возвращает статистику парсинга."""
 
 

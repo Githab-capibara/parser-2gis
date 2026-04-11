@@ -227,7 +227,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
 
     """
     # _visited теперь локальная переменная, а не параметр функции
-    _visited: set = set()
+    _visited: set[int] = set()
 
     # Проверка максимального размера данных перед обработкой
     # Ограничиваем размер repr() для предотвращения переполнения памяти
@@ -267,7 +267,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
         # Используем явный стек для итеративной обработки вместо рекурсии
         # Формат: (значение, ключ, родитель, ключ_в_родителе, глубина)
         # Добавлена глубина для контроля вложенности
-        stack: list[tuple] = [(value, key, None, None, 0)]
+        stack: list[tuple[Any, ...]] = [(value, key, None, None, 0)]
 
         # Словарь для хранения результатов обработки
         results: dict[int, Any] = {}

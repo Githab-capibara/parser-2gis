@@ -39,6 +39,8 @@ class MemoryManager(MemoryManagerProtocol):
 
     """
 
+    _instance: MemoryManager | None = None
+
     def __init__(
         self,
         memory_threshold_mb: int | None = None,

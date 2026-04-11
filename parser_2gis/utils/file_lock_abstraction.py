@@ -19,7 +19,7 @@ import os
 import time
 from contextlib import suppress
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 from parser_2gis.constants import MAX_LOCK_FILE_AGE, MERGE_LOCK_TIMEOUT
 
@@ -115,7 +115,7 @@ class FcntlLockStrategy(BaseLockStrategy):
 
         """
         super().__init__(lock_path, timeout, max_attempts)
-        self._lock_handle: Any = None
+        self._lock_handle: TextIO | None = None
 
     def acquire(self) -> bool:
         """Получает блокировку через fcntl.

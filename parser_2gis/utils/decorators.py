@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from functools import wraps
 
 # ИСПРАВЛЕНИЕ #20: Используем ParamSpec и TypeVar для точной типизации декоратора
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, Coroutine, ParamSpec, TypeVar
 
 # ISSUE-041: Разрыв цикла imports — константы polling определены напрямую
 # чтобы utils.decorators не зависел от constants (через parser.options -> utils)
@@ -164,7 +164,7 @@ def _update_poll_interval(
 
     """
     if use_exponential_backoff and consecutive_failures > 0:
-        return min(base_poll_interval * (2 ** (consecutive_failures - 1)), max_poll_interval)
+        return min(float(base_poll_interval * (2 ** (consecutive_failures - 1))), max_poll_interval)
     return base_poll_interval
 
 
@@ -382,7 +382,7 @@ def wait_until_finished(
 
                 try:
                     result = func(*args, **kwargs)
-                    if effective_config.finished(result):
+                    if effective_config.finished is not None and effective_config.finished(result):
                         return result
                     consecutive_failures = 0  # Сброс при успехе
                 except Exception as exc:
@@ -431,7 +431,7 @@ def async_wait_until_finished(
     use_exponential_backoff: bool = True,
     max_poll_interval: float = MAX_POLL_INTERVAL,
 ) -> Callable[
-    [Callable[P, asyncio.Coroutine[Any, Any, R]]], Callable[P, asyncio.Coroutine[Any, Any, R]]
+    [Callable[P, Coroutine[Any, Any, R]]], Callable[P, Coroutine[Any, Any, R]]
 ]:
     """Async версия декоратора wait_until_finished для asyncio.
 

@@ -116,7 +116,7 @@ def mmap_file_context(
 
     """
     underlying_fp: object | None = None
-    mmapped_file: mmap.mmap | None = None  # type: ignore[mmap.mmap]
+    mmapped_file: mmap.mmap | None = None
     text_file: io.TextIOWrapper | None = None
     is_mmap_mode = False
     fallback_file: object | None = None
@@ -134,9 +134,9 @@ def mmap_file_context(
             # Открываем файл в бинарном режиме
             underlying_fp = open(file_path, "rb")
             # Создаём mmap объект
-            mmapped_file = mmap.mmap(underlying_fp.fileno(), 0, access=mmap.ACCESS_READ)  # type: ignore[mmap.mmap]
+            mmapped_file = mmap.mmap(underlying_fp.fileno(), 0, access=mmap.ACCESS_READ)
             # Оборачиваем в TextIOWrapper для текстового чтения
-            text_file = io.TextIOWrapper(mmapped_file, encoding=encoding, errors="replace")  # type: ignore[arg-type]
+            text_file = io.TextIOWrapper(mmapped_file, encoding=encoding, errors="replace")
             is_mmap_mode = True
             yield text_file, True, underlying_fp
         else:
@@ -171,7 +171,7 @@ def mmap_file_context(
 
 def _cleanup_mmap_resources(
     underlying_fp: object | None = None,
-    mmapped_file: mmap.mmap | None = None,  # type: ignore[mmap.mmap]
+    mmapped_file: mmap.mmap | None = None,
     text_file: io.TextIOWrapper | None = None,
 ) -> None:
     """Закрывает mmap ресурсы.
@@ -255,7 +255,7 @@ def _calculate_optimal_buffer_size(
                     "Некорректное значение PARSER_CSV_BUFFER_SIZE=%d (<=0), используется дефолтное",
                     custom_buffer,
                 )
-                return DEFAULT_BUFFER_SIZE
+                return int(DEFAULT_BUFFER_SIZE)
             if custom_buffer > MAX_BUFFER_SIZE * 10:
                 logger.warning(
                     "Некорректное значение PARSER_CSV_BUFFER_SIZE=%d (слишком большой), "
@@ -263,9 +263,9 @@ def _calculate_optimal_buffer_size(
                     custom_buffer,
                     MAX_BUFFER_SIZE,
                 )
-                return MAX_BUFFER_SIZE
+                return int(MAX_BUFFER_SIZE)
             logger.debug("Используется пользовательский размер буфера: %d байт", custom_buffer)
-            return custom_buffer
+            return int(custom_buffer)
         except ValueError:
             logger.warning("Некорректное значение PARSER_CSV_BUFFER_SIZE: %s", env_buffer_size)
 
@@ -279,7 +279,7 @@ def _calculate_optimal_buffer_size(
 
     # Если размер файла неизвестен, используем дефолтное значение
     if file_size_bytes is None:
-        return DEFAULT_BUFFER_SIZE
+        return int(DEFAULT_BUFFER_SIZE)
 
     # Рассчитываем оптимальный размер буфера
     threshold_bytes = LARGE_FILE_THRESHOLD_MB * 1024 * 1024  # 100 MB
@@ -292,14 +292,14 @@ def _calculate_optimal_buffer_size(
             file_size_bytes / (1024 * 1024),
             optimal_size,
         )
-        return optimal_size
+        return int(optimal_size)
     # Для обычных файлов используем стандартный буфер
     logger.debug(
         "Файл стандартного размера (%.2f MB), используется стандартный буфер: %d байт",
         file_size_bytes / (1024 * 1024),
         DEFAULT_BUFFER_SIZE,
     )
-    return DEFAULT_BUFFER_SIZE
+    return int(DEFAULT_BUFFER_SIZE)
 
 
 def _fallback_copy_and_remove(src: str, dst: str) -> bool:

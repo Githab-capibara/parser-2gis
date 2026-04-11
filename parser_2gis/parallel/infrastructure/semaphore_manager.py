@@ -30,6 +30,8 @@ class SemaphoreManager:
 
     """
 
+    _instance: SemaphoreManager | None = None
+
     def __init__(self, max_workers: int = 3, extra_slots: int = 20) -> None:
         """Инициализирует менеджер семафоров.
 

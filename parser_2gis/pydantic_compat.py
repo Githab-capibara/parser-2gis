@@ -50,7 +50,7 @@ def get_model_dump(model: pydantic.BaseModel, **kwargs: Any) -> PydanticModelDic
         {'name': 'Alice', 'age': 30}
 
     """
-    return model.model_dump(**kwargs)  # type: ignore[attr-defined]
+    return model.model_dump(**kwargs)
 
 
 def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
@@ -74,7 +74,7 @@ def get_model_fields_set(model: pydantic.BaseModel) -> set[str]:
         {'name', 'age'}
 
     """
-    return model.model_fields_set  # type: ignore[attr-defined]
+    return model.model_fields_set
 
 
 def model_validate_json[M: pydantic.BaseModel](json_str: str, cls: type[M]) -> M:

@@ -110,7 +110,7 @@ def retry_with_backoff(
         ...     pass
 
     """
-    log_func = logger
+    log_func: Any = logger
     if logger_name:
         import logging
 
@@ -344,7 +344,7 @@ def retry_with_tenacity(
         @retry(
             stop=stop_after_attempt(max_attempts),
             wait=wait_exponential(multiplier=delay, max=max_delay),
-            retry=retry_if_exception_type(exceptions),  # type: ignore[arg-type]
+            retry=retry_if_exception_type(exceptions),
             reraise=True,
         )
         @functools.wraps(func)

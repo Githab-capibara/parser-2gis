@@ -67,11 +67,11 @@ class _HTTPCache:
 
     def __init__(self, maxsize: int = HTTP_CACHE_MAXSIZE) -> None:
         # H017: Используем OrderedDict для LRU eviction
-        self._cache: OrderedDict[tuple, _HTTPCacheEntry] = OrderedDict()
+        self._cache: OrderedDict[tuple[str, str, bool], _HTTPCacheEntry] = OrderedDict()
         self._lock = threading.RLock()  # RLock для поддержки реентрантных вызовов
         self._maxsize = maxsize
 
-    def get(self, key: tuple) -> requests.Response | None:
+    def get(self, key: tuple[str, str, bool]) -> requests.Response | None:
         """Получает закэшированный ответ.
 
         H017: Обновляет порядок доступа для LRU.
@@ -94,7 +94,7 @@ class _HTTPCache:
             # D012: При промахе кэша применяем rate limiting
             return None
 
-    def set(self, key: tuple, response: requests.Response) -> None:
+    def set(self, key: tuple[str, str, bool], response: requests.Response) -> None:
         """Сохраняет ответ в кэш.
 
         H017: LRU eviction при превышении размера.
@@ -157,7 +157,7 @@ def _get_http_cache() -> _HTTPCache:
     return _get_http_cache._instance  # type: ignore[attr-defined]
 
 
-def _get_cache_key(method: str, url: str, *, verify_ssl: bool) -> tuple:
+def _get_cache_key(method: str, url: str, *, verify_ssl: bool) -> tuple[str, str, bool]:
     """Создаёт ключ кэша для HTTP запроса.
 
     Args:

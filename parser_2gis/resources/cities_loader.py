@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -134,7 +135,7 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         raise OSError(f"Не удалось прочитать файл городов: {e}") from e
 
 
-def load_cities_json_lazy(cities_path: Path) -> None:
+def load_cities_json_lazy(cities_path: Path) -> Iterator[dict[str, Any]]:
     """Генератор для lazy loading городов из JSON файла.
 
     C019: Lazy loading через генератор для снижения потребления памяти.

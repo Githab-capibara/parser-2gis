@@ -305,7 +305,7 @@ def log_parser_start(
     urls_count: int,
     output_path: str,
     output_format: str,
-    config_summary: dict | None = None,
+    config_summary: dict[str, Any] | None = None,
 ) -> None:
     """Логирует запуск парсера с подробной информацией.
 
@@ -332,7 +332,7 @@ def log_parser_start(
 
 
 def log_parser_finish(
-    *, success: bool = True, stats: dict | None = None, duration: str | None = None
+    *, success: bool = True, stats: dict[str, Any] | None = None, duration: str | None = None
 ) -> None:
     """Логирует завершение парсера.
 

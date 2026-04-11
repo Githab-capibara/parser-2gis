@@ -79,7 +79,7 @@ def clear_category_url_cache() -> None:
 # Размер кэша уменьшен до 512 для снижения потребления памяти (lru_cache хранит сильные ссылки,
 # что при большом maxsize может приводить к утечке памяти при длительной работе парсера)
 @lru_cache(maxsize=512)
-def _generate_category_url_cached(city_key: tuple, category_key: tuple) -> str:
+def _generate_category_url_cached(city_key: tuple[str, ...], category_key: tuple[str, ...]) -> str:
     """Кэшированная версия генерации URL.
 
     Args:

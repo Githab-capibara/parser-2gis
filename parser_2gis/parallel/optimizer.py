@@ -425,7 +425,7 @@ class ParallelOptimizer:
                         with self._lock:
                             futures[future] = task
                             task_id = next(_task_counter)
-                            task._task_id = task_id
+                            task._task_id = task_id  # type: ignore[attr-defined]
                             self._active_tasks[task_id] = task
                         logger.debug("Запущена задача: %s - %s", task.city_name, task.category_name)
 

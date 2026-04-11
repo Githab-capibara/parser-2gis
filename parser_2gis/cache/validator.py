@@ -206,7 +206,7 @@ class CacheDataValidator:
             return False
         return self._check_sql_injection_patterns(data)
 
-    def _check_dict(self, data: dict, depth: int) -> bool:
+    def _check_dict(self, data: dict[str, Any], depth: int) -> bool:
         """Валидирует данные типа dict.
 
         Args:
@@ -250,7 +250,7 @@ class CacheDataValidator:
                 return False
         return True
 
-    def _check_list(self, data: list, depth: int) -> bool:
+    def _check_list(self, data: list[dict[str, Any]], depth: int) -> bool:
         """Валидирует данные типа list.
 
         Args:

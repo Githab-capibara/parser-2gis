@@ -10,7 +10,7 @@ import fcntl
 import os
 import time
 from pathlib import Path
-from typing import TextIO
+from typing import Callable, Any, TextIO
 
 from parser_2gis.constants import MAX_LOCK_FILE_AGE, MERGE_LOCK_TIMEOUT
 
@@ -26,7 +26,7 @@ class ParallelLockManager:
 
     MAX_LOCK_ATTEMPTS = 50
 
-    def __init__(self, log_callback: callable | None = None) -> None:
+    def __init__(self, log_callback: Callable[..., Any] | None = None) -> None:
         """Инициализирует менеджер блокировок.
 
         Args:

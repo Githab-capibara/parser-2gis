@@ -106,7 +106,7 @@ def _check_js_length(code: str, max_length: int) -> tuple[bool, str | None]:
 
 # ISSUE-003-#14: Скомпилированные паттерны для проверки опасных кодировок
 # Вынесены на уровень модуля для компиляции один раз
-_ENCODING_CHECK_PATTERNS: list[tuple[re.Pattern, str]] = [
+_ENCODING_CHECK_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (
         re.compile(r"\\u00[0-9a-fA-F]{2}", re.IGNORECASE),
         "Обнаружена попытка обхода через Unicode кодировку",

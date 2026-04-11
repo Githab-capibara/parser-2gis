@@ -42,7 +42,7 @@ class RequestInterceptor:
         self._requests: dict[str, Request] = {}
         self._requests_lock = threading.RLock()
         self._response_patterns: list[str] = []
-        self._response_queues: dict[str, queue.Queue] = {}
+        self._response_queues: dict[str, queue.Queue[Any]] = {}
 
     def register_response_pattern(self, pattern: str) -> None:
         """Регистрирует паттерн для ожидания ответов.
@@ -102,7 +102,7 @@ class RequestInterceptor:
                 return None
 
             try:
-                return self._response_queues[pattern].get(block=block)
+                return self._response_queues[pattern].get(block=block)  # type: ignore[no-any-return]
             except queue.Empty:
                 return None
 
