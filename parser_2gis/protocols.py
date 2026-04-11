@@ -138,7 +138,7 @@ class Writer(Protocol):
     def __enter__(self) -> Writer:
         """Контекстный менеджер для входа."""
 
-    def __exit__(self, _exc_type: Any, _exc_val: Any, _exc_tb: Any) -> None:
+    def __exit__(self, _exc_type: Any, _exc_val: Any, _exc_tb: Any) -> bool | None:
         """Контекстный менеджер для выхода."""
 
 
@@ -201,6 +201,92 @@ class BrowserService(
 
     def close(self) -> None:
         """Закрыть браузер и освободить ресурсы."""
+
+    def add_start_script(self, script: str) -> None:
+        """Добавить стартовый скрипт, выполняемый при загрузке страницы.
+
+        Args:
+            script: JavaScript код для внедрения.
+
+        """
+
+    def execute_script(self, script: str) -> Any:
+        """Выполнить JavaScript на странице.
+
+        Args:
+            script: JavaScript код для выполнения.
+
+        Returns:
+            Результат выполнения скрипта.
+
+        """
+
+    def perform_click(self, selector: str) -> None:
+        """Выполнить клик по элементу.
+
+        Args:
+            selector: CSS селектор элемента.
+
+        """
+
+    def get_responses(self, pattern: str | None = None) -> list[Any]:
+        """Получить список HTTP ответов.
+
+        Args:
+            pattern: Опциональный паттерн для фильтрации ответов.
+
+        Returns:
+            Список объектов ответов.
+
+        """
+
+    def start(self) -> None:
+        """Запустить браузер."""
+
+    def add_blocked_requests(self, patterns: list[str]) -> None:
+        """Заблокировать запросы по паттернам.
+
+        Args:
+            patterns: Список паттернов URL для блокировки.
+
+        """
+
+    def stop(self) -> None:
+        """Остановить браузер."""
+
+    def wait(self, timeout: float = ...) -> None:
+        """Ожидать указанное время.
+
+        Args:
+            timeout: Время ожидания в секундах.
+
+        """
+
+    def wait_response(self, pattern: str, timeout: float = ...) -> Any:
+        """Ожидать HTTP ответ, соответствующий паттерну.
+
+        Args:
+            pattern: Паттерн для matching ответа.
+            timeout: Максимальное время ожидания в секундах.
+
+        Returns:
+            Объект ответа или None.
+
+        """
+
+    def get_response_body(self, response: Any) -> str | None:
+        """Получить тело HTTP ответа.
+
+        Args:
+            response: Объект ответа.
+
+        Returns:
+            Тело ответа в виде строки или None.
+
+        """
+
+    def clear_requests(self) -> None:
+        """Очистить кэш запросов."""
 
 
 # =============================================================================

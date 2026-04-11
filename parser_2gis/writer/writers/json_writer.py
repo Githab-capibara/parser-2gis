@@ -43,7 +43,7 @@ class JSONWriter(FileWriter):
         self._file.write("[\n")
         return self
 
-    def __exit__(self, *exc_info: Any) -> None:
+    def __exit__(self, *exc_info: Any) -> None:  # type: ignore[override]
         """Выходит из контекстного менеджера, закрывая JSON массив.
 
         Записывает закрывающую скобку массива ']' и закрывает файл.
@@ -121,7 +121,7 @@ class JSONWriter(FileWriter):
         self._first_item = False
         self._wrote_count += 1
 
-    def write(self, records: dict[str, Any]) -> None:
+    def write(self, records: dict[str, Any]) -> None:  # type: ignore[override]
         """Записывает JSON-документ Catalog Item API в JSON файл.
 
         Args:

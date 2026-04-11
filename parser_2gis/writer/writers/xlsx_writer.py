@@ -41,7 +41,7 @@ class XLSXWriter(FileWriter):
         записывая данные напрямую на диск вместо хранения в памяти.
     """
 
-    def write(self, records: dict[str, Any]) -> None:
+    def write(self, records: dict[str, Any]) -> None:  # type: ignore[override]
         """Записывает данные в XLSX формат.
 
         #154: Метод является заглушкой — XLSXWriter работает как пост-процесс конвертер.
@@ -58,7 +58,7 @@ class XLSXWriter(FileWriter):
         # #154: Заглушка вместо NotImplementedError — данные записываются через CSV,
         # а конвертация происходит в __exit__()
 
-    def __exit__(self, *exc_info: Any) -> None:
+    def __exit__(self, *exc_info: Any) -> None:  # type: ignore[override]
         """Закрывает файл и выполняет конвертацию CSV в XLSX.
 
         ISSUE-173: Добавлено описание constant_memory=True.

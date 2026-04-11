@@ -290,7 +290,7 @@ class CSVWriter(FileWriter):
         self._wrote_count = 0
         return self
 
-    def __exit__(self, *exc_info: Any) -> None:
+    def __exit__(self, *exc_info: Any) -> None:  # type: ignore[override]
         """Выходит из контекстного менеджера, выполняя постобработку и закрытие.
 
         Выполняет:
@@ -354,7 +354,7 @@ class CSVWriter(FileWriter):
         except (OSError, RuntimeError) as close_error:
             logger.error("Ошибка при закрытии файла: %s", close_error)
 
-    def write(self, records: dict[str, Any]) -> None:
+    def write(self, records: dict[str, Any]) -> None:  # type: ignore[override]
         """Записывает JSON-документ Catalog Item API в CSV-таблицу.
 
         Args:
@@ -395,7 +395,7 @@ class CSVWriter(FileWriter):
 
         row = self._extract_raw(records)
         if row:
-            self._writerow(row)
+            self._writerow(row)  # type: ignore[arg-type]
             self._wrote_count += 1
 
     def write_batch(self, catalog_docs: list[Any]) -> int:
@@ -430,7 +430,7 @@ class CSVWriter(FileWriter):
         # Пакетная запись всех строк
         for row in batch_rows:
             try:
-                self._writerow(row)
+                self._writerow(row)  # type: ignore[arg-type]
                 written_count += 1
             except (OSError, csv.Error, UnicodeError) as write_error:
                 logger.error("Ошибка при пакетной записи строки: %s", write_error)
@@ -501,7 +501,7 @@ class CSVWriter(FileWriter):
         # Наименование и описание объекта
         if catalog_item.name_ex:
             data["name"] = catalog_item.name_ex.primary
-            data["description"] = catalog_item.name_ex.extension
+            data["description"] = catalog_item.name_ex.extension  # type: ignore[typeddict-item]
         elif catalog_item.name:
             data["name"] = catalog_item.name
         elif catalog_item.type in self._type_names:
@@ -511,12 +511,12 @@ class CSVWriter(FileWriter):
         data["type"] = catalog_item.type
 
         # Адрес объекта
-        data["address"] = catalog_item.address_name
+        data["address"] = catalog_item.address_name  # type: ignore[typeddict-item]
 
         # Рейтинг и отзывы
         if catalog_item.reviews:
-            data["general_rating"] = catalog_item.reviews.general_rating
-            data["general_review_count"] = catalog_item.reviews.general_review_count
+            data["general_rating"] = catalog_item.reviews.general_rating  # type: ignore[typeddict-item]
+            data["general_review_count"] = catalog_item.reviews.general_review_count  # type: ignore[typeddict-item]
 
         # Географические координаты объекта
         if catalog_item.point:
@@ -524,11 +524,11 @@ class CSVWriter(FileWriter):
             data["point_lon"] = catalog_item.point.lon  # Долгота объекта
 
         # Дополнительный комментарий к адресу
-        data["address_comment"] = catalog_item.address_comment
+        data["address_comment"] = catalog_item.address_comment  # type: ignore[typeddict-item]
 
         # Почтовый индекс
         if catalog_item.address:
-            data["postcode"] = catalog_item.address.postcode
+            data["postcode"] = catalog_item.address.postcode  # type: ignore[typeddict-item]
 
         # Часовой пояс объекта
         if catalog_item.timezone is not None:
@@ -562,22 +562,22 @@ class CSVWriter(FileWriter):
                 "youtube",
                 "skype",
             ):
-                _append_contact(data, contact_group, t, ["url"], None, add_comments=add_comments)
+                _append_contact(data, contact_group, t, ["url"], None, add_comments=add_comments)  # type: ignore[arg-type]
 
             # Удаляем параметры из URL WhatsApp
             for field, value in data.items():
                 if field.startswith("whatsapp") and value:
-                    data[field] = value.split("?")[0]
+                    data[field] = value.split("?")[0]  # type: ignore[literal-required, attr-defined]
 
             # Текстовые значения (email, skype и т.д.)
             for t in ("email", "skype"):
-                _append_contact(data, contact_group, t, ["value"], None, add_comments=add_comments)
+                _append_contact(data, contact_group, t, ["value"], None, add_comments=add_comments)  # type: ignore[arg-type]
 
             # Телефоны (поле `value` иногда содержит нерелевантные данные,
             # поэтому предпочитаем парсить поле `text`.
             # Если в контакте нет `text` - используем атрибут `value`)
             _append_contact(
-                data,
+                data,  # type: ignore[arg-type]
                 contact_group,
                 "phone",
                 ["text", "value"],
@@ -587,7 +587,7 @@ class CSVWriter(FileWriter):
 
         # Режим работы объекта
         if catalog_item.schedule:
-            data["schedule"] = catalog_item.schedule.to_str(
+            data["schedule"] = catalog_item.schedule.to_str(  # type: ignore[misc]
                 self._options.csv.join_char, self._options.csv.add_comments
             )
 
@@ -598,6 +598,6 @@ class CSVWriter(FileWriter):
         # D014: Санитизация всех строковых значений перед возвратом
         for key, value in data.items():
             if isinstance(value, str):
-                data[key] = self._sanitize_formatter.format(value)
+                data[key] = self._sanitize_formatter.format(value)  # type: ignore[literal-required]
 
         return data
