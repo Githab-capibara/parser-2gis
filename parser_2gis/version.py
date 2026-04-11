@@ -21,7 +21,7 @@ __version__: str = VERSION
 """Алиас версии для совместимости с PEP 396 / setuptools-scm."""
 CONFIG_VERSION: str = "0.1"
 
-__all__ = ["CONFIG_VERSION", "VERSION", "version", "__version__"]
+__all__ = ["CONFIG_VERSION", "VERSION", "__version__", "version"]
 
 
 @overload
