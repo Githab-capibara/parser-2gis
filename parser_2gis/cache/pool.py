@@ -42,28 +42,28 @@ _POOL_MB_PER_CONNECTION: float = 2.0  # 2MB на одно соединение
 def _get_max_pool_size_env() -> int:
     """Получает MAX_POOL_SIZE из ENV (lazy инициализация)."""
     if not hasattr(_get_max_pool_size_env, "_value"):
-        _get_max_pool_size_env._value = validate_env_int(
+        _get_max_pool_size_env._value = validate_env_int(  # type: ignore[attr-defined]
             "PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50
         )
-    return _get_max_pool_size_env._value  # type: ignore[attr-defined]
+    return _get_max_pool_size_env._value  # type: ignore[return-value]
 
 
 def _get_min_pool_size_env() -> int:
     """Получает MIN_POOL_SIZE из ENV (lazy инициализация)."""
     if not hasattr(_get_min_pool_size_env, "_value"):
-        _get_min_pool_size_env._value = validate_env_int(
+        _get_min_pool_size_env._value = validate_env_int(  # type: ignore[attr-defined]
             "PARSER_MIN_POOL_SIZE", default=5, min_value=1, max_value=10
         )
-    return _get_min_pool_size_env._value  # type: ignore[attr-defined]
+    return _get_min_pool_size_env._value  # type: ignore[return-value]
 
 
 def _get_connection_max_age_env() -> int:
     """Получает CONNECTION_MAX_AGE из ENV (lazy инициализация)."""
     if not hasattr(_get_connection_max_age_env, "_value"):
-        _get_connection_max_age_env._value = validate_env_int(
+        _get_connection_max_age_env._value = validate_env_int(  # type: ignore[attr-defined]
             "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
         )
-    return _get_connection_max_age_env._value  # type: ignore[attr-defined]
+    return _get_connection_max_age_env._value  # type: ignore[return-value]
 
 
 # Попытка импортировать psutil для мониторинга памяти

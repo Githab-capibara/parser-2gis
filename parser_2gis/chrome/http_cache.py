@@ -154,7 +154,7 @@ def _get_http_cache() -> _HTTPCache:
         with _http_cache_lock:
             if not hasattr(_get_http_cache, "_instance"):
                 _get_http_cache._instance = _HTTPCache()
-    return _get_http_cache._instance  # type: ignore[attr-defined]
+    return _get_http_cache._instance  # type: ignore[return-value]
 
 
 def _get_cache_key(method: str, url: str, *, verify_ssl: bool) -> tuple[str, str, bool]:
