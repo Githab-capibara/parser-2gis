@@ -103,14 +103,10 @@ class TestLineLengthInParallelModule:
             + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
         )
 
-    def test_file_merger_no_long_lines(self) -> None:
-        """
-        Тест 2.2: Проверка длины строк в parallel.file_merger.
 
-        Проверяет что нет строк длиннее 120 символов.
-        """
-        # Модуль file_merger был перемещён или удалён - пропускаем тест
-        pytest.skip("Модуль file_merger отсутствует в текущей версии")
+# ============================================================================
+# TESTS FOR VALIDATION MODULE
+# ============================================================================
 
 
 class TestLineLengthInValidationModule:

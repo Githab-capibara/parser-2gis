@@ -84,6 +84,7 @@ class TestStopParsingFix:
         """
         parsing_screen._parsing_started = True
         parsing_screen._stopping = False
+        initial_running_value = mock_app.running
 
         mock_log = Mock()
         parsing_screen.query_one = Mock(return_value=mock_log)
@@ -91,7 +92,9 @@ class TestStopParsingFix:
 
         parsing_screen.action_stop_parsing()
 
-        mock_app.running = "SHOULD_NOT_CHANGE"
+        # Проверяем что action_stop_parsing НЕ меняет running напрямую
+        # (это должен делать app.stop_parsing(), а не экран)
+        assert mock_app.stop_parsing.called, "Должен вызываться app.stop_parsing()"
 
     def test_on_mount_resets_flags(self, parsing_screen, mock_app) -> None:
         """Тест проверяет что при входе на экран парсинга флаги сбрасываются.

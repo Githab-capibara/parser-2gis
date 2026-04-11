@@ -29,11 +29,6 @@ from parser_2gis.cache.manager import CacheManager
 class TestDoubleHashing:
     """Тесты для устранения двойного хеширования в cache manager."""
 
-    def test_data_json_hash_caching(self) -> None:
-        """Тест кэширования хеша JSON данных."""
-        # compute_data_json_hash больше не использует lru_cache
-        pytest.skip("compute_data_json_hash не использует lru_cache в текущей версии")
-
     def test_crc32_caching(self) -> None:
         """Тест кэширования CRC32 checksum."""
         # Сбрасываем кэш перед тестом
@@ -212,15 +207,6 @@ class TestLRUCache:
         """Тест размера кэша CRC32."""
         assert compute_crc32_cached.cache_info().maxsize == 1024
 
-    def test_data_hash_cache_size(self) -> None:
-        """Тест размера кэша хеша данных."""
-        # compute_data_json_hash больше не использует lru_cache
-        pytest.skip("compute_data_json_hash не использует lru_cache в текущей версии")
-
-    def test_lru_cache_eviction(self) -> None:
-        """Тест вытеснения LRU кэша."""
-        pytest.skip("compute_data_json_hash не использует lru_cache в текущей версии")
-
     def test_lru_cache_performance(self) -> None:
         """Тест производительности LRU кэша."""
         compute_crc32_cached.cache_clear()
@@ -237,10 +223,6 @@ class TestLRUCache:
         second_time = time.perf_counter() - start
 
         assert second_time < first_time
-
-    def test_lru_cache_hit_rate(self) -> None:
-        """Тест процента попаданий LRU кэша."""
-        pytest.skip("compute_data_json_hash не использует lru_cache в текущей версии")
 
 
 # =============================================================================

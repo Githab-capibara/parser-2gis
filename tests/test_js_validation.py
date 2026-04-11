@@ -137,9 +137,9 @@ class TestStringConversionFunctionsCheck:
         is_valid, _error = _check_string_conversion_functions(js_code)
         assert is_valid is True
 
-    def test_fromcharcode_detected(self) -> None:
-        """Тест обнаружения fromCharCode."""
-        js_code = "var str = String.fromCharCode(65, 66, 67);"
+    def test_charcode_in_nested_function(self) -> None:
+        """Тест обнаружения fromCharCode во вложенной функции."""
+        js_code = "function decode() { return String.fromCharCode(65, 66, 67); }"
         is_valid, error = _check_string_conversion_functions(js_code)
         assert is_valid is False
         assert error is not None
