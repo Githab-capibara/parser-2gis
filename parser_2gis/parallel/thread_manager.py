@@ -138,7 +138,9 @@ class ThreadManager:
                     raise
                 except (OSError, RuntimeError, ValueError) as e:
                     failed_count += 1
-                    logger.exception("Исключение при парсинге %s - %s: %s", city_name, category_name, e)
+                    logger.exception(
+                        "Исключение при парсинге %s - %s: %s", city_name, category_name, e
+                    )
 
         # Очистка executor в finally-стиле — гарантированно при любом выходе
         self._executor = None

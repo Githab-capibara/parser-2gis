@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime
+from typing import ClassVar
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -17,7 +18,10 @@ class ParsingScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS = [Binding("escape", "stop_parsing", "Стоп"), Binding("p", "toggle_pause", "Пауза")]
+    BINDINGS: ClassVar[list[Binding]] = [
+        Binding("escape", "stop_parsing", "Стоп"),
+        Binding("p", "toggle_pause", "Пауза"),
+    ]
 
     CSS = """
     /* Центрирование экрана парсинга */
@@ -306,7 +310,7 @@ class ParsingScreen(Screen):
             f"Категория: {self._current_category or '-'}\n"
             f"Успешно: [green]{self._success_count}[/]\n"
             f"Ошибок: [red]{self._error_count}[/]\n"
-            f"Время: {elapsed}",
+            f"Время: {elapsed}"
         )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

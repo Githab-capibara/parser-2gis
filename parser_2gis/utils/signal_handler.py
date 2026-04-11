@@ -9,7 +9,10 @@
     >>> from parser_2gis.utils.signal_handler import SignalHandler
     >>> import threading
     >>> cancel_event = threading.Event()
-    >>> handler = SignalHandler(cleanup_callback=lambda: print("Cleanup"), cancel_event=cancel_event)
+    >>> handler = SignalHandler(
+    ...     cleanup_callback=lambda: print("Cleanup"),
+    ...     cancel_event=cancel_event,
+    ... )
     >>> handler.register()
 """
 

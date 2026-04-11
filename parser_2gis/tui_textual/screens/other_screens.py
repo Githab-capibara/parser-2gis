@@ -1,5 +1,7 @@
 """Экраны просмотра кэша и информации о программе на Textual."""
 
+from typing import ClassVar
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, ScrollableContainer, Vertical
@@ -14,7 +16,10 @@ class CacheViewerScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS = [Binding("escape", "go_back", "Назад"), Binding("c", "clear_cache", "Очистить кэш")]
+    BINDINGS: ClassVar[list[Binding]] = [
+        Binding("escape", "go_back", "Назад"),
+        Binding("c", "clear_cache", "Очистить кэш"),
+    ]
 
     CSS = """
     /* Центрирование экрана просмотра кэша */
@@ -186,7 +191,7 @@ class AboutScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS = [Binding("escape", "go_back", "Назад")]
+    BINDINGS: ClassVar[list[Binding]] = [Binding("escape", "go_back", "Назад")]
 
     CSS = """
     /* Центрирование экрана информации */

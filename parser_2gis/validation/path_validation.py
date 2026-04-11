@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import tempfile
 from pathlib import Path
+from typing import ClassVar
 
 from parser_2gis.constants import MAX_PATH_LENGTH
 
@@ -64,13 +65,26 @@ class PathSafetyValidator:
     """
 
     # Запрещённые символы в путях для предотвращения path traversal атак
-    _FORBIDDEN_CHARS: list[str] = ["..", "~", "$", "`", "|", ";", "&", ">", "<", "\\", "\n", "\r"]
+    _FORBIDDEN_CHARS: ClassVar[list[str]] = [
+        "..",
+        "~",
+        "$",
+        "`",
+        "|",
+        ";",
+        "&",
+        ">",
+        "<",
+        "\\",
+        "\n",
+        "\r",
+    ]
 
     # Максимальная длина пути для предотвращения переполнения буфера
     _MAX_PATH_LENGTH: int = MAX_PATH_LENGTH
 
     # Разрешённые базовые директории для записи
-    _ALLOWED_BASE_DIRS: list[Path] = [
+    _ALLOWED_BASE_DIRS: ClassVar[list[Path]] = [
         Path.cwd(),
         Path.home() / "parser-2gis",
         Path(tempfile.gettempdir()),
@@ -114,7 +128,7 @@ class PathSafetyValidator:
                 )
                 raise PathTraversalError(
                     f"Путь содержит запрещённый символ: {forbidden_char!r}. "
-                    "Path traversal атака обнаружена.",
+                    "Path traversal атака обнаружена."
                 )
 
         # Разрешаем путь через realpath для предотвращения symlink атак
@@ -148,7 +162,7 @@ class PathSafetyValidator:
         # Проверка длины пути
         if len(path) > self._MAX_PATH_LENGTH:
             raise ValueError(
-                f"{path_name} превышает максимальную длину ({len(path)} > {self._MAX_PATH_LENGTH})",
+                f"{path_name} превышает максимальную длину ({len(path)} > {self._MAX_PATH_LENGTH})"
             )
 
         # Разрешаем путь через realpath для предотвращения symlink атак
@@ -170,7 +184,7 @@ class PathSafetyValidator:
 
             raise ValueError(
                 f"{path_name} должен находиться в одной из разрешённых директорий: "
-                f"{[str(d) for d in self._allowed_base_dirs]}",
+                f"{[str(d) for d in self._allowed_base_dirs]}"
             )
 
     def validate_multiple(self, paths: dict[str, str]) -> None:

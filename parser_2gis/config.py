@@ -60,7 +60,7 @@ class ConfigServiceProtocol(Protocol):
 
     @staticmethod
     def load_config(
-        config_cls: type[BaseModel], config_path: pathlib.Path | None = ..., auto_create: bool = ...,
+        config_cls: type[BaseModel], config_path: pathlib.Path | None = ..., auto_create: bool = ...
     ) -> BaseModel:
         """Загружает конфигурацию из файла."""
         ...
@@ -102,28 +102,28 @@ class Configuration(BaseModel):
     # Фабрики вызываются только при создании экземпляра, не при импорте
     log: LogOptions = Field(
         default_factory=lambda: __import__(
-            "parser_2gis.logger", fromlist=["LogOptions"],
-        ).LogOptions(),
+            "parser_2gis.logger", fromlist=["LogOptions"]
+        ).LogOptions()
     )
     writer: WriterOptions = Field(
         default_factory=lambda: __import__(
-            "parser_2gis.writer", fromlist=["WriterOptions"],
-        ).WriterOptions(),
+            "parser_2gis.writer", fromlist=["WriterOptions"]
+        ).WriterOptions()
     )
     chrome: ChromeOptions = Field(
         default_factory=lambda: __import__(
-            "parser_2gis.chrome", fromlist=["ChromeOptions"],
-        ).ChromeOptions(),
+            "parser_2gis.chrome", fromlist=["ChromeOptions"]
+        ).ChromeOptions()
     )
     parser: ParserOptions = Field(
         default_factory=lambda: __import__(
-            "parser_2gis.parser", fromlist=["ParserOptions"],
-        ).ParserOptions(),
+            "parser_2gis.parser", fromlist=["ParserOptions"]
+        ).ParserOptions()
     )
     parallel: ParallelOptions = Field(
         default_factory=lambda: __import__(
-            "parser_2gis.parallel", fromlist=["ParallelOptions"],
-        ).ParallelOptions(),
+            "parser_2gis.parallel", fromlist=["ParallelOptions"]
+        ).ParallelOptions()
     )
     path: pathlib.Path | None = None
     version: str = config_version
@@ -170,7 +170,7 @@ class Configuration(BaseModel):
 
     @classmethod
     def load_config(
-        cls, config_path: pathlib.Path | None = None, *, auto_create: bool = True,
+        cls, config_path: pathlib.Path | None = None, *, auto_create: bool = True
     ) -> Configuration:
         """Загружает конфигурацию из файла.
 
@@ -188,7 +188,7 @@ class Configuration(BaseModel):
         from .cli.config_service import ConfigService as _ConfigService
 
         result = _ConfigService.load_config(
-            config_cls=cls, config_path=config_path, auto_create=auto_create,
+            config_cls=cls, config_path=config_path, auto_create=auto_create
         )
         from typing import cast
 

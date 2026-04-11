@@ -129,7 +129,7 @@ class MemoryMonitor:
 
         mem = psutil.virtual_memory()
         return MemoryInfo(
-            total=mem.total, available=mem.available, used=mem.used, percent=mem.percent,
+            total=mem.total, available=mem.available, used=mem.used, percent=mem.percent
         )
 
     def is_low_memory(self, threshold_mb: float = 100.0) -> bool:
@@ -245,7 +245,7 @@ class ResourceMonitor:
         return self._memory_monitor.is_low_memory(threshold_mb)
 
     def check_memory_before_operation(
-        self, required_mb: float = 100.0, threshold_mb: float = 100.0,
+        self, required_mb: float = 100.0, threshold_mb: float = 100.0
     ) -> bool:
         """Проверяет память перед операцией.
 

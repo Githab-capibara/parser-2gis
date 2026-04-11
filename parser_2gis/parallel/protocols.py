@@ -103,7 +103,7 @@ class EventEmitter:
         self._once_listeners: dict[str, list[tuple[int, Callable[..., Any]]]] = defaultdict(list)
 
     def on(
-        self, event: str, priority: int = 0,
+        self, event: str, priority: int = 0
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Декоратор для подписки на событие.
 
@@ -128,7 +128,7 @@ class EventEmitter:
         return decorator
 
     def once(
-        self, event: str, priority: int = 0,
+        self, event: str, priority: int = 0
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Декоратор для однократной подписки на событие.
 
@@ -289,7 +289,7 @@ class FileMergerProtocol(Protocol):
     """
 
     def merge_csv_files(
-        self, output_file: str, progress_callback: Callable[[str], None] | None = None,
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
         """Объединяет CSV файлы в один выходной файл."""
         ...

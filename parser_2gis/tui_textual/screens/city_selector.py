@@ -1,5 +1,7 @@
 """Экран выбора городов для парсинга на Textual."""
 
+from typing import ClassVar
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal, ScrollableContainer
@@ -16,7 +18,7 @@ class CitySelectorScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("escape", "go_back", "Назад"),
         Binding("a", "select_all", "Выбрать все"),
         Binding("d", "deselect_all", "Снять все"),

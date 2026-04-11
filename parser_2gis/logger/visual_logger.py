@@ -156,7 +156,7 @@ class VisualLogger:
         return datetime.now(tz=None).strftime("%H:%M:%S.%f")[:-3]
 
     def format_message(
-        self, message: str, level: str = "INFO", emoji: str | None = None, *, bold: bool = False,
+        self, message: str, level: str = "INFO", emoji: str | None = None, *, bold: bool = False
     ) -> str:
         """Форматирует сообщение с цветом и emoji.
 
@@ -227,13 +227,13 @@ class VisualLogger:
                 print(
                     f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET} "
                     f"{ColorCodes.BOLD}{title.center(width)}{ColorCodes.RESET} "
-                    f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}",
+                    f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}"
                 )
                 if subtitle:
                     print(
                         f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET} "
                         f"{subtitle.center(width)} "
-                        f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}",
+                        f"{ColorCodes.CYAN}{ColorCodes.BOLD}║{ColorCodes.RESET}"
                     )
                 print(f"{ColorCodes.CYAN}{ColorCodes.BOLD}╚{border}╝{ColorCodes.RESET}\n")
             else:
@@ -403,7 +403,7 @@ class VisualLogger:
             print(f"⚠️ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(
-                "Неожиданная ошибка при выводе предупреждения: %s. Сообщение: %s", e, message,
+                "Неожиданная ошибка при выводе предупреждения: %s. Сообщение: %s", e, message
             )
             raise
 
@@ -412,11 +412,13 @@ class VisualLogger:
         try:
             print(self.format_message(message, "INFO", Emoji.INFO, bold=bold))
         except OSError as e:
-            _logger.exception("Ошибка вывода информационного сообщения: %s. Сообщение: %s", e, message)
+            _logger.exception(
+                "Ошибка вывода информационного сообщения: %s. Сообщение: %s", e, message
+            )
             print(f"ℹ️ {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(
-                "Неожиданная ошибка при выводе информации: %s. Сообщение: %s", e, message,
+                "Неожиданная ошибка при выводе информации: %s. Сообщение: %s", e, message
             )
             raise
 
@@ -429,7 +431,7 @@ class VisualLogger:
             print(f"🔍 {message}")
         except (TypeError, RuntimeError) as e:
             _logger.exception(
-                "Неожиданная ошибка при выводе отладки: %s. Сообщение: %s", e, message,
+                "Неожиданная ошибка при выводе отладки: %s. Сообщение: %s", e, message
             )
             raise
 
@@ -468,7 +470,7 @@ def print_success(message: str) -> None:
         visual_logger.print_success(message)
     except (OSError, TypeError, RuntimeError) as e:
         _logger.exception(
-            "Ошибка в глобальной функции print_success: %s. Сообщение: %s", e, message,
+            "Ошибка в глобальной функции print_success: %s. Сообщение: %s", e, message
         )
         raise
 
@@ -488,7 +490,7 @@ def print_warning(message: str) -> None:
         visual_logger.print_warning(message)
     except (OSError, TypeError, RuntimeError) as e:
         _logger.exception(
-            "Ошибка в глобальной функции print_warning: %s. Сообщение: %s", e, message,
+            "Ошибка в глобальной функции print_warning: %s. Сообщение: %s", e, message
         )
         raise
 

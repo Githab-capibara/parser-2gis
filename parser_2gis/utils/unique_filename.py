@@ -21,7 +21,7 @@ from parser_2gis.logger import logger
 
 
 def generate_unique_filename_with_retry(
-    directory: Path, base_name: str, extension: str, max_attempts: int = MAX_UNIQUE_NAME_ATTEMPTS,
+    directory: Path, base_name: str, extension: str, max_attempts: int = MAX_UNIQUE_NAME_ATTEMPTS
 ) -> Path:
     """Генерирует уникальное имя файла с повторными попытками.
 

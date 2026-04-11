@@ -88,7 +88,7 @@ class FileMergerStrategy:
             log_func(message)
 
     def merge_csv_files(
-        self, output_file: str, progress_callback: Callable[[str], None] | None = None,
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
         """Объединяет все CSV файлы в один с добавлением колонки "Категория".
 
@@ -173,7 +173,7 @@ class FileMergerStrategy:
                 self._merge_temp_files.append(temp_output)
 
             with open(
-                temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size,
+                temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
             ) as outfile:
                 writer = None
                 total_rows = 0
@@ -278,7 +278,8 @@ class FileMergerStrategy:
                     signal.signal(signal.SIGTERM, old_sigterm_handler)
             except (OSError, ValueError, TypeError) as signal_error:
                 self.log(
-                    f"Ошибка при восстановлении обработчиков сигналов (игнорируется): {signal_error}",
+                    "Ошибка при восстановлении обработчиков "
+                    f"сигналов (игнорируется): {signal_error}",
                     "debug",
                 )
 
@@ -341,17 +342,20 @@ class FileMergerStrategy:
                             os.kill(lock_pid, 0)
                             # Процесс существует - это не осиротевший lock
                             self.log(
-                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
+                                f"Lock файл существует "
+                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid}), "
+                                f"ожидаем..."
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             # Процесс не существует - это осиротевший lock
                             self.log(
-                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек, PID: {lock_pid})",
+                                "Удаление осиротевшего lock файла "
+                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid})"
                             )
                             lock_file_path.unlink()
                     else:
                         self.log(
-                            "Lock файл существует (возраст: %.0f сек), ожидаем...", level="warning",
+                            "Lock файл существует (возраст: %.0f сек), ожидаем...", level="warning"
                         )
                 except OSError as e:
                     self.log(f"Ошибка проверки lock файла: {e}")
@@ -363,7 +367,7 @@ class FileMergerStrategy:
                 try:
                     # Атомарное создание файла - вернёт ошибку если файл уже существует
                     lock_fd = os.open(
-                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644,
+                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
                     )
                     lock_file_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
                     lock_fd = None  # Теперь файл управляется через lock_file_handle
@@ -410,7 +414,7 @@ class FileMergerStrategy:
         return typing.cast("tuple[typing.TextIO | None, bool]", (lock_file_handle, lock_acquired))
 
     def _cleanup_merge_lock(
-        self, lock_file_handle: typing.TextIO | None, lock_file_path: Path,
+        self, lock_file_handle: typing.TextIO | None, lock_file_path: Path
     ) -> None:
         """Очищает и удаляет lock файл.
 
@@ -489,10 +493,12 @@ class FileMergerStrategy:
                 writer.writerows(batch)
                 batch_total += len(batch)
 
+            batch_count = (batch_total // batch_size) + (
+                1 if batch_total % batch_size else 0
+            )
             self.log(
-                f"Файл {csv_file.name} обработан (строк: {batch_total}, пакетов: {
-                    (batch_total // batch_size) + (1 if batch_total % batch_size else 0)
-                })",
+                f"Файл {csv_file.name} обработан "
+                f"(строк: {batch_total}, пакетов: {batch_count})",
                 level="debug",
             )
 

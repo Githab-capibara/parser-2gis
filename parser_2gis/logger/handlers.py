@@ -99,9 +99,12 @@ class FileLogger:
                 # вместо тихого sys.stderr.write для видимости проблемы
                 app_logger = logging.getLogger("parser-2gis")
                 app_logger.warning(
-                    "Не удалось инициализировать файловый логгер: %s. Файл: %s", e, self._log_file,
+                    "Не удалось инициализировать файловый логгер: %s. Файл: %s",
+                    e,
+                    self._log_file,
                 )
-                # Не пробрасываем ошибку дальше, чтобы приложение могло работать без файлового логгера
+                # Не пробрасываем ошибку дальше, чтобы приложение
+                # могло работать без файлового логгера
                 self._log_file = None
 
     def _generate_session_log_file(self) -> Path:
@@ -143,7 +146,7 @@ class FileLogger:
                     raise OSError(
                         f"Не удалось создать директорию для логов: {self._log_file.parent}. "
                         f"Ошибка: {e}. "
-                        f"Функция: {self._setup_file_handler.__name__}",
+                        f"Функция: {self._setup_file_handler.__name__}"
                     ) from e
 
             # Создаём rotating file handler
@@ -159,7 +162,7 @@ class FileLogger:
                 raise OSError(
                     f"Ошибка создания RotatingFileHandler: {e}. "
                     f"Файл: {self._log_file}. "
-                    f"Функция: {self._setup_file_handler.__name__}",
+                    f"Функция: {self._setup_file_handler.__name__}"
                 ) from e
 
             # Форматирование логов с детальной информацией
@@ -175,7 +178,9 @@ class FileLogger:
             session_logger = logging.getLogger("parser-2gis")
             session_logger.info("=" * 80)
             session_logger.info("НАЧАЛО НОВОЙ СЕССИИ")
-            session_logger.info("Время запуска: %s", datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S"))
+            session_logger.info(
+                "Время запуска: %s", datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")
+            )
             # Проверяем, что файл лога существует перед вызовом absolute()
             if self._log_file:
                 session_logger.info("Файл лога: %s", self._log_file.absolute())
@@ -190,7 +195,7 @@ class FileLogger:
                 except OSError as handler_close_error:
                     app_logger = logging.getLogger("parser-2gis")
                     app_logger.warning(
-                        "Ошибка закрытия обработчика при сбое: %s", handler_close_error,
+                        "Ошибка закрытия обработчика при сбое: %s", handler_close_error
                     )
                 self._file_handler = None
             # Логируем ошибку через logging.warning вместо sys.stderr.write
@@ -233,7 +238,7 @@ class FileLogger:
             raise RuntimeError(
                 f"Ошибка добавления файлового обработчика к логгеру: {e}. "
                 f"Функция: {self.setup_logger.__name__}, "
-                f"Логгер: {logger.name}",
+                f"Логгер: {logger.name}"
             ) from e
 
     def close(self) -> None:
@@ -254,7 +259,7 @@ class FileLogger:
                 session_logger.info("=" * 80)
                 session_logger.info("ЗАВЕРШЕНИЕ СЕССИИ")
                 session_logger.info(
-                    "Время завершения: %s", datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S"),
+                    "Время завершения: %s", datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")
                 )
                 session_logger.info("=" * 80)
 
@@ -273,7 +278,7 @@ class FileLogger:
         except (OSError, RuntimeError) as e:
             app_logger = logging.getLogger("parser-2gis")
             app_logger.exception(
-                "Ошибка при закрытии файлового логгера: %s. Функция: %s", e, self.close.__name__,
+                "Ошибка при закрытии файлового логгера: %s. Функция: %s", e, self.close.__name__
             )
             # Не пробрасываем ошибку, чтобы не нарушить завершение работы
 
@@ -287,7 +292,7 @@ class FileLogger:
         return self
 
     def __exit__(
-        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any,
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: Any
     ) -> None:
         """Автоматическое закрытие при выходе из контекста."""
         self.close()

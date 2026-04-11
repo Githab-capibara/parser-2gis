@@ -64,11 +64,14 @@ class ParallelLockManager:
                                 lock_pid = int(f.read().strip())
                             os.kill(lock_pid, 0)
                             self._log(
-                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
+                                f"Lock файл существует "
+                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid}), "
+                                f"ожидаем..."
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             self._log(
-                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек, PID: {lock_pid})",
+                                "Удаление осиротевшего lock файла "
+                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid})"
                             )
                             lock_file_path.unlink()
                     else:
@@ -86,16 +89,17 @@ class ParallelLockManager:
                 lock_attempts += 1
                 if lock_attempts > self.MAX_LOCK_ATTEMPTS:
                     self._log(
-                        f"Превышено максимальное число попыток получения lock ({self.MAX_LOCK_ATTEMPTS})",
+                        "Превышено максимальное число попыток "
+                        f"получения lock ({self.MAX_LOCK_ATTEMPTS})",
                         "error",
                     )
                     raise RuntimeError(
-                        f"Не удалось получить lock файл после {self.MAX_LOCK_ATTEMPTS} попыток",
+                        f"Не удалось получить lock файл после {self.MAX_LOCK_ATTEMPTS} попыток"
                     )
                 lock_fd = None
                 try:
                     lock_fd = os.open(
-                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600,
+                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
                     )
                     try:
                         lock_file_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
@@ -112,7 +116,8 @@ class ParallelLockManager:
                                 os.close(lock_fd)
                             except OSError as close_error:
                                 self._log(
-                                    f"Ошибка при закрытии fd lock файла (игнорируется): {close_error}",
+                                    "Ошибка при закрытии fd lock файла "
+                                    f"(игнорируется): {close_error}",
                                     "debug",
                                 )
                 except (OSError, FileExistsError):
@@ -126,7 +131,7 @@ class ParallelLockManager:
 
                     if time.time() - start_time > MERGE_LOCK_TIMEOUT:
                         self._log(
-                            f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error",
+                            f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error"
                         )
                         return None, False
 

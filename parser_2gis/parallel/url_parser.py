@@ -196,7 +196,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         for attempt in range(MAX_UNIQUE_NAME_ATTEMPTS):
             try:
                 temp_fd = os.open(
-                    str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644,
+                    str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
                 )
                 os.close(temp_fd)
                 logger.log(5, "Временный файл атомарно создан: %s", temp_filename)
@@ -205,7 +205,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(5, "Коллизия имён (попытка %d): генерация нового имени", attempt + 1)
                     temp_filename, temp_filepath = self._generate_temp_filename(
-                        safe_city, safe_category,
+                        safe_city, safe_category
                     )
                 else:
                     logger.error(
@@ -217,10 +217,10 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             except OSError:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(
-                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1,
+                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1
                     )
                     temp_filename, temp_filepath = self._generate_temp_filename(
-                        safe_city, safe_category,
+                        safe_city, safe_category
                     )
                 else:
                     logger.error(
@@ -366,7 +366,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                                 writer.close()
                             except (OSError, RuntimeError, ChromeException) as close_error:
                                 self.log(
-                                    f"Ошибка при закрытии writer в retry: {close_error}", "debug",
+                                    f"Ошибка при закрытии writer в retry: {close_error}", "debug"
                                 )
                         if attempt < max_retries - 1:
                             self.log(
@@ -400,9 +400,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                 return False, f"Ошибка инициализации: {init_error}"
 
             try:
-                with parser, get_writer(
-                    str(temp_filepath), "csv", cached_config.writer
-                ) as writer:
+                with parser, get_writer(str(temp_filepath), "csv", cached_config.writer) as writer:
                     try:
                         parser.parse(writer)
                     except MemoryError as memory_error:
@@ -444,10 +442,15 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             # Переименовываем временный файл в целевой
             self._rename_temp_to_final(temp_filepath, filepath, temp_filename)
             return self._process_parse_result(
-                success=True, city_name=city_name, category_name=category_name, filepath=filepath, progress_callback=progress_callback,
+                success=True,
+                city_name=city_name,
+                category_name=category_name,
+                filepath=filepath,
+                progress_callback=progress_callback,
             )
 
-        # Используем ThreadPoolExecutor для установки таймаута (потокобезопасная альтернатива signal.alarm)
+        # Используем ThreadPoolExecutor для установки таймаута
+        # (потокобезопасная альтернатива signal.alarm)
         try:
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(do_parse)
@@ -491,7 +494,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         cleanup_temp_file(temp_filepath, description="Временный файл удалён")
 
     def _rename_temp_to_final(
-        self, temp_filepath: Path, filepath: Path, temp_filename: str,
+        self, temp_filepath: Path, filepath: Path, temp_filename: str
     ) -> None:
         """Переименовывает временный файл в целевой.
 
@@ -517,7 +520,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                 move_success = True
             except (OSError, RuntimeError, TypeError, ValueError) as move_error:
                 self.log(
-                    f"Не удалось переместить временный файл {temp_filename}: {move_error}", "error",
+                    f"Не удалось переместить временный файл {temp_filename}: {move_error}", "error"
                 )
                 self._cleanup_temp_file(temp_filepath)
                 raise

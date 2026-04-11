@@ -220,7 +220,7 @@ class ApplicationLauncher:
         with self._signal_handler_lock:
             # Используем внедрённую зависимость (DIP)
             self._signal_handler = self._signal_handler_factory(
-                cleanup_callback=self._cleanup_resources,
+                cleanup_callback=self._cleanup_resources
             )
             self._signal_handler.register()
         logger.debug("Обработчики сигналов SIGINT и SIGTERM установлены через ApplicationLauncher")
@@ -273,7 +273,7 @@ class ApplicationLauncher:
 
             config = Configuration(
                 parallel=ParallelOptions(
-                    max_workers=self.config.parallel.max_workers, use_temp_file_cleanup=True,
+                    max_workers=self.config.parallel.max_workers, use_temp_file_cleanup=True
                 ),
                 chrome=ChromeOptions(
                     headless=self.config.chrome.headless,
@@ -285,7 +285,7 @@ class ApplicationLauncher:
                     retry_on_network_errors=self.config.parser.retry_on_network_errors,
                 ),
                 writer=WriterOptions(
-                    format=self.config.writer.format, encoding="utf-8-sig", deduplicate=True,
+                    format=self.config.writer.format, encoding="utf-8-sig", deduplicate=True
                 ),
             )
 
@@ -314,7 +314,7 @@ class ApplicationLauncher:
             output_file_path = output_dir / output_file
 
             result = parser.run(
-                output_file=str(output_file_path), progress_callback=progress_callback,
+                output_file=str(output_file_path), progress_callback=progress_callback
             )
 
             if result:
@@ -379,7 +379,6 @@ class ApplicationLauncher:
                 return 1
 
             if not categories_mode:
-
                 output_path = getattr(args, "output_path", None)
                 output_format = getattr(args, "format", None)
 

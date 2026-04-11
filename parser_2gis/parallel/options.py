@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from parser_2gis.config import Configuration
 
 MAX_TEMP_FILES = validate_env_int(
-    "PARSER_MAX_TEMP_FILES", default=1000, min_value=100, max_value=10000,
+    "PARSER_MAX_TEMP_FILES", default=1000, min_value=100, max_value=10000
 )
 
 

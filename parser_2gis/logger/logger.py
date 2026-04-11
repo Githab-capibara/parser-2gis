@@ -120,7 +120,7 @@ class LoggerProvider:
                 if not log_instance.handlers:
                     handler = logging.StreamHandler()
                     formatter = _create_formatter(
-                        "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S",
+                        "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"
                     )
                     handler.setFormatter(formatter)
                     log_instance.addHandler(handler)
@@ -301,7 +301,11 @@ def setup_logger(level: str, fmt: str, datefmt: str) -> None:
 
 
 def log_parser_start(
-    version: str, urls_count: int, output_path: str, output_format: str, config_summary: dict | None = None,
+    version: str,
+    urls_count: int,
+    output_path: str,
+    output_format: str,
+    config_summary: dict | None = None,
 ) -> None:
     """Логирует запуск парсера с подробной информацией.
 
@@ -328,7 +332,7 @@ def log_parser_start(
 
 
 def log_parser_finish(
-    *, success: bool = True, stats: dict | None = None, duration: str | None = None,
+    *, success: bool = True, stats: dict | None = None, duration: str | None = None
 ) -> None:
     """Логирует завершение парсера.
 

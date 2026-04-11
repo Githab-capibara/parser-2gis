@@ -284,7 +284,7 @@ def _discover_parsers_via_importlib() -> None:
         import importlib.util
 
         for _finder, module_name, _is_pkg in getattr(
-            __import__("pkgutil"), "_iter_importers", lambda *_: [],
+            __import__("pkgutil"), "_iter_importers", lambda *_: []
         )(parsers_pkg, parsers_pkg.__name__, pkg_path):
             if module_name.startswith("_") or module_name in ("base", "__init__"):
                 continue

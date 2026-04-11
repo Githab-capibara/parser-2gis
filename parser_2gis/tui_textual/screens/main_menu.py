@@ -1,5 +1,7 @@
 """Главное меню TUI Parser2GIS на Textual."""
 
+from typing import ClassVar
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
@@ -14,7 +16,7 @@ class MainMenuScreen(Screen):
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS = [Binding("q", "quit", "Выход")]
+    BINDINGS: ClassVar[list[Binding]] = [Binding("q", "quit", "Выход")]
 
     CSS = """
     /* Центрирование главного экрана меню */
@@ -165,7 +167,7 @@ class MainMenuScreen(Screen):
                 return
             if not selected_categories:
                 self.app.notify(
-                    "❌ Сначала выберите категории в меню '📂 Выбрать категории'", timeout=5,
+                    "❌ Сначала выберите категории в меню '📂 Выбрать категории'", timeout=5
                 )
                 return
             # Только если оба списка не пустые - открывать экран парсинга

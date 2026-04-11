@@ -55,7 +55,11 @@ def get_cache_stats() -> dict[str, Any]:
         >>> print(stats["_validate_city_cached"])
         CacheInfo(hits=100, misses=5, maxsize=256, currsize=5)
         >>> info = stats["url_query_encode"]
-        >>> hit_ratio = info.hits / (info.hits + info.misses) if (info.hits + info.misses) > 0 else 0
+        >>> hit_ratio = (
+        ...     info.hits / (info.hits + info.misses)
+        ...     if (info.hits + info.misses) > 0
+        ...     else 0
+        ... )
 
     """
     from .url_utils import _url_query_encode

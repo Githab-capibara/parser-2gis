@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
+from typing import ClassVar
 
 
 class BaseFormatter(ABC):
@@ -86,7 +87,7 @@ class SanitizeFormatter(BaseFormatter):
     """
 
     # Таблица санитизации для CSV данных
-    _SANITIZE_TABLE = {
+    _SANITIZE_TABLE: ClassVar[dict[str, str]] = {
         '"': '""',  # Экранирование кавычек для CSV
         "\n": " ",  # Замена новых строк на пробелы
         "\r": "",  # Удаление carriage return
@@ -183,7 +184,7 @@ class TypeFormatter(BaseFormatter):
     """
 
     # Отображение типов на русские названия
-    _TYPE_NAMES = {
+    _TYPE_NAMES: ClassVar[dict[str, str]] = {
         "parking": "Парковка",
         "street": "Улица",
         "road": "Дорога",

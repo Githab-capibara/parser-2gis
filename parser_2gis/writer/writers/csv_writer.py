@@ -239,7 +239,10 @@ class CSVWriter(FileWriter):
 
         return {
             **data_mapping,
-            "point_lat": "Широта", "point_lon": "Долгота", "url": CSV_URL_HEADER, "type": "Тип",
+            "point_lat": "Широта",
+            "point_lon": "Долгота",
+            "url": CSV_URL_HEADER,
+            "type": "Тип",
         }
 
     def _writerow(self, row: dict[str, Any]) -> None:
@@ -334,7 +337,7 @@ class CSVWriter(FileWriter):
             try:
                 logger.info("Удаление повторяющихся записей CSV.")
                 deduplicator = CSVDeduplicator(
-                    file_path=self._file_path, encoding=self._options.encoding,
+                    file_path=self._file_path, encoding=self._options.encoding
                 )
                 deduplicator.remove_duplicates()
             except (OSError, RuntimeError) as e:
@@ -385,9 +388,7 @@ class CSVWriter(FileWriter):
                                     key,
                                     value[:100],
                                 )
-                                raise ValueError(
-                                    f"Обнаружена потенциальная XSS атака в поле {key}",
-                                )
+                                raise ValueError(f"Обнаружена потенциальная XSS атака в поле {key}")
 
         if not self._check_catalog_doc(records):
             return
@@ -587,7 +588,7 @@ class CSVWriter(FileWriter):
         # Режим работы объекта
         if catalog_item.schedule:
             data["schedule"] = catalog_item.schedule.to_str(
-                self._options.csv.join_char, self._options.csv.add_comments,
+                self._options.csv.join_char, self._options.csv.add_comments
             )
 
         # Рубрики (категории) объекта
