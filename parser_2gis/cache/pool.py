@@ -45,7 +45,7 @@ def _get_max_pool_size_env() -> int:
         _get_max_pool_size_env._value = validate_env_int(  # type: ignore[attr-defined]
             "PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50
         )
-    return _get_max_pool_size_env._value  # type: ignore[attr-defined]
+    return _get_max_pool_size_env._value  # type: ignore[attr-defined,no-any-return]
 
 
 def _get_min_pool_size_env() -> int:
@@ -54,7 +54,7 @@ def _get_min_pool_size_env() -> int:
         _get_min_pool_size_env._value = validate_env_int(  # type: ignore[attr-defined]
             "PARSER_MIN_POOL_SIZE", default=5, min_value=1, max_value=10
         )
-    return _get_min_pool_size_env._value  # type: ignore[attr-defined]
+    return _get_min_pool_size_env._value  # type: ignore[attr-defined,no-any-return]
 
 
 def _get_connection_max_age_env() -> int:
@@ -63,7 +63,7 @@ def _get_connection_max_age_env() -> int:
         _get_connection_max_age_env._value = validate_env_int(  # type: ignore[attr-defined]
             "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
         )
-    return _get_connection_max_age_env._value  # type: ignore[attr-defined]
+    return _get_connection_max_age_env._value  # type: ignore[attr-defined,no-any-return]
 
 
 # Попытка импортировать psutil для мониторинга памяти
@@ -118,13 +118,13 @@ def _calculate_dynamic_pool_size() -> int:
             available_memory_mb,
         )
 
-        return dynamic_size
+        return dynamic_size  # type: ignore[no-any-return]
 
     except (ImportError, MemoryError, OSError, ValueError, TypeError, Exception) as error:
         # Объединённая обработка ошибок: все типы ошибок возвращают MIN_POOL_SIZE
         error_type = type(error).__name__
         app_logger.debug("%s при расчёте размера пула: %s, используем минимум", error_type, error)
-        return MIN_POOL_SIZE
+        return MIN_POOL_SIZE  # type: ignore[no-any-return]
 
 
 class ConnectionPool:
@@ -270,7 +270,7 @@ class ConnectionPool:
                     # Если устарело — нужно пересоздать под блокировкой
 
                 if should_reuse:
-                    return conn_obj
+                    return conn_obj  # type: ignore[no-any-return]
 
                 # Соединение устарело или неактивно — закрываем и пересоздаём
                 with self._lock:

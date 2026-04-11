@@ -106,6 +106,15 @@ class MainParser:
         """
         return self._page_parser._chrome_remote
 
+    @property
+    def _item_response_pattern(self) -> str:
+        """Делегирует доступ к паттерну ответа через page_parser."""
+        return self._page_parser._item_response_pattern
+
+    def _wait_requests_finished(self) -> bool:
+        """Делегирует проверку завершения запросов через page_parser."""
+        return self._page_parser._wait_requests_finished()  # type: ignore[no-any-return]
+
     @staticmethod
     def url_pattern() -> str:
         """URL-паттерн для парсера."""

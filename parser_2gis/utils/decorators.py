@@ -222,7 +222,7 @@ def _default_predicate(value: Any) -> bool:
 
 
 def wait_until_finished(
-    timeout: int | None = None,
+    timeout: float | None = None,
     finished: Callable[[Any], bool] | None = None,
     *,
     throw_exception: bool = True,
