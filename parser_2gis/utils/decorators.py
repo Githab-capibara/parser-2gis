@@ -95,7 +95,7 @@ logger = logging.getLogger(__name__)
 
 
 def _check_timeout_expired(
-    start_time: float, timeout: int | None, func_name: str, *, throw_exception: bool
+    start_time: float, timeout: int | None, func_name: str, *, throw_exception: bool,
 ) -> tuple[bool, Any]:
     """Проверяет, истёк ли таймаут.
 
@@ -119,7 +119,7 @@ def _check_timeout_expired(
 
 
 def _check_max_retries_exceeded(
-    attempt_count: int, max_retries: int | None, func_name: str, *, throw_exception: bool
+    attempt_count: int, max_retries: int | None, func_name: str, *, throw_exception: bool,
 ) -> tuple[bool, Any]:
     """Проверяет, превышено ли максимальное количество попыток.
 
@@ -169,7 +169,7 @@ def _update_poll_interval(
 
 
 def _handle_execution_error(
-    error: Exception, func_name: str, attempt_count: int, consecutive_failures: int
+    error: Exception, func_name: str, attempt_count: int, consecutive_failures: int,
 ) -> int:
     """Обрабатывает ошибку выполнения функции.
 
@@ -197,7 +197,7 @@ def _handle_execution_error(
         raise error
     if isinstance(error, (RuntimeError, ValueError, TypeError)):
         logger.debug(
-            "Ошибка при выполнении функции %s (попытка %d): %s", func_name, attempt_count, error
+            "Ошибка при выполнении функции %s (попытка %d): %s", func_name, attempt_count, error,
         )
         return consecutive_failures + 1
     return consecutive_failures
@@ -280,21 +280,21 @@ def wait_until_finished(
     if poll_interval > max_poll_interval:
         raise ValueError(
             f"poll_interval ({poll_interval}) не может быть больше "
-            f"max_poll_interval ({max_poll_interval})"
+            f"max_poll_interval ({max_poll_interval})",
         )
 
     # ISSUE-099: Дополнительная проверка timeout на разумность (максимум 24 часа)
     if timeout is not None and timeout > MAX_TIMEOUT_SECONDS:
         raise ValueError(
             f"timeout не должен превышать {MAX_TIMEOUT_SECONDS} секунд "
-            f"(24 часа), получено {timeout}"
+            f"(24 часа), получено {timeout}",
         )
 
     # ISSUE-100: Дополнительная проверка max_poll_interval на разумность (максимум 60 секунд)
     if max_poll_interval > MAX_POLL_INTERVAL_LIMIT:
         raise ValueError(
             f"max_poll_interval не должен превышать "
-            f"{MAX_POLL_INTERVAL_LIMIT} секунд, получено {max_poll_interval}"
+            f"{MAX_POLL_INTERVAL_LIMIT} секунд, получено {max_poll_interval}",
         )
 
     # Сохраняем значения декоратора в замыкании
@@ -350,7 +350,7 @@ def wait_until_finished(
             consecutive_failures = 0  # Счётчик неудач для экспоненциальной задержки
             attempt_count = 0  # ИСПРАВЛЕНИЕ 18: Счётчик попыток
             max_attempts = effective_config.max_retries or float(
-                "inf"
+                "inf",
             )  # ISSUE-151: Явный лимит попыток
 
             # ИСПРАВЛЕНИЕ 18: Создаём Event для возможности прерывания
@@ -410,7 +410,7 @@ def wait_until_finished(
                 stopped = stop_event.wait(timeout=current_poll_interval)
                 if stopped:
                     logger.warning(
-                        "Ожидание прервано для %s (попыток: %d)", func.__name__, attempt_count
+                        "Ожидание прервано для %s (попыток: %d)", func.__name__, attempt_count,
                     )
                     return result
 
@@ -508,7 +508,7 @@ def async_wait_until_finished(
                     elapsed = asyncio.get_running_loop().time() - start_time
                     if elapsed > effective_timeout and effective_throw_exception:
                         raise TimeoutError(
-                            f"Функция {func.__name__} не завершилась за {effective_timeout} секунд"
+                            f"Функция {func.__name__} не завершилась за {effective_timeout} секунд",
                         )
                     elif elapsed > effective_timeout:
                         return None
@@ -526,7 +526,7 @@ def async_wait_until_finished(
                 # Увеличиваем интервал при экспоненциальной задержке
                 if use_exponential_backoff:
                     current_poll_interval = min(
-                        current_poll_interval * EXPONENTIAL_BACKOFF_MULTIPLIER, max_poll_interval
+                        current_poll_interval * EXPONENTIAL_BACKOFF_MULTIPLIER, max_poll_interval,
                     )
 
         return inner

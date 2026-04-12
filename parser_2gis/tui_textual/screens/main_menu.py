@@ -167,7 +167,7 @@ class MainMenuScreen(Screen):
                 return
             if not selected_categories:
                 self.app.notify(
-                    "❌ Сначала выберите категории в меню '📂 Выбрать категории'", timeout=5
+                    "❌ Сначала выберите категории в меню '📂 Выбрать категории'", timeout=5,
                 )
                 return
             # Только если оба списка не пустые - открывать экран парсинга

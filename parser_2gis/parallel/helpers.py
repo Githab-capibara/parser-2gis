@@ -173,7 +173,7 @@ class StatsCollector:
                     "city": city,
                     "category": category,
                     "timestamp": time.time(),
-                }
+                },
             )
 
     def get_elapsed_time(self) -> float:

@@ -196,7 +196,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         for attempt in range(MAX_UNIQUE_NAME_ATTEMPTS):
             try:
                 temp_fd = os.open(
-                    str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644
+                    str(temp_filepath), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o644,
                 )
                 os.close(temp_fd)
                 logger.log(5, "Временный файл атомарно создан: %s", temp_filename)
@@ -205,7 +205,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(5, "Коллизия имён (попытка %d): генерация нового имени", attempt + 1)
                     temp_filename, temp_filepath = self._generate_temp_filename(
-                        safe_city, safe_category
+                        safe_city, safe_category,
                     )
                 else:
                     logger.error(
@@ -217,10 +217,10 @@ class ParallelUrlParser(UrlGeneratorProtocol):
             except OSError:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(
-                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1
+                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1,
                     )
                     temp_filename, temp_filepath = self._generate_temp_filename(
-                        safe_city, safe_category
+                        safe_city, safe_category,
                     )
                 else:
                     logger.error(
@@ -366,7 +366,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                                 writer.close()
                             except (OSError, RuntimeError, ChromeException) as close_error:
                                 self.log(
-                                    f"Ошибка при закрытии writer в retry: {close_error}", "debug"
+                                    f"Ошибка при закрытии writer в retry: {close_error}", "debug",
                                 )
                         if attempt < max_retries - 1:
                             self.log(
@@ -433,11 +433,10 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                 return False, f"MemoryError: {memory_error}"
             finally:
                 # Гарантированное освобождение семафора после завершения работы с браузером
-                try:
+                from contextlib import suppress
+
+                with suppress(ValueError):
                     browser_semaphore.release()
-                except ValueError:
-                    # Семафор уже освобождён — это ожидаемо при конкурентном доступе
-                    pass
 
             # Переименовываем временный файл в целевой
             self._rename_temp_to_final(temp_filepath, filepath, temp_filename)
@@ -494,7 +493,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         cleanup_temp_file(temp_filepath, description="Временный файл удалён")
 
     def _rename_temp_to_final(
-        self, temp_filepath: Path, filepath: Path, temp_filename: str
+        self, temp_filepath: Path, filepath: Path, temp_filename: str,
     ) -> None:
         """Переименовывает временный файл в целевой.
 
@@ -520,7 +519,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                 move_success = True
             except (OSError, RuntimeError, TypeError, ValueError) as move_error:
                 self.log(
-                    f"Не удалось переместить временный файл {temp_filename}: {move_error}", "error"
+                    f"Не удалось переместить временный файл {temp_filename}: {move_error}", "error",
                 )
                 self._cleanup_temp_file(temp_filepath)
                 raise

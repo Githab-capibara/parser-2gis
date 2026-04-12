@@ -98,7 +98,7 @@ class FileWriter(WriterProtocol, ABC):
             # Путь содержит директорию отличную от текущей
             raise ValueError(
                 f"Путь к файлу выходит за пределы разрешённых директорий: {file_path_str}. "
-                f"Разрешены: текущая директория, output, tempfile. Базовое имя: {base_name}"
+                f"Разрешены: текущая директория, output, tempfile. Базовое имя: {base_name}",
             )
 
         return normalized_path
@@ -108,7 +108,7 @@ class FileWriter(WriterProtocol, ABC):
         """Записывает JSON-документ Catalog Item API, полученный парсером."""
 
     def _open_file(
-        self, file_path: str, mode: str = "r", newline: str | None = None, **kwargs: Any
+        self, file_path: str, mode: str = "r", newline: str | None = None, **kwargs: Any,
     ) -> IO[Any]:
         """Открывает файл с указанными параметрами.
 

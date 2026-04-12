@@ -90,9 +90,7 @@ class ConfigCache:
 
     # ISSUE-087: Используем @lru_cache на методе класса вместо создания на экземпляре
     def __init__(
-        self,
-        cities_cache_size: int = CITIES_CACHE_SIZE,
-        categories_cache_size: int = 4,
+        self, cities_cache_size: int = CITIES_CACHE_SIZE, categories_cache_size: int = 4,
     ) -> None:
         """Инициализация кэша конфигураций.
 
@@ -175,10 +173,10 @@ class ConfigCache:
                     all_cities = json.load(f)
 
             if not isinstance(all_cities, list):
-                logger.error(
-                    "Файл городов должен содержать список, а не %s", type(all_cities).__name__,
+                error_msg = (
+                    f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
                 )
-                error_msg = f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
+                logger.error(error_msg)
                 raise TypeError(error_msg)
 
             if len(all_cities) > MAX_CITIES_COUNT:

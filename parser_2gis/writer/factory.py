@@ -65,7 +65,7 @@ class WriterRegistry:
         if not re.match(r"^[a-zA-Z0-9_-]+$", format_name):
             raise ValueError(
                 f"Название формата содержит недопустимые символы: {format_name}. "
-                "Разрешены только буквы, цифры, дефис и подчёркивание."
+                "Разрешены только буквы, цифры, дефис и подчёркивание.",
             )
 
         with self._lock:
@@ -217,7 +217,7 @@ def get_writer(
             raise WriterUnknownFileFormat(
                 f"Не удалось определить формат из расширения файла: {validated_path}. "
                 f"Укажите формат явно или используйте поддерживаемые расширения: "
-                f"{', '.join(_writer_registry.get_registry().keys())}"
+                f"{', '.join(_writer_registry.get_registry().keys())}",
             )
         file_format = detected_format
 
@@ -231,7 +231,7 @@ def get_writer(
     if not writer_cls:
         raise WriterUnknownFileFormat(
             f"Неизвестный формат: {file_format}. "
-            f"Зарегистрированные форматы: {', '.join(_writer_registry.get_registry().keys())}"
+            f"Зарегистрированные форматы: {', '.join(_writer_registry.get_registry().keys())}",
         )
 
     return writer_cls(str(validated_path), writer_options)

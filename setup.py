@@ -9,6 +9,7 @@
 import pathlib
 import re
 import sys
+from typing import ClassVar
 
 from setuptools import Command, setup
 
@@ -20,9 +21,8 @@ README_PATH = ROOT_DIR / "README.md"
 long_description = README_PATH.read_text(encoding="utf-8")
 long_description_content_type = "text/markdown"
 
-match = re.search(
-    r'^version\s*=\s*[\'"](?P<version>.+?)[\'"]', VERSION_PATH.read_text(encoding="utf-8"), re.MULTILINE
-)
+version_path_text = VERSION_PATH.read_text(encoding="utf-8")
+match = re.search(r'^version\s*=\s*[\'"](?P<version>.+?)[\'"]', version_path_text, re.MULTILINE)
 if not match:
     raise RuntimeError(
         f"Не удалось найти версию в файле {VERSION_PATH}. "
@@ -35,7 +35,7 @@ class BuildStandaloneCommand(Command):
     """Собственная команда для сборки автономного приложения."""
 
     description = "Сборка автономного приложения с помощью PyInstaller"
-    user_options: list[tuple[str, str | None, str]] = []
+    user_options: ClassVar[list[tuple[str, str | None, str]]] = []
 
     def initialize_options(self) -> None:
         pass
@@ -67,15 +67,15 @@ class BuildStandaloneCommand(Command):
                 "parser_2gis_entry.py",
             ]
 
-            print("Running command: %s" % " ".join(build_cmd), file=sys.stderr)
+            print(f"Running command: {' '.join(build_cmd)}", file=sys.stderr)
             subprocess.check_call(build_cmd)
         finally:
             # Очистка
             shutil.rmtree(ROOT_DIR / "build", ignore_errors=True)
-            try:
+            from contextlib import suppress
+
+            with suppress(FileNotFoundError):
                 os.remove(ROOT_DIR / f"{dist_filename}.spec")
-            except FileNotFoundError:
-                pass
 
 
 if __name__ == "__main__":

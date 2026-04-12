@@ -233,7 +233,7 @@ def _validate_remote_port(port: Any) -> int:
 
     if port < MIN_PORT:
         raise ValueError(
-            f"remote_port должен быть >= {MIN_PORT} (зарезервированные порты), получен {port}"
+            f"remote_port должен быть >= {MIN_PORT} (зарезервированные порты), получен {port}",
         )
 
     if port > MAX_PORT:
@@ -263,7 +263,8 @@ class ChromeRemote:
         # ISSUE-102: Валидация response_patterns
         if not isinstance(response_patterns, list):
             raise ValueError(
-                f"response_patterns должен быть списком, получен {type(response_patterns).__name__}"
+                f"response_patterns должен быть списком, "
+                f"получен {type(response_patterns).__name__}",
             )
 
         # ISSUE-103: Валидация на пустые паттерны
@@ -271,7 +272,7 @@ class ChromeRemote:
             if not isinstance(pattern, str):
                 raise ValueError(
                     f"response_patterns[{idx}] должен быть строкой, "
-                    f"получен {type(pattern).__name__}"
+                    f"получен {type(pattern).__name__}",
                 )
             if not pattern.strip():
                 raise ValueError(f"response_patterns[{idx}] не может быть пустой строкой")
@@ -434,14 +435,14 @@ class ChromeRemote:
 
             for attempt in range(max_startup_attempts):
                 app_logger.debug(
-                    "Ожидание запуска Chrome (%.1f сек, попытка %d)...", startup_delay, attempt + 1
+                    "Ожидание запуска Chrome (%.1f сек, попытка %d)...", startup_delay, attempt + 1,
                 )
                 time.sleep(startup_delay)
 
                 # C001: Используем кэшированную версию для проверки порта
                 if not _check_port_cached(remote_port):
                     app_logger.debug(
-                        "Порт %d занят (Chrome запущен), готов к подключению", remote_port
+                        "Порт %d занят (Chrome запущен), готов к подключению", remote_port,
                     )
                     break
 
@@ -454,7 +455,7 @@ class ChromeRemote:
                     # Порт всё ещё свободен - Chrome не запустился
                     raise ChromeException(
                         f"Chrome не запустился после {max_startup_attempts} попыток. "
-                        f"Порт {remote_port} так и не был занят."
+                        f"Порт {remote_port} так и не был занят.",
                     )
                 # Если порт занят - Chrome запустился, продолжаем
 
@@ -516,10 +517,10 @@ class ChromeRemote:
             for attempt in range(max_attempts):
                 try:
                     app_logger.debug(
-                        "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts
+                        "Попытка %d/%d: создание вкладки...", attempt + 1, max_attempts,
                     )
                     resp = _safe_external_request(
-                        "put", f"{self._dev_url}/json/new", json={}, timeout=60, verify=True
+                        "put", f"{self._dev_url}/json/new", json={}, timeout=60, verify=True,
                     )
 
                     # Проверка на None перед вызовом raise_for_status()
@@ -544,7 +545,7 @@ class ChromeRemote:
                         time.sleep(delay_seconds)
                     else:
                         raise ChromeException(
-                            f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
+                            f"Не удалось создать вкладку после {max_attempts} попыток: {e}",
                         ) from e
 
             raise ChromeException("Не удалось создать вкладку")
@@ -635,7 +636,7 @@ class ChromeRemote:
                     if current_time - last_check_time >= monitor_interval:
                         try:
                             ret = _safe_external_request(
-                                "get", f"{self._dev_url}/json", timeout=6, verify=True
+                                "get", f"{self._dev_url}/json", timeout=6, verify=True,
                             )
                             # ИСПРАВЛЕНИЕ: Добавлена проверка на None перед вызовом json()
                             if ret is None:
@@ -818,7 +819,9 @@ class ChromeRemote:
                     return decoded_bytes.decode("utf-8")
             except (UnicodeDecodeError, ValueError) as decode_error:
                 app_logger.warning(
-                    "Ошибка декодирования тела ответа (requestId: %s): %s", request_id, decode_error
+                    "Ошибка декодирования тела ответа (requestId: %s): %s",
+                    request_id,
+                    decode_error,
                 )
             return ""
         return response_data.get("body", "")  # type: ignore[no-any-return]
@@ -858,7 +861,7 @@ class ChromeRemote:
         try:
             # Получение тела ответа через CDP
             response_data = self._chrome_tab.call_method(
-                "Network.getResponseBody", requestId=request_id
+                "Network.getResponseBody", requestId=request_id,
             )
 
             # Guard Clause: проверка пустого ответа
@@ -881,7 +884,7 @@ class ChromeRemote:
                 raise ValueError(
                     f"Размер ответа превышает максимальный лимит "
                     f"({len(response_body)} > {MAX_RESPONSE_SIZE} байт). "
-                    f"Это может быть DoS атака."
+                    f"Это может быть DoS атака.",
                 )
 
             response["body"] = response_body
@@ -922,7 +925,7 @@ class ChromeRemote:
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в get_document")
             return DOMNode(
-                nodeId=0, backendNodeId=0, nodeType=0, nodeName="", localName="", nodeValue=""
+                nodeId=0, backendNodeId=0, nodeType=0, nodeName="", localName="", nodeValue="",
             )
         tree = self._chrome_tab.DOM.getDocument(depth=-1 if full else 1)
         return DOMNode(**tree["root"])
@@ -953,7 +956,7 @@ class ChromeRemote:
                 raise RuntimeError(
                     f"Превышен максимальный общий размер JS скриптов "
                     f"({self._total_js_size + js_code_size} > {MAX_TOTAL_JS_SIZE} байт). "
-                    f"Это может быть DoS атака."
+                    f"Это может быть DoS атака.",
                 )
             self._total_js_size += js_code_size
 
@@ -1042,7 +1045,7 @@ class ChromeRemote:
             """Внутренняя функция для выполнения скрипта."""
             try:
                 eval_result = self._chrome_tab.Runtime.evaluate(  # type: ignore[union-attr]
-                    expression=expression, returnByValue=True
+                    expression=expression, returnByValue=True,
                 )
                 result["value"] = eval_result["result"].get("value", None)
             except (KeyboardInterrupt, SystemExit):
@@ -1059,7 +1062,7 @@ class ChromeRemote:
                 except TimeoutError as timeout_err:
                     app_logger.error("Превышено время выполнения JavaScript (%d секунд)", timeout)
                     raise TimeoutError(
-                        f"Выполнение скрипта превысило таймаут {timeout} секунд"
+                        f"Выполнение скрипта превысило таймаут {timeout} секунд",
                     ) from timeout_err
 
             if result["error"]:
@@ -1080,8 +1083,8 @@ class ChromeRemote:
     if sleep_and_retry is not None and limits is not None:
         _execute_script_internal = sleep_and_retry(
             limits(calls=EXTERNAL_RATE_LIMIT_CALLS, period=EXTERNAL_RATE_LIMIT_PERIOD)(
-                _execute_script_internal_impl
-            )
+                _execute_script_internal_impl,
+            ),
         )
         app_logger.debug(
             "Rate limiting включён: %d запросов за %d сек",
@@ -1092,7 +1095,7 @@ class ChromeRemote:
         # D010: Предупреждение об отсутствии rate limiting
         app_logger.warning(
             "Rate limiting недоступен (библиотека ratelimit не установлена). "
-            "Рекомендуется установить: pip install ratelimit"
+            "Рекомендуется установить: pip install ratelimit",
         )
         _execute_script_internal = _execute_script_internal_impl
 
@@ -1152,10 +1155,10 @@ class ChromeRemote:
 
                 # Шаг 2: Симулируем клик через Input.dispatchMouseEvent (2 вызова)
                 self._chrome_tab.Input.dispatchMouseEvent(
-                    type="mousePressed", x=int(cx), y=int(cy), button="left", clickCount=1
+                    type="mousePressed", x=int(cx), y=int(cy), button="left", clickCount=1,
                 )
                 self._chrome_tab.Input.dispatchMouseEvent(
-                    type="mouseReleased", x=int(cx), y=int(cy), button="left", clickCount=1
+                    type="mouseReleased", x=int(cx), y=int(cy), button="left", clickCount=1,
                 )
                 return
         except (ConnectionError, TimeoutError, OSError) as e:
@@ -1164,11 +1167,11 @@ class ChromeRemote:
         # Fallback: стандартный метод через resolveNode + callFunctionOn
         try:
             resolved_node = self._chrome_tab.DOM.resolveNode(
-                backendNodeId=dom_node.backend_id, _timeout=timeout
+                backendNodeId=dom_node.backend_id, _timeout=timeout,
             )
             object_id = resolved_node["object"]["objectId"]
             self._chrome_tab.Runtime.callFunctionOn(
-                objectId=object_id, functionDeclaration="(function(){this.click()})"
+                objectId=object_id, functionDeclaration="(function(){this.click()})",
             )
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -1366,7 +1369,7 @@ class ChromeRemote:
         try:
             # Получаем outerHTML документа
             result = self._chrome_tab.Runtime.evaluate(
-                expression="document.documentElement.outerHTML", returnByValue=True, timeout=20000
+                expression="document.documentElement.outerHTML", returnByValue=True, timeout=20000,
             )
             if result and "result" in result:
                 return result["result"].get("value", "")  # type: ignore[no-any-return]

@@ -159,7 +159,7 @@ __all__ = ["ArgumentHelpFormatter", "format_config_summary", "patch_argparse_tra
 
 
 def format_config_summary(
-    config: Configuration, args: argparse.Namespace | None = None
+    config: Configuration, args: argparse.Namespace | None = None,
 ) -> ConfigSummaryDict:
     """Форматирует конфигурацию для логирования.
 

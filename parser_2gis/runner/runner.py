@@ -39,7 +39,7 @@ class AbstractRunner(ABC):
     """
 
     def __init__(
-        self, urls: list[str], output_path: str, output_format: str, config: Configuration
+        self, urls: list[str], output_path: str, output_format: str, config: Configuration,
     ) -> None:
         """Инициализирует базовый runner с параметрами парсинга.
 

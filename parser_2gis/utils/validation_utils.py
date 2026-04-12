@@ -54,7 +54,7 @@ def _get_logger() -> logging.Logger:
 
 
 def report_from_validation_error(
-    ex: ValidationError, d: dict[str, Any] | None = None
+    ex: ValidationError, d: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Генерирует отчёт об ошибке валидации для `BaseModel` из `ValidationError`.
 

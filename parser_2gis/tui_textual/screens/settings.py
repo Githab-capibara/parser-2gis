@@ -278,7 +278,7 @@ class ParserSettingsScreen(Screen):
             with Vertical(classes="setting-row"):
                 yield Label("Максимум записей:", classes="setting-label")
                 yield Input(
-                    id="max-records-input", value=str(PARSER_DEFAULTS_MAX_RECORDS), type="integer"
+                    id="max-records-input", value=str(PARSER_DEFAULTS_MAX_RECORDS), type="integer",
                 )
 
             with Vertical(classes="setting-row"):
@@ -292,7 +292,7 @@ class ParserSettingsScreen(Screen):
             with Vertical(classes="setting-row"):
                 yield Label("Максимум попыток:", classes="setting-label")
                 yield Input(
-                    id="max-retries-input", value=str(PARSER_DEFAULTS_MAX_RETRIES), type="integer"
+                    id="max-retries-input", value=str(PARSER_DEFAULTS_MAX_RETRIES), type="integer",
                 )
 
             with Vertical(classes="setting-row"):
@@ -488,7 +488,7 @@ class OutputSettingsScreen(Screen):
             config.writer.csv.add_rubrics = self.query_one("#add-rubrics-switch", Switch).value
             config.writer.csv.add_comments = self.query_one("#add-comments-switch", Switch).value
             config.writer.csv.remove_duplicates = self.query_one(
-                "#remove-duplicates-switch", Switch
+                "#remove-duplicates-switch", Switch,
             ).value
 
             self.app.save_config()
@@ -509,5 +509,5 @@ class OutputSettingsScreen(Screen):
         self.query_one("#add-rubrics-switch", Switch).value = OUTPUT_DEFAULTS_ADD_RUBRICS
         self.query_one("#add-comments-switch", Switch).value = OUTPUT_DEFAULTS_ADD_COMMENTS
         self.query_one(
-            "#remove-duplicates-switch", Switch
+            "#remove-duplicates-switch", Switch,
         ).value = OUTPUT_DEFAULTS_REMOVE_DUPLICATES

@@ -71,11 +71,11 @@ class SemaphoreManager:
         """
         if max_workers < MIN_WORKERS:
             raise ValueError(
-                f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}"
+                f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}",
             )
         if max_workers > MAX_WORKERS:
             raise ValueError(
-                f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
+                f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}",
             )
 
     def acquire(self, *, blocking: bool = True, timeout: float | None = None) -> bool:

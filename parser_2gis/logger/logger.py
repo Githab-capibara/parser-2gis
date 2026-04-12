@@ -120,7 +120,7 @@ class LoggerProvider:
                 if not log_instance.handlers:
                     handler = logging.StreamHandler()
                     formatter = _create_formatter(
-                        "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"
+                        "%(asctime)s - %(name)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S",
                     )
                     handler.setFormatter(formatter)
                     log_instance.addHandler(handler)
@@ -332,7 +332,7 @@ def log_parser_start(
 
 
 def log_parser_finish(
-    *, success: bool = True, stats: dict[str, Any] | None = None, duration: str | None = None
+    *, success: bool = True, stats: dict[str, Any] | None = None, duration: str | None = None,
 ) -> None:
     """Логирует завершение парсера.
 

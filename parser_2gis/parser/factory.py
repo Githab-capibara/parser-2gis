@@ -210,10 +210,10 @@ def get_parser(
     """
     parser_cls = _parser_registry.find_parser(url)
     if parser_cls is not None:
-        # Парсеры в реестре имеют конструкторы с параметрами (url, chrome_options, parser_options, browser)
+        # Парсеры в реестре имеют конструкторы с параметрами
         return parser_cls(url, chrome_options, parser_options, browser=browser)  # type: ignore[arg-type, misc]
 
-    # ISSUE 078: Возвращаем MainParser как явно помеченный fallback
+    # Возвращаем MainParser как fallback
     from parser_2gis.logger.logger import logger as fallback_logger
 
     fallback_logger.warning(
@@ -285,7 +285,7 @@ def _discover_parsers_via_importlib() -> None:
         import importlib.util
 
         for _finder, module_name, _is_pkg in getattr(
-            __import__("pkgutil"), "_iter_importers", lambda *_: []
+            __import__("pkgutil"), "_iter_importers", lambda *_: [],
         )(parsers_pkg, parsers_pkg.__name__, pkg_path):
             if module_name.startswith("_") or module_name in ("base", "__init__"):
                 continue

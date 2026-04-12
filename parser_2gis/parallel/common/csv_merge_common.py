@@ -30,7 +30,7 @@ from parser_2gis.parallel.filename_utils import extract_category_from_filename
 
 
 def _log_message(
-    msg: str, level: str = "debug", log_callback: Callable[[str, str], None] | None = None
+    msg: str, level: str = "debug", log_callback: Callable[[str, str], None] | None = None,
 ) -> None:
     """Общая функция для логирования через callback.
 
@@ -109,7 +109,7 @@ def merge_csv_files_common(
     writer = None
 
     def _open_outfile_with_fallback(
-        path: Path, enc: str, buf_size: int, log_func: Callable[[str, str], None] | None
+        path: Path, enc: str, buf_size: int, log_func: Callable[[str, str], None] | None,
     ) -> tuple[TextIO | None, bool]:
         """Открывает выходной файл с fallback механизмом."""
         try:
@@ -126,12 +126,12 @@ def merge_csv_files_common(
 
             if buf_size > 8192:
                 _log_message(
-                    "Fallback попытка: уменьшаем размер буфера до 8KB", "warning", log_func
+                    "Fallback попытка: уменьшаем размер буфера до 8KB", "warning", log_func,
                 )
                 try:
                     file_obj = open(path, "w", encoding=enc, newline="", buffering=8192)  # noqa: SIM115
                     _log_message(
-                        "Fallback успешен: файл открыт с уменьшенным буфером", "info", log_func
+                        "Fallback успешен: файл открыт с уменьшенным буфером", "info", log_func,
                     )
                     return file_obj, True
                 except OSError as fallback_error:
@@ -140,7 +140,7 @@ def merge_csv_files_common(
             return None, False
 
     outfile, open_success = _open_outfile_with_fallback(
-        output_path, encoding, buffer_size, log_callback
+        output_path, encoding, buffer_size, log_callback,
     )
     if not open_success or outfile is None:
         return False, 0, []
@@ -156,7 +156,7 @@ def merge_csv_files_common(
                     progress_callback(f"Обработка: {csv_file.name}")
 
                 category_name = extract_category_from_filename(
-                    csv_file, log_func=partial(_log_message, log_callback=log_callback)
+                    csv_file, log_func=partial(_log_message, log_callback=log_callback),
                 )
 
                 infile = None
@@ -170,22 +170,22 @@ def merge_csv_files_common(
                         log_callback,
                     )
                     if buffer_size > 0:
+                        # Пробуем открыть файл с буферизацией (SIM115 игнор.)
                         try:
-                            infile = open(
-                                csv_file, encoding="utf-8-sig", newline="", buffering=4096
+                            infile = open(  # noqa: SIM115
+                                csv_file, encoding="utf-8-sig", newline="", buffering=4096,
                             )
+                        except OSError:
+                            continue
+                        try:
                             _log_message(
                                 f"Fallback успешен: файл {csv_file} открыт с буфером 4KB",
                                 "info",
                                 log_callback,
                             )
-                        except OSError as fallback_error:
-                            _log_message(
-                                f"Fallback не удался для {csv_file}: {fallback_error}",
-                                "error",
-                                log_callback,
-                            )
-                            continue
+                        finally:
+                            if "infile" in locals():
+                                infile.close()
                     else:
                         continue
 
@@ -194,7 +194,9 @@ def merge_csv_files_common(
 
                     if reader.fieldnames is None or len(reader.fieldnames) == 0:
                         _log_message(
-                            f"Файл {csv_file} пуст или не имеет заголовков", "warning", log_callback
+                            f"Файл {csv_file} пуст или не имеет заголовков",
+                            "warning",
+                            log_callback,
                         )
                         continue
 
@@ -234,7 +236,7 @@ def merge_csv_files_common(
 
                 except (OSError, csv.Error) as csv_error:
                     _log_message(
-                        f"Ошибка при обработке CSV {csv_file}: {csv_error}", "error", log_callback
+                        f"Ошибка при обработке CSV {csv_file}: {csv_error}", "error", log_callback,
                     )
                     continue
                 finally:
@@ -252,18 +254,18 @@ def merge_csv_files_common(
 
             if writer is None:
                 _log_message(
-                    "Все CSV файлы пустые или не имеют заголовков", "warning", log_callback
+                    "Все CSV файлы пустые или не имеют заголовков", "warning", log_callback,
                 )
                 return False, 0, []
 
             _log_message(
-                f"Объединение завершено. Всего записей: {total_rows}", "info", log_callback
+                f"Объединение завершено. Всего записей: {total_rows}", "info", log_callback,
             )
             return True, total_rows, files_to_delete
 
     except KeyboardInterrupt:
         _log_message(
-            "Объединение прервано пользователем (KeyboardInterrupt)", "warning", log_callback
+            "Объединение прервано пользователем (KeyboardInterrupt)", "warning", log_callback,
         )
         return False, 0, files_to_delete
 

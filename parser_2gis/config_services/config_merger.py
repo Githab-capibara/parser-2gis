@@ -57,7 +57,7 @@ class ConfigMerger:
 
     @classmethod
     def _merge_recursive(
-        cls, target: BaseModel, source: BaseModel, depth: int, max_depth: int, visited: set[int]
+        cls, target: BaseModel, source: BaseModel, depth: int, max_depth: int, visited: set[int],
     ) -> None:
         """Рекурсивно объединяет модели.
 
@@ -84,7 +84,7 @@ class ConfigMerger:
 
         if depth >= int(max_depth * 0.8):
             cls._get_logger().warning(
-                "Внимание: глубина обработки достигла %d/%d (80%% от лимита)", depth, max_depth
+                "Внимание: глубина обработки достигла %d/%d (80%% от лимита)", depth, max_depth,
             )
 
         fields_set = cls._get_fields_set(source)

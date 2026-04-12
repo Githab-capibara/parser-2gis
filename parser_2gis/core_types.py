@@ -113,7 +113,7 @@ class ParseResult[T]:
     """
 
     def __init__(
-        self, value: T | None = None, *, success: bool = True, error: str | None = None
+        self, value: T | None = None, *, success: bool = True, error: str | None = None,
     ) -> None:
         """Инициализирует результат парсинга.
 

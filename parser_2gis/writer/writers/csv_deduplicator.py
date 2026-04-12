@@ -156,20 +156,18 @@ class CSVDeduplicator:
 
             # Открываем файлы с mmap или обычной буферизацией
             # Используем контекстный менеджер для безопасной работы с mmap
-            with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (
+            with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (  # noqa: SIM117
                 f_csv,
                 _is_mmap,
                 _,  # underlying_fp не используется
             ):
-                f_tmp_csv = open(
+                with open(
                     tmp_csv_name,
                     "w",
                     encoding=self._encoding,
                     newline="",
                     buffering=optimal_write_buffer,
-                )
-
-                try:
+                ) as f_tmp_csv:
                     # ВАЖНО: Помечаем что временный файл создан
                     temp_created = True
 
@@ -212,9 +210,6 @@ class CSVDeduplicator:
                             optimal_write_buffer,
                             use_mmap,
                         )
-                finally:
-                    # Гарантированно закрываем файл записи
-                    f_tmp_csv.close()
 
             # Замена оригинального файла новым с безопасной обработкой
             move_success = _safe_move_file(tmp_csv_name, self._file_path)
@@ -252,7 +247,7 @@ class CSVDeduplicator:
                     logger.debug("Временный файл удалён в блоке finally: %s", tmp_csv_name)
                 except OSError as cleanup_error:
                     logger.warning(
-                        "Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error
+                        "Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error,
                     )
 
             # ИСПРАВЛЕНИЕ C-003: Перевыбрасываем оригинальное исключение после очистки

@@ -84,7 +84,6 @@ class TestStopParsingFix:
         """
         parsing_screen._parsing_started = True
         parsing_screen._stopping = False
-        initial_running_value = mock_app.running
 
         mock_log = Mock()
         parsing_screen.query_one = Mock(return_value=mock_log)

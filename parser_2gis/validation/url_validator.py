@@ -86,10 +86,10 @@ def validate_url(url: str) -> ValidationResult:
         # Проверяем, не является ли хост IP адресом
         try:
             ip_addr = ipaddress.ip_address(hostname)
-            # Проверяем на private и loopback адреса
             if ip_addr.is_private or ip_addr.is_loopback or ip_addr.is_link_local:
                 return ValidationResult(
-                    is_valid=False, error=f"Использование private IP адресов запрещено ({hostname})"
+                    is_valid=False,
+                    error=f"Использование private IP адресов запрещено ({hostname})",
                 )
         except ValueError:
             # Это доменное имя - проверяем через socket.getaddrinfo

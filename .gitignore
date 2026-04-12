@@ -57,3 +57,4 @@ TEST_OPTIMIZATION_REPORT.md
 
 # Результаты тестов
 output/
+.aider*

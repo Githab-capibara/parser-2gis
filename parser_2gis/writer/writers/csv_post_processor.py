@@ -65,7 +65,7 @@ class CSVPostProcessor:
         return re.compile(pattern_str)
 
     def _count_complex_columns(
-        self, complex_columns_pattern: Pattern[str] | None
+        self, complex_columns_pattern: Pattern[str] | None,
     ) -> dict[str, int]:
         """Подсчитывает непустые значения в сложных колонках.
 
@@ -145,17 +145,14 @@ class CSVPostProcessor:
         file_size = os.path.getsize(self._file_path) if os.path.exists(self._file_path) else 0
         optimal_write_buffer = _calculate_optimal_buffer_size(file_size_bytes=file_size)
 
-        with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (f_csv, _, _):
-            f_tmp_csv = None
-            try:
-                f_tmp_csv = open(
-                    tmp_csv_name,
-                    "w",
-                    newline="",
-                    buffering=optimal_write_buffer,
-                    encoding=self._encoding,
-                )
-
+        with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (f_csv, _, _):  # noqa: SIM117
+            with open(
+                tmp_csv_name,
+                "w",
+                newline="",
+                buffering=optimal_write_buffer,
+                encoding=self._encoding,
+            ) as f_tmp_csv:
                 csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())
                 csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())
 
@@ -190,9 +187,6 @@ class CSVPostProcessor:
                     total_batches,
                     batch_size,
                 )
-            finally:
-                if f_tmp_csv is not None and not f_tmp_csv.closed:
-                    f_tmp_csv.close()
 
     def remove_empty_columns(self) -> None:
         """Удаляет пустые колонки из CSV файла.
@@ -260,5 +254,5 @@ class CSVPostProcessor:
                     logger.debug("Временный файл удалён в блоке finally: %s", tmp_csv_name)
                 except OSError as cleanup_error:
                     logger.warning(
-                        "Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error
+                        "Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error,
                     )
