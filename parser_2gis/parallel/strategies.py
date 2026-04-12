@@ -34,7 +34,12 @@ from parser_2gis.utils.temp_file_manager import temp_file_manager
 from parser_2gis.utils.url_utils import generate_category_url
 
 if TYPE_CHECKING:
+    from parser_2gis.chrome.options import ChromeOptions
     from parser_2gis.config import Configuration
+    from parser_2gis.parser.options import ParserOptions
+    from parser_2gis.parser.parsers.base import BaseParser
+    from parser_2gis.writer import FileWriter
+    from parser_2gis.writer.options import WriterOptions
 
 # Type aliases
 type ParserResult = tuple[bool, str]  # (success, message)
@@ -57,8 +62,8 @@ DEFAULT_PARSE_RETRY_DELAY: float = 5.0
 # =============================================================================
 
 # Type aliases для factory callable
-ParserFactory = Callable[[str, Any, Any], Any]
-WriterFactory = Callable[[str, str, Any], Any]
+ParserFactory = Callable[[str, "ChromeOptions", "ParserOptions"], "BaseParser"]
+WriterFactory = Callable[[str, str, "WriterOptions"], "FileWriter"]
 
 
 class UrlGenerationStrategy(UrlGeneratorProtocolBase):
@@ -330,8 +335,8 @@ class ParseStrategy:
         city_name: str,
         progress_callback: Callable[[int, int, str], None] | None = None,
         cancel_event: threading.Event | None = None,
-        parser: Any | None = None,
-        writer: Any | None = None,
+        parser: BaseParser | None = None,
+        writer: FileWriter | None = None,
     ) -> ParserResult:
         """Парсит один URL и сохраняет результат в файл.
 

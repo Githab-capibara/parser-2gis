@@ -26,7 +26,7 @@ import re
 import sys
 import threading
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from .parsers import FirmParser, InBuildingParser, MainParser
 from .parsers.base import BaseParser
@@ -146,7 +146,7 @@ PARSER_REGISTRY = _parser_registry._registry
 _PARSER_PATTERNS = _parser_registry.patterns
 
 
-def register_parser(priority: int = 0) -> Callable[..., Any]:
+def register_parser(priority: int = 0) -> Callable[[type[BaseParser]], type[BaseParser]]:
     """Декоратор для регистрации parser класса в реестре.
 
     Args:

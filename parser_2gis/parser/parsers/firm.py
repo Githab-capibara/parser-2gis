@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 import sys
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from parser_2gis.constants import (
     MAX_INITIAL_STATE_DEPTH,
@@ -23,6 +23,12 @@ from .main import MainParser
 
 if TYPE_CHECKING:
     from parser_2gis.writer import FileWriter
+
+# Рекурсивный тип для валидации данных initialState
+# Может быть dict, list, str, int, float, bool или None
+type InitialStateData = (
+    "dict[str, InitialStateData] | list[InitialStateData] | str | int | float | bool | None"
+)
 
 _ALLOWED_KEYS: set[str] = {
     "data",
@@ -148,7 +154,9 @@ def _sanitize_string_value(value: str) -> str:
     return value
 
 
-def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> tuple[bool, int]:
+def _validate_initial_state(
+    data: InitialStateData, depth: int = 0, item_count: int = 0
+) -> tuple[bool, int]:
     """Рекурсивно валидирует структуру initialState на безопасность.
 
     ISSUE-076, ISSUE-077: Добавлена валидация depth и item_count.
@@ -248,7 +256,9 @@ def _validate_initial_state(data: Any, depth: int = 0, item_count: int = 0) -> t
     return False, item_count
 
 
-def _safe_extract_initial_state(raw_data: Any, required_keys: list[str]) -> dict[str, Any] | None:
+def _safe_extract_initial_state(
+    raw_data: InitialStateData, required_keys: list[str]
+) -> dict[str, InitialStateData] | None:
     """Безопасно извлекает данные из initialState с валидацией.
 
     Args:

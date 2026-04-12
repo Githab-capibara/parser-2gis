@@ -12,7 +12,7 @@ ISSUE-014: Dependency Injection — зависимости внедряются 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, Self
+from typing import TYPE_CHECKING, Any, Protocol, Self, TypeVar
 
 from parser_2gis.shared_config_constants import CATALOG_API_PATTERN
 
@@ -27,6 +27,9 @@ if TYPE_CHECKING:
     from parser_2gis.parser.parsers.main import MainParser
     from parser_2gis.protocols import BrowserService
     from parser_2gis.writer import FileWriter
+
+# TypeVar для обобщённой типизации значений кэша
+T = TypeVar("T")
 
 
 # =============================================================================
@@ -223,7 +226,7 @@ class CacheFacade:
         """
         return self._cache.get(key)
 
-    def set(self, key: str, value: Any, _ttl: int = 3600) -> None:
+    def set(self, key: str, value: T, _ttl: int = 3600) -> T:
         """Устанавливает значение в кэш.
 
         Args:
@@ -231,8 +234,12 @@ class CacheFacade:
             value: Значение для кэширования.
             _ttl: Время жизни в секундах (не используется, оставлено для обратной совместимости).
 
+        Returns:
+            Переданное значение для удобства цепочки вызовов.
+
         """
-        self._cache.set(key, value)
+        self._cache.set(key, value)  # type: ignore[arg-type]
+        return value
 
     def exists(self, key: str) -> bool:
         """Проверяет наличие ключа в кэше.
@@ -378,7 +385,9 @@ class BrowserFacade:
         """
         return browser.get_html()
 
-    def execute_js(self, browser: BrowserService, js_code: str, timeout: int | None = None) -> Any:
+    def execute_js(
+        self, browser: BrowserService, js_code: str, timeout: int | None = None
+    ) -> str | int | float | bool | dict[str, Any] | list[Any] | None:
         """Выполняет JavaScript код.
 
         Args:
@@ -387,10 +396,10 @@ class BrowserFacade:
             timeout: Таймаут выполнения в секундах.
 
         Returns:
-            Результат выполнения JS.
+            Результат выполнения JS (сериализуемый тип).
 
         """
-        return browser.execute_js(js_code, timeout)
+        return browser.execute_js(js_code, timeout)  # type: ignore[return-value]
 
     def close(self, browser: BrowserService) -> None:
         """Закрывает браузер.

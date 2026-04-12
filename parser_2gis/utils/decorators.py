@@ -230,7 +230,7 @@ def wait_until_finished(
     use_exponential_backoff: bool = True,
     max_poll_interval: float = MAX_POLL_INTERVAL,
     max_retries: int | None = None,
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+) -> Callable[[Callable[P, R]], Callable[P, R | None]]:
     """Декоратор опрашивает обёрнутую функцию до истечения времени.
 
     ИСПРАВЛЕНИЕ 18:
@@ -304,7 +304,7 @@ def wait_until_finished(
     decorator_poll_interval = poll_interval
     decorator_max_retries = max_retries
 
-    def outer(func: Callable[..., Any]) -> Callable[..., Any]:
+    def outer(func: Callable[P, R]) -> Callable[P, R | None]:
         """Внешняя функция декоратора, принимающая декорируемый метод."""
 
         @wraps(func)
@@ -317,7 +317,7 @@ def wait_until_finished(
             override_poll_interval: float | None = None,
             override_max_retries: int | None = None,
             **kwargs: Any,
-        ) -> Any:
+        ) -> R | None:
             """Обёртка вокруг функции с ожиданием завершения операции."""
             # Группировка эффективных параметров в dataclass
             effective_config = WaitConfig(
@@ -344,7 +344,7 @@ def wait_until_finished(
                 ),
             )
 
-            result: Any = None
+            result: R | None = None
             start_time = time.time()
             current_poll_interval = effective_config.poll_interval
             consecutive_failures = 0  # Счётчик неудач для экспоненциальной задержки
@@ -465,7 +465,9 @@ def async_wait_until_finished(
     decorator_throw_exception = throw_exception
     decorator_poll_interval = poll_interval
 
-    def outer(func: Callable[..., Any]) -> Callable[..., Any]:
+    def outer(
+        func: Callable[P, Coroutine[Any, Any, R]]
+    ) -> Callable[P, Coroutine[Any, Any, R | None]]:
         """Внешняя функция асинхронного декоратора, принимающая декорируемый метод."""
 
         @wraps(func)
@@ -476,7 +478,7 @@ def async_wait_until_finished(
             override_throw_exception: bool | None = None,
             override_poll_interval: float | None = None,
             **kwargs: Any,
-        ) -> Any:
+        ) -> R | None:
             """Асинхронная обёртка вокруг функции с ожиданием завершения операции."""
             # Приоритет: override_* > значения из декоратора
             effective_timeout = (

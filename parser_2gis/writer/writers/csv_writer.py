@@ -439,7 +439,9 @@ class CSVWriter(FileWriter):
         self._wrote_count += written_count
         return written_count
 
-    def _validate_and_get_item(self, catalog_doc: Any) -> dict[str, Any] | None:
+    def _validate_and_get_item(
+        self, catalog_doc: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Валидирует структуру документа и возвращает первый item.
 
         Args:
@@ -577,7 +579,7 @@ class CSVWriter(FileWriter):
                 add_comments=add_comments,
             )
 
-    def _extract_raw(self, catalog_doc: Any) -> CSVRowData:
+    def _extract_raw(self, catalog_doc: dict[str, Any]) -> CSVRowData:
         """Извлекает данные из JSON-документа Catalog Item API.
 
         P1-4, P1-14: Оптимизировано с использованием TypedDict и локальных переменных.
