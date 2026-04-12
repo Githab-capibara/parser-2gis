@@ -1,7 +1,7 @@
 """Экран парсинга на Textual."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import ClassVar
 
 from textual.app import ComposeResult
@@ -170,7 +170,7 @@ class ParsingScreen(Screen):  # type: ignore[misc]
         self._stopping = False
         self._parsing_started = False
 
-        self._start_time = datetime.now(timezone.utc)
+        self._start_time = datetime.now(UTC)
         self._add_log("[bold green]Запуск парсинга...[/]")
 
         # Получить выбранные города и категории
@@ -302,7 +302,7 @@ class ParsingScreen(Screen):  # type: ignore[misc]
 
         elapsed = "00:00:00"
         if self._start_time:
-            delta = datetime.now(timezone.utc) - self._start_time
+            delta = datetime.now(UTC) - self._start_time
             elapsed = str(delta).split(".")[0]
 
         stats_display.update(

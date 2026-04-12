@@ -9,7 +9,7 @@ import json
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -617,7 +617,7 @@ class TUIApp(App):  # type: ignore[misc]
         """
         try:
             self._running = True
-            self._started_at = datetime.now(timezone.utc)
+            self._started_at = datetime.now(UTC)
 
             # Проверка флага остановки перед началом работы
             if not self._running:

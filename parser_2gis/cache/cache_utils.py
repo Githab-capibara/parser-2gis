@@ -15,7 +15,7 @@ import functools
 import hashlib
 import sqlite3
 import zlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from parser_2gis.constants import SHA256_HASH_LENGTH
@@ -177,7 +177,7 @@ def is_cache_expired(expires_at: datetime | None) -> bool:
         return True
 
     # Используем timezone-aware datetime для корректного сравнения
-    return datetime.now(timezone.utc) > expires_at
+    return datetime.now(UTC) > expires_at
 
 
 __all__ = [

@@ -267,22 +267,20 @@ def wait_until_finished(
     """
     # ISSUE-099: Валидация timeout на отрицательное значение
     if timeout is not None and timeout <= 0:
-        raise ValueError("timeout должен быть положительным числом: %s" % timeout)
+        raise ValueError(f"timeout должен быть положительным числом: {timeout}")
 
     # ISSUE-100: Валидация max_poll_interval на положительное значение
     if max_poll_interval <= 0:
-        raise ValueError(
-            "max_poll_interval должен быть положительным числом: %s" % max_poll_interval
-        )
+        raise ValueError(f"max_poll_interval должен быть положительным числом: {max_poll_interval}")
 
     if poll_interval <= 0:
-        raise ValueError("poll_interval должен быть положительным числом: %s" % poll_interval)
+        raise ValueError(f"poll_interval должен быть положительным числом: {poll_interval}")
     if max_retries is not None and max_retries <= 0:
-        raise ValueError("max_retries должен быть положительным числом: %s" % max_retries)
+        raise ValueError(f"max_retries должен быть положительным числом: {max_retries}")
     if poll_interval > max_poll_interval:
         raise ValueError(
-            "poll_interval (%s) не может быть больше "
-            "max_poll_interval (%s)" % (poll_interval, max_poll_interval)
+            f"poll_interval ({poll_interval}) не может быть больше "
+            f"max_poll_interval ({max_poll_interval})"
         )
 
     # ISSUE-099: Дополнительная проверка timeout на разумность (максимум 24 часа)
@@ -296,7 +294,7 @@ def wait_until_finished(
     if max_poll_interval > MAX_POLL_INTERVAL_LIMIT:
         raise ValueError(
             "max_poll_interval не должен превышать "
-            "%s секунд, получено %s" % (MAX_POLL_INTERVAL_LIMIT, max_poll_interval)
+            f"{MAX_POLL_INTERVAL_LIMIT} секунд, получено {max_poll_interval}"
         )
 
     # Сохраняем значения декоратора в замыкании

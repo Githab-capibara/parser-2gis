@@ -8,7 +8,8 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Callable, ClassVar
+from collections.abc import Callable
+from typing import TYPE_CHECKING, ClassVar
 
 from parser_2gis.logger import logger
 

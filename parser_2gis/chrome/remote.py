@@ -226,10 +226,10 @@ def invalidate_port_cache(_port: int) -> None:
 def _validate_remote_port(port: Any) -> int:
     """Валидирует remote_port как integer в допустимом диапазоне."""
     if isinstance(port, bool):
-        raise TypeError("remote_port не должен быть bool, получен %s" % type(port).__name__)
+        raise TypeError(f"remote_port не должен быть bool, получен {type(port).__name__}")
 
     if not isinstance(port, int):
-        raise TypeError("remote_port должен быть integer, получен %s" % type(port).__name__)
+        raise TypeError(f"remote_port должен быть integer, получен {type(port).__name__}")
 
     if port < MIN_PORT:
         raise ValueError(
@@ -501,7 +501,7 @@ class ChromeRemote:
 
         if result["error"]:
             app_logger.error("Ошибка при запуске вкладки: %s", result["error"])
-            raise RuntimeError("Ошибка при запуске вкладки: %s" % result["error"])
+            raise RuntimeError("Ошибка при запуске вкладки: {}".format(result["error"]))
 
         app_logger.debug("Вкладка успешно запущена")
 
@@ -737,15 +737,13 @@ class ChromeRemote:
 
         # D001: Проверка что URL начинается с безопасного протокола
         if not url.startswith(("http://", "https://")):
-            raise ValueError(
-                "URL должен начинаться с http:// или https://, получено: %s" % url[:50]
-            )
+            raise ValueError(f"URL должен начинаться с http:// или https://, получено: {url[:50]}")
 
         # D001: Проверка на экранирование символов для предотвращения injection
         dangerous_chars = ["\x00", "\r", "\n", "\t"]
         for char in dangerous_chars:
             if char in url:
-                raise ValueError("URL содержит недопустимый символ: %r" % char)
+                raise ValueError(f"URL содержит недопустимый символ: {char!r}")
 
         if self._chrome_tab is None:
             # ISSUE-003-#6: Выбрасываем ChromeException вместо возврата None
@@ -947,7 +945,7 @@ class ChromeRemote:
         """
         # ISSUE-003-#5: Валидация source параметра
         if not isinstance(source, str):
-            raise TypeError("source должен быть строкой, получен %s" % type(source).__name__)
+            raise TypeError(f"source должен быть строкой, получен {type(source).__name__}")
         if not source or not source.strip():
             msg = "source не может быть пустой строкой"
             raise ValueError(msg)
@@ -959,7 +957,7 @@ class ChromeRemote:
         is_valid, error_msg = _validate_js_code(source)
         if not is_valid:
             app_logger.error("Валидация скрипта не пройдена: %s", error_msg)
-            raise ValueError("Небезопасный JavaScript код: %s" % error_msg)
+            raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
 
         js_code_size = len(source.encode("utf-8"))
         with self._js_size_lock:
@@ -999,7 +997,7 @@ class ChromeRemote:
         is_valid, error_msg = _validate_js_code(expression)
         if not is_valid:
             app_logger.error("Валидация выражения не пройдена: %s", error_msg)
-            raise ValueError("Небезопасный JavaScript код: %s" % error_msg)
+            raise ValueError(f"Небезопасный JavaScript код: {error_msg}")
 
         return self._execute_script_internal(expression, timeout)
 
@@ -1359,9 +1357,7 @@ class ChromeRemote:
             msg = "JavaScript код не может быть None"
             raise ValueError(msg)
         if not isinstance(js_code, str):
-            raise TypeError(
-                "JavaScript код должен быть строкой, получен %s" % type(js_code).__name__
-            )
+            raise TypeError(f"JavaScript код должен быть строкой, получен {type(js_code).__name__}")
         if not js_code.strip():
             msg = "JavaScript код не может быть пустым"
             raise ValueError(msg)

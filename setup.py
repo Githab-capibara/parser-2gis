@@ -22,7 +22,12 @@ long_description = README_PATH.read_text(encoding="utf-8")
 long_description_content_type = "text/markdown"
 
 version_path_text = VERSION_PATH.read_text(encoding="utf-8")
-match = re.search(r'^version\s*=\s*[\'"](?P<version>.+?)[\'"]', version_path_text, re.MULTILINE)
+# Поддерживаем варианты: version = 'X.Y.Z', version: str = 'X.Y.Z', VERSION = 'X.Y.Z'
+match = re.search(
+    r'^(?:__)?(?:version|VERSION)\s*(?::\s*\w+(?:\s*\[.*?\])?)?\s*=\s*[\'"](?P<version>.+?)[\'"]',
+    version_path_text,
+    re.MULTILINE,
+)
 if not match:
     raise RuntimeError(
         f"Не удалось найти версию в файле {VERSION_PATH}. "
@@ -146,9 +151,8 @@ if __name__ == "__main__":
             "Programming Language :: Python :: 3.12",
             "Natural Language :: Russian",
             "Intended Audience :: End Users/Desktop",
-            "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
         ],
-        license="LGPLv3+",
+        license="LGPL-3.0-or-later",
         entry_points={"console_scripts": ["parser-2gis = parser_2gis:main"]},
         cmdclass={"build_standalone": BuildStandaloneCommand},
     )

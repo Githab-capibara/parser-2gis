@@ -26,7 +26,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Natural Language :: Russian",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
 ]
 
 dependencies = [

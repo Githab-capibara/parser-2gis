@@ -20,7 +20,7 @@ import re
 import sqlite3
 import time
 import weakref
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 
@@ -272,7 +272,7 @@ class CacheManager:
             ttl_hours = int(ttl_hours)
         except (ValueError, TypeError) as conversion_error:
             raise TypeError(
-                "ttl_hours должен быть целым числом, получено: %s" % type(ttl_hours).__name__
+                f"ttl_hours должен быть целым числом, получено: {type(ttl_hours).__name__}"
             ) from conversion_error
 
         if ttl_hours <= 0:
@@ -301,7 +301,7 @@ class CacheManager:
         if not re.match(r"^[a-zA-Z0-9_-]+\.db$", cache_file_name):
             raise ValueError(
                 "cache_file_name должен содержать только латинские буквы, цифры, "
-                "'-' и '_', формат: 'имя.db', получено: %r" % cache_file_name
+                f"'-' и '_', формат: 'имя.db', получено: {cache_file_name!r}"
             )
 
         self._cache_dir = cache_dir
@@ -564,7 +564,7 @@ class CacheManager:
                     if row:
                         data, expires_at_str = row
                         expires_at = self._parse_expires_at(expires_at_str)
-                        if expires_at and datetime.now(timezone.utc) <= expires_at:
+                        if expires_at and datetime.now(UTC) <= expires_at:
                             return self._serializer.deserialize(data)
             except sqlite3.Error as retry_error:
                 app_logger.warning("Повторная попытка не удалась: %s", retry_error)
@@ -795,7 +795,7 @@ class CacheManager:
         url_hash = self._hash_url(url)
 
         # Используем одну временную метку для всех операций в методе
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires_at = now + self._ttl
 
         # ID:072: Обработка MemoryError при сериализации
@@ -971,7 +971,7 @@ class CacheManager:
         skipped_count = 0
 
         # Используем одну временную метку для всех операций в методе
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires_at = now + self._ttl
 
         # Оптимизация: сериализация в один проход, затем пакетная вставка
@@ -1094,7 +1094,7 @@ class CacheManager:
         cursor = conn.cursor()
 
         try:
-            current_time = datetime.now(timezone.utc)
+            current_time = datetime.now(UTC)
 
             cursor.execute(self.DELETE_EXPIRED_SQL, (current_time.isoformat(),))
             deleted_count = cursor.rowcount
@@ -1196,7 +1196,7 @@ class CacheManager:
             cursor.execute(self.COUNT_ALL_SQL)
             total = cursor.fetchone()[0]
 
-            current_time = datetime.now(timezone.utc)
+            current_time = datetime.now(UTC)
 
             cursor.execute(self.COUNT_EXPIRED_SQL, (current_time.isoformat(),))
             expired = cursor.fetchone()[0]
