@@ -439,6 +439,144 @@ class CSVWriter(FileWriter):
         self._wrote_count += written_count
         return written_count
 
+    def _validate_and_get_item(self, catalog_doc: Any) -> dict[str, Any] | None:
+        """Валидирует структуру документа и возвращает первый item.
+
+        Args:
+            catalog_doc: JSON-документ Catalog Item API.
+
+        Returns:
+            Словарь item или None при ошибке.
+        """
+        if not isinstance(catalog_doc, dict):
+            logger.error("Некорректная структура документа: не dict")
+            return None
+
+        result = catalog_doc.get("result")
+        if not result or not isinstance(result, dict):
+            logger.error("Некорректная структура документа: отсутствует result.items")
+            return None
+
+        items = result.get("items", [])
+        if not items:
+            logger.error("Пустой список items в документе")
+            return None
+
+        return items[0]
+
+    def _parse_catalog_item(self, item: dict[str, Any]) -> CatalogItem | None:
+        """Создаёт CatalogItem из словаря с обработкой ошибок валидации.
+
+        Args:
+            item: Словарь данных элемента.
+
+        Returns:
+            CatalogItem или None при ошибке.
+        """
+        try:
+            return CatalogItem(**item)
+        except ValidationError as e:
+            errors = []
+            errors_report = report_from_validation_error(e, item)
+            for path, description in errors_report.items():
+                arg = description["invalid_value"]
+                error_msg = description["error_message"]
+                errors.append(f"[*] Поле: {path}, значение: {arg}, ошибка: {error_msg}")
+
+            item_type = item.get("type", "неизвестно")
+            item_id = item.get("id", "неизвестно")
+            error_str = "Ошибка парсинга:\n" + "\n".join(errors)
+            error_str += f"\nДокумент каталога (тип: {item_type}, ID: {item_id})"
+            logger.error(error_str)
+            return None
+
+    def _extract_basic_fields(self, data: CSVRowData, catalog_item: CatalogItem) -> None:
+        """Извлекает базовые поля: name, type, address, rating, coordinates.
+
+        Args:
+            data: Словарь для заполнения.
+            catalog_item: Распарсенный элемент каталога.
+        """
+        if catalog_item.name_ex:
+            data["name"] = catalog_item.name_ex.primary
+            data["description"] = catalog_item.name_ex.extension  # type: ignore[typeddict-item]
+        elif catalog_item.name:
+            data["name"] = catalog_item.name
+        elif catalog_item.type in self._type_names:
+            data["name"] = self._type_names[catalog_item.type]
+
+        data["type"] = catalog_item.type
+        data["address"] = catalog_item.address_name  # type: ignore[typeddict-item]
+
+        if catalog_item.reviews:
+            data["general_rating"] = catalog_item.reviews.general_rating  # type: ignore[typeddict-item]
+            data["general_review_count"] = catalog_item.reviews.general_review_count  # type: ignore[typeddict-item]
+
+        if catalog_item.point:
+            data["point_lat"] = catalog_item.point.lat
+            data["point_lon"] = catalog_item.point.lon
+
+        data["address_comment"] = catalog_item.address_comment  # type: ignore[typeddict-item]
+
+    def _extract_administrative_fields(self, data: CSVRowData, catalog_item: CatalogItem) -> None:
+        """Извлекает административные поля: postcode, timezone, adm_div.
+
+        Args:
+            data: Словарь для заполнения.
+            catalog_item: Распарсенный элемент каталога.
+        """
+        if catalog_item.address:
+            data["postcode"] = catalog_item.address.postcode  # type: ignore[typeddict-item]
+
+        if catalog_item.timezone is not None:
+            data["timezone"] = catalog_item.timezone
+
+        for div in catalog_item.adm_div:
+            for t in ("country", "region", "district_area", "city", "district", "living_area"):
+                if div.type == t:
+                    data[t] = div.name
+
+    def _extract_contact_fields(self, data: CSVRowData, catalog_item: CatalogItem) -> None:
+        """Извлекает контактные данные: websites, phones, email, соцсети.
+
+        Args:
+            data: Словарь для заполнения.
+            catalog_item: Распарсенный элемент каталога.
+        """
+        contact_groups = catalog_item.contact_groups
+        add_comments = self._options.csv.add_comments
+        url_fields = (
+            "website", "vkontakte", "whatsapp", "viber", "telegram",
+            "instagram", "facebook", "twitter", "youtube", "skype",
+        )
+        text_fields = ("email", "skype")
+
+        for contact_group in contact_groups:
+            for t in url_fields:
+                _append_contact(
+                    data,  # type: ignore[arg-type]
+                    contact_group, t, ["url"], None,
+                    add_comments=add_comments,
+                )
+
+            for field, value in data.items():
+                if field.startswith("whatsapp") and value:
+                    data[field] = value.split("?")[0]  # type: ignore[literal-required, attr-defined]
+
+            for t in text_fields:
+                _append_contact(
+                    data,  # type: ignore[arg-type]
+                    contact_group, t, ["value"], None,
+                    add_comments=add_comments,
+                )
+
+            _append_contact(
+                data,  # type: ignore[arg-type]
+                contact_group, "phone", ["text", "value"],
+                self._phone_formatter.format,
+                add_comments=add_comments,
+            )
+
     def _extract_raw(self, catalog_doc: Any) -> CSVRowData:
         """Извлекает данные из JSON-документа Catalog Item API.
 
@@ -454,158 +592,26 @@ class CSVWriter(FileWriter):
         """
         data: CSVRowData = {}
 
-        # ISSUE-167: Кэширование обращений к catalog_doc через локальные переменные
-        # Проверка структуры документа
-        try:
-            if not isinstance(catalog_doc, dict):
-                logger.error("Некорректная структура документа: не dict")
-                return {}
-
-            # Кэшируем обращение к catalog_doc["result"]
-            result = catalog_doc.get("result")
-            if not result or not isinstance(result, dict):
-                logger.error("Некорректная структура документа: отсутствует result.items")
-                return {}
-
-            # Кэшируем обращение к result["items"]
-            items = result.get("items", [])
-            if not items:
-                logger.error("Пустой список items в документе")
-                return {}
-
-            item = items[0]
-        except (KeyError, TypeError, IndexError, AttributeError) as e:
-            logger.error("Ошибка при извлечении элемента из документа: %s", e)
+        item = self._validate_and_get_item(catalog_doc)
+        if item is None:
             return {}
 
-        try:
-            catalog_item = CatalogItem(**item)
-        except ValidationError as e:
-            errors = []
-            errors_report = report_from_validation_error(e, item)
-            for path, description in errors_report.items():
-                arg = description["invalid_value"]
-                error_msg = description["error_message"]
-                errors.append(f"[*] Поле: {path}, значение: {arg}, ошибка: {error_msg}")
-
-            # Безопасность: не раскрываем полную структуру документа API
-            item_type = item.get("type", "неизвестно")
-            item_id = item.get("id", "неизвестно")
-            error_str = "Ошибка парсинга:\n" + "\n".join(errors)
-            error_str += f"\nДокумент каталога (тип: {item_type}, ID: {item_id})"
-            logger.error(error_str)
-
-            # Возвращаем пустой словарь для индикации ошибки
+        catalog_item = self._parse_catalog_item(item)
+        if catalog_item is None:
             return {}
 
-        # Наименование и описание объекта
-        if catalog_item.name_ex:
-            data["name"] = catalog_item.name_ex.primary
-            data["description"] = catalog_item.name_ex.extension  # type: ignore[typeddict-item]
-        elif catalog_item.name:
-            data["name"] = catalog_item.name
-        elif catalog_item.type in self._type_names:
-            data["name"] = self._type_names[catalog_item.type]
+        self._extract_basic_fields(data, catalog_item)
+        self._extract_administrative_fields(data, catalog_item)
 
-        # Тип объекта
-        data["type"] = catalog_item.type
-
-        # Адрес объекта
-        data["address"] = catalog_item.address_name  # type: ignore[typeddict-item]
-
-        # Рейтинг и отзывы
-        if catalog_item.reviews:
-            data["general_rating"] = catalog_item.reviews.general_rating  # type: ignore[typeddict-item]
-            data["general_review_count"] = catalog_item.reviews.general_review_count  # type: ignore[typeddict-item]
-
-        # Географические координаты объекта
-        if catalog_item.point:
-            data["point_lat"] = catalog_item.point.lat  # Широта объекта
-            data["point_lon"] = catalog_item.point.lon  # Долгота объекта
-
-        # Дополнительный комментарий к адресу
-        data["address_comment"] = catalog_item.address_comment  # type: ignore[typeddict-item]
-
-        # Почтовый индекс
-        if catalog_item.address:
-            data["postcode"] = catalog_item.address.postcode  # type: ignore[typeddict-item]
-
-        # Часовой пояс объекта
-        if catalog_item.timezone is not None:
-            data["timezone"] = catalog_item.timezone
-
-        # Административно-территориальные детали (страна, регион, округ и т.д.)
-        for div in catalog_item.adm_div:
-            for t in ("country", "region", "district_area", "city", "district", "living_area"):
-                if div.type == t:
-                    data[t] = div.name
-
-        # URL объекта на сайте 2GIS
         data["url"] = catalog_item.url
 
-        # Контактные данные (телефоны, email, сайты, соцсети)
-        # P1-14: Оптимизация — выносим константы за пределы цикла
-        contact_groups = catalog_item.contact_groups
-        add_comments = self._options.csv.add_comments
+        self._extract_contact_fields(data, catalog_item)
 
-        for contact_group in contact_groups:
-            # Интернет-адреса (веб-сайты, соцсети)
-            for t in (
-                "website",
-                "vkontakte",
-                "whatsapp",
-                "viber",
-                "telegram",
-                "instagram",
-                "facebook",
-                "twitter",
-                "youtube",
-                "skype",
-            ):
-                _append_contact(
-                    data,  # type: ignore[arg-type]
-                    contact_group,
-                    t,
-                    ["url"],
-                    None,
-                    add_comments=add_comments,
-                )
-
-            # Удаляем параметры из URL WhatsApp
-            for field, value in data.items():
-                if field.startswith("whatsapp") and value:
-                    data[field] = value.split("?")[0]  # type: ignore[literal-required, attr-defined]
-
-            # Текстовые значения (email, skype и т.д.)
-            for t in ("email", "skype"):
-                _append_contact(
-                    data,  # type: ignore[arg-type]
-                    contact_group,
-                    t,
-                    ["value"],
-                    None,
-                    add_comments=add_comments,
-                )
-
-            # Телефоны (поле `value` иногда содержит нерелевантные данные,
-            # поэтому предпочитаем парсить поле `text`.
-            # Если в контакте нет `text` - используем атрибут `value`)
-            _append_contact(
-                data,  # type: ignore[arg-type]
-                contact_group,
-                "phone",
-                ["text", "value"],
-                self._phone_formatter.format,
-                add_comments=add_comments,
-            )
-
-        # Режим работы объекта
         if catalog_item.schedule:
             data["schedule"] = catalog_item.schedule.to_str(  # type: ignore[misc]
                 self._options.csv.join_char, self._options.csv.add_comments
             )
 
-        # Рубрики (категории) объекта
         if self._options.csv.add_rubrics:
             data["rubrics"] = self._options.csv.join_char.join(x.name for x in catalog_item.rubrics)
 

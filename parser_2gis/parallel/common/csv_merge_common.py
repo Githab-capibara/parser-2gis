@@ -61,6 +61,210 @@ def _get_cached_fieldnames(fieldnames_tuple: tuple[str, ...], *, add_category: b
     return fieldnames
 
 
+def _open_outfile_with_fallback(
+    path: Path, enc: str, buf_size: int, log_func: Callable[[str, str], None] | None,
+) -> tuple[TextIO | None, bool]:
+    """Открывает выходной файл с fallback механизмом.
+
+    Args:
+        path: Путь к файлу.
+        enc: Кодировка.
+        buf_size: Размер буфера.
+        log_func: Функция логирования.
+
+    Returns:
+        Кортеж (file_object, success).
+    """
+    try:
+        file_obj = open(path, "w", encoding=enc, newline="", buffering=buf_size)  # noqa: SIM115
+        _log_message(f"Выходной файл открыт с буфером {buf_size} байт", "debug", log_func)
+        return file_obj, True
+    except OSError as output_error:
+        error_type = type(output_error).__name__
+        _log_message(
+            f"Ошибка записи в выходной файл {path} ({error_type}): {output_error}",
+            "error",
+            log_func,
+        )
+        if buf_size > 8192:
+            _log_message("Fallback попытка: уменьшаем размер буфера до 8KB", "warning", log_func)
+            try:
+                file_obj = open(path, "w", encoding=enc, newline="", buffering=8192)  # noqa: SIM115
+                _log_message(
+                    "Fallback успешен: файл открыт с уменьшенным буфером", "info", log_func
+                )
+                return file_obj, True
+            except OSError as fallback_error:
+                _log_message(f"Fallback не удался: {fallback_error}", "error", log_func)
+                return None, False
+        return None, False
+
+
+def _open_infile_with_fallback(
+    csv_file: Path, buffer_size: int, log_callback: Callable[[str, str], None] | None,
+) -> TextIO | None:
+    """Открывает входной CSV файл с fallback на уменьшение буфера.
+
+    Args:
+        csv_file: Путь к CSV файлу.
+        buffer_size: Размер буфера.
+        log_callback: Функция логирования.
+
+    Returns:
+        Открытый файл или None.
+    """
+    try:
+        infile = open(csv_file, encoding="utf-8-sig", newline="", buffering=buffer_size)  # noqa: SIM115
+        return infile
+    except OSError as file_error:
+        error_type = type(file_error).__name__
+        _log_message(
+            f"Ошибка доступа к файлу {csv_file} ({error_type}): {file_error}",
+            "error",
+            log_callback,
+        )
+        if buffer_size > 0:
+            try:
+                infile = open(csv_file, encoding="utf-8-sig", newline="", buffering=4096)  # noqa: SIM115
+                _log_message(
+                    f"Fallback успешен: файл {csv_file} открыт с буфером 4KB",
+                    "info",
+                    log_callback,
+                )
+                return infile
+            except OSError:
+                return None
+        return None
+
+
+def _process_csv_file_rows(
+    csv_file: Path,
+    writer: csv.DictWriter[str] | None,
+    outfile: TextIO,
+    buffer_size: int,
+    batch_size: int,
+    fieldnames_cache: dict[tuple[str, ...], list[str]],
+    log_callback: Callable[[str, str], None] | None,
+) -> tuple[csv.DictWriter[str] | None, int]:
+    """Обрабатывает один CSV файл: читает строки и записывает пакетами.
+
+    Args:
+        csv_file: Путь к файлу.
+        writer: Текущий DictWriter.
+        outfile: Выходной файл.
+        buffer_size: Размер буфера чтения.
+        batch_size: Размер пакета записи.
+        fieldnames_cache: Кэш имён полей.
+        log_callback: Функция логирования.
+
+    Returns:
+        Кортеж (writer, rows_count).
+    """
+    infile = _open_infile_with_fallback(csv_file, buffer_size, log_callback)
+    if infile is None:
+        return writer, 0
+
+    try:
+        return _read_and_batch_rows(
+            csv_file, infile, writer, outfile, batch_size, fieldnames_cache, log_callback,
+        )
+    finally:
+        try:
+            infile.close()
+        except (OSError, RuntimeError, ValueError) as close_error:
+            _log_message(
+                f"Ошибка при закрытии файла {csv_file.name}: {close_error}",
+                "debug",
+                log_callback,
+            )
+
+
+def _read_and_batch_rows(
+    csv_file: Path,
+    infile: TextIO,
+    writer: csv.DictWriter[str] | None,
+    outfile: TextIO,
+    batch_size: int,
+    fieldnames_cache: dict[tuple[str, ...], list[str]],
+    log_callback: Callable[[str, str], None] | None,
+) -> tuple[csv.DictWriter[str] | None, int]:
+    """Читает строки из CSV DictReader и записывает их пакетами.
+
+    Args:
+        csv_file: Путь к файлу (для логирования).
+        infile: Открытый файл.
+        writer: Текущий DictWriter.
+        outfile: Выходной файл.
+        batch_size: Размер пакета.
+        fieldnames_cache: Кэш имён полей.
+        log_callback: Функция логирования.
+
+    Returns:
+        Кортеж (writer, rows_count).
+    """
+    try:
+        reader = csv.DictReader(infile)
+    except (OSError, csv.Error) as csv_error:
+        _log_message(
+            f"Ошибка при создании DictReader для {csv_file}: {csv_error}", "error", log_callback
+        )
+        return writer, 0
+
+    if reader.fieldnames is None or len(reader.fieldnames) == 0:
+        _log_message(
+            f"Файл {csv_file} пуст или не имеет заголовков", "warning", log_callback
+        )
+        return writer, 0
+
+    fieldnames_key = tuple(reader.fieldnames)
+    if fieldnames_key not in fieldnames_cache:
+        fieldnames = _get_cached_fieldnames(fieldnames_key, add_category=True)
+        fieldnames_cache[fieldnames_key] = fieldnames
+    else:
+        fieldnames = fieldnames_cache[fieldnames_key]
+
+    if writer is None:
+        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+    try:
+        category_name = extract_category_from_filename(
+            csv_file, log_func=partial(_log_message, log_callback=log_callback)
+        )
+    except (OSError, ValueError) as cat_error:
+        _log_message(
+            f"Ошибка извлечения категории из {csv_file}: {cat_error}", "warning", log_callback
+        )
+        category_name = ""
+
+    batch: list[dict[str, str]] = []
+    batch_total = 0
+
+    try:
+        for row in reader:
+            row_with_category = {"Категория": category_name, **row}
+            batch.append(row_with_category)
+            if len(batch) >= batch_size:
+                writer.writerows(batch)
+                batch_total += len(batch)
+                batch.clear()
+    except (OSError, csv.Error) as read_error:
+        _log_message(
+            f"Ошибка при чтении CSV {csv_file}: {read_error}", "error", log_callback
+        )
+
+    if batch:
+        writer.writerows(batch)
+        batch_total += len(batch)
+
+    _log_message(
+        f"Файл {csv_file.name} обработан (строк: {batch_total})",
+        "debug",
+        log_callback,
+    )
+    return writer, batch_total
+
+
 def merge_csv_files_common(
     file_paths: list[Path],
     output_path: Path,
@@ -106,38 +310,7 @@ def merge_csv_files_common(
     files_to_delete: list[Path] = []
     total_rows = 0
     fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
-    writer = None
-
-    def _open_outfile_with_fallback(
-        path: Path, enc: str, buf_size: int, log_func: Callable[[str, str], None] | None
-    ) -> tuple[TextIO | None, bool]:
-        """Открывает выходной файл с fallback механизмом."""
-        try:
-            file_obj = open(path, "w", encoding=enc, newline="", buffering=buf_size)  # noqa: SIM115
-            _log_message(f"Выходной файл открыт с буфером {buf_size} байт", "debug", log_func)
-            return file_obj, True
-        except OSError as output_error:
-            error_type = type(output_error).__name__
-            _log_message(
-                f"Ошибка записи в выходной файл {path} ({error_type}): {output_error}",
-                "error",
-                log_func,
-            )
-
-            if buf_size > 8192:
-                _log_message(
-                    "Fallback попытка: уменьшаем размер буфера до 8KB", "warning", log_func
-                )
-                try:
-                    file_obj = open(path, "w", encoding=enc, newline="", buffering=8192)  # noqa: SIM115
-                    _log_message(
-                        "Fallback успешен: файл открыт с уменьшенным буфером", "info", log_func
-                    )
-                    return file_obj, True
-                except OSError as fallback_error:
-                    _log_message(f"Fallback не удался: {fallback_error}", "error", log_func)
-                    return None, False
-            return None, False
+    writer: csv.DictWriter[str] | None = None
 
     outfile, open_success = _open_outfile_with_fallback(
         output_path, encoding, buffer_size, log_callback
@@ -155,99 +328,15 @@ def merge_csv_files_common(
                 if progress_callback:
                     progress_callback(f"Обработка: {csv_file.name}")
 
-                category_name = extract_category_from_filename(
-                    csv_file, log_func=partial(_log_message, log_callback=log_callback)
+                writer, batch_total = _process_csv_file_rows(
+                    csv_file, writer, outfile, buffer_size, batch_size,
+                    fieldnames_cache, log_callback,
                 )
 
-                infile = None
-                try:
-                    infile = open(csv_file, encoding="utf-8-sig", newline="", buffering=buffer_size)  # noqa: SIM115
-                except OSError as file_error:
-                    error_type = type(file_error).__name__
-                    _log_message(
-                        f"Ошибка доступа к файлу {csv_file} ({error_type}): {file_error}",
-                        "error",
-                        log_callback,
-                    )
-                    if buffer_size > 0:
-                        # Пробуем открыть файл с буферизацией (SIM115 игнор.)
-                        try:
-                            infile = open(  # noqa: SIM115
-                                csv_file, encoding="utf-8-sig", newline="", buffering=4096
-                            )
-                        except OSError:
-                            continue
-                        try:
-                            _log_message(
-                                f"Fallback успешен: файл {csv_file} открыт с буфером 4KB",
-                                "info",
-                                log_callback,
-                            )
-                        finally:
-                            if "infile" in locals():
-                                infile.close()
-                    else:
-                        continue
-
-                try:
-                    reader = csv.DictReader(infile)
-
-                    if reader.fieldnames is None or len(reader.fieldnames) == 0:
-                        _log_message(
-                            f"Файл {csv_file} пуст или не имеет заголовков", "warning", log_callback
-                        )
-                        continue
-
-                    fieldnames_key = tuple(reader.fieldnames)
-                    if fieldnames_key not in fieldnames_cache:
-                        fieldnames = _get_cached_fieldnames(fieldnames_key, add_category=True)
-                        fieldnames_cache[fieldnames_key] = fieldnames
-                    else:
-                        fieldnames = fieldnames_cache[fieldnames_key]
-
-                    if writer is None:
-                        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-                        writer.writeheader()
-
-                    batch = []
-                    batch_total = 0
-
-                    for row in reader:
-                        row_with_category = {"Категория": category_name, **row}
-                        batch.append(row_with_category)
-
-                        if len(batch) >= batch_size:
-                            writer.writerows(batch)
-                            batch_total += len(batch)
-                            batch.clear()
-
-                    if batch:
-                        writer.writerows(batch)
-                        batch_total += len(batch)
-
-                    total_rows += batch_total
-                    _log_message(
-                        f"Файл {csv_file.name} обработан (строк: {batch_total})",
-                        "debug",
-                        log_callback,
-                    )
-
-                except (OSError, csv.Error) as csv_error:
-                    _log_message(
-                        f"Ошибка при обработке CSV {csv_file}: {csv_error}", "error", log_callback
-                    )
+                if batch_total == 0:
                     continue
-                finally:
-                    if infile is not None:
-                        try:
-                            infile.close()
-                        except (OSError, RuntimeError, ValueError) as close_error:
-                            _log_message(
-                                f"Ошибка при закрытии файла {csv_file.name}: {close_error}",
-                                "debug",
-                                log_callback,
-                            )
 
+                total_rows += batch_total
                 files_to_delete.append(csv_file)
 
             if writer is None:

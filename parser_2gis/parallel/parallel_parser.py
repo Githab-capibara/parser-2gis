@@ -700,6 +700,94 @@ class ParallelCityParser:
             cancel_event=self._cancel_event,
         )
 
+    def _restore_merge_signal_handlers(
+        self,
+        sigint_registered: bool,
+        sigterm_registered: bool,
+        old_sigint_handler: signal.Handlers,
+        old_sigterm_handler: signal.Handlers,
+    ) -> None:
+        """Восстанавливает оригинальные обработчики сигналов после merge.
+
+        Args:
+            sigint_registered: Был ли зарегистрирован SIGINT.
+            sigterm_registered: Был ли зарегистрирован SIGTERM.
+            old_sigint_handler: Старый обработчик SIGINT.
+            old_sigterm_handler: Старый обработчик SIGTERM.
+        """
+        if sigint_registered:
+            try:
+                signal.signal(signal.SIGINT, old_sigint_handler)
+            except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
+                self.log(
+                    f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error"
+                )
+
+        if sigterm_registered:
+            try:
+                signal.signal(signal.SIGTERM, old_sigterm_handler)
+            except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
+                self.log(
+                    f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
+                )
+
+    def _cleanup_merge_temp_files_on_interrupt(self) -> None:
+        """Очищает временные файлы merge при прерывании."""
+        with self._merge_lock:
+            for temp_file in self._merge_temp_files:
+                try:
+                    if temp_file.exists():
+                        temp_file.unlink()
+                        self.log(f"Временный файл удалён при прерывании: {temp_file}", "debug")
+                except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
+                    self.log(
+                        f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}",
+                        "error",
+                    )
+
+    def _do_merge_cleanup_and_finalize(
+        self,
+        temp_output: Path,
+        temp_file_created: bool,
+        lock_file_handle: Any,
+        lock_file_path: Path,
+        sigint_registered: bool,
+        sigterm_registered: bool,
+        old_sigint_handler: signal.Handlers,
+        old_sigterm_handler: signal.Handlers,
+    ) -> None:
+        """Финальная очистка после merge: lock, signals, temp files.
+
+        Args:
+            temp_output: Путь к временному файлу.
+            temp_file_created: Флаг создания временного файла.
+            lock_file_handle: Дескриптор блокировки.
+            lock_file_path: Путь к файлу блокировки.
+            sigint_registered: Был ли зарегистрирован SIGINT.
+            sigterm_registered: Был ли зарегистрирован SIGTERM.
+            old_sigint_handler: Старый обработчик SIGINT.
+            old_sigterm_handler: Старый обработчик SIGTERM.
+        """
+        self._cleanup_merge_lock(lock_file_handle, lock_file_path)
+        self._restore_merge_signal_handlers(
+            sigint_registered, sigterm_registered,
+            old_sigint_handler, old_sigterm_handler,
+        )
+        temp_file_manager.unregister(temp_output)
+
+        if temp_file_created and temp_output.exists():
+            try:
+                temp_output.unlink()
+                self.log("Временный файл удалён в блоке finally (защита от утечек)", "debug")
+            except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
+                self.log(
+                    f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning"
+                )
+
+        with self._merge_lock:
+            if temp_output in self._merge_temp_files:
+                self._merge_temp_files.remove(temp_output)
+
     def merge_csv_files(
         self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
@@ -731,53 +819,26 @@ class ParallelCityParser:
         temp_file_manager.register(temp_output)
 
         lock_file_path = self.output_dir / ".merge.lock"
-        lock_file_handle = None
-        lock_acquired = False
-
-        # БЛОКИРОВКА 1: Получаем lock file
         lock_file_handle, lock_acquired = self._acquire_merge_lock(lock_file_path)
         if not lock_acquired:
             return False
 
-        # БЛОКИРОВКА 2: Signal handler для очистки при KeyboardInterrupt
         old_sigint_handler = signal.getsignal(signal.SIGINT)
         old_sigterm_handler = signal.getsignal(signal.SIGTERM)
         sigint_registered = False
         sigterm_registered = False
 
-        # P0-11: Выносим логику очистки в замыкание для передачи в signal handler
-        merge_temp_files_ref = self._merge_temp_files
-        merge_lock_ref = self._merge_lock
-        log_method = self.log
-
-        def _do_cleanup() -> None:
-            """Функция очистки временных файлов при прерывании."""
-            with merge_lock_ref:
-                for temp_file in merge_temp_files_ref:
-                    try:
-                        if temp_file.exists():
-                            temp_file.unlink()
-                            log_method(
-                                f"Временный файл удалён при прерывании: {temp_file}", "debug"
-                            )
-                    except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-                        log_method(
-                            f"Ошибка при удалении временного файла {temp_file}: {cleanup_error}",
-                            "error",
-                        )
-
-        def _signal_handler(signum: int, frame: types.FrameType | None) -> None:
+        def signal_handler(signum: int, frame: types.FrameType | None) -> None:
             """Обработчик сигналов прерывания."""
             self.log(f"Получен сигнал {signum}, очистка временных файлов...", "warning")
-            _do_cleanup()
+            self._cleanup_merge_temp_files_on_interrupt()
             if callable(old_sigint_handler):
                 old_sigint_handler(signum, frame)
 
-        # Регистрируем обработчики сигналов
         try:
-            signal.signal(signal.SIGINT, _signal_handler)
+            signal.signal(signal.SIGINT, signal_handler)
             sigint_registered = True
-            signal.signal(signal.SIGTERM, _signal_handler)
+            signal.signal(signal.SIGTERM, signal_handler)
             sigterm_registered = True
         except (OSError, ValueError) as sig_error:
             self.log(f"Не удалось зарегистрировать обработчики сигналов: {sig_error}", "warning")
@@ -786,7 +847,6 @@ class ParallelCityParser:
             with self._merge_lock:
                 self._merge_temp_files.append(temp_output)
 
-            # ISSUE-086: Делегируем слияние общей функции
             merge_success, _total_rows, files_to_delete = self._perform_csv_merge(
                 csv_files=csv_files,
                 temp_output=temp_output,
@@ -801,18 +861,17 @@ class ParallelCityParser:
                         self.log("Временный файл удалён (слияние не удалось)", "debug")
                 except (OSError, RuntimeError, TypeError, ValueError) as e:
                     self.log(f"Не удалось удалить временный файл: {e}", "debug")
-
-                self._cleanup_merge_lock(lock_file_handle, lock_file_path)
+                self._do_merge_cleanup_and_finalize(
+                    temp_output, False, lock_file_handle, lock_file_path,
+                    sigint_registered, sigterm_registered,
+                    old_sigint_handler, old_sigterm_handler,
+                )
                 return False
 
+            # Replace temp with final output
             try:
                 os.replace(str(temp_output), str(output_file_path))
-            except OSError as replace_error:
-                self.log(
-                    f"Не удалось переименовать файл (OSError): {replace_error}. "
-                    f"Используем shutil.move",
-                    "debug",
-                )
+            except OSError:
                 try:
                     shutil.move(str(temp_output), str(output_file_path))
                 except (OSError, RuntimeError, TypeError, ValueError) as move_error:
@@ -820,12 +879,6 @@ class ParallelCityParser:
                         f"Не удалось переместить временный файл в {output_file}: {move_error}",
                         "error",
                     )
-                    try:
-                        if temp_output.exists():
-                            temp_output.unlink()
-                            self.log("Временный файл удалён после ошибки перемещения", "debug")
-                    except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-                        self.log(f"Не удалось удалить временный файл: {cleanup_error}", "debug")
                     raise
 
             for csv_file in files_to_delete:
@@ -838,28 +891,20 @@ class ParallelCityParser:
             self.log(f"Объединение завершено. Файлы удалены ({len(files_to_delete)} шт.)", "info")
             temp_file_created = False
 
-            self._cleanup_merge_lock(lock_file_handle, lock_file_path)
+            self._do_merge_cleanup_and_finalize(
+                temp_output, temp_file_created, lock_file_handle, lock_file_path,
+                sigint_registered, sigterm_registered,
+                old_sigint_handler, old_sigterm_handler,
+            )
             return True
 
         except KeyboardInterrupt:
             self.log("Объединение прервано пользователем (KeyboardInterrupt)", "warning")
-            # Вложенная функция _do_cleanup определена выше в merge_csv_files
-            # Вызываем inline очистку
-            with self._merge_lock:
-                for temp_file in self._merge_temp_files:
-                    try:
-                        if temp_file.exists():
-                            temp_file.unlink()
-                    except OSError as unlink_error:
-                        self.log(
-                            f"Ошибка при удалении временного файла (игнорируется): {unlink_error}",
-                            "debug",
-                        )
+            self._cleanup_merge_temp_files_on_interrupt()
             return False
 
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             self.log(f"Ошибка при объединении CSV: {e}", "error")
-            # Гарантированная очистка lock файла при ошибке
             try:
                 if lock_file_path.exists():
                     lock_file_path.unlink()
@@ -869,39 +914,13 @@ class ParallelCityParser:
             return False
 
         finally:
-            self._cleanup_merge_lock(lock_file_handle, lock_file_path)
-
-            # ВОССТАНОВЛЕНИЕ СИГНАЛОВ ВСЕГДА через try/finally
-            if sigint_registered:
-                try:
-                    signal.signal(signal.SIGINT, old_sigint_handler)
-                except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
-                    self.log(
-                        f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error"
-                    )
-
-            if sigterm_registered:
-                try:
-                    signal.signal(signal.SIGTERM, old_sigterm_handler)
-                except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
-                    self.log(
-                        f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
-                    )
-
-            temp_file_manager.unregister(temp_output)
-
-            if temp_file_created and temp_output.exists():
-                try:
-                    temp_output.unlink()
-                    self.log("Временный файл удалён в блоке finally (защита от утечек)", "debug")
-                except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-                    self.log(
-                        f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning"
-                    )
-
-            with self._merge_lock:
-                if temp_output in self._merge_temp_files:
-                    self._merge_temp_files.remove(temp_output)
+            # Финальная очистка если ещё не была выполнена
+            if temp_file_manager._registry.get(temp_output):
+                self._do_merge_cleanup_and_finalize(
+                    temp_output, temp_file_created, lock_file_handle, lock_file_path,
+                    sigint_registered, sigterm_registered,
+                    old_sigint_handler, old_sigterm_handler,
+                )
 
     def run(
         self,

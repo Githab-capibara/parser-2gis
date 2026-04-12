@@ -58,6 +58,117 @@ def _get_allowed_base_dirs() -> list[Path]:
 # =============================================================================
 
 
+def _check_unicode_safety(path: str, path_name: str) -> None:
+    """Проверяет Unicode символы на недопустимые комбинации.
+
+    Args:
+        path: Путь для проверки.
+        path_name: Имя параметра для сообщений.
+
+    Raises:
+        ValueError: При обнаружении недопустимых Unicode символов.
+    """
+    for char in path:
+        category = unicodedata.category(char)
+        if category in ("Cc", "Cf") and char not in ("\n", "\r", "\t"):
+            raise ValueError(
+                f"{path_name} содержит недопустимый Unicode символ: {char!r} "
+                f"(категория: {category}, код: U+{ord(char):04X})"
+            )
+
+
+def _check_path_length(path: str, path_name: str) -> None:
+    """Проверяет длину пути.
+
+    Args:
+        path: Путь для проверки.
+        path_name: Имя параметра.
+
+    Raises:
+        ValueError: Если путь слишком длинный.
+    """
+    if len(path) > MAX_PATH_LENGTH:
+        raise ValueError(
+            f"{path_name} превышает максимальную длину ({len(path)} > {MAX_PATH_LENGTH})"
+        )
+
+
+def _check_forbidden_chars(path: str, path_name: str) -> None:
+    """Проверяет наличие запрещённых символов.
+
+    Args:
+        path: Путь для проверки.
+        path_name: Имя параметра.
+
+    Raises:
+        ValueError: При наличии запрещённых символов.
+    """
+    for forbidden_char in FORBIDDEN_PATH_CHARS:
+        if forbidden_char in path:
+            raise ValueError(
+                f"{path_name} содержит запрещённый символ: {forbidden_char!r}. "
+                "Path traversal атаки запрещены."
+            )
+
+
+def _check_symlink_safety(path_obj: Path, path_name: str, forbidden_dirs: set[str]) -> None:
+    """Проверяет symlink на безопасность.
+
+    Args:
+        path_obj: Объект Path.
+        path_name: Имя параметра.
+        forbidden_dirs: Запрещённые директории.
+
+    Raises:
+        ValueError: При обнаружении небезопасных symlink.
+    """
+    temp_dir = tempfile.gettempdir()
+    resolved = path_obj.resolve()
+    if str(resolved) != str(path_obj) and path_obj.exists():
+        for part_path in path_obj.parents:
+            if part_path.is_symlink():
+                target = part_path.resolve()
+                target_str = str(target)
+                if not target_str.startswith(temp_dir):
+                    for forbidden_dir in forbidden_dirs:
+                        if target_str == forbidden_dir or target_str.startswith(forbidden_dir + "/"):
+                            raise ValueError(
+                                f"{path_name} содержит symlink, ведущий в "
+                                f"системную директорию: {part_path} -> {target}"
+                            )
+
+
+def _check_allowed_directories(resolved_path: Path, path_name: str) -> None:
+    """Проверяет что путь находится в разрешённых директориях.
+
+    Args:
+        resolved_path: Разрешённый путь.
+        path_name: Имя параметра.
+
+    Raises:
+        ValueError: Если путь не в разрешённых директориях.
+    """
+    forbidden_dirs = {"/", "/etc", "/root", "/home"}
+    temp_dir = tempfile.gettempdir()
+    resolved_path_str = str(resolved_path)
+
+    if not resolved_path_str.startswith(temp_dir):
+        for forbidden_dir in forbidden_dirs:
+            if resolved_path_str == forbidden_dir or resolved_path_str.startswith(forbidden_dir + "/"):
+                raise ValueError(
+                    f"{path_name} не может находиться в системной директории: {forbidden_dir}. "
+                    f"Попытка записи в: {resolved_path_str}"
+                )
+
+    allowed_dirs = _get_allowed_base_dirs()
+    is_allowed = any(str(resolved_path).startswith(str(allowed_dir)) for allowed_dir in allowed_dirs)
+    if not is_allowed:
+        raise ValueError(
+            f"{path_name} должен находиться в одной из разрешённых директорий: "
+            f"{[str(d) for d in allowed_dirs]}"
+        )
+
+
 def validate_path_safety(path: str, path_name: str = "Путь") -> None:
     """Валидирует путь на безопасность для предотвращения path traversal атак.
 
@@ -86,93 +197,21 @@ def validate_path_safety(path: str, path_name: str = "Путь") -> None:
     if not path:
         raise ValueError(f"{path_name} не может быть пустым")
 
-    # ISSUE-179: Проверка Unicode символов на недопустимые комбинации
-    # Проверяем на наличие control characters и других опасных Unicode символов
-    for char in path:
-        category = unicodedata.category(char)
-        # Cc - control characters, Cf - format characters
-        if category in ("Cc", "Cf") and char not in ("\n", "\r", "\t"):
-            raise ValueError(
-                f"{path_name} содержит недопустимый Unicode символ: {char!r} "
-                f"(категория: {category}, код: U+{ord(char):04X})"
-            )
+    _check_unicode_safety(path, path_name)
+    _check_path_length(path, path_name)
+    _check_forbidden_chars(path, path_name)
 
-    # Проверка длины пути
-    if len(path) > MAX_PATH_LENGTH:
-        raise ValueError(
-            f"{path_name} превышает максимальную длину ({len(path)} > {MAX_PATH_LENGTH})"
-        )
-
-    # Проверка на запрещённые символы
-    for forbidden_char in FORBIDDEN_PATH_CHARS:
-        if forbidden_char in path:
-            raise ValueError(
-                f"{path_name} содержит запрещённый символ: {forbidden_char!r}. "
-                "Path traversal атаки запрещены."
-            )
-
-    # Преобразуем в Path для проверок
     path_obj = Path(path)
-
-    # Проверка что путь абсолютный
     if not path_obj.is_absolute():
         raise ValueError(f"{path_name} должен быть абсолютным путём, получен относительный: {path}")
 
-    # Разрешаем путь через realpath для предотвращения symlink атак
     try:
         resolved_path = path_obj.resolve()
     except (OSError, RuntimeError) as fs_error:
         raise OSError(f"Ошибка разрешения {path_name}: {fs_error}") from fs_error
 
-    # Проверка запрещённых директорий (/, /etc, /root, /home)
-    # P0-11: Объединённая проверка в одном цикле
-    forbidden_dirs = {"/", "/etc", "/root", "/home"}
-    resolved_path_str = str(resolved_path)
-
-    # Проверка на symlink: если resolved путь отличается от исходного,
-    # возможно используются символические ссылки — дополнительная проверка
-    if str(resolved_path) != str(path_obj) and path_obj.exists():
-        # Проверяем каждый компонент пути на symlink
-        for part_path in path_obj.parents:
-            if part_path.is_symlink():
-                target = part_path.resolve()
-                # Если symlink ведёт в запрещённую директорию — ошибка
-                target_str = str(target)
-                temp_dir = tempfile.gettempdir()
-                if not target_str.startswith(temp_dir):
-                    for forbidden_dir in forbidden_dirs:
-                        if target_str == forbidden_dir or target_str.startswith(
-                            forbidden_dir + "/"
-                        ):
-                            raise ValueError(
-                                f"{path_name} содержит symlink, ведущий в "
-                                f"системную директорию: {part_path} -> {target}"
-                            )
-
-    # P0-11: Единая проверка запрещённых директорий
-    temp_dir = tempfile.gettempdir()
-    if not resolved_path_str.startswith(temp_dir):
-        for forbidden_dir in forbidden_dirs:
-            if resolved_path_str == forbidden_dir or resolved_path_str.startswith(
-                forbidden_dir + "/"
-            ):
-                raise ValueError(
-                    f"{path_name} не может находиться в системной директории: {forbidden_dir}. "
-                    f"Попытка записи в: {resolved_path_str}"
-                )
-
-    # Проверка что путь находится в разрешённой директории
-    # Это предотвращает запись в системные директории
-    allowed_dirs = _get_allowed_base_dirs()
-    is_allowed = any(
-        str(resolved_path).startswith(str(allowed_dir)) for allowed_dir in allowed_dirs
-    )
-
-    if not is_allowed:
-        raise ValueError(
-            f"{path_name} должен находиться в одной из разрешённых директорий: "
-            f"{[str(d) for d in allowed_dirs]}"
-        )
+    _check_symlink_safety(path_obj, path_name, {"/", "/etc", "/root", "/home"})
+    _check_allowed_directories(resolved_path, path_name)
 
 
 def validate_path_traversal(file_path: str) -> Path:

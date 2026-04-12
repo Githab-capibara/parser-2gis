@@ -371,6 +371,136 @@ class ParallelFileMerger:
             csv_file=csv_file, writer=writer, outfile=outfile, fieldnames_cache=fieldnames_cache
         )
 
+    def _restore_signal_handlers(
+        self,
+        sigint_registered: bool,
+        sigterm_registered: bool,
+        old_sigint_handler: signal.Handlers,
+        old_sigterm_handler: signal.Handlers,
+    ) -> None:
+        """Восстанавливает оригинальные обработчики сигналов.
+
+        Args:
+            sigint_registered: Был ли зарегистрирован SIGINT.
+            sigterm_registered: Был ли зарегистрирован SIGTERM.
+            old_sigint_handler: Старый обработчик SIGINT.
+            old_sigterm_handler: Старый обработчик SIGTERM.
+        """
+        if sigint_registered:
+            try:
+                signal.signal(signal.SIGINT, old_sigint_handler)
+            except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
+                self.log(
+                    f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error"
+                )
+
+        if sigterm_registered:
+            try:
+                signal.signal(signal.SIGTERM, old_sigterm_handler)
+            except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
+                self.log(
+                    f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
+                )
+
+    def _cleanup_temp_file_if_exists(
+        self, temp_output: Path, temp_file_created: bool, context: str = "",
+    ) -> None:
+        """Удаляет временный файл если он существует.
+
+        Args:
+            temp_output: Путь к временному файлу.
+            temp_file_created: Флаг создания временного файла.
+            context: Контекст удаления (для логирования).
+        """
+        if temp_file_created and temp_output.exists():
+            try:
+                temp_output.unlink()
+                self.log(f"Временный файл удалён {context}".strip(), "debug")
+            except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
+                self.log(
+                    f"Не удалось удалить временный файл {context}: {cleanup_error}", "warning"
+                )
+
+    def _merge_csv_core(
+        self,
+        csv_files: list[Path],
+        temp_output: Path,
+        output_file_path: Path,
+        output_encoding: str,
+        buffer_size: int,
+        batch_size: int,
+        progress_callback: Callable[[str], None] | None,
+    ) -> tuple[bool, list[Path]]:
+        """Ядро объединения CSV файлов.
+
+        Args:
+            csv_files: Список CSV файлов для объединения.
+            temp_output: Путь к временному файлу.
+            output_file_path: Путь к итоговому файлу.
+            output_encoding: Кодировка выходного файла.
+            buffer_size: Размер буфера.
+            batch_size: Размер пакета.
+            progress_callback: Функция обратного вызова.
+
+        Returns:
+            Кортеж (success, files_to_delete).
+        """
+        files_to_delete: list[Path] = []
+        fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
+
+        with open(
+            temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
+        ) as outfile:
+            writer: csv.DictWriter[str] | None = None
+            total_rows = 0
+
+            for csv_file in csv_files:
+                if self._cancel_event.is_set():
+                    self.log("Объединение отменено пользователем", "warning")
+                    return False, files_to_delete
+
+                if progress_callback:
+                    progress_callback(f"Обработка: {csv_file.name}")
+
+                writer, batch_total = self.process_single_csv_file(
+                    csv_file=csv_file,
+                    writer=writer,
+                    outfile=outfile,
+                    buffer_size=buffer_size,
+                    batch_size=batch_size,
+                    fieldnames_cache=fieldnames_cache,
+                )
+
+                if batch_total == 0:
+                    continue
+
+                total_rows += batch_total
+                files_to_delete.append(csv_file)
+
+            if writer is None:
+                self.log(
+                    "Все CSV файлы пустые или не имеют заголовков. Объединение невозможно.",
+                    "warning",
+                )
+                return False, files_to_delete
+
+            self.log(f"Объединение завершено. Всего записей: {total_rows}", "info")
+
+        # Заменяем временный файл на итоговый
+        try:
+            os.replace(str(temp_output), str(output_file_path))
+        except OSError:
+            try:
+                shutil.move(str(temp_output), str(output_file_path))
+            except (OSError, RuntimeError, TypeError, ValueError) as move_error:
+                self.log(
+                    f"Не удалось переместить временный файл в {output_file}: {move_error}",
+                    "error",
+                )
+                raise
+
+        return True, files_to_delete
+
     def merge_csv_files(
         self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
@@ -395,26 +525,18 @@ class ParallelFileMerger:
 
         self.log(f"Найдено {len(csv_files)} CSV файлов для объединения", "info")
 
-        files_to_delete: list[Path] = []
         temp_output = self.output_dir / f"merged_temp_{uuid.uuid4().hex}.csv"
         temp_file_created = False
 
         temp_file_manager.register(temp_output)
 
+        # Блокировка
         lock_file_path = self.output_dir / ".merge.lock"
-        lock_file_handle = None
-        lock_acquired = False
-
-        output_encoding = self.config.writer.encoding
-        buffer_size = MERGE_BUFFER_SIZE
-        batch_size = MERGE_BATCH_SIZE
-
-        # БЛОКИРОВКА 1: Получаем lock file
         lock_file_handle, lock_acquired = self.acquire_merge_lock(lock_file_path)
         if not lock_acquired:
             return False
 
-        # БЛОКИРОВКА 2: Signal handler для очистки при KeyboardInterrupt
+        # Регистрация обработчиков сигналов
         old_sigint_handler = signal.getsignal(signal.SIGINT)
         old_sigterm_handler = signal.getsignal(signal.SIGTERM)
         sigint_registered = False
@@ -438,11 +560,9 @@ class ParallelFileMerger:
             """Обработчик сигналов прерывания."""
             self.log(f"Получен сигнал {signum}, очистка временных файлов...", "warning")
             cleanup_temp_files()
-
             if callable(old_sigint_handler):
                 old_sigint_handler(signum, frame)
 
-        # Регистрируем обработчики сигналов
         try:
             signal.signal(signal.SIGINT, signal_handler)
             sigint_registered = True
@@ -455,81 +575,22 @@ class ParallelFileMerger:
             with self._merge_lock:
                 self._merge_temp_files.append(temp_output)
 
-            with open(
-                temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
-            ) as outfile:
-                temp_file_created = True
-                writer = None
-                total_rows = 0
-                fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
+            success, files_to_delete = self._merge_csv_core(
+                csv_files=csv_files,
+                temp_output=temp_output,
+                output_file_path=output_file_path,
+                output_encoding=self.config.writer.encoding,
+                buffer_size=MERGE_BUFFER_SIZE,
+                batch_size=MERGE_BATCH_SIZE,
+                progress_callback=progress_callback,
+            )
 
-                for csv_file in csv_files:
-                    if self._cancel_event.is_set():
-                        self.log("Объединение отменено пользователем", "warning")
-                        try:
-                            temp_output.unlink()
-                        except (OSError, RuntimeError, TypeError, ValueError) as e:
-                            self.log(f"Не удалось удалить временный файл при отмене: {e}", "debug")
-                        return False
+            if not success:
+                self._cleanup_temp_file_if_exists(temp_output, True, "(все файлы пустые)")
+                self.cleanup_merge_lock(lock_file_handle, lock_file_path)
+                return False
 
-                    if progress_callback:
-                        progress_callback(f"Обработка: {csv_file.name}")
-
-                    writer, batch_total = self.process_single_csv_file(
-                        csv_file=csv_file,
-                        writer=writer,
-                        outfile=outfile,
-                        buffer_size=buffer_size,
-                        batch_size=batch_size,
-                        fieldnames_cache=fieldnames_cache,
-                    )
-
-                    if batch_total == 0:
-                        continue
-
-                    total_rows += batch_total
-                    files_to_delete.append(csv_file)
-
-                if writer is None:
-                    self.log(
-                        "Все CSV файлы пустые или не имеют заголовков. Объединение невозможно.",
-                        "warning",
-                    )
-
-                    try:
-                        temp_output.unlink()
-                        self.log("Временный файл удалён (все файлы пустые)", "debug")
-                    except (OSError, RuntimeError, TypeError, ValueError) as e:
-                        self.log(f"Не удалось удалить временный файл: {e}", "debug")
-
-                    self.cleanup_merge_lock(lock_file_handle, lock_file_path)
-                    return False
-
-                self.log(f"Объединение завершено. Всего записей: {total_rows}", "info")
-
-            try:
-                os.replace(str(temp_output), str(output_file_path))
-            except OSError as replace_error:
-                self.log(
-                    f"Не удалось переименовать файл (OSError): {replace_error}. "
-                    f"Используем shutil.move",
-                    "debug",
-                )
-                try:
-                    shutil.move(str(temp_output), str(output_file_path))
-                except (OSError, RuntimeError, TypeError, ValueError) as move_error:
-                    self.log(
-                        f"Не удалось переместить временный файл в {output_file}: {move_error}",
-                        "error",
-                    )
-                    try:
-                        if temp_output.exists():
-                            temp_output.unlink()
-                            self.log("Временный файл удалён после ошибки перемещения", "debug")
-                    except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-                        self.log(f"Не удалось удалить временный файл: {cleanup_error}", "debug")
-                    raise
-
+            # Удаляем исходные CSV файлы
             for csv_file in files_to_delete:
                 try:
                     csv_file.unlink()
@@ -554,34 +615,12 @@ class ParallelFileMerger:
 
         finally:
             self.cleanup_merge_lock(lock_file_handle, lock_file_path)
-
-            # ВОССТАНОВЛЕНИЕ СИГНАЛОВ ВСЕГДА через try/finally
-            if sigint_registered:
-                try:
-                    signal.signal(signal.SIGINT, old_sigint_handler)
-                except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
-                    self.log(
-                        f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error"
-                    )
-
-            if sigterm_registered:
-                try:
-                    signal.signal(signal.SIGTERM, old_sigterm_handler)
-                except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
-                    self.log(
-                        f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
-                    )
-
+            self._restore_signal_handlers(
+                sigint_registered, sigterm_registered,
+                old_sigint_handler, old_sigterm_handler,
+            )
             temp_file_manager.unregister(temp_output)
-
-            if temp_file_created and temp_output.exists():
-                try:
-                    temp_output.unlink()
-                    self.log("Временный файл удалён в блоке finally (защита от утечек)", "debug")
-                except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-                    self.log(
-                        f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning"
-                    )
+            self._cleanup_temp_file_if_exists(temp_output, temp_file_created, "в блоке finally (защита от утечек)")
 
             with self._merge_lock:
                 if temp_output in self._merge_temp_files:

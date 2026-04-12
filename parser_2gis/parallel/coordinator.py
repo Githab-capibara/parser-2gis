@@ -492,6 +492,165 @@ class ParallelCoordinator:
             self.log(f"Ошибка создания парсера: {e}", "error")
             return None
 
+    def _validate_callbacks(
+        self,
+        progress_callback: Callable[[int, int, str], None] | None,
+        merge_callback: Callable[[str], None] | None,
+    ) -> None:
+        """Проверяет callback'и на callable.
+
+        Args:
+            progress_callback: Callback прогресса.
+            merge_callback: Callback объединения.
+
+        Raises:
+            TypeError: Если callback не callable.
+        """
+        if progress_callback is not None and not callable(progress_callback):
+            raise TypeError(
+                f"progress_callback должен быть callable, "
+                f"получен {type(progress_callback).__name__}"
+            )
+        if merge_callback is not None and not callable(merge_callback):
+            raise TypeError(
+                f"merge_callback должен быть callable, получен {type(merge_callback).__name__}"
+            )
+
+    def _run_execution_loop(
+        self,
+        all_urls: list[tuple[str, str, str]],
+        progress_callback: Callable[[int, int, str], None] | None,
+    ) -> bool:
+        """Выполняет основной цикл выполнения с ThreadPoolExecutor.
+
+        Args:
+            all_urls: Список URL для парсинга.
+            progress_callback: Callback прогресса.
+
+        Returns:
+            True если цикл завершился успешно.
+        """
+        executor = None
+        futures: dict[Any, Any] = {}
+        try:
+            executor = ThreadPoolExecutor(max_workers=self.max_workers)
+            futures = {
+                executor.submit(
+                    self.parse_single_url, url, category_name, city_name, progress_callback
+                ): (url, category_name, city_name)
+                for url, category_name, city_name in all_urls
+            }
+
+            for future in as_completed(futures):
+                _url, category_name, city_name = futures[future]
+                try:
+                    success, result = future.result(timeout=self.timeout_per_url)
+                    if self._progress_reporter:
+                        self._progress_reporter.update_progress(
+                            success=success, filename=result if success else "N/A"
+                        )
+                    if not success:
+                        self.log(f"Не удалось: {city_name} - {category_name}: {result}", "error")
+                except FuturesTimeoutError:
+                    if self._progress_reporter:
+                        self._progress_reporter.update_progress(success=False, filename="N/A")
+                    self.log(f"Таймаут при парсинге {city_name} - {category_name}", "error")
+                except (KeyboardInterrupt, asyncio.CancelledError):
+                    self.log("Парсинг прерван пользователем", "warning")
+                    self._cancel_event.set()
+                    for f in futures:
+                        f.cancel()
+                    return False
+                except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
+                    if self._progress_reporter:
+                        self._progress_reporter.update_progress(success=False, filename="N/A")
+                    self.log(f"Исключение при парсинге {city_name} - {category_name}: {e}", "error")
+
+            return True
+
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            self.log("Парсинг прерван пользователем", "warning")
+            self._cancel_event.set()
+            if executor is not None:
+                for f in futures:
+                    f.cancel()
+            return False
+        finally:
+            if executor is not None:
+                try:
+                    executor.shutdown(wait=True, cancel_futures=True)
+                    self.log("ThreadPoolExecutor корректно завершён", "debug")
+                except (OSError, RuntimeError, TypeError, ValueError) as shutdown_error:
+                    self.log(f"Ошибка при shutdown ThreadPoolExecutor: {shutdown_error}", "error")
+
+    def _finalize_run(
+        self,
+        output_file: str,
+        merge_callback: Callable[[str], None] | None,
+        duration_str: str,
+        total_tasks: int,
+    ) -> bool:
+        """Финализирует run: собирает статистику, объединяет файлы, логирует результат.
+
+        Args:
+            output_file: Путь к итоговому файлу.
+            merge_callback: Callback объединения.
+            duration_str: Строка длительности.
+            total_tasks: Общее количество задач.
+
+        Returns:
+            True если успешно.
+        """
+        if self._progress_reporter:
+            stats_dict = self._progress_reporter.get_stats()
+            success_count = stats_dict["success"]
+            failed_count = stats_dict["failed"]
+        else:
+            success_count = self._stats["success"]
+            failed_count = self._stats["failed"]
+
+        self.log(f"Парсинг завершён. Успешно: {success_count}, Ошибок: {failed_count}", "info")
+
+        if success_count > 0:
+            self.log("Начало объединения результатов...", "info")
+            merge_success = self._file_merger.merge_csv_files(output_file, merge_callback)
+            if not merge_success:
+                self.log("Не удалось объединить CSV файлы", "error")
+                log_parser_finish(
+                    success=False,
+                    stats={
+                        "Городов": len(self.cities),
+                        "Категорий": len(self.categories),
+                        "Успешно": success_count,
+                        "Ошибки": failed_count,
+                    },
+                    duration=duration_str,
+                )
+                return False
+        else:
+            self.log("Нет успешных результатов для объединения", "warning")
+            log_parser_finish(
+                success=False,
+                stats={
+                    "Городов": len(self.cities),
+                    "Категорий": len(self.categories),
+                    "Успешно": 0,
+                    "Ошибки": failed_count,
+                },
+                duration=duration_str,
+            )
+            return False
+
+        stats = {
+            "Городов": len(self.cities),
+            "Категорий": len(self.categories),
+            "Всего URL": total_tasks,
+            "Успешно": success_count,
+            "Ошибки": failed_count,
+        }
+        log_parser_finish(success=True, stats=stats, duration=duration_str)
+        return True
+
     def _create_writer(self, temp_filepath: Path) -> Any | None:
         """Создаёт writer для временного файла.
 
@@ -720,22 +879,10 @@ class ParallelCoordinator:
         ISSUE-009: Использует CoordinatorContext вместо глобальной переменной.
         ISSUE-114: Добавлена проверка progress_callback на callable.
         """
-        # ISSUE-114: Проверка progress_callback на callable
-        if progress_callback is not None and not callable(progress_callback):
-            raise TypeError(
-                f"progress_callback должен быть callable, "
-                f"получен {type(progress_callback).__name__}"
-            )
+        self._validate_callbacks(progress_callback, merge_callback)
 
-        # Проверка merge_callback на callable
-        if merge_callback is not None and not callable(merge_callback):
-            raise TypeError(
-                f"merge_callback должен быть callable, получен {type(merge_callback).__name__}"
-            )
-
-        # Установка глобального обработчика сигнала SIGINT
         old_signal_handler = signal.signal(signal.SIGINT, _signal_handler)
-        _coordinator_context.set_coordinator(self)  # ISSUE-009: Вместо _active_coordinator = self
+        _coordinator_context.set_coordinator(self)
 
         start_time = time.time()
         total_tasks = len(self.cities) * len(self.categories)
@@ -766,65 +913,13 @@ class ParallelCoordinator:
 
         self.log(f"Таймаут на один URL: {self.timeout_per_url} секунд", "info")
 
-        executor = None
-        futures: dict[Any, Any] = {}
         try:
-            executor = ThreadPoolExecutor(max_workers=self.max_workers)
-            futures = {
-                executor.submit(
-                    self.parse_single_url, url, category_name, city_name, progress_callback
-                ): (url, category_name, city_name)
-                for url, category_name, city_name in all_urls
-            }
-
-            for future in as_completed(futures):
-                _url, category_name, city_name = futures[future]
-                try:
-                    success, result = future.result(timeout=self.timeout_per_url)
-                    if self._progress_reporter:
-                        self._progress_reporter.update_progress(
-                            success=success, filename=result if success else "N/A"
-                        )
-                    if not success:
-                        self.log(f"Не удалось: {city_name} - {category_name}: {result}", "error")
-                except FuturesTimeoutError:
-                    if self._progress_reporter:
-                        self._progress_reporter.update_progress(success=False, filename="N/A")
-                    self.log(f"Таймаут при парсинге {city_name} - {category_name}", "error")
-                except (KeyboardInterrupt, asyncio.CancelledError):
-                    self.log("Парсинг прерван пользователем", "warning")
-                    self._cancel_event.set()
-                    for f in futures:
-                        f.cancel()
-                    return False
-                except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
-                    if self._progress_reporter:
-                        self._progress_reporter.update_progress(success=False, filename="N/A")
-                    self.log(f"Исключение при парсинге {city_name} - {category_name}: {e}", "error")
-
-        except (KeyboardInterrupt, asyncio.CancelledError):
-            self.log("Парсинг прерван пользователем", "warning")
-            self._cancel_event.set()
-            if executor is not None:
-                for f in futures:
-                    f.cancel()
-            return False
+            loop_success = self._run_execution_loop(all_urls, progress_callback)
         finally:
-            # Восстановление обработчика сигнала и очистка ресурсов
-            _coordinator_context.set_coordinator(
-                None
-            )  # ISSUE-009: Вместо _active_coordinator = None
+            _coordinator_context.set_coordinator(None)
             with contextlib.suppress(ValueError, TypeError):
                 signal.signal(signal.SIGINT, old_signal_handler)
 
-            if executor is not None:
-                try:
-                    executor.shutdown(wait=True, cancel_futures=True)
-                    self.log("ThreadPoolExecutor корректно завершён", "debug")
-                except (OSError, RuntimeError, TypeError, ValueError) as shutdown_error:
-                    self.log(f"Ошибка при shutdown ThreadPoolExecutor: {shutdown_error}", "error")
-
-            # Остановка таймера очистки временных файлов
             if self._temp_file_cleanup_timer is not None:
                 try:
                     self._temp_file_cleanup_timer.stop()
@@ -834,59 +929,13 @@ class ParallelCoordinator:
 
             self.log("Ресурсы координатора освобождены", "debug")
 
+        if not loop_success:
+            return False
+
         duration = time.time() - start_time
         duration_str = f"{duration:.2f} сек."
 
-        if self._progress_reporter:
-            stats_dict = self._progress_reporter.get_stats()
-            success_count = stats_dict["success"]
-            failed_count = stats_dict["failed"]
-        else:
-            success_count = self._stats["success"]
-            failed_count = self._stats["failed"]
-
-        self.log(f"Парсинг завершён. Успешно: {success_count}, Ошибок: {failed_count}", "info")
-
-        if success_count > 0:
-            self.log("Начало объединения результатов...", "info")
-            merge_success = self._file_merger.merge_csv_files(output_file, merge_callback)
-            if not merge_success:
-                self.log("Не удалось объединить CSV файлы", "error")
-                log_parser_finish(
-                    success=False,
-                    stats={
-                        "Городов": len(self.cities),
-                        "Категорий": len(self.categories),
-                        "Успешно": success_count,
-                        "Ошибки": failed_count,
-                    },
-                    duration=duration_str,
-                )
-                return False
-        else:
-            self.log("Нет успешных результатов для объединения", "warning")
-            log_parser_finish(
-                success=False,
-                stats={
-                    "Городов": len(self.cities),
-                    "Категорий": len(self.categories),
-                    "Успешно": 0,
-                    "Ошибки": failed_count,
-                },
-                duration=duration_str,
-            )
-            return False
-
-        stats = {
-            "Городов": len(self.cities),
-            "Категорий": len(self.categories),
-            "Всего URL": total_tasks,
-            "Успешно": success_count,
-            "Ошибки": failed_count,
-        }
-        log_parser_finish(success=True, stats=stats, duration=duration_str)
-
-        return True
+        return self._finalize_run(output_file, merge_callback, duration_str, total_tasks)
 
     def stop(self) -> None:
         """Останавливает парсинг."""

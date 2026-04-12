@@ -198,6 +198,133 @@ def _check_value_type_and_sensitivity(
     return False, None
 
 
+def _assign_to_parent(
+    parent: Any | None, parent_key: Any | None, result: Any, results: dict[int, Any], obj_id: int,
+) -> None:
+    """Назначает результат в родительский контейнер или в results.
+
+    Args:
+        parent: Родительский контейнер (dict или list).
+        parent_key: Ключ в родительском контейнере.
+        result: Значение для назначения.
+        results: Словарь результатов.
+        obj_id: ID исходного объекта.
+    """
+    if parent is not None and parent_key is not None:
+        if isinstance(parent, (dict, list)):
+            parent[parent_key] = result
+    else:
+        results[obj_id] = result
+
+
+def _handle_sensitive_key(
+    current_key: str,
+    parent: Any | None,
+    parent_key: Any | None,
+    results: dict[int, Any],
+    current_id: int,
+) -> bool:
+    """Обрабатывает чувствительный ключ, заменяя значение на REDACTED.
+
+    Args:
+        current_key: Ключ для проверки.
+        parent: Родительский контейнер.
+        parent_key: Ключ в родителе.
+        results: Словарь результатов.
+        current_id: ID текущего объекта.
+
+    Returns:
+        True если ключ был чувствительным и обработан.
+    """
+    if current_key and _is_sensitive_key(current_key):
+        logger.warning(
+            "Обнаружен чувствительный ключ '%s' — данные будут частично обработаны "
+            "и заменены на '<REDACTED>'",
+            current_key,
+        )
+        _assign_to_parent(parent, parent_key, "<REDACTED>", results, current_id)
+        return True
+    return False
+
+
+def _process_dict_branch(
+    current_value: dict,
+    current_depth: int,
+    parent: Any | None,
+    parent_key: Any | None,
+    results: dict[int, Any],
+    current_id: int,
+    stack: list[tuple[Any, ...]],
+) -> None:
+    """Обрабатывает ветку dict: создаёт новый dict и добавляет элементы в стек.
+
+    Args:
+        current_value: Словарь для обработки.
+        current_depth: Текущая глубина.
+        parent: Родительский контейнер.
+        parent_key: Ключ в родителе.
+        results: Словарь результатов.
+        current_id: ID текущего объекта.
+        stack: Стек для итеративной обработки.
+    """
+    if len(current_value) > MAX_COLLECTION_SIZE:
+        logger.error(
+            "Размер словаря превышает максимальный: %d (максимум: %d)",
+            len(current_value),
+            MAX_COLLECTION_SIZE,
+        )
+        raise ValueError(
+            f"Размер словаря ({len(current_value)}) превышает максимальный "
+            f"({MAX_COLLECTION_SIZE})."
+        )
+
+    new_dict: dict[str, Any] = {}
+    _assign_to_parent(parent, parent_key, new_dict, results, current_id)
+
+    next_depth = current_depth + 1
+    for k, v in reversed(current_value.items()):
+        stack.append((v, k, new_dict, k, next_depth))
+
+
+def _process_list_branch(
+    current_value: list,
+    current_depth: int,
+    parent: Any | None,
+    parent_key: Any | None,
+    results: dict[int, Any],
+    current_id: int,
+    stack: list[tuple[Any, ...]],
+) -> None:
+    """Обрабатывает ветку list: создаёт новый list и добавляет элементы в стек.
+
+    Args:
+        current_value: Список для обработки.
+        current_depth: Текущая глубина.
+        parent: Родительский контейнер.
+        parent_key: Ключ в родителе.
+        results: Словарь результатов.
+        current_id: ID текущего объекта.
+        stack: Стек для итеративной обработки.
+    """
+    if len(current_value) > MAX_COLLECTION_SIZE:
+        logger.error(
+            "Размер списка превышает максимальный: %d (максимум: %d)",
+            len(current_value),
+            MAX_COLLECTION_SIZE,
+        )
+        raise ValueError(
+            f"Размер списка ({len(current_value)}) превышает максимальный "
+            f"({MAX_COLLECTION_SIZE})."
+        )
+
+    new_list: list[Any] = [None] * len(current_value)
+    _assign_to_parent(parent, parent_key, new_list, results, current_id)
+
+    next_depth = current_depth + 1
+    for i in reversed(range(len(current_value))):
+        stack.append((current_value[i], None, new_list, i, next_depth))
+
+
 # =============================================================================
 # ОСНОВНАЯ ФУНКЦИЯ САНИТАРИЗАЦИИ
 # =============================================================================
@@ -313,100 +440,34 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 if handled:
                     continue
 
-                # Проверяем на циклические ссылки
+                # Проверяем на циклические ссылки через results
                 if current_id in results:
-                    result = results[current_id]
-                    if (
-                        parent is not None
-                        and parent_key is not None
-                        and isinstance(parent, (dict, list))
-                    ):
-                        parent[parent_key] = result
+                    _assign_to_parent(parent, parent_key, results[current_id], results, current_id)
                     continue
 
-                # Проверяем на циклические ссылки для изменяемых типов
+                # Проверяем на циклические ссылки для изменяемых типов через _visited
                 if isinstance(current_value, (dict, list)) and current_id in _visited:
-                    result = "<REDACTED>"
-                    if parent is not None and parent_key is not None:
-                        if isinstance(parent, (dict, list)):
-                            parent[parent_key] = result
-                    else:
-                        results[current_id] = result
+                    _assign_to_parent(parent, parent_key, "<REDACTED>", results, current_id)
                     continue
 
                 if isinstance(current_value, (dict, list)):
                     _visited.add(current_id)
 
-                # Чувствительные ключи обрабатываем сразу
-                if current_key and _is_sensitive_key(current_key):
-                    logger.warning(
-                        "Обнаружен чувствительный ключ '%s' — данные будут частично обработаны "
-                        "и заменены на '<REDACTED>'",
-                        current_key,
-                    )
-                    result = "<REDACTED>"
-                    if parent is not None and parent_key is not None:
-                        if isinstance(parent, (dict, list)):
-                            parent[parent_key] = result
-                    else:
-                        results[current_id] = result
+                # Чувствительные ключи обрабатываем сразу через helper
+                if _handle_sensitive_key(current_key, parent, parent_key, results, current_id):
                     continue
 
+                # Dispatch по типу коллекции
                 if isinstance(current_value, dict):
-                    # Проверка размера словаря
-                    if len(current_value) > MAX_COLLECTION_SIZE:
-                        logger.error(
-                            "Размер словаря превышает максимальный: %d (максимум: %d)",
-                            len(current_value),
-                            MAX_COLLECTION_SIZE,
-                        )
-                        raise ValueError(
-                            f"Размер словаря ({len(current_value)}) превышает максимальный "
-                            f"({MAX_COLLECTION_SIZE})."
-                        )
-
-                    # Создаём новый словарь для результата
-                    new_dict: dict[str, Any] = {}
-                    if parent is not None and parent_key is not None:
-                        if isinstance(parent, (dict, list)):
-                            parent[parent_key] = new_dict
-                    else:
-                        results[current_id] = new_dict
-
-                    # Add items to stack in reverse order to preserve order
-                    # Increment depth by 1
-                    next_depth = current_depth + 1
-                    for k, v in reversed(
-                        current_value.items()
-                    ):  # FIX #18: Inefficient list comprehension
-                        stack.append((v, k, new_dict, k, next_depth))
-
+                    _process_dict_branch(
+                        current_value, current_depth, parent, parent_key,
+                        results, current_id, stack,
+                    )
                 elif isinstance(current_value, list):
-                    # Проверка размера списка
-                    if len(current_value) > MAX_COLLECTION_SIZE:
-                        logger.error(
-                            "Размер списка превышает максимальный: %d (максимум: %d)",
-                            len(current_value),
-                            MAX_COLLECTION_SIZE,
-                        )
-                        raise ValueError(
-                            f"Размер списка ({len(current_value)}) превышает максимальный "
-                            f"({MAX_COLLECTION_SIZE})."
-                        )
-
-                    # Создаём новый список нужного размера
-                    new_list: list[Any] = [None] * len(current_value)
-                    if parent is not None and parent_key is not None:
-                        if isinstance(parent, (dict, list)):
-                            parent[parent_key] = new_list
-                    else:
-                        results[current_id] = new_list
-
-                    # Добавляем элементы в стек в обратном порядке для сохранения порядка
-                    # Увеличиваем глубину на 1
-                    next_depth = current_depth + 1
-                    for i in reversed(range(len(current_value))):
-                        stack.append((current_value[i], None, new_list, i, next_depth))
+                    _process_list_branch(
+                        current_value, current_depth, parent, parent_key,
+                        results, current_id, stack,
+                    )
 
             except MemoryError as mem_error:
                 logger.critical(
