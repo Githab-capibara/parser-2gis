@@ -157,16 +157,16 @@ class TestIsCacheExpired:
 
     def test_past_date_is_expired(self) -> None:
         """Дата в прошлом считается истёкшей."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
-        past = datetime.now() - timedelta(hours=1)
+        past = datetime.now(timezone.utc) - timedelta(hours=1)
         assert is_cache_expired(past) is True
 
     def test_future_date_not_expired(self) -> None:
         """Дата в будущем не считается истёкшей."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
-        future = datetime.now() + timedelta(hours=24)
+        future = datetime.now(timezone.utc) + timedelta(hours=24)
         assert is_cache_expired(future) is False
 
 

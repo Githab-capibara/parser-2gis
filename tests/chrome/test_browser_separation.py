@@ -117,23 +117,27 @@ class TestBrowserPathResolver:
         - Логирование работает корректно
         """
         import logging
+        from pathlib import Path
 
         mock_options = MagicMock()
         mock_options.binary_path = "/usr/bin/chrome"
 
-        with caplog.at_level(logging.WARNING), patch("os.path.islink", return_value=True):
-            with patch("os.path.realpath", return_value="/usr/bin/google-chrome"):
-                with patch("os.path.isabs", return_value=True):
-                    with patch("os.path.exists", return_value=True):
-                        with patch("os.path.isfile", return_value=True):
-                            with patch("os.access", return_value=True):
-                                result = path_resolver.resolve_path(mock_options)
+        # Мокаем _validate_binary_path чтобы не проверять реальный путь
+        with caplog.at_level(logging.WARNING):
+            with patch.object(
+                path_resolver, "_validate_binary_path"
+            ):
+                # Мокаем Path.is_symlink для всех экземпляров
+                with patch.object(Path, "is_symlink", return_value=True):
+                    # Мокаем Path.resolve чтобы вернуть нужный путь
+                    with patch.object(Path, "resolve", return_value=Path("/usr/bin/google-chrome")):
+                        result = path_resolver.resolve_path(mock_options)
 
-                                assert result == "/usr/bin/google-chrome"
-                                assert any(
-                                    "символическую ссылку" in record.message
-                                    for record in caplog.records
-                                )
+                        assert result == "/usr/bin/google-chrome"
+                        assert any(
+                            "символическую ссылку" in record.message
+                            for record in caplog.records
+                        )
 
     def test_browser_path_resolver_relative_path_error(
         self, path_resolver: BrowserPathResolver
@@ -143,10 +147,18 @@ class TestBrowserPathResolver:
         Проверяет:
         - ValueError выбрасывается для относительных путей
         """
+        from pathlib import Path
+
         mock_options = MagicMock()
         mock_options.binary_path = "chrome"
 
-        with patch("os.path.isabs", return_value=False):
+        # Мокаем Path чтобы is_symlink вернул False, resolve вернул тот же путь
+        mock_path_instance = MagicMock(spec=Path)
+        mock_path_instance.is_symlink.return_value = False
+        mock_path_instance.resolve.return_value = Path("chrome")
+        mock_path_instance.is_absolute.return_value = False
+
+        with patch.object(Path, "__new__", return_value=mock_path_instance):
             with pytest.raises(ValueError, match="абсолютным"):
                 path_resolver.resolve_path(mock_options)
 
@@ -189,15 +201,23 @@ class TestBrowserPathResolver:
         Проверяет:
         - PermissionError выбрасывается для неисполняемых файлов
         """
+        from pathlib import Path
+
         mock_options = MagicMock()
         mock_options.binary_path = "/usr/bin/chrome"
 
-        with patch("os.path.isabs", return_value=True):
-            with patch("os.path.exists", return_value=True):
-                with patch("os.path.isfile", return_value=True):
-                    with patch("os.access", return_value=False):
-                        with pytest.raises(PermissionError):
-                            path_resolver.resolve_path(mock_options)
+        # Мокаем Path чтобы все проверки прошли, кроме os.access
+        mock_path_instance = MagicMock(spec=Path)
+        mock_path_instance.is_symlink.return_value = False
+        mock_path_instance.resolve.return_value = Path("/usr/bin/chrome")
+        mock_path_instance.is_absolute.return_value = True
+        mock_path_instance.exists.return_value = True
+        mock_path_instance.is_file.return_value = True
+
+        with patch.object(Path, "__new__", return_value=mock_path_instance):
+            with patch("os.access", return_value=False):
+                with pytest.raises(PermissionError):
+                    path_resolver.resolve_path(mock_options)
 
 
 class TestProfileManager:

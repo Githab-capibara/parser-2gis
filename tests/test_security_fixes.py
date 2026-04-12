@@ -299,10 +299,10 @@ class TestWebSocketInjection:
         assert _validate_remote_port(MAX_PORT) == MAX_PORT
 
         # Невалидные порты
-        with pytest.raises(ValueError, match="не должен быть bool"):
+        with pytest.raises(TypeError, match="не должен быть bool"):
             _validate_remote_port(True)
 
-        with pytest.raises(ValueError, match="должен быть integer"):
+        with pytest.raises(TypeError, match="должен быть integer"):
             _validate_remote_port("9222")
 
         with pytest.raises(ValueError, match="должен быть >="):
