@@ -15,7 +15,7 @@ import functools
 import hashlib
 import sqlite3
 import zlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from parser_2gis.constants import SHA256_HASH_LENGTH
@@ -108,9 +108,10 @@ def validate_hash(hash_val: str) -> bool:
         return False
     try:
         int(hash_val, 16)
-        return True
     except ValueError:
         return False
+    else:
+        return True
 
 
 def get_cache_size_mb(cache_file: Path, conn: sqlite3.Connection | None = None) -> float:
@@ -140,7 +141,6 @@ def get_cache_size_mb(cache_file: Path, conn: sqlite3.Connection | None = None) 
                 app_logger.warning("База данных кэша может быть повреждена")
 
         return cache_size_mb
-
     except OSError as os_error:
         app_logger.warning("Ошибка при получении размера кэша: %s", os_error)
         return 0.0
@@ -177,7 +177,7 @@ def is_cache_expired(expires_at: datetime | None) -> bool:
         return True
 
     # Используем timezone-aware datetime
-    return datetime.now(tz=timezone.utc) > expires_at
+    return datetime.now(tz=UTC) > expires_at
 
 
 __all__ = [

@@ -11,6 +11,11 @@
     >>> cache.close()
 """
 
+from parser_2gis.cache.config_cache import CategoryDict, ConfigCache, get_config_cache
+from parser_2gis.cache.manager import Cache, CacheManager
+from parser_2gis.cache.pool import PSUTIL_AVAILABLE, ConnectionPool, _calculate_dynamic_pool_size
+from parser_2gis.cache.serializer import JsonSerializer, _deserialize_json, _serialize_json
+from parser_2gis.cache.validator import CacheDataValidator
 from parser_2gis.constants import (
     CONNECTION_MAX_AGE,
     DEFAULT_BATCH_SIZE,
@@ -25,11 +30,6 @@ from parser_2gis.constants import (
     SHA256_HASH_LENGTH,
     validate_env_int,
 )
-from parser_2gis.cache.config_cache import CategoryDict, ConfigCache, get_config_cache
-from parser_2gis.cache.manager import Cache, CacheManager
-from parser_2gis.cache.pool import PSUTIL_AVAILABLE, ConnectionPool, _calculate_dynamic_pool_size
-from parser_2gis.cache.serializer import JsonSerializer, _deserialize_json, _serialize_json
-from parser_2gis.cache.validator import CacheDataValidator
 
 # Экспортируем psutil для тестов (если доступен)
 try:
