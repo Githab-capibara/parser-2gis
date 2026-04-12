@@ -211,7 +211,7 @@ class JsonSerializer:
                 try:
                     if isinstance(json_error, orjson.JSONDecodeError):
                         msg = f"Ошибка десериализации, размер данных: {len(data)} байт"
-                        raise ValueError(
+                        raise TypeError(
                             msg
                         ) from json_error
                 except (AttributeError, TypeError) as orjson_check_error:

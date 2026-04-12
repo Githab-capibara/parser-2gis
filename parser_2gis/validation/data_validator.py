@@ -401,12 +401,12 @@ def _validate_config_data(
 
     if not isinstance(config, list):
         msg = f"{field_name} должен быть списком"
-        raise ValueError(msg)
+        raise TypeError(msg)
 
     for idx, item in enumerate(config):
         if not isinstance(item, dict):
             msg = f"{field_name}[{idx}] должен быть словарём (dict)"
-            raise ValueError(msg)
+            raise TypeError(msg)
         if "name" not in item:
             msg = f"{field_name}[{idx}] должен содержать ключ 'name'"
             raise ValueError(msg)

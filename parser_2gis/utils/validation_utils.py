@@ -169,7 +169,7 @@ def _validate_city(city: Any, field_name: str = "city") -> dict[str, Any]:
     if not isinstance(city, dict):
         logger.warning("%s не является словарём: %s", field_name, city)
         msg = f"{field_name} должен быть словарём"
-        raise ValueError(msg)
+        raise TypeError(msg)
 
     if not all(key in city for key in ("code", "domain")):
         logger.warning("Город не содержит обязательные поля (code, domain): %s", city)
@@ -179,7 +179,7 @@ def _validate_city(city: Any, field_name: str = "city") -> dict[str, Any]:
     if not isinstance(city["code"], str) or not isinstance(city["domain"], str):
         logger.warning("Поля code и domain должны быть строками: %s", city)
         msg_0 = "code и domain должны быть строками"
-        raise ValueError(msg_0)
+        raise TypeError(msg_0)
 
     # Используем кэшированную версию для часто используемых городов
     # Оптимизация: передаём code и domain как отдельные аргументы для эффективного кэширования
@@ -235,7 +235,7 @@ def _validate_category(category: Any) -> dict[str, Any]:
     if not isinstance(category, dict):
         logger.warning("category не является словарём: %s", category)
         msg = "category должен быть словарём"
-        raise ValueError(msg)
+        raise TypeError(msg)
 
     # Проверка наличия name или query
     if "name" not in category and "query" not in category:

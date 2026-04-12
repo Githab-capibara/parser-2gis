@@ -226,10 +226,10 @@ def invalidate_port_cache(_port: int) -> None:
 def _validate_remote_port(port: Any) -> int:
     """Валидирует remote_port как integer в допустимом диапазоне."""
     if isinstance(port, bool):
-        raise ValueError("remote_port не должен быть bool, получен %s" % type(port).__name__)
+        raise TypeError("remote_port не должен быть bool, получен %s" % type(port).__name__)
 
     if not isinstance(port, int):
-        raise ValueError("remote_port должен быть integer, получен %s" % type(port).__name__)
+        raise TypeError("remote_port должен быть integer, получен %s" % type(port).__name__)
 
     if port < MIN_PORT:
         raise ValueError(
@@ -263,14 +263,14 @@ class ChromeRemote:
         # ISSUE-102: Валидация response_patterns
         if not isinstance(response_patterns, list):
             msg = f"response_patterns должен быть списком, получен {type(response_patterns).__name__}"
-            raise ValueError(
+            raise TypeError(
                 msg
             )
 
         # ISSUE-103: Валидация на пустые паттерны
         for idx, pattern in enumerate(response_patterns):
             if not isinstance(pattern, str):
-                raise ValueError(
+                raise TypeError(
                     "response_patterns[%d] должен быть строкой, получен %s"
                     % (idx, type(pattern).__name__)
                 )

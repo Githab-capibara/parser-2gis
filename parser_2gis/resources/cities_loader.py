@@ -96,7 +96,7 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         if not isinstance(all_cities, list):
             logger.error("Файл городов должен содержать список, а не %s", type(all_cities).__name__)
             msg = f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
-            raise ValueError(
+            raise TypeError(
                 msg
             )
 
@@ -111,7 +111,7 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
             if not isinstance(city, dict):
                 logger.error("Город %d должен быть словарём, а не %s", i, type(city).__name__)
                 msg_0 = "Город %d должен быть словарём"
-                raise ValueError(msg_0)
+                raise TypeError(msg_0)
 
             # Проверяем name, code, domain
             if "name" not in city or "code" not in city or "domain" not in city:
@@ -126,7 +126,7 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
             ):
                 logger.error("Поля 'name', 'code' и 'domain' города %d должны быть строками", i)
                 msg = f"Поля 'name', 'code' и 'domain' города {i} должны быть строками"
-                raise ValueError(msg)
+                raise TypeError(msg)
 
             # Опционально: проверяем country_code если есть
             if "country_code" in city and not isinstance(city["country_code"], str):
