@@ -58,7 +58,7 @@ class ITuiApp(Protocol):
     # -------------------------------------------------------------------------
     # Навигация
     # -------------------------------------------------------------------------
-    def switch_screen(self, screen_id: str) -> None:
+    def switch_screen(self, _screen_id: str) -> None:
         """Переключает активный экран."""
         # pylint: disable=unnecessary-ellipsis
         ...
@@ -68,7 +68,7 @@ class ITuiApp(Protocol):
         # pylint: disable=unnecessary-ellipsis
         ...
 
-    def push_screen(self, screen_id: str) -> None:
+    def push_screen(self, _screen_id: str) -> None:
         """Добавляет новый экран в стек."""
         # pylint: disable=unnecessary-ellipsis
         ...

@@ -92,7 +92,7 @@ def _compute_data_hash_cached(data: str) -> str:
 class CursorProtocol(Protocol):
     """Протокол для курсора базы данных."""
 
-    def execute(self, query: str, params: tuple[Any, ...] = ...) -> Any:
+    def execute(self, query: str, _params: tuple[Any, ...] = ...) -> Any:
         """Выполняет SQL запрос."""
         ...  # pylint: disable=unnecessary-ellipsis
 
@@ -120,7 +120,7 @@ class ConnectionProtocol(Protocol):
         """Откатывает транзакцию."""
         ...  # pylint: disable=unnecessary-ellipsis
 
-    def execute(self, query: str, params: tuple[Any, ...] = ...) -> Any:
+    def execute(self, query: str, _params: tuple[Any, ...] = ...) -> Any:
         """Выполняет SQL запрос."""
         ...  # pylint: disable=unnecessary-ellipsis
 

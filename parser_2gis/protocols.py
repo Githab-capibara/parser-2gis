@@ -309,7 +309,7 @@ class CacheReader(Protocol):
 class CacheWriter(Protocol):
     """Protocol для записи в кэш."""
 
-    def set(self, key: str, value: Any, ttl: int) -> None:
+    def set(self, key: str, value: Any, _ttl: int) -> None:
         """Устанавливает значение в кэш."""
 
     def delete(self, key: str) -> None:
