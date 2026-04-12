@@ -171,7 +171,8 @@ class FcntlLockStrategy(BaseLockStrategy):
 
                 time.sleep(1)
 
-        raise RuntimeError(f"Не удалось получить lock файл после {self._max_attempts} попыток")
+        msg = f"Не удалось получить lock файл после {self._max_attempts} попыток"
+        raise RuntimeError(msg)
 
     def release(self) -> None:
         """Освобождает блокировку и удаляет файл."""

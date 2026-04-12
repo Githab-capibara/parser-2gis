@@ -164,8 +164,9 @@ def retry_with_backoff(
                             max_attempts,
                             e,
                         )
+                        msg = f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}"
                         raise RetryError(
-                            f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}",
+                            msg,
                             last_error=e,
                             attempts=attempt,
                         ) from e
@@ -276,8 +277,9 @@ def retry_with_jitter(
                             max_attempts,
                             e,
                         )
+                        msg = f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}"
                         raise RetryError(
-                            f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}",
+                            msg,
                             last_error=e,
                             attempts=attempt,
                         ) from e

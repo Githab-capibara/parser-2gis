@@ -164,15 +164,18 @@ class BrowserPathResolver:
         """
         # Проверка на абсолютный путь
         if not Path(binary_path).is_absolute():
-            raise ValueError(f"Путь к браузеру должен быть абсолютным: {binary_path}")
+            msg = f"Путь к браузеру должен быть абсолютным: {binary_path}"
+            raise ValueError(msg)
 
         # Проверка существования файла
         if not Path(binary_path).exists():
-            raise FileNotFoundError(f"Путь к браузеру не существует: {binary_path}")
+            msg = f"Путь к браузеру не существует: {binary_path}"
+            raise FileNotFoundError(msg)
 
         # Проверка, что это файл (не директория)
         if not Path(binary_path).is_file():
-            raise ValueError(f"Путь к браузеру должен указывать на файл: {binary_path}")
+            msg = f"Путь к браузеру должен указывать на файл: {binary_path}"
+            raise ValueError(msg)
 
         # Проверка на исполняемость (только для Linux/Unix)
         # PTH204: os.access не имеет прямого аналога в pathlib

@@ -238,9 +238,12 @@ class ParallelErrorHandler:
                         MAX_UNIQUE_NAME_ATTEMPTS,
                         temp_filename,
                     )
-                    raise RuntimeError(
+                    msg = (
                         "Не удалось создать уникальный временный файл "
                         f"после {MAX_UNIQUE_NAME_ATTEMPTS} попыток"
+                    )
+                    raise RuntimeError(
+                        msg
                     ) from e
             except OSError:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:

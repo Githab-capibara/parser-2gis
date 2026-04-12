@@ -754,7 +754,8 @@ class CacheManager:
         if url is None:
             raise ValueError("URL не может быть None")
         if not isinstance(url, str):
-            raise TypeError(f"URL должен быть строкой, получен {type(url).__name__}")
+            msg = f"URL должен быть строкой, получен {type(url).__name__}"
+            raise TypeError(msg)
         if not url.strip():
             raise ValueError("URL не может быть пустой строкой")
         # Проверка на минимальную валидность URL (должен содержать схему)
@@ -771,9 +772,12 @@ class CacheManager:
             # Быстрая оценка размера через repr() для предотвращения дорогой сериализации
             estimated_size = len(repr(data).encode("utf-8"))
             if estimated_size > MAX_RESPONSE_SIZE:
-                raise MemoryError(
+                msg = (
                     f"Приблизительный размер данных ({estimated_size} байт) превышает лимит "
                     f"({MAX_RESPONSE_SIZE} байт). Кэширование отклонено."
+                )
+                raise MemoryError(
+                    msg
                 )
         except MemoryError:
             # Пробрасываем MemoryError дальше
@@ -803,16 +807,20 @@ class CacheManager:
             raise
         except (TypeError, ValueError) as serialize_error:
             app_logger.error("Ошибка сериализации данных для кэша: %s", serialize_error)
+            msg = f"Не удалось сериализовать данные в JSON: {serialize_error}"
             raise TypeError(
-                f"Не удалось сериализовать данные в JSON: {serialize_error}"
+                msg
             ) from serialize_error
 
         # CRITICAL 2: Проверка размера данных после сериализации
         data_size = len(data_json.encode("utf-8"))
         if data_size > MAX_RESPONSE_SIZE:
-            raise MemoryError(
+            msg = (
                 f"Размер данных ({data_size} байт) превышает лимит ({MAX_RESPONSE_SIZE} байт). "
                 "Кэширование больших данных может привести к MemoryError."
+            )
+            raise MemoryError(
+                msg
             )
 
         conn = self._pool.get_connection()
@@ -1127,8 +1135,9 @@ class CacheManager:
 
         # Ограничиваем максимальный размер пакета для предотвращения DoS
         if len(url_hashes) > MAX_BATCH_SIZE:
+            msg = f"Размер пакета {len(url_hashes)} превышает максимальный лимит {MAX_BATCH_SIZE}"
             raise ValueError(
-                f"Размер пакета {len(url_hashes)} превышает максимальный лимит {MAX_BATCH_SIZE}"
+                msg
             )
 
         # Строгая валидация каждого хеша (64 символа, hex)

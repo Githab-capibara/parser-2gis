@@ -199,7 +199,8 @@ class ParallelCityParser:
         if output_dir is None:
             raise ValueError("output_dir не может быть None")
         if not isinstance(output_dir, str):
-            raise TypeError(f"output_dir должен быть строкой, получен {type(output_dir).__name__}")
+            msg = f"output_dir должен быть строкой, получен {type(output_dir).__name__}"
+            raise TypeError(msg)
         if not output_dir.strip():
             raise ValueError("output_dir не может быть пустой строкой")
         # Проверка на path traversal атаки
@@ -253,12 +254,14 @@ class ParallelCityParser:
 
         # Валидация max_workers ПЕРЕД созданием семафора
         if max_workers < MIN_WORKERS:
+            msg = f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}"
             raise ValueError(
-                f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}"
+                msg
             )
         if max_workers > MAX_WORKERS:
+            msg = f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
             raise ValueError(
-                f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
+                msg
             )
 
         # Семафор для контроля одновременного запуска браузеров
@@ -318,14 +321,16 @@ class ParallelCityParser:
         """
         if output_dir_path.exists():
             if not output_dir_path.is_dir():
-                raise ValueError(f"output_dir существует, но не является директорией: {output_dir}")
+                msg = f"output_dir существует, но не является директорией: {output_dir}"
+                raise ValueError(msg)
             test_file: Path | None = None
             try:
                 test_file = output_dir_path / ".write_test"
                 test_file.touch()
             except (OSError, PermissionError) as e:
+                msg = f"Нет прав на запись в директорию: {output_dir}. Ошибка: {e}"
                 raise ValueError(
-                    f"Нет прав на запись в директорию: {output_dir}. Ошибка: {e}"
+                    msg
                 ) from e
             finally:
                 if test_file is not None and test_file.exists():
@@ -342,8 +347,9 @@ class ParallelCityParser:
                 test_file = output_dir_path / ".write_test"
                 test_file.touch()
             except (OSError, PermissionError) as e:
+                msg = f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}"
                 raise ValueError(
-                    f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}"
+                    msg
                 ) from e
             finally:
                 if test_file is not None and test_file.exists():
@@ -518,8 +524,9 @@ class ParallelCityParser:
                         f"получения lock ({MAX_LOCK_ATTEMPTS})",
                         "error",
                     )
+                    msg = f"Не удалось получить lock файл после {MAX_LOCK_ATTEMPTS} попыток"
                     raise RuntimeError(
-                        f"Не удалось получить lock файл после {MAX_LOCK_ATTEMPTS} попыток"
+                        msg
                     )
                 lock_fd = None
                 try:

@@ -80,7 +80,8 @@ class FileLogger:
         try:
             self._log_level = getattr(logging, log_level.upper())
         except AttributeError as err:
-            raise ValueError(f"Некорректный уровень логирования: {log_level}") from err
+            msg = f"Некорректный уровень логирования: {log_level}"
+            raise ValueError(msg) from err
 
         self._max_bytes = max_bytes
         self._backup_count = backup_count
@@ -141,10 +142,13 @@ class FileLogger:
                 try:
                     self._log_file.parent.mkdir(parents=True, exist_ok=True)
                 except OSError as e:
-                    raise OSError(
+                    msg = (
                         f"Не удалось создать директорию для логов: {self._log_file.parent}. "
                         f"Ошибка: {e}. "
                         f"Функция: {self._setup_file_handler.__name__}"
+                    )
+                    raise OSError(
+                        msg
                     ) from e
 
             # Создаём rotating file handler
@@ -157,10 +161,13 @@ class FileLogger:
                 )
                 handler_created = True
             except OSError as e:
-                raise OSError(
+                msg = (
                     f"Ошибка создания RotatingFileHandler: {e}. "
                     f"Файл: {self._log_file}. "
                     f"Функция: {self._setup_file_handler.__name__}"
+                )
+                raise OSError(
+                    msg
                 ) from e
 
             # Форматирование логов с детальной информацией
@@ -233,10 +240,13 @@ class FileLogger:
         except (KeyboardInterrupt, SystemExit):
             raise
         except (AttributeError, RuntimeError, OSError) as e:
-            raise RuntimeError(
+            msg = (
                 f"Ошибка добавления файлового обработчика к логгеру: {e}. "
                 f"Функция: {self.setup_logger.__name__}, "
                 f"Логгер: {logger.name}"
+            )
+            raise RuntimeError(
+                msg
             ) from e
 
     def close(self) -> None:

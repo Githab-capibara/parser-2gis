@@ -69,9 +69,11 @@ def validate_positive_int(value: int, min_val: int, max_val: int, arg_name: str)
 
     """
     if value < min_val:
-        raise ValueError(f"{arg_name} должен быть не менее {min_val} (получено {value})")
+        msg = f"{arg_name} должен быть не менее {min_val} (получено {value})"
+        raise ValueError(msg)
     if value > max_val:
-        raise ValueError(f"{arg_name} должен быть не более {max_val} (получено {value})")
+        msg = f"{arg_name} должен быть не более {max_val} (получено {value})"
+        raise ValueError(msg)
     return value
 
 
@@ -96,9 +98,11 @@ def validate_positive_float(value: float, min_val: float, max_val: float, arg_na
 
     """
     if value < min_val:
-        raise ValueError(f"{arg_name} должен быть не менее {min_val} (получено {value})")
+        msg = f"{arg_name} должен быть не менее {min_val} (получено {value})"
+        raise ValueError(msg)
     if value > max_val:
-        raise ValueError(f"{arg_name} должен быть не более {max_val} (получено {value})")
+        msg = f"{arg_name} должен быть не более {max_val} (получено {value})"
+        raise ValueError(msg)
     return value
 
 
@@ -128,7 +132,8 @@ def validate_non_empty_string(value: str, field_name: str) -> str:
 
     """
     if not value or not value.strip():
-        raise ValueError(f"{field_name} не может быть пустым")
+        msg = f"{field_name} не может быть пустым"
+        raise ValueError(msg)
     return value.strip()
 
 
@@ -153,9 +158,11 @@ def validate_string_length(value: str, min_length: int, max_length: int, field_n
 
     """
     if len(value) < min_length:
-        raise ValueError(f"{field_name} должен быть не менее {min_length} символов")
+        msg = f"{field_name} должен быть не менее {min_length} символов"
+        raise ValueError(msg)
     if len(value) > max_length:
-        raise ValueError(f"{field_name} должен быть не более {max_length} символов")
+        msg = f"{field_name} должен быть не более {max_length} символов"
+        raise ValueError(msg)
     return value
 
 
@@ -185,7 +192,8 @@ def validate_non_empty_list(value: list[Any], field_name: str) -> list[Any]:
 
     """
     if not value:
-        raise ValueError(f"{field_name} не может быть пустым")
+        msg = f"{field_name} не может быть пустым"
+        raise ValueError(msg)
     return value
 
 
@@ -212,9 +220,11 @@ def validate_list_length(
 
     """
     if len(value) < min_length:
-        raise ValueError(f"{field_name} должен содержать не менее {min_length} элементов")
+        msg = f"{field_name} должен содержать не менее {min_length} элементов"
+        raise ValueError(msg)
     if len(value) > max_length:
-        raise ValueError(f"{field_name} должен содержать не более {max_length} элементов")
+        msg = f"{field_name} должен содержать не более {max_length} элементов"
+        raise ValueError(msg)
     return value
 
 
@@ -386,18 +396,23 @@ def _validate_config_data(
         return cache[config_hash]
 
     if not config:
-        raise ValueError(f"{field_name} не может быть пустым")
+        msg = f"{field_name} не может быть пустым"
+        raise ValueError(msg)
 
     if not isinstance(config, list):
-        raise ValueError(f"{field_name} должен быть списком")
+        msg = f"{field_name} должен быть списком"
+        raise ValueError(msg)
 
     for idx, item in enumerate(config):
         if not isinstance(item, dict):
-            raise ValueError(f"{field_name}[{idx}] должен быть словарём (dict)")
+            msg = f"{field_name}[{idx}] должен быть словарём (dict)"
+            raise ValueError(msg)
         if "name" not in item:
-            raise ValueError(f"{field_name}[{idx}] должен содержать ключ 'name'")
+            msg = f"{field_name}[{idx}] должен содержать ключ 'name'"
+            raise ValueError(msg)
         if not isinstance(item.get("name"), str) or not item.get("name"):
-            raise ValueError(f"{field_name}[{idx}]: 'name' должен быть непустой строкой")
+            msg = f"{field_name}[{idx}]: 'name' должен быть непустой строкой"
+            raise ValueError(msg)
 
     _evict_cache_if_needed(cache)
     cache[config_hash] = config
@@ -517,19 +532,25 @@ def validate_parallel_config(
 
     """
     if max_workers < min_workers:
-        raise ValueError(f"max_workers должен быть не менее {min_workers} (получено {max_workers})")
+        msg = f"max_workers должен быть не менее {min_workers} (получено {max_workers})"
+        raise ValueError(msg)
     if max_workers > max_workers_limit:
+        msg = f"max_workers слишком большой: {max_workers} (максимум: {max_workers_limit})"
         raise ValueError(
-            f"max_workers слишком большой: {max_workers} (максимум: {max_workers_limit})"
+            msg
         )
     if timeout_per_url < min_timeout:
-        raise ValueError(
+        msg = (
             f"timeout_per_url должен быть не менее {min_timeout} секунд "
             f"(получено {timeout_per_url})"
         )
-    if timeout_per_url > max_timeout:
         raise ValueError(
-            f"timeout_per_url слишком большой: {timeout_per_url} секунд (максимум: {max_timeout})"
+            msg
+        )
+    if timeout_per_url > max_timeout:
+        msg = f"timeout_per_url слишком большой: {timeout_per_url} секунд (максимум: {max_timeout})"
+        raise ValueError(
+            msg
         )
 
     return {"max_workers": max_workers, "timeout_per_url": timeout_per_url}

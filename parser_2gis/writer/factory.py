@@ -63,9 +63,12 @@ class WriterRegistry:
             raise ValueError("Название формата не может быть пустым")
 
         if not re.match(r"^[a-zA-Z0-9_-]+$", format_name):
-            raise ValueError(
+            msg = (
                 f"Название формата содержит недопустимые символы: {format_name}. "
                 "Разрешены только буквы, цифры, дефис и подчёркивание."
+            )
+            raise ValueError(
+                msg
             )
 
         with self._lock:
@@ -214,10 +217,13 @@ def get_writer(
     if file_format is None:
         detected_format = _detect_format_from_extension(validated_path)
         if detected_format is None:
-            raise WriterUnknownFileFormat(
+            msg = (
                 f"Не удалось определить формат из расширения файла: {validated_path}. "
                 f"Укажите формат явно или используйте поддерживаемые расширения: "
                 f"{', '.join(_writer_registry.get_registry().keys())}"
+            )
+            raise WriterUnknownFileFormat(
+                msg
             )
         file_format = detected_format
 
@@ -229,9 +235,12 @@ def get_writer(
     # Получаем writer класс из реестра
     writer_cls = _writer_registry.get_writer(file_format.lower())
     if not writer_cls:
-        raise WriterUnknownFileFormat(
+        msg = (
             f"Неизвестный формат: {file_format}. "
             f"Зарегистрированные форматы: {', '.join(_writer_registry.get_registry().keys())}"
+        )
+        raise WriterUnknownFileFormat(
+            msg
         )
 
     return writer_cls(str(validated_path), writer_options)

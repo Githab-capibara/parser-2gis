@@ -115,7 +115,8 @@ class FileManager:
                     raise
 
         # Должны были создать файл в цикле
-        raise OSError(f"Не удалось создать временный файл: {temp_filename}")
+        msg = f"Не удалось создать временный файл: {temp_filename}"
+        raise OSError(msg)
 
     def rename_file(self, src_path: Path, dst_path: Path) -> bool:
         """Переименовывает файл с fallback на shutil.move.

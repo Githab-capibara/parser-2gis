@@ -136,7 +136,8 @@ class CSVDeduplicator:
         # ISSUE-160: Проверка на блокировку файла
         if not self._is_file_accessible(self._file_path):
             logger.error("Файл CSV заблокирован или недоступен: %s", self._file_path)
-            raise OSError(f"Файл {self._file_path} заблокирован или недоступен")
+            msg = f"Файл {self._file_path} заблокирован или недоступен"
+            raise OSError(msg)
 
         try:
             optimal_read_buffer = _calculate_optimal_buffer_size(file_path=self._file_path)

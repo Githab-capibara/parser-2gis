@@ -94,8 +94,9 @@ class ParallelLockManager:
                         f"получения lock ({self.MAX_LOCK_ATTEMPTS})",
                         "error",
                     )
+                    msg = f"Не удалось получить lock файл после {self.MAX_LOCK_ATTEMPTS} попыток"
                     raise RuntimeError(
-                        f"Не удалось получить lock файл после {self.MAX_LOCK_ATTEMPTS} попыток"
+                        msg
                     )
                 lock_fd = None
                 try:

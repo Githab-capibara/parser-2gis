@@ -82,7 +82,8 @@ class FileWriter(WriterProtocol, ABC):
 
         # Проверяем на наличие Path traversal конструкций
         if ".." in file_path_str:
-            raise ValueError(f"Путь к файлу содержит '..' (Path traversal атака): {file_path_str}")
+            msg = f"Путь к файлу содержит '..' (Path traversal атака): {file_path_str}"
+            raise ValueError(msg)
 
         # Нормализуем путь через os.path.normpath()
         normalized_path = os.path.normpath(file_path_str)
@@ -96,9 +97,12 @@ class FileWriter(WriterProtocol, ABC):
         allowed_prefixes = (os.getcwd(), tempfile.gettempdir(), os.path.join(os.getcwd(), "output"))
         if normalized_path != base_name and not normalized_path.startswith(allowed_prefixes):
             # Путь содержит директорию отличную от текущей
-            raise ValueError(
+            msg = (
                 f"Путь к файлу выходит за пределы разрешённых директорий: {file_path_str}. "
                 f"Разрешены: текущая директория, output, tempfile. Базовое имя: {base_name}"
+            )
+            raise ValueError(
+                msg
             )
 
         return normalized_path

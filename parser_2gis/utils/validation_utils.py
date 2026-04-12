@@ -168,11 +168,13 @@ def _validate_city(city: Any, field_name: str = "city") -> dict[str, Any]:
     """
     if not isinstance(city, dict):
         logger.warning("%s не является словарём: %s", field_name, city)
-        raise ValueError(f"{field_name} должен быть словарём")
+        msg = f"{field_name} должен быть словарём"
+        raise ValueError(msg)
 
     if not all(key in city for key in ("code", "domain")):
         logger.warning("Город не содержит обязательные поля (code, domain): %s", city)
-        raise ValueError(f"{field_name} должен содержать поля code и domain")
+        msg = f"{field_name} должен содержать поля code и domain"
+        raise ValueError(msg)
 
     if not isinstance(city["code"], str) or not isinstance(city["domain"], str):
         logger.warning("Поля code и domain должны быть строками: %s", city)

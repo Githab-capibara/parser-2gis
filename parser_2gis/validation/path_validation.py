@@ -126,16 +126,20 @@ class PathSafetyValidator:
                     "Path traversal атака обнаружена: путь содержит запрещённый символ '%s'",
                     forbidden_char,
                 )
-                raise PathTraversalError(
+                msg = (
                     f"Путь содержит запрещённый символ: {forbidden_char!r}. "
                     "Path traversal атака обнаружена."
+                )
+                raise PathTraversalError(
+                    msg
                 )
 
         # Разрешаем путь через realpath для предотвращения symlink атак
         try:
             Path(path).resolve()
         except (OSError, RuntimeError) as fs_error:
-            raise PathTraversalError(f"Ошибка разрешения пути: {fs_error}") from fs_error
+            msg = f"Ошибка разрешения пути: {fs_error}"
+            raise PathTraversalError(msg) from fs_error
 
         return True
 
@@ -161,15 +165,17 @@ class PathSafetyValidator:
 
         # Проверка длины пути
         if len(path) > self._MAX_PATH_LENGTH:
+            msg = f"{path_name} превышает максимальную длину ({len(path)} > {self._MAX_PATH_LENGTH})"
             raise ValueError(
-                f"{path_name} превышает максимальную длину ({len(path)} > {self._MAX_PATH_LENGTH})"
+                msg
             )
 
         # Разрешаем путь через realpath для предотвращения symlink атак
         try:
             resolved_path = Path(path).resolve()
         except (OSError, RuntimeError) as fs_error:
-            raise OSError(f"Ошибка разрешения {path_name}: {fs_error}") from fs_error
+            msg = f"Ошибка разрешения {path_name}: {fs_error}"
+            raise OSError(msg) from fs_error
 
         # Проверка что путь находится в разрешённой директории
         is_allowed = any(
@@ -182,9 +188,12 @@ class PathSafetyValidator:
             if str(resolved_path).startswith(str(Path.cwd())):
                 return
 
-            raise ValueError(
+            msg = (
                 f"{path_name} должен находиться в одной из разрешённых директорий: "
                 f"{[str(d) for d in self._allowed_base_dirs]}"
+            )
+            raise ValueError(
+                msg
             )
 
     def validate_multiple(self, paths: dict[str, str]) -> None:

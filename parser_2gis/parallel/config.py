@@ -99,37 +99,44 @@ class ParallelRunConfig:
         # #190: Валидация типов входных данных
         cities = data.get("cities", [])
         if not isinstance(cities, list):
-            raise TypeError(f"cities должен быть списком, получен {type(cities).__name__}")
+            msg = f"cities должен быть списком, получен {type(cities).__name__}"
+            raise TypeError(msg)
 
         categories = data.get("categories", [])
         if not isinstance(categories, list):
-            raise TypeError(f"categories должен быть списком, получен {type(categories).__name__}")
+            msg = f"categories должен быть списком, получен {type(categories).__name__}"
+            raise TypeError(msg)
 
         output_dir = data.get("output_dir", "./output")
         if not isinstance(output_dir, (str, Path)):
+            msg = f"output_dir должен быть str или Path, получен {type(output_dir).__name__}"
             raise TypeError(
-                f"output_dir должен быть str или Path, получен {type(output_dir).__name__}"
+                msg
             )
 
         max_workers = data.get("max_workers", 10)
         if not isinstance(max_workers, int):
-            raise TypeError(f"max_workers должен быть int, получен {type(max_workers).__name__}")
+            msg = f"max_workers должен быть int, получен {type(max_workers).__name__}"
+            raise TypeError(msg)
 
         timeout_per_url = data.get("timeout_per_url", 300)
         if not isinstance(timeout_per_url, (int, float)):
+            msg = f"timeout_per_url должен быть числом, получен {type(timeout_per_url).__name__}"
             raise TypeError(
-                f"timeout_per_url должен быть числом, получен {type(timeout_per_url).__name__}"
+                msg
             )
 
         output_file = data.get("output_file")
         if output_file is not None and not isinstance(output_file, str):
+            msg = f"output_file должен быть str или None, получен {type(output_file).__name__}"
             raise TypeError(
-                f"output_file должен быть str или None, получен {type(output_file).__name__}"
+                msg
             )
 
         config = data.get("config")
         if config is not None and not isinstance(config, dict):
-            raise TypeError(f"config должен быть dict или None, получен {type(config).__name__}")
+            msg = f"config должен быть dict или None, получен {type(config).__name__}"
+            raise TypeError(msg)
 
         return cls(
             cities=cities,

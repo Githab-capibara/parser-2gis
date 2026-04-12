@@ -273,9 +273,12 @@ def _process_dict_branch(
             len(current_value),
             MAX_COLLECTION_SIZE,
         )
-        raise ValueError(
+        msg = (
             f"Размер словаря ({len(current_value)}) превышает максимальный "
             f"({MAX_COLLECTION_SIZE})."
+        )
+        raise ValueError(
+            msg
         )
 
     new_dict: dict[str, Any] = {}
@@ -312,9 +315,12 @@ def _process_list_branch(
             len(current_value),
             MAX_COLLECTION_SIZE,
         )
-        raise ValueError(
+        msg = (
             f"Размер списка ({len(current_value)}) превышает максимальный "
             f"({MAX_COLLECTION_SIZE})."
+        )
+        raise ValueError(
+            msg
         )
 
     new_list: list[Any] = [None] * len(current_value)
@@ -414,9 +420,12 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                         current_depth,
                         MAX_DATA_DEPTH,
                     )
-                    raise ValueError(
+                    msg = (
                         f"Глубина вложенности данных ({current_depth}) превышает максимальную "
                         f"({MAX_DATA_DEPTH}). Это может указывать на циклические ссылки или атаку."
+                    )
+                    raise ValueError(
+                        msg
                     )
 
                 # Проверка количества обработанных элементов
@@ -428,9 +437,12 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                         processed_count,
                         MAX_COLLECTION_SIZE,
                     )
-                    raise ValueError(
+                    msg = (
                         f"Количество обработанных элементов ({processed_count}) превышает "
                         f"максимальное ({MAX_COLLECTION_SIZE}). Это может указывать на атаку."
+                    )
+                    raise ValueError(
+                        msg
                     )
 
                 # Используем выделенную функцию для проверки типа и чувствительности

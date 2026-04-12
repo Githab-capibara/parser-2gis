@@ -123,8 +123,9 @@ class FileLockManager:
                         f"получения lock ({self._max_lock_attempts})",
                         "error",
                     )
+                    msg = f"Не удалось получить lock файл после {self._max_lock_attempts} попыток"
                     raise RuntimeError(
-                        f"Не удалось получить lock файл после {self._max_lock_attempts} попыток"
+                        msg
                     )
 
                 lock_fd = None

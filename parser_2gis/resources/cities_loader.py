@@ -43,13 +43,15 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
     """
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)
-        raise FileNotFoundError(f"Файл {cities_path} не найден")
+        msg = f"Файл {cities_path} не найден"
+        raise FileNotFoundError(msg)
 
     try:
         file_size = cities_path.stat().st_size
         if file_size == 0:
             logger.error("Файл городов пуст: %s", cities_path)
-            raise ValueError(f"Файл {cities_path} пуст")
+            msg = f"Файл {cities_path} пуст"
+            raise ValueError(msg)
 
         if file_size > MAX_CITIES_FILE_SIZE:
             logger.error(
@@ -57,14 +59,16 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
                 file_size,
                 MAX_CITIES_FILE_SIZE,
             )
+            msg = f"Файл {cities_path} слишком большой ({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
             raise ValueError(
-                f"Файл {cities_path} слишком большой ({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
+                msg
             )
 
         logger.debug("Размер файла городов: %d байт", file_size)
     except OSError as stat_error:
         logger.error("Ошибка получения информации о файле: %s", stat_error)
-        raise OSError(f"Не удалось получить информацию о файле: {stat_error}") from stat_error
+        msg = f"Не удалось получить информацию о файле: {stat_error}"
+        raise OSError(msg) from stat_error
 
     all_cities: list[dict[str, Any]] | None = None
 
@@ -91,14 +95,16 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
 
         if not isinstance(all_cities, list):
             logger.error("Файл городов должен содержать список, а не %s", type(all_cities).__name__)
+            msg = f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
             raise ValueError(
-                f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
+                msg
             )
 
         if len(all_cities) > MAX_CITIES_COUNT:
             logger.error("Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT)
+            msg = f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}"
             raise ValueError(
-                f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}"
+                msg
             )
 
         for i, city in enumerate(all_cities):
@@ -117,22 +123,26 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
                 or not isinstance(city["domain"], str)
             ):
                 logger.error("Поля 'name', 'code' и 'domain' города %d должны быть строками", i)
-                raise ValueError(f"Поля 'name', 'code' и 'domain' города {i} должны быть строками")
+                msg = f"Поля 'name', 'code' и 'domain' города {i} должны быть строками"
+                raise ValueError(msg)
 
             # Опционально: проверяем country_code если есть
             if "country_code" in city and not isinstance(city["country_code"], str):
                 logger.error("Поле 'country_code' города %d должно быть строкой", i)
-                raise ValueError(f"Поле 'country_code' города {i} должно быть строкой")
+                msg = f"Поле 'country_code' города {i} должно быть строкой"
+                raise ValueError(msg)
 
         logger.debug("Файл городов валидирован: %d городов", len(all_cities))
         return all_cities
 
     except json.JSONDecodeError as e:
         logger.error("Ошибка парсинга JSON в файле городов: %s", e)
-        raise ValueError(f"Некорректный формат JSON в файле городов: {e}") from e
+        msg = f"Некорректный формат JSON в файле городов: {e}"
+        raise ValueError(msg) from e
     except OSError as e:
         logger.error("Ошибка ОС при чтении файла городов: %s", e)
-        raise OSError(f"Не удалось прочитать файл городов: {e}") from e
+        msg = f"Не удалось прочитать файл городов: {e}"
+        raise OSError(msg) from e
 
 
 def load_cities_json_lazy(cities_path: Path) -> Iterator[dict[str, Any]]:
@@ -160,7 +170,8 @@ def load_cities_json_lazy(cities_path: Path) -> Iterator[dict[str, Any]]:
     """
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)
-        raise FileNotFoundError(f"Файл {cities_path} не найден")
+        msg = f"Файл {cities_path} не найден"
+        raise FileNotFoundError(msg)
 
     # C019: Используем mmap для больших файлов
     try:

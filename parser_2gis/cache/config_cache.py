@@ -38,13 +38,15 @@ def _validate_cities_file(cities_path: Path) -> None:
     """
     if not cities_path.is_file():
         logger.error("Файл городов не найден: %s", cities_path)
-        raise FileNotFoundError(f"Файл {cities_path} не найден")
+        msg = f"Файл {cities_path} не найден"
+        raise FileNotFoundError(msg)
 
     try:
         file_size = cities_path.stat().st_size
         if file_size == 0:
             logger.error("Файл городов пуст: %s", cities_path)
-            raise ValueError(f"Файл {cities_path} пуст")
+            msg = f"Файл {cities_path} пуст"
+            raise ValueError(msg)
 
         if file_size > MAX_CITIES_FILE_SIZE:
             logger.error(
@@ -52,15 +54,19 @@ def _validate_cities_file(cities_path: Path) -> None:
                 file_size,
                 MAX_CITIES_FILE_SIZE,
             )
-            raise ValueError(
+            msg = (
                 f"Файл {cities_path} слишком большой "
                 f"({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
+            )
+            raise ValueError(
+                msg
             )
 
         logger.debug("Размер файла городов: %d байт", file_size)
     except OSError as stat_error:
         logger.error("Ошибка получения информации о файле: %s", stat_error)
-        raise OSError(f"Не удалось получить информацию о файле: {stat_error}") from stat_error
+        msg = f"Не удалось получить информацию о файле: {stat_error}"
+        raise OSError(msg) from stat_error
 
 
 def _read_cities_json(cities_path: Path) -> list[dict[str, Any]]:
@@ -102,13 +108,16 @@ def _read_cities_json(cities_path: Path) -> list[dict[str, Any]]:
                 all_cities = json.load(f)
     except UnicodeDecodeError as e:
         logger.error("Ошибка кодировки при чтении файла городов: %s", e)
-        raise ValueError(f"Файл городов имеет некорректную кодировку (ожидалась UTF-8): {e}") from e
+        msg = f"Файл городов имеет некорректную кодировку (ожидалась UTF-8): {e}"
+        raise ValueError(msg) from e
     except json.JSONDecodeError as e:
         logger.error("Ошибка парсинга JSON в файле городов: %s", e)
-        raise ValueError(f"Некорректный формат JSON в файле городов: {e}") from e
+        msg = f"Некорректный формат JSON в файле городов: {e}"
+        raise ValueError(msg) from e
     except OSError as e:
         logger.error("Ошибка ОС при чтении файла городов: %s", e)
-        raise OSError(f"Не удалось прочитать файл городов: {e}") from e
+        msg = f"Не удалось прочитать файл городов: {e}"
+        raise OSError(msg) from e
 
     if not isinstance(all_cities, list):
         error_msg = f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
@@ -119,7 +128,8 @@ def _read_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         logger.error(
             "Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT
         )
-        raise ValueError(f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}")
+        msg = f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}"
+        raise ValueError(msg)
 
     return all_cities
 

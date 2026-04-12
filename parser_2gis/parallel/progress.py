@@ -60,7 +60,8 @@ class ParallelProgressReporter:
         """
         # #193: Валидация total_tasks
         if total_tasks < 0:
-            raise ValueError(f"total_tasks не может быть отрицательным, получено {total_tasks}")
+            msg = f"total_tasks не может быть отрицательным, получено {total_tasks}"
+            raise ValueError(msg)
 
         self.total_tasks = total_tasks
         self._lock = lock

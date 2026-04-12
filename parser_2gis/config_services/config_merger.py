@@ -70,7 +70,8 @@ class ConfigMerger:
 
         """
         if depth >= max_depth:
-            raise RecursionError(f"Превышена максимальная глубина обработки ({max_depth})")
+            msg = f"Превышена максимальная глубина обработки ({max_depth})"
+            raise RecursionError(msg)
 
         source_id = id(source)
         if source_id in visited:

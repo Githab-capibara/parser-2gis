@@ -149,17 +149,20 @@ def image_path(basename: str, ext: str | None = None) -> str:
     # Проверка на запрещённые символы для предотвращения path traversal атак
     for forbidden in FORBIDDEN_PATH_CHARS:
         if forbidden in basename:
-            raise ValueError(f"Недопустимое имя файла: {basename}")
+            msg = f"Недопустимое имя файла: {basename}"
+            raise ValueError(msg)
 
     # Дополнительная проверка на специальные символы
     if any(c in basename for c in ["..", "/", "\\", "~", "$", "`", "|", ";", "&", ">", "<"]):
-        raise ValueError(f"Недопустимое имя файла: {basename}")
+        msg = f"Недопустимое имя файла: {basename}"
+        raise ValueError(msg)
 
     images_dir = data_path() / "images"
 
     # Проверка что images_dir существует
     if not images_dir.exists():
-        raise FileNotFoundError(f"Директория изображений не найдена: {images_dir}")
+        msg = f"Директория изображений не найдена: {images_dir}"
+        raise FileNotFoundError(msg)
 
     # Оптимизированный поиск: сразу формируем ожидаемое имя файла
     if ext is not None:
@@ -174,13 +177,16 @@ def image_path(basename: str, ext: str | None = None) -> str:
             # Проверяем что путь находится внутри директории изображений
             # ИСПРАВЛЕНИЕ: Используем универсальную функцию для совместимости с Python <3.9
             if not _is_relative_to(resolved_img_path, resolved_images_dir):
-                raise ValueError(f"Path traversal detected: {basename}")
+                msg = f"Path traversal detected: {basename}"
+                raise ValueError(msg)
         except (OSError, ValueError) as e:
-            raise ValueError(f"Недопустимый путь к изображению: {e}") from e
+            msg = f"Недопустимый путь к изображению: {e}"
+            raise ValueError(msg) from e
 
         if resolved_img_path.exists():
             return str(resolved_img_path)
-        raise FileNotFoundError(f"Изображение {basename}.{ext} не найдено")
+        msg = f"Изображение {basename}.{ext} не найдено"
+        raise FileNotFoundError(msg)
 
     # Если расширение не указано, ищем любой файл с таким basename
     for img_name in os.listdir(images_dir):
@@ -193,10 +199,12 @@ def image_path(basename: str, ext: str | None = None) -> str:
             # Проверяем что путь находится внутри директории изображений
             # ИСПРАВЛЕНИЕ: Используем универсальную функцию для совместимости с Python <3.9
             if not _is_relative_to(resolved_img_path, resolved_images_dir):
-                raise ValueError(f"Path traversal detected: {img_name}")
+                msg = f"Path traversal detected: {img_name}"
+                raise ValueError(msg)
 
             return str(resolved_img_path)
-    raise FileNotFoundError(f"Изображение {basename} не найдено")
+    msg = f"Изображение {basename} не найдено"
+    raise FileNotFoundError(msg)
 
 
 @lru_cache

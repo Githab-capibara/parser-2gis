@@ -369,7 +369,8 @@ class CSVWriter(FileWriter):
         if records is None:
             raise TypeError("records не может быть None")
         if not isinstance(records, dict):
-            raise TypeError(f"records должен быть словарём, получен {type(records).__name__}")
+            msg = f"records должен быть словарём, получен {type(records).__name__}"
+            raise TypeError(msg)
 
         # Проверка на path traversal в данных
         if "result" in records and isinstance(records.get("result"), dict):
@@ -388,7 +389,8 @@ class CSVWriter(FileWriter):
                                     key,
                                     value[:100],
                                 )
-                                raise ValueError(f"Обнаружена потенциальная XSS атака в поле {key}")
+                                msg = f"Обнаружена потенциальная XSS атака в поле {key}"
+                                raise ValueError(msg)
 
         if not self._check_catalog_doc(records):
             return

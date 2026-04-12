@@ -88,7 +88,8 @@ class TempFileManager:
         if file_path is None:
             raise ValueError("file_path не может быть None")
         if not isinstance(file_path, Path):
-            raise TypeError(f"file_path должен быть Path, получен {type(file_path).__name__}")
+            msg = f"file_path должен быть Path, получен {type(file_path).__name__}"
+            raise TypeError(msg)
 
         # Проверка на path traversal
         try:
@@ -96,9 +97,11 @@ class TempFileManager:
             # Проверка что путь находится в допустимой директории
             path_str = str(resolved_path)
             if ".." in path_str:
-                raise ValueError(f"file_path содержит '..': {file_path}")
+                msg = f"file_path содержит '..': {file_path}"
+                raise ValueError(msg)
         except (OSError, RuntimeError) as resolve_error:
-            raise ValueError(f"Некорректный file_path: {file_path}") from resolve_error
+            msg = f"Некорректный file_path: {file_path}"
+            raise ValueError(msg) from resolve_error
 
         with self._lock:
             if len(self._registry) >= self._max_files:
@@ -245,7 +248,8 @@ class TempFileManager:
 
         # D015: Проверка на path traversal в directory
         if ".." in directory:
-            raise ValueError(f"directory не должен содержать '..': {directory}")
+            msg = f"directory не должен содержать '..': {directory}"
+            raise ValueError(msg)
 
         # D015: Санитизация префикса - удаляем опасные символы
         if prefix:
@@ -524,7 +528,8 @@ def create_temp_file(directory: str, prefix: str = "parser_") -> str:
 
     # D015: Проверка на path traversal в directory
     if ".." in directory:
-        raise ValueError(f"directory не должен содержать '..': {directory}")
+        msg = f"directory не должен содержать '..': {directory}"
+        raise ValueError(msg)
 
     # D015: Санитизация префикса - удаляем опасные символы
     if prefix:

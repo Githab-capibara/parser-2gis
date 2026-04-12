@@ -65,7 +65,8 @@ class WriterOptions(BaseModel):
         try:
             codecs.lookup(v)
         except LookupError as lookup_err:
-            raise ValueError(f"Неизвестная кодировка: {v}") from lookup_err
+            msg = f"Неизвестная кодировка: {v}"
+            raise ValueError(msg) from lookup_err
         return v
 
     if PYDANTIC_V2:

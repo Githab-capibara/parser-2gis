@@ -127,7 +127,8 @@ class ParallelOptimizer:
         """
         # #194: Валидация max_workers
         if max_workers <= 0:
-            raise ValueError(f"max_workers должен быть положительным, получено {max_workers}")
+            msg = f"max_workers должен быть положительным, получено {max_workers}"
+            raise ValueError(msg)
 
         self._max_workers = max_workers
         self._memory_percent_threshold = memory_percent_threshold

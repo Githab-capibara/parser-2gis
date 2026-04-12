@@ -441,7 +441,8 @@ class ParallelCoordinator:
 
         # ISSUE-110: Дополнительная проверка max_workers на разумность
         if max_workers < 1:
-            raise ValueError(f"max_workers должен быть >= 1, получено {max_workers}")
+            msg = f"max_workers должен быть >= 1, получено {max_workers}"
+            raise ValueError(msg)
         if max_workers > 100:
             logger.warning(
                 "max_workers=%d может быть слишком большим для стабильной работы. "
@@ -451,7 +452,8 @@ class ParallelCoordinator:
 
         # ISSUE-111: Дополнительная проверка timeout_per_url на разумность
         if timeout_per_url < 1:
-            raise ValueError(f"timeout_per_url должен быть >= 1, получено {timeout_per_url}")
+            msg = f"timeout_per_url должен быть >= 1, получено {timeout_per_url}"
+            raise ValueError(msg)
         if timeout_per_url > 3600:
             logger.warning(
                 "timeout_per_url=%d секунд может быть слишком большим. "
@@ -507,13 +509,17 @@ class ParallelCoordinator:
             TypeError: Если callback не callable.
         """
         if progress_callback is not None and not callable(progress_callback):
-            raise TypeError(
+            msg = (
                 f"progress_callback должен быть callable, "
                 f"получен {type(progress_callback).__name__}"
             )
-        if merge_callback is not None and not callable(merge_callback):
             raise TypeError(
-                f"merge_callback должен быть callable, получен {type(merge_callback).__name__}"
+                msg
+            )
+        if merge_callback is not None and not callable(merge_callback):
+            msg = f"merge_callback должен быть callable, получен {type(merge_callback).__name__}"
+            raise TypeError(
+                msg
             )
 
     def _run_execution_loop(

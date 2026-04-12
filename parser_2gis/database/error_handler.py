@@ -108,8 +108,9 @@ def handle_db_errors(
                             db_error,
                         )
                         if reraise_critical:
+                            msg = f"Критическая ошибка БД: {db_error}"
                             raise DatabaseError(
-                                f"Критическая ошибка БД: {db_error}", original_error=db_error
+                                msg, original_error=db_error
                             ) from db_error
                         return None
 
@@ -133,20 +134,23 @@ def handle_db_errors(
                         retry_count + 1,
                         db_error,
                     )
+                    msg = f"Ошибка БД: {db_error}"
                     raise DatabaseError(
-                        f"Ошибка БД: {db_error}", original_error=db_error
+                        msg, original_error=db_error
                     ) from db_error
 
                 except (OSError, MemoryError, RuntimeError) as general_error:
                     logger.error("Общая ошибка при работе с БД в %s: %s", func_name, general_error)
+                    msg = f"Общая ошибка при работе с БД: {general_error}"
                     raise DatabaseError(
-                        f"Общая ошибка при работе с БД: {general_error}",
+                        msg,
                         original_error=general_error,
                     ) from general_error
 
             if last_error is not None:
+                msg = f"Исчерпаны попытки повторения ({retry_count + 1}): {last_error}"
                 raise DatabaseError(
-                    f"Исчерпаны попытки повторения ({retry_count + 1}): {last_error}",
+                    msg,
                     original_error=last_error,
                 ) from last_error
 

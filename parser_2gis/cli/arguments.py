@@ -38,7 +38,8 @@ def _normalize_argv(argv: list[str]) -> list[str]:
 
     """
     if not isinstance(argv, (list, tuple)):
-        raise TypeError(f"argv must be list or tuple, got {type(argv).__name__}")
+        msg = f"argv must be list or tuple, got {type(argv).__name__}"
+        raise TypeError(msg)
     if not all(isinstance(arg, str) for arg in argv):
         raise TypeError("All argv elements must be strings")
 

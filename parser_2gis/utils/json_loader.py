@@ -55,26 +55,30 @@ def load_json_mmap(
     """
     if not file_path.is_file():
         app_logger.error("Файл не найден: %s", file_path)
-        raise FileNotFoundError(f"Файл {file_path} не найден")
+        msg = f"Файл {file_path} не найден"
+        raise FileNotFoundError(msg)
 
     try:
         file_size = file_path.stat().st_size
         if file_size == 0:
             app_logger.error("Файл пуст: %s", file_path)
-            raise ValueError(f"Файл {file_path} пуст")
+            msg = f"Файл {file_path} пуст"
+            raise ValueError(msg)
 
         if validate_size and max_file_size is not None and file_size > max_file_size:
             app_logger.error(
                 "Файл слишком большой: %d байт (макс: %d байт)", file_size, max_file_size
             )
+            msg = f"Файл {file_path} слишком большой ({file_size} > {max_file_size} байт)"
             raise ValueError(
-                f"Файл {file_path} слишком большой ({file_size} > {max_file_size} байт)"
+                msg
             )
 
         app_logger.debug("Размер файла: %d байт", file_size)
     except OSError as stat_error:
         app_logger.error("Ошибка получения информации о файле: %s", stat_error)
-        raise OSError(f"Не удалось получить информацию о файле: {stat_error}") from stat_error
+        msg = f"Не удалось получить информацию о файле: {stat_error}"
+        raise OSError(msg) from stat_error
 
     use_mmap = file_size > threshold_bytes
 
@@ -98,7 +102,9 @@ def load_json_mmap(
 
     except json.JSONDecodeError as e:
         app_logger.error("Ошибка парсинга JSON в файле %s: %s", file_path, e)
-        raise ValueError(f"Некорректный формат JSON в файле {file_path}: {e}") from e
+        msg = f"Некорректный формат JSON в файле {file_path}: {e}"
+        raise ValueError(msg) from e
     except OSError as e:
         app_logger.error("Ошибка ОС при чтении файла %s: %s", file_path, e)
-        raise OSError(f"Не удалось прочитать файл {file_path}: {e}") from e
+        msg = f"Не удалось прочитать файл {file_path}: {e}"
+        raise OSError(msg) from e

@@ -303,9 +303,11 @@ def merge_csv_files_common(
     if not file_paths:
         raise ValueError("file_paths не может быть пустым")
     if buffer_size <= 0:
-        raise ValueError(f"buffer_size должен быть положительным числом, получено {buffer_size}")
+        msg = f"buffer_size должен быть положительным числом, получено {buffer_size}"
+        raise ValueError(msg)
     if batch_size <= 0:
-        raise ValueError(f"batch_size должен быть положительным числом, получено {batch_size}")
+        msg = f"batch_size должен быть положительным числом, получено {batch_size}"
+        raise ValueError(msg)
 
     files_to_delete: list[Path] = []
     total_rows = 0

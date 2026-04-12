@@ -262,8 +262,9 @@ class ChromeRemote:
         """
         # ISSUE-102: Валидация response_patterns
         if not isinstance(response_patterns, list):
+            msg = f"response_patterns должен быть списком, получен {type(response_patterns).__name__}"
             raise ValueError(
-                f"response_patterns должен быть списком, получен {type(response_patterns).__name__}"
+                msg
             )
 
         # ISSUE-103: Валидация на пустые паттерны
@@ -452,9 +453,12 @@ class ChromeRemote:
                 _clear_port_cache()
                 if _check_port_cached(remote_port):
                     # Порт всё ещё свободен - Chrome не запустился
-                    raise ChromeException(
+                    msg = (
                         f"Chrome не запустился после {max_startup_attempts} попыток. "
                         f"Порт {remote_port} так и не был занят."
+                    )
+                    raise ChromeException(
+                        msg
                     )
                 # Если порт занят - Chrome запустился, продолжаем
 
@@ -543,8 +547,9 @@ class ChromeRemote:
                         )
                         time.sleep(delay_seconds)
                     else:
+                        msg = f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
                         raise ChromeException(
-                            f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
+                            msg
                         ) from e
 
             raise ChromeException("Не удалось создать вкладку")
@@ -878,10 +883,13 @@ class ChromeRemote:
                     MAX_RESPONSE_SIZE,
                     request_id,
                 )
-                raise ValueError(
+                msg = (
                     f"Размер ответа превышает максимальный лимит "
                     f"({len(response_body)} > {MAX_RESPONSE_SIZE} байт). "
                     f"Это может быть DoS атака."
+                )
+                raise ValueError(
+                    msg
                 )
 
             response["body"] = response_body
@@ -950,10 +958,13 @@ class ChromeRemote:
         js_code_size = len(source.encode("utf-8"))
         with self._js_size_lock:
             if self._total_js_size + js_code_size > MAX_TOTAL_JS_SIZE:
-                raise RuntimeError(
+                msg = (
                     f"Превышен максимальный общий размер JS скриптов "
                     f"({self._total_js_size + js_code_size} > {MAX_TOTAL_JS_SIZE} байт). "
                     f"Это может быть DoS атака."
+                )
+                raise RuntimeError(
+                    msg
                 )
             self._total_js_size += js_code_size
 
@@ -1058,8 +1069,9 @@ class ChromeRemote:
                     future.result(timeout=timeout)
                 except TimeoutError as timeout_err:
                     app_logger.error("Превышено время выполнения JavaScript (%d секунд)", timeout)
+                    msg = f"Выполнение скрипта превысило таймаут {timeout} секунд"
                     raise TimeoutError(
-                        f"Выполнение скрипта превысило таймаут {timeout} секунд"
+                        msg
                     ) from timeout_err
 
             if result["error"]:

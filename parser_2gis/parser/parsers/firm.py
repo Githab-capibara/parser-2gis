@@ -176,12 +176,14 @@ def _validate_initial_state(
     # ISSUE-076: Валидация depth на отрицательное значение
     if depth < 0:
         logger.warning("Отрицательная глубина вложенности initialState: %d", depth)
-        raise ValueError(f"depth не может быть отрицательным: {depth}")
+        msg = f"depth не может быть отрицательным: {depth}"
+        raise ValueError(msg)
 
     # ISSUE-077: Валидация item_count на переполнение
     if item_count < 0:
         logger.warning("Отрицательный счётчик элементов initialState: %d", item_count)
-        raise ValueError(f"item_count не может быть отрицательным: {item_count}")
+        msg = f"item_count не может быть отрицательным: {item_count}"
+        raise ValueError(msg)
 
     # Защита от переполнения item_count (максимум 2^31 - 1)
     max_item_count = 2_147_483_647
