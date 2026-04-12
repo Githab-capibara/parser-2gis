@@ -252,7 +252,7 @@ class TestNoProgrammingError:
                 items.append((url, data))
 
             # Пакетная запись
-            saved_count = cache.set_batch(items)
+            saved_count = cache._set_batch(items)
             assert saved_count == 50, f"Сохранено {saved_count} вместо 50"
 
             # Пакетное чтение из разных потоков

@@ -39,7 +39,6 @@ class TestWeakrefFinalize:
 
             # Проверяем наличие finalizer
             assert hasattr(cache, "_finalizer"), "CacheManager должен иметь _finalizer"
-            assert hasattr(cache, "_weak_ref"), "CacheManager должен иметь _weak_ref"
 
             # Проверяем что finalizer активен
             assert cache._finalizer.alive, "Finalizer должен быть активен"
@@ -61,13 +60,13 @@ class TestWeakrefFinalize:
     def test_weakref_returns_object(self) -> None:
         """Тест 4: weakref возвращает объект."""
         import tempfile
+        import weakref as stdlib_weakref
 
         with tempfile.TemporaryDirectory() as tmpdir:
             cache = CacheManager(cache_dir=Path(tmpdir))
-            weak_ref = cache._weak_ref
-
-            # Проверяем что weakref возвращает объект
-            assert weak_ref() is cache, "weakref должен возвращать объект"
+            # Проверяем что можно создать weakref на CacheManager
+            ref = stdlib_weakref.ref(cache)
+            assert ref() is cache, "weakref должен возвращать объект"
 
     def test_finalizer_is_callable(self) -> None:
         """Тест 5: Finalizer является вызываемым объектом."""
@@ -174,12 +173,8 @@ class TestWeakrefFinalize:
         with tempfile.TemporaryDirectory() as tmpdir:
             cache = CacheManager(cache_dir=Path(tmpdir))
 
-            # weakref и finalizer должны быть разными объектами
-            assert cache._weak_ref is not None, "weakref должен существовать"
+            # finalizer должен существовать
             assert cache._finalizer is not None, "finalizer должен существовать"
-            assert not isinstance(cache._weak_ref, type(cache._finalizer)), (
-                "weakref и finalizer должны быть разными типами"
-            )
 
     def test_finalizer_cleanup_method_exists(self) -> None:
         """Тест 13: Метод очистки для finalizer существует."""

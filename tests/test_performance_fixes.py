@@ -119,7 +119,7 @@ class TestDoubleHashing:
         ]
 
         # Пакетная вставка
-        saved_count = cache.set_batch(items)
+        saved_count = cache._set_batch(items)
 
         assert saved_count == 10
 
@@ -190,7 +190,7 @@ class TestNPlus1Query:
         items = [(f"https://2gis.ru/moscow/search/commit{i}", {"id": i}) for i in range(10)]
 
         # Пакетная вставка использует один коммит для всех записей
-        saved_count = cache.set_batch(items)
+        saved_count = cache._set_batch(items)
 
         assert saved_count == 10
 
@@ -246,7 +246,7 @@ class TestPerformanceIntegration:
 
         # Замеряем время пакетной вставки
         start = time.perf_counter()
-        saved_count = cache.set_batch(items)
+        saved_count = cache._set_batch(items)
         batch_insert_time = time.perf_counter() - start
 
         assert saved_count == num_items
@@ -298,7 +298,7 @@ class TestPerformanceIntegration:
         items = [(f"https://2gis.ru/moscow/search/mem{i}", large_data) for i in range(20)]
 
         # Пакетная вставка
-        saved_count = cache.set_batch(items)
+        saved_count = cache._set_batch(items)
         assert saved_count == 20
 
         # Получаем данные

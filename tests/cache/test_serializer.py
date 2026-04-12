@@ -14,7 +14,7 @@ class TestJsonSerializerConstruction:
         """JsonSerializer создаётся без ошибок."""
         serializer = JsonSerializer()
         assert serializer is not None
-        assert isinstance(serializer.use_orjson, bool)
+        assert isinstance(serializer._use_orjson, bool)
 
 
 class TestJsonSerializerSerialize:

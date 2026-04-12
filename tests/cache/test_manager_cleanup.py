@@ -313,7 +313,7 @@ class TestCacheManagerFinallyCleanup:
 
             with patch.object(cache_manager._pool, "get_connection", return_value=mock_conn):
                 # Пытаемся очистить истекший кэш
-                result = cache_manager.clear_expired()
+                result = cache_manager._clear_expired()
 
                 # Проверяем что результат 0 (из-за ошибки)
                 assert result == 0
@@ -399,7 +399,7 @@ class TestCacheManagerFinallyCleanup:
                     ("https://example.com/1", {"data": "test1"}),
                     ("https://example.com/2", {"data": "test2"}),
                 ]
-                result = cache_manager.set_batch(items)
+                result = cache_manager._set_batch(items)
 
                 # Проверяем что saved_count == 2 (сериализация успешна, но БД ошибка)
                 assert result == 2

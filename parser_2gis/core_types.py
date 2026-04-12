@@ -84,19 +84,19 @@ class _FileOperationResult(NamedTuple):
     data: Any = None
 
 
-class _MergeStats(NamedTuple):
+class MergeStats(NamedTuple):
     """Статистика операции объединения.
 
     Attributes:
-        _total_files: Общее количество обработанных файлов.
+        total_files: Общее количество обработанных файлов.
         total_rows: Общее количество строк.
-        _deleted_files: Количество удалённых исходных файлов.
+        deleted_files: Количество удалённых исходных файлов.
 
     """
 
-    _total_files: int
+    total_files: int
     total_rows: int
-    _deleted_files: int
+    deleted_files: int
 
 
 # Generic container для результатов парсинга
