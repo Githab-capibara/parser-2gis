@@ -81,7 +81,7 @@ class ITuiApp(Protocol):
     # -------------------------------------------------------------------------
     # Парсинг
     # -------------------------------------------------------------------------
-    def start_parsing(self, cities: list[dict], categories: list[dict]) -> None:
+    def start_parsing(self, cities: list[dict[str, Any]], categories: list[dict[str, Any]]) -> None:
         """Запускает процесс парсинга."""
         # pylint: disable=unnecessary-ellipsis
         ...

@@ -287,7 +287,7 @@ class ApplicationLauncher:
                 writer=WriterOptions(  # type: ignore[call-arg]
                     format=self.config.writer.format,
                     encoding="utf-8-sig",
-                    deduplicate=True,  # type: ignore[attr-defined]
+                    deduplicate=True,
                 ),
             )
 

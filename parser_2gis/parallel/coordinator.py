@@ -162,8 +162,8 @@ class CoordinatorFactory:
 
     def create_coordinator(
         self,
-        cities: list[dict],
-        categories: list[dict],
+        cities: list[dict[str, Any]],
+        categories: list[dict[str, Any]],
         output_dir: str,
         config: Configuration,
         max_workers: int = 3,
@@ -307,8 +307,8 @@ class ParallelCoordinator:
 
     def __init__(
         self,
-        cities: list[dict],
-        categories: list[dict],
+        cities: list[dict[str, Any]],
+        categories: list[dict[str, Any]],
         output_dir: str,
         config: Configuration,
         max_workers: int = 3,
@@ -411,8 +411,8 @@ class ParallelCoordinator:
 
     def _validate_inputs(
         self,
-        cities: list[dict],
-        categories: list[dict],
+        cities: list[dict[str, Any]],
+        categories: list[dict[str, Any]],
         max_workers: int,
         timeout_per_url: int,
         output_dir: str,
@@ -768,7 +768,7 @@ class ParallelCoordinator:
         self.log(f"Таймаут на один URL: {self.timeout_per_url} секунд", "info")
 
         executor = None
-        futures: dict = {}
+        futures: dict[Any, Any] = {}
         try:
             executor = ThreadPoolExecutor(max_workers=self.max_workers)
             futures = {
@@ -895,7 +895,7 @@ class ParallelCoordinator:
         self._stop_event.set()
         self.log("Получена команда остановки парсинга", "warning")
 
-    def get_statistics(self) -> dict:
+    def get_statistics(self) -> dict[str, Any]:
         """Возвращает статистику парсинга."""
         with self._lock:
             return dict(self._stats)

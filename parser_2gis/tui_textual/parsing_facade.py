@@ -46,8 +46,8 @@ class ParsingFacade:
 
     def run_parsing(
         self,
-        cities: list[dict],
-        categories: list[dict],
+        cities: list[dict[str, Any]],
+        categories: list[dict[str, Any]],
         output_dir: str,
         progress_callback: Callable[[int, int, str], None] | None = None,
     ) -> bool:

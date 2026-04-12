@@ -327,7 +327,7 @@ class MainDataProcessor:
             return True
         return False
 
-    def _parse_links_batch(self, links: list, writer: FileWriter, collected_records: int) -> int:
+    def _parse_links_batch(self, links: list[DOMNode], writer: FileWriter, collected_records: int) -> int:
         """Парсит пакет ссылок и возвращает обновлённый счётчик записей.
 
         Args:
@@ -483,7 +483,7 @@ class MainDataProcessor:
                     logger.warning("Ошибка при ожидании запросов: %s", wait_error)
 
                 # Собираем ссылки для клика
-                links: list | None = get_unique_links(
+                links: list[DOMNode] | None = get_unique_links(
                     parser=self._parser,
                     visited_links=visited_links,
                     visited_links_lock=visited_links_lock,

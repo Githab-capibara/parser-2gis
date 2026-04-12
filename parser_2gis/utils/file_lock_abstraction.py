@@ -151,7 +151,7 @@ class FcntlLockStrategy(BaseLockStrategy):
                     fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     lock_handle.write(f"{os.getpid()}\n")
                     lock_handle.flush()
-                    self._lock_handle = lock_handle  # type: ignore[assignment]
+                    self._lock_handle = lock_handle
                     self._acquired = True
                     return True
                 finally:

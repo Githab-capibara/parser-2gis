@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from threading import BoundedSemaphore
-from typing import TYPE_CHECKING, TextIO, cast
+from typing import TYPE_CHECKING, Any, TextIO, cast
 
 from parser_2gis.constants import (
     DEFAULT_TIMEOUT,
@@ -125,8 +125,8 @@ class ParserThreadConfig:
 
     """
 
-    cities: list[dict]
-    categories: list[dict]
+    cities: list[dict[str, Any]]
+    categories: list[dict[str, Any]]
     output_dir: str
     config: Configuration
     max_workers: int = 3
@@ -174,8 +174,8 @@ class ParallelCityParser:
 
     def __init__(
         self,
-        cities: list[dict],
-        categories: list[dict],
+        cities: list[dict[str, Any]],
+        categories: list[dict[str, Any]],
         output_dir: str,
         config: Configuration,
         max_workers: int = 3,
@@ -599,12 +599,12 @@ class ParallelCityParser:
     def _process_single_csv_file(
         self,
         csv_file: Path,
-        writer: csv.DictWriter | None,
+        writer: csv.DictWriter[str] | None,
         outfile: TextIO,
         buffer_size: int,
         batch_size: int,
         fieldnames_cache: dict[tuple[str, ...], list[str]],
-    ) -> tuple[csv.DictWriter | None, int]:
+    ) -> tuple[csv.DictWriter[str] | None, int]:
         """Обрабатывает один CSV файл и добавляет данные в выходной файл.
 
         Args:
@@ -959,7 +959,7 @@ class ParallelCityParser:
         self.log(f"⏱️ Таймаут на один URL: {self.timeout_per_url} секунд", "info")
 
         executor = None
-        futures: dict = {}
+        futures: dict[Any, Any] = {}
         try:
             executor = ThreadPoolExecutor(max_workers=self.max_workers)
 
@@ -1104,7 +1104,7 @@ class ParallelCityParser:
         self._stop_event.set()
         self.log("Получена команда остановки парсинга", "warning")
 
-    def get_statistics(self) -> dict:
+    def get_statistics(self) -> dict[str, Any]:
         """Возвращает статистику парсинга.
 
         Returns:
@@ -1123,8 +1123,8 @@ class ParallelCityParserThread:
 
     def __init__(
         self,
-        cities: list[dict],
-        categories: list[dict],
+        cities: list[dict[str, Any]],
+        categories: list[dict[str, Any]],
         output_dir: str,
         config: Configuration,
         max_workers: int = 3,

@@ -1,6 +1,6 @@
 """Экран выбора категорий для парсинга на Textual."""
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -11,12 +11,12 @@ from textual.widgets import Button, Checkbox, Input, Static
 from ..protocols import ITuiApp
 
 
-class CategorySelectorScreen(Screen):
+class CategorySelectorScreen(Screen):  # type: ignore[misc]
     """Экран выбора категорий."""
 
-    app: ITuiApp  # type: ignore[assignment]
+    app: ITuiApp
 
-    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("escape", "go_back", "Назад"),
         Binding("a", "select_all", "Выбрать все"),
         Binding("d", "deselect_all", "Снять все"),
@@ -95,8 +95,8 @@ class CategorySelectorScreen(Screen):
     def __init__(self) -> None:
         """Инициализация экрана."""
         super().__init__()
-        self._categories: list[dict] = []
-        self._filtered_categories: list[dict] = []
+        self._categories: list[dict[str, Any]] = []
+        self._filtered_categories: list[dict[str, Any]] = []
         self._selected_indices: set[int] = set()
         self._checkboxes: list[Checkbox] = []
         self._id_to_index: dict[str, int] = {}  # Маппинг ID категории -> индекс в _categories
@@ -204,7 +204,7 @@ class CategorySelectorScreen(Screen):
             # НЕ используем ID - это предотвращает ошибку DuplicateIds
             # Сохраняем original_index как атрибут виджета
             checkbox = Checkbox(f"{cat_name}", value=is_selected)
-            checkbox.original_index = original_index  # type: ignore[attr-defined]
+            checkbox.original_index = original_index
             self._checkboxes.append(checkbox)
 
         # Смонтировать все виджеты за один раз

@@ -64,9 +64,9 @@ except ImportError:
     sleep_and_retry = None
 
 try:
-    from requests.exceptions import RequestException
+    from requests.exceptions import RequestException  # type: ignore[import-untyped]
 except ImportError:
-    RequestException = Exception  # type: ignore[misc,assignment]
+    RequestException = Exception
 
 # tenacity импортируется из utils.retry при необходимости
 

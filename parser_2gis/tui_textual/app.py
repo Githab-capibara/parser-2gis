@@ -170,7 +170,7 @@ class AppState:
 MAX_LOG_BUFFER_SIZE: int = 1000
 
 
-class TUIApp(App):
+class TUIApp(App):  # type: ignore[misc]
     """Главное приложение TUI Parser2GIS на Textual.
 
     Управляет экранами, навигацией и состоянием приложения.
@@ -308,7 +308,7 @@ class TUIApp(App):
     """
 
     # Горячие клавиши
-    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("q", "quit", "Выход", priority=True),
         Binding("escape", "go_back", "Назад", priority=True),
         Binding("d", "toggle_dark", "Тёмная тема"),
@@ -580,7 +580,7 @@ class TUIApp(App):
             self._running = False
             self.notify_user("Парсинг остановлен", level="warning")
 
-    def start_parsing(self, cities: list[dict], categories: list[dict]) -> None:
+    def start_parsing(self, cities: list[dict[str, Any]], categories: list[dict[str, Any]]) -> None:
         """Запустить парсинг.
 
         Args:
@@ -607,7 +607,7 @@ class TUIApp(App):
         self._run_parsing(cities, categories)
 
     @work(exclusive=True, thread=True)
-    def _run_parsing(self, cities: list[dict], categories: list[dict]) -> None:
+    def _run_parsing(self, cities: list[dict[str, Any]], categories: list[dict[str, Any]]) -> None:
         """Запустить парсинг в фоне.
 
         Args:

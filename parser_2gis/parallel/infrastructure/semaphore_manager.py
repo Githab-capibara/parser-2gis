@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import threading
 from threading import BoundedSemaphore
+from typing import Any
 
 from parser_2gis.constants import MAX_WORKERS, MIN_WORKERS
 from parser_2gis.logger.logger import logger
@@ -152,7 +153,7 @@ class SemaphoreManager:
         """
         return self.get_available_slots() == 0
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """Получает статистику семафора.
 
         Returns:

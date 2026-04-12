@@ -13,12 +13,12 @@ from textual.widgets import Button, ProgressBar, RichLog, Static
 from ..protocols import ITuiApp
 
 
-class ParsingScreen(Screen):
+class ParsingScreen(Screen):  # type: ignore[misc]
     """Экран парсинга."""
 
-    app: ITuiApp  # type: ignore[assignment]
+    app: ITuiApp
 
-    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("escape", "stop_parsing", "Стоп"),
         Binding("p", "toggle_pause", "Пауза"),
     ]

@@ -11,12 +11,12 @@ from textual.widgets import Button, Static
 from ..protocols import ITuiApp
 
 
-class MainMenuScreen(Screen):
+class MainMenuScreen(Screen):  # type: ignore[misc]
     """Главное меню приложения."""
 
-    app: ITuiApp  # type: ignore[assignment]
+    app: ITuiApp
 
-    BINDINGS: ClassVar[list[Binding]] = [Binding("q", "quit", "Выход")]  # type: ignore[assignment]
+    BINDINGS: ClassVar[list[Binding]] = [Binding("q", "quit", "Выход")]
 
     CSS = """
     /* Центрирование главного экрана меню */

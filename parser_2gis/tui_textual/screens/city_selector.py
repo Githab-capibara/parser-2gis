@@ -1,6 +1,6 @@
 """Экран выбора городов для парсинга на Textual."""
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -13,12 +13,12 @@ from parser_2gis.logger import logger as app_logger
 from ..protocols import ITuiApp
 
 
-class CitySelectorScreen(Screen):
+class CitySelectorScreen(Screen):  # type: ignore[misc]
     """Экран выбора городов."""
 
-    app: ITuiApp  # type: ignore[assignment]
+    app: ITuiApp
 
-    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("escape", "go_back", "Назад"),
         Binding("a", "select_all", "Выбрать все"),
         Binding("d", "deselect_all", "Снять все"),
@@ -97,8 +97,8 @@ class CitySelectorScreen(Screen):
     def __init__(self) -> None:
         """Инициализация экрана."""
         super().__init__()
-        self._cities: list[dict] = []
-        self._filtered_cities: list[dict] = []
+        self._cities: list[dict[str, Any]] = []
+        self._filtered_cities: list[dict[str, Any]] = []
         self._selected_indices: set[int] = set()
         self._checkboxes: list[Checkbox] = []
 
@@ -185,7 +185,7 @@ class CitySelectorScreen(Screen):
             # НЕ используем ID - это предотвращает ошибку DuplicateIds
             # Сохраняем city_code как атрибут виджета
             checkbox = Checkbox(f"{city_name} ({country})", value=is_selected)
-            checkbox.city_code = city_code  # type: ignore[attr-defined]
+            checkbox.city_code = city_code
             self._checkboxes.append(checkbox)
 
         # Смонтировать все виджеты за один раз

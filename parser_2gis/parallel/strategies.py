@@ -71,7 +71,7 @@ class UrlGenerationStrategy(UrlGeneratorProtocolBase):
     """
 
     def __init__(
-        self, cities: list[dict], categories: list[dict], stats_lock: threading.RLock,
+        self, cities: list[dict[str, Any]], categories: list[dict[str, Any]], stats_lock: threading.RLock,
     ) -> None:
         """Инициализирует стратегию генерации URL.
 
@@ -85,7 +85,7 @@ class UrlGenerationStrategy(UrlGeneratorProtocolBase):
         self.categories = categories
         self._stats_lock = stats_lock
 
-    def generate_all_urls(self, stats: dict | None = None) -> list[UrlTuple]:
+    def generate_all_urls(self, stats: dict[str, Any] | None = None) -> list[UrlTuple]:
         """Генерирует все URL для парсинга.
 
         Args:
@@ -196,7 +196,7 @@ class ParseStrategy:
         config: Configuration,
         timeout_per_url: int = DEFAULT_TIMEOUT,
         browser_semaphore: threading.BoundedSemaphore | None = None,
-        stats: dict | None = None,
+        stats: dict[str, Any] | None = None,
         stats_lock: threading.RLock | None = None,
         max_retries: int = DEFAULT_PARSE_MAX_RETRIES,
         retry_delay: float = DEFAULT_PARSE_RETRY_DELAY,
@@ -553,6 +553,7 @@ __all__ = [
     "DEFAULT_PARSE_RETRY_DELAY",
     "MEMORY_THRESHOLD_BYTES",
     "MemoryCheckStrategy",
+    "MemoryMonitorProtocol",
     "ParseStrategy",
     "ParserFactory",
     "ParserResult",

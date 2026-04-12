@@ -35,12 +35,12 @@ OUTPUT_DEFAULTS_ADD_COMMENTS: bool = False
 OUTPUT_DEFAULTS_REMOVE_DUPLICATES: bool = True
 
 
-class BrowserSettingsScreen(Screen):
+class BrowserSettingsScreen(Screen):  # type: ignore[misc]
     """Настройки браузера."""
 
-    app: ITuiApp  # type: ignore[assignment]
+    app: ITuiApp
 
-    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("escape", "go_back", "Назад"),
         Binding("r", "reset", "Сброс"),
     ]
@@ -196,12 +196,12 @@ class BrowserSettingsScreen(Screen):
         self.query_one("#startup-delay-input", Input).value = str(BROWSER_DEFAULTS_STARTUP_DELAY)
 
 
-class ParserSettingsScreen(Screen):
+class ParserSettingsScreen(Screen):  # type: ignore[misc]
     """Настройки парсера."""
 
-    app: ITuiApp  # type: ignore[assignment]
+    app: ITuiApp
 
-    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("escape", "go_back", "Назад"),
         Binding("r", "reset", "Сброс"),
     ]
@@ -367,12 +367,12 @@ class ParserSettingsScreen(Screen):
         self.query_one("#workers-input", Input).value = str(PARSER_DEFAULTS_WORKERS)
 
 
-class OutputSettingsScreen(Screen):
+class OutputSettingsScreen(Screen):  # type: ignore[misc]
     """Настройки вывода."""
 
-    app: ITuiApp  # type: ignore[assignment]
+    app: ITuiApp
 
-    BINDINGS: ClassVar[list[Binding]] = [  # type: ignore[assignment]
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("escape", "go_back", "Назад"),
         Binding("r", "reset", "Сброс"),
     ]

@@ -21,7 +21,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from parser_2gis.constants import DEFAULT_TIMEOUT, MAX_UNIQUE_NAME_ATTEMPTS
 from parser_2gis.delay_utils import apply_startup_delay
@@ -59,8 +59,8 @@ class ParallelUrlParser(UrlGeneratorProtocol):
 
     def __init__(
         self,
-        cities: list[dict],
-        categories: list[dict],
+        cities: list[dict[str, Any]],
+        categories: list[dict[str, Any]],
         output_dir: Path,
         config: Configuration,
         timeout_per_url: int = DEFAULT_TIMEOUT,
