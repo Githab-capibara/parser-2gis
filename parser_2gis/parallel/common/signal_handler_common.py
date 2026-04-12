@@ -17,6 +17,7 @@ import signal
 import types
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 
 class MergeSignalHandler:
@@ -47,8 +48,8 @@ class MergeSignalHandler:
         """
         self._log_callback = log_callback
         self._temp_files_ref = temp_files_ref or []
-        self._old_sigint_handler: Callable[[int, types.FrameType | None], None] | None = None
-        self._old_sigterm_handler: Callable[[int, types.FrameType | None], None] | None = None
+        self._old_sigint_handler: Callable[[int, types.FrameType | None], Any] | int | None = None
+        self._old_sigterm_handler: Callable[[int, types.FrameType | None], Any] | int | None = None
         self._sigint_registered = False
         self._sigterm_registered = False
 

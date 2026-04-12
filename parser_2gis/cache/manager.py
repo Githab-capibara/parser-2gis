@@ -910,7 +910,7 @@ class CacheManager:
             SELECT url_hash, data, checksum, expires_at
             FROM cache
             WHERE url_hash IN ({placeholders})
-        """  # nosec B608 — placeholders генерируется как "?,?,...", данные параметризуются
+        """
 
         try:
             cursor.execute("BEGIN")

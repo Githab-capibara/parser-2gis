@@ -398,7 +398,7 @@ class FirmParser(MainParser):
                 firm_data = data[0]
 
                 # D013: Санитизация строковых данных перед записью
-                if "data" in firm_data and isinstance(firm_data["data"], dict):
+                if isinstance(firm_data, dict) and "data" in firm_data and isinstance(firm_data.get("data"), dict):
                     for key, value in firm_data["data"].items():
                         if isinstance(value, str):
                             firm_data["data"][key] = _sanitize_string_value(value)
