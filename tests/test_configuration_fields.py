@@ -7,7 +7,6 @@
 3. Сохранение и загрузку всех полей конфигурации.
 """
 
-import pytest
 
 from parser_2gis.chrome import ChromeOptions
 from parser_2gis.config import Configuration
@@ -329,37 +328,23 @@ class TestMissingFieldDetection:
     """
 
     def test_detect_missing_chrome_field(self) -> None:
-        """
-        Тест должен упасть, если в ChromeOptions отсутствует поле.
-        """
+        """Тест должен упасть, если в ChromeOptions отсутствует поле startup_delay."""
         config = Configuration()
-
-        # Пытаемся установить поле - должно работать
-        try:
-            config.chrome.startup_delay = 10
-        except (ValueError, AttributeError) as e:
-            pytest.fail(f"Поле startup_delay отсутствует в ChromeOptions: {e}")
+        # Проверяем что поле существует и доступно для записи
+        assert hasattr(config.chrome, "startup_delay"), "Поле startup_delay отсутствует в ChromeOptions"
+        config.chrome.startup_delay = 10
+        assert config.chrome.startup_delay == 10
 
     def test_detect_missing_parser_field(self) -> None:
-        """
-        Тест должен упасть, если в ParserOptions отсутствует поле.
-        """
+        """Тест должен упасть, если в ParserOptions отсутствует поле max_records."""
         config = Configuration()
-
-        # Пытаемся установить поле - должно работать
-        try:
-            config.parser.max_records = 1000
-        except (ValueError, AttributeError) as e:
-            pytest.fail(f"Поле max_records отсутствует в ParserOptions: {e}")
+        assert hasattr(config.parser, "max_records"), "Поле max_records отсутствует в ParserOptions"
+        config.parser.max_records = 1000
+        assert config.parser.max_records == 1000
 
     def test_detect_missing_writer_field(self) -> None:
-        """
-        Тест должен упасть, если в WriterOptions отсутствует поле.
-        """
+        """Тест должен упасть, если в WriterOptions отсутствует поле add_rubrics."""
         config = Configuration()
-
-        # Пытаемся установить поле - должно работать
-        try:
-            config.writer.csv.add_rubrics = True
-        except (ValueError, AttributeError) as e:
-            pytest.fail(f"Поле add_rubrics отсутствует в WriterOptions: {e}")
+        assert hasattr(config.writer.csv, "add_rubrics"), "Поле add_rubrics отсутствует в WriterOptions"
+        config.writer.csv.add_rubrics = True
+        assert config.writer.csv.add_rubrics is True

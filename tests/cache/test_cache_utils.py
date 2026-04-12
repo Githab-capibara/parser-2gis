@@ -1,6 +1,7 @@
 """Тесты для cache_utils."""
 
 import hashlib
+from datetime import UTC
 
 import pytest
 
@@ -157,16 +158,16 @@ class TestIsCacheExpired:
 
     def test_past_date_is_expired(self) -> None:
         """Дата в прошлом считается истёкшей."""
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
-        past = datetime.now(timezone.utc) - timedelta(hours=1)
+        past = datetime.now(UTC) - timedelta(hours=1)
         assert is_cache_expired(past) is True
 
     def test_future_date_not_expired(self) -> None:
         """Дата в будущем не считается истёкшей."""
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
-        future = datetime.now(timezone.utc) + timedelta(hours=24)
+        future = datetime.now(UTC) + timedelta(hours=24)
         assert is_cache_expired(future) is False
 
 

@@ -10,6 +10,7 @@
 
 import contextlib
 import sqlite3
+from datetime import UTC
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -83,13 +84,13 @@ class TestHandleDbErrorRetry:
     def test_retry_finds_cached_data(self, cache_manager: CacheManager) -> None:
         """Тест 3: Retry находит данные в кэше."""
         import json
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         error = sqlite3.OperationalError("database is locked")
         url = "https://example.com/test"
         url_hash = "abc123"
 
-        future_expires = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+        future_expires = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
         test_data = json.dumps({"result": "found"})
         mock_retry_conn = MagicMock()
         mock_retry_conn.execute.return_value.fetchone.return_value = (test_data, future_expires)
@@ -182,13 +183,13 @@ class TestHandleDbErrorRetry:
 
     def test_database_locked_retry_expired_data(self, cache_manager: CacheManager) -> None:
         """Тест 11: Retry нашёл данные но они истекли."""
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         error = sqlite3.OperationalError("database is locked")
         url = "https://example.com/test"
         url_hash = "abc123"
 
-        past_expires = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        past_expires = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
         test_data = '{"old": "data"}'
         mock_retry_conn = MagicMock()
         mock_retry_conn.execute.return_value.fetchone.return_value = (test_data, past_expires)

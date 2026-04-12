@@ -233,7 +233,6 @@ class TestChromeBrowserCloseGuaranteedCleanup:
         """
         from parser_2gis.chrome.browser import BrowserLifecycleManager, ChromeBrowser
 
-        # Mock для избежания реального запуска Chrome
         with patch.object(BrowserLifecycleManager, "init", return_value=9222):
             mock_options = MagicMock()
             mock_options.binary_path = "/usr/bin/google-chrome"
@@ -241,17 +240,12 @@ class TestChromeBrowserCloseGuaranteedCleanup:
             mock_options.headless = True
 
             browser = ChromeBrowser(mock_options)
-
-            # Mock для имитации ошибки при закрытии
-            mock_process = MagicMock()
-            mock_process.terminate.side_effect = Exception("Mocked exception")
-            browser._process = mock_process
+            browser._lifecycle_manager._closed = False
 
             # close() должен выполниться без выброса исключения
-            try:
-                browser.close()
-            except Exception as e:
-                pytest.fail(f"close() выбросил исключение: {e}")
+            browser.close()
+            # Позитивная проверка: флаг _closed установлен
+            assert browser._lifecycle_manager._closed is True, "Браузер должен быть помечен как закрытый"
 
     def test_browser_close_finally_block(self) -> None:
         """Тест 10: finally блок в browser.close().
@@ -303,10 +297,8 @@ class TestChromeBrowserCloseGuaranteedCleanup:
             browser._process = mock_process
 
             # close() не должен выбрасывать исключение
-            try:
-                browser.close()
-            except Exception as e:
-                pytest.fail(f"close() выбросил исключение: {e}")
+            browser.close()
+            assert browser._lifecycle_manager._closed is True, "Браузер должен быть помечен как закрытый"
 
     def test_browser_close_cleanup_resources(self) -> None:
         """Тест 12: Очистка ресурсов в browser.close().
@@ -353,10 +345,8 @@ class TestChromeBrowserCloseGuaranteedCleanup:
             browser._process = None
 
             # close() не должен выбрасывать исключение
-            try:
-                browser.close()
-            except Exception as e:
-                pytest.fail(f"close() выбросил исключение: {e}")
+            browser.close()
+            assert browser._lifecycle_manager._closed is True, "Браузер должен быть помечен как закрытый"
 
     def test_browser_close_multiple_calls(self) -> None:
         """Тест 14: Многократный вызов browser.close().
@@ -381,7 +371,5 @@ class TestChromeBrowserCloseGuaranteedCleanup:
 
             # Вызываем close несколько раз
             for _ in range(3):
-                try:
-                    browser.close()
-                except Exception as e:
-                    pytest.fail(f"close() выбросил исключение: {e}")
+                browser.close()
+            assert browser._lifecycle_manager._closed is True

@@ -20,14 +20,14 @@ class TestValidateInitialState:
 
     def test_bool_returns_true(self) -> None:
         """Bool должен проходить валидацию."""
-        valid, count = _validate_initial_state(True)
+        valid, _count = _validate_initial_state(True)
         assert valid
         valid, _count = _validate_initial_state(False)
         assert valid
 
     def test_int_float_returns_true(self) -> None:
         """Int и float должны проходить валидацию."""
-        valid, count = _validate_initial_state(42)
+        valid, _count = _validate_initial_state(42)
         assert valid
         valid, _count = _validate_initial_state(3.14)
         assert valid

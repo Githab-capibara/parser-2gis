@@ -17,10 +17,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-pytestmark = pytest.mark.requires_chrome
 import pytest
 
 from parser_2gis.chrome.remote import ChromeRemote
+
+pytestmark = pytest.mark.requires_chrome
 
 
 class TestConnectInterfaceTimeout:

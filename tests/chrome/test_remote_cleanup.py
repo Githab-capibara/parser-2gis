@@ -203,4 +203,7 @@ class TestCleanupInterface:
             # Не должно выбрасывать исключение
             chrome_remote._cleanup_interface()
 
+        # Проверяем что очистка прошла успешно даже с исключением
+        assert chrome_remote._chrome_tab is None or chrome_remote._chrome_tab.status == "started"
+
         # Метод должен завершиться без исключений
