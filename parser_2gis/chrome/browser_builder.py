@@ -62,7 +62,8 @@ class ChromeBrowserBuilder:
         from .browser import ChromeBrowser
 
         if self._chrome_options is None:
-            raise ValueError("Опции Chrome обязательны. Используйте with_options().")
+            msg = "Опции Chrome обязательны. Используйте with_options()."
+            raise ValueError(msg)
 
         return ChromeBrowser(chrome_options=self._chrome_options)
 

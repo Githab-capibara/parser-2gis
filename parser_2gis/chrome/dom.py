@@ -53,7 +53,8 @@ class DOMNode(BaseModel):
         attributes = {}
         attributes_list_count = len(attributes_list)
         if attributes_list_count % 2 != 0:
-            raise ValueError("Список атрибутов должен содержать чётное количество элементов")
+            msg = "Список атрибутов должен содержать чётное количество элементов"
+            raise ValueError(msg)
         for name_idx in range(0, attributes_list_count, 2):
             attributes[attributes_list[name_idx]] = attributes_list[name_idx + 1]
         return attributes

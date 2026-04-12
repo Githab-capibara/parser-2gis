@@ -60,7 +60,8 @@ class WriterRegistry:
 
         """
         if not format_name or not format_name.strip():
-            raise ValueError("Название формата не может быть пустым")
+            msg = "Название формата не может быть пустым"
+            raise ValueError(msg)
 
         if not re.match(r"^[a-zA-Z0-9_-]+$", format_name):
             msg = (

@@ -92,7 +92,8 @@ class BaseParser(ABC):
             writer: Объект FileWriter для записи распарсенных данных.
 
         """
-        raise NotImplementedError("Subclasses must implement this method")  # pragma: no cover
+        msg = "Subclasses must implement this method"
+        raise NotImplementedError(msg)  # pragma: no cover
 
     @abstractmethod
     def get_stats(self) -> ParserStats:
@@ -102,7 +103,8 @@ class BaseParser(ABC):
             Словарь со статистикой парсера.
 
         """
-        raise NotImplementedError("Subclasses must implement this method")  # pragma: no cover
+        msg = "Subclasses must implement this method"
+        raise NotImplementedError(msg)  # pragma: no cover
 
     def __repr__(self) -> str:
         """Строковое представление парсера.

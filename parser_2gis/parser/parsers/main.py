@@ -71,13 +71,16 @@ class MainParser:
         """
         # ISSUE-134: Валидация chrome_options и parser_options
         if chrome_options is None:
-            raise ValueError("chrome_options не может быть None")
+            msg = "chrome_options не может быть None"
+            raise ValueError(msg)
         if parser_options is None:
-            raise ValueError("parser_options не может быть None")
+            msg = "parser_options не может быть None"
+            raise ValueError(msg)
 
         # Валидация url
         if not url or not isinstance(url, str):
-            raise ValueError("url должен быть непустой строкой")
+            msg = "url должен быть непустой строкой"
+            raise ValueError(msg)
 
         self._options = parser_options
         self._url = url

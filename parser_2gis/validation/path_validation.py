@@ -234,7 +234,8 @@ def get_path_safety_validator() -> PathSafetyValidator:
     if _path_safety_validator[0] is None:
         _path_safety_validator[0] = PathSafetyValidator()
     if _path_safety_validator[0] is None:
-        raise RuntimeError("Не удалось инициализировать валидатор безопасности путей")
+        msg = "Не удалось инициализировать валидатор безопасности путей"
+        raise RuntimeError(msg)
     return _path_safety_validator[0]
 
 

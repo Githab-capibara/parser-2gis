@@ -197,15 +197,18 @@ class ParallelCityParser:
         """
         # D006: Валидация output_dir перед использованием
         if output_dir is None:
-            raise ValueError("output_dir не может быть None")
+            msg = "output_dir не может быть None"
+            raise ValueError(msg)
         if not isinstance(output_dir, str):
             msg = f"output_dir должен быть строкой, получен {type(output_dir).__name__}"
             raise TypeError(msg)
         if not output_dir.strip():
-            raise ValueError("output_dir не может быть пустой строкой")
+            msg_0 = "output_dir не может быть пустой строкой"
+            raise ValueError(msg_0)
         # Проверка на path traversal атаки
         if ".." in output_dir:
-            raise ValueError("output_dir не должен содержать '..'")
+            msg_0 = "output_dir не должен содержать '..'"
+            raise ValueError(msg_0)
         # Преобразуем в абсолютный путь
         output_dir_path = Path(output_dir)
         if not output_dir_path.is_absolute():

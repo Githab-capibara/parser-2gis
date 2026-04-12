@@ -241,7 +241,8 @@ class CSVPostProcessor:
                 temp_created = False
             else:
                 logger.error("Не удалось переместить файл с удалёнными колонками")
-                raise RuntimeError("Failed to move file with removed columns")
+                msg_0 = "Failed to move file with removed columns"
+                raise RuntimeError(msg_0)
 
         except (KeyboardInterrupt, SystemExit):
             raise

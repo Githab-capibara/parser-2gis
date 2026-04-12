@@ -79,7 +79,8 @@ def unwrap_dot_dict(d: dict[str, Any]) -> dict[str, Any]:
 
     """
     if not isinstance(d, dict):
-        raise TypeError("Входные данные должны быть словарём")
+        msg = "Входные данные должны быть словарём"
+        raise TypeError(msg)
 
     output: dict[str, Any] = {}
     for key, value in d.items():

@@ -219,7 +219,8 @@ class CSVDeduplicator:
                 temp_created = False  # Файл успешно перемещён, очистка не требуется
             else:
                 logger.error("Не удалось переместить файл с удалёнными дубликатами")
-                raise RuntimeError("Failed to move deduplicated file")
+                msg_0 = "Failed to move deduplicated file"
+                raise RuntimeError(msg_0)
 
         except OSError as e:
             logger.error("Ошибка при удалении дубликатов: %s", e)

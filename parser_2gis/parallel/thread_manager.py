@@ -71,7 +71,8 @@ class ThreadManager:
 
         """
         if self._executor is None:
-            raise RuntimeError("ThreadPoolExecutor не инициализирован")
+            msg = "ThreadPoolExecutor не инициализирован"
+            raise RuntimeError(msg)
 
         return self._executor.submit(func, *args, **kwargs)
 

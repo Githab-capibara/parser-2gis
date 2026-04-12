@@ -100,7 +100,8 @@ def _calculate_dynamic_pool_size() -> int:
     try:
         # Пытаемся получить информацию о памяти через psutil
         if not PSUTIL_AVAILABLE:
-            raise ImportError("psutil не установлен")
+            msg = "psutil не установлен"
+            raise ImportError(msg)
 
         available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)
 
@@ -335,7 +336,8 @@ class ConnectionPool:
                     raise
 
             if conn is None:
-                raise RuntimeError("Не удалось получить соединение с БД: conn остался None")
+                msg = "Не удалось получить соединение с БД: conn остался None"
+                raise RuntimeError(msg)
 
             # Регистрация нового соединения под блокировкой
             if created_new:

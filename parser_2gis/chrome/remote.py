@@ -366,7 +366,8 @@ class ChromeRemote:
             # ISSUE-003-#4: Явно устанавливаем _chrome_tab = None после cleanup
             # для предотвращения обращения к уже очищенному объекту
             self._chrome_tab = None
-            raise ChromeException("Проверка соединения не пройдена")
+            msg = "Проверка соединения не пройдена"
+            raise ChromeException(msg)
 
         app_logger.info("Успешное подключение к Chrome DevTools Protocol")
 
@@ -463,7 +464,8 @@ class ChromeRemote:
                 # Если порт занят - Chrome запустился, продолжаем
 
             if not self._connect_interface():
-                raise ChromeException("Не удалось подключиться к Chrome DevTools Protocol")
+                msg_0 = "Не удалось подключиться к Chrome DevTools Protocol"
+                raise ChromeException(msg_0)
 
             self._setup_tab()
             self._init_tab_monitor()
@@ -528,7 +530,8 @@ class ChromeRemote:
 
                     # Проверка на None перед вызовом raise_for_status()
                     if resp is None:
-                        raise ChromeException("HTTP запрос вернул None")
+                        msg = "HTTP запрос вернул None"
+                        raise ChromeException(msg)
 
                     resp.raise_for_status()
                     tab = pychrome.Tab(**resp.json())
@@ -552,7 +555,8 @@ class ChromeRemote:
                             msg
                         ) from e
 
-            raise ChromeException("Не удалось создать вкладку")
+            msg_0 = "Не удалось создать вкладку"
+            raise ChromeException(msg_0)
         finally:
             # ID:115: Закрываем вкладку если она была создана но не возвращена успешно
             if tab is not None and not tab_created:
@@ -696,7 +700,8 @@ class ChromeRemote:
             except pychrome.UserAbortException as e:
                 if tab_detached.is_set():
                     app_logger.debug("Вкладка была остановлена: %s", e)
-                    raise pychrome.RuntimeException("Вкладка была остановлена") from e
+                    msg = "Вкладка была остановлена"
+                    raise pychrome.RuntimeException(msg) from e
                 app_logger.debug("UserAbortException при отправке: %s", e)
                 raise
 
@@ -719,16 +724,20 @@ class ChromeRemote:
         """
         # D001: Валидация URL перед навигацией
         if not url or not isinstance(url, str):
-            raise ValueError("URL должен быть непустой строкой")
+            msg = "URL должен быть непустой строкой"
+            raise ValueError(msg)
 
         # D001: Проверка на наличие опасных конструкций в URL
         url_lower = url.lower()
         if "javascript:" in url_lower:
-            raise ValueError("URL не может содержать javascript: протокол")
+            msg = "URL не может содержать javascript: протокол"
+            raise ValueError(msg)
         if "data:" in url_lower and "<" in url:
-            raise ValueError("URL не может содержать data: URI с HTML")
+            msg = "URL не может содержать data: URI с HTML"
+            raise ValueError(msg)
         if "vbscript:" in url_lower:
-            raise ValueError("URL не может содержать vbscript: протокол")
+            msg = "URL не может содержать vbscript: протокол"
+            raise ValueError(msg)
 
         # D001: Проверка что URL начинается с безопасного протокола
         if not url.startswith(("http://", "https://")):
@@ -944,7 +953,8 @@ class ChromeRemote:
         if not isinstance(source, str):
             raise TypeError("source должен быть строкой, получен %s" % type(source).__name__)
         if not source or not source.strip():
-            raise ValueError("source не может быть пустой строкой")
+            msg = "source не может быть пустой строкой"
+            raise ValueError(msg)
 
         if self._chrome_tab is None:
             app_logger.error("Chrome tab не инициализирован в add_start_script")
@@ -1354,11 +1364,13 @@ class ChromeRemote:
         """
         # D005: Дополнительная валидация JS кода
         if js_code is None:
-            raise ValueError("JavaScript код не может быть None")
+            msg = "JavaScript код не может быть None"
+            raise ValueError(msg)
         if not isinstance(js_code, str):
             raise TypeError("JavaScript код должен быть строкой, получен %s" % type(js_code).__name__)
         if not js_code.strip():
-            raise ValueError("JavaScript код не может быть пустым")
+            msg = "JavaScript код не может быть пустым"
+            raise ValueError(msg)
 
         if timeout is None:
             timeout = 600  # 10 минут

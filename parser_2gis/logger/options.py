@@ -45,14 +45,16 @@ class LogOptions(BaseModel):
         """Валидирует уровень логирования."""
         v = v.upper()
         if v not in ("ERROR", "WARNING", "WARN", "INFO", "DEBUG", "FATAL", "CRITICAL", "NOTSET"):
-            raise ValueError("Неверное имя уровня логирования")
+            msg = "Неверное имя уровня логирования"
+            raise ValueError(msg)
         return v
 
     @staticmethod
     def _validate_format(v: str) -> str:
         """Проверяет строку формата в процентном стиле."""
         if not re.search(r"%\(\w+\)[#0+ \-]*(\*|\d+)?(\.(\*|\d+))?[diouxefgcrsa%]", v):
-            raise ValueError("Строка формата неверна")
+            msg = "Строка формата неверна"
+            raise ValueError(msg)
         return v
 
     @field_validator("level")

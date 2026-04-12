@@ -145,7 +145,8 @@ class FcntlLockStrategy(BaseLockStrategy):
                 )
                 try:
                     if lock_fd is None:
-                        raise RuntimeError("Не удалось получить файловый дескриптор блокировки")
+                        msg = "Не удалось получить файловый дескриптор блокировки"
+                        raise RuntimeError(msg)
                     lock_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
                     lock_fd = None
 

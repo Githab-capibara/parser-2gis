@@ -90,9 +90,12 @@ class ProgressManager:
 
         """
         if not TQDM_AVAILABLE and not disable:
-            raise ImportError(
+            msg = (
                 "Для работы прогресс-бара требуется библиотека tqdm. "
                 "Установите её: pip install tqdm"
+            )
+            raise ImportError(
+                msg
             )
 
         self._disable = disable

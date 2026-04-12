@@ -261,7 +261,8 @@ def validate_path_traversal(file_path: str) -> Path:
 
     """
     if not file_path:
-        raise ValueError("Путь к файлу не может быть пустым")
+        msg = "Путь к файлу не может быть пустым"
+        raise ValueError(msg)
 
     # ИСПРАВЛЕНИЕ CRITICAL 1: Проверка encoded паттернов ДО декодирования
     # Это предотвращает атаки когда опасные паттерны скрыты в encoded форме

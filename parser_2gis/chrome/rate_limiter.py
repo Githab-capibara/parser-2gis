@@ -141,7 +141,8 @@ def _safe_external_request(
 
     """
     if requests is None:
-        raise ImportError("requests library is required for _safe_external_request")
+        msg = "requests library is required for _safe_external_request"
+        raise ImportError(msg)
 
     # HIGH 8: Принудительное применение rate limiting ПЕРЕД запросом
     _enforce_rate_limit()

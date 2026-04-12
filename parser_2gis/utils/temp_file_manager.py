@@ -86,7 +86,8 @@ class TempFileManager:
         """
         # D015: Валидация пути перед регистрацией
         if file_path is None:
-            raise ValueError("file_path не может быть None")
+            msg = "file_path не может быть None"
+            raise ValueError(msg)
         if not isinstance(file_path, Path):
             msg = f"file_path должен быть Path, получен {type(file_path).__name__}"
             raise TypeError(msg)
@@ -238,13 +239,15 @@ class TempFileManager:
         """
         # D015: Валидация директории
         if directory is None:
-            raise ValueError("directory не может быть None")
+            msg = "directory не может быть None"
+            raise ValueError(msg)
 
         if isinstance(directory, Path):
             directory = str(directory)
 
         if not directory or not isinstance(directory, str):
-            raise ValueError("directory должен быть непустой строкой")
+            msg = "directory должен быть непустой строкой"
+            raise ValueError(msg)
 
         # D015: Проверка на path traversal в directory
         if ".." in directory:
@@ -524,7 +527,8 @@ def create_temp_file(directory: str, prefix: str = "parser_") -> str:
     """
     # D015: Валидация директории
     if not directory or not isinstance(directory, str):
-        raise ValueError("directory должен быть непустой строкой")
+        msg = "directory должен быть непустой строкой"
+        raise ValueError(msg)
 
     # D015: Проверка на path traversal в directory
     if ".." in directory:

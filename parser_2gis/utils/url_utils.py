@@ -135,44 +135,55 @@ def generate_category_url(city: dict[str, Any], category: dict[str, Any]) -> str
     # HIGH 11: Явная валидация параметров
     # Проверка city
     if city is None:
-        raise TypeError("city не может быть None")
+        msg = "city не может быть None"
+        raise TypeError(msg)
     if not isinstance(city, dict):
         local_logger.warning("Некорректный город (не dict): %s", city)
-        raise TypeError("city должен быть словарём (dict)")
+        msg = "city должен быть словарём (dict)"
+        raise TypeError(msg)
     if "code" not in city:
         local_logger.warning("Некорректный город (нет code): %s", city)
-        raise ValueError("city должен содержать code")
+        msg = "city должен содержать code"
+        raise ValueError(msg)
     if "domain" not in city:
         local_logger.warning("Некорректный город (нет domain): %s", city)
-        raise ValueError("city должен содержать domain")
+        msg = "city должен содержать domain"
+        raise ValueError(msg)
     if not isinstance(city.get("code"), str) or not city["code"]:
         local_logger.warning("Некорректный city code: %s", city.get("code"))
-        raise ValueError("city['code'] должен быть непустой строкой")
+        msg = "city['code'] должен быть непустой строкой"
+        raise ValueError(msg)
     if not isinstance(city.get("domain"), str) or not city["domain"]:
         local_logger.warning("Некорректный city domain: %s", city.get("domain"))
-        raise ValueError("city['domain'] должен быть непустой строкой")
+        msg = "city['domain'] должен быть непустой строкой"
+        raise ValueError(msg)
 
     # Проверка category
     if category is None:
-        raise TypeError("category не может быть None")
+        msg = "category не может быть None"
+        raise TypeError(msg)
     if not isinstance(category, dict):
         local_logger.warning("Некорректная категория (не dict): %s", category)
-        raise TypeError("category должен быть словарём (dict)")
+        msg = "category должен быть словарём (dict)"
+        raise TypeError(msg)
 
     # Получаем query категории с fallback на name
     category_query = category.get("query", category.get("name", ""))
     if not category_query:
         local_logger.warning("Категория не содержит query или name: %s", category)
-        raise ValueError("category должен содержать query или name")
+        msg = "category должен содержать query или name"
+        raise ValueError(msg)
     if not isinstance(category_query, str):
         local_logger.warning("category query/name не строка: %s", category_query)
-        raise TypeError("category['query'] или category['name'] должен быть строкой")
+        msg = "category['query'] или category['name'] должен быть строкой"
+        raise TypeError(msg)
 
     # Проверка rubric_code если указан
     rubric_code = category.get("rubric_code", "")
     if rubric_code and not isinstance(rubric_code, str):
         local_logger.warning("rubric_code не строка: %s", rubric_code)
-        raise TypeError("category['rubric_code'] должен быть строкой")
+        msg = "category['rubric_code'] должен быть строкой"
+        raise TypeError(msg)
 
     # Используем кэшированную версию
     city_key = (city["code"], city["domain"])
@@ -214,7 +225,8 @@ def generate_city_urls(
     # Валидация пустого списка городов
     if not cities:
         local_logger.warning("Получен пустой список городов для генерации URL")
-        raise ValueError("Список городов не может быть пустым")
+        msg = "Список городов не может быть пустым"
+        raise ValueError(msg)
 
     urls: list[str] = []
 

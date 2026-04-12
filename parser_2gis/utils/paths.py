@@ -144,7 +144,8 @@ def image_path(basename: str, ext: str | None = None) -> str:
     """
     # Проверка на пустое имя
     if not basename or basename.strip() == "":
-        raise ValueError("Имя файла не может быть пустым")
+        msg = "Имя файла не может быть пустым"
+        raise ValueError(msg)
 
     # Проверка на запрещённые символы для предотвращения path traversal атак
     for forbidden in FORBIDDEN_PATH_CHARS:

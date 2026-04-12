@@ -138,7 +138,8 @@ class MainPageParser(BaseParser):
 
         # Mypy не может сузить тип после переназначения — используем проверку
         if browser is None:
-            raise RuntimeError("browser должен быть создан к этому моменту")
+            msg = "browser должен быть создан к этому моменту"
+            raise RuntimeError(msg)
         # Инициализируем базовый класс только browser аргументом
         # BaseParser принимает только browser, остальные аргументы обрабатываются здесь
         super().__init__(browser)
@@ -716,9 +717,12 @@ class MainPageParser(BaseParser):
             NotImplementedError: Метод не предназначен для прямого вызова.
 
         """
-        raise NotImplementedError(
+        msg = (
             "MainPageParser.parse() не предназначен для прямого вызова. "
             "Используйте MainParser.parse() вместо этого."
+        )
+        raise NotImplementedError(
+            msg
         )
 
     def get_stats(self) -> ParserStats:

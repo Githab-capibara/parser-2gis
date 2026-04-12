@@ -178,7 +178,8 @@ def _validate_city(city: Any, field_name: str = "city") -> dict[str, Any]:
 
     if not isinstance(city["code"], str) or not isinstance(city["domain"], str):
         logger.warning("Поля code и domain должны быть строками: %s", city)
-        raise ValueError("code и domain должны быть строками")
+        msg_0 = "code и domain должны быть строками"
+        raise ValueError(msg_0)
 
     # Используем кэшированную версию для часто используемых городов
     # Оптимизация: передаём code и domain как отдельные аргументы для эффективного кэширования
@@ -233,12 +234,14 @@ def _validate_category(category: Any) -> dict[str, Any]:
     """
     if not isinstance(category, dict):
         logger.warning("category не является словарём: %s", category)
-        raise ValueError("category должен быть словарём")
+        msg = "category должен быть словарём"
+        raise ValueError(msg)
 
     # Проверка наличия name или query
     if "name" not in category and "query" not in category:
         logger.warning("Категория должна содержать 'name' или 'query': %s", category)
-        raise ValueError("category должен содержать 'name' или 'query'")
+        msg = "category должен содержать 'name' или 'query'"
+        raise ValueError(msg)
 
     # Используем кэшированную версию
     category_key = (

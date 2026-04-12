@@ -463,7 +463,8 @@ class ParallelCoordinator:
 
         # Валидация output_dir
         if not output_dir:
-            raise ValueError("output_dir не может быть пустым")
+            msg_0 = "output_dir не может быть пустым"
+            raise ValueError(msg_0)
 
     def log(self, message: str, level: str = "info") -> None:
         """Потокобезопасное логгирование."""

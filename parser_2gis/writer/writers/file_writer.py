@@ -75,7 +75,8 @@ class FileWriter(WriterProtocol, ABC):
 
         """
         if not file_path:
-            raise ValueError("Путь к файлу не может быть пустым")
+            msg = "Путь к файлу не может быть пустым"
+            raise ValueError(msg)
 
         # Конвертируем Path в строку если нужно
         file_path_str = str(file_path) if isinstance(file_path, Path) else file_path

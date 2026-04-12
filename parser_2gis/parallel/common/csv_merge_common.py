@@ -301,7 +301,8 @@ def merge_csv_files_common(
 
     """
     if not file_paths:
-        raise ValueError("file_paths не может быть пустым")
+        msg = "file_paths не может быть пустым"
+        raise ValueError(msg)
     if buffer_size <= 0:
         msg = f"buffer_size должен быть положительным числом, получено {buffer_size}"
         raise ValueError(msg)

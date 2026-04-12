@@ -125,7 +125,8 @@ class ParallelCityParserBuilder:
         from parser_2gis.parallel import ParallelCityParser
 
         if self._config is None:
-            raise ValueError("Конфигурация обязательна. Используйте with_config().")
+            msg = "Конфигурация обязательна. Используйте with_config()."
+            raise ValueError(msg)
 
         return ParallelCityParser(
             cities=self._cities,

@@ -276,11 +276,13 @@ class CacheManager:
             ) from conversion_error
 
         if ttl_hours <= 0:
-            raise ValueError("ttl_hours должен быть положительным числом")
+            msg = "ttl_hours должен быть положительным числом"
+            raise ValueError(msg)
 
         # D002: Валидация имени файла кэша для предотвращения инъекций
         if not cache_file_name or not isinstance(cache_file_name, str):
-            raise ValueError("cache_file_name должен быть непустой строкой")
+            msg = "cache_file_name должен быть непустой строкой"
+            raise ValueError(msg)
         # #144: Проверяем что имя не содержит путей
         # (до basename для совместимости с тестами)
         if "/" in cache_file_name or "\\" in cache_file_name or ".." in cache_file_name:
@@ -293,7 +295,8 @@ class CacheManager:
             raise ValueError(ext_error_msg)
         # D002: Проверка на абсолютный путь (path traversal защита)
         if Path(cache_file_name).is_absolute():
-            raise ValueError("cache_file_name не должен быть абсолютным путём")
+            msg = "cache_file_name не должен быть абсолютным путём"
+            raise ValueError(msg)
         # D002: Проверка что имя файла содержит только безопасные символы
         if not re.match(r"^[a-zA-Z0-9_-]+\.db$", cache_file_name):
             raise ValueError(
@@ -752,19 +755,23 @@ class CacheManager:
 
         # D004: Валидация URL перед использованием
         if url is None:
-            raise ValueError("URL не может быть None")
+            msg = "URL не может быть None"
+            raise ValueError(msg)
         if not isinstance(url, str):
             msg = f"URL должен быть строкой, получен {type(url).__name__}"
             raise TypeError(msg)
         if not url.strip():
-            raise ValueError("URL не может быть пустой строкой")
+            msg_0 = "URL не может быть пустой строкой"
+            raise ValueError(msg_0)
         # Проверка на минимальную валидность URL (должен содержать схему)
         if not url.startswith(("http://", "https://")):
-            raise ValueError("URL должен начинаться с http:// или https://")
+            msg_0 = "URL должен начинаться с http:// или https://"
+            raise ValueError(msg_0)
 
         # ВАЛИДАЦИЯ: проверка data на None
         if data is None:
-            raise TypeError("Данные кэша не могут быть None")
+            msg_0 = "Данные кэша не могут быть None"
+            raise TypeError(msg_0)
 
         # ID:073: Проверка MAX_RESPONSE_SIZE до сериализации для предотвращения MemoryError
         # Оцениваем приблизительный размер данных перед сериализацией

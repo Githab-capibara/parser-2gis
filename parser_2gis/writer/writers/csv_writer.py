@@ -367,7 +367,8 @@ class CSVWriter(FileWriter):
         """
         # D007: Валидация records перед записью
         if records is None:
-            raise TypeError("records не может быть None")
+            msg = "records не может быть None"
+            raise TypeError(msg)
         if not isinstance(records, dict):
             msg = f"records должен быть словарём, получен {type(records).__name__}"
             raise TypeError(msg)

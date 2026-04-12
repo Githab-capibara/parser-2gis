@@ -213,7 +213,8 @@ class ParallelErrorHandler:
         """
         # #191: Валидация city_name
         if not city_name or not city_name.strip():
-            raise ValueError("city_name не может быть пустым")
+            msg = "city_name не может быть пустым"
+            raise ValueError(msg)
 
         safe_city = city_name.replace(" ", "_").replace("/", "_")
         safe_category = category_name.replace(" ", "_").replace("/", "_")
@@ -261,7 +262,8 @@ class ParallelErrorHandler:
                     raise
 
         # Должно быть выброшено в цикле выше
-        raise RuntimeError("Не удалось создать временный файл")
+        msg_0 = "Не удалось создать временный файл"
+        raise RuntimeError(msg_0)
 
     def retry_with_backoff(
         self,
@@ -306,4 +308,5 @@ class ParallelErrorHandler:
                     raise
 
         # Должно быть выброшено в цикле выше — явная защита от непредвиденного завершения
-        raise RuntimeError("Цикл повторных попыток исчерпан без результата или исключения")
+        msg = "Цикл повторных попыток исчерпан без результата или исключения"
+        raise RuntimeError(msg)

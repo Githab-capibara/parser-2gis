@@ -43,7 +43,8 @@ class BaseFormatter(ABC):
             NotImplementedError: Если метод не реализован в дочернем классе.
 
         """
-        raise NotImplementedError("Метод format() должен быть реализован в дочернем классе")
+        msg = "Метод format() должен быть реализован в дочернем классе"
+        raise NotImplementedError(msg)
 
 
 class PhoneFormatter(BaseFormatter):

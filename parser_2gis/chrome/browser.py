@@ -345,15 +345,18 @@ class ProcessManager:
         # Валидация аргументов перед запуском subprocess
         if not chrome_cmd:
             app_logger.error("chrome_cmd не может быть пустым")
-            raise ValueError("chrome_cmd не может быть пустым")
+            msg = "chrome_cmd не может быть пустым"
+            raise ValueError(msg)
 
         if not isinstance(chrome_cmd, list):
             app_logger.error("chrome_cmd должен быть списком")
-            raise TypeError("chrome_cmd должен быть списком")
+            msg = "chrome_cmd должен быть списком"
+            raise TypeError(msg)
 
         if any(arg is None for arg in chrome_cmd):
             app_logger.error("chrome_cmd содержит None значения")
-            raise TypeError("chrome_cmd не должен содержать None значения")
+            msg = "chrome_cmd не должен содержать None значения"
+            raise TypeError(msg)
 
         self._start_time = time.time()
         proc: subprocess.Popen[str] | None = None
@@ -572,7 +575,8 @@ class ProcessManager:
                 try:
                     # Принудительное завершение процесса и всех дочерних процессов
                     if psutil is None:
-                        raise ImportError("psutil не установлен")
+                        msg = "psutil не установлен"
+                        raise ImportError(msg)
                     ps_proc = psutil.Process(process_pid)
                     children = ps_proc.children(recursive=True)
                     for child in children:

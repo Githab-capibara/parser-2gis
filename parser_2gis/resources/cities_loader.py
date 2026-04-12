@@ -110,12 +110,14 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         for i, city in enumerate(all_cities):
             if not isinstance(city, dict):
                 logger.error("Город %d должен быть словарём, а не %s", i, type(city).__name__)
-                raise ValueError("Город %d должен быть словарём")
+                msg_0 = "Город %d должен быть словарём"
+                raise ValueError(msg_0)
 
             # Проверяем name, code, domain
             if "name" not in city or "code" not in city or "domain" not in city:
                 logger.error("Город %d должен содержать поля 'name', 'code' и 'domain'", i)
-                raise ValueError("Город %d должен содержать поля 'name', 'code' и 'domain'")
+                msg_0 = "Город %d должен содержать поля 'name', 'code' и 'domain'"
+                raise ValueError(msg_0)
 
             if (
                 not isinstance(city["name"], str)

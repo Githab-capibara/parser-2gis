@@ -172,7 +172,8 @@ def retry_with_backoff(
                         ) from e
 
             # Защита от непредвиденного завершения цикла
-            raise RuntimeError("Неожиданный конец цикла повторных попыток")
+            msg_0 = "Неожиданный конец цикла повторных попыток"
+            raise RuntimeError(msg_0)
 
         return wrapper  # type: ignore[return-value]
 
@@ -285,7 +286,8 @@ def retry_with_jitter(
                         ) from e
 
             # Защита от непредвиденного завершения цикла
-            raise RuntimeError("Неожиданный конец цикла повторных попыток")
+            msg_0 = "Неожиданный конец цикла повторных попыток"
+            raise RuntimeError(msg_0)
 
         return wrapper  # type: ignore[return-value]
 
@@ -333,9 +335,12 @@ def retry_with_tenacity(
 
     """
     if not _TENACITY_AVAILABLE:
-        raise ImportError(
+        msg = (
             "tenacity не установлена. Установите: pip install tenacity "
             "или используйте retry_with_backoff"
+        )
+        raise ImportError(
+            msg
         )
 
     from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential

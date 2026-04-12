@@ -41,7 +41,8 @@ def _normalize_argv(argv: list[str]) -> list[str]:
         msg = f"argv must be list or tuple, got {type(argv).__name__}"
         raise TypeError(msg)
     if not all(isinstance(arg, str) for arg in argv):
-        raise TypeError("All argv elements must be strings")
+        msg_0 = "All argv elements must be strings"
+        raise TypeError(msg_0)
 
     argv_copy = []
     for i, arg in enumerate(argv):

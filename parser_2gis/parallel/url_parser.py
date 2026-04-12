@@ -85,14 +85,16 @@ class ParallelUrlParser(UrlGeneratorProtocol):
         """
         # ISSUE-106: Валидация cities на пустой список
         if not cities:
-            raise ValueError("cities не может быть пустым списком")
+            msg = "cities не может быть пустым списком"
+            raise ValueError(msg)
         if not isinstance(cities, list):
             msg = f"cities должен быть списком, получен {type(cities).__name__}"
             raise TypeError(msg)
 
         # ISSUE-107: Валидация categories на пустой список
         if not categories:
-            raise ValueError("categories не может быть пустым списком")
+            msg_0 = "categories не может быть пустым списком"
+            raise ValueError(msg_0)
         if not isinstance(categories, list):
             msg = f"categories должен быть списком, получен {type(categories).__name__}"
             raise TypeError(msg)

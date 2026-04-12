@@ -373,8 +373,9 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 len(value),
                 MAX_COLLECTION_SIZE,
             )
+            msg = "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки."
             raise ValueError(
-                "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки."
+                msg
             )
         # Оптимизация: используем str() вместо repr() для меньшего потребления памяти
         # str() не создаёт полную репрезентацию объекта, а только строковое представление
@@ -385,15 +386,17 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 len(value_str),
                 MAX_DATA_SIZE,
             )
+            msg = "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки."
             raise ValueError(
-                "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки."
+                msg
             )
     except MemoryError as size_check_error:
         logger.critical(
             "Нехватка памяти при проверке размера данных: %s", size_check_error, exc_info=True
         )
+        msg = "Нехватка памяти при проверке размера данных. Данные слишком большие для обработки."
         raise ValueError(
-            "Нехватка памяти при проверке размера данных. Данные слишком большие для обработки."
+            msg
         ) from size_check_error
 
     try:
@@ -485,9 +488,12 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 logger.critical(
                     "Критическая нехватка памяти при обработке данных: %s", mem_error, exc_info=True
                 )
-                raise ValueError(
+                msg_0 = (
                     "Нехватка памяти при очистке данных. "
                     "Данные слишком большие для обработки в памяти."
+                )
+                raise ValueError(
+                    msg_0
                 ) from mem_error
             except ValueError:
                 # Пробрасываем ValueError без изменений
@@ -516,9 +522,12 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
         logger.critical(
             "Критическая нехватка памяти в _sanitize_value: %s", memory_error, exc_info=True
         )
-        raise ValueError(
+        msg_0 = (
             "Нехватка памяти при очистке чувствительных данных. "
             "Рекомендуется уменьшить размер входных данных."
+        )
+        raise ValueError(
+            msg_0
         ) from memory_error
     except ValueError:
         # Пробрасываем ValueError без изменений
