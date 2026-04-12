@@ -721,9 +721,7 @@ class MainPageParser(BaseParser):
             "MainPageParser.parse() не предназначен для прямого вызова. "
             "Используйте MainParser.parse() вместо этого."
         )
-        raise NotImplementedError(
-            msg
-        )
+        raise NotImplementedError(msg)
 
     def get_stats(self) -> ParserStats:
         """Получение статистики парсера.

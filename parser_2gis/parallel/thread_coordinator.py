@@ -168,24 +168,16 @@ class ThreadCoordinator:
         """
         if max_workers < MIN_WORKERS:
             msg = f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         if max_workers > MAX_WORKERS:
             msg = f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         if timeout_per_url < MIN_TIMEOUT:
             msg = f"timeout_per_url должен быть не менее {MIN_TIMEOUT}, получено {timeout_per_url}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         if timeout_per_url > MAX_TIMEOUT:
             msg = f"timeout_per_url не должен превышать {MAX_TIMEOUT}, получено {timeout_per_url}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
     @staticmethod
     def _validate_executor_type(executor_type: ExecutorType) -> None:
@@ -200,9 +192,7 @@ class ThreadCoordinator:
         """
         if executor_type not in ("thread", "process"):
             msg = f"executor_type должен быть 'thread' или 'process', получено {executor_type}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
     def log(self, message: str, level: str = "info") -> None:
         """Потокобезопасное логгирование."""

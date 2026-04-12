@@ -62,7 +62,7 @@ def _get_cached_fieldnames(fieldnames_tuple: tuple[str, ...], *, add_category: b
 
 
 def _open_outfile_with_fallback(
-    path: Path, enc: str, buf_size: int, log_func: Callable[[str, str], None] | None,
+    path: Path, enc: str, buf_size: int, log_func: Callable[[str, str], None] | None
 ) -> tuple[TextIO | None, bool]:
     """Открывает выходной файл с fallback механизмом.
 
@@ -101,7 +101,7 @@ def _open_outfile_with_fallback(
 
 
 def _open_infile_with_fallback(
-    csv_file: Path, buffer_size: int, log_callback: Callable[[str, str], None] | None,
+    csv_file: Path, buffer_size: int, log_callback: Callable[[str, str], None] | None
 ) -> TextIO | None:
     """Открывает входной CSV файл с fallback на уменьшение буфера.
 
@@ -119,17 +119,13 @@ def _open_infile_with_fallback(
     except OSError as file_error:
         error_type = type(file_error).__name__
         _log_message(
-            f"Ошибка доступа к файлу {csv_file} ({error_type}): {file_error}",
-            "error",
-            log_callback,
+            f"Ошибка доступа к файлу {csv_file} ({error_type}): {file_error}", "error", log_callback
         )
         if buffer_size > 0:
             try:
                 infile = open(csv_file, encoding="utf-8-sig", newline="", buffering=4096)  # noqa: SIM115
                 _log_message(
-                    f"Fallback успешен: файл {csv_file} открыт с буфером 4KB",
-                    "info",
-                    log_callback,
+                    f"Fallback успешен: файл {csv_file} открыт с буфером 4KB", "info", log_callback
                 )
                 return infile
             except OSError:
@@ -166,16 +162,14 @@ def _process_csv_file_rows(
 
     try:
         return _read_and_batch_rows(
-            csv_file, infile, writer, outfile, batch_size, fieldnames_cache, log_callback,
+            csv_file, infile, writer, outfile, batch_size, fieldnames_cache, log_callback
         )
     finally:
         try:
             infile.close()
         except (OSError, RuntimeError, ValueError) as close_error:
             _log_message(
-                f"Ошибка при закрытии файла {csv_file.name}: {close_error}",
-                "debug",
-                log_callback,
+                f"Ошибка при закрытии файла {csv_file.name}: {close_error}", "debug", log_callback
             )
 
 
@@ -211,9 +205,7 @@ def _read_and_batch_rows(
         return writer, 0
 
     if reader.fieldnames is None or len(reader.fieldnames) == 0:
-        _log_message(
-            f"Файл {csv_file} пуст или не имеет заголовков", "warning", log_callback
-        )
+        _log_message(f"Файл {csv_file} пуст или не имеет заголовков", "warning", log_callback)
         return writer, 0
 
     fieldnames_key = tuple(reader.fieldnames)
@@ -249,19 +241,13 @@ def _read_and_batch_rows(
                 batch_total += len(batch)
                 batch.clear()
     except (OSError, csv.Error) as read_error:
-        _log_message(
-            f"Ошибка при чтении CSV {csv_file}: {read_error}", "error", log_callback
-        )
+        _log_message(f"Ошибка при чтении CSV {csv_file}: {read_error}", "error", log_callback)
 
     if batch:
         writer.writerows(batch)
         batch_total += len(batch)
 
-    _log_message(
-        f"Файл {csv_file.name} обработан (строк: {batch_total})",
-        "debug",
-        log_callback,
-    )
+    _log_message(f"Файл {csv_file.name} обработан (строк: {batch_total})", "debug", log_callback)
     return writer, batch_total
 
 
@@ -332,8 +318,13 @@ def merge_csv_files_common(
                     progress_callback(f"Обработка: {csv_file.name}")
 
                 writer, batch_total = _process_csv_file_rows(
-                    csv_file, writer, outfile, buffer_size, batch_size,
-                    fieldnames_cache, log_callback,
+                    csv_file,
+                    writer,
+                    outfile,
+                    buffer_size,
+                    batch_size,
+                    fieldnames_cache,
+                    log_callback,
                 )
 
                 if batch_total == 0:

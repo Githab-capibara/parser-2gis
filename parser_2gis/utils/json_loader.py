@@ -70,9 +70,7 @@ def load_json_mmap(
                 "Файл слишком большой: %d байт (макс: %d байт)", file_size, max_file_size
             )
             msg = f"Файл {file_path} слишком большой ({file_size} > {max_file_size} байт)"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         app_logger.debug("Размер файла: %d байт", file_size)
     except OSError as stat_error:

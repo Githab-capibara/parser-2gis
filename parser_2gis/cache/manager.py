@@ -783,9 +783,7 @@ class CacheManager:
                     f"Приблизительный размер данных ({estimated_size} байт) превышает лимит "
                     f"({MAX_RESPONSE_SIZE} байт). Кэширование отклонено."
                 )
-                raise MemoryError(
-                    msg
-                )
+                raise MemoryError(msg)
         except MemoryError:
             # Пробрасываем MemoryError дальше
             raise
@@ -815,9 +813,7 @@ class CacheManager:
         except (TypeError, ValueError) as serialize_error:
             app_logger.error("Ошибка сериализации данных для кэша: %s", serialize_error)
             msg = f"Не удалось сериализовать данные в JSON: {serialize_error}"
-            raise TypeError(
-                msg
-            ) from serialize_error
+            raise TypeError(msg) from serialize_error
 
         # CRITICAL 2: Проверка размера данных после сериализации
         data_size = len(data_json.encode("utf-8"))
@@ -826,9 +822,7 @@ class CacheManager:
                 f"Размер данных ({data_size} байт) превышает лимит ({MAX_RESPONSE_SIZE} байт). "
                 "Кэширование больших данных может привести к MemoryError."
             )
-            raise MemoryError(
-                msg
-            )
+            raise MemoryError(msg)
 
         conn = self._pool.get_connection()
         # P1-8: Гарантируем создание курсора перед try для безопасности в finally
@@ -1143,9 +1137,7 @@ class CacheManager:
         # Ограничиваем максимальный размер пакета для предотвращения DoS
         if len(url_hashes) > MAX_BATCH_SIZE:
             msg = f"Размер пакета {len(url_hashes)} превышает максимальный лимит {MAX_BATCH_SIZE}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         # Строгая валидация каждого хеша (64 символа, hex)
         validated_hashes = [h for h in url_hashes if self._validate_hash(h)]

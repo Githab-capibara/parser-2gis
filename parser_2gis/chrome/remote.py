@@ -262,10 +262,10 @@ class ChromeRemote:
         """
         # ISSUE-102: Валидация response_patterns
         if not isinstance(response_patterns, list):
-            msg = f"response_patterns должен быть списком, получен {type(response_patterns).__name__}"
-            raise TypeError(
-                msg
+            msg = (
+                f"response_patterns должен быть списком, получен {type(response_patterns).__name__}"
             )
+            raise TypeError(msg)
 
         # ISSUE-103: Валидация на пустые паттерны
         for idx, pattern in enumerate(response_patterns):
@@ -458,9 +458,7 @@ class ChromeRemote:
                         f"Chrome не запустился после {max_startup_attempts} попыток. "
                         f"Порт {remote_port} так и не был занят."
                     )
-                    raise ChromeException(
-                        msg
-                    )
+                    raise ChromeException(msg)
                 # Если порт занят - Chrome запустился, продолжаем
 
             if not self._connect_interface():
@@ -551,9 +549,7 @@ class ChromeRemote:
                         time.sleep(delay_seconds)
                     else:
                         msg = f"Не удалось создать вкладку после {max_attempts} попыток: {e}"
-                        raise ChromeException(
-                            msg
-                        ) from e
+                        raise ChromeException(msg) from e
 
             msg_0 = "Не удалось создать вкладку"
             raise ChromeException(msg_0)
@@ -741,7 +737,9 @@ class ChromeRemote:
 
         # D001: Проверка что URL начинается с безопасного протокола
         if not url.startswith(("http://", "https://")):
-            raise ValueError("URL должен начинаться с http:// или https://, получено: %s" % url[:50])
+            raise ValueError(
+                "URL должен начинаться с http:// или https://, получено: %s" % url[:50]
+            )
 
         # D001: Проверка на экранирование символов для предотвращения injection
         dangerous_chars = ["\x00", "\r", "\n", "\t"]
@@ -897,9 +895,7 @@ class ChromeRemote:
                     f"({len(response_body)} > {MAX_RESPONSE_SIZE} байт). "
                     f"Это может быть DoS атака."
                 )
-                raise ValueError(
-                    msg
-                )
+                raise ValueError(msg)
 
             response["body"] = response_body
             return response_body
@@ -973,9 +969,7 @@ class ChromeRemote:
                     f"({self._total_js_size + js_code_size} > {MAX_TOTAL_JS_SIZE} байт). "
                     f"Это может быть DoS атака."
                 )
-                raise RuntimeError(
-                    msg
-                )
+                raise RuntimeError(msg)
             self._total_js_size += js_code_size
 
         self._chrome_tab.Page.addScriptToEvaluateOnNewDocument(source=source)
@@ -1080,9 +1074,7 @@ class ChromeRemote:
                 except TimeoutError as timeout_err:
                     app_logger.error("Превышено время выполнения JavaScript (%d секунд)", timeout)
                     msg = f"Выполнение скрипта превысило таймаут {timeout} секунд"
-                    raise TimeoutError(
-                        msg
-                    ) from timeout_err
+                    raise TimeoutError(msg) from timeout_err
 
             if result["error"]:
                 return None
@@ -1367,7 +1359,9 @@ class ChromeRemote:
             msg = "JavaScript код не может быть None"
             raise ValueError(msg)
         if not isinstance(js_code, str):
-            raise TypeError("JavaScript код должен быть строкой, получен %s" % type(js_code).__name__)
+            raise TypeError(
+                "JavaScript код должен быть строкой, получен %s" % type(js_code).__name__
+            )
         if not js_code.strip():
             msg = "JavaScript код не может быть пустым"
             raise ValueError(msg)

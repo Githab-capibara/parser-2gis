@@ -147,9 +147,7 @@ class FileLogger:
                         f"Ошибка: {e}. "
                         f"Функция: {self._setup_file_handler.__name__}"
                     )
-                    raise OSError(
-                        msg
-                    ) from e
+                    raise OSError(msg) from e
 
             # Создаём rotating file handler
             try:
@@ -166,9 +164,7 @@ class FileLogger:
                     f"Файл: {self._log_file}. "
                     f"Функция: {self._setup_file_handler.__name__}"
                 )
-                raise OSError(
-                    msg
-                ) from e
+                raise OSError(msg) from e
 
             # Форматирование логов с детальной информацией
             formatter = logging.Formatter(
@@ -245,9 +241,7 @@ class FileLogger:
                 f"Функция: {self.setup_logger.__name__}, "
                 f"Логгер: {logger.name}"
             )
-            raise RuntimeError(
-                msg
-            ) from e
+            raise RuntimeError(msg) from e
 
     def close(self) -> None:
         """Закрытие обработчика файла.

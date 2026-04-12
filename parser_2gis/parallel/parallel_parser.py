@@ -258,14 +258,10 @@ class ParallelCityParser:
         # Валидация max_workers ПЕРЕД созданием семафора
         if max_workers < MIN_WORKERS:
             msg = f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         if max_workers > MAX_WORKERS:
             msg = f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         # Семафор для контроля одновременного запуска браузеров
         # ИСПРАВЛЕНИЕ #6: Используем ровно max_workers без дополнительного запаса
@@ -332,9 +328,7 @@ class ParallelCityParser:
                 test_file.touch()
             except (OSError, PermissionError) as e:
                 msg = f"Нет прав на запись в директорию: {output_dir}. Ошибка: {e}"
-                raise ValueError(
-                    msg
-                ) from e
+                raise ValueError(msg) from e
             finally:
                 if test_file is not None and test_file.exists():
                     try:
@@ -351,9 +345,7 @@ class ParallelCityParser:
                 test_file.touch()
             except (OSError, PermissionError) as e:
                 msg = f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}"
-                raise ValueError(
-                    msg
-                ) from e
+                raise ValueError(msg) from e
             finally:
                 if test_file is not None and test_file.exists():
                     try:
@@ -528,9 +520,7 @@ class ParallelCityParser:
                         "error",
                     )
                     msg = f"Не удалось получить lock файл после {MAX_LOCK_ATTEMPTS} попыток"
-                    raise RuntimeError(
-                        msg
-                    )
+                    raise RuntimeError(msg)
                 lock_fd = None
                 try:
                     # Атомарное создание файла - вернёт ошибку если файл уже существует
@@ -729,17 +719,13 @@ class ParallelCityParser:
             try:
                 signal.signal(signal.SIGINT, old_sigint_handler)
             except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
-                self.log(
-                    f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error"
-                )
+                self.log(f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error")
 
         if sigterm_registered:
             try:
                 signal.signal(signal.SIGTERM, old_sigterm_handler)
             except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
-                self.log(
-                    f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
-                )
+                self.log(f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error")
 
     def _cleanup_merge_temp_files_on_interrupt(self) -> None:
         """Очищает временные файлы merge при прерывании."""
@@ -780,8 +766,7 @@ class ParallelCityParser:
         """
         self._cleanup_merge_lock(lock_file_handle, lock_file_path)
         self._restore_merge_signal_handlers(
-            sigint_registered, sigterm_registered,
-            old_sigint_handler, old_sigterm_handler,
+            sigint_registered, sigterm_registered, old_sigint_handler, old_sigterm_handler
         )
         temp_file_manager.unregister(temp_output)
 
@@ -790,9 +775,7 @@ class ParallelCityParser:
                 temp_output.unlink()
                 self.log("Временный файл удалён в блоке finally (защита от утечек)", "debug")
             except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-                self.log(
-                    f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning"
-                )
+                self.log(f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning")
 
         with self._merge_lock:
             if temp_output in self._merge_temp_files:
@@ -872,9 +855,14 @@ class ParallelCityParser:
                 except (OSError, RuntimeError, TypeError, ValueError) as e:
                     self.log(f"Не удалось удалить временный файл: {e}", "debug")
                 self._do_merge_cleanup_and_finalize(
-                    temp_output, False, lock_file_handle, lock_file_path,
-                    sigint_registered, sigterm_registered,
-                    old_sigint_handler, old_sigterm_handler,
+                    temp_output,
+                    False,
+                    lock_file_handle,
+                    lock_file_path,
+                    sigint_registered,
+                    sigterm_registered,
+                    old_sigint_handler,
+                    old_sigterm_handler,
                 )
                 return False
 
@@ -902,9 +890,14 @@ class ParallelCityParser:
             temp_file_created = False
 
             self._do_merge_cleanup_and_finalize(
-                temp_output, temp_file_created, lock_file_handle, lock_file_path,
-                sigint_registered, sigterm_registered,
-                old_sigint_handler, old_sigterm_handler,
+                temp_output,
+                temp_file_created,
+                lock_file_handle,
+                lock_file_path,
+                sigint_registered,
+                sigterm_registered,
+                old_sigint_handler,
+                old_sigterm_handler,
             )
             return True
 
@@ -927,9 +920,14 @@ class ParallelCityParser:
             # Финальная очистка если ещё не была выполнена
             if temp_file_manager._registry.get(temp_output):
                 self._do_merge_cleanup_and_finalize(
-                    temp_output, temp_file_created, lock_file_handle, lock_file_path,
-                    sigint_registered, sigterm_registered,
-                    old_sigint_handler, old_sigterm_handler,
+                    temp_output,
+                    temp_file_created,
+                    lock_file_handle,
+                    lock_file_path,
+                    sigint_registered,
+                    sigterm_registered,
+                    old_sigint_handler,
+                    old_sigterm_handler,
                 )
 
     def run(

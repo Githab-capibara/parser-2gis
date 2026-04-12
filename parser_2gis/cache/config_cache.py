@@ -54,13 +54,8 @@ def _validate_cities_file(cities_path: Path) -> None:
                 file_size,
                 MAX_CITIES_FILE_SIZE,
             )
-            msg = (
-                f"Файл {cities_path} слишком большой "
-                f"({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
-            )
-            raise ValueError(
-                msg
-            )
+            msg = f"Файл {cities_path} слишком большой ({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
+            raise ValueError(msg)
 
         logger.debug("Размер файла городов: %d байт", file_size)
     except OSError as stat_error:
@@ -125,9 +120,7 @@ def _read_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         raise TypeError(error_msg)
 
     if len(all_cities) > MAX_CITIES_COUNT:
-        logger.error(
-            "Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT
-        )
+        logger.error("Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT)
         msg = f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}"
         raise ValueError(msg)
 

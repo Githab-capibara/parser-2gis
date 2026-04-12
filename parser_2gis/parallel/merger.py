@@ -390,20 +390,16 @@ class ParallelFileMerger:
             try:
                 signal.signal(signal.SIGINT, old_sigint_handler)
             except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
-                self.log(
-                    f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error"
-                )
+                self.log(f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error")
 
         if sigterm_registered:
             try:
                 signal.signal(signal.SIGTERM, old_sigterm_handler)
             except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
-                self.log(
-                    f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
-                )
+                self.log(f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error")
 
     def _cleanup_temp_file_if_exists(
-        self, temp_output: Path, temp_file_created: bool, context: str = "",
+        self, temp_output: Path, temp_file_created: bool, context: str = ""
     ) -> None:
         """Удаляет временный файл если он существует.
 
@@ -417,9 +413,7 @@ class ParallelFileMerger:
                 temp_output.unlink()
                 self.log(f"Временный файл удалён {context}".strip(), "debug")
             except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
-                self.log(
-                    f"Не удалось удалить временный файл {context}: {cleanup_error}", "warning"
-                )
+                self.log(f"Не удалось удалить временный файл {context}: {cleanup_error}", "warning")
 
     def _merge_csv_core(
         self,
@@ -494,8 +488,7 @@ class ParallelFileMerger:
                 shutil.move(str(temp_output), str(output_file_path))
             except (OSError, RuntimeError, TypeError, ValueError) as move_error:
                 self.log(
-                    f"Не удалось переместить временный файл в {output_file}: {move_error}",
-                    "error",
+                    f"Не удалось переместить временный файл в {output_file}: {move_error}", "error"
                 )
                 raise
 
@@ -616,11 +609,12 @@ class ParallelFileMerger:
         finally:
             self.cleanup_merge_lock(lock_file_handle, lock_file_path)
             self._restore_signal_handlers(
-                sigint_registered, sigterm_registered,
-                old_sigint_handler, old_sigterm_handler,
+                sigint_registered, sigterm_registered, old_sigint_handler, old_sigterm_handler
             )
             temp_file_manager.unregister(temp_output)
-            self._cleanup_temp_file_if_exists(temp_output, temp_file_created, "в блоке finally (защита от утечек)")
+            self._cleanup_temp_file_if_exists(
+                temp_output, temp_file_created, "в блоке finally (защита от утечек)"
+            )
 
             with self._merge_lock:
                 if temp_output in self._merge_temp_files:

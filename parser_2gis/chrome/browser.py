@@ -225,7 +225,9 @@ class ProfileManager:
         # P1-17: Используем Path.mkdir с параметром mode для атомарного создания
         # и установки restrictive прав (DEFAULT_FILE_PERMISSIONS) для предотвращения race condition
         try:
-            Path(self._profile_path).mkdir(parents=True, exist_ok=True, mode=DEFAULT_FILE_PERMISSIONS)
+            Path(self._profile_path).mkdir(
+                parents=True, exist_ok=True, mode=DEFAULT_FILE_PERMISSIONS
+            )
             app_logger.debug("Профиль создан с правами 0o700 через Path.mkdir")
         except OSError as chmod_error:
             app_logger.warning(

@@ -94,9 +94,7 @@ class ProgressManager:
                 "Для работы прогресс-бара требуется библиотека tqdm. "
                 "Установите её: pip install tqdm"
             )
-            raise ImportError(
-                msg
-            )
+            raise ImportError(msg)
 
         self._disable = disable
         self._stats = ProgressStats()

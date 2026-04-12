@@ -74,9 +74,7 @@ def _check_unicode_safety(path: str, path_name: str) -> None:
                 f"{path_name} содержит недопустимый Unicode символ: {char!r} "
                 f"(категория: {category}, код: U+{ord(char):04X})"
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
 
 def _check_path_length(path: str, path_name: str) -> None:
@@ -91,9 +89,7 @@ def _check_path_length(path: str, path_name: str) -> None:
     """
     if len(path) > MAX_PATH_LENGTH:
         msg = f"{path_name} превышает максимальную длину ({len(path)} > {MAX_PATH_LENGTH})"
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
 
 
 def _check_forbidden_chars(path: str, path_name: str) -> None:
@@ -112,9 +108,7 @@ def _check_forbidden_chars(path: str, path_name: str) -> None:
                 f"{path_name} содержит запрещённый символ: {forbidden_char!r}. "
                 "Path traversal атаки запрещены."
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
 
 def _check_symlink_safety(path_obj: Path, path_name: str, forbidden_dirs: set[str]) -> None:
@@ -137,14 +131,14 @@ def _check_symlink_safety(path_obj: Path, path_name: str, forbidden_dirs: set[st
                 target_str = str(target)
                 if not target_str.startswith(temp_dir):
                     for forbidden_dir in forbidden_dirs:
-                        if target_str == forbidden_dir or target_str.startswith(forbidden_dir + "/"):
+                        if target_str == forbidden_dir or target_str.startswith(
+                            forbidden_dir + "/"
+                        ):
                             msg = (
                                 f"{path_name} содержит symlink, ведущий в "
                                 f"системную директорию: {part_path} -> {target}"
                             )
-                            raise ValueError(
-                                msg
-                            )
+                            raise ValueError(msg)
 
 
 def _check_allowed_directories(resolved_path: Path, path_name: str) -> None:
@@ -163,25 +157,25 @@ def _check_allowed_directories(resolved_path: Path, path_name: str) -> None:
 
     if not resolved_path_str.startswith(temp_dir):
         for forbidden_dir in forbidden_dirs:
-            if resolved_path_str == forbidden_dir or resolved_path_str.startswith(forbidden_dir + "/"):
+            if resolved_path_str == forbidden_dir or resolved_path_str.startswith(
+                forbidden_dir + "/"
+            ):
                 msg = (
                     f"{path_name} не может находиться в системной директории: {forbidden_dir}. "
                     f"Попытка записи в: {resolved_path_str}"
                 )
-                raise ValueError(
-                    msg
-                )
+                raise ValueError(msg)
 
     allowed_dirs = _get_allowed_base_dirs()
-    is_allowed = any(str(resolved_path).startswith(str(allowed_dir)) for allowed_dir in allowed_dirs)
+    is_allowed = any(
+        str(resolved_path).startswith(str(allowed_dir)) for allowed_dir in allowed_dirs
+    )
     if not is_allowed:
         msg = (
             f"{path_name} должен находиться в одной из разрешённых директорий: "
             f"{[str(d) for d in allowed_dirs]}"
         )
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
 
 
 def validate_path_safety(path: str, path_name: str = "Путь") -> None:
@@ -273,9 +267,7 @@ def validate_path_traversal(file_path: str) -> Path:
                 f"Path traversal атака обнаружена: {file_path}. "
                 f"Обнаружен encoded опасный паттерн: {pattern}"
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
     # ИСПРАВЛЕНИЕ HIGH 9: NFKC нормализация вместо NFC
     # NFKC обеспечивает более строгую нормализацию с канонической декомпозицией
@@ -288,9 +280,7 @@ def validate_path_traversal(file_path: str) -> Path:
             f"Некорректный Unicode в пути к файлу: {file_path!r}. "
             f"Ошибка: {type(unicode_error).__name__}: {unicode_error}"
         )
-        raise ValueError(
-            msg
-        ) from unicode_error
+        raise ValueError(msg) from unicode_error
 
     # ИСПРАВЛЕНИЕ CRITICAL 1: Whitelist проверка символов
     for char in normalized_input:
@@ -299,9 +289,7 @@ def validate_path_traversal(file_path: str) -> Path:
                 f"Path содержит запрещённый символ: {char!r} (код: U+{ord(char):04X}) "
                 f"в пути {file_path}"
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
     # ИСПРАВЛЕНИЕ CRITICAL 1: Многоуровневое декодирование с проверкой
     # Шаг 1: Многократное URL-decode до стабильного состояния
@@ -333,9 +321,7 @@ def validate_path_traversal(file_path: str) -> Path:
             f"Path traversal атака обнаружена: {file_path}. "
             "Обнаружено многократное URL-кодирование (возможная атака)"
         )
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
 
     # ИСПРАВЛЕНИЕ CRITICAL 1: Проверка на опасные паттерны ПОСЛЕ декодирования
     # Это второй уровень защиты на случай если атака прошла первый уровень
@@ -346,9 +332,7 @@ def validate_path_traversal(file_path: str) -> Path:
                 f"Path traversal атака обнаружена: {file_path}. "
                 "Символы '..' не допускаются в пути к файлу."
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         elif pattern in decoded_path:
             msg = f"Path содержит запрещённый символ: {pattern!r} в пути {file_path}"
             raise ValueError(msg)
@@ -363,9 +347,7 @@ def validate_path_traversal(file_path: str) -> Path:
     # Шаг 5: Проверка что путь абсолютный
     if not resolved_path.is_absolute():
         msg = f"Относительные пути не поддерживаются: {file_path}. Используйте абсолютные пути."
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
 
     # Шаг 6: Дополнительная проверка частей пути
     path_parts = resolved_path.parts
@@ -375,9 +357,7 @@ def validate_path_traversal(file_path: str) -> Path:
                 f"Path traversal атака обнаружена: {file_path}. "
                 f"Символы '..' найдены в части пути: {part}"
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
     # Шаг 7: Проверка возможности создания директории
     try:

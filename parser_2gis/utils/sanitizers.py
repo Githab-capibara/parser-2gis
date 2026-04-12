@@ -199,7 +199,7 @@ def _check_value_type_and_sensitivity(
 
 
 def _assign_to_parent(
-    parent: Any | None, parent_key: Any | None, result: Any, results: dict[int, Any], obj_id: int,
+    parent: Any | None, parent_key: Any | None, result: Any, results: dict[int, Any], obj_id: int
 ) -> None:
     """Назначает результат в родительский контейнер или в results.
 
@@ -274,12 +274,9 @@ def _process_dict_branch(
             MAX_COLLECTION_SIZE,
         )
         msg = (
-            f"Размер словаря ({len(current_value)}) превышает максимальный "
-            f"({MAX_COLLECTION_SIZE})."
+            f"Размер словаря ({len(current_value)}) превышает максимальный ({MAX_COLLECTION_SIZE})."
         )
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
 
     new_dict: dict[str, Any] = {}
     _assign_to_parent(parent, parent_key, new_dict, results, current_id)
@@ -316,12 +313,9 @@ def _process_list_branch(
             MAX_COLLECTION_SIZE,
         )
         msg = (
-            f"Размер списка ({len(current_value)}) превышает максимальный "
-            f"({MAX_COLLECTION_SIZE})."
+            f"Размер списка ({len(current_value)}) превышает максимальный ({MAX_COLLECTION_SIZE})."
         )
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
 
     new_list: list[Any] = [None] * len(current_value)
     _assign_to_parent(parent, parent_key, new_list, results, current_id)
@@ -374,9 +368,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 MAX_COLLECTION_SIZE,
             )
             msg = "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки."
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         # Оптимизация: используем str() вместо repr() для меньшего потребления памяти
         # str() не создаёт полную репрезентацию объекта, а только строковое представление
         value_str = str(value)
@@ -387,17 +379,13 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 MAX_DATA_SIZE,
             )
             msg = "Размер данных слишком большой для обработки. Это может быть попытка DoS атаки."
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
     except MemoryError as size_check_error:
         logger.critical(
             "Нехватка памяти при проверке размера данных: %s", size_check_error, exc_info=True
         )
         msg = "Нехватка памяти при проверке размера данных. Данные слишком большие для обработки."
-        raise ValueError(
-            msg
-        ) from size_check_error
+        raise ValueError(msg) from size_check_error
 
     try:
         # Используем явный стек для итеративной обработки вместо рекурсии
@@ -427,9 +415,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                         f"Глубина вложенности данных ({current_depth}) превышает максимальную "
                         f"({MAX_DATA_DEPTH}). Это может указывать на циклические ссылки или атаку."
                     )
-                    raise ValueError(
-                        msg
-                    )
+                    raise ValueError(msg)
 
                 # Проверка количества обработанных элементов
                 processed_count += 1
@@ -444,9 +430,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                         f"Количество обработанных элементов ({processed_count}) превышает "
                         f"максимальное ({MAX_COLLECTION_SIZE}). Это может указывать на атаку."
                     )
-                    raise ValueError(
-                        msg
-                    )
+                    raise ValueError(msg)
 
                 # Используем выделенную функцию для проверки типа и чувствительности
                 handled, _ = _check_value_type_and_sensitivity(
@@ -475,13 +459,11 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 # Dispatch по типу коллекции
                 if isinstance(current_value, dict):
                     _process_dict_branch(
-                        current_value, current_depth, parent, parent_key,
-                        results, current_id, stack,
+                        current_value, current_depth, parent, parent_key, results, current_id, stack
                     )
                 elif isinstance(current_value, list):
                     _process_list_branch(
-                        current_value, current_depth, parent, parent_key,
-                        results, current_id, stack,
+                        current_value, current_depth, parent, parent_key, results, current_id, stack
                     )
 
             except MemoryError as mem_error:
@@ -492,9 +474,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                     "Нехватка памяти при очистке данных. "
                     "Данные слишком большие для обработки в памяти."
                 )
-                raise ValueError(
-                    msg_0
-                ) from mem_error
+                raise ValueError(msg_0) from mem_error
             except ValueError:
                 # Пробрасываем ValueError без изменений
                 raise
@@ -526,9 +506,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
             "Нехватка памяти при очистке чувствительных данных. "
             "Рекомендуется уменьшить размер входных данных."
         )
-        raise ValueError(
-            msg_0
-        ) from memory_error
+        raise ValueError(msg_0) from memory_error
     except ValueError:
         # Пробрасываем ValueError без изменений
         raise

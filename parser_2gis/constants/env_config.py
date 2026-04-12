@@ -210,9 +210,7 @@ class EnvConfig:
                 "ENV переменная %s=%s не является целым числом: %s", env_name, value_str, e
             )
             msg = f"ENV переменная {env_name}={value_str!r} не является допустимым целым числом"
-            raise ValueError(
-                msg
-            ) from e
+            raise ValueError(msg) from e
 
         if min_value is not None and value < min_value:
             self._logger.warning(

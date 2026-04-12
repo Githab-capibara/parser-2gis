@@ -68,9 +68,7 @@ class WriterRegistry:
                 f"Название формата содержит недопустимые символы: {format_name}. "
                 "Разрешены только буквы, цифры, дефис и подчёркивание."
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         with self._lock:
             self._registry[format_name.lower()] = writer_cls
@@ -223,9 +221,7 @@ def get_writer(
                 f"Укажите формат явно или используйте поддерживаемые расширения: "
                 f"{', '.join(_writer_registry.get_registry().keys())}"
             )
-            raise WriterUnknownFileFormat(
-                msg
-            )
+            raise WriterUnknownFileFormat(msg)
         file_format = detected_format
 
     if writer_options is None:
@@ -240,9 +236,7 @@ def get_writer(
             f"Неизвестный формат: {file_format}. "
             f"Зарегистрированные форматы: {', '.join(_writer_registry.get_registry().keys())}"
         )
-        raise WriterUnknownFileFormat(
-            msg
-        )
+        raise WriterUnknownFileFormat(msg)
 
     return writer_cls(str(validated_path), writer_options)
 

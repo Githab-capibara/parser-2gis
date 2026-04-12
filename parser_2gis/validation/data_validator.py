@@ -536,22 +536,16 @@ def validate_parallel_config(
         raise ValueError(msg)
     if max_workers > max_workers_limit:
         msg = f"max_workers слишком большой: {max_workers} (максимум: {max_workers_limit})"
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
     if timeout_per_url < min_timeout:
         msg = (
             f"timeout_per_url должен быть не менее {min_timeout} секунд "
             f"(получено {timeout_per_url})"
         )
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
     if timeout_per_url > max_timeout:
         msg = f"timeout_per_url слишком большой: {timeout_per_url} секунд (максимум: {max_timeout})"
-        raise ValueError(
-            msg
-        )
+        raise ValueError(msg)
 
     return {"max_workers": max_workers, "timeout_per_url": timeout_per_url}
 

@@ -110,9 +110,7 @@ class ParallelRunConfig:
         output_dir = data.get("output_dir", "./output")
         if not isinstance(output_dir, (str, Path)):
             msg = f"output_dir должен быть str или Path, получен {type(output_dir).__name__}"
-            raise TypeError(
-                msg
-            )
+            raise TypeError(msg)
 
         max_workers = data.get("max_workers", 10)
         if not isinstance(max_workers, int):
@@ -122,16 +120,12 @@ class ParallelRunConfig:
         timeout_per_url = data.get("timeout_per_url", 300)
         if not isinstance(timeout_per_url, (int, float)):
             msg = f"timeout_per_url должен быть числом, получен {type(timeout_per_url).__name__}"
-            raise TypeError(
-                msg
-            )
+            raise TypeError(msg)
 
         output_file = data.get("output_file")
         if output_file is not None and not isinstance(output_file, str):
             msg = f"output_file должен быть str или None, получен {type(output_file).__name__}"
-            raise TypeError(
-                msg
-            )
+            raise TypeError(msg)
 
         config = data.get("config")
         if config is not None and not isinstance(config, dict):

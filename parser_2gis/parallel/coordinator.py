@@ -514,14 +514,10 @@ class ParallelCoordinator:
                 f"progress_callback должен быть callable, "
                 f"получен {type(progress_callback).__name__}"
             )
-            raise TypeError(
-                msg
-            )
+            raise TypeError(msg)
         if merge_callback is not None and not callable(merge_callback):
             msg = f"merge_callback должен быть callable, получен {type(merge_callback).__name__}"
-            raise TypeError(
-                msg
-            )
+            raise TypeError(msg)
 
     def _run_execution_loop(
         self,

@@ -442,9 +442,7 @@ class CSVWriter(FileWriter):
         self._wrote_count += written_count
         return written_count
 
-    def _validate_and_get_item(
-        self, catalog_doc: dict[str, Any]
-    ) -> dict[str, Any] | None:
+    def _validate_and_get_item(self, catalog_doc: dict[str, Any]) -> dict[str, Any] | None:
         """Валидирует структуру документа и возвращает первый item.
 
         Args:
@@ -551,8 +549,16 @@ class CSVWriter(FileWriter):
         contact_groups = catalog_item.contact_groups
         add_comments = self._options.csv.add_comments
         url_fields = (
-            "website", "vkontakte", "whatsapp", "viber", "telegram",
-            "instagram", "facebook", "twitter", "youtube", "skype",
+            "website",
+            "vkontakte",
+            "whatsapp",
+            "viber",
+            "telegram",
+            "instagram",
+            "facebook",
+            "twitter",
+            "youtube",
+            "skype",
         )
         text_fields = ("email", "skype")
 
@@ -560,7 +566,10 @@ class CSVWriter(FileWriter):
             for t in url_fields:
                 _append_contact(
                     data,  # type: ignore[arg-type]
-                    contact_group, t, ["url"], None,
+                    contact_group,
+                    t,
+                    ["url"],
+                    None,
                     add_comments=add_comments,
                 )
 
@@ -571,13 +580,18 @@ class CSVWriter(FileWriter):
             for t in text_fields:
                 _append_contact(
                     data,  # type: ignore[arg-type]
-                    contact_group, t, ["value"], None,
+                    contact_group,
+                    t,
+                    ["value"],
+                    None,
                     add_comments=add_comments,
                 )
 
             _append_contact(
                 data,  # type: ignore[arg-type]
-                contact_group, "phone", ["text", "value"],
+                contact_group,
+                "phone",
+                ["text", "value"],
                 self._phone_formatter.format,
                 add_comments=add_comments,
             )

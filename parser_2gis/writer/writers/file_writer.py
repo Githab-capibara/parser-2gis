@@ -102,9 +102,7 @@ class FileWriter(WriterProtocol, ABC):
                 f"Путь к файлу выходит за пределы разрешённых директорий: {file_path_str}. "
                 f"Разрешены: текущая директория, output, tempfile. Базовое имя: {base_name}"
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         return normalized_path
 

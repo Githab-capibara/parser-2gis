@@ -130,9 +130,7 @@ class PathSafetyValidator:
                     f"Путь содержит запрещённый символ: {forbidden_char!r}. "
                     "Path traversal атака обнаружена."
                 )
-                raise PathTraversalError(
-                    msg
-                )
+                raise PathTraversalError(msg)
 
         # Разрешаем путь через realpath для предотвращения symlink атак
         try:
@@ -165,10 +163,10 @@ class PathSafetyValidator:
 
         # Проверка длины пути
         if len(path) > self._MAX_PATH_LENGTH:
-            msg = f"{path_name} превышает максимальную длину ({len(path)} > {self._MAX_PATH_LENGTH})"
-            raise ValueError(
-                msg
+            msg = (
+                f"{path_name} превышает максимальную длину ({len(path)} > {self._MAX_PATH_LENGTH})"
             )
+            raise ValueError(msg)
 
         # Разрешаем путь через realpath для предотвращения symlink атак
         try:
@@ -192,9 +190,7 @@ class PathSafetyValidator:
                 f"{path_name} должен находиться в одной из разрешённых директорий: "
                 f"{[str(d) for d in self._allowed_base_dirs]}"
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
     def validate_multiple(self, paths: dict[str, str]) -> None:
         """Валидирует несколько путей одновременно.

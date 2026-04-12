@@ -72,14 +72,10 @@ class SemaphoreManager:
         """
         if max_workers < MIN_WORKERS:
             msg = f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         if max_workers > MAX_WORKERS:
             msg = f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
     def acquire(self, *, blocking: bool = True, timeout: float | None = None) -> bool:
         """Захватывает слот семафора.

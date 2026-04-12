@@ -165,11 +165,7 @@ def retry_with_backoff(
                             e,
                         )
                         msg = f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}"
-                        raise RetryError(
-                            msg,
-                            last_error=e,
-                            attempts=attempt,
-                        ) from e
+                        raise RetryError(msg, last_error=e, attempts=attempt) from e
 
             # Защита от непредвиденного завершения цикла
             msg_0 = "Неожиданный конец цикла повторных попыток"
@@ -279,11 +275,7 @@ def retry_with_jitter(
                             e,
                         )
                         msg = f"Исчерпаны попытки повторения ({max_attempts}) для {func_name}"
-                        raise RetryError(
-                            msg,
-                            last_error=e,
-                            attempts=attempt,
-                        ) from e
+                        raise RetryError(msg, last_error=e, attempts=attempt) from e
 
             # Защита от непредвиденного завершения цикла
             msg_0 = "Неожиданный конец цикла повторных попыток"
@@ -339,9 +331,7 @@ def retry_with_tenacity(
             "tenacity не установлена. Установите: pip install tenacity "
             "или используйте retry_with_backoff"
         )
-        raise ImportError(
-            msg
-        )
+        raise ImportError(msg)
 
     from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 

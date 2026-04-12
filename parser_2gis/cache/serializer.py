@@ -95,9 +95,7 @@ class JsonSerializer:
                 f"Critical JSON serialization error: {json_error}. "
                 f"Data type: {type(data).__name__}, data size: {len(str(data))} bytes"
             )
-            raise TypeError(
-                msg
-            ) from json_error
+            raise TypeError(msg) from json_error
 
     def deserialize(self, data: str) -> dict[str, Any]:
         """Десериализует JSON строку в данные с валидацией структуры.
@@ -146,9 +144,7 @@ class JsonSerializer:
                     f"получен {type(deserialized).__name__}. "
                     f"Размер данных: {len(str(deserialized))} байт"
                 )
-                raise TypeError(
-                    msg
-                )
+                raise TypeError(msg)
 
             return deserialized
 
@@ -198,9 +194,7 @@ class JsonSerializer:
                 f"Не удалось десериализовать данные: все кодировки не подошли. "
                 f"Original error: {unicode_error}. Длина данных: {data_len}"
             )
-            raise ValueError(
-                msg
-            ) from unicode_error
+            raise ValueError(msg) from unicode_error
 
         except MemoryError as json_error:
             # ISSUE-093, ISSUE-095: Упрощённая обработка ошибок без избыточных try/except
@@ -211,9 +205,7 @@ class JsonSerializer:
                 try:
                     if isinstance(json_error, orjson.JSONDecodeError):
                         msg = f"Ошибка десериализации, размер данных: {len(data)} байт"
-                        raise TypeError(
-                            msg
-                        ) from json_error
+                        raise TypeError(msg) from json_error
                 except (AttributeError, TypeError) as orjson_check_error:
                     # orjson.JSONDecodeError недоступен, используем стандартную обработку
                     app_logger.debug(
@@ -222,9 +214,7 @@ class JsonSerializer:
 
             # Стандартная обработка JSON ошибок
             msg = f"Ошибка десериализации, размер данных: {len(data)} байт"
-            raise ValueError(
-                msg
-            ) from json_error
+            raise ValueError(msg) from json_error
         except TypeError:
             # Пробрасываем TypeError как есть (некорректный тип данных)
             raise

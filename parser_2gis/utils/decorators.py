@@ -271,7 +271,9 @@ def wait_until_finished(
 
     # ISSUE-100: Валидация max_poll_interval на положительное значение
     if max_poll_interval <= 0:
-        raise ValueError("max_poll_interval должен быть положительным числом: %s" % max_poll_interval)
+        raise ValueError(
+            "max_poll_interval должен быть положительным числом: %s" % max_poll_interval
+        )
 
     if poll_interval <= 0:
         raise ValueError("poll_interval должен быть положительным числом: %s" % poll_interval)
@@ -385,7 +387,14 @@ def wait_until_finished(
                     if effective_config.finished is not None and effective_config.finished(result):
                         return result
                     consecutive_failures = 0  # Сброс при успехе
-                except (RuntimeError, OSError, ValueError, TypeError, ConnectionError, TimeoutError) as exc:
+                except (
+                    RuntimeError,
+                    OSError,
+                    ValueError,
+                    TypeError,
+                    ConnectionError,
+                    TimeoutError,
+                ) as exc:
                     consecutive_failures = _handle_execution_error(
                         error=exc,
                         func_name=func.__name__,
@@ -466,7 +475,7 @@ def async_wait_until_finished(
     decorator_poll_interval = poll_interval
 
     def outer(
-        func: Callable[P, Coroutine[Any, Any, R]]
+        func: Callable[P, Coroutine[Any, Any, R]],
     ) -> Callable[P, Coroutine[Any, Any, R | None]]:
         """Внешняя функция асинхронного декоратора, принимающая декорируемый метод."""
 
@@ -509,10 +518,10 @@ def async_wait_until_finished(
                 if effective_timeout is not None:
                     elapsed = asyncio.get_running_loop().time() - start_time
                     if elapsed > effective_timeout and effective_throw_exception:
-                        msg = f"Функция {func.__name__} не завершилась за {effective_timeout} секунд"
-                        raise TimeoutError(
-                            msg
+                        msg = (
+                            f"Функция {func.__name__} не завершилась за {effective_timeout} секунд"
                         )
+                        raise TimeoutError(msg)
                     elif elapsed > effective_timeout:
                         return None
 

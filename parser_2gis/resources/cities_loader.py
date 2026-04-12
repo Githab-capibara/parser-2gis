@@ -60,9 +60,7 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
                 MAX_CITIES_FILE_SIZE,
             )
             msg = f"Файл {cities_path} слишком большой ({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         logger.debug("Размер файла городов: %d байт", file_size)
     except OSError as stat_error:
@@ -96,16 +94,12 @@ def load_cities_json(cities_path: Path) -> list[dict[str, Any]]:
         if not isinstance(all_cities, list):
             logger.error("Файл городов должен содержать список, а не %s", type(all_cities).__name__)
             msg = f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
-            raise TypeError(
-                msg
-            )
+            raise TypeError(msg)
 
         if len(all_cities) > MAX_CITIES_COUNT:
             logger.error("Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT)
             msg = f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}"
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
 
         for i, city in enumerate(all_cities):
             if not isinstance(city, dict):
