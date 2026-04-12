@@ -134,7 +134,7 @@ ignore = [
 # Синхронизировано с black
 quote-style = "double"
 indent-style = "space"
-skip-magic-trailing-comma = true
+skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.black]
@@ -173,7 +173,7 @@ preview = false
 # Быстрый режим (пропуск проверок безопасности)
 fast = false
 # Количество отступов (пробелов)
-skip-magic-trailing-comma = true
+skip-magic-trailing-comma = false
 
 [tool.isort]
 # Конфигурация isort для сортировки импортов
@@ -183,6 +183,8 @@ skip-magic-trailing-comma = true
 profile = "black"
 # Максимальная длина строки
 line_length = 100
+# Отключаем split-on-trailing-comma для совместимости с ruff formatter
+split-on-trailing-comma = false
 # Автоматическое определение стандартной библиотеки
 known_standard_library = [
     "abc",
