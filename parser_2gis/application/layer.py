@@ -11,13 +11,14 @@ ISSUE-014: Dependency Injection — зависимости внедряются 
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, Self
 
 from parser_2gis.shared_config_constants import CATALOG_API_PATTERN
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from parser_2gis.cache import CacheManager
     from parser_2gis.chrome.options import ChromeOptions
     from parser_2gis.chrome.remote import ChromeRemote
@@ -185,7 +186,9 @@ class CacheFacade:
     """
 
     def __init__(
-        self, cache_path: str | None = None, cache_manager: CacheManager | None = None
+        self,
+        cache_path: str | None = None,
+        cache_manager: CacheManager | None = None,
     ) -> None:
         """Инициализация фасада кэша.
 
@@ -207,7 +210,8 @@ class CacheFacade:
         elif cache_path is not None:
             self._cache = CacheManager(Path(cache_path))
         else:
-            raise ValueError("cache_path или cache_manager обязателен")
+            error_msg = "cache_path или cache_manager обязателен"
+            raise ValueError(error_msg)
 
     def get(self, key: str) -> dict[str, Any] | None:
         """Получает значение из кэша.
@@ -257,7 +261,7 @@ class CacheFacade:
         """Закрывает кэш и освобождает ресурсы."""
         self._cache.close()
 
-    def __enter__(self) -> CacheFacade:
+    def __enter__(self) -> Self:
         """Входит в контекстный менеджер.
 
         Returns:
@@ -266,7 +270,7 @@ class CacheFacade:
         """
         return self
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(self, *args: object) -> None:
         """Выходит из контекстного менеджера, закрывая кэш.
 
         Args:
@@ -328,7 +332,8 @@ class BrowserFacade:
             self._chrome_options = chrome_options
             self._browser_factory = None  # type: ignore[assignment]
         else:
-            raise ValueError("Необходимо передать chrome_options или browser_factory")
+            error_msg = "Необходимо передать chrome_options или browser_factory"
+            raise ValueError(error_msg)
 
         self._response_patterns = response_patterns or [CATALOG_API_PATTERN]
 
@@ -345,7 +350,8 @@ class BrowserFacade:
         from parser_2gis.chrome.remote import ChromeRemote
 
         if self._chrome_options is None:
-            raise ValueError("chrome_options не передан")
+            error_msg = "chrome_options не передан"
+            raise ValueError(error_msg)
 
         return ChromeRemote(self._chrome_options, self._response_patterns)
 

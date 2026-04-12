@@ -15,11 +15,14 @@ import functools
 import hashlib
 import sqlite3
 import zlib
-from datetime import datetime
-from pathlib import Path
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from parser_2gis.constants import SHA256_HASH_LENGTH
 from parser_2gis.logger.logger import logger as app_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @functools.lru_cache(maxsize=1024)
@@ -73,13 +76,16 @@ def hash_url(url: str) -> str:
 
     """
     if url is None:
-        raise ValueError("URL не может быть None")
+        error_msg = "URL не может быть None"
+        raise TypeError(error_msg)
 
     if not isinstance(url, str):
-        raise TypeError(f"URL должен быть строкой, получен {type(url).__name__}")
+        error_msg = f"URL должен быть строкой, получен {type(url).__name__}"
+        raise TypeError(error_msg)
 
     if not url.strip():
-        raise ValueError("URL не может быть пустой строкой")
+        error_msg = "URL не может быть пустой строкой"
+        raise ValueError(error_msg)
 
     return hashlib.sha256(url.encode("utf-8")).hexdigest()
 
@@ -170,8 +176,8 @@ def is_cache_expired(expires_at: datetime | None) -> bool:
     if expires_at is None:
         return True
 
-    # Используем local time (tz=None) т.к. parse_expires_at возвращает naive datetime
-    return datetime.now(tz=None) > expires_at
+    # Используем timezone-aware datetime
+    return datetime.now(tz=timezone.utc) > expires_at
 
 
 __all__ = [
