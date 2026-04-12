@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
@@ -116,7 +116,7 @@ class FileLogger:
         self._log_dir.mkdir(parents=True, exist_ok=True)
 
         # Генерируем имя файла с датой и временем
-        timestamp = datetime.now(tz=None).strftime("%Y-%m-%d_%H-%M-%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
         return self._log_dir / f"parser_{timestamp}.log"
 
     def _setup_file_handler(self) -> None:
@@ -177,7 +177,7 @@ class FileLogger:
             session_logger.info("=" * 80)
             session_logger.info("НАЧАЛО НОВОЙ СЕССИИ")
             session_logger.info(
-                "Время запуска: %s", datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")
+                "Время запуска: %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             )
             # Проверяем, что файл лога существует перед вызовом absolute()
             if self._log_file:
@@ -257,7 +257,7 @@ class FileLogger:
                 session_logger.info("=" * 80)
                 session_logger.info("ЗАВЕРШЕНИЕ СЕССИИ")
                 session_logger.info(
-                    "Время завершения: %s", datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")
+                    "Время завершения: %s", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
                 )
                 session_logger.info("=" * 80)
 

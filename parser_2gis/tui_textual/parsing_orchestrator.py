@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -88,7 +88,7 @@ class ParsingOrchestrator:
 
         """
         self._state.running = True
-        self._state.started_at = datetime.now(tz=None)
+        self._state.started_at = datetime.now(timezone.utc)
         self._state.total_urls = total_urls
         self._state.success_count = 0
         self._state.error_count = 0

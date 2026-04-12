@@ -12,7 +12,7 @@ ISSUE 053: Вынесено из parallel_parser.py и coordinator.py (thread_co
 from __future__ import annotations
 
 import logging
-from concurrent.futures import Future
+from concurrent.futures import CancelledError, Future, TimeoutError
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ def get_future_result_safely(
     try:
         result = future.result(timeout=timeout)
         return True, result
-    except Exception as error:
+    except (CancelledError, TimeoutError) as error:
         logger.warning("Ошибка получения результата Future: %s", error)
         return False, default
 

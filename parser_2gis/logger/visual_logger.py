@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import ClassVar
 
 # Получаем логгер для внутреннего использования
@@ -153,7 +153,7 @@ class VisualLogger:
             Строка времени.
 
         """
-        return datetime.now(tz=None).strftime("%H:%M:%S.%f")[:-3]
+        return datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
 
     def format_message(
         self, message: str, level: str = "INFO", emoji: str | None = None, *, bold: bool = False

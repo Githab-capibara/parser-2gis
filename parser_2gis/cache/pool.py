@@ -120,7 +120,7 @@ def _calculate_dynamic_pool_size() -> int:
 
         return dynamic_size  # type: ignore[no-any-return]
 
-    except (ImportError, MemoryError, OSError, ValueError, TypeError, Exception) as error:
+    except (ImportError, MemoryError, OSError, ValueError, TypeError, sqlite3.Error) as error:
         # Объединённая обработка ошибок: все типы ошибок возвращают MIN_POOL_SIZE
         error_type = type(error).__name__
         app_logger.debug("%s при расчёте размера пула: %s, используем минимум", error_type, error)

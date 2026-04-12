@@ -385,7 +385,7 @@ def wait_until_finished(
                     if effective_config.finished is not None and effective_config.finished(result):
                         return result
                     consecutive_failures = 0  # Сброс при успехе
-                except Exception as exc:
+                except (RuntimeError, OSError, ValueError, TypeError, ConnectionError, TimeoutError) as exc:
                     consecutive_failures = _handle_execution_error(
                         error=exc,
                         func_name=func.__name__,

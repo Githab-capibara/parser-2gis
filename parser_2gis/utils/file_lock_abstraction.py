@@ -144,7 +144,8 @@ class FcntlLockStrategy(BaseLockStrategy):
                     str(self._lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
                 )
                 try:
-                    assert lock_fd is not None
+                    if lock_fd is None:
+                        raise RuntimeError("Не удалось получить файловый дескриптор блокировки")
                     lock_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
                     lock_fd = None
 

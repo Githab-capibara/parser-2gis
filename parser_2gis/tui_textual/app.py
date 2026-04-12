@@ -9,7 +9,7 @@ import json
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -617,7 +617,7 @@ class TUIApp(App):  # type: ignore[misc]
         """
         try:
             self._running = True
-            self._started_at = datetime.now(tz=None)
+            self._started_at = datetime.now(timezone.utc)
 
             # Проверка флага остановки перед началом работы
             if not self._running:
@@ -688,12 +688,10 @@ class TUIApp(App):  # type: ignore[misc]
         except (KeyboardInterrupt, SystemExit):
             self._running = False
             raise
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, OSError) as e:
             self._running = False
             self.call_from_thread(self._parsing_error, str(e))
-            # Вернуться в главное меню при ошибке
             self.call_from_thread(self.switch_to_main_menu)
-            # ISSUE 008: Логирование неожиданных исключений вместо молчаливого подавления
             from parser_2gis.logger import logger as _app_logger
 
             _app_logger.exception("Неожиданная ошибка в процессе парсинга: %s", e)

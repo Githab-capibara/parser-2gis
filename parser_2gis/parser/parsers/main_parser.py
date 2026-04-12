@@ -136,8 +136,9 @@ class MainPageParser(BaseParser):
             response_patterns = [CATALOG_API_PATTERN]
             browser = ChromeRemote(chrome_options, response_patterns)  # type: ignore[assignment]
 
-        # Mypy не может сузить тип после переназначения — используем assert
-        assert browser is not None, "browser должен быть создан к этому моменту"
+        # Mypy не может сузить тип после переназначения — используем проверку
+        if browser is None:
+            raise RuntimeError("browser должен быть создан к этому моменту")
         # Инициализируем базовый класс только browser аргументом
         # BaseParser принимает только browser, остальные аргументы обрабатываются здесь
         super().__init__(browser)
