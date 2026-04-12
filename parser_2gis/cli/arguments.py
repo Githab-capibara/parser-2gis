@@ -65,7 +65,7 @@ def _add_main_args(arg_parser: argparse.ArgumentParser) -> None:
     """
     main_parser = arg_parser.add_argument_group("Обязательные аргументы")
     main_parser.add_argument(
-        "-i", "--url", nargs="+", default=None, required=False, help="URL с выдачей",
+        "-i", "--url", nargs="+", default=None, required=False, help="URL с выдачей"
     )
     main_parser.add_argument(
         "--cities",
@@ -75,10 +75,10 @@ def _add_main_args(arg_parser: argparse.ArgumentParser) -> None:
         help="Коды городов для парсинга (например: moscow spb kazan)",
     )
     main_parser.add_argument(
-        "--query", default=None, help="Поисковый запрос для генерации URL по городам",
+        "--query", default=None, help="Поисковый запрос для генерации URL по городам"
     )
     main_parser.add_argument(
-        "--rubric", default=None, help="Код рубрики для фильтрации результатов",
+        "--rubric", default=None, help="Код рубрики для фильтрации результатов"
     )
     main_parser.add_argument(
         "--categories-mode",
@@ -117,18 +117,18 @@ def _add_browser_args(arg_parser: argparse.ArgumentParser) -> None:
         "--chrome.binary_path",
         metavar="PATH",
         help=textwrap.fill(
-            "Путь до исполняемого файла браузера", width=60, subsequent_indent="    ",
+            "Путь до исполняемого файла браузера", width=60, subsequent_indent="    "
         ),
     )
     browser_parser.add_argument(
-        "--chrome.disable-images", metavar="{yes,no}", help="Отключить изображения",
+        "--chrome.disable-images", metavar="{yes,no}", help="Отключить изображения"
     )
     browser_parser.add_argument("--chrome.headless", metavar="{yes/no}", help="Скрыть браузер")
     browser_parser.add_argument(
         "--chrome.silent-browser",
         metavar="{yes/no}",
         help=textwrap.fill(
-            "Отключить отладочную информацию браузера", width=60, subsequent_indent="    ",
+            "Отключить отладочную информацию браузера", width=60, subsequent_indent="    "
         ),
     )
     browser_parser.add_argument(
@@ -146,7 +146,7 @@ def _add_browser_args(arg_parser: argparse.ArgumentParser) -> None:
         type=float,
         metavar="{0,1,2,...}",
         help=textwrap.fill(
-            "Задержка запуска браузера (секунды)", width=60, subsequent_indent="    ",
+            "Задержка запуска браузера (секунды)", width=60, subsequent_indent="    "
         ),
     )
 
@@ -173,7 +173,7 @@ def _add_csv_args(arg_parser: argparse.ArgumentParser) -> None:
         "--writer.csv.columns-per-entity",
         metavar="{1,2,3,...}",
         help=textwrap.fill(
-            "Количество колонок для множественных значений", width=60, subsequent_indent="    ",
+            "Количество колонок для множественных значений", width=60, subsequent_indent="    "
         ),
     )
     csv_parser.add_argument(
@@ -190,7 +190,7 @@ def _add_csv_args(arg_parser: argparse.ArgumentParser) -> None:
         "--writer.csv.join_char",
         metavar="{; ,% ,...}",
         help=textwrap.fill(
-            "Разделитель для комплексных значений", width=60, subsequent_indent="    ",
+            "Разделитель для комплексных значений", width=60, subsequent_indent="    "
         ),
     )
 
@@ -279,7 +279,7 @@ def _add_parser_args(arg_parser: argparse.ArgumentParser) -> None:
         "--parallel.max-workers",
         type=int,
         help=textwrap.fill(
-            "Потоков для параллельного парсинга", width=60, subsequent_indent="    ",
+            "Потоков для параллельного парсинга", width=60, subsequent_indent="    "
         ),
     )
     p_parser.add_argument(
@@ -307,7 +307,7 @@ def _add_parser_args(arg_parser: argparse.ArgumentParser) -> None:
         type=float,
         default=0.1,
         help=textwrap.fill(
-            "Минимальная задержка перед запуском Chrome (сек)", width=60, subsequent_indent="    ",
+            "Минимальная задержка перед запуском Chrome (сек)", width=60, subsequent_indent="    "
         ),
     )
     p_parser.add_argument(
@@ -315,7 +315,7 @@ def _add_parser_args(arg_parser: argparse.ArgumentParser) -> None:
         type=float,
         default=0.5,
         help=textwrap.fill(
-            "Максимальная задержка перед запуском Chrome (сек)", width=60, subsequent_indent="    ",
+            "Максимальная задержка перед запуском Chrome (сек)", width=60, subsequent_indent="    "
         ),
     )
 

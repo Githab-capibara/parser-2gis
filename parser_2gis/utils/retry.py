@@ -64,7 +64,7 @@ class RetryError(Exception):
     """Исключение при исчерпании попыток повторения."""
 
     def __init__(
-        self, message: str, last_error: Exception | None = None, attempts: int = 0,
+        self, message: str, last_error: Exception | None = None, attempts: int = 0
     ) -> None:
         """Инициализирует исключение.
 
@@ -333,7 +333,7 @@ def retry_with_tenacity(
     if not _TENACITY_AVAILABLE:
         raise ImportError(
             "tenacity не установлена. Установите: pip install tenacity "
-            "или используйте retry_with_backoff",
+            "или используйте retry_with_backoff"
         )
 
     from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential

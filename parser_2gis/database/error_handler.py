@@ -58,7 +58,7 @@ class DatabaseError(Exception):
 
 
 def handle_db_errors(
-    retry_count: int = 3, retry_delay: float = 0.5, *, reraise_critical: bool = True,
+    retry_count: int = 3, retry_delay: float = 0.5, *, reraise_critical: bool = True
 ) -> Callable[[F], F]:
     """Декоратор для обработки ошибок базы данных.
 
@@ -109,7 +109,7 @@ def handle_db_errors(
                         )
                         if reraise_critical:
                             raise DatabaseError(
-                                f"Критическая ошибка БД: {db_error}", original_error=db_error,
+                                f"Критическая ошибка БД: {db_error}", original_error=db_error
                             ) from db_error
                         return None
 
@@ -134,7 +134,7 @@ def handle_db_errors(
                         db_error,
                     )
                     raise DatabaseError(
-                        f"Ошибка БД: {db_error}", original_error=db_error,
+                        f"Ошибка БД: {db_error}", original_error=db_error
                     ) from db_error
 
                 except (OSError, MemoryError, RuntimeError) as general_error:

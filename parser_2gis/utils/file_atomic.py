@@ -50,7 +50,7 @@ def atomic_replace(src: Path, dst: Path, *, log_debug: bool = False) -> bool:
         return True
     except OSError as replace_error:
         app_logger.debug(
-            "Не удалось переименовать файл (OSError): %s. Используем shutil.move", replace_error,
+            "Не удалось переименовать файл (OSError): %s. Используем shutil.move", replace_error
         )
         try:
             shutil.move(str(src), str(dst))

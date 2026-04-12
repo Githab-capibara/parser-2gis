@@ -187,7 +187,7 @@ def generate_category_url(city: dict[str, Any], category: dict[str, Any]) -> str
 
 
 def generate_city_urls(
-    cities: list[dict[str, Any]], query: str, rubric: dict[str, Any] | None = None,
+    cities: list[dict[str, Any]], query: str, rubric: dict[str, Any] | None = None
 ) -> list[str]:
     """Генерирует URL для парсинга по списку городов.
 

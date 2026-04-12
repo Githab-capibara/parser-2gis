@@ -42,7 +42,7 @@ MAX_RESPONSE_ATTEMPTS: int = (
 )
 # Таймаут навигации можно переопределить через переменную окружения PARSER_NAVIGATION_TIMEOUT
 NAVIGATION_TIMEOUT: int = int(
-    os.environ.get("PARSER_NAVIGATION_TIMEOUT", "300"),
+    os.environ.get("PARSER_NAVIGATION_TIMEOUT", "300")
 )  # По умолчанию 5 минут
 WAIT_REQUESTS_TIMEOUT: int = 60  # Таймаут ожидания завершения запросов (1 минута)
 GET_LINKS_TIMEOUT: int = 30  # Таймаут получения ссылок (30 секунд)
@@ -442,14 +442,14 @@ class MainPageParser(BaseParser):
                     )
 
                 self._chrome_remote.navigate(
-                    url, referer="https://google.com", timeout=NAVIGATION_TIMEOUT,
+                    url, referer="https://google.com", timeout=NAVIGATION_TIMEOUT
                 )
                 # Если навигация успешна - выходим из цикла
                 return True
 
             except TimeoutError as timeout_error:
                 should_continue = self._handle_navigation_timeout(
-                    url, timeout_error, retry_attempt, NavigationTimeoutError,
+                    url, timeout_error, retry_attempt, NavigationTimeoutError
                 )
                 if should_continue:
                     continue
@@ -499,12 +499,12 @@ class MainPageParser(BaseParser):
             time.sleep(delay)
             return True  # Продолжаем попытки
         logger.error(
-            "[%s] Таймаут навигации по URL %s: %s", error_class.__name__, url, timeout_error,
+            "[%s] Таймаут навигации по URL %s: %s", error_class.__name__, url, timeout_error
         )
         return False
 
     def _handle_navigation_error(
-        self, url: str, navigate_error: Exception, retry_attempt: int,
+        self, url: str, navigate_error: Exception, retry_attempt: int
     ) -> bool:
         """Обрабатывает ошибки навигации.
 
@@ -535,7 +535,7 @@ class MainPageParser(BaseParser):
 
         # Общая ошибка - не подлежит повтору
         logger.error(
-            "[NavigationGenericError] Общая ошибка навигации по URL %s: %s", url, navigate_error,
+            "[NavigationGenericError] Общая ошибка навигации по URL %s: %s", url, navigate_error
         )
         return False
 
@@ -584,7 +584,7 @@ class MainPageParser(BaseParser):
         return self._classify_error(error_msg) == "blocked"
 
     def _handle_network_error(
-        self, url: str, navigate_error: Exception, retry_attempt: int,
+        self, url: str, navigate_error: Exception, retry_attempt: int
     ) -> bool:
         """Обрабатывает сетевую ошибку.
 
@@ -613,7 +613,7 @@ class MainPageParser(BaseParser):
             time.sleep(delay)
             return True  # Продолжаем попытки
         logger.error(
-            "[NavigationNetworkError] Исчерпаны все попытки для URL %s: %s", url, navigate_error,
+            "[NavigationNetworkError] Исчерпаны все попытки для URL %s: %s", url, navigate_error
         )
         return False
 
@@ -683,7 +683,7 @@ class MainPageParser(BaseParser):
             # Если включен режим немедленной остановки при первом 404 - завершаем парсинг
             if self._parser_options.stop_on_first_404:
                 logger.info(
-                    "Немедленная остановка парсинга при первом 404 (stop_on_first_404=True).",
+                    "Немедленная остановка парсинга при первом 404 (stop_on_first_404=True)."
                 )
                 return None
 
@@ -693,7 +693,7 @@ class MainPageParser(BaseParser):
 
         elif http_status in (500, 502, 503, 504):
             logger.error(
-                "Сервер вернул ошибку %d: Временная проблема на стороне сервера.", http_status,
+                "Сервер вернул ошибку %d: Временная проблема на стороне сервера.", http_status
             )
             return None
 
@@ -717,7 +717,7 @@ class MainPageParser(BaseParser):
         """
         raise NotImplementedError(
             "MainPageParser.parse() не предназначен для прямого вызова. "
-            "Используйте MainParser.parse() вместо этого.",
+            "Используйте MainParser.parse() вместо этого."
         )
 
     def get_stats(self) -> ParserStats:

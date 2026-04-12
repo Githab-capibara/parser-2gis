@@ -254,11 +254,11 @@ class ParallelCityParser:
         # Валидация max_workers ПЕРЕД созданием семафора
         if max_workers < MIN_WORKERS:
             raise ValueError(
-                f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}",
+                f"max_workers должен быть не менее {MIN_WORKERS}, получено {max_workers}"
             )
         if max_workers > MAX_WORKERS:
             raise ValueError(
-                f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}",
+                f"max_workers не должен превышать {MAX_WORKERS}, получено {max_workers}"
             )
 
         # Семафор для контроля одновременного запуска браузеров
@@ -296,7 +296,7 @@ class ParallelCityParser:
                 )
             except (OSError, RuntimeError, TypeError, ValueError) as timer_error:
                 logger.warning(
-                    "Не удалось инициализировать таймер очистки временных файлов: %s", timer_error,
+                    "Не удалось инициализировать таймер очистки временных файлов: %s", timer_error
                 )
 
         self.log(
@@ -325,7 +325,7 @@ class ParallelCityParser:
                 test_file.touch()
             except (OSError, PermissionError) as e:
                 raise ValueError(
-                    f"Нет прав на запись в директорию: {output_dir}. Ошибка: {e}",
+                    f"Нет прав на запись в директорию: {output_dir}. Ошибка: {e}"
                 ) from e
             finally:
                 if test_file is not None and test_file.exists():
@@ -333,7 +333,7 @@ class ParallelCityParser:
                         test_file.unlink()
                     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         logger.warning(
-                            "Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error,
+                            "Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error
                         )
         else:
             test_file = None
@@ -343,7 +343,7 @@ class ParallelCityParser:
                 test_file.touch()
             except (OSError, PermissionError) as e:
                 raise ValueError(
-                    f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}",
+                    f"Не удалось создать директорию output_dir: {output_dir}. Ошибка: {e}"
                 ) from e
             finally:
                 if test_file is not None and test_file.exists():
@@ -351,7 +351,7 @@ class ParallelCityParser:
                         test_file.unlink()
                     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         logger.warning(
-                            "Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error,
+                            "Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error
                         )
 
     def log(self, message: str, level: str = "info") -> None:
@@ -491,18 +491,18 @@ class ParallelCityParser:
                             self.log(
                                 f"Lock файл существует "
                                 f"(возраст: {lock_age:.0f} сек, PID: {lock_pid}), "
-                                f"ожидаем...",
+                                f"ожидаем..."
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             # Процесс не существует - это осиротевший lock
                             self.log(
                                 "Удаление осиротевшего lock файла "
-                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid})",
+                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid})"
                             )
                             lock_file_path.unlink()
                     else:
                         self.log(
-                            "Lock файл существует (возраст: %.0f сек), ожидаем...", level="warning",
+                            "Lock файл существует (возраст: %.0f сек), ожидаем...", level="warning"
                         )
                 except OSError as e:
                     self.log(f"Ошибка проверки lock файла: {e}", level="debug")
@@ -519,13 +519,13 @@ class ParallelCityParser:
                         "error",
                     )
                     raise RuntimeError(
-                        f"Не удалось получить lock файл после {MAX_LOCK_ATTEMPTS} попыток",
+                        f"Не удалось получить lock файл после {MAX_LOCK_ATTEMPTS} попыток"
                     )
                 lock_fd = None
                 try:
                     # Атомарное создание файла - вернёт ошибку если файл уже существует
                     lock_fd = os.open(
-                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600,
+                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
                     )
                     try:
                         lock_file_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
@@ -701,7 +701,7 @@ class ParallelCityParser:
         )
 
     def merge_csv_files(
-        self, output_file: str, progress_callback: Callable[[str], None] | None = None,
+        self, output_file: str, progress_callback: Callable[[str], None] | None = None
     ) -> bool:
         """Объединяет все CSV файлы в один с добавлением колонки "Категория".
 
@@ -758,7 +758,7 @@ class ParallelCityParser:
                         if temp_file.exists():
                             temp_file.unlink()
                             log_method(
-                                f"Временный файл удалён при прерывании: {temp_file}", "debug",
+                                f"Временный файл удалён при прерывании: {temp_file}", "debug"
                             )
                     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         log_method(
@@ -877,7 +877,7 @@ class ParallelCityParser:
                     signal.signal(signal.SIGINT, old_sigint_handler)
                 except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
                     self.log(
-                        f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error",
+                        f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error"
                     )
 
             if sigterm_registered:
@@ -885,7 +885,7 @@ class ParallelCityParser:
                     signal.signal(signal.SIGTERM, old_sigterm_handler)
                 except (OSError, RuntimeError, TypeError, ValueError) as restore_error:
                     self.log(
-                        f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error",
+                        f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"
                     )
 
             temp_file_manager.unregister(temp_output)
@@ -896,7 +896,7 @@ class ParallelCityParser:
                     self.log("Временный файл удалён в блоке finally (защита от утечек)", "debug")
                 except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                     self.log(
-                        f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning",
+                        f"Не удалось удалить временный файл в finally: {cleanup_error}", "warning"
                     )
 
             with self._merge_lock:
@@ -965,7 +965,7 @@ class ParallelCityParser:
 
             futures = {
                 executor.submit(
-                    self.parse_single_url, url, category_name, city_name, progress_callback,
+                    self.parse_single_url, url, category_name, city_name, progress_callback
                 ): (url, category_name, city_name)
                 for url, category_name, city_name in all_urls
             }
@@ -983,7 +983,7 @@ class ParallelCityParser:
 
                     current_time = time.time()
                     if current_time - last_progress_time >= PROGRESS_UPDATE_INTERVAL or idx == len(
-                        futures,
+                        futures
                     ):
                         # ISSUE 107, 115: Используем EventEmitter вместо print_progress
                         progress_data = {
@@ -997,7 +997,7 @@ class ParallelCityParser:
                         from parser_2gis.logger import print_progress
 
                         progress_bar = print_progress(
-                            success_count + failed_count, len(futures), prefix="   Прогресс",
+                            success_count + failed_count, len(futures), prefix="   Прогресс"
                         )
                         self.log(progress_bar, "info")
                         last_progress_time = current_time
@@ -1023,7 +1023,7 @@ class ParallelCityParser:
                 except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
                     failed_count += 1
                     self.log(
-                        f"❌ Исключение при парсинге {city_name} - {category_name}: {e}", "error",
+                        f"❌ Исключение при парсинге {city_name} - {category_name}: {e}", "error"
                     )
 
         except (KeyboardInterrupt, asyncio.CancelledError):

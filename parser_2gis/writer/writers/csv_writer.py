@@ -337,7 +337,7 @@ class CSVWriter(FileWriter):
             try:
                 logger.info("Удаление повторяющихся записей CSV.")
                 deduplicator = CSVDeduplicator(
-                    file_path=self._file_path, encoding=self._options.encoding,
+                    file_path=self._file_path, encoding=self._options.encoding
                 )
                 deduplicator.remove_duplicates()
             except (OSError, RuntimeError) as e:
@@ -381,7 +381,7 @@ class CSVWriter(FileWriter):
                         for key, value in item.items():
                             # Проверка на потенциальные XSS атаки (regex для обходных конструкций)
                             if isinstance(value, str) and re.search(
-                                r"<\s*script|javascript\s*:", value, re.IGNORECASE,
+                                r"<\s*script|javascript\s*:", value, re.IGNORECASE
                             ):
                                 logger.warning(
                                     "Обнаружена подозрительная конструкция в поле %s: %s",
@@ -602,7 +602,7 @@ class CSVWriter(FileWriter):
         # Режим работы объекта
         if catalog_item.schedule:
             data["schedule"] = catalog_item.schedule.to_str(  # type: ignore[misc]
-                self._options.csv.join_char, self._options.csv.add_comments,
+                self._options.csv.join_char, self._options.csv.add_comments
             )
 
         # Рубрики (категории) объекта

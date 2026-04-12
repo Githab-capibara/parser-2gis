@@ -90,7 +90,7 @@ class ConfigCache:
 
     # ISSUE-087: Используем @lru_cache на методе класса вместо создания на экземпляре
     def __init__(
-        self, cities_cache_size: int = CITIES_CACHE_SIZE, categories_cache_size: int = 4,
+        self, cities_cache_size: int = CITIES_CACHE_SIZE, categories_cache_size: int = 4
     ) -> None:
         """Инициализация кэша конфигураций.
 
@@ -181,7 +181,7 @@ class ConfigCache:
 
             if len(all_cities) > MAX_CITIES_COUNT:
                 logger.error(
-                    "Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT,
+                    "Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT
                 )
                 error_msg = f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}"
                 raise ValueError(error_msg)

@@ -65,7 +65,7 @@ class CSVPostProcessor:
         return re.compile(pattern_str)
 
     def _count_complex_columns(
-        self, complex_columns_pattern: Pattern[str] | None,
+        self, complex_columns_pattern: Pattern[str] | None
     ) -> dict[str, int]:
         """Подсчитывает непустые значения в сложных колонках.
 
@@ -254,5 +254,5 @@ class CSVPostProcessor:
                     logger.debug("Временный файл удалён в блоке finally: %s", tmp_csv_name)
                 except OSError as cleanup_error:
                     logger.warning(
-                        "Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error,
+                        "Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error
                     )

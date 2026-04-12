@@ -247,7 +247,7 @@ class CSVDeduplicator:
                     logger.debug("Временный файл удалён в блоке finally: %s", tmp_csv_name)
                 except OSError as cleanup_error:
                     logger.warning(
-                        "Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error,
+                        "Не удалось удалить временный файл %s: %s", tmp_csv_name, cleanup_error
                     )
 
             # ИСПРАВЛЕНИЕ C-003: Перевыбрасываем оригинальное исключение после очистки

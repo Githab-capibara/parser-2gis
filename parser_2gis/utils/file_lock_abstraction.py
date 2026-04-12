@@ -31,7 +31,7 @@ class BaseLockStrategy:
     """
 
     def __init__(
-        self, lock_path: Path, timeout: int = MERGE_LOCK_TIMEOUT, max_attempts: int = 50,
+        self, lock_path: Path, timeout: int = MERGE_LOCK_TIMEOUT, max_attempts: int = 50
     ) -> None:
         """Инициализирует базовую стратегию блокировки.
 
@@ -104,7 +104,7 @@ class FcntlLockStrategy(BaseLockStrategy):
     """
 
     def __init__(
-        self, lock_path: Path, timeout: int = MERGE_LOCK_TIMEOUT, max_attempts: int = 50,
+        self, lock_path: Path, timeout: int = MERGE_LOCK_TIMEOUT, max_attempts: int = 50
     ) -> None:
         """Инициализирует стратегию блокировки.
 
@@ -141,7 +141,7 @@ class FcntlLockStrategy(BaseLockStrategy):
 
             try:
                 lock_fd: int | None = os.open(
-                    str(self._lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600,
+                    str(self._lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
                 )
                 try:
                     assert lock_fd is not None

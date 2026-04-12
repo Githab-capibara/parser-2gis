@@ -186,7 +186,7 @@ class CacheFacade:
     """
 
     def __init__(
-        self, cache_path: str | None = None, cache_manager: CacheManager | None = None,
+        self, cache_path: str | None = None, cache_manager: CacheManager | None = None
     ) -> None:
         """Инициализация фасада кэша.
 

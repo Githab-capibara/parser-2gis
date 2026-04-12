@@ -71,7 +71,10 @@ class UrlGenerationStrategy(UrlGeneratorProtocolBase):
     """
 
     def __init__(
-        self, cities: list[dict[str, Any]], categories: list[dict[str, Any]], stats_lock: threading.RLock,
+        self,
+        cities: list[dict[str, Any]],
+        categories: list[dict[str, Any]],
+        stats_lock: threading.RLock,
     ) -> None:
         """Инициализирует стратегию генерации URL.
 
@@ -118,7 +121,7 @@ class UrlGenerationStrategy(UrlGeneratorProtocolBase):
                     yield (url, category["name"], city["name"])
                 except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
                     logger.error(
-                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
+                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}"
                     )
                     continue
 
@@ -132,7 +135,7 @@ class MemoryCheckStrategy:
     """
 
     def __init__(
-        self, memory_monitor: MemoryMonitorProtocol | None = None, memory_threshold_mb: int = 100,
+        self, memory_monitor: MemoryMonitorProtocol | None = None, memory_threshold_mb: int = 100
     ) -> None:
         """Инициализирует стратегию проверки памяти.
 
@@ -258,7 +261,7 @@ class ParseStrategy:
         return temp_filename, temp_filepath
 
     def _ensure_unique_temp_file(
-        self, temp_filepath: Path, max_attempts: int = DEFAULT_MAX_ATTEMPTS,
+        self, temp_filepath: Path, max_attempts: int = DEFAULT_MAX_ATTEMPTS
     ) -> Path:
         """Гарантирует создание уникального временного файла.
 
@@ -356,7 +359,7 @@ class ParseStrategy:
         is_enough, available_mb = self._memory_strategy.check_memory()
         if not is_enough:
             logger.warning(
-                "Low memory (%dMB), skipping %s - %s", available_mb, city_name, category_name,
+                "Low memory (%dMB), skipping %s - %s", available_mb, city_name, category_name
             )
             return False, "Недостаточно памяти"
 
@@ -409,19 +412,19 @@ class ParseStrategy:
                             if local_writer is None:
                                 if self._writer_factory:
                                     local_writer = self._writer_factory(
-                                        str(temp_filepath), "csv", self.config.writer,
+                                        str(temp_filepath), "csv", self.config.writer
                                     )
                                 else:
                                     from parser_2gis.writer import get_writer
 
                                     local_writer = get_writer(
-                                        str(temp_filepath), "csv", self.config.writer,
+                                        str(temp_filepath), "csv", self.config.writer
                                     )
 
                             if local_parser is None:
                                 if self._parser_factory:
                                     local_parser = self._parser_factory(
-                                        url, self.config.chrome, self.config.parser,
+                                        url, self.config.chrome, self.config.parser
                                     )
                                 else:
                                     from parser_2gis.parser import get_parser
@@ -486,7 +489,7 @@ class ParseStrategy:
 
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as parse_error:
                 self._log(
-                    f"Ошибка при парсинге {city_name} - {category_name}: {parse_error}", "error",
+                    f"Ошибка при парсинге {city_name} - {category_name}: {parse_error}", "error"
                 )
                 self._cleanup_temp_file(temp_filepath)
                 self._update_stats(success=False)

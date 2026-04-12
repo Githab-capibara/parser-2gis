@@ -84,7 +84,7 @@ class JsonSerializer:
                 # Любая другая неожиданная ошибка - логируем и используем fallback
                 # ID:041: Изменено на WARNING для видимости проблем сериализации
                 app_logger.warning(
-                    "Неожиданная ошибка orjson, fallback на json: %s", unexpected_error,
+                    "Неожиданная ошибка orjson, fallback на json: %s", unexpected_error
                 )
 
         # Стандартный json с оптимизированными параметрами
@@ -93,7 +93,7 @@ class JsonSerializer:
         except (TypeError, ValueError) as json_error:
             raise TypeError(
                 f"Critical JSON serialization error: {json_error}. "
-                f"Data type: {type(data).__name__}, data size: {len(str(data))} bytes",
+                f"Data type: {type(data).__name__}, data size: {len(str(data))} bytes"
             ) from json_error
 
     def deserialize(self, data: str) -> dict[str, Any]:
@@ -141,7 +141,7 @@ class JsonSerializer:
                 raise TypeError(
                     f"Ожидался словарь после десериализации, "
                     f"получен {type(deserialized).__name__}. "
-                    f"Размер данных: {len(str(deserialized))} байт",
+                    f"Размер данных: {len(str(deserialized))} байт"
                 )
 
             return deserialized
@@ -149,7 +149,7 @@ class JsonSerializer:
         except UnicodeDecodeError as unicode_error:
             # Fallback на другие кодировки при UnicodeDecodeError
             app_logger.debug(
-                "UnicodeDecodeError при десериализации, попытка fallback: %s", unicode_error,
+                "UnicodeDecodeError при десериализации, попытка fallback: %s", unicode_error
             )
 
             # ID:092: Логируем все fallback попытки
@@ -183,14 +183,14 @@ class JsonSerializer:
             # Логируем все неудачные попытки перед выбрасыванием исключения
             if fallback_attempts:
                 app_logger.warning(
-                    "Все fallback кодировки не подошли. Попытки: %s", "; ".join(fallback_attempts),
+                    "Все fallback кодировки не подошли. Попытки: %s", "; ".join(fallback_attempts)
                 )
 
             # Если все fallback не удались, выбрасываем исключение
             data_len = len(data) if isinstance(data, (str, bytes)) else "N/A"
             raise ValueError(
                 f"Не удалось десериализовать данные: все кодировки не подошли. "
-                f"Original error: {unicode_error}. Длина данных: {data_len}",
+                f"Original error: {unicode_error}. Длина данных: {data_len}"
             ) from unicode_error
 
         except MemoryError as json_error:
@@ -202,17 +202,17 @@ class JsonSerializer:
                 try:
                     if isinstance(json_error, orjson.JSONDecodeError):
                         raise ValueError(
-                            f"Ошибка десериализации, размер данных: {len(data)} байт",
+                            f"Ошибка десериализации, размер данных: {len(data)} байт"
                         ) from json_error
                 except (AttributeError, TypeError) as orjson_check_error:
                     # orjson.JSONDecodeError недоступен, используем стандартную обработку
                     app_logger.debug(
-                        "Не удалось проверить orjson.JSONDecodeError: %s", orjson_check_error,
+                        "Не удалось проверить orjson.JSONDecodeError: %s", orjson_check_error
                     )
 
             # Стандартная обработка JSON ошибок
             raise ValueError(
-                f"Ошибка десериализации, размер данных: {len(data)} байт",
+                f"Ошибка десериализации, размер данных: {len(data)} байт"
             ) from json_error
         except TypeError:
             # Пробрасываем TypeError как есть (некорректный тип данных)
