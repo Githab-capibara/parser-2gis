@@ -33,7 +33,7 @@ class JsonSerializer:
     Обеспечивает валидацию структуры данных после десериализации.
 
     Attributes:
-        use_orjson: Флаг использования orjson (True если доступен).
+        _use_orjson: Флаг использования orjson (True если доступен).
 
     Пример использования:
         >>> serializer = JsonSerializer()
@@ -45,7 +45,7 @@ class JsonSerializer:
 
     def __init__(self) -> None:
         """Инициализация сериализатора."""
-        self.use_orjson = _USE_ORJSON
+        self._use_orjson = _USE_ORJSON
 
     def serialize(self, data: dict[str, Any]) -> str:
         """Сериализует данные в JSON формат.

@@ -230,7 +230,7 @@ class ConfigCache:
         logger.debug("Файл городов валидирован: %d городов", len(all_cities))
         return tuple(tuple(sorted(city.items())) for city in all_cities)
 
-    def load_cities(self, cities_path_str: str) -> list[dict[str, Any]]:
+    def _load_cities(self, cities_path_str: str) -> list[dict[str, Any]]:
         """Загружает JSON файл с городами с кэшированием.
 
         ISSUE-087: Использует статический метод с @lru_cache.
@@ -251,11 +251,11 @@ class ConfigCache:
         # Конвертируем обратно в list[dict]
         return [dict(city_tuple) for city_tuple in cached_result]
 
-    def clear_cities_cache(self) -> None:
+    def _clear_cities_cache(self) -> None:
         """Очищает кэш городов."""
         self._load_cities_cached.cache_clear()
 
-    def cities_cache_info(self) -> dict[str, Any]:
+    def _cities_cache_info(self) -> dict[str, Any]:
         """Возвращает информацию о кэше городов.
 
         Returns:
@@ -285,7 +285,7 @@ class ConfigCache:
         return CATEGORIES_93
 
     @staticmethod
-    def clear_categories_cache() -> None:
+    def _clear_categories_cache() -> None:
         """Очищает кэш категорий."""
         ConfigCache.get_categories.cache_clear()
 

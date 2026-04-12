@@ -49,7 +49,6 @@ from .cache_utils import (
 )
 from .pool import ConnectionPool
 from .serializer import JsonSerializer
-from .validator import CacheDataValidator
 
 # Пороговые значения для проверки размера кэша
 _CACHE_SIZE_CHECK_THRESHOLD: int = 100  # Проверка размера только при > 100 записей
@@ -62,7 +61,7 @@ _CACHE_LRU_MAX_ITERATIONS: int = 10000  # Максимум итераций LRU 
 # Кортеж строки кэша: (data, checksum, expires_at_str)
 type CacheRow = tuple[str, int, str]
 # Пара элемента кэша: (url, data)
-type CacheItem = tuple[str, dict[str, Any]]
+type _CacheItem = tuple[str, dict[str, Any]]
 
 # Размер пула соединений по умолчанию (10 соединений — баланс между производительностью и памятью)
 DEFAULT_POOL_SIZE: int = 10
@@ -91,7 +90,7 @@ def _compute_data_hash_cached(data: str) -> str:
 class CursorProtocol(Protocol):
     """Протокол для курсора базы данных."""
 
-    def execute(self, query: str, params: tuple[Any, ...] = ...) -> "CursorProtocol":
+    def execute(self, query: str, _params: tuple[Any, ...] = ...) -> "CursorProtocol":
         """Выполняет SQL запрос."""
         ...  # pylint: disable=unnecessary-ellipsis
 
@@ -104,7 +103,7 @@ class CursorProtocol(Protocol):
         ...  # pylint: disable=unnecessary-ellipsis
 
 
-class ConnectionProtocol(Protocol):
+class _ConnectionProtocol(Protocol):
     """Протокол для соединения базы данных."""
 
     def cursor(self) -> CursorProtocol:
@@ -119,7 +118,7 @@ class ConnectionProtocol(Protocol):
         """Откатывает транзакцию."""
         ...  # pylint: disable=unnecessary-ellipsis
 
-    def execute(self, query: str, params: tuple[Any, ...] = ...) -> CursorProtocol:
+    def execute(self, query: str, _params: tuple[Any, ...] = ...) -> CursorProtocol:
         """Выполняет SQL запрос."""
         ...  # pylint: disable=unnecessary-ellipsis
 
@@ -154,7 +153,7 @@ class CacheManager:
         COUNT_ALL_SQL: SQL-запрос подсчёта всех записей
         COUNT_EXPIRED_SQL: SQL-запрос подсчёта истёкших записей
         DELETE_LRU_SQL: SQL-запрос удаления LRU записей
-        GET_CACHE_SIZE_SQL: SQL-запрос получения размера кэша
+        _GET_CACHE_SIZE_SQL: SQL-запрос получения размера кэша
 
     Пример использования:
         >>> from pathlib import Path
@@ -243,7 +242,7 @@ class CacheManager:
         )
     """
 
-    GET_CACHE_SIZE_SQL = """
+    _GET_CACHE_SIZE_SQL = """
         SELECT COUNT(*) FROM cache
     """
 
@@ -317,13 +316,11 @@ class CacheManager:
         # Инициализация компонентов
         self._pool: ConnectionPool | None = None
         self._serializer = JsonSerializer()
-        self._validator = CacheDataValidator()
 
         # ISSUE-003-#15: Флаг инициализации БД для пропуска повторных CREATE TABLE
         self._db_initialized: bool = False
 
         # weakref.finalize() для гарантированной очистки ресурсов
-        self._weak_ref = weakref.ref(self)
         self._finalizer = weakref.finalize(self, self._cleanup_cache_manager)
 
         # Инициализация БД
@@ -868,7 +865,7 @@ class CacheManager:
             # P1-8: Гарантированное закрытие курсора в finally
             self._safe_close_cursor(cursor)
 
-    def get_batch(self, urls: list[str]) -> dict[str, dict[str, Any] | None]:
+    def _get_batch(self, urls: list[str]) -> dict[str, dict[str, Any] | None]:
         """Пакетное получение данных из кэша.
 
         C015: Оптимизация N+1 queries через пакетное получение.
@@ -947,7 +944,7 @@ class CacheManager:
 
         return results
 
-    def set_batch(self, items: list[tuple[str, dict[str, Any]]]) -> int:
+    def _set_batch(self, items: list[tuple[str, dict[str, Any]]]) -> int:
         """Пакетное сохранение данных в кэш.
 
         Оптимизация: массовая вставка данных снижает накладные расходы
@@ -1078,7 +1075,7 @@ class CacheManager:
                 raise
             app_logger.error("Ошибка БД при удалении кэша: %s", db_error)
 
-    def clear_expired(self) -> int:
+    def _clear_expired(self) -> int:
         """Очистка истекшего кэша.
 
         Удаляет все записи, у которых время истечения меньше текущего.
@@ -1118,7 +1115,7 @@ class CacheManager:
         finally:
             self._safe_close_cursor(cursor)
 
-    def clear_batch(self, url_hashes: list[str]) -> int:
+    def _clear_batch(self, url_hashes: list[str]) -> int:
         """Пакетное удаление записей по хешам URL.
 
         Args:
