@@ -15,8 +15,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import pytest
-
 from parser_2gis.chrome.exceptions import ChromeException
 from parser_2gis.chrome.remote import ChromeRemote
 

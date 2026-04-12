@@ -35,7 +35,7 @@ OUTPUT_DEFAULTS_ADD_COMMENTS: bool = False
 OUTPUT_DEFAULTS_REMOVE_DUPLICATES: bool = True
 
 
-class BrowserSettingsScreen(Screen):  # type: ignore[misc]
+class BrowserSettingsScreen(Screen):
     """Настройки браузера."""
 
     app: ITuiApp
@@ -196,7 +196,7 @@ class BrowserSettingsScreen(Screen):  # type: ignore[misc]
         self.query_one("#startup-delay-input", Input).value = str(BROWSER_DEFAULTS_STARTUP_DELAY)
 
 
-class ParserSettingsScreen(Screen):  # type: ignore[misc]
+class ParserSettingsScreen(Screen):
     """Настройки парсера."""
 
     app: ITuiApp
@@ -367,7 +367,7 @@ class ParserSettingsScreen(Screen):  # type: ignore[misc]
         self.query_one("#workers-input", Input).value = str(PARSER_DEFAULTS_WORKERS)
 
 
-class OutputSettingsScreen(Screen):  # type: ignore[misc]
+class OutputSettingsScreen(Screen):
     """Настройки вывода."""
 
     app: ITuiApp

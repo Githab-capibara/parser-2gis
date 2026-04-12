@@ -54,9 +54,9 @@ class TestDuplicateRubricCodeHandling:
 
         # Проверить уникальность всех ID
         unique_ids = set(generated_ids)
-        assert len(unique_ids) == len(generated_ids), (
-            f"Все ID должны быть уникальными. Найдено дубликатов: {len(generated_ids) - len(unique_ids)}"
-        )
+        dups = len(generated_ids) - len(unique_ids)
+        msg = f"Все ID должны быть уникальными. Дубликатов: {dups}"
+        assert len(unique_ids) == len(generated_ids), msg
 
     def test_checkbox_ids_unique_old_approach_fails(self) -> None:
         """Тест 3: Проверка, что СТАРЫЙ подход с rubric_code вызывает дубликаты."""
@@ -133,9 +133,9 @@ class TestDuplicateRubricCodeHandling:
 
         # Проверить уникальность
         unique_ids = set(generated_ids)
-        assert len(unique_ids) == len(generated_ids), (
-            f"ID должны быть уникальными после фильтрации. Дубликатов: {len(generated_ids) - len(unique_ids)}"
-        )
+        dups = len(generated_ids) - len(unique_ids)
+        msg = f"ID должны быть уникальными после фильтрации. Дубликатов: {dups}"
+        assert len(unique_ids) == len(generated_ids), msg
 
     def test_specific_duplicate_case_fastfood_shawarma(self) -> None:
         """Тест 6: Проверка конкретного случая с Фастфуд и Шаурмичные.

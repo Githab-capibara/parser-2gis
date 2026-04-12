@@ -286,8 +286,8 @@ def wait_until_finished(
     # ISSUE-099: Дополнительная проверка timeout на разумность (максимум 24 часа)
     if timeout is not None and timeout > MAX_TIMEOUT_SECONDS:
         raise ValueError(
-            "timeout не должен превышать %d секунд "
-            "(24 часа), получено %s" % (MAX_TIMEOUT_SECONDS, timeout)
+            f"timeout не должен превышать {MAX_TIMEOUT_SECONDS} секунд "
+            f"(24 часа), получено {timeout}"
         )
 
     # ISSUE-100: Дополнительная проверка max_poll_interval на разумность (максимум 60 секунд)

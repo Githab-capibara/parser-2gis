@@ -129,9 +129,8 @@ class TestConfigValidator:
         corrupted_exists = corrupted_file.exists()
 
         # Проверяем что хотя бы один файл существует
-        assert backup_exists or corrupted_exists, (
-            f"Должна быть создана резервная копия или переименованный файл. backup={backup_exists}, corrupted={corrupted_exists}"
-        )
+        msg = f"backup={backup_exists}, corrupted={corrupted_exists}"
+        assert backup_exists or corrupted_exists, msg
 
 
 class TestConfiguration:
@@ -287,9 +286,8 @@ class TestConfigValidatorEdgeCases:
         backup_exists = backup_file.exists()
         corrupted_exists = corrupted_file.exists()
 
-        assert backup_exists or corrupted_exists, (
-            f"Должна быть создана резервная копия или переименованный файл. backup={backup_exists}, corrupted={corrupted_exists}"
-        )
+        msg = f"backup={backup_exists}, corrupted={corrupted_exists}"
+        assert backup_exists or corrupted_exists, msg
 
     def test_format_empty_errors(self) -> None:
         """Тестирует форматирование пустых ошибок."""

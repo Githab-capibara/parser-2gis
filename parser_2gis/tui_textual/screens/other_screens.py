@@ -11,7 +11,7 @@ from textual.widgets import Button, DataTable, Static
 from ..protocols import ITuiApp
 
 
-class CacheViewerScreen(Screen):  # type: ignore[misc]
+class CacheViewerScreen(Screen):
     """Просмотр кэша."""
 
     app: ITuiApp
@@ -186,7 +186,7 @@ class CacheViewerScreen(Screen):  # type: ignore[misc]
         self.app.notify("Кэш очищен", title="Успех")
 
 
-class AboutScreen(Screen):  # type: ignore[misc]
+class AboutScreen(Screen):
     """Информация о программе."""
 
     app: ITuiApp

@@ -53,19 +53,17 @@ class TestVisitedLinksCleanup:
             cleanup_counter += 1
 
             # На 5-м вызове проверяем условие очистки
-            if cleanup_counter >= 5:
-                # Проверяем условие: len > max_size * 0.5
-                if len(visited_links) > max_size * 0.5:
-                    # Вычисляем количество для удаления
-                    target_remove = int(len(visited_links) * 0.5)
+            if cleanup_counter >= 5 and len(visited_links) > max_size * 0.5:
+                # Вычисляем количество для удаления
+                target_remove = int(len(visited_links) * 0.5)
 
-                    # Удаляем старые записи
-                    for _ in range(target_remove):
-                        if visited_links:
-                            visited_links.popitem(last=False)
+                # Удаляем старые записи
+                for _ in range(target_remove):
+                    if visited_links:
+                        visited_links.popitem(last=False)
 
-                    # Сбрасываем счётчик
-                    cleanup_counter = 0
+                # Сбрасываем счётчик
+                cleanup_counter = 0
 
         # Проверяем что количество ссылок уменьшилось примерно на 50%
         final_count = len(visited_links)

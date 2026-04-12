@@ -92,7 +92,7 @@ class TestCSVWriterContactProcessing:
                         "contact_groups": [
                             {
                                 "contacts": [
-                                    # Контакт с пустым value (должен быть пропущен, но обработка должна продолжиться)
+                                    # Контакт с пустым value (должен быть пропущен)
                                     {"type": "phone", "value": "", "comment": "First phone"},
                                     # Контакт с text (должен быть обработан)
                                     {

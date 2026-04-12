@@ -399,7 +399,7 @@ class BrowserFacade:
             Результат выполнения JS (сериализуемый тип).
 
         """
-        return browser.execute_js(js_code, timeout)  # type: ignore[return-value]
+        return browser.execute_js(js_code, timeout)
 
     def close(self, browser: BrowserService) -> None:
         """Закрывает браузер.

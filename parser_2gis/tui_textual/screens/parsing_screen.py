@@ -13,7 +13,7 @@ from textual.widgets import Button, ProgressBar, RichLog, Static
 from ..protocols import ITuiApp
 
 
-class ParsingScreen(Screen):  # type: ignore[misc]
+class ParsingScreen(Screen):
     """Экран парсинга."""
 
     app: ITuiApp

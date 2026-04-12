@@ -7,7 +7,6 @@
 3. Сохранение и загрузку всех полей конфигурации.
 """
 
-
 from parser_2gis.chrome import ChromeOptions
 from parser_2gis.config import Configuration
 from parser_2gis.parser import ParserOptions
@@ -331,7 +330,9 @@ class TestMissingFieldDetection:
         """Тест должен упасть, если в ChromeOptions отсутствует поле startup_delay."""
         config = Configuration()
         # Проверяем что поле существует и доступно для записи
-        assert hasattr(config.chrome, "startup_delay"), "Поле startup_delay отсутствует в ChromeOptions"
+        assert hasattr(config.chrome, "startup_delay"), (
+            "Поле startup_delay отсутствует в ChromeOptions"
+        )
         config.chrome.startup_delay = 10
         assert config.chrome.startup_delay == 10
 
@@ -345,6 +346,8 @@ class TestMissingFieldDetection:
     def test_detect_missing_writer_field(self) -> None:
         """Тест должен упасть, если в WriterOptions отсутствует поле add_rubrics."""
         config = Configuration()
-        assert hasattr(config.writer.csv, "add_rubrics"), "Поле add_rubrics отсутствует в WriterOptions"
+        assert hasattr(config.writer.csv, "add_rubrics"), (
+            "Поле add_rubrics отсутствует в WriterOptions"
+        )
         config.writer.csv.add_rubrics = True
         assert config.writer.csv.add_rubrics is True

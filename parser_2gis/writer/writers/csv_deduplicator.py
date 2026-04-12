@@ -176,7 +176,7 @@ class CSVDeduplicator:
                     batch: list[str] = []
                     batch_size = HASH_BATCH_SIZE
 
-                    for line_num, line in enumerate(f_csv, 1):  # type: ignore[arg-type]
+                    for line_num, line in enumerate(f_csv, 1):
                         line_str: str = line  # type: ignore[assignment]
                         try:
                             # Вычисляем хеш строки

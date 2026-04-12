@@ -11,7 +11,7 @@ from textual.widgets import Button, Static
 from ..protocols import ITuiApp
 
 
-class MainMenuScreen(Screen):  # type: ignore[misc]
+class MainMenuScreen(Screen):
     """Главное меню приложения."""
 
     app: ITuiApp

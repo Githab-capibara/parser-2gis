@@ -67,11 +67,11 @@ class ChromeException(ExceptionContextMixin, Exception):
         super().__init__(full_message, **kwargs)
 
 
-class ChromeRuntimeException(_RuntimeException, ChromeException):  # type: ignore[misc]
+class ChromeRuntimeException(_RuntimeException, ChromeException):
     """Исключение времени выполнения Chrome."""
 
 
-class ChromeUserAbortException(_UserAbortException, ChromeException):  # type: ignore[misc]
+class ChromeUserAbortException(_UserAbortException, ChromeException):
     """Исключение прерывания пользователем Chrome."""
 
 

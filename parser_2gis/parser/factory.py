@@ -172,7 +172,7 @@ def register_parser(priority: int = 0) -> Callable[[type[BaseParser]], type[Base
         """Декоратор для регистрации парсера."""
         # Валидация priority
         if priority < 0:
-            raise ValueError("Приоритет парсера не может быть отрицательным: %d" % priority)
+            raise ValueError(f"Приоритет парсера не может быть отрицательным: {priority}")
 
         # Регистрируем через ParserRegistry
         _parser_registry.register(parser_cls, priority)

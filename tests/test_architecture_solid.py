@@ -1740,10 +1740,10 @@ class TestModuleBoundaries:
             imports = get_file_imports_from_module(py_file, project_root)
             illegal_imports = imports.intersection(business_logic_modules)
 
-            assert len(illegal_imports) == 0, (
-                f"{py_file.relative_to(project_root)} импортирует бизнес-логику: {illegal_imports}. "
-                "utils/ должен быть изолирован от business logic модулей."
+            msg = (
+                f"{py_file.relative_to(project_root)} импортирует бизнес-логику: {illegal_imports}."
             )
+            assert len(illegal_imports) == 0, msg + " utils/ должен быть изолирован."
 
     def test_validation_no_business_logic_imports(self) -> None:
         """validation/ не должен импортировать parser/, writer/, chrome/."""
@@ -1759,10 +1759,10 @@ class TestModuleBoundaries:
             imports = get_file_imports_from_module(py_file, project_root)
             illegal_imports = imports.intersection(business_logic_modules)
 
-            assert len(illegal_imports) == 0, (
-                f"{py_file.relative_to(project_root)} импортирует бизнес-логику: {illegal_imports}. "
-                "validation/ должен быть изолирован от business logic модулей."
+            msg = (
+                f"{py_file.relative_to(project_root)} импортирует бизнес-логику: {illegal_imports}."
             )
+            assert len(illegal_imports) == 0, msg + " validation/ должен быть изолирован."
 
     def test_constants_no_other_module_imports(self) -> None:
         """constants.py может импортировать только из своих подмодулей."""
@@ -2391,9 +2391,8 @@ class TestGuardClauses:
         has_cleanup = "_cleanup_after_stop" in source
 
         submethods_count = sum([has_stop_tab, has_stop_browser, has_cleanup])
-        assert submethods_count >= 2, (
-            f"stop должен использовать подметоды для разделения ответственности (найдено: {submethods_count}/3)"
-        )
+        msg = f"stop должен использовать подметоды (найдено: {submethods_count}/3)"
+        assert submethods_count >= 2, msg
 
         stop_method_start = source.find("def stop(self)")
         if stop_method_start != -1:

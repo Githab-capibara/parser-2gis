@@ -107,7 +107,7 @@ class TestPortCheckLogic:
             )
 
     def test_port_check_internal_consistency(self) -> None:
-        """Проверяет консистентность между _check_port_available и _check_port_available_internal."""
+        """Проверяет консистентность между _check_port_available и _check_port_available."""
         # Находим свободный порт
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(("", 0))

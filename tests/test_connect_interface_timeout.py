@@ -17,8 +17,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import pytest
-
 from parser_2gis.chrome.remote import ChromeRemote
 
 pytestmark = pytest.mark.requires_chrome

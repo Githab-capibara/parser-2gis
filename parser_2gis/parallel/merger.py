@@ -488,7 +488,8 @@ class ParallelFileMerger:
                 shutil.move(str(temp_output), str(output_file_path))
             except (OSError, RuntimeError, TypeError, ValueError) as move_error:
                 self.log(
-                    f"Не удалось переместить временный файл в {output_file}: {move_error}", "error"
+                    f"Не удалось переместить временный файл в {output_file_path}: {move_error}",
+                    "error",
                 )
                 raise
 

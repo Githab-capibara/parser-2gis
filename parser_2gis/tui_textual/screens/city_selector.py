@@ -13,7 +13,7 @@ from parser_2gis.logger import logger as app_logger
 from ..protocols import ITuiApp
 
 
-class CitySelectorScreen(Screen):  # type: ignore[misc]
+class CitySelectorScreen(Screen):
     """Экран выбора городов."""
 
     app: ITuiApp

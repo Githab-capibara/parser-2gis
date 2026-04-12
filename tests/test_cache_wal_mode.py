@@ -109,7 +109,8 @@ class TestCacheWalMode:
         checksum = hashlib.sha256(test_data.encode("utf-8")).hexdigest()
 
         conn1.execute(
-            "INSERT OR REPLACE INTO cache (url_hash, url, data, checksum, timestamp, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO cache "
+            "(url_hash, url, data, checksum, timestamp, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
             (url_hash, test_url, test_data, checksum, "2024-01-01", "2024-01-02"),
         )
         conn1.commit()

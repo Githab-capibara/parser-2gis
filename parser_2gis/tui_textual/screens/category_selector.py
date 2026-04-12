@@ -11,7 +11,7 @@ from textual.widgets import Button, Checkbox, Input, Static
 from ..protocols import ITuiApp
 
 
-class CategorySelectorScreen(Screen):  # type: ignore[misc]
+class CategorySelectorScreen(Screen):
     """Экран выбора категорий."""
 
     app: ITuiApp

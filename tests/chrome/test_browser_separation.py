@@ -123,9 +123,7 @@ class TestBrowserPathResolver:
         mock_options.binary_path = "/usr/bin/chrome"
 
         # Мокаем _validate_binary_path чтобы не проверять реальный путь
-        with caplog.at_level(logging.WARNING), patch.object(
-            path_resolver, "_validate_binary_path"
-        ):
+        with caplog.at_level(logging.WARNING), patch.object(path_resolver, "_validate_binary_path"):
             # Мокаем Path.is_symlink для всех экземпляров
             with patch.object(Path, "is_symlink", return_value=True):
                 # Мокаем Path.resolve чтобы вернуть нужный путь
@@ -134,8 +132,7 @@ class TestBrowserPathResolver:
 
                     assert result == "/usr/bin/google-chrome"
                     assert any(
-                        "символическую ссылку" in record.message
-                        for record in caplog.records
+                        "символическую ссылку" in record.message for record in caplog.records
                     )
 
     def test_browser_path_resolver_relative_path_error(

@@ -60,13 +60,13 @@ from .request_interceptor import Request, RequestInterceptor, Response
 try:
     from ratelimit import limits, sleep_and_retry
 except ImportError:
-    limits = None  # type: ignore[assignment]
-    sleep_and_retry = None  # type: ignore[assignment]
+    limits = None
+    sleep_and_retry = None
 
 try:
     from requests.exceptions import RequestException
 except ImportError:
-    RequestException = Exception  # type: ignore[misc,assignment]
+    RequestException = Exception
 
 # tenacity импортируется из utils.retry при необходимости
 
@@ -233,11 +233,11 @@ def _validate_remote_port(port: Any) -> int:
 
     if port < MIN_PORT:
         raise ValueError(
-            "remote_port должен быть >= %d (зарезервированные порты), получен %d" % (MIN_PORT, port)
+            f"remote_port должен быть >= {MIN_PORT} (зарезервированные порты), получен {port}"
         )
 
     if port > MAX_PORT:
-        raise ValueError("remote_port должен быть <= %d, получен %d" % (MAX_PORT, port))
+        raise ValueError(f"remote_port должен быть <= {MAX_PORT}, получен {port}")
 
     return port
 
@@ -270,12 +270,12 @@ class ChromeRemote:
         # ISSUE-103: Валидация на пустые паттерны
         for idx, pattern in enumerate(response_patterns):
             if not isinstance(pattern, str):
+                type_name = type(pattern).__name__
                 raise TypeError(
-                    "response_patterns[%d] должен быть строкой, получен %s"
-                    % (idx, type(pattern).__name__)
+                    f"response_patterns[{idx}] должен быть строкой, получен {type_name}"
                 )
             if not pattern.strip():
-                raise ValueError("response_patterns[%d] не может быть пустой строкой" % idx)
+                raise ValueError(f"response_patterns[{idx}] не может быть пустой строкой")
 
         self._chrome_options: ChromeOptions = chrome_options
         self._chrome_browser: ChromeBrowser | None = None
@@ -354,7 +354,7 @@ class ChromeRemote:
         port = int(parsed_url.port or 0)
 
         if _check_port_cached(port):
-            raise ChromeException("Порт %d свободен (Chrome ещё не слушает)" % port)
+            raise ChromeException(f"Порт {port} свободен (Chrome ещё не слушает)")
 
         app_logger.debug("Подключение к Chrome DevTools Protocol: %s", self._dev_url)
         self._chrome_interface = pychrome.Browser(url=self._dev_url)
@@ -497,7 +497,7 @@ class ChromeRemote:
 
         if thread.is_alive():
             app_logger.error("Таймаут при запуске вкладки (%d секунд)", timeout)
-            raise TimeoutError("Запуск вкладки превысил таймаут %d секунд" % timeout)
+            raise TimeoutError(f"Запуск вкладки превысил таймаут {timeout} секунд")
 
         if result["error"]:
             app_logger.error("Ошибка при запуске вкладки: %s", result["error"])

@@ -170,7 +170,7 @@ class AppState:
 MAX_LOG_BUFFER_SIZE: int = 1000
 
 
-class TUIApp(App):  # type: ignore[misc]
+class TUIApp(App):
     """Главное приложение TUI Parser2GIS на Textual.
 
     Управляет экранами, навигацией и состоянием приложения.

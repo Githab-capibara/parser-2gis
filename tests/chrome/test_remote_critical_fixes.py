@@ -245,7 +245,9 @@ class TestChromeBrowserCloseGuaranteedCleanup:
             # close() должен выполниться без выброса исключения
             browser.close()
             # Позитивная проверка: флаг _closed установлен
-            assert browser._lifecycle_manager._closed is True, "Браузер должен быть помечен как закрытый"
+            assert browser._lifecycle_manager._closed is True, (
+                "Браузер должен быть помечен как закрытый"
+            )
 
     def test_browser_close_finally_block(self) -> None:
         """Тест 10: finally блок в browser.close().
@@ -298,7 +300,9 @@ class TestChromeBrowserCloseGuaranteedCleanup:
 
             # close() не должен выбрасывать исключение
             browser.close()
-            assert browser._lifecycle_manager._closed is True, "Браузер должен быть помечен как закрытый"
+            assert browser._lifecycle_manager._closed is True, (
+                "Браузер должен быть помечен как закрытый"
+            )
 
     def test_browser_close_cleanup_resources(self) -> None:
         """Тест 12: Очистка ресурсов в browser.close().
@@ -346,7 +350,9 @@ class TestChromeBrowserCloseGuaranteedCleanup:
 
             # close() не должен выбрасывать исключение
             browser.close()
-            assert browser._lifecycle_manager._closed is True, "Браузер должен быть помечен как закрытый"
+            assert browser._lifecycle_manager._closed is True, (
+                "Браузер должен быть помечен как закрытый"
+            )
 
     def test_browser_close_multiple_calls(self) -> None:
         """Тест 14: Многократный вызов browser.close().

@@ -131,16 +131,15 @@ class TestWeakrefFinalize:
 
         finalizers = []
 
-        with tempfile.TemporaryDirectory() as tmpdir1:
-            with tempfile.TemporaryDirectory() as tmpdir2:
-                cache1 = CacheManager(cache_dir=Path(tmpdir1))
-                cache2 = CacheManager(cache_dir=Path(tmpdir2))
+        with tempfile.TemporaryDirectory() as tmpdir1, tempfile.TemporaryDirectory() as tmpdir2:
+            cache1 = CacheManager(cache_dir=Path(tmpdir1))
+            cache2 = CacheManager(cache_dir=Path(tmpdir2))
 
-                finalizers.append(cache1._finalizer)
-                finalizers.append(cache2._finalizer)
+            finalizers.append(cache1._finalizer)
+            finalizers.append(cache2._finalizer)
 
-                # Оба finalizer должны быть активны
-                assert all(f.alive for f in finalizers), "Все finalizer должны быть активны"
+            # Оба finalizer должны быть активны
+            assert all(f.alive for f in finalizers), "Все finalizer должны быть активны"
 
     def test_finalizer_prevents_circular_reference_leak(self) -> None:
         """Тест 10: Finalizer работает с циклическими ссылками."""

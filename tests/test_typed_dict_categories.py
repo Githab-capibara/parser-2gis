@@ -79,9 +79,9 @@ class TestCategoryTypedDict:
         required_fields = {"name", "query", "rubric_code"}
 
         for i, category in enumerate(CATEGORIES_93, 1):
-            # Проверяем наличие всех полей
             assert required_fields.issubset(category.keys()), (
-                f"Категория {i} ({category.get('name', 'unknown')}) не имеет всех полей: {required_fields - set(category.keys())}"
+                f"Категория {i} ({category.get('name', 'unknown')}) "
+                f"не имеет всех полей: {required_fields - set(category.keys())}"
             )
 
             # Проверяем что name и query - строки
