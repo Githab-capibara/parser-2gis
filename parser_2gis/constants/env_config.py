@@ -234,7 +234,7 @@ class EnvConfig:
 
         return value
 
-    def to_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         """Конвертирует конфигурацию в словарь.
 
         ISSUE-012: Добавлен метод для удобной сериализации.
@@ -317,7 +317,7 @@ class EnvConfigManager:
         with self._lock:
             self._instance = None
 
-    def refresh(self) -> EnvConfig:
+    def _refresh(self) -> EnvConfig:
         """Инвалидирует кэш и возвращает новый экземпляр конфигурации.
 
         Returns:
@@ -327,7 +327,7 @@ class EnvConfigManager:
         self.invalidate()
         return self.get_config()
 
-    def is_cached(self) -> bool:
+    def _is_cached(self) -> bool:
         """Проверяет, закэширован ли экземпляр конфигурации.
 
         Returns:

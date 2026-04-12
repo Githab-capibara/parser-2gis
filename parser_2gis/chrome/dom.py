@@ -37,7 +37,7 @@ class DOMNode(BaseModel):
     attributes: dict[str, str] = {}
 
     @staticmethod
-    def _validate_attributes(attributes_list: list[str]) -> dict[str, str]:
+    def _validate_attributes_internal(attributes_list: list[str]) -> dict[str, str]:
         """Валидирует список атрибутов, преобразуя его в словарь.
 
         Args:
@@ -61,7 +61,7 @@ class DOMNode(BaseModel):
 
     @field_validator("attributes", mode="before")
     @classmethod
-    def validate_attributes(cls, attributes_list: list[str]) -> dict[str, str]:
+    def _validate_attributes(cls, attributes_list: list[str]) -> dict[str, str]:
         """Валидирует атрибуты в режиме Pydantic V2.
 
         Args:
@@ -71,7 +71,7 @@ class DOMNode(BaseModel):
             Словарь атрибутов {name1: value1, name2: value2, ...}.
 
         """
-        return cls._validate_attributes(attributes_list)
+        return cls._validate_attributes_internal(attributes_list)
 
     def search(self, predicate: Callable[[DOMNode], bool]) -> list[DOMNode]:
         """Ищет узлы в DOM дереве с помощью predicate."""

@@ -285,14 +285,14 @@ class TestErrorHandlingComprehensive:
     """Комплексные тесты для обработки ошибок."""
 
     def test_configuration_merge_is_callable(self) -> None:
-        """Проверка что merge_with работает без ошибок."""
+        """Проверка что _merge_with работает без ошибок."""
         config1 = Configuration()
 
         config2 = Configuration()
         config2.chrome.disable_images = True
 
-        # Метод merge_with должен работать без исключений
-        config1.merge_with(config2)
+        # Метод _merge_with должен работать без исключений
+        config1._merge_with(config2)
         # Конфигурация должна остаться в валидном состоянии
         assert config1 is not None
         assert config1.chrome is not None

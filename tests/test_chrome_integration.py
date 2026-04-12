@@ -320,7 +320,7 @@ class TestFullIntegration:
         config2.chrome = ChromeOptions(headless=True)
         config2.log = LogOptions(level="INFO")
 
-        config1.merge_with(config2)
+        config1._merge_with(config2)
 
         # Проверяем, что значение изменилось на 100
         assert config1.parser.max_records == 100

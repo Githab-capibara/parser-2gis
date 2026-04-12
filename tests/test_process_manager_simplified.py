@@ -167,27 +167,27 @@ class TestProcessManagerSimplified:
         """Тест что старые методы существуют как алиасы.
 
         Проверяет:
-        - terminate_process_graceful существует как алиас для terminate()
-        - terminate_process_forceful существует как алиас для kill()
+        - _terminate_process_graceful существует как алиас для terminate()
+        - _terminate_process_forceful существует как алиас для kill()
         - Алиасы делегируют вызов новым методам
         """
         # Проверяем что старые методы существуют как алиасы
-        assert hasattr(process_manager, "terminate_process_graceful"), (
-            "Метод terminate_process_graceful должен существовать как алиас"
+        assert hasattr(process_manager, "_terminate_process_graceful"), (
+            "Метод _terminate_process_graceful должен существовать как алиас"
         )
-        assert hasattr(process_manager, "terminate_process_forceful"), (
-            "Метод terminate_process_forceful должен существовать как алиас"
+        assert hasattr(process_manager, "_terminate_process_forceful"), (
+            "Метод _terminate_process_forceful должен существовать как алиас"
         )
 
         # Проверяем что алиасы делегируют вызов новым методам
         with patch.object(process_manager, "terminate") as mock_terminate:
             mock_terminate.return_value = (True, "terminated")
-            process_manager.terminate_process_graceful(12345)
+            process_manager._terminate_process_graceful(12345)
             mock_terminate.assert_called_once_with(12345, timeout=5)
 
         with patch.object(process_manager, "kill") as mock_kill:
             mock_kill.return_value = (True, "killed")
-            process_manager.terminate_process_forceful(12345)
+            process_manager._terminate_process_forceful(12345)
             mock_kill.assert_called_once_with(12345, timeout=10)
 
     def test_terminate_success_scenario(self) -> None:

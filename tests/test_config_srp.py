@@ -137,11 +137,11 @@ class TestConfiguration:
     """Тесты для Configuration."""
 
     def test_configuration_merge_with(self) -> None:
-        """Тестирует метод merge_with."""
+        """Тестирует метод _merge_with."""
         config1 = Configuration()
         config2 = Configuration(parser={"max_records": 200})
 
-        config1.merge_with(config2)
+        config1._merge_with(config2)
 
         assert config1.parser.max_records == 200
 

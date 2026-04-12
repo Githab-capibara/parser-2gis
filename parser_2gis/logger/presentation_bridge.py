@@ -40,7 +40,7 @@ class LoggerPresentationBridge:
         self._enabled = False
 
     @property
-    def is_enabled(self) -> bool:
+    def _is_enabled(self) -> bool:
         """Возвращает состояние делегирования."""
         return self._enabled
 

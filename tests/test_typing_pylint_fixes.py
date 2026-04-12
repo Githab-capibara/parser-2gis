@@ -166,25 +166,25 @@ class TestTypingFixes:
         assert partial_state["selected_cities"] == ["Moscow"]
 
     def test_process_status_typealias(self) -> None:
-        """Тест TypeAlias ProcessStatus."""
-        from parser_2gis.chrome.browser import ProcessStatus
+        """Тест TypeAlias _ProcessStatus."""
+        from parser_2gis.chrome.browser import _ProcessStatus
 
-        # ProcessStatus должен быть tuple[bool, str]
-        status: ProcessStatus = (True, "Success")
+        # _ProcessStatus должен быть tuple[bool, str]
+        status: _ProcessStatus = (True, "Success")
         assert status[0] is True
         assert status[1] == "Success"
 
-        error_status: ProcessStatus = (False, "Error message")
+        error_status: _ProcessStatus = (False, "Error message")
         assert error_status[0] is False
         assert error_status[1] == "Error message"
 
     def test_process_status_typealias_in_browser(self) -> None:
-        """Тест использования ProcessStatus в ChromeBrowser."""
-        from parser_2gis.chrome.browser import ProcessStatus
+        """Тест использования _ProcessStatus в ChromeBrowser."""
+        from parser_2gis.chrome.browser import _ProcessStatus
 
-        # ProcessStatus определён как TypeAlias
+        # _ProcessStatus определён как TypeAlias
         # Проверяем что он может быть использован
-        def returns_process_status() -> ProcessStatus:
+        def returns_process_status() -> _ProcessStatus:
             return (True, "Success")
 
         result = returns_process_status()
@@ -496,10 +496,10 @@ class TestTypingIntegration:
 
     def test_typealias_usage(self) -> None:
         """Тест использования TypeAlias."""
-        from parser_2gis.chrome.browser import ProcessStatus
+        from parser_2gis.chrome.browser import _ProcessStatus
 
-        # ProcessStatus должен быть tuple
-        def return_status() -> ProcessStatus:
+        # _ProcessStatus должен быть tuple
+        def return_status() -> _ProcessStatus:
             return (True, "Success")
 
         status = return_status()

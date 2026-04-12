@@ -5,7 +5,7 @@ ISSUE 114: Добавляет паттерн Builder для создания Chr
 
 Пример использования:
     >>> from parser_2gis.chrome import ChromeBrowserBuilder
-    >>> browser = ChromeBrowserBuilder().with_options(chrome_options).build()
+    >>> browser = ChromeBrowserBuilder()._with_options(chrome_options)._build()
     >>> browser.init()
     >>> browser.close()
 """
@@ -27,8 +27,8 @@ class ChromeBrowserBuilder:
 
     Example:
         >>> builder = ChromeBrowserBuilder()
-        >>> builder = builder.with_options(options)
-        >>> browser = builder.build()
+        >>> builder = builder._with_options(options)
+        >>> browser = builder._build()
 
     """
 
@@ -36,7 +36,7 @@ class ChromeBrowserBuilder:
         """Инициализирует builder с параметрами по умолчанию."""
         self._chrome_options: ChromeOptions | None = None
 
-    def with_options(self, options: ChromeOptions) -> ChromeBrowserBuilder:
+    def _with_options(self, options: ChromeOptions) -> ChromeBrowserBuilder:
         """Устанавливает опции Chrome.
 
         Args:
@@ -49,7 +49,7 @@ class ChromeBrowserBuilder:
         self._chrome_options = options
         return self
 
-    def build(self) -> ChromeBrowser:
+    def _build(self) -> ChromeBrowser:
         """Создаёт и возвращает экземпляр ChromeBrowser.
 
         Returns:
@@ -62,7 +62,7 @@ class ChromeBrowserBuilder:
         from .browser import ChromeBrowser
 
         if self._chrome_options is None:
-            msg = "Опции Chrome обязательны. Используйте with_options()."
+            msg = "Опции Chrome обязательны. Используйте _with_options()."
             raise ValueError(msg)
 
         return ChromeBrowser(chrome_options=self._chrome_options)

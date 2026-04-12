@@ -31,7 +31,7 @@ HTTP_CACHE_TTL_SECONDS = 120
 HTTP_CACHE_MAXSIZE = 1024
 
 # D012: Rate limiting для HTTP кэша — минимальная задержка между запросами
-HTTP_CACHE_RATE_LIMIT_DELAY = 0.05  # 50ms между запросами
+_HTTP_CACHE_RATE_LIMIT_DELAY = 0.05  # 50ms между запросами
 
 
 class _HTTPCacheEntry:
@@ -125,7 +125,7 @@ class _HTTPCache:
                 del self._cache[key]
             return len(expired_keys)
 
-    def size(self) -> int:
+    def _size(self) -> int:
         """Возвращает текущий размер кэша.
 
         Returns:

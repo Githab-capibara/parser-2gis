@@ -95,7 +95,7 @@ class RateLimiterState:
             self._request_timestamps.clear()
 
     @property
-    def request_count(self) -> int:
+    def _request_count(self) -> int:
         """Возвращает текущее количество timestamps в окне."""
         with self._lock:
             return len(self._request_timestamps)

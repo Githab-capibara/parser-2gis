@@ -310,7 +310,7 @@ class FileLogger:
         return self._log_file
 
     @property
-    def is_enabled(self) -> bool:
+    def _is_enabled(self) -> bool:
         """Проверка, включено ли логирование в файл.
 
         Returns:

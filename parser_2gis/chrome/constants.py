@@ -60,7 +60,7 @@ CHROME_STARTUP_DELAY: float = DEFAULT_STARTUP_DELAY_SEC
 # ISSUE-#135: Можно настроить через ENV переменные
 _DEFAULT_PORT_START = int(os.environ.get("PARSER_DEBUG_PORT_START", "9222"))
 _DEFAULT_PORT_END = int(os.environ.get("PARSER_DEBUG_PORT_END", "9322"))
-DEFAULT_REMOTE_DEBUGGING_PORT_RANGE: tuple[int, int] = (_DEFAULT_PORT_START, _DEFAULT_PORT_END)
+_DEFAULT_REMOTE_DEBUGGING_PORT_RANGE: tuple[int, int] = (_DEFAULT_PORT_START, _DEFAULT_PORT_END)
 
 # Максимальная длина JavaScript кода для предотвращения DoS атак
 # ОБОСНОВАНИЕ: 5MB выбрано исходя из:
@@ -95,19 +95,19 @@ CHROME_REMOTE_ALLOW_ORIGINS_TEMPLATE: str = "http://127.0.0.1:{port}"
 # - CDP может обрабатывать до 150 запросов в секунду без проблем
 # - 150 запросов/сек — максимально агрессивный лимит для ускоренного парсинга
 # - Достаточно для интенсивной работы без перегрузки браузера
-RATE_LIMIT_CALLS: int = 150
-RATE_LIMIT_PERIOD: int = 1  # 1 секунда
+_RATE_LIMIT_CALLS: int = 150
+_RATE_LIMIT_PERIOD: int = 1  # 1 секунда
 
 # Таймауты и задержки
 # ОБОСНОВАНИЕ: значения выбраны исходя из максимально агрессивных сценариев парсинга
-DEFAULT_EXECUTE_SCRIPT_TIMEOUT_SEC: int = 20  # таймаут выполнения скрипта (увеличено)
-DEFAULT_CONNECT_TIMEOUT_SEC: int = 240  # таймаут подключения к Chrome (увеличено)
-DEFAULT_PORT_CHECK_TIMEOUT_SEC: float = 0.4  # таймаут проверки порта (увеличено)
-DEFAULT_PORT_CHECK_RETRIES: int = 2  # количество повторных проверок порта
+_DEFAULT_EXECUTE_SCRIPT_TIMEOUT_SEC: int = 20  # таймаут выполнения скрипта (увеличено)
+_DEFAULT_CONNECT_TIMEOUT_SEC: int = 240  # таймаут подключения к Chrome (увеличено)
+_DEFAULT_PORT_CHECK_TIMEOUT_SEC: float = 0.4  # таймаут проверки порта (увеличено)
+_DEFAULT_PORT_CHECK_RETRIES: int = 2  # количество повторных проверок порта
 
 # Размеры кэшей
 # ОБОСНОВАНИЕ: размеры уменьшены для экономии памяти без потери производительности
-PORT_CACHE_MAXSIZE: int = 64  # размер кэша проверки портов
+_PORT_CACHE_MAXSIZE: int = 64  # размер кэша проверки портов
 
 # =============================================================================
 # КОНСТАНТЫ БЕЗОПАСНОСТИ
@@ -137,7 +137,7 @@ EXTERNAL_RATE_LIMIT_PERIOD: int = 1  # 1 секунда
 # =============================================================================
 
 # Стандартный порт для remote debugging
-DEFAULT_REMOTE_DEBUGGING_PORT: int = 9222
+_DEFAULT_REMOTE_DEBUGGING_PORT: int = 9222
 
 # Минимальный номер порта (зарезервированные порты 0-1023)
 MIN_PORT: int = 1024
@@ -149,8 +149,8 @@ MAX_PORT: int = 65535
 SECONDS_PER_HOUR: int = 3600
 
 # CSS цвета для TUI
-CSS_COLOR_DARK: str = "#333"
-CSS_COLOR_LIGHT: str = "#666"
+_CSS_COLOR_DARK: str = "#333"
+_CSS_COLOR_LIGHT: str = "#666"
 
 # Таймаут для сетевых запросов по умолчанию (в секундах)
 # ОБОСНОВАНИЕ: 60 секунд выбрано исходя из:
@@ -175,7 +175,7 @@ DEFAULT_FILE_PERMISSIONS: int = 0o700
 # - Типичное время подключения к внешним сервисам: 1-5 секунд
 # - 30 секунд обеспечивают запас для медленных соединений
 # - Баланс между стабильностью и временем ожидания
-DEFAULT_CONNECTION_TIMEOUT_SEC: int = 30
+_DEFAULT_CONNECTION_TIMEOUT_SEC: int = 30
 
 # URL для localhost connections
 # ISSUE-066: Вынесено в константу для устранения хардкода

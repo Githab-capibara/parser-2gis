@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 # =============================================================================
 
 # Тип возврата для методов завершения процесса
-type ProcessStatus = tuple[
+type _ProcessStatus = tuple[
     bool,
     Literal[
         "no_process",
@@ -647,11 +647,11 @@ class ProcessManager:
         return self._start_time
 
     # Алиасы для обратной совместимости
-    def terminate_process_graceful(self, process_pid: int) -> tuple[bool, str]:
+    def _terminate_process_graceful(self, process_pid: int) -> tuple[bool, str]:
         """Алиас для terminate() для обратной совместимости."""
         return self.terminate(process_pid, timeout=5)
 
-    def terminate_process_forceful(self, process_pid: int) -> tuple[bool, str]:
+    def _terminate_process_forceful(self, process_pid: int) -> tuple[bool, str]:
         """Алиас для kill() для обратной совместимости."""
         return self.kill(process_pid, timeout=10)
 

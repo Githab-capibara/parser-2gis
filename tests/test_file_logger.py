@@ -29,7 +29,7 @@ class TestFileLoggerInitialization:
 
         assert file_logger is not None
         assert file_logger.log_file is None
-        assert not file_logger.is_enabled
+        assert not file_logger._is_enabled
 
     def test_file_logger_with_file(self) -> None:
         """Проверка создания FileLogger с файлом логов."""
@@ -41,7 +41,7 @@ class TestFileLoggerInitialization:
 
             assert file_logger is not None
             assert file_logger.log_file == log_file
-            assert file_logger.is_enabled
+            assert file_logger._is_enabled
         finally:
             if log_file.exists():
                 log_file.unlink()
@@ -97,7 +97,7 @@ class TestFileLoggerSetup:
 
             file_logger.setup_logger(test_logger)
 
-            assert file_logger.is_enabled
+            assert file_logger._is_enabled
             assert len(test_logger.handlers) >= 1
         finally:
             if log_file.exists():
@@ -198,7 +198,7 @@ class TestFileLoggerContextManager:
 
         try:
             with FileLogger(log_file=log_file) as file_logger:
-                assert file_logger.is_enabled
+                assert file_logger._is_enabled
 
                 test_logger = logging.getLogger("test-context")
                 file_logger.setup_logger(test_logger)
@@ -222,7 +222,7 @@ class TestFileLoggerContextManager:
             file_logger = FileLogger(log_file=log_file)
 
             with file_logger:
-                assert file_logger.is_enabled
+                assert file_logger._is_enabled
 
             # После выхода из контекста логгер должен быть закрыт
             assert file_logger._file_handler is None
@@ -255,14 +255,14 @@ class TestFileLoggerProperties:
 
         try:
             file_logger = FileLogger(log_file=log_file)
-            assert file_logger.is_enabled is True
+            assert file_logger._is_enabled is True
         finally:
             if log_file.exists():
                 log_file.unlink()
 
         # Выключено (отключаем автоматическую сессию)
         file_logger = FileLogger(log_file=None, auto_session=False)
-        assert file_logger.is_enabled is False
+        assert file_logger._is_enabled is False
 
 
 class TestFileLoggerClose:
@@ -275,7 +275,7 @@ class TestFileLoggerClose:
 
         try:
             file_logger = FileLogger(log_file=log_file)
-            assert file_logger.is_enabled is True
+            assert file_logger._is_enabled is True
 
             file_logger.close()
             assert file_logger._file_handler is None

@@ -93,7 +93,7 @@ logger = _LazyLogger()
 Logger = logging.Logger
 
 
-class LoggerProvider:
+class _LoggerProvider:
     """Провайдер для создания и получения именованных логгеров.
 
     ISSUE 062: Заменяет модульный singleton logger на класс LoggerProvider,
@@ -104,7 +104,7 @@ class LoggerProvider:
     _lock: ClassVar[threading.Lock] = threading.Lock()
 
     @classmethod
-    def get_logger(cls, name: str = _LOGGER_NAME) -> logging.Logger:
+    def _get_logger(cls, name: str = _LOGGER_NAME) -> logging.Logger:
         """Получает или создаёт именованный логгер.
 
         Args:
@@ -129,7 +129,7 @@ class LoggerProvider:
             return cls._loggers[name]
 
     @classmethod
-    def configure_logger(
+    def _configure_logger(
         cls,
         name: str = _LOGGER_NAME,
         level: str | int = logging.INFO,

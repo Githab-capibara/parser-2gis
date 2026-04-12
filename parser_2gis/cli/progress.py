@@ -71,10 +71,10 @@ class ProgressManager:
         >>> progress.start(total_pages=10, total_records=100)
         >>> for page in range(10):
         ...     # Обработка страницы
-        ...     progress.update_page()
+        ...     progress._update_page()
         ...     for record in range(10):
         ...         # Обработка записи
-        ...         progress.update_record()
+        ...         progress._update_record()
         >>> progress.finish()
 
     """
@@ -134,7 +134,7 @@ class ProgressManager:
                 disable=self._disable,
             )
 
-    def update_page(self, n: int = 1) -> None:
+    def _update_page(self, n: int = 1) -> None:
         """Обновление прогресса по страницам.
 
         Увеличивает счетчик обработанных страниц на указанное значение.
@@ -148,7 +148,7 @@ class ProgressManager:
         if self._page_bar:
             self._page_bar.update(n)
 
-    def update_record(self, n: int = 1) -> None:
+    def _update_record(self, n: int = 1) -> None:
         """Обновление прогресса по записям.
 
         Увеличивает счетчик обработанных записей на указанное значение.
@@ -230,7 +230,7 @@ class ProgressManager:
         """
         return self._stats
 
-    def reset(self) -> None:
+    def _reset(self) -> None:
         """Сброс прогресс-бара.
 
         Сбрасывает всю статистику и закрывает прогресс-бары.
@@ -252,7 +252,7 @@ class ProgressManager:
             raise
 
     @property
-    def is_started(self) -> bool:
+    def _is_started(self) -> bool:
         """Проверка, запущен ли прогресс-бар.
 
         Returns:
@@ -262,7 +262,7 @@ class ProgressManager:
         return self._stats.started_at is not None
 
     @property
-    def is_finished(self) -> bool:
+    def _is_finished(self) -> bool:
         """Проверка, завершен ли прогресс-бар.
 
         Returns:

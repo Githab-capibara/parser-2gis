@@ -6,7 +6,7 @@ from parser_2gis.chrome.constants import (
     CHROME_NO_SANDBOX_FLAG,
     CHROME_STARTUP_DELAY,
     DEFAULT_MEMORY_LIMIT_MB,
-    DEFAULT_REMOTE_DEBUGGING_PORT_RANGE,
+    _DEFAULT_REMOTE_DEBUGGING_PORT_RANGE,
     DEFAULT_STARTUP_DELAY_SEC,
     DEFAULT_TTL_HOURS,
     EXTERNAL_RATE_LIMIT_PERIOD,
@@ -14,7 +14,7 @@ from parser_2gis.chrome.constants import (
     MAX_PORT,
     MEMORY_FRACTION_FOR_V8,
     MIN_PORT,
-    RATE_LIMIT_PERIOD,
+    _RATE_LIMIT_PERIOD,
 )
 
 
@@ -27,25 +27,25 @@ class TestChromeConstantsExist:
             pytest.param("DEFAULT_MEMORY_LIMIT_MB", int, id="memory_limit"),
             pytest.param("DEFAULT_STARTUP_DELAY_SEC", (int, float), id="startup_delay"),
             pytest.param("CHROME_STARTUP_DELAY", (int, float), id="chrome_startup"),
-            pytest.param("DEFAULT_REMOTE_DEBUGGING_PORT", int, id="debug_port"),
-            pytest.param("DEFAULT_REMOTE_DEBUGGING_PORT_RANGE", tuple, id="port_range"),
+            pytest.param("_DEFAULT_REMOTE_DEBUGGING_PORT", int, id="debug_port"),
+            pytest.param("_DEFAULT_REMOTE_DEBUGGING_PORT_RANGE", tuple, id="port_range"),
             pytest.param("MAX_JS_CODE_LENGTH", int, id="max_js_length"),
             pytest.param("MAX_TOTAL_JS_SIZE", int, id="max_total_js"),
-            pytest.param("RATE_LIMIT_CALLS", int, id="rate_limit_calls"),
-            pytest.param("RATE_LIMIT_PERIOD", int, id="rate_limit_period"),
+            pytest.param("_RATE_LIMIT_CALLS", int, id="rate_limit_calls"),
+            pytest.param("_RATE_LIMIT_PERIOD", int, id="rate_limit_period"),
             pytest.param("MAX_RESPONSE_SIZE", int, id="max_response_size"),
             pytest.param("MEMORY_FRACTION_FOR_V8", float, id="memory_fraction"),
             pytest.param("EXTERNAL_RATE_LIMIT_CALLS", int, id="external_rate_calls"),
             pytest.param("EXTERNAL_RATE_LIMIT_PERIOD", int, id="external_rate_period"),
-            pytest.param("DEFAULT_REMOTE_DEBUGGING_PORT", int, id="default_port"),
+            pytest.param("_DEFAULT_REMOTE_DEBUGGING_PORT", int, id="default_port"),
             pytest.param("MIN_PORT", int, id="min_port"),
             pytest.param("MAX_PORT", int, id="max_port"),
             pytest.param("SECONDS_PER_HOUR", int, id="seconds_per_hour"),
             pytest.param("DEFAULT_NETWORK_TIMEOUT", int, id="network_timeout"),
             pytest.param("DEFAULT_TTL_HOURS", int, id="ttl_hours"),
-            pytest.param("DEFAULT_CONNECTION_TIMEOUT_SEC", int, id="connection_timeout"),
+            pytest.param("_DEFAULT_CONNECTION_TIMEOUT_SEC", int, id="connection_timeout"),
             pytest.param("LOCALHOST_BASE_URL", str, id="localhost_url"),
-            pytest.param("PORT_CACHE_MAXSIZE", int, id="port_cache_maxsize"),
+            pytest.param("_PORT_CACHE_MAXSIZE", int, id="port_cache_maxsize"),
         ],
     )
     def test_constant_exists_and_correct_type(self, name, value_type) -> None:
@@ -69,7 +69,7 @@ class TestChromeConstantsValues:
 
     def test_port_range_min_less_than_max(self) -> None:
         """Минимальный порт в диапазоне меньше максимального."""
-        min_port, max_port = DEFAULT_REMOTE_DEBUGGING_PORT_RANGE
+        min_port, max_port = _DEFAULT_REMOTE_DEBUGGING_PORT_RANGE
         assert min_port < max_port
 
     def test_min_port_is_1024(self) -> None:
@@ -90,8 +90,8 @@ class TestChromeConstantsValues:
         assert 0 < MEMORY_FRACTION_FOR_V8 < 1.0
 
     def test_rate_limit_period_is_positive(self) -> None:
-        """RATE_LIMIT_PERIOD положительный."""
-        assert RATE_LIMIT_PERIOD > 0
+        """_RATE_LIMIT_PERIOD положительный."""
+        assert _RATE_LIMIT_PERIOD > 0
 
     def test_external_rate_limit_period_is_positive(self) -> None:
         """EXTERNAL_RATE_LIMIT_PERIOD положительный."""

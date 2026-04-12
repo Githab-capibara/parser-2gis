@@ -57,7 +57,7 @@ class RequestInterceptor:
                 self._response_queues[pattern] = queue.Queue()
                 app_logger.debug("Зарегистрирован паттерн ответа: %s", pattern)
 
-    def unregister_response_pattern(self, pattern: str) -> None:
+    def _unregister_response_pattern(self, pattern: str) -> None:
         """Удаляет паттерн и соответствующую очередь.
 
         Args:
@@ -117,7 +117,7 @@ class RequestInterceptor:
                     except queue.Empty:
                         break
 
-    def get_request(self, request_id: str) -> Request | None:
+    def _get_request(self, request_id: str) -> Request | None:
         """Получает запрос по ID.
 
         Args:

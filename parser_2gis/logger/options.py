@@ -22,7 +22,7 @@ class LogOptions(BaseModel):
         gui_datefmt: Формат даты для GUI.
         cli_datefmt: Формат даты для CLI.
         file_format: Формат сообщений для файла.
-        file_datefmt: Формат даты для файла.
+        _file_datefmt: Формат даты для файла.
         level: Уровень логирования.
         use_colors: Использовать ли цвета в выводе (None = авто).
         use_emoji: Использовать ли emoji.
@@ -35,7 +35,7 @@ class LogOptions(BaseModel):
     file_format: str = (
         "%(asctime)s | %(levelname)s | %(name)s | %(funcName)s:%(lineno)d | %(message)s"
     )
-    file_datefmt: str = "%Y-%m-%d %H:%M:%S"
+    _file_datefmt: str = "%Y-%m-%d %H:%M:%S"
     level: str = "DEBUG"
     use_colors: bool | None = None  # None = автоматически
     use_emoji: bool = True
@@ -59,12 +59,12 @@ class LogOptions(BaseModel):
 
     @field_validator("level")
     @classmethod
-    def level_validation(cls, v: str) -> str:
+    def _level_validation(cls, v: str) -> str:
         """Валидатор уровня логирования."""
         return cls._validate_level(v)
 
     @field_validator("gui_format", "cli_format")
     @classmethod
-    def format_validation(cls, v: str) -> str:
+    def _format_validation(cls, v: str) -> str:
         """Валидатор формата строк."""
         return cls._validate_format(v)

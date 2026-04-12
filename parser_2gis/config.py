@@ -22,7 +22,7 @@
 Пример использования:
     >>> from parser_2gis.config import Configuration
     >>> config = Configuration()
-    >>> config.merge_with(other_config)
+    >>> config._merge_with(other_config)
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ if TYPE_CHECKING:
 
 
 @runtime_checkable
-class ConfigServiceProtocol(Protocol):
+class _ConfigServiceProtocol(Protocol):
     """Протокол сервиса конфигурации для устранения жёстких зависимостей.
 
     ISSUE-035: Определяет интерфейс ConfigService без прямого импорта.
@@ -93,7 +93,7 @@ class Configuration(BaseModel):
 
     Example:
         >>> config = Configuration()
-        >>> config.merge_with(other_config)
+        >>> config._merge_with(other_config)
         >>> config.save_config()
 
     """
@@ -130,7 +130,7 @@ class Configuration(BaseModel):
     path: pathlib.Path | None = None
     version: str = config_version
 
-    def merge_with(self, other_config: Configuration, max_depth: int = 20) -> None:
+    def _merge_with(self, other_config: Configuration, max_depth: int = 20) -> None:
         """Объединяет конфигурацию с другой.
 
         Делегирует логику объединения классу ConfigMerger.
@@ -142,7 +142,7 @@ class Configuration(BaseModel):
         Example:
             >>> config1 = Configuration()
             >>> config2 = Configuration()
-            >>> config1.merge_with(config2)
+            >>> config1._merge_with(config2)
 
         """
         from .config_services import ConfigMerger

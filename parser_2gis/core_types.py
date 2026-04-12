@@ -18,13 +18,13 @@ from typing import Any, NamedTuple, Protocol, TypeVar
 
 # Type variables для дженериков
 T = TypeVar("T")
-K = TypeVar("K")
-V = TypeVar("V")
+_K = TypeVar("K")
+_V = TypeVar("V")
 
 # Протокол для функций логирования
 
 
-class LogCallback(Protocol):
+class _LogCallback(Protocol):
     """Протокол для callback-функции логирования.
 
     Attributes:
@@ -69,7 +69,7 @@ class ProgressCallback(Protocol):
 # Базовые NamedTuple для переиспользования
 
 
-class FileOperationResult(NamedTuple):
+class _FileOperationResult(NamedTuple):
     """Результат файловой операции.
 
     Attributes:
@@ -84,19 +84,19 @@ class FileOperationResult(NamedTuple):
     data: Any = None
 
 
-class MergeStats(NamedTuple):
+class _MergeStats(NamedTuple):
     """Статистика операции объединения.
 
     Attributes:
-        total_files: Общее количество обработанных файлов.
+        _total_files: Общее количество обработанных файлов.
         total_rows: Общее количество строк.
-        deleted_files: Количество удалённых исходных файлов.
+        _deleted_files: Количество удалённых исходных файлов.
 
     """
 
-    total_files: int
+    _total_files: int
     total_rows: int
-    deleted_files: int
+    _deleted_files: int
 
 
 # Generic container для результатов парсинга
@@ -128,7 +128,7 @@ class ParseResult[T]:
         self.error = error
 
     @classmethod
-    def ok(cls, value: T) -> ParseResult[T]:
+    def _ok(cls, value: T) -> ParseResult[T]:
         """Создаёт успешный результат.
 
         Args:
@@ -141,7 +141,7 @@ class ParseResult[T]:
         return cls(value=value, success=True)
 
     @classmethod
-    def fail(cls, error: str) -> ParseResult[Any]:
+    def _fail(cls, error: str) -> ParseResult[Any]:
         """Создаёт результат с ошибкой.
 
         Args:

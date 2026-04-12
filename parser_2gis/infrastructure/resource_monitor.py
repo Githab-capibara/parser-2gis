@@ -12,7 +12,7 @@ ISSUE-019: Dependency Injection — MemoryMonitor внедряется чере�
 Пример использования:
     >>> from parser_2gis.infrastructure.resource_monitor import ResourceMonitor
     >>> monitor = ResourceMonitor()
-    >>> if monitor.is_memory_critical():
+    >>> if monitor._is_memory_critical():
     ...     print("Критический уровень памяти!")
 """
 
@@ -59,7 +59,7 @@ class MemoryInfo:
         return self.available / (1024 * 1024)
 
     @property
-    def used_mb(self) -> float:
+    def _used_mb(self) -> float:
         """Использованный объём памяти в мегабайтах.
 
         Returns:
@@ -69,7 +69,7 @@ class MemoryInfo:
         return self.used / (1024 * 1024)
 
     @property
-    def total_mb(self) -> float:
+    def _total_mb(self) -> float:
         """Общий объём памяти в мегабайтах.
 
         Returns:
@@ -193,9 +193,9 @@ class ResourceMonitor:
 
     Example:
         >>> monitor = ResourceMonitor()
-        >>> if monitor.is_memory_critical():
+        >>> if monitor._is_memory_critical():
         ...     print("Критический уровень памяти!")
-        >>> cpu = monitor.get_cpu_usage()
+        >>> cpu = monitor._get_cpu_usage()
         >>> print(f"CPU: {cpu:.1f}%")
 
     """
@@ -220,7 +220,7 @@ class ResourceMonitor:
         """
         self._memory_monitor = memory_monitor or MemoryMonitor()
 
-    def get_memory_monitor(self) -> MemoryMonitor:
+    def _get_memory_monitor(self) -> MemoryMonitor:
         """Получает монитор памяти.
 
         Returns:
@@ -229,7 +229,7 @@ class ResourceMonitor:
         """
         return self._memory_monitor
 
-    def is_memory_critical(self, threshold_mb: float = 50.0) -> bool:
+    def _is_memory_critical(self, threshold_mb: float = 50.0) -> bool:
         """Проверяет критический уровень памяти.
 
         Args:
@@ -241,13 +241,13 @@ class ResourceMonitor:
 
         Example:
             >>> monitor = ResourceMonitor()
-            >>> if monitor.is_memory_critical():
+            >>> if monitor._is_memory_critical():
             ...     print("Критический уровень памяти!")
 
         """
         return self._memory_monitor.is_low_memory(threshold_mb)
 
-    def check_memory_before_operation(
+    def _check_memory_before_operation(
         self, required_mb: float = 100.0, threshold_mb: float = 100.0
     ) -> bool:
         """Проверяет память перед операцией.
@@ -261,14 +261,14 @@ class ResourceMonitor:
 
         Example:
             >>> monitor = ResourceMonitor()
-            >>> if monitor.check_memory_before_operation(required_mb=500):
+            >>> if monitor._check_memory_before_operation(required_mb=500):
             ...     perform_memory_intensive_operation()
 
         """
         available_mb = self._memory_monitor.get_memory_usage().available_mb
         return available_mb >= (required_mb + threshold_mb)
 
-    def get_cpu_usage(self, interval: float = 0.1) -> float:
+    def _get_cpu_usage(self, interval: float = 0.1) -> float:
         """Получает процент использования CPU.
 
         ISSUE-166: Убран lru_cache с метода экземпляра для предотвращения утечки памяти.
@@ -282,7 +282,7 @@ class ResourceMonitor:
 
         Example:
             >>> monitor = ResourceMonitor()
-            >>> cpu = monitor.get_cpu_usage(interval=0.5)
+            >>> cpu = monitor._get_cpu_usage(interval=0.5)
             >>> print(f"CPU usage: {cpu:.1f}%")
 
         """

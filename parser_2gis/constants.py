@@ -119,7 +119,7 @@ from parser_2gis.constants.validation import (
 type EnvValidationResult = tuple[bool, str | None]
 
 
-class EnvValidationEntry(NamedTuple):
+class _EnvValidationEntry(NamedTuple):
     """Запись конфигурации ENV валидации.
 
     P0-91: Замена tuple[str, int, int | None, int | None, str, str] на именованный кортеж.
@@ -242,7 +242,7 @@ __all__: list[str] = [
     "EnvConfig",
     "EnvConfigManager",
     # Type aliases and helpers
-    "EnvValidationEntry",
+    "_EnvValidationEntry",
     "EnvValidationResult",
     "_reset_constant_cache",
     "get_env_config",

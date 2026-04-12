@@ -123,7 +123,7 @@ _PORT_CHECK_PATTERN = re.compile(r"^http://127\.0\.0\.1:(\d+)$")
 # =============================================================================
 
 # Тип возврата для методов завершения процесса
-type ProcessStatus = tuple[bool, str]
+type _ProcessStatus = tuple[bool, str]
 
 
 # =============================================================================
@@ -141,7 +141,7 @@ def _check_port_cached(port: int) -> bool:
     return _check_port_available_internal(port, timeout=0.6, retries=1)
 
 
-def get_port_cache_info() -> dict[str, int | None]:
+def _get_port_cache_info() -> dict[str, int | None]:
     """Возвращает информацию о кэше проверки портов.
 
     Returns:
@@ -205,7 +205,7 @@ def _clear_port_cache() -> None:
     _check_port_cached.cache_clear()
 
 
-def invalidate_port_cache(_port: int) -> None:
+def _invalidate_port_cache(_port: int) -> None:
     """Инвалидирует кэш для конкретного порта.
 
     ISSUE-003-#17: Поскольку lru_cache не поддерживает удаление отдельных записей,
@@ -923,7 +923,7 @@ class ChromeRemote:
         with self._requests_lock:  # type: ignore[attr-defined]
             return [x["response"] for x in self._requests.values() if "response" in x]  # type: ignore[attr-defined]
 
-    def get_requests(self) -> list[Request]:
+    def _get_requests(self) -> list[Request]:
         """Получает записанные запросы."""
         with self._requests_lock:  # type: ignore[attr-defined]
             return [*self._requests.values()]  # type: ignore[attr-defined]
@@ -1001,7 +1001,7 @@ class ChromeRemote:
 
         return self._execute_script_internal(expression, timeout)
 
-    def execute_script_batch(self, expressions: list[str], timeout: int = 300) -> list[Any]:
+    def _execute_script_batch(self, expressions: list[str], timeout: int = 300) -> list[Any]:
         """Пакетное выполнение JavaScript выражений.
 
         C018: Оптимизация через выполнение нескольких выражений в одном CDP вызове.
@@ -1018,7 +1018,7 @@ class ChromeRemote:
             return []
 
         if self._chrome_tab is None:
-            app_logger.error("Chrome tab не инициализирован в execute_script_batch")
+            app_logger.error("Chrome tab не инициализирован в _execute_script_batch")
             return [None] * len(expressions)
 
         # C018: Объединяем выражения в одно для снижения количества CDP вызовов
@@ -1391,7 +1391,7 @@ class ChromeRemote:
             app_logger.error("Ошибка при получении HTML: %s", e)
             return ""
 
-    def screenshot(self, path: str) -> None:
+    def _screenshot(self, path: str) -> None:
         """Сделать скриншот страницы и сохранить в файл.
 
         Args:
@@ -1399,7 +1399,7 @@ class ChromeRemote:
 
         """
         if self._chrome_tab is None:
-            app_logger.error("Chrome tab не инициализирован в screenshot")
+            app_logger.error("Chrome tab не инициализирован в _screenshot")
             return
 
         try:
