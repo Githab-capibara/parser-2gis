@@ -113,7 +113,8 @@ class MainParser:
 
     def _wait_requests_finished(self) -> bool:
         """Делегирует проверку завершения запросов через page_parser."""
-        return self._page_parser._wait_requests_finished()  # type: ignore[no-any-return]
+        result = self._page_parser._wait_requests_finished()
+        return bool(result)
 
     @staticmethod
     def url_pattern() -> str:

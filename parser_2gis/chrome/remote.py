@@ -60,13 +60,13 @@ from .request_interceptor import Request, RequestInterceptor, Response
 try:
     from ratelimit import limits, sleep_and_retry
 except ImportError:
-    limits = None
-    sleep_and_retry = None
+    limits = None  # type: ignore[assignment]
+    sleep_and_retry = None  # type: ignore[assignment]
 
 try:
-    from requests.exceptions import RequestException  # type: ignore[import-untyped]
+    from requests.exceptions import RequestException
 except ImportError:
-    RequestException = Exception
+    RequestException = Exception  # type: ignore[misc,assignment]
 
 # tenacity импортируется из utils.retry при необходимости
 

@@ -284,11 +284,13 @@ class CacheManager:
         # #144: Проверяем что имя не содержит путей
         # (до basename для совместимости с тестами)
         if "/" in cache_file_name or "\\" in cache_file_name or ".." in cache_file_name:
-            raise ValueError("cache_file_name не должен содержать '/', '\\' или '..'")
+            path_error_msg = "cache_file_name не должен содержать '/', '\\' или '..'"
+            raise ValueError(path_error_msg)
         # Извлекаем только имя файла для защиты от path traversal атак
         cache_file_name = Path(cache_file_name).name
         if not cache_file_name.endswith(".db"):
-            raise ValueError("cache_file_name должен заканчиваться на '.db'")
+            ext_error_msg = "cache_file_name должен заканчиваться на '.db'"
+            raise ValueError(ext_error_msg)
         # D002: Проверка на абсолютный путь (path traversal защита)
         if Path(cache_file_name).is_absolute():
             raise ValueError("cache_file_name не должен быть абсолютным путём")

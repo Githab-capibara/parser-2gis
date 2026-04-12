@@ -47,8 +47,8 @@ class MergeSignalHandler:
         """
         self._log_callback = log_callback
         self._temp_files_ref = temp_files_ref or []
-        self._old_sigint_handler: int | None = None
-        self._old_sigterm_handler: int | None = None
+        self._old_sigint_handler: Callable[[int, types.FrameType | None], None] | None = None
+        self._old_sigterm_handler: Callable[[int, types.FrameType | None], None] | None = None
         self._sigint_registered = False
         self._sigterm_registered = False
 
@@ -94,13 +94,19 @@ class MergeSignalHandler:
         """Восстанавливает оригинальные обработчики сигналов."""
         if self._sigint_registered:
             try:
-                signal.signal(signal.SIGINT, self._old_sigint_handler)
+                signal.signal(
+                    signal.SIGINT,
+                    self._old_sigint_handler if self._old_sigint_handler else signal.SIG_DFL,
+                )
             except (OSError, ValueError, TypeError) as restore_error:
                 self._log(f"Ошибка при восстановлении SIGINT обработчика: {restore_error}", "error")
 
         if self._sigterm_registered:
             try:
-                signal.signal(signal.SIGTERM, self._old_sigterm_handler)
+                signal.signal(
+                    signal.SIGTERM,
+                    self._old_sigterm_handler if self._old_sigterm_handler else signal.SIG_DFL,
+                )
             except (OSError, ValueError, TypeError) as restore_error:
                 self._log(
                     f"Ошибка при восстановлении SIGTERM обработчика: {restore_error}", "error"

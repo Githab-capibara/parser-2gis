@@ -83,7 +83,7 @@ def free_port() -> int:
         free_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         free_socket.bind(("127.0.0.1", 0))
         free_socket.listen(5)
-        port = free_socket.getsockname()[1]
+        port = int(free_socket.getsockname()[1])
     # Сокет закрывается в конце контекстного менеджера
     # Увеличенная задержка для гарантии освобождения порта при параллельных запусках
     time.sleep(0.1)

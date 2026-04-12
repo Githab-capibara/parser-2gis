@@ -24,6 +24,106 @@ from parser_2gis.logger import logger
 CITIES_CACHE_SIZE: int = 16
 
 
+def _validate_cities_file(cities_path: Path) -> None:
+    """Проверяет существование и размер файла городов.
+
+    Args:
+        cities_path: Путь к файлу городов.
+
+    Raises:
+        FileNotFoundError: Если файл не найден.
+        ValueError: Если файл пуст или слишком большой.
+        OSError: При ошибке получения информации о файле.
+
+    """
+    if not cities_path.is_file():
+        logger.error("Файл городов не найден: %s", cities_path)
+        raise FileNotFoundError(f"Файл {cities_path} не найден")
+
+    try:
+        file_size = cities_path.stat().st_size
+        if file_size == 0:
+            logger.error("Файл городов пуст: %s", cities_path)
+            raise ValueError(f"Файл {cities_path} пуст")
+
+        if file_size > MAX_CITIES_FILE_SIZE:
+            logger.error(
+                "Файл городов слишком большой: %d байт (макс: %d байт)",
+                file_size,
+                MAX_CITIES_FILE_SIZE,
+            )
+            raise ValueError(
+                f"Файл {cities_path} слишком большой "
+                f"({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
+            )
+
+        logger.debug("Размер файла городов: %d байт", file_size)
+    except OSError as stat_error:
+        logger.error("Ошибка получения информации о файле: %s", stat_error)
+        raise OSError(f"Не удалось получить информацию о файле: {stat_error}") from stat_error
+
+
+def _read_cities_json(cities_path: Path) -> list[dict[str, Any]]:
+    """Читает и парсит JSON файл городов.
+
+    Args:
+        cities_path: Путь к файлу городов.
+
+    Returns:
+        Список словарей с данными городов.
+
+    Raises:
+        ValueError: При некорректном JSON или данных.
+        OSError: При ошибке чтения файла.
+
+    """
+    file_size = cities_path.stat().st_size
+    all_cities: list[dict[str, Any]]
+
+    try:
+        use_mmap = file_size > MMAP_CITIES_THRESHOLD
+
+        if use_mmap:
+            logger.info(
+                "Файл городов большой (%.2f MB), используется mmap для чтения",
+                file_size / (1024 * 1024),
+            )
+            import mmap as mmap_module
+
+            with Path(cities_path).open("rb") as f:
+                mmapped_file = mmap_module.mmap(f.fileno(), 0, access=mmap_module.ACCESS_READ)
+                try:
+                    json_data = mmapped_file.read().decode("utf-8")
+                    all_cities = json.loads(json_data)
+                finally:
+                    mmapped_file.close()
+        else:
+            with Path(cities_path).open(encoding="utf-8") as f:
+                all_cities = json.load(f)
+    except UnicodeDecodeError as e:
+        logger.error("Ошибка кодировки при чтении файла городов: %s", e)
+        raise ValueError(f"Файл городов имеет некорректную кодировку (ожидалась UTF-8): {e}") from e
+    except json.JSONDecodeError as e:
+        logger.error("Ошибка парсинга JSON в файле городов: %s", e)
+        raise ValueError(f"Некорректный формат JSON в файле городов: {e}") from e
+    except OSError as e:
+        logger.error("Ошибка ОС при чтении файла городов: %s", e)
+        raise OSError(f"Не удалось прочитать файл городов: {e}") from e
+
+    if not isinstance(all_cities, list):
+        error_msg = f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
+        logger.error(error_msg)
+        raise TypeError(error_msg)
+
+    if len(all_cities) > MAX_CITIES_COUNT:
+        logger.error(
+            "Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT
+        )
+        raise ValueError(f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}")
+
+    return all_cities
+
+
 def _validate_city(city: dict[str, Any], index: int) -> None:
     """Валидирует отдельный город.
 
@@ -116,96 +216,16 @@ class ConfigCache:
             Кортеж кортежей (город, данные) для хэшируемости.
 
         """
-        # Внутренняя функция для загрузки
         cities_path = Path(cities_path_str)
 
-        if not cities_path.is_file():
-            logger.error("Файл городов не найден: %s", cities_path)
-            error_msg = f"Файл {cities_path} не найден"
-            raise FileNotFoundError(error_msg)
+        _validate_cities_file(cities_path)
+        all_cities = _read_cities_json(cities_path)
 
-        try:
-            file_size = cities_path.stat().st_size
-            if file_size == 0:
-                logger.error("Файл городов пуст: %s", cities_path)
-                error_msg = f"Файл {cities_path} пуст"
-                raise ValueError(error_msg)
+        for i, city in enumerate(all_cities):
+            _validate_city(city, i)
 
-            if file_size > MAX_CITIES_FILE_SIZE:
-                logger.error(
-                    "Файл городов слишком большой: %d байт (макс: %d байт)",
-                    file_size,
-                    MAX_CITIES_FILE_SIZE,
-                )
-                error_msg = (
-                    f"Файл {cities_path} слишком большой "
-                    f"({file_size} > {MAX_CITIES_FILE_SIZE} байт)"
-                )
-                raise ValueError(error_msg)
-
-            logger.debug("Размер файла городов: %d байт", file_size)
-        except OSError as stat_error:
-            logger.error("Ошибка получения информации о файле: %s", stat_error)
-            error_msg = f"Не удалось получить информацию о файле: {stat_error}"
-            raise OSError(error_msg) from stat_error
-
-        all_cities: list[dict[str, Any]] | None = None
-
-        try:
-            use_mmap = file_size > MMAP_CITIES_THRESHOLD
-
-            if use_mmap:
-                logger.info(
-                    "Файл городов большой (%.2f MB), используется mmap для чтения",
-                    file_size / (1024 * 1024),
-                )
-                import mmap as mmap_module
-
-                with open(cities_path, "rb") as f:
-                    mmapped_file = mmap_module.mmap(f.fileno(), 0, access=mmap_module.ACCESS_READ)
-                    try:
-                        json_data = mmapped_file.read().decode("utf-8")
-                        all_cities = json.loads(json_data)
-                    finally:
-                        mmapped_file.close()
-            else:
-                with open(cities_path, encoding="utf-8") as f:
-                    all_cities = json.load(f)
-
-            if not isinstance(all_cities, list):
-                error_msg = (
-                    f"Файл городов должен содержать список, получен {type(all_cities).__name__}"
-                )
-                logger.error(error_msg)
-                raise TypeError(error_msg)
-
-            if len(all_cities) > MAX_CITIES_COUNT:
-                logger.error(
-                    "Слишком много городов: %d (макс: %d)", len(all_cities), MAX_CITIES_COUNT
-                )
-                error_msg = f"Слишком много городов в файле: {len(all_cities)} > {MAX_CITIES_COUNT}"
-                raise ValueError(error_msg)
-
-            for i, city in enumerate(all_cities):
-                _validate_city(city, i)
-
-            logger.debug("Файл городов валидирован: %d городов", len(all_cities))
-
-            # Конвертируем в tuple для хэшируемости
-            return tuple(tuple(sorted(city.items())) for city in all_cities)
-
-        except UnicodeDecodeError as e:
-            logger.error("Ошибка кодировки при чтении файла городов: %s", e)
-            error_msg = f"Файл городов имеет некорректную кодировку (ожидалась UTF-8): {e}"
-            raise ValueError(error_msg) from e
-        except json.JSONDecodeError as e:
-            logger.error("Ошибка парсинга JSON в файле городов: %s", e)
-            error_msg = f"Некорректный формат JSON в файле городов: {e}"
-            raise ValueError(error_msg) from e
-        except OSError as e:
-            logger.error("Ошибка ОС при чтении файла городов: %s", e)
-            error_msg = f"Не удалось прочитать файл городов: {e}"
-            raise OSError(error_msg) from e
+        logger.debug("Файл городов валидирован: %d городов", len(all_cities))
+        return tuple(tuple(sorted(city.items())) for city in all_cities)
 
     def load_cities(self, cities_path_str: str) -> list[dict[str, Any]]:
         """Загружает JSON файл с городами с кэшированием.

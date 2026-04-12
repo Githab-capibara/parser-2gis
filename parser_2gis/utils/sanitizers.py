@@ -248,7 +248,7 @@ def _handle_sensitive_key(
 
 
 def _process_dict_branch(
-    current_value: dict,
+    current_value: dict[str, Any],
     current_depth: int,
     parent: Any | None,
     parent_key: Any | None,
@@ -287,7 +287,7 @@ def _process_dict_branch(
 
 
 def _process_list_branch(
-    current_value: list,
+    current_value: list[Any],
     current_depth: int,
     parent: Any | None,
     parent_key: Any | None,

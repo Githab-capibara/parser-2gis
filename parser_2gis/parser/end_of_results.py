@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Callable, ClassVar
 
 from parser_2gis.logger import logger
 
@@ -21,6 +21,7 @@ PAGINATION_URL_PATTERN: str = "/page/"
 
 if TYPE_CHECKING:
     from parser_2gis.chrome import ChromeRemote
+    from parser_2gis.chrome.dom import DOMNode
 
 
 class EndOfResultsDetector:
@@ -40,7 +41,7 @@ class EndOfResultsDetector:
     ]
 
     # Паттерны DOM-элементов, указывающих на окончание
-    DOM_END_SELECTORS: ClassVar[list[object]] = [
+    DOM_END_SELECTORS: ClassVar[list[Callable[[DOMNode], bool]]] = [
         lambda node: (
             node.local_name == "div"
             and node.text is not None

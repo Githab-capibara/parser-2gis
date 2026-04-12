@@ -111,7 +111,7 @@ class MemoryMonitor:
         """
         import psutil
 
-        return psutil.virtual_memory().available
+        return int(psutil.virtual_memory().available)
 
     def get_memory_usage(self) -> MemoryInfo:
         """Получает полную информацию об использовании памяти.
@@ -288,7 +288,7 @@ class ResourceMonitor:
         """
         import psutil
 
-        return psutil.cpu_percent(interval=interval)
+        return float(psutil.cpu_percent(interval=interval))
 
 
 __all__ = ["MemoryInfo", "MemoryMonitor", "ResourceMonitor"]
