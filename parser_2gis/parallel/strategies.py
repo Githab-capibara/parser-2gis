@@ -126,7 +126,10 @@ class UrlGenerationStrategy(UrlGeneratorProtocolBase):
                     yield (url, category["name"], city["name"])
                 except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
                     logger.error(
-                        f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}"
+                        "Ошибка генерации URL для %s - %s: %s",
+                        city["name"],
+                        category["name"],
+                        e,
                     )
                     continue
 

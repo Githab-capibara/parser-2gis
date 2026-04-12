@@ -113,7 +113,7 @@ def _acquire_merge_lock(
     start_time = time.time()
     while not lock_acquired:
         try:
-            lock_file_handle = open(lock_file_path, "w", encoding="utf-8")  # noqa: SIM115, pylint: disable=consider-using-with
+            lock_file_handle = Path(lock_file_path).open("w", encoding="utf-8")  # noqa: SIM115, pylint: disable=consider-using-with
             try:
                 fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                 lock_file_handle.write(f"{os.getpid()}\n")
@@ -448,8 +448,8 @@ class ParallelFileMerger:
         files_to_delete: list[Path] = []
         fieldnames_cache: dict[tuple[str, ...], list[str]] = {}
 
-        with open(
-            temp_output, "w", encoding=output_encoding, newline="", buffering=buffer_size
+        with Path(temp_output).open(
+            "w", encoding=output_encoding, newline="", buffering=buffer_size
         ) as outfile:
             writer: csv.DictWriter[str] | None = None
             total_rows = 0

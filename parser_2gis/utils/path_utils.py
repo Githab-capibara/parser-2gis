@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import os
 import tempfile
 import threading
 import unicodedata
@@ -221,7 +220,7 @@ def validate_path_traversal(file_path: str) -> Path:
     1. URL-decode проверка перед валидацией для обнаружения encoded атак
     2. Unicode normalization для предотвращения атак через unicode
     3. Проверка на опасные паттерны
-    4. Резолвинг symlink через os.path.realpath
+    4. Резолвинг symlink через Path.resolve()
     5. Проверка что путь абсолютный
     6. Дополнительная проверка частей пути
     7. Проверка возможности создания директории
@@ -317,11 +316,9 @@ def validate_path_traversal(file_path: str) -> Path:
         elif pattern in decoded_path:
             raise ValueError(f"Path содержит запрещённый символ: {pattern!r} в пути {file_path}")
 
-    # Шаг 4: Резолвинг symlink через os.path.realpath
+    # Шаг 4: Резолвинг symlink через Path.resolve()
     try:
         resolved_path = Path(decoded_path).resolve()
-        # Используем realpath для резолвинга всех symlink
-        resolved_path = Path(os.path.realpath(str(resolved_path)))
     except (OSError, RuntimeError) as resolve_error:
         raise ValueError(f"Ошибка разрешения пути: {file_path}") from resolve_error
 

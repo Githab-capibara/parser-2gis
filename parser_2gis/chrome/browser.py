@@ -127,17 +127,17 @@ class BrowserPathResolver:
             raise ChromePathNotFound
 
         # Проверка и нормализация пути для предотвращения symlink атак
-        if os.path.islink(binary_path):
+        if Path(binary_path).is_symlink():
             app_logger.warning(
                 "Путь к браузеру содержит символическую ссылку: %s. "
                 "Это может быть потенциально опасно (symlink атака). "
-                "Путь будет нормализован через realpath.",
+                "Путь будет нормализован через resolve().",
                 binary_path,
             )
 
-        # Нормализация пути через realpath
+        # Нормализация пути через resolve()
         original_binary_path = binary_path
-        binary_path = os.path.realpath(binary_path)
+        binary_path = str(Path(binary_path).resolve())
 
         if original_binary_path != binary_path:
             app_logger.debug(
@@ -163,20 +163,19 @@ class BrowserPathResolver:
 
         """
         # Проверка на абсолютный путь
-        if not os.path.isabs(binary_path):
+        if not Path(binary_path).is_absolute():
             raise ValueError(f"Путь к браузеру должен быть абсолютным: {binary_path}")
 
         # Проверка существования файла
-        if not os.path.exists(binary_path):
+        if not Path(binary_path).exists():
             raise FileNotFoundError(f"Путь к браузеру не существует: {binary_path}")
 
         # Проверка, что это файл (не директория)
-        if not os.path.isfile(binary_path):
+        if not Path(binary_path).is_file():
             raise ValueError(f"Путь к браузеру должен указывать на файл: {binary_path}")
 
         # Проверка на исполняемость (только для Linux/Unix)
-        # ВАЖНО: Выбрасываем PermissionError вместо простого логирования
-        # Это предотвращает запуск браузера с некорректными правами
+        # PTH204: os.access не имеет прямого аналога в pathlib
         if not os.access(binary_path, os.X_OK):
             error_msg = f"Файл браузера не имеет прав на выполнение: {binary_path}"
             app_logger.error(error_msg)
@@ -220,11 +219,11 @@ class ProfileManager:
         self._profile_tempdir = tempfile.TemporaryDirectory(prefix="chrome_profile_")
         self._profile_path = self._profile_tempdir.name
 
-        # P1-17: Используем os.makedirs с параметром mode для атомарного создания
+        # P1-17: Используем Path.mkdir с параметром mode для атомарного создания
         # и установки restrictive прав (DEFAULT_FILE_PERMISSIONS) для предотвращения race condition
         try:
-            os.makedirs(self._profile_path, mode=DEFAULT_FILE_PERMISSIONS, exist_ok=True)
-            app_logger.debug("Профиль создан с правами 0o700 через os.makedirs")
+            Path(self._profile_path).mkdir(parents=True, exist_ok=True, mode=DEFAULT_FILE_PERMISSIONS)
+            app_logger.debug("Профиль создан с правами 0o700 через Path.mkdir")
         except OSError as chmod_error:
             app_logger.warning(
                 "Не удалось установить права 0o700 на профиль %s: %s. "
