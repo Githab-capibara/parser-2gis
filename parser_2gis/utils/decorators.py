@@ -70,7 +70,7 @@ class WaitConfig:
 
     """
 
-    timeout: int | None = None
+    timeout: int | float | None = None
     finished: Callable[[Any], bool] | None = None
     throw_exception: bool = False
     poll_interval: float = DEFAULT_POLL_INTERVAL
@@ -96,7 +96,7 @@ logger = logging.getLogger(__name__)
 
 def _check_timeout_expired(
     start_time: float,
-    timeout: int | None,
+    timeout: int | float | None,
     func_name: str,
     *,
     throw_exception: bool,

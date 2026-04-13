@@ -19,6 +19,12 @@ from parser_2gis.shared_config_constants import (  # noqa: F401
     MAX_RESPONSE_SIZE,
 )
 
+# Явный экспорт для mypy
+__all__ = [
+    "MAX_RESPONSE_SIZE",
+    "DEFAULT_TTL_HOURS",
+]
+
 # Logger для логирования fallback значений
 _chrome_constants_logger = logging.getLogger("parser_2gis.chrome.constants")
 
