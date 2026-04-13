@@ -107,8 +107,8 @@ class TestPEP8Compliance:
         # Проверяем только ключевые файлы проекта
         key_files = [
             PROJECT_ROOT / "parser_2gis" / "main.py",
-            PROJECT_ROOT / "parser_2gis" / "parallel_parser.py",
-            PROJECT_ROOT / "parser_2gis" / "validation.py",
+            PROJECT_ROOT / "parser_2gis" / "parallel" / "parallel_parser.py",
+            PROJECT_ROOT / "parser_2gis" / "validation" / "path_validator.py",
             PROJECT_ROOT / "parser_2gis" / "config.py",
         ]
         violations = []
@@ -139,8 +139,8 @@ class TestPEP8Compliance:
         # Проверяем только ключевые файлы проекта
         key_files = [
             PROJECT_ROOT / "parser_2gis" / "main.py",
-            PROJECT_ROOT / "parser_2gis" / "parallel_parser.py",
-            PROJECT_ROOT / "parser_2gis" / "validation.py",
+            PROJECT_ROOT / "parser_2gis" / "parallel" / "parallel_parser.py",
+            PROJECT_ROOT / "parser_2gis" / "validation" / "path_validator.py",
             PROJECT_ROOT / "parser_2gis" / "config.py",
         ]
         violations = []
@@ -172,8 +172,8 @@ class TestPEP8Compliance:
         # Проверяем только ключевые файлы проекта
         key_files = [
             PROJECT_ROOT / "parser_2gis" / "main.py",
-            PROJECT_ROOT / "parser_2gis" / "parallel_parser.py",
-            PROJECT_ROOT / "parser_2gis" / "validation.py",
+            PROJECT_ROOT / "parser_2gis" / "parallel" / "parallel_parser.py",
+            PROJECT_ROOT / "parser_2gis" / "validation" / "path_validator.py",
             PROJECT_ROOT / "parser_2gis" / "config.py",
         ]
         violations = []
@@ -202,8 +202,8 @@ class TestPEP8ComplianceSpecificFiles:
         "file_path",
         [
             "parser_2gis/main.py",
-            "parser_2gis/parallel_parser.py",
-            "parser_2gis/validation.py",
+            "parser_2gis/parallel/parallel_parser.py",
+            "parser_2gis/validation/path_validator.py",
             "parser_2gis/config.py",
         ],
     )
@@ -246,8 +246,8 @@ class TestPEP8ComplianceDetailed:
         # Проверяем только ключевые файлы проекта
         key_files = [
             PROJECT_ROOT / "parser_2gis" / "main.py",
-            PROJECT_ROOT / "parser_2gis" / "parallel_parser.py",
-            PROJECT_ROOT / "parser_2gis" / "validation.py",
+            PROJECT_ROOT / "parser_2gis" / "parallel" / "parallel_parser.py",
+            PROJECT_ROOT / "parser_2gis" / "validation" / "path_validator.py",
             PROJECT_ROOT / "parser_2gis" / "config.py",
         ]
         violations = []
