@@ -237,7 +237,11 @@ class ThreadCoordinator:
             # Отправляем задачи на выполнение
             futures = {
                 executor.submit(
-                    self._parse_url_task, url, category_name, city_name, progress_callback
+                    self._parse_url_task,
+                    url,
+                    category_name,
+                    city_name,
+                    progress_callback,
                 ): (url, category_name, city_name)
                 for url, category_name, city_name in all_urls
             }
@@ -274,7 +278,8 @@ class ThreadCoordinator:
                 signal.signal(signal.SIGINT, old_signal_handler)
             except (ValueError, TypeError) as signal_error:
                 logger.debug(
-                    "Ошибка при восстановлении обработчика SIGINT (игнорируется): %s", signal_error
+                    "Ошибка при восстановлении обработчика SIGINT (игнорируется): %s",
+                    signal_error,
                 )
 
             if executor is not None:

@@ -80,7 +80,8 @@ class RequestInterceptor:
                         iterations += 1
                     if iterations >= max_iterations:
                         app_logger.warning(
-                            "Достигнут лимит итераций очистки очереди для паттерна %s", pattern
+                            "Достигнут лимит итераций очистки очереди для паттерна %s",
+                            pattern,
                         )
                     del self._response_queues[pattern]
                 app_logger.debug("Удалён паттерн ответа: %s", pattern)

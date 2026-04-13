@@ -44,7 +44,7 @@ def default_max_records() -> int:
     # ISSUE-039: Вынесены магические числа в константы
     max_records = floor_to_hundreds(
         _MAX_RECORDS_MEMORY_COEFFICIENT * memory_limit / _MAX_RECORDS_MEMORY_DIVISOR
-        - _MAX_RECORDS_BASE_OFFSET
+        - _MAX_RECORDS_BASE_OFFSET,
     )
 
     # Гарантируем положительное значение

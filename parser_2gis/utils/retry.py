@@ -64,7 +64,10 @@ class RetryError(Exception):
     """Исключение при исчерпании попыток повторения."""
 
     def __init__(
-        self, message: str, last_error: Exception | None = None, attempts: int = 0
+        self,
+        message: str,
+        last_error: Exception | None = None,
+        attempts: int = 0,
     ) -> None:
         """Инициализирует исключение.
 

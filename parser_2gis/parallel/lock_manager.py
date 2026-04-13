@@ -67,12 +67,12 @@ class ParallelLockManager:
                             self._log(
                                 f"Lock файл существует "
                                 f"(возраст: {lock_age:.0f} сек, PID: {lock_pid}), "
-                                f"ожидаем..."
+                                f"ожидаем...",
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             self._log(
                                 "Удаление осиротевшего lock файла "
-                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid})"
+                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid})",
                             )
                             lock_file_path.unlink()
                     else:
@@ -99,7 +99,9 @@ class ParallelLockManager:
                 lock_fd = None
                 try:
                     lock_fd = os.open(
-                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
+                        str(lock_file_path),
+                        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                        mode=0o600,
                     )
                     try:
                         lock_file_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
@@ -131,7 +133,8 @@ class ParallelLockManager:
 
                     if time.time() - start_time > MERGE_LOCK_TIMEOUT:
                         self._log(
-                            f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)", "error"
+                            f"Таймаут ожидания lock файла ({MERGE_LOCK_TIMEOUT} сек)",
+                            "error",
                         )
                         return None, False
 

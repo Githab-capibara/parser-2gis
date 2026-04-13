@@ -115,7 +115,10 @@ class ArgumentValidator:
                 )
                 if max_val_int is not None:
                     validate_positive_int(
-                        value, validation_config.min_val, max_val_int, validation_config.error_name
+                        value,
+                        validation_config.min_val,
+                        max_val_int,
+                        validation_config.error_name,
                     )
                 else:
                     if value >= validation_config.min_val:
@@ -154,7 +157,9 @@ class ArgumentValidator:
                 arg_parser.error(f"Некорректный формат URL: {'; '.join(url_errors)}.")
 
     def validate_numeric_arguments(
-        self, args: argparse.Namespace, arg_parser: argparse.ArgumentParser
+        self,
+        args: argparse.Namespace,
+        arg_parser: argparse.ArgumentParser,
     ) -> None:
         """Валидирует числовые CLI аргументы.
 
@@ -168,13 +173,28 @@ class ArgumentValidator:
 
         """
         self.validate_cli_argument(
-            args, arg_parser, "parser.max_retries", 1, float("inf"), "--parser.max-retries"
+            args,
+            arg_parser,
+            "parser.max_retries",
+            1,
+            float("inf"),
+            "--parser.max-retries",
         )
         self.validate_cli_argument(
-            args, arg_parser, "parser.timeout", 1, float("inf"), "--parser.timeout"
+            args,
+            arg_parser,
+            "parser.timeout",
+            1,
+            float("inf"),
+            "--parser.timeout",
         )
         self.validate_cli_argument(
-            args, arg_parser, "parser.max_workers", 1, float("inf"), "--parser.max-workers"
+            args,
+            arg_parser,
+            "parser.max_workers",
+            1,
+            float("inf"),
+            "--parser.max-workers",
         )
         self.validate_cli_argument(
             args,
@@ -194,7 +214,12 @@ class ArgumentValidator:
             "--parser.gc-pages-interval",
         )
         self.validate_cli_argument(
-            args, arg_parser, "parser.max_records", 1, float("inf"), "--parser.max-records"
+            args,
+            arg_parser,
+            "parser.max_records",
+            1,
+            float("inf"),
+            "--parser.max-records",
         )
         self.validate_cli_argument(
             args,
@@ -229,7 +254,12 @@ class ArgumentValidator:
             "--parser.memory-threshold",
         )
         self.validate_cli_argument(
-            args, arg_parser, "chrome.memory_limit", 256, float("inf"), "--chrome.memory-limit"
+            args,
+            arg_parser,
+            "chrome.memory_limit",
+            256,
+            float("inf"),
+            "--chrome.memory-limit",
         )
         self.validate_cli_argument(
             args,
@@ -241,7 +271,9 @@ class ArgumentValidator:
         )
 
     def validate_url_sources(
-        self, args: argparse.Namespace, arg_parser: argparse.ArgumentParser
+        self,
+        args: argparse.Namespace,
+        arg_parser: argparse.ArgumentParser,
     ) -> None:
         """Валидирует источники URL (URL, cities, categories-mode).
 
@@ -305,7 +337,9 @@ class ArgumentValidator:
             validate_path(str(log_config.file_path), "log.file_path")
 
     def handle_configuration_validation(
-        self, config_args: dict[str, Any], arg_parser: argparse.ArgumentParser
+        self,
+        config_args: dict[str, Any],
+        arg_parser: argparse.ArgumentParser,
     ) -> Configuration:
         """Инициализирует конфигурацию и обрабатывает ошибки валидации.
 

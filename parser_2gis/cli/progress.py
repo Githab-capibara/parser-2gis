@@ -23,7 +23,7 @@ except ImportError:
     tqdm = None
     # ID:051: Логируем недоступность tqdm вместо молчаливого отключения
     _logger.warning(
-        "Библиотека tqdm недоступна. Прогресс-бар будет отключён. Установите: pip install tqdm"
+        "Библиотека tqdm недоступна. Прогресс-бар будет отключён. Установите: pip install tqdm",
     )
 
 
@@ -121,7 +121,11 @@ class ProgressManager:
 
         # Создаем прогресс-бар для страниц
         self._page_bar = tqdm(
-            total=total_pages, desc="Страницы", unit="стр", colour="blue", disable=self._disable
+            total=total_pages,
+            desc="Страницы",
+            unit="стр",
+            colour="blue",
+            disable=self._disable,
         )
 
         # Создаем прогресс-бар для записей (если указано)

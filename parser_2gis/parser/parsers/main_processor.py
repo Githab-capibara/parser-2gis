@@ -209,7 +209,8 @@ def get_unique_links(
             # deque автоматически удаляет старые ссылки при превышении maxlen
             if len(visited_links) == max_visited_links:
                 logger.debug(
-                    "LRU eviction: deque заполнен до максимума (%d ссылок)", max_visited_links
+                    "LRU eviction: deque заполнен до максимума (%d ссылок)",
+                    max_visited_links,
                 )
 
             # Возвращаем только ссылки с новыми href
@@ -252,7 +253,9 @@ class MainDataProcessor:
         self._visited_set: set[str] = set()
 
     def _handle_pagination(
-        self, current_page_number: int, walk_page_number: int | None
+        self,
+        current_page_number: int,
+        walk_page_number: int | None,
     ) -> tuple[int, bool]:
         """Обрабатывает пагинацию и переход на следующую страницу.
 
@@ -328,7 +331,10 @@ class MainDataProcessor:
         return False
 
     def _parse_links_batch(
-        self, links: list[DOMNode], writer: FileWriter, collected_records: int
+        self,
+        links: list[DOMNode],
+        writer: FileWriter,
+        collected_records: int,
     ) -> int:
         """Парсит пакет ссылок и возвращает обновлённый счётчик записей.
 
@@ -351,7 +357,7 @@ class MainDataProcessor:
                 collected_records += 1
                 if collected_records >= self._parser._parser_options.max_records:
                     logger.info(
-                        "Спарсено максимально разрешенное количество записей с данного URL."
+                        "Спарсено максимально разрешенное количество записей с данного URL.",
                     )
                     return collected_records
 
@@ -507,7 +513,8 @@ class MainDataProcessor:
 
                     # Переходим к следующей странице
                     next_page, should_continue = self._handle_pagination(
-                        current_page_number, walk_page_number
+                        current_page_number,
+                        walk_page_number,
                     )
                     if not should_continue:
                         return
@@ -525,7 +532,9 @@ class MainDataProcessor:
 
                     # Итерируемся по собранным ссылкам
                     collected_records = self._parse_links_batch(
-                        links=links, writer=writer, collected_records=collected_records
+                        links=links,
+                        writer=writer,
+                        collected_records=collected_records,
                     )
                     if self._check_record_limit(collected_records):
                         return
@@ -547,14 +556,15 @@ class MainDataProcessor:
                         logger.debug("Запуск сборщика мусора.")
                         try:
                             self._parser._chrome_remote.execute_script(
-                                '"gc" in window && window.gc()'
+                                '"gc" in window && window.gc()',
                             )
                         except (OSError, RuntimeError, TypeError, ValueError) as gc_error:
                             logger.debug("Ошибка при запуске сборщика мусора: %s", gc_error)
 
                 # Переходим к следующей странице
                 next_page, should_continue = self._handle_pagination(
-                    current_page_number, walk_page_number
+                    current_page_number,
+                    walk_page_number,
                 )
                 if not should_continue:
                     return

@@ -87,7 +87,10 @@ class MainParser:
 
         # Создаём основной парсер страниц
         self._page_parser = MainPageParser(
-            url=url, chrome_options=chrome_options, parser_options=parser_options, browser=browser
+            url=url,
+            chrome_options=chrome_options,
+            parser_options=parser_options,
+            browser=browser,
         )
 
         # Отмечаем, владеет ли парсер браузером (для корректного закрытия)
@@ -176,7 +179,10 @@ class MainParser:
             # Парсинг результатов поиска
             # Передаём visited_links для управления памятью с eviction policy
             self._data_processor._parse_search_results(
-                writer, start_page, visited_links, MAX_VISITED_LINKS_SIZE
+                writer,
+                start_page,
+                visited_links,
+                MAX_VISITED_LINKS_SIZE,
             )
 
         finally:
@@ -184,7 +190,10 @@ class MainParser:
             self.close()
 
     def _perform_navigation_with_retries(
-        self, url: str, max_retries: int, base_delay: float
+        self,
+        url: str,
+        max_retries: int,
+        base_delay: float,
     ) -> bool:
         """Выполняет навигацию с повторными попытками.
 
@@ -204,7 +213,10 @@ class MainParser:
                 # Первая попытка или повторная
                 if attempt > 0:
                     logger.info(
-                        "Повторная попытка навигации (%d/%d) для URL: %s", attempt, max_retries, url
+                        "Повторная попытка навигации (%d/%d) для URL: %s",
+                        attempt,
+                        max_retries,
+                        url,
                     )
 
                 self._page_parser._navigate_to_search(url)

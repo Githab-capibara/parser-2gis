@@ -141,7 +141,9 @@ class BrowserPathResolver:
 
         if original_binary_path != binary_path:
             app_logger.debug(
-                "Путь к браузеру нормализован: %s → %s", original_binary_path, binary_path
+                "Путь к браузеру нормализован: %s → %s",
+                original_binary_path,
+                binary_path,
             )
 
         app_logger.debug("Повторная валидация пути к браузеру после нормализации: %s", binary_path)
@@ -226,7 +228,9 @@ class ProfileManager:
         # и установки restrictive прав (DEFAULT_FILE_PERMISSIONS) для предотвращения race condition
         try:
             Path(self._profile_path).mkdir(
-                parents=True, exist_ok=True, mode=DEFAULT_FILE_PERMISSIONS
+                parents=True,
+                exist_ok=True,
+                mode=DEFAULT_FILE_PERMISSIONS,
             )
             app_logger.debug("Профиль создан с правами 0o700 через Path.mkdir")
         except OSError as chmod_error:
@@ -256,7 +260,7 @@ class ProfileManager:
             if self._profile_tempdir is not None:
                 self._profile_tempdir.cleanup()
                 app_logger.debug(
-                    "Временный профиль Chrome удалён через TemporaryDirectory.cleanup()"
+                    "Временный профиль Chrome удалён через TemporaryDirectory.cleanup()",
                 )
         except OSError as profile_error:
             app_logger.error(
@@ -327,7 +331,10 @@ class ProcessManager:
         self._start_time: float = 0.0
 
     def launch_process(
-        self, chrome_cmd: list[str], profile_path: str, chrome_options: ChromeOptions
+        self,
+        chrome_cmd: list[str],
+        profile_path: str,
+        chrome_options: ChromeOptions,
     ) -> subprocess.Popen[str]:
         """Запускает процесс Chrome.
 
@@ -463,7 +470,10 @@ class ProcessManager:
                 return True, success_status
             except subprocess.TimeoutExpired:
                 app_logger.warning(
-                    "Таймаут (%d сек) при %s Chrome PID %d", timeout, terminate_method, process_pid
+                    "Таймаут (%d сек) при %s Chrome PID %d",
+                    timeout,
+                    terminate_method,
+                    process_pid,
                 )
                 return False, timeout_status
 
@@ -606,7 +616,9 @@ class ProcessManager:
                     FileNotFoundError,
                 ) as e:
                     app_logger.error(
-                        "Не удалось принудительно завершить процесс PID %d: %s", process_pid, e
+                        "Не удалось принудительно завершить процесс PID %d: %s",
+                        process_pid,
+                        e,
                     )
                     return False, "kill_timeout"
 
@@ -740,12 +752,17 @@ class BrowserLifecycleManager:
 
             # Формируем команду запуска
             self._chrome_cmd = self._build_chrome_cmd(
-                binary_path, profile_path, self._remote_port, self._chrome_options
+                binary_path,
+                profile_path,
+                self._remote_port,
+                self._chrome_options,
             )
 
             # Запускаем процесс Chrome
             self._process_manager.launch_process(
-                self._chrome_cmd, profile_path, self._chrome_options
+                self._chrome_cmd,
+                profile_path,
+                self._chrome_options,
             )
 
             app_logger.info(
@@ -779,7 +796,11 @@ class BrowserLifecycleManager:
         return self._remote_port
 
     def _build_chrome_cmd(
-        self, binary_path: str, profile_path: str, remote_port: int, chrome_options: ChromeOptions
+        self,
+        binary_path: str,
+        profile_path: str,
+        remote_port: int,
+        chrome_options: ChromeOptions,
     ) -> list[str]:
         """Формирует команду запуска Chrome.
 
@@ -968,7 +989,7 @@ class BrowserLifecycleManager:
             if not self._closed and self._process_manager.is_running():
                 app_logger.warning(
                     "BrowserLifecycleManager уничтожается без явного закрытия. "
-                    "Всегда вызывайте close() явно."
+                    "Всегда вызывайте close() явно.",
                 )
         except (OSError, RuntimeError, AttributeError) as del_error:
             app_logger.debug("BrowserLifecycleManager.__del__: ошибка: %s", del_error)
@@ -1076,7 +1097,10 @@ ORPHANED_PROFILE_MAX_AGE_HOURS = 24  # Максимальный возраст �
 
 
 def _check_profile_age_and_delete(
-    item: Path, marker_file: Path, current_time: float, max_age_seconds: float
+    item: Path,
+    marker_file: Path,
+    current_time: float,
+    max_age_seconds: float,
 ) -> bool:
     """Проверяет возраст профиля по маркеру и удаляет если старый.
 
@@ -1182,7 +1206,8 @@ def _process_orphaned_profile(item: Path, current_time: float, max_age_seconds: 
 
 
 def cleanup_orphaned_profiles(
-    profiles_dir: Path | None = None, max_age_hours: int = ORPHANED_PROFILE_MAX_AGE_HOURS
+    profiles_dir: Path | None = None,
+    max_age_hours: int = ORPHANED_PROFILE_MAX_AGE_HOURS,
 ) -> int:
     """Очищает осиротевшие профили Chrome от предыдущих запусков.
 
@@ -1305,7 +1330,8 @@ def _is_profile_in_use(profile_path: Path) -> bool:
                             # ISSUE-003-#18: Кэшируем результат
                             _process_cache[cache_key] = (current_time, all_processes)
                             app_logger.debug(
-                                "Профиль используется процессом Chrome PID %d", proc.info["pid"]
+                                "Профиль используется процессом Chrome PID %d",
+                                proc.info["pid"],
                             )
                             return True
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -1322,7 +1348,10 @@ def _is_profile_in_use(profile_path: Path) -> bool:
             if sys.platform == "win32":
                 # Windows: используем tasklist
                 result = subprocess.run(
-                    ["tasklist", "/V", "/FO", "CSV"], capture_output=True, text=True, timeout=10
+                    ["tasklist", "/V", "/FO", "CSV"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 profile_str = str(profile_path)
                 for line in result.stdout.splitlines():
@@ -1341,7 +1370,8 @@ def _is_profile_in_use(profile_path: Path) -> bool:
                                 pid = int(parts[1])
                                 os.kill(pid, 0)
                                 app_logger.debug(
-                                    "Профиль используется процессом Chrome PID %d", pid
+                                    "Профиль используется процессом Chrome PID %d",
+                                    pid,
                                 )
                                 return True
                             except (ValueError, ProcessLookupError, PermissionError):
@@ -1379,7 +1409,8 @@ def _safe_remove_profile(profile_path: Path) -> None:
             marker_file.touch(exist_ok=True)
         except OSError as e:
             app_logger.debug(
-                "Подавлено исключение при создании маркера удаления: %s", e
+                "Подавлено исключение при создании маркера удаления: %s",
+                e,
             )  # Не критично
 
         # Удаляем профиль

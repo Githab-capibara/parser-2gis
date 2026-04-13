@@ -46,7 +46,7 @@ _SENSITIVE_KEYS_PASSWORDS: frozenset[str] = frozenset(
         "admin_password",
         "db_password",
         "database_password",
-    }
+    },
 )
 
 # Токены доступа и сессии
@@ -65,7 +65,7 @@ _SENSITIVE_KEYS_TOKENS: frozenset[str] = frozenset(
         "accesskey",
         "access-key",
         "secret_token",
-    }
+    },
 )
 
 # Секретные ключи и криптография
@@ -84,12 +84,12 @@ _SENSITIVE_KEYS_SECRETS: frozenset[str] = frozenset(
         "encryption_key",
         "master_key",
         "client_secret",
-    }
+    },
 )
 
 # Аутентификация и авторизация
 _SENSITIVE_KEYS_AUTH: frozenset[str] = frozenset(
-    {"auth", "authorization", "credential", "bearer", "jwt", "oauth", "oauth_token"}
+    {"auth", "authorization", "credential", "bearer", "jwt", "oauth", "oauth_token"},
 )
 
 # Ключи доступа к сервисам
@@ -103,12 +103,12 @@ _SENSITIVE_KEYS_SERVICE_KEYS: frozenset[str] = frozenset(
         "ssh-private-key",
         "gpg_key",
         "pgp_key",
-    }
+    },
 )
 
 # Сертификаты и SSL
 _SENSITIVE_KEYS_CERTIFICATES: frozenset[str] = frozenset(
-    {"certificate", "cert_key", "ssl_key", "tls_key"}
+    {"certificate", "cert_key", "ssl_key", "tls_key"},
 )
 
 # Подключения к базам данных
@@ -199,7 +199,11 @@ def _check_value_type_and_sensitivity(
 
 
 def _assign_to_parent(
-    parent: Any | None, parent_key: Any | None, result: Any, results: dict[int, Any], obj_id: int
+    parent: Any | None,
+    parent_key: Any | None,
+    result: Any,
+    results: dict[int, Any],
+    obj_id: int,
 ) -> None:
     """Назначает результат в родительский контейнер или в results.
 
@@ -382,7 +386,9 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
             raise ValueError(msg)
     except MemoryError as size_check_error:
         logger.critical(
-            "Нехватка памяти при проверке размера данных: %s", size_check_error, exc_info=True
+            "Нехватка памяти при проверке размера данных: %s",
+            size_check_error,
+            exc_info=True,
         )
         msg = "Нехватка памяти при проверке размера данных. Данные слишком большие для обработки."
         raise ValueError(msg) from size_check_error
@@ -434,7 +440,11 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
 
                 # Используем выделенную функцию для проверки типа и чувствительности
                 handled, _ = _check_value_type_and_sensitivity(
-                    current_value, current_key, parent, parent_key, results
+                    current_value,
+                    current_key,
+                    parent,
+                    parent_key,
+                    results,
                 )
                 if handled:
                     continue
@@ -459,16 +469,30 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 # Dispatch по типу коллекции
                 if isinstance(current_value, dict):
                     _process_dict_branch(
-                        current_value, current_depth, parent, parent_key, results, current_id, stack
+                        current_value,
+                        current_depth,
+                        parent,
+                        parent_key,
+                        results,
+                        current_id,
+                        stack,
                     )
                 elif isinstance(current_value, list):
                     _process_list_branch(
-                        current_value, current_depth, parent, parent_key, results, current_id, stack
+                        current_value,
+                        current_depth,
+                        parent,
+                        parent_key,
+                        results,
+                        current_id,
+                        stack,
                     )
 
             except MemoryError as mem_error:
                 logger.critical(
-                    "Критическая нехватка памяти при обработке данных: %s", mem_error, exc_info=True
+                    "Критическая нехватка памяти при обработке данных: %s",
+                    mem_error,
+                    exc_info=True,
                 )
                 msg_0 = (
                     "Нехватка памяти при очистке данных. "
@@ -500,7 +524,9 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
 
     except MemoryError as memory_error:
         logger.critical(
-            "Критическая нехватка памяти в _sanitize_value: %s", memory_error, exc_info=True
+            "Критическая нехватка памяти в _sanitize_value: %s",
+            memory_error,
+            exc_info=True,
         )
         msg_0 = (
             "Нехватка памяти при очистке чувствительных данных. "

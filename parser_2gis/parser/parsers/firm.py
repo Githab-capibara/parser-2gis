@@ -155,7 +155,9 @@ def _sanitize_string_value(value: str) -> str:
 
 
 def _validate_initial_state(
-    data: InitialStateData, depth: int = 0, item_count: int = 0
+    data: InitialStateData,
+    depth: int = 0,
+    item_count: int = 0,
 ) -> tuple[bool, int]:
     """Рекурсивно валидирует структуру initialState на безопасность.
 
@@ -223,7 +225,8 @@ def _validate_initial_state(
 
     if isinstance(data, dict) and len(data) > MAX_ITEMS_IN_COLLECTION:
         logger.warning(
-            "Словарь в initialState превышает максимальное количество элементов: %d", len(data)
+            "Словарь в initialState превышает максимальное количество элементов: %d",
+            len(data),
         )
         return False, item_count
 
@@ -243,7 +246,8 @@ def _validate_initial_state(
 
     if isinstance(data, list) and len(data) > MAX_ITEMS_IN_COLLECTION:
         logger.warning(
-            "Список в initialState превышает максимальное количество элементов: %d", len(data)
+            "Список в initialState превышает максимальное количество элементов: %d",
+            len(data),
         )
         return False, item_count
 
@@ -259,7 +263,8 @@ def _validate_initial_state(
 
 
 def _safe_extract_initial_state(
-    raw_data: InitialStateData, required_keys: list[str]
+    raw_data: InitialStateData,
+    required_keys: list[str],
 ) -> dict[str, InitialStateData] | None:
     """Безопасно извлекает данные из initialState с валидацией.
 
@@ -353,7 +358,8 @@ class FirmParser(MainParser):
 
             if mime_type != "text/html":
                 logger.error(
-                    "Неверный тип MIME ответа: %s", document_response.get("mimeType", "неизвестно")
+                    "Неверный тип MIME ответа: %s",
+                    document_response.get("mimeType", "неизвестно"),
                 )
                 return
 
@@ -397,8 +403,15 @@ class FirmParser(MainParser):
                     return
                 firm_data = data[0]
 
+                # Проверяем, что firm_data — словарь для type-safe доступа
+                if not isinstance(firm_data, dict):
+                    logger.warning(
+                        "Данные организации имеют неверный тип: %s", type(firm_data).__name__
+                    )
+                    return
+
                 # D013: Санитизация строковых данных перед записью
-                if isinstance(firm_data, dict) and "data" in firm_data and isinstance(firm_data.get("data"), dict):
+                if "data" in firm_data and isinstance(firm_data.get("data"), dict):
                     for key, value in firm_data["data"].items():
                         if isinstance(value, str):
                             firm_data["data"][key] = _sanitize_string_value(value)
@@ -408,7 +421,7 @@ class FirmParser(MainParser):
 
             # Записываем API документ в файл
             writer.write(
-                {"result": {"items": [firm_data["data"]]}, "meta": firm_data.get("meta", {})}
+                {"result": {"items": [firm_data["data"]]}, "meta": firm_data.get("meta", {})},
             )
 
         except MemoryError as memory_error:

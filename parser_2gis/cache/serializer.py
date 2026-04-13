@@ -84,7 +84,8 @@ class JsonSerializer:
                 # Любая другая неожиданная ошибка - логируем и используем fallback
                 # ID:041: Изменено на WARNING для видимости проблем сериализации
                 app_logger.warning(
-                    "Неожиданная ошибка orjson, fallback на json: %s", unexpected_error
+                    "Неожиданная ошибка orjson, fallback на json: %s",
+                    unexpected_error,
                 )
 
         # Стандартный json с оптимизированными параметрами
@@ -151,7 +152,8 @@ class JsonSerializer:
         except UnicodeDecodeError as unicode_error:
             # Fallback на другие кодировки при UnicodeDecodeError
             app_logger.debug(
-                "UnicodeDecodeError при десериализации, попытка fallback: %s", unicode_error
+                "UnicodeDecodeError при десериализации, попытка fallback: %s",
+                unicode_error,
             )
 
             # ID:092: Логируем все fallback попытки
@@ -185,7 +187,8 @@ class JsonSerializer:
             # Логируем все неудачные попытки перед выбрасыванием исключения
             if fallback_attempts:
                 app_logger.warning(
-                    "Все fallback кодировки не подошли. Попытки: %s", "; ".join(fallback_attempts)
+                    "Все fallback кодировки не подошли. Попытки: %s",
+                    "; ".join(fallback_attempts),
                 )
 
             # Если все fallback не удались, выбрасываем исключение
@@ -209,7 +212,8 @@ class JsonSerializer:
                 except (AttributeError, TypeError) as orjson_check_error:
                     # orjson.JSONDecodeError недоступен, используем стандартную обработку
                     app_logger.debug(
-                        "Не удалось проверить orjson.JSONDecodeError: %s", orjson_check_error
+                        "Не удалось проверить orjson.JSONDecodeError: %s",
+                        orjson_check_error,
                     )
 
             # Стандартная обработка JSON ошибок

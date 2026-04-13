@@ -48,7 +48,9 @@ class CLIRunner(AbstractRunner):
                 for idx, url in enumerate(self._urls, 1):
                     logger.info("📄 [%d/%d] Парсинг ссылки: %s", idx, total_urls, url)
                     with get_parser(
-                        url, chrome_options=self._config.chrome, parser_options=self._config.parser
+                        url,
+                        chrome_options=self._config.chrome,
+                        parser_options=self._config.parser,
                     ) as parser:
                         try:
                             parser.parse(writer)

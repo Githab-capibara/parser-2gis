@@ -84,7 +84,7 @@ class EndOfResultsDetector:
 
             # Проверяем DOM-элементы
             nodes = dom_tree.search(
-                lambda node: bool(node.text) and len(node.text) < MAX_NODE_TEXT_LENGTH
+                lambda node: bool(node.text) and len(node.text) < MAX_NODE_TEXT_LENGTH,
             )
             for selector in self.DOM_END_SELECTORS:
                 for node in nodes:
@@ -118,7 +118,7 @@ class EndOfResultsDetector:
                     x.local_name == "a"
                     and "href" in x.attributes
                     and PAGINATION_URL_PATTERN in x.attributes.get("href", "")
-                )
+                ),
             )
 
             # Если есть хотя бы одна ссылка на страницу кроме первой

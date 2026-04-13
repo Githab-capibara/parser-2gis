@@ -10,7 +10,8 @@ from pathlib import Path
 
 
 def extract_category_from_filename(
-    csv_file: Path, log_func: Callable[[str, str], None] | None = None
+    csv_file: Path,
+    log_func: Callable[[str, str], None] | None = None,
 ) -> str:
     """Извлекает название категории из имени CSV файла.
 

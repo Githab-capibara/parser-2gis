@@ -90,7 +90,10 @@ class ParsingFacade:
                 return
             category = filename.replace(".csv", "").split("_")[-1] if "_" in filename else ""
             self._orchestrator.update_progress(
-                success=success, failed=failed, category=category, record=success + failed
+                success=success,
+                failed=failed,
+                category=category,
+                record=success + failed,
             )
             if progress_callback:
                 progress_callback(success, failed, filename)
@@ -98,7 +101,8 @@ class ParsingFacade:
         try:
             output_file = f"парсинг_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
             result = self._parser.run(
-                output_file=output_file, progress_callback=internal_progress_callback
+                output_file=output_file,
+                progress_callback=internal_progress_callback,
             )
 
             if self._orchestrator.is_cancelled():

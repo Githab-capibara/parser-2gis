@@ -38,5 +38,6 @@ def cleanup_temp_file(
             log_func(f"{description}: {temp_filepath.name}", "debug")
     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
         log_func(
-            f"Не удалось удалить временный файл {temp_filepath.name}: {cleanup_error}", "warning"
+            f"Не удалось удалить временный файл {temp_filepath.name}: {cleanup_error}",
+            "warning",
         )

@@ -67,7 +67,9 @@ def load_json_mmap(
 
         if validate_size and max_file_size is not None and file_size > max_file_size:
             app_logger.error(
-                "Файл слишком большой: %d байт (макс: %d байт)", file_size, max_file_size
+                "Файл слишком большой: %d байт (макс: %d байт)",
+                file_size,
+                max_file_size,
             )
             msg = f"Файл {file_path} слишком большой ({file_size} > {max_file_size} байт)"
             raise ValueError(msg)
@@ -83,7 +85,8 @@ def load_json_mmap(
     try:
         if use_mmap:
             app_logger.info(
-                "Файл большой (%.2f MB), используется mmap для чтения", file_size / (1024 * 1024)
+                "Файл большой (%.2f MB), используется mmap для чтения",
+                file_size / (1024 * 1024),
             )
             import mmap as mmap_module
 

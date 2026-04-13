@@ -132,7 +132,7 @@ def _check_symlink_safety(path_obj: Path, path_name: str, forbidden_dirs: set[st
                 if not target_str.startswith(temp_dir):
                     for forbidden_dir in forbidden_dirs:
                         if target_str == forbidden_dir or target_str.startswith(
-                            forbidden_dir + "/"
+                            forbidden_dir + "/",
                         ):
                             msg = (
                                 f"{path_name} содержит symlink, ведущий в "
@@ -158,7 +158,7 @@ def _check_allowed_directories(resolved_path: Path, path_name: str) -> None:
     if not resolved_path_str.startswith(temp_dir):
         for forbidden_dir in forbidden_dirs:
             if resolved_path_str == forbidden_dir or resolved_path_str.startswith(
-                forbidden_dir + "/"
+                forbidden_dir + "/",
             ):
                 msg = (
                     f"{path_name} не может находиться в системной директории: {forbidden_dir}. "

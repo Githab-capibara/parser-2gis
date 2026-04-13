@@ -43,7 +43,10 @@ def _get_max_pool_size_env() -> int:
     """Получает MAX_POOL_SIZE из ENV (lazy инициализация)."""
     if not hasattr(_get_max_pool_size_env, "_value"):
         _get_max_pool_size_env._value = validate_env_int(  # type: ignore[attr-defined]
-            "PARSER_MAX_POOL_SIZE", default=20, min_value=5, max_value=50
+            "PARSER_MAX_POOL_SIZE",
+            default=20,
+            min_value=5,
+            max_value=50,
         )
     return _get_max_pool_size_env._value  # type: ignore[attr-defined,no-any-return]
 
@@ -52,7 +55,10 @@ def _get_min_pool_size_env() -> int:
     """Получает MIN_POOL_SIZE из ENV (lazy инициализация)."""
     if not hasattr(_get_min_pool_size_env, "_value"):
         _get_min_pool_size_env._value = validate_env_int(  # type: ignore[attr-defined]
-            "PARSER_MIN_POOL_SIZE", default=5, min_value=1, max_value=10
+            "PARSER_MIN_POOL_SIZE",
+            default=5,
+            min_value=1,
+            max_value=10,
         )
     return _get_min_pool_size_env._value  # type: ignore[attr-defined,no-any-return]
 
@@ -61,7 +67,10 @@ def _get_connection_max_age_env() -> int:
     """Получает CONNECTION_MAX_AGE из ENV (lazy инициализация)."""
     if not hasattr(_get_connection_max_age_env, "_value"):
         _get_connection_max_age_env._value = validate_env_int(  # type: ignore[attr-defined]
-            "PARSER_CONNECTION_MAX_AGE", default=300, min_value=60, max_value=3600
+            "PARSER_CONNECTION_MAX_AGE",
+            default=300,
+            min_value=60,
+            max_value=3600,
         )
     return _get_connection_max_age_env._value  # type: ignore[attr-defined,no-any-return]
 
@@ -186,7 +195,8 @@ class ConnectionPool:
         elif pool_size is not None:
             # Ограничиваем размер пула разумными пределами
             self._pool_size = max(
-                _get_min_pool_size_env(), min(pool_size, _get_max_pool_size_env())
+                _get_min_pool_size_env(),
+                min(pool_size, _get_max_pool_size_env()),
             )
         else:
             self._pool_size = _get_max_pool_size_env()
@@ -203,7 +213,7 @@ class ConnectionPool:
         self._lock = threading.Lock()
         # queue.Queue для управления соединениями
         self._connection_queue: queue.Queue[sqlite3.Connection] = queue.Queue(
-            maxsize=self._pool_size
+            maxsize=self._pool_size,
         )
         # Хранение возраста соединений по id(conn)
         self._connection_age: dict[int, float] = {}
@@ -321,17 +331,23 @@ class ConnectionPool:
                     app_logger.debug("Создано новое соединение")
                 except sqlite3.Error as db_error:
                     app_logger.error(
-                        "Ошибка БД при создании соединения: %s", db_error, exc_info=True
+                        "Ошибка БД при создании соединения: %s",
+                        db_error,
+                        exc_info=True,
                     )
                     raise
                 except OSError as os_error:
                     app_logger.error(
-                        "Ошибка ОС при создании соединения: %s", os_error, exc_info=True
+                        "Ошибка ОС при создании соединения: %s",
+                        os_error,
+                        exc_info=True,
                     )
                     raise
                 except (RuntimeError, TypeError, ValueError) as e:
                     app_logger.error(
-                        "Неожиданная ошибка при создании соединения: %s", e, exc_info=True
+                        "Неожиданная ошибка при создании соединения: %s",
+                        e,
+                        exc_info=True,
                     )
                     raise
 
@@ -530,7 +546,10 @@ class ConnectionPool:
         return self
 
     def __exit__(
-        self, _exc_type: type[BaseException] | None, _exc_val: BaseException | None, _exc_tb: Any
+        self,
+        _exc_type: type[BaseException] | None,
+        _exc_val: BaseException | None,
+        _exc_tb: Any,
     ) -> None:
         """Контекстный менеджер: выход.
 

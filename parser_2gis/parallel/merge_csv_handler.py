@@ -74,7 +74,10 @@ class MergeCSVHandler:
         category_name = self.extract_category_from_filename(csv_file)
 
         with open(
-            csv_file, encoding="utf-8-sig", newline="", buffering=self._buffer_size
+            csv_file,
+            encoding="utf-8-sig",
+            newline="",
+            buffering=self._buffer_size,
         ) as infile:
             reader = csv.DictReader(infile)
 

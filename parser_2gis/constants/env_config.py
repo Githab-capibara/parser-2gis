@@ -100,10 +100,14 @@ class EnvConfig:
         ISSUE-012: Вынесено из __post_init__ для улучшения читаемости.
         """
         object.__setattr__(
-            self, "max_workers", self._validate_env_int("PARSER_MAX_WORKERS", 50, 1, 100)
+            self,
+            "max_workers",
+            self._validate_env_int("PARSER_MAX_WORKERS", 50, 1, 100),
         )
         object.__setattr__(
-            self, "max_timeout", self._validate_env_int("PARSER_MAX_TIMEOUT", 72000, 60, 172800)
+            self,
+            "max_timeout",
+            self._validate_env_int("PARSER_MAX_TIMEOUT", 72000, 60, 172800),
         )
         object.__setattr__(
             self,
@@ -117,10 +121,14 @@ class EnvConfig:
         ISSUE-012: Вынесено из __post_init__ для улучшения читаемости.
         """
         object.__setattr__(
-            self, "max_pool_size", self._validate_env_int("PARSER_MAX_POOL_SIZE", 20, 5, 50)
+            self,
+            "max_pool_size",
+            self._validate_env_int("PARSER_MAX_POOL_SIZE", 20, 5, 50),
         )
         object.__setattr__(
-            self, "min_pool_size", self._validate_env_int("PARSER_MIN_POOL_SIZE", 5, 1, 10)
+            self,
+            "min_pool_size",
+            self._validate_env_int("PARSER_MIN_POOL_SIZE", 5, 1, 10),
         )
         object.__setattr__(
             self,
@@ -207,7 +215,10 @@ class EnvConfig:
             value = int(value_str)
         except ValueError as e:
             self._logger.exception(
-                "ENV переменная %s=%s не является целым числом: %s", env_name, value_str, e
+                "ENV переменная %s=%s не является целым числом: %s",
+                env_name,
+                value_str,
+                e,
             )
             msg = f"ENV переменная {env_name}={value_str!r} не является допустимым целым числом"
             raise ValueError(msg) from e
@@ -380,7 +391,10 @@ def get_env_config_manager() -> EnvConfigManager:
 
 
 def validate_env_int(
-    env_name: str, default: int, min_value: int | None = None, max_value: int | None = None
+    env_name: str,
+    default: int,
+    min_value: int | None = None,
+    max_value: int | None = None,
 ) -> int:
     """Валидирует ENV переменную как целое число в допустимом диапазоне.
 

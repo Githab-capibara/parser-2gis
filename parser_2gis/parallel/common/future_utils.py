@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 def cancel_futures_safely(
-    futures: list[Future[Any]] | dict[Future[Any], Any], log_prefix: str = "Future"
+    futures: list[Future[Any]] | dict[Future[Any], Any],
+    log_prefix: str = "Future",
 ) -> int:
     """Безопасно отменяет список Future.
 
@@ -51,7 +52,9 @@ def cancel_futures_safely(
 
 
 def get_future_result_safely(
-    future: Future[Any], timeout: float | None = None, default: Any = None
+    future: Future[Any],
+    timeout: float | None = None,
+    default: Any = None,
 ) -> tuple[bool, Any]:
     """Безопасно получает результат Future.
 
@@ -73,7 +76,10 @@ def get_future_result_safely(
 
 
 def shutdown_executor_safely(
-    executor: Any, *, wait: bool = True, cancel_futures: bool = True
+    executor: Any,
+    *,
+    wait: bool = True,
+    cancel_futures: bool = True,
 ) -> bool:
     """Безопасно завершает ThreadPoolExecutor.
 

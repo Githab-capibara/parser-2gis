@@ -93,7 +93,8 @@ class InBuildingParser(MainParser):
         # Обработка 404
         if document_response.get("mimeType") != "text/html":
             logger.error(
-                "Неверный тип MIME ответа: %s", document_response.get("mimeType", "неизвестно")
+                "Неверный тип MIME ответа: %s",
+                document_response.get("mimeType", "неизвестно"),
             )
             return
 
@@ -181,6 +182,6 @@ class InBuildingParser(MainParser):
                 # Достигли лимита, выходим
                 if collected_records >= self._options.max_records:
                     logger.info(
-                        "Спарсено максимально разрешенное количество записей с данного URL."
+                        "Спарсено максимально разрешенное количество записей с данного URL.",
                     )
                     return

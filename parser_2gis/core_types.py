@@ -18,8 +18,8 @@ from typing import Any, NamedTuple, Protocol, TypeVar
 
 # Type variables для дженериков
 T = TypeVar("T")
-_K = TypeVar("K")
-_V = TypeVar("V")
+_K = TypeVar("_K")
+_V = TypeVar("_V")
 
 # Протокол для функций логирования
 
@@ -113,7 +113,11 @@ class ParseResult[T]:
     """
 
     def __init__(
-        self, value: T | None = None, *, success: bool = True, error: str | None = None
+        self,
+        value: T | None = None,
+        *,
+        success: bool = True,
+        error: str | None = None,
     ) -> None:
         """Инициализирует результат парсинга.
 

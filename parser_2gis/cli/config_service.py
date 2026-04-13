@@ -215,7 +215,9 @@ class ConfigService:
                 renamed_path = config_path.with_suffix(config_path.suffix + ".corrupted")
                 config_path.rename(renamed_path)
                 logger.warning(
-                    "Оригинальный файл переименован: %s -> %s", config_path, renamed_path
+                    "Оригинальный файл переименован: %s -> %s",
+                    config_path,
+                    renamed_path,
                 )
             else:
                 logger.warning("Не удалось создать резервную копию: %s", backup_path)

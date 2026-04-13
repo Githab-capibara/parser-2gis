@@ -298,7 +298,8 @@ class ParallelCityParser:
                 )
             except (OSError, RuntimeError, TypeError, ValueError) as timer_error:
                 logger.warning(
-                    "Не удалось инициализировать таймер очистки временных файлов: %s", timer_error
+                    "Не удалось инициализировать таймер очистки временных файлов: %s",
+                    timer_error,
                 )
 
         self.log(
@@ -335,7 +336,9 @@ class ParallelCityParser:
                         test_file.unlink()
                     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         logger.warning(
-                            "Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error
+                            "Не удалось удалить тестовый файл %s: %s",
+                            test_file,
+                            cleanup_error,
                         )
         else:
             test_file = None
@@ -352,7 +355,9 @@ class ParallelCityParser:
                         test_file.unlink()
                     except (OSError, RuntimeError, TypeError, ValueError) as cleanup_error:
                         logger.warning(
-                            "Не удалось удалить тестовый файл %s: %s", test_file, cleanup_error
+                            "Не удалось удалить тестовый файл %s: %s",
+                            test_file,
+                            cleanup_error,
                         )
 
     def log(self, message: str, level: str = "info") -> None:
@@ -492,18 +497,19 @@ class ParallelCityParser:
                             self.log(
                                 f"Lock файл существует "
                                 f"(возраст: {lock_age:.0f} сек, PID: {lock_pid}), "
-                                f"ожидаем..."
+                                f"ожидаем...",
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             # Процесс не существует - это осиротевший lock
                             self.log(
                                 "Удаление осиротевшего lock файла "
-                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid})"
+                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid})",
                             )
                             lock_file_path.unlink()
                     else:
                         self.log(
-                            "Lock файл существует (возраст: %.0f сек), ожидаем...", level="warning"
+                            "Lock файл существует (возраст: %.0f сек), ожидаем...",
+                            level="warning",
                         )
                 except OSError as e:
                     self.log(f"Ошибка проверки lock файла: {e}", level="debug")
@@ -525,7 +531,9 @@ class ParallelCityParser:
                 try:
                     # Атомарное создание файла - вернёт ошибку если файл уже существует
                     lock_fd = os.open(
-                        str(lock_file_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o600
+                        str(lock_file_path),
+                        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                        mode=0o600,
                     )
                     try:
                         lock_file_handle = os.fdopen(lock_fd, "w", encoding="utf-8")
@@ -766,7 +774,10 @@ class ParallelCityParser:
         """
         self._cleanup_merge_lock(lock_file_handle, lock_file_path)
         self._restore_merge_signal_handlers(
-            sigint_registered, sigterm_registered, old_sigint_handler, old_sigterm_handler
+            sigint_registered,
+            sigterm_registered,
+            old_sigint_handler,
+            old_sigterm_handler,
         )
         temp_file_manager.unregister(temp_output)
 
@@ -782,7 +793,9 @@ class ParallelCityParser:
                 self._merge_temp_files.remove(temp_output)
 
     def merge_csv_files(
-        self, output_file: str, progress_callback: Callable[[str], None] | None = None
+        self,
+        output_file: str,
+        progress_callback: Callable[[str], None] | None = None,
     ) -> bool:
         """Объединяет все CSV файлы в один с добавлением колонки "Категория".
 
@@ -992,7 +1005,11 @@ class ParallelCityParser:
 
             futures = {
                 executor.submit(
-                    self.parse_single_url, url, category_name, city_name, progress_callback
+                    self.parse_single_url,
+                    url,
+                    category_name,
+                    city_name,
+                    progress_callback,
                 ): (url, category_name, city_name)
                 for url, category_name, city_name in all_urls
             }
@@ -1010,7 +1027,7 @@ class ParallelCityParser:
 
                     current_time = time.time()
                     if current_time - last_progress_time >= PROGRESS_UPDATE_INTERVAL or idx == len(
-                        futures
+                        futures,
                     ):
                         # ISSUE 107, 115: Используем EventEmitter вместо print_progress
                         progress_data = {
@@ -1024,7 +1041,9 @@ class ParallelCityParser:
                         from parser_2gis.logger import print_progress
 
                         progress_bar = print_progress(
-                            success_count + failed_count, len(futures), prefix="   Прогресс"
+                            success_count + failed_count,
+                            len(futures),
+                            prefix="   Прогресс",
                         )
                         self.log(progress_bar, "info")
                         last_progress_time = current_time
@@ -1050,7 +1069,8 @@ class ParallelCityParser:
                 except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
                     failed_count += 1
                     self.log(
-                        f"❌ Исключение при парсинге {city_name} - {category_name}: {e}", "error"
+                        f"❌ Исключение при парсинге {city_name} - {category_name}: {e}",
+                        "error",
                     )
 
         except (KeyboardInterrupt, asyncio.CancelledError):

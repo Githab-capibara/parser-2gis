@@ -271,7 +271,7 @@ class CacheManager:
             ttl_hours = int(ttl_hours)
         except (ValueError, TypeError) as conversion_error:
             raise TypeError(
-                f"ttl_hours должен быть целым числом, получено: {type(ttl_hours).__name__}"
+                f"ttl_hours должен быть целым числом, получено: {type(ttl_hours).__name__}",
             ) from conversion_error
 
         if ttl_hours <= 0:
@@ -300,7 +300,7 @@ class CacheManager:
         if not re.match(r"^[a-zA-Z0-9_-]+\.db$", cache_file_name):
             raise ValueError(
                 "cache_file_name должен содержать только латинские буквы, цифры, "
-                f"'-' и '_', формат: 'имя.db', получено: {cache_file_name!r}"
+                f"'-' и '_', формат: 'имя.db', получено: {cache_file_name!r}",
             )
 
         self._cache_dir = cache_dir
@@ -348,7 +348,9 @@ class CacheManager:
             self._cache_dir.mkdir(parents=True, exist_ok=True)
         except OSError as mkdir_error:
             app_logger.error(
-                "Не удалось создать директорию для кэша %s: %s", self._cache_dir, mkdir_error
+                "Не удалось создать директорию для кэша %s: %s",
+                self._cache_dir,
+                mkdir_error,
             )
             raise
 
@@ -451,7 +453,12 @@ class CacheManager:
         cursor.execute(self.DELETE_SQL, (url_hash,))
 
     def _handle_cache_hit(
-        self, data: str, checksum: int, expires_at_str: str, conn: sqlite3.Connection, url_hash: str
+        self,
+        data: str,
+        checksum: int,
+        expires_at_str: str,
+        conn: sqlite3.Connection,
+        url_hash: str,
     ) -> dict[str, Any] | None:
         """Обрабатывает попадание в кэш.
 
@@ -500,7 +507,10 @@ class CacheManager:
         return self._serializer.deserialize(data)
 
     def _handle_cache_miss(
-        self, _cursor: sqlite3.Cursor, _url_hash: str, conn: sqlite3.Connection
+        self,
+        _cursor: sqlite3.Cursor,
+        _url_hash: str,
+        conn: sqlite3.Connection,
     ) -> None:
         """Обрабатывает промах кэша.
 
@@ -513,7 +523,10 @@ class CacheManager:
         conn.rollback()
 
     def _handle_db_error(
-        self, db_error: sqlite3.Error, url: str, url_hash: str
+        self,
+        db_error: sqlite3.Error,
+        url: str,
+        url_hash: str,
     ) -> dict[str, Any] | None:
         """Обрабатывает ошибки базы данных при получении кэша.
 
@@ -541,7 +554,8 @@ class CacheManager:
         # H6 Категория 1: Временные ошибки - можно повторить попытку
         if "database is locked" in error_str or "busy" in error_str:
             app_logger.warning(
-                "База данных заблокирована (временная ошибка): %s. Повторная попытка...", db_error
+                "База данных заблокирована (временная ошибка): %s. Повторная попытка...",
+                db_error,
             )
             time.sleep(0.5)
             # ISSUE-065: Повторная попытка через conn.execute() напрямую
@@ -549,7 +563,8 @@ class CacheManager:
             retry_conn = None
             try:
                 app_logger.warning(
-                    "Повторная попытка получения кэша после блокировки БД (URL: %s)", url
+                    "Повторная попытка получения кэша после блокировки БД (URL: %s)",
+                    url,
                 )
                 retry_conn = self._pool.get_connection() if self._pool else None
                 if retry_conn:
@@ -595,7 +610,11 @@ class CacheManager:
         return None
 
     def _handle_deserialize_error(
-        self, decode_error: Exception, url: str, conn: sqlite3.Connection, url_hash: str
+        self,
+        decode_error: Exception,
+        url: str,
+        conn: sqlite3.Connection,
+        url_hash: str,
     ) -> None:
         """Обрабатывает ошибки десериализации кэша.
 
@@ -849,7 +868,8 @@ class CacheManager:
             except (sqlite3.Error, OSError, MemoryError) as rollback_error:
                 app_logger.debug("Ошибка при откате транзакции: %s", rollback_error)
             app_logger.warning(
-                "MemoryError при сохранении кэша для URL %s. Данные не были сохранены.", url
+                "MemoryError при сохранении кэша для URL %s. Данные не были сохранены.",
+                url,
             )
             raise
         except sqlite3.Error as db_error:
@@ -982,12 +1002,14 @@ class CacheManager:
                 data_json_hash = _compute_data_hash_cached(data_json)
                 checksum = compute_crc32_cached(data_json_hash, data_json)
                 batch_params.append(
-                    (url_hash, url, data_json, checksum, now.isoformat(), expires_at.isoformat())
+                    (url_hash, url, data_json, checksum, now.isoformat(), expires_at.isoformat()),
                 )
                 saved_count += 1
             except (TypeError, ValueError) as serialize_error:
                 app_logger.warning(
-                    "Ошибка сериализации данных для кэша (%s): %s", url, serialize_error
+                    "Ошибка сериализации данных для кэша (%s): %s",
+                    url,
+                    serialize_error,
                 )
                 skipped_count += 1
                 continue
@@ -1017,7 +1039,8 @@ class CacheManager:
             error_str = str(db_error).lower()
             if "disk i/o error" in error_str or "no such table" in error_str:
                 app_logger.critical(
-                    "Критическая ошибка БД при пакетном сохранении кэша: %s", db_error
+                    "Критическая ошибка БД при пакетном сохранении кэша: %s",
+                    db_error,
                 )
                 raise
             app_logger.error("Ошибка БД при пакетном сохранении кэша: %s", db_error)
@@ -1107,7 +1130,8 @@ class CacheManager:
             error_str = str(db_error).lower()
             if "disk i/o error" in error_str or "no such table" in error_str:
                 app_logger.critical(
-                    "Критическая ошибка БД при очистке истекшего кэша: %s", db_error
+                    "Критическая ошибка БД при очистке истекшего кэша: %s",
+                    db_error,
                 )
                 raise
             app_logger.warning("Ошибка БД при очистке истекшего кэша: %s", db_error)
@@ -1152,7 +1176,8 @@ class CacheManager:
 
             # Вставляем хеши безопасно через параметризованный запрос
             cursor.executemany(
-                "INSERT INTO temp_hashes VALUES (?)", [(h,) for h in validated_hashes]
+                "INSERT INTO temp_hashes VALUES (?)",
+                [(h,) for h in validated_hashes],
             )
 
             # Удаляем через JOIN с временной таблицей
@@ -1210,7 +1235,8 @@ class CacheManager:
             error_str = str(db_error).lower()
             if "disk i/o error" in error_str or "no such table" in error_str:
                 app_logger.critical(
-                    "Критическая ошибка БД при получении статистики кэша: %s", db_error
+                    "Критическая ошибка БД при получении статистики кэша: %s",
+                    db_error,
                 )
                 raise
             app_logger.warning("Ошибка при получении статистики кэша: %s", db_error)
@@ -1251,7 +1277,10 @@ class CacheManager:
         return self
 
     def __exit__(
-        self, _exc_type: type[BaseException] | None, _exc_val: BaseException | None, _exc_tb: Any
+        self,
+        _exc_type: type[BaseException] | None,
+        _exc_val: BaseException | None,
+        _exc_tb: Any,
     ) -> None:
         """Закрывает все соединения при выходе из контекста.
 
@@ -1317,7 +1346,8 @@ class CacheManager:
                     # D008: Валидация размера пакета
                     if not isinstance(eviction_batch_size, int) or eviction_batch_size <= 0:
                         app_logger.error(
-                            "Некорректный размер пакета для LRU eviction: %s", eviction_batch_size
+                            "Некорректный размер пакета для LRU eviction: %s",
+                            eviction_batch_size,
                         )
                         return
 

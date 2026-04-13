@@ -193,7 +193,9 @@ class ConfigCache:
 
     # ISSUE-087: Используем @lru_cache на методе класса вместо создания на экземпляре
     def __init__(
-        self, cities_cache_size: int = CITIES_CACHE_SIZE, categories_cache_size: int = 4
+        self,
+        cities_cache_size: int = CITIES_CACHE_SIZE,
+        categories_cache_size: int = 4,
     ) -> None:
         """Инициализация кэша конфигураций.
 

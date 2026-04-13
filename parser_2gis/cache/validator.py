@@ -65,7 +65,7 @@ class CacheDataValidator:
         r"\bxp_\w+|"
         r"\b(?:TRUNCATE|ALTER|CREATE|GRANT|REVOKE)\b|"
         r"\b(?:CONCAT|GROUP_CONCAT|CAST|CONVERT)\s*\(|"
-        r"'\s*(?:OR|AND|UNION|SELECT|INSERT|UPDATE|DELETE|DROP|EXEC)\b)"
+        r"'\s*(?:OR|AND|UNION|SELECT|INSERT|UPDATE|DELETE|DROP|EXEC)\b)",
     )
 
     # Опасные ключи для защиты от prototype pollution
@@ -153,7 +153,8 @@ class CacheDataValidator:
 
         # Недопустимый тип
         app_logger.error(
-            "КРИТИЧЕСКАЯ ОШИБКА: недопустимый тип данных в кэше: %s", type(data).__name__
+            "КРИТИЧЕСКАЯ ОШИБКА: недопустимый тип данных в кэше: %s",
+            type(data).__name__,
         )
         return False
 
@@ -308,7 +309,8 @@ class CacheDataValidator:
                 decoded_value = urllib.parse.unquote(value)
                 if decoded_value != value and self._SQL_INJECTION_PATTERNS.search(decoded_value):
                     app_logger.warning(
-                        "Обнаружен потенциальный SQL-инъекция в URL-encoded кэше: %s", value[:100]
+                        "Обнаружен потенциальный SQL-инъекция в URL-encoded кэше: %s",
+                        value[:100],
                     )
                     return False
             except (ValueError, TypeError, UnicodeDecodeError) as e:

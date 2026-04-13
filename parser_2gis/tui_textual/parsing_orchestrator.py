@@ -99,7 +99,11 @@ class ParsingOrchestrator:
         self._state.running = False
 
     def update_progress(
-        self, success: int, failed: int, category: str = "", record: int = 0
+        self,
+        success: int,
+        failed: int,
+        category: str = "",
+        record: int = 0,
     ) -> None:
         """Обновляет прогресс парсинга.
 

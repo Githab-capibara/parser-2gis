@@ -189,7 +189,9 @@ class CacheFacade:
     """
 
     def __init__(
-        self, cache_path: str | None = None, cache_manager: CacheManager | None = None
+        self,
+        cache_path: str | None = None,
+        cache_manager: CacheManager | None = None,
     ) -> None:
         """Инициализация фасада кэша.
 
@@ -386,7 +388,10 @@ class BrowserFacade:
         return browser.get_html()
 
     def execute_js(
-        self, browser: BrowserService, js_code: str, timeout: int | None = None
+        self,
+        browser: BrowserService,
+        js_code: str,
+        timeout: int | None = None,
     ) -> str | int | float | bool | dict[str, Any] | list[Any] | None:
         """Выполняет JavaScript код.
 

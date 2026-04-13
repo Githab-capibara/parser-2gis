@@ -198,7 +198,10 @@ def validate_non_empty_list(value: list[Any], field_name: str) -> list[Any]:
 
 
 def validate_list_length(
-    value: list[Any], min_length: int, max_length: int, field_name: str
+    value: list[Any],
+    min_length: int,
+    max_length: int,
+    field_name: str,
 ) -> list[Any]:
     """Валидирует длину списка.
 
@@ -264,7 +267,8 @@ def validate_email(email: str) -> ValidationResult:
 
     if len(email) > 254:
         return ValidationResult(
-            is_valid=False, error=f"Email слишком длинный (максимум 254 символа): {email[:50]}..."
+            is_valid=False,
+            error=f"Email слишком длинный (максимум 254 символа): {email[:50]}...",
         )
 
     # Сначала пробуем стандартный ASCII email
@@ -358,7 +362,8 @@ def _compute_config_hash(config: list[Any]) -> str:
 
 
 def _evict_cache_if_needed(
-    cache: OrderedDict[str, list[Any]], max_size: int = _CACHE_MAX_SIZE
+    cache: OrderedDict[str, list[Any]],
+    max_size: int = _CACHE_MAX_SIZE,
 ) -> None:
     """LRU eviction для кэша конфигураций.
 
@@ -371,7 +376,9 @@ def _evict_cache_if_needed(
 
 
 def _validate_config_data(
-    config: list[Any], field_name: str, cache: OrderedDict[str, list[Any]]
+    config: list[Any],
+    field_name: str,
+    cache: OrderedDict[str, list[Any]],
 ) -> list[Any]:
     """Универсальная валидация конфигурации городов/категорий.
 
@@ -470,7 +477,9 @@ def validate_categories_config(categories: list[Any], field_name: str = "categor
 
 
 def validate_config(
-    config: list[Any], field_name: str, cache: OrderedDict[str, list[Any]] | None = None
+    config: list[Any],
+    field_name: str,
+    cache: OrderedDict[str, list[Any]] | None = None,
 ) -> list[Any]:
     """Универсальная функция валидации конфигурации (города, категории и т.д.).
 

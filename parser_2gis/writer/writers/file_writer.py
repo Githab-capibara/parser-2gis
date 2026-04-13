@@ -111,7 +111,11 @@ class FileWriter(WriterProtocol, ABC):
         """Записывает JSON-документ Catalog Item API, полученный парсером."""
 
     def _open_file(
-        self, file_path: str, mode: str = "r", newline: str | None = None, **kwargs: Any
+        self,
+        file_path: str,
+        mode: str = "r",
+        newline: str | None = None,
+        **kwargs: Any,
     ) -> IO[Any]:
         """Открывает файл с указанными параметрами.
 

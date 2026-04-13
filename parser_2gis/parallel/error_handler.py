@@ -100,7 +100,10 @@ class ParallelErrorHandler:
         return False, f"Ошибка Chrome: {chrome_error}"
 
     def handle_init_error(
-        self, init_error: Exception, temp_filepath: Path, url: str
+        self,
+        init_error: Exception,
+        temp_filepath: Path,
+        url: str,
     ) -> tuple[bool, str]:
         """Обрабатывает ошибку инициализации.
 
@@ -119,7 +122,11 @@ class ParallelErrorHandler:
         return False, f"Ошибка инициализации: {init_error}"
 
     def handle_timeout_error(
-        self, temp_filepath: Path, city_name: str, category_name: str, timeout: int
+        self,
+        temp_filepath: Path,
+        city_name: str,
+        category_name: str,
+        timeout: int,
     ) -> tuple[bool, str]:
         """Обрабатывает ошибку таймаута.
 
@@ -139,7 +146,10 @@ class ParallelErrorHandler:
         return False, f"Таймаут: {timeout} сек"
 
     def handle_memory_error(
-        self, memory_error: MemoryError, temp_filepath: Path, url: str
+        self,
+        memory_error: MemoryError,
+        temp_filepath: Path,
+        url: str,
     ) -> tuple[bool, str]:
         """Обрабатывает ошибку памяти.
 
@@ -163,7 +173,11 @@ class ParallelErrorHandler:
         return False, f"Ошибка памяти: {memory_error}"
 
     def handle_other_error(
-        self, error: Exception, temp_filepath: Path, city_name: str, category_name: str
+        self,
+        error: Exception,
+        temp_filepath: Path,
+        city_name: str,
+        category_name: str,
     ) -> tuple[bool, str]:
         """Обрабатывает прочие ошибки.
 
@@ -191,7 +205,9 @@ class ParallelErrorHandler:
         """
         # #63: Использует общую утилиту из cleanup_utils.py
         cleanup_temp_file(
-            temp_filepath, log_func=self.log, description="Временный файл удалён после ошибки"
+            temp_filepath,
+            log_func=self.log,
+            description="Временный файл удалён после ошибки",
         )
 
     def create_unique_temp_file(self, city_name: str, category_name: str) -> Path:
@@ -247,7 +263,9 @@ class ParallelErrorHandler:
             except OSError:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(
-                        5, "Ошибка создания файла (попытка %d): повторная попытка", attempt + 1
+                        5,
+                        "Ошибка создания файла (попытка %d): повторная попытка",
+                        attempt + 1,
                     )
                     temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{id(self)}.tmp"
                     temp_filepath = self.output_dir / temp_filename

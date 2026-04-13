@@ -30,7 +30,9 @@ from parser_2gis.parallel.filename_utils import extract_category_from_filename
 
 
 def _log_message(
-    msg: str, level: str = "debug", log_callback: Callable[[str, str], None] | None = None
+    msg: str,
+    level: str = "debug",
+    log_callback: Callable[[str, str], None] | None = None,
 ) -> None:
     """Общая функция для логирования через callback.
 
@@ -62,7 +64,10 @@ def _get_cached_fieldnames(fieldnames_tuple: tuple[str, ...], *, add_category: b
 
 
 def _open_outfile_with_fallback(
-    path: Path, enc: str, buf_size: int, log_func: Callable[[str, str], None] | None
+    path: Path,
+    enc: str,
+    buf_size: int,
+    log_func: Callable[[str, str], None] | None,
 ) -> tuple[TextIO | None, bool]:
     """Открывает выходной файл с fallback механизмом.
 
@@ -91,7 +96,9 @@ def _open_outfile_with_fallback(
             try:
                 file_obj = open(path, "w", encoding=enc, newline="", buffering=8192)  # noqa: SIM115
                 _log_message(
-                    "Fallback успешен: файл открыт с уменьшенным буфером", "info", log_func
+                    "Fallback успешен: файл открыт с уменьшенным буфером",
+                    "info",
+                    log_func,
                 )
                 return file_obj, True
             except OSError as fallback_error:
@@ -101,7 +108,9 @@ def _open_outfile_with_fallback(
 
 
 def _open_infile_with_fallback(
-    csv_file: Path, buffer_size: int, log_callback: Callable[[str, str], None] | None
+    csv_file: Path,
+    buffer_size: int,
+    log_callback: Callable[[str, str], None] | None,
 ) -> TextIO | None:
     """Открывает входной CSV файл с fallback на уменьшение буфера.
 
@@ -119,13 +128,17 @@ def _open_infile_with_fallback(
     except OSError as file_error:
         error_type = type(file_error).__name__
         _log_message(
-            f"Ошибка доступа к файлу {csv_file} ({error_type}): {file_error}", "error", log_callback
+            f"Ошибка доступа к файлу {csv_file} ({error_type}): {file_error}",
+            "error",
+            log_callback,
         )
         if buffer_size > 0:
             try:
                 infile = open(csv_file, encoding="utf-8-sig", newline="", buffering=4096)  # noqa: SIM115
                 _log_message(
-                    f"Fallback успешен: файл {csv_file} открыт с буфером 4KB", "info", log_callback
+                    f"Fallback успешен: файл {csv_file} открыт с буфером 4KB",
+                    "info",
+                    log_callback,
                 )
                 return infile
             except OSError:
@@ -162,14 +175,22 @@ def _process_csv_file_rows(
 
     try:
         return _read_and_batch_rows(
-            csv_file, infile, writer, outfile, batch_size, fieldnames_cache, log_callback
+            csv_file,
+            infile,
+            writer,
+            outfile,
+            batch_size,
+            fieldnames_cache,
+            log_callback,
         )
     finally:
         try:
             infile.close()
         except (OSError, RuntimeError, ValueError) as close_error:
             _log_message(
-                f"Ошибка при закрытии файла {csv_file.name}: {close_error}", "debug", log_callback
+                f"Ошибка при закрытии файла {csv_file.name}: {close_error}",
+                "debug",
+                log_callback,
             )
 
 
@@ -200,7 +221,9 @@ def _read_and_batch_rows(
         reader = csv.DictReader(infile)
     except (OSError, csv.Error) as csv_error:
         _log_message(
-            f"Ошибка при создании DictReader для {csv_file}: {csv_error}", "error", log_callback
+            f"Ошибка при создании DictReader для {csv_file}: {csv_error}",
+            "error",
+            log_callback,
         )
         return writer, 0
 
@@ -221,11 +244,14 @@ def _read_and_batch_rows(
 
     try:
         category_name = extract_category_from_filename(
-            csv_file, log_func=partial(_log_message, log_callback=log_callback)
+            csv_file,
+            log_func=partial(_log_message, log_callback=log_callback),
         )
     except (OSError, ValueError) as cat_error:
         _log_message(
-            f"Ошибка извлечения категории из {csv_file}: {cat_error}", "warning", log_callback
+            f"Ошибка извлечения категории из {csv_file}: {cat_error}",
+            "warning",
+            log_callback,
         )
         category_name = ""
 
@@ -302,7 +328,10 @@ def merge_csv_files_common(
     writer: csv.DictWriter[str] | None = None
 
     outfile, open_success = _open_outfile_with_fallback(
-        output_path, encoding, buffer_size, log_callback
+        output_path,
+        encoding,
+        buffer_size,
+        log_callback,
     )
     if not open_success or outfile is None:
         return False, 0, []
@@ -335,18 +364,24 @@ def merge_csv_files_common(
 
             if writer is None:
                 _log_message(
-                    "Все CSV файлы пустые или не имеют заголовков", "warning", log_callback
+                    "Все CSV файлы пустые или не имеют заголовков",
+                    "warning",
+                    log_callback,
                 )
                 return False, 0, []
 
             _log_message(
-                f"Объединение завершено. Всего записей: {total_rows}", "info", log_callback
+                f"Объединение завершено. Всего записей: {total_rows}",
+                "info",
+                log_callback,
             )
             return True, total_rows, files_to_delete
 
     except KeyboardInterrupt:
         _log_message(
-            "Объединение прервано пользователем (KeyboardInterrupt)", "warning", log_callback
+            "Объединение прервано пользователем (KeyboardInterrupt)",
+            "warning",
+            log_callback,
         )
         return False, 0, files_to_delete
 

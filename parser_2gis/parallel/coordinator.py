@@ -58,7 +58,10 @@ BROWSER_SEMAPHORE_EXTRA_SLOTS: int = 0
 
 
 def _atomic_rename_with_retry(
-    src: Path, dst: Path, log_func: Callable[[str, str], None], max_attempts: int = 3
+    src: Path,
+    dst: Path,
+    log_func: Callable[[str, str], None],
+    max_attempts: int = 3,
 ) -> bool:
     """Атомарное переименование файла с повторными попытками.
 
@@ -362,7 +365,7 @@ class ParallelCoordinator:
         self._cancel_event = threading.Event()
         self._stop_event = threading.Event()
         self._browser_launch_semaphore = BoundedSemaphore(
-            max_workers + BROWSER_SEMAPHORE_EXTRA_SLOTS
+            max_workers + BROWSER_SEMAPHORE_EXTRA_SLOTS,
         )
 
         # H3: Dependency Injection с fallback на создание по умолчанию
@@ -400,7 +403,8 @@ class ParallelCoordinator:
                 )
             except (OSError, RuntimeError, TypeError, ValueError) as timer_error:
                 logger.warning(
-                    "Не удалось инициализировать таймер очистки временных файлов: %s", timer_error
+                    "Не удалось инициализировать таймер очистки временных файлов: %s",
+                    timer_error,
                 )
 
         self.log(
@@ -489,7 +493,9 @@ class ParallelCoordinator:
             if self._parser_factory is not None:
                 return self._parser_factory(url, self.config.chrome, self.config.parser)
             return get_parser(
-                url, chrome_options=self.config.chrome, parser_options=self.config.parser
+                url,
+                chrome_options=self.config.chrome,
+                parser_options=self.config.parser,
             )
         except (ChromeException, OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             self.log(f"Ошибка создания парсера: {e}", "error")
@@ -539,7 +545,11 @@ class ParallelCoordinator:
             executor = ThreadPoolExecutor(max_workers=self.max_workers)
             futures = {
                 executor.submit(
-                    self.parse_single_url, url, category_name, city_name, progress_callback
+                    self.parse_single_url,
+                    url,
+                    category_name,
+                    city_name,
+                    progress_callback,
                 ): (url, category_name, city_name)
                 for url, category_name, city_name in all_urls
             }
@@ -550,7 +560,8 @@ class ParallelCoordinator:
                     success, result = future.result(timeout=self.timeout_per_url)
                     if self._progress_reporter:
                         self._progress_reporter.update_progress(
-                            success=success, filename=result if success else "N/A"
+                            success=success,
+                            filename=result if success else "N/A",
                         )
                     if not success:
                         self.log(f"Не удалось: {city_name} - {category_name}: {result}", "error")
@@ -707,7 +718,8 @@ class ParallelCoordinator:
                 yield (url, category["name"], city["name"])
             except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
                 self.log(
-                    f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}", "error"
+                    f"Ошибка генерации URL для {city['name']} - {category['name']}: {e}",
+                    "error",
                 )
 
     def _parse_single_url_impl(
@@ -721,7 +733,7 @@ class ParallelCoordinator:
     ) -> tuple[bool, str]:
         """Реализация парсинга одного URL."""
         self.log(
-            f"Начало парсинга: {category_name} - {city_name} (временный файл: {temp_filepath.name})"
+            f"Начало парсинга: {category_name} - {city_name} (временный файл: {temp_filepath.name})",
         )
 
         # H003: Задержка ТОЛЬКО если use_delays=True
@@ -748,7 +760,9 @@ class ParallelCoordinator:
                         parser.parse(writer)
                     except MemoryError as memory_error:
                         return self._error_handler.handle_memory_error(
-                            memory_error, temp_filepath, url
+                            memory_error,
+                            temp_filepath,
+                            url,
                         )
                     finally:
                         logger.debug("Завершена очистка ресурсов парсера")
@@ -758,7 +772,9 @@ class ParallelCoordinator:
             # #147-#148: Атомарное переименование с вынесенной функцией
             try:
                 rename_success = _atomic_rename_with_retry(
-                    src=temp_filepath, dst=filepath, log_func=self.log
+                    src=temp_filepath,
+                    dst=filepath,
+                    log_func=self.log,
                 )
             except OSError:
                 self._error_handler._cleanup_temp_file(temp_filepath)
@@ -783,7 +799,10 @@ class ParallelCoordinator:
             raise
         except (OSError, RuntimeError, MemoryError) as e:
             return self._error_handler.handle_other_error(
-                e, temp_filepath, city_name, category_name
+                e,
+                temp_filepath,
+                city_name,
+                category_name,
             )
 
     def parse_single_url(
@@ -829,7 +848,12 @@ class ParallelCoordinator:
         def do_parse() -> tuple[bool, str]:
             """Выполняет парсинг одного URL через ThreadPoolExecutor."""
             return self._parse_single_url_impl(
-                url, category_name, city_name, temp_filepath, filepath, progress_callback
+                url,
+                category_name,
+                city_name,
+                temp_filepath,
+                filepath,
+                progress_callback,
             )
 
         # ИСПРАВЛЕНИЕ: Добавлена обработка отмены с try/finally для очистки временных файлов
@@ -841,7 +865,10 @@ class ParallelCoordinator:
                     return success, message
                 except FuturesTimeoutError:
                     return self._error_handler.handle_timeout_error(
-                        temp_filepath, city_name, category_name, self.timeout_per_url
+                        temp_filepath,
+                        city_name,
+                        category_name,
+                        self.timeout_per_url,
                     )
                 except (KeyboardInterrupt, asyncio.CancelledError):
                     # ИСПРАВЛЕНИЕ: Обработка отмены с очисткой временных файлов
@@ -852,12 +879,16 @@ class ParallelCoordinator:
                             self.log(f"Временный файл удалён: {temp_filepath}", "debug")
                         except (OSError, RuntimeError) as cleanup_error:
                             self.log(
-                                f"Ошибка при удалении временного файла: {cleanup_error}", "error"
+                                f"Ошибка при удалении временного файла: {cleanup_error}",
+                                "error",
                             )
                     return False, "Отменено пользователем"
         except (OSError, RuntimeError, TypeError, ValueError, MemoryError) as e:
             return self._error_handler.handle_other_error(
-                e, temp_filepath, city_name, category_name
+                e,
+                temp_filepath,
+                city_name,
+                category_name,
             )
         finally:
             # ИСПРАВЛЕНИЕ: Очистка временных файлов в finally
@@ -868,7 +899,8 @@ class ParallelCoordinator:
                     self.log(f"Временный файл удалён в finally: {temp_filepath}", "debug")
                 except (OSError, RuntimeError) as cleanup_error:
                     self.log(
-                        f"Ошибка при удалении временного файла в finally: {cleanup_error}", "error"
+                        f"Ошибка при удалении временного файла в finally: {cleanup_error}",
+                        "error",
                     )
 
     def run(
