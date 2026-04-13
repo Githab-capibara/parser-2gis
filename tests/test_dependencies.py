@@ -58,8 +58,6 @@ class TestTextualDependency:
         """Проверка импорта textual и минимальной версии."""
         from packaging import version
 
-        import textual
-
         assert hasattr(textual, "__version__"), "textual не имеет __version__"
         min_version = version.parse("0.50.0")
         actual_version = version.parse(textual.__version__)
@@ -79,7 +77,7 @@ class TestTextualDependency:
         """Проверка наличия основных виджетов в textual."""
         from textual.app import App, ComposeResult  # noqa: F401
         from textual.containers import Container, VerticalScroll  # noqa: F401
-        from textual.widgets import Button, Footer, Header, Input, Label, Static  # noqa: F401
+        from textual.widgets import Button, Footer, Header, Input, Label, Static
 
         # Проверяем что все импорты прошли успешно
         assert all(x is not None for x in [App, Button, Footer, Header, Input, Label, Static])

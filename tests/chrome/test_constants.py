@@ -3,10 +3,11 @@
 import pytest
 
 from parser_2gis.chrome.constants import (
+    _DEFAULT_REMOTE_DEBUGGING_PORT_RANGE,
+    _RATE_LIMIT_PERIOD,
     CHROME_NO_SANDBOX_FLAG,
     CHROME_STARTUP_DELAY,
     DEFAULT_MEMORY_LIMIT_MB,
-    _DEFAULT_REMOTE_DEBUGGING_PORT_RANGE,
     DEFAULT_STARTUP_DELAY_SEC,
     DEFAULT_TTL_HOURS,
     EXTERNAL_RATE_LIMIT_PERIOD,
@@ -14,7 +15,6 @@ from parser_2gis.chrome.constants import (
     MAX_PORT,
     MEMORY_FRACTION_FOR_V8,
     MIN_PORT,
-    _RATE_LIMIT_PERIOD,
 )
 
 

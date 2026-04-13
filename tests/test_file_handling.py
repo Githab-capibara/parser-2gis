@@ -165,7 +165,6 @@ class TestRaceConditionTempFiles:
                 t.join()
 
             # Проверяем что все файлы зарегистрированы
-            _expected_count = num_threads * files_per_thread
             with temp_file_manager._lock:
                 # Из-за LRU eviction количество может быть меньше MAX_TEMP_FILES
                 actual_count = len(temp_file_manager._registry)
