@@ -1,16 +1,8 @@
 """
 Тесты для проверки зависимостей и импортов.
 
-Эти тесты выявляют ошибки на раннем этапе:
-- Отсутствие необходимых зависимостей
-- Ошибки импорта модулей
-- Проблемы с инициализацией TUI компонентов
-
-Примечание:
-    Тесты для TUI компонентов требуют установки textual:
-    pip install textual
-
-    Если textual не установлен, тесты будут пропущены.
+Объединённый модуль: проверка импорта основных и опциональных зависимостей,
+а также работоспособности TUI компонентов.
 """
 
 import sys
@@ -59,16 +51,21 @@ class TestYamlDependency:
 
 
 class TestTextualDependency:
-    """Тесты для проверки зависимости Textual."""
+    """Тесты для проверки зависимости Textual (объединённые из test_optional_deps_tui.py)."""
 
-    @pytest.mark.skipif(
-        not TEXTUAL_AVAILABLE, reason="textual не установлен. Установите: pip install textual"
-    )
-    def test_textual_import(self) -> None:
-        """Проверка импорта textual."""
+    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
+    def test_textual_import_and_version(self) -> None:
+        """Проверка импорта textual и минимальной версии."""
+        from packaging import version
+
         import textual
 
         assert hasattr(textual, "__version__"), "textual не имеет __version__"
+        min_version = version.parse("0.50.0")
+        actual_version = version.parse(textual.__version__)
+        assert actual_version >= min_version, (
+            f"Версия textual ({actual_version}) меньше минимальной ({min_version})"
+        )
 
     @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
     def test_textual_app_class_exists(self) -> None:
@@ -79,28 +76,21 @@ class TestTextualDependency:
 
     @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
     def test_textual_widgets_exist(self) -> None:
-        """Проверка наличия виджетов в textual."""
-        from textual.widgets import Button, Input, Label, Static
+        """Проверка наличия основных виджетов в textual."""
+        from textual.app import App, ComposeResult  # noqa: F401
+        from textual.containers import Container, VerticalScroll  # noqa: F401
+        from textual.widgets import Button, Footer, Header, Input, Label, Static  # noqa: F401
 
-        assert Button is not None
-        assert Input is not None
-        assert Label is not None
-        assert Static is not None
+        # Проверяем что все импорты прошли успешно
+        assert all(x is not None for x in [App, Button, Footer, Header, Input, Label, Static])
 
 
 class TestTUIComponents:
     """Тесты для проверки компонентов TUI на Textual."""
 
     @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
-    def test_tui_app_import(self) -> None:
-        """Проверка импорта TUI приложения."""
-        from parser_2gis.tui_textual import TUIApp
-
-        assert TUIApp is not None
-
-    @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
-    def test_tui_app_instantiation(self) -> None:
-        """Проверка создания экземпляра TUI приложения."""
+    def test_tui_app_import_and_instantiation(self) -> None:
+        """Проверка импорта и создания экземпляра TUI приложения."""
         from parser_2gis.tui_textual import TUIApp
 
         app = TUIApp()
@@ -175,28 +165,20 @@ class TestTUIScreens:
 
 
 class TestCoreImports:
-    """Тесты для проверки основных импортов проекта."""
+    """Тесты для проверки основных импортов проекта (объединённые)."""
 
-    def test_main_module_import(self) -> None:
-        """Проверка импорта основного модуля."""
-        from parser_2gis import main
-
-        assert main is not None
-
-    def test_config_import(self) -> None:
-        """Проверка импорта конфигурации."""
-        from parser_2gis.config import Configuration
-
-        assert Configuration is not None
-
-    def test_parallel_parser_import(self) -> None:
-        """Проверка импорта параллельного парсера."""
-        from parser_2gis.parallel import ParallelCityParser
-
-        assert ParallelCityParser is not None
-
-    def test_cache_manager_import(self) -> None:
-        """Проверка импорта менеджера кэша."""
-        from parser_2gis.cache import CacheManager
-
-        assert CacheManager is not None
+    @pytest.mark.parametrize(
+        "import_path, expected_name",
+        [
+            ("parser_2gis:main", "main"),
+            ("parser_2gis.config:Configuration", "Configuration"),
+            ("parser_2gis.parallel:ParallelCityParser", "ParallelCityParser"),
+            ("parser_2gis.cache:CacheManager", "CacheManager"),
+        ],
+    )
+    def test_core_imports(self, import_path: str, expected_name: str) -> None:
+        """Параметризированная проверка основных импортов."""
+        module_path, attr_name = import_path.split(":")
+        module = __import__(module_path, fromlist=[attr_name])
+        obj = getattr(module, attr_name)
+        assert obj is not None, f"{expected_name} не должен быть None"
