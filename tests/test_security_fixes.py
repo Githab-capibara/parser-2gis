@@ -1,11 +1,12 @@
 """Тесты для исправленных проблем безопасности (P0).
 
 Этот модуль тестирует исправления следующих проблем:
-1. CSV injection - parser_2gis/writer/writers/csv_writer.py
-2. XSS паттерны - parser_2gis/parser/parsers/firm.py
-3. Path traversal - parser_2gis/cache/manager.py
-4. WebSocket injection - parser_2gis/chrome/remote.py
-5. Temp file prediction - parser_2gis/utils/temp_file_manager.py
+1. XSS паттерны - parser_2gis/parser/parsers/firm.py
+2. Path traversal - parser_2gis/cache/manager.py
+3. WebSocket injection - parser_2gis/chrome/remote.py
+4. Temp file prediction - parser_2gis/utils/temp_file_manager.py
+
+Примечание: CSV injection тесты перенесены в test_csv_writer_strategies.py:TestSanitizeFormatter.
 """
 
 from __future__ import annotations
@@ -20,76 +21,6 @@ from parser_2gis.cache.manager import CacheManager
 from parser_2gis.chrome.js_executor import DANGEROUS_JS_PATTERNS
 from parser_2gis.parser.parsers.firm import _sanitize_string_value, _validate_initial_state
 from parser_2gis.utils.temp_file_manager import TempFileManager, create_temp_file
-from parser_2gis.writer.writers.csv_formatter import SanitizeFormatter
-from parser_2gis.writer.writers.csv_writer import CSVRowData
-
-# =============================================================================
-# ТЕСТЫ ДЛЯ CSV INJECTION (P0-1)
-# =============================================================================
-
-
-class TestCSVInjection:
-    """Тесты для защиты от CSV injection атак."""
-
-    @pytest.fixture(autouse=True)
-    def setup_formatter(self) -> None:
-        """Создаёт SanitizeFormatter для тестов."""
-        self.formatter = SanitizeFormatter()
-
-    def test_sanitize_value_with_formula_prefix(self) -> None:
-        """Тест санитизации значений с опасными префиксами формул."""
-        assert self.formatter.format("=1+1") == "'=1+1"
-        assert self.formatter.format("+1+1") == "'+1+1"
-        assert self.formatter.format("-1+1") == "'-1+1"
-        assert self.formatter.format("@SUM(A1:A10)") == "'@SUM(A1:A10)"
-
-    def test_sanitize_value_without_formula_prefix(self) -> None:
-        """Тест санитизации безопасных значений."""
-        assert self.formatter.format("normal text") == "normal text"
-        assert self.formatter.format("123") == "123"
-        assert self.formatter.format("test@example.com") == "test@example.com"
-
-    def test_sanitize_value_special_characters(self) -> None:
-        """Тест экранирования специальных символов CSV."""
-        assert self.formatter.format('test "quoted" value') == 'test ""quoted"" value'
-        assert self.formatter.format("line1\nline2") == "line1 line2"
-        assert self.formatter.format("line1\rline2") == "line1line2"
-        assert self.formatter.format("col1\tcol2") == "col1 col2"
-        assert self.formatter.format("test\x00value") == "testvalue"
-
-    def test_sanitize_table_coverage(self) -> None:
-        """Тест покрытия таблицы санитизации."""
-        test_value = 'test"\nvalue\rwith\ttabs\x00null'
-        result = self.formatter.format(test_value)
-
-        assert '"' not in result or '""' in result
-        assert "\n" not in result
-        assert "\r" not in result
-        assert "\t" not in result
-        assert "\x00" not in result
-
-    def test_csv_writer_formula_protection(self) -> None:
-        """Тест защиты CSVWriter от формул."""
-        dangerous_name = "=CMD|'/C calc'!A1"
-        sanitized = self.formatter.format(dangerous_name)
-
-        assert sanitized.startswith("'")
-
-    def test_csv_row_data_typeddict(self) -> None:
-        """Тест TypedDict для CSVRowData."""
-        row_data: CSVRowData = {
-            "name": "Test Organization",
-            "address": "Test Address",
-            "city": "Moscow",
-            "phone_1": "+7 (495) 123-45-67",
-        }
-
-        assert row_data["name"] == "Test Organization"
-        assert row_data["address"] == "Test Address"
-
-        partial_data: CSVRowData = {"name": "Partial"}
-        assert partial_data["name"] == "Partial"
-
 
 # =============================================================================
 # ТЕСТЫ ДЛЯ XSS PATTERNS (P0-2)

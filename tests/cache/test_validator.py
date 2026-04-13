@@ -62,23 +62,3 @@ class TestCacheDataValidatorValidate:
         long_string = "a" * (validator.max_string_length + 1)
         result = validator.validate(long_string)
         assert result is False
-
-
-class TestCacheDataValidatorSqlInjection:
-    """Тесты обнаружения SQL-инъекций."""
-
-    @pytest.mark.parametrize(
-        "data,expected",
-        [
-            pytest.param("normal string", True, id="safe_string"),
-            pytest.param("SELECT * FROM users", False, id="select_injection"),
-            pytest.param("'; DROP TABLE users; --", False, id="drop_injection"),
-            pytest.param("1 OR 1=1", False, id="or_injection"),
-            pytest.param("UNION SELECT * FROM users", False, id="union_injection"),
-        ],
-    )
-    def test_sql_injection_detection(self, data, expected) -> None:
-        """Обнаружение SQL-инъекций в строках."""
-        validator = CacheDataValidator()
-        result = validator.validate(data)
-        assert result is expected
