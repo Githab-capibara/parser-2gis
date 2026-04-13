@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import hashlib
 import os
+from io import TextIOWrapper
+from typing import cast
 import sys
 import unicodedata
 
@@ -176,7 +178,7 @@ class CSVDeduplicator:
                     batch: list[str] = []
                     batch_size = HASH_BATCH_SIZE
 
-                    for line_num, line in enumerate(f_csv, 1):
+                    for line_num, line in enumerate(cast(TextIOWrapper, f_csv), 1):
                         try:
                             # Вычисляем хеш строки
                             line_hash = self._hash_row(str(line))

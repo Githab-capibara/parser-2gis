@@ -170,7 +170,7 @@ class AppState:
 MAX_LOG_BUFFER_SIZE: int = 1000
 
 
-class TUIApp(App):
+class TUIApp(App):  # type: ignore[type-arg]
     """Главное приложение TUI Parser2GIS на Textual.
 
     Управляет экранами, навигацией и состоянием приложения.
@@ -308,14 +308,14 @@ class TUIApp(App):
     """
 
     # Горячие клавиши
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [
         Binding("q", "quit", "Выход", priority=True),
         Binding("escape", "go_back", "Назад", priority=True),
         Binding("d", "toggle_dark", "Тёмная тема"),
     ]
 
     # Регистрация экранов
-    SCREENS: ClassVar[dict[str, type]] = {
+    SCREENS: ClassVar[dict[str, type]] = {  # type: ignore[assignment]
         "main_menu": MainMenuScreen,
         "city_selector": CitySelectorScreen,
         "category_selector": CategorySelectorScreen,
@@ -334,7 +334,7 @@ class TUIApp(App):
             **kwargs: Аргументы для родительского класса App.
 
         """
-        super().__init__(**kwargs)
+        super().__init__(**kwargs)  # type: ignore[arg-type]
         self._config = self._load_config()
         self._state = AppState()  # ISSUE-020: Используем dataclass
         self._file_logger: logging.Logger | None = None

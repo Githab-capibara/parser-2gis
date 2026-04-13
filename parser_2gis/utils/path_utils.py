@@ -49,7 +49,7 @@ def _get_allowed_base_dirs() -> list[Path]:
                     Path.home() / "parser-2gis",
                     Path(tempfile.gettempdir()),
                 ]
-    return _get_allowed_base_dirs._allowed_dirs  # type: ignore[attr-defined]
+    return _get_allowed_base_dirs._allowed_dirs  # type: ignore[attr-defined, no-any-return]
 
 
 # =============================================================================

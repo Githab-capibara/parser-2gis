@@ -13,12 +13,12 @@ from parser_2gis.logger import logger as app_logger
 from ..protocols import ITuiApp
 
 
-class CitySelectorScreen(Screen):
+class CitySelectorScreen(Screen):  # type: ignore[type-arg]
     """Экран выбора городов."""
 
-    app: ITuiApp
+    app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [
         Binding("escape", "go_back", "Назад"),
         Binding("a", "select_all", "Выбрать все"),
         Binding("d", "deselect_all", "Снять все"),

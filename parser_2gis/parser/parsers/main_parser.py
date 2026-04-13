@@ -339,7 +339,7 @@ class MainPageParser(BaseParser):
     @wait_until_finished(timeout=WAIT_REQUESTS_TIMEOUT, poll_interval=0.01)
     def _wait_requests_finished(self) -> bool:
         """Ждёт завершения всех ожидающих запросов."""
-        return self._chrome_remote.execute_script("window.openHTTPs == 0")
+        return bool(self._chrome_remote.execute_script("window.openHTTPs == 0"))
 
     def _get_available_pages(self) -> dict[int, DOMNode]:
         """Получает доступные страницы для навигации.
@@ -721,7 +721,7 @@ class MainPageParser(BaseParser):
         elif http_status < 200 or http_status >= 400:
             logger.warning("Сервер вернул нестандартный статус: %d", http_status)
 
-        return document_response
+        return document_response  # type: ignore[no-any-return]
 
     def parse(self, writer: FileWriter) -> None:
         """Основной метод парсинга.

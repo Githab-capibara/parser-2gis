@@ -11,12 +11,12 @@ from textual.widgets import Button, Checkbox, Input, Static
 from ..protocols import ITuiApp
 
 
-class CategorySelectorScreen(Screen):
+class CategorySelectorScreen(Screen):  # type: ignore[type-arg]
     """Экран выбора категорий."""
 
-    app: ITuiApp
+    app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [
         Binding("escape", "go_back", "Назад"),
         Binding("a", "select_all", "Выбрать все"),
         Binding("d", "deselect_all", "Снять все"),

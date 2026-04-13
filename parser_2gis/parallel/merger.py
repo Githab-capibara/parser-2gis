@@ -392,8 +392,8 @@ class ParallelFileMerger:
         self,
         sigint_registered: bool,
         sigterm_registered: bool,
-        old_sigint_handler: signal.Handlers,
-        old_sigterm_handler: signal.Handlers,
+        old_sigint_handler: signal.Handlers | int | None,
+        old_sigterm_handler: signal.Handlers | int | None,
     ) -> None:
         """Восстанавливает оригинальные обработчики сигналов.
 
@@ -580,7 +580,7 @@ class ParallelFileMerger:
             self.log(f"Получен сигнал {signum}, очистка временных файлов...", "warning")
             cleanup_temp_files()
             if callable(old_sigint_handler):
-                old_sigint_handler(signum, frame)
+                old_sigint_handler(signum, frame)  # type: ignore[arg-type]
 
         try:
             signal.signal(signal.SIGINT, signal_handler)

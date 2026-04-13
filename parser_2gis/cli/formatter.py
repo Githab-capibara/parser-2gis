@@ -114,7 +114,7 @@ def patch_argparse_translations(*, force: bool = False) -> None:
 
     """
     if not hasattr(patch_argparse_translations, "_installed"):
-        patch_argparse_translations._installed = False
+        patch_argparse_translations._installed = False  # type: ignore[attr-defined]
 
     if patch_argparse_translations._installed and not force:  # type: ignore[attr-defined]
         return
@@ -136,7 +136,7 @@ def patch_argparse_translations(*, force: bool = False) -> None:
         """Локальная функция gettext для перевода сообщений argparse."""
         if message in custom_translations:
             return custom_translations[message]
-        return orig_gettext(message)
+        return str(orig_gettext(message))
 
     argparse._ = gettext  # type: ignore[attr-defined]
 

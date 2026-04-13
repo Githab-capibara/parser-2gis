@@ -87,7 +87,7 @@ class CSVPostProcessor:
 
         try:
             with mmap_file_context(self._file_path, "r", encoding="utf-8-sig") as (f_csv, _, _):
-                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())
+                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore[call-overload]
 
                 if csv_reader.fieldnames is None or len(csv_reader.fieldnames) == 0:
                     logger.warning(
@@ -155,7 +155,7 @@ class CSVPostProcessor:
                 encoding=self._encoding,
             ) as f_tmp_csv:
                 csv_writer = csv.DictWriter(f_tmp_csv, new_data_mapping.keys())
-                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())
+                csv_reader = csv.DictReader(f_csv, self._data_mapping.keys())  # type: ignore[call-overload]
 
                 if csv_reader.fieldnames is None or len(csv_reader.fieldnames) == 0:
                     logger.warning(

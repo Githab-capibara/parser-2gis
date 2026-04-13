@@ -87,7 +87,7 @@ class MainDataExtractor:
         try:
             # Пытаемся получить href атрибут
             if hasattr(link, "getAttribute"):
-                return link.getAttribute("href")
+                return str(link.getAttribute("href"))
             # Fallback: используем md5 для создания детерминированного
             # уникального ключа. usedforsecurity=False т.к. MD5 используется
             # только для хеширования, не для криптографии

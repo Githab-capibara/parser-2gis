@@ -66,7 +66,7 @@ except ImportError:
 try:
     from requests.exceptions import RequestException
 except ImportError:
-    RequestException = Exception
+    RequestException = Exception  # type: ignore[misc,assignment]
 
 # tenacity импортируется из utils.retry при необходимости
 

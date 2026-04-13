@@ -757,8 +757,8 @@ class ParallelCityParser:
         lock_file_path: Path,
         sigint_registered: bool,
         sigterm_registered: bool,
-        old_sigint_handler: signal.Handlers,
-        old_sigterm_handler: signal.Handlers,
+        old_sigint_handler: signal.Handlers | int | None,
+        old_sigterm_handler: signal.Handlers | int | None,
     ) -> None:
         """Финальная очистка после merge: lock, signals, temp files.
 
@@ -931,7 +931,7 @@ class ParallelCityParser:
 
         finally:
             # Финальная очистка если ещё не была выполнена
-            if temp_file_manager._registry.get(temp_output):
+            if temp_output in temp_file_manager._registry:
                 self._do_merge_cleanup_and_finalize(
                     temp_output,
                     temp_file_created,

@@ -19,7 +19,7 @@ from .constants import DEFAULT_NETWORK_TIMEOUT
 try:
     import requests
 except ImportError:
-    requests = None
+    requests = None  # type: ignore[assignment]
 
 
 class RateLimiterState:

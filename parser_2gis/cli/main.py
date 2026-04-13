@@ -48,7 +48,7 @@ def _log_startup_info(args: Any, config: Configuration, start_time: datetime) ->
         urls_count=urls_count,
         output_path=output_path_str,
         output_format=format_str,
-        config_summary=config_summary,
+        config_summary=dict(config_summary),
     )
 
     logger.info("Время запуска: %s", start_time.strftime("%Y-%m-%d %H:%M:%S"))

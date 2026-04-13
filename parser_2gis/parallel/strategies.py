@@ -406,7 +406,7 @@ class ParseStrategy:
                 semaphore_acquired = True
 
             # ISSUE 067: Используем переданные parser и writer если они есть
-            local_parser = parser
+            local_parser: BaseParser | None = parser
             local_writer = writer
 
             try:
@@ -471,6 +471,8 @@ class ParseStrategy:
 
                 # Выполняем парсинг
                 try:
+                    if local_parser is None or local_writer is None:
+                        raise RuntimeError("Parser или writer не были инициализированы")
                     with local_parser, local_writer:
                         local_parser.parse(local_writer)
                 except MemoryError as memory_error:

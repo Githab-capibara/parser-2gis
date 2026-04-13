@@ -11,12 +11,12 @@ from textual.widgets import Button, DataTable, Static
 from ..protocols import ITuiApp
 
 
-class CacheViewerScreen(Screen):
+class CacheViewerScreen(Screen):  # type: ignore[type-arg]
     """Просмотр кэша."""
 
-    app: ITuiApp
+    app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [
         Binding("escape", "go_back", "Назад"),
         Binding("c", "clear_cache", "Очистить кэш"),
     ]
@@ -186,12 +186,12 @@ class CacheViewerScreen(Screen):
         self.app.notify("Кэш очищен", title="Успех")
 
 
-class AboutScreen(Screen):
+class AboutScreen(Screen):  # type: ignore[type-arg]
     """Информация о программе."""
 
-    app: ITuiApp
+    app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding]] = [Binding("escape", "go_back", "Назад")]
+    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [Binding("escape", "go_back", "Назад")]
 
     CSS = """
     /* Центрирование экрана информации */

@@ -285,10 +285,8 @@ class ApplicationLauncher:
                     delay_ms=self.config.parser.delay_between_clicks,
                     retry_on_network_errors=self.config.parser.retry_on_network_errors,
                 ),
-                writer=WriterOptions(  # type: ignore[call-arg]
-                    format=self.config.writer.format,
+                writer=WriterOptions(
                     encoding="utf-8-sig",
-                    deduplicate=True,
                 ),
             )
 

@@ -468,7 +468,7 @@ class CSVWriter(FileWriter):
             logger.error("Пустой список items в документе")
             return None
 
-        return items[0]
+        return items[0]  # type: ignore[no-any-return]
 
     def _parse_catalog_item(self, item: dict[str, Any]) -> CatalogItem | None:
         """Создаёт CatalogItem из словаря с обработкой ошибок валидации.

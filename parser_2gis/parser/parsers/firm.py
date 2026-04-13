@@ -290,7 +290,9 @@ def _safe_extract_initial_state(
         logger.error("initialState содержит небезопасные данные")
         return None
 
-    result = raw_data
+    result: dict[str, InitialStateData] | list[InitialStateData] | str | int | float | None = (
+        raw_data
+    )
     for key in required_keys:
         if not isinstance(result, dict):
             logger.warning("Ожидался словарь для ключа %s", key)
@@ -414,7 +416,7 @@ class FirmParser(MainParser):
                 if "data" in firm_data and isinstance(firm_data.get("data"), dict):
                     for key, value in firm_data["data"].items():
                         if isinstance(value, str):
-                            firm_data["data"][key] = _sanitize_string_value(value)
+                            firm_data["data"][key] = _sanitize_string_value(value)  # type: ignore[index]
             except (KeyError, TypeError, AttributeError) as e:
                 logger.error("Ошибка при получении данных организации: %s", e)
                 return

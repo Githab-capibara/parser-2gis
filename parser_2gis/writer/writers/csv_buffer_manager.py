@@ -138,7 +138,7 @@ def mmap_file_context(
             # Создаём mmap объект
             mmapped_file = mmap.mmap(underlying_fp.fileno(), 0, access=mmap.ACCESS_READ)
             # Оборачиваем в TextIOWrapper для текстового чтения
-            text_file = io.TextIOWrapper(mmapped_file, encoding=encoding, errors="replace")
+            text_file = io.TextIOWrapper(mmapped_file, encoding=encoding, errors="replace")  # type: ignore[arg-type]
             is_mmap_mode = True
             yield text_file, True, underlying_fp
         else:

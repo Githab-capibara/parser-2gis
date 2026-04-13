@@ -13,15 +13,8 @@
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from pychrome.exceptions import RuntimeException as _RuntimeException
-    from pychrome.exceptions import UserAbortException as _UserAbortException
-else:
-    try:
-        from pychrome.exceptions import RuntimeException as _RuntimeException
-        from pychrome.exceptions import UserAbortException as _UserAbortException
-    except ImportError:
-        _RuntimeException = RuntimeError  # type: ignore[misc]
-        _UserAbortException = RuntimeError  # type: ignore[misc]
+    # Для type-checking импортируем, но не используем как типы
+    pass
 
 from parser_2gis.exceptions import ExceptionContextMixin
 
@@ -67,12 +60,44 @@ class ChromeException(ExceptionContextMixin, Exception):
         super().__init__(full_message, **kwargs)
 
 
-class ChromeRuntimeException(_RuntimeException, ChromeException):
-    """Исключение времени выполнения Chrome."""
+class ChromeRuntimeException(ChromeException):
+    """Исключение времени выполнения Chrome.
+
+    Наследуется от pychrome.exceptions.RuntimeException если доступен,
+    иначе только от ChromeException.
+    """
 
 
-class ChromeUserAbortException(_UserAbortException, ChromeException):
-    """Исключение прерывания пользователем Chrome."""
+class ChromeUserAbortException(ChromeException):
+    """Исключение прерывания пользователем Chrome.
+
+    Наследуется от pychrome.exceptions.UserAbortException если доступен,
+    иначе только от ChromeException.
+    """
+
+
+# Динамически добавляем pychrome базовые классы если доступны
+def _add_pychrome_base_classes() -> None:
+    """Добавляет pychrome base classes к исключениям во время выполнения."""
+    try:
+        from pychrome.exceptions import RuntimeException as PychromeRuntime
+        from pychrome.exceptions import UserAbortException as PychromeUserAbort
+
+        # Пересоздаём классы с правильными базами
+        class _ChromeRuntimeException(PychromeRuntime, ChromeException):  # type: ignore[misc]
+            pass
+
+        class _ChromeUserAbortException(PychromeUserAbort, ChromeException):  # type: ignore[misc]
+            pass
+
+        # Динамическое присваивание только во время выполнения
+        globals()["ChromeRuntimeException"] = _ChromeRuntimeException
+        globals()["ChromeUserAbortException"] = _ChromeUserAbortException
+    except ImportError:
+        pass
+
+
+_add_pychrome_base_classes()
 
 
 class ChromePathNotFound(ChromeException):

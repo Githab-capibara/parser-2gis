@@ -100,7 +100,7 @@ def _check_timeout_expired(
     func_name: str,
     *,
     throw_exception: bool,
-) -> tuple[bool, Any]:
+) -> tuple[bool, Any]:  # noqa: ANN401
     """Проверяет, истёк ли таймаут.
 
     Args:
@@ -380,7 +380,7 @@ def wait_until_finished(
                     throw_exception=effective_config.throw_exception,
                 )
                 if timeout_expired:
-                    return timeout_result
+                    return timeout_result  # type: ignore[no-any-return]
 
                 # Проверяем максимальное количество попыток
                 retries_exceeded, retries_result = _check_max_retries_exceeded(
@@ -390,7 +390,7 @@ def wait_until_finished(
                     throw_exception=effective_config.throw_exception,
                 )
                 if retries_exceeded:
-                    return retries_result
+                    return retries_result  # type: ignore[no-any-return]
 
                 attempt_count += 1
 
@@ -440,7 +440,7 @@ def wait_until_finished(
             # Явный return None для соответствия всем путям выполнения
             return None
 
-        return inner
+        return inner  # type: ignore[return-value]
 
     return outer
 
@@ -556,9 +556,9 @@ def async_wait_until_finished(
                         max_poll_interval,
                     )
 
-        return inner
+        return inner  # type: ignore[return-value]
 
-    return outer
+    return outer  # type: ignore[return-value]
 
 
 # =============================================================================
