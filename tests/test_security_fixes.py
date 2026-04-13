@@ -252,7 +252,7 @@ class TestWebSocketInjection:
 class TestTempFilePrediction:
     """Тесты для защиты от атак через предсказание временных файлов."""
 
-    def test_create_temp_file_crypto_safe(self, tmp_path: Path) -> str:
+    def test_create_temp_file_crypto_safe(self, tmp_path: Path) -> None:
         """Тест криптографически безопасной генерации имён."""
         temp_path = create_temp_file(str(tmp_path), prefix="test_")
 
@@ -267,8 +267,6 @@ class TestTempFilePrediction:
         # Случайная часть должна быть достаточно длинной
         random_part = filename[len("test_") : -len(".tmp")]
         assert len(random_part) >= 6  # Минимальная длина случайной части
-
-        return temp_path
 
     def test_create_temp_file_prefix_sanitization(self, tmp_path: Path) -> None:
         """Тест санитизации префикса."""

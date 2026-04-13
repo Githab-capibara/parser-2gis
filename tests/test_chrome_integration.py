@@ -4,9 +4,6 @@
 Объединяет тесты из test_chrome.py и test_integration.py.
 
 Проверяют следующие возможности:
-import pytest
-
-pytestmark = pytest.mark.requires_chrome
 - ChromeOptions валидация
 - ChromeRemote
 - ChromeException и наследники
@@ -22,15 +19,13 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.requires_chrome
-
-import pytest
-
 from parser_2gis.chrome import ChromeOptions, ChromeRemote
 from parser_2gis.config import Configuration
 from parser_2gis.logger import LogOptions
 from parser_2gis.parser import ParserOptions
 from parser_2gis.writer import CSVWriter, JSONWriter, WriterOptions, XLSXWriter, get_writer
+
+pytestmark = pytest.mark.requires_chrome
 
 # ============================================================================
 # ChromeOptions тесты (из test_chrome.py)

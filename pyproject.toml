@@ -370,10 +370,13 @@ addopts = [
     "-ra",
     "-m",
     "not requires_chrome and not requires_network",
-    "--cov=parser_2gis",
-    "--cov-report=term-missing",
-    "--cov-report=html:htmlcov",
-    "--cov-fail-under=85",
+    # Coverage отключён по умолчанию для скорости разработки.
+    # Для запуска с coverage раскомментируйте или используйте:
+    # pytest --cov=parser_2gis --cov-report=term-missing --cov-report=html:htmlcov --cov-fail-under=85
+    # "--cov=parser_2gis",
+    # "--cov-report=term-missing",
+    # "--cov-report=html:htmlcov",
+    # "--cov-fail-under=85",
 ]
 markers = [
     "slow: медленные тесты",
@@ -383,6 +386,16 @@ markers = [
     "requires_network: тесты, требующие сеть",
     "requires_tui: тесты, требующие textual (TUI)",
     "benchmark: тесты производительности",
+    "formatting: тесты форматирования кода (black, isort, autoflake)",
+    "audit_fix: тесты для исправлений аудита",
+    "critical: критические ошибки",
+    "logical: ошибки логики",
+    "optimization: оптимизации",
+    "readability: улучшения читаемости",
+    "keyboard_interrupt: тесты обработки KeyboardInterrupt",
+    "unit: юнит-тесты",
+    "logging: тесты логирования",
+    "encoding: тесты кодировок",
 ]
 filterwarnings = [
     "ignore::PendingDeprecationWarning",

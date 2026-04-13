@@ -15,10 +15,11 @@ from parser_2gis.parser.parsers.main_parser import MainPageParser
 from parser_2gis.writer import FileWriter
 
 
-class TestableMainPageParser(MainPageParser):
+class _TestableMainPageParser(MainPageParser):
     """Тестовая реализация MainPageParser для тестов.
 
     Реализует абстрактные методы parse и get_stats.
+    Префикс '_' предотвращает сборку pytest как тестового класса.
     """
 
     def parse(self, writer: FileWriter) -> None:
@@ -94,7 +95,7 @@ class TestNavigateTimeoutHandling:
         - При TimeoutError выполняется retry
         - Задержка между попытками экспоненциальная
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -133,7 +134,7 @@ class TestNavigateTimeoutHandling:
         - При успешной навигации после retry возвращается True
         - Retry выполняется нужное количество раз
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -166,7 +167,7 @@ class TestNavigateTimeoutHandling:
         """
         mock_parser_options.retry_on_network_errors = False
 
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -197,7 +198,7 @@ class TestNavigateTimeoutHandling:
         - Все попытки retry выполняются
         - После исчерпания возвращается False
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -226,7 +227,7 @@ class TestNavigateTimeoutHandling:
         - Задержка увеличивается экспоненциально
         - Jitter добавляется к задержке
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -259,7 +260,7 @@ class TestNavigateTimeoutHandling:
         """
         import logging
 
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -286,7 +287,7 @@ class TestNavigateTimeoutHandling:
         Проверяет:
         - Ошибки сети (502, 503, 504) обрабатываются с retry
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -316,7 +317,7 @@ class TestNavigateTimeoutHandling:
         Проверяет:
         - Не-сетевые ошибки не вызывают retry
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -347,7 +348,7 @@ class TestNavigateTimeoutHandling:
         - TimeoutError обрабатывается корректно
         - Возвращается None
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -370,7 +371,7 @@ class TestNavigateTimeoutHandling:
         Проверяет:
         - TimeoutError пробрасывается из декоратора @wait_until_finished
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,

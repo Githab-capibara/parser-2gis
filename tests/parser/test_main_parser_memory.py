@@ -18,10 +18,11 @@ from parser_2gis.parser.parsers.main_parser import MAX_VISITED_LINKS_SIZE, MainP
 from parser_2gis.writer import FileWriter
 
 
-class TestableMainPageParser(MainPageParser):
+class _TestableMainPageParser(MainPageParser):
     """Тестовая реализация MainPageParser для тестов.
 
     Реализует абстрактные методы parse и get_stats.
+    Префикс '_' предотвращает сборку pytest как тестового класса.
     """
 
     def parse(self, writer: FileWriter) -> None:
@@ -281,7 +282,7 @@ class TestNavigateTimeoutHandling:
         - TimeoutError обрабатывается корректно
         - Retry logic работает
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -311,7 +312,7 @@ class TestNavigateTimeoutHandling:
         Проверяет:
         - При успешной навигации после retry возвращается True
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
@@ -342,7 +343,7 @@ class TestNavigateTimeoutHandling:
         Проверяет:
         - Ошибки сети (502, 503, 504) обрабатываются с retry
         """
-        parser = TestableMainPageParser(
+        parser = _TestableMainPageParser(
             url="https://2gis.ru/moscow/search/test",
             chrome_options=mock_chrome_options,
             parser_options=mock_parser_options,
