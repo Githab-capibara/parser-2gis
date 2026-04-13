@@ -4,12 +4,12 @@
 
 | Параметр | Значение |
 |----------|----------|
-| **Всего .py файлов** | 106 |
-| **Тестовых файлов (с тестами)** | 102 |
-| **Функций `def test_`** | 1319 |
+| **Всего .py файлов** | 101 |
+| **Тестовых файлов (с тестами)** | 97 |
+| **Функций `def test_`** | 1271 |
 | **Тест-кейсов pytest** | 1347 passed, 23 skipped (параметризация даёт доп. кейсы) |
 | **Упало** | 0 failed |
-| **Дата актуализации** | 2026-04-11 |
+| **Дата актуализации** | 2026-04-13 |
 
 ---
 
@@ -27,7 +27,7 @@
 | `tests/test_parser_options.py` | Модуль parser_options.py | `parser_2gis.parser.options` | 16 | active |
 | `tests/test_function_decomposition.py` | Разбиение сложных функций (decomposition) | `parser_2gis.*` (код-стиль) | 17 | active |
 | `tests/test_imports.py` | Проверка отсутствия циклических импортов | `parser_2gis.*` (импорты) | 20 | active |
-| `tests/test_dependencies.py` | Проверка зависимостей и импортов | `parser_2gis` (зависимости) | 19 | active |
+| `tests/test_dependencies.py` | Проверка зависимостей и импортов (объединён с test_optional_deps_tui) | `parser_2gis` (зависимости) | 15 | active |
 | `tests/test_version_exceptions.py` | Модули version.py и exceptions.py | `parser_2gis.version`, `parser_2gis.exceptions` | 26 | active |
 
 ## Cache
@@ -40,13 +40,12 @@
 | `tests/cache/test_pool_critical_fixes.py` | CRITICAL проблемы в cache/pool.py | `parser_2gis.cache.pool` | 10 | active |
 | `tests/cache/test_pool_exceptions.py` | Обработка исключений в cache/pool.py | `parser_2gis.cache.pool` | 14 | active |
 | `tests/cache/test_serializer.py` | JsonSerializer | `parser_2gis.cache.serializer` | 6 | active |
-| `tests/cache/test_validator.py` | CacheDataValidator | `parser_2gis.cache.validator` | 5 | active |
+| `tests/cache/test_validator.py` | CacheDataValidator | `parser_2gis.cache.validator` | 4 | active |
 | `tests/test_cache_exceptions.py` | Специфичные исключения в cache.py | `parser_2gis.cache` | 9 | active |
 | `tests/test_cache_manager_typing.py` | Типизация параметров CacheManager | `parser_2gis.cache.manager` | 5 | active |
 | `tests/test_cache_wal_mode.py` | WAL режим в SQLite кэше | `parser_2gis.cache` (SQLite) | 6 | active |
 | `tests/test_connection_pool_leak.py` | Утечка ресурсов в `_ConnectionPool` | `parser_2gis.cache.pool` | 11 | active |
 | `tests/test_sql_injection_cache.py` | SQL-инъекции в cache validator | `parser_2gis.cache.validator` | 16 | active |
-| `tests/test_sqlite_thread_safety.py` | Потокобезопасность SQLite кэша | `parser_2gis.cache` (SQLite) | 7 | active |
 
 ## Chrome
 
@@ -79,7 +78,6 @@
 | `tests/test_parallel_memory_error_handling.py` | MemoryError в параллельном парсере | `parser_2gis.parallel.parallel_parser` | 5 | active |
 | `tests/test_parallel_parser.py` | Параллельный парсер (базовые тесты) | `parser_2gis.parallel.parallel_parser` | 10 | active |
 | `tests/test_parallel_parser_stats.py` | Статистика параллельного парсера | `parser_2gis.parallel.parallel_parser` | 5 | active |
-| `tests/test_process_manager_simplified.py` | Упрощённый ProcessManager | `parser_2gis.parallel.process_manager` | 12 | active |
 
 ## Parser
 
@@ -117,12 +115,10 @@
 | `tests/test_category_selector.py` | CategorySelectorScreen | `parser_2gis.tui.screens.category_selector` | 18 | active |
 | `tests/test_city_selector.py` | CitySelectorScreen | `parser_2gis.tui.screens.city_selector` | 11 | active |
 | `tests/test_duplicate_rubric_code.py` | Дублирующиеся ID виджетов в CategorySelectorScreen | `parser_2gis.tui.screens.category_selector` | 6 | active |
-| `tests/test_optional_deps_tui.py` | Опциональные TUI зависимости | `parser_2gis.tui` (зависимости) | 3 | active |
 | `tests/test_tui_config_fields.py` | Соответствие полей TUI и моделей конфигурации | `parser_2gis.tui`, `parser_2gis.config` | 18 | active |
 | `tests/test_tui_imports.py` | Ошибки импорта в TUI модулях | `parser_2gis.tui.*` (импорты) | 12 | active |
 | `tests/test_tui_layout.py` | TUI layout | `parser_2gis.tui.app` | 3 | active |
 | `tests/test_tui_state_management_regression.py` | Регрессионные ошибки управления состоянием TUI | `parser_2gis.tui` | 21 | active |
-| `tests/test_tui_stop_parsing_fix.py` | Баг зависания при нажатии «Стоп» в TUI | `parser_2gis.tui` | 8 | active |
 | `tests/test_tui_textual.py` | TUI Parser2GIS на Textual | `parser_2gis.tui` | 15 | active |
 | `tests/test_tui_textual_logger.py` | Ошибки в TUI Textual | `parser_2gis.tui` | 3 | active |
 | `tests/test_widget_unique_ids.py` | Уникальность ID виджетов в TUI | `parser_2gis.tui` | 5 | active |
@@ -135,7 +131,6 @@
 | `tests/test_common.py` | Модуль common.py и качество кода | `parser_2gis.common` | 30 | active |
 | `tests/test_paths_functions.py` | Наличие критических функций в модуле paths | `parser_2gis.paths` | 10 | active |
 | `tests/test_sanitize_thread_safety.py` | Потокобезопасность `_sanitize_value` | `parser_2gis.writer` (sanitizer) | 6 | active |
-| `tests/test_typed_dict_categories.py` | TypedDict категорий | `parser_2gis.dataclasses` | 7 | active |
 
 ## Integration / Quality / Security
 
@@ -158,7 +153,7 @@
 | `tests/test_performance_fixes.py` | Исправления производительности (P1) | `parser_2gis.*` | 13 | active |
 | `tests/test_pydantic_compatibility.py` | Работа с Pydantic v2 | `parser_2gis` (pydantic) | 9 | active |
 | `tests/test_pysocks_dependency.py` | Зависимость PySocks для SOCKS в urllib3 | `parser_2gis` (зависимости) | 3 | active |
-| `tests/test_security_fixes.py` | Исправления безопасности (P0) | `parser_2gis.*` | 38 | active |
+| `tests/test_security_fixes.py` | Исправления безопасности (P0) | `parser_2gis.*` | 32 | active |
 | `tests/test_specific_exceptions.py` | Специфическая обработка исключений | `parser_2gis.exceptions` | 17 | active |
 | `tests/test_temp_file_race.py` | Race condition в `register_temp_file` | `parser_2gis.common` | 3 | active |
 | `tests/test_temp_file_timer_cleanup.py` | Очистка временных файлов по таймеру | `parser_2gis.common` | 14 | active |
