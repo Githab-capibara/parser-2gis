@@ -14,15 +14,15 @@ from __future__ import annotations
 import logging
 import os
 
-from parser_2gis.shared_config_constants import (  # noqa: F401
+from parser_2gis.shared_config_constants import (
     DEFAULT_TTL_HOURS,
     MAX_RESPONSE_SIZE,
 )
 
 # Явный экспорт для mypy
 __all__ = [
-    "MAX_RESPONSE_SIZE",
     "DEFAULT_TTL_HOURS",
+    "MAX_RESPONSE_SIZE",
 ]
 
 # Logger для логирования fallback значений

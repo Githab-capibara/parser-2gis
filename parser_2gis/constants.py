@@ -241,9 +241,9 @@ __all__: list[str] = [
     # Env config
     "EnvConfig",
     "EnvConfigManager",
+    "EnvValidationResult",
     # Type aliases and helpers
     "_EnvValidationEntry",
-    "EnvValidationResult",
     "_reset_constant_cache",
     "get_env_config",
     "get_env_config_manager",

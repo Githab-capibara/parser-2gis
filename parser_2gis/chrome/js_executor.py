@@ -18,8 +18,8 @@ from .constants import MAX_JS_CODE_LENGTH
 
 # Явный экспорт для mypy
 __all__ = [
-    "MAX_JS_CODE_LENGTH",
     "DANGEROUS_JS_PATTERNS",
+    "MAX_JS_CODE_LENGTH",
     "_validate_js_code",
 ]
 
