@@ -440,7 +440,9 @@ class TUIApp(App):  # type: ignore[type-arg]
         cities_path = Path(__file__).parent.parent / "data" / "cities.json"
         if cities_path.exists():
             with open(cities_path, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                if isinstance(data, list):
+                    return data
         return []
 
     def get_categories(self) -> list[dict[str, str | int]]:
@@ -528,7 +530,8 @@ class TUIApp(App):  # type: ignore[type-arg]
 
     def action_toggle_dark(self) -> None:
         """Переключить тёмную тему."""
-        self.theme = "textual-dark" if self.theme == "textual-light" else "textual-light"
+        current_theme = getattr(self, "theme", "")
+        self.theme = "textual-dark" if current_theme == "textual-light" else "textual-light"
 
     def push_main_menu(self) -> None:
         """Показать главное меню."""

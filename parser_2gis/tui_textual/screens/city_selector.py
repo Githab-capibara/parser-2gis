@@ -185,7 +185,7 @@ class CitySelectorScreen(Screen):  # type: ignore[type-arg]
             # НЕ используем ID - это предотвращает ошибку DuplicateIds
             # Сохраняем city_code как атрибут виджета
             checkbox = Checkbox(f"{city_name} ({country})", value=is_selected)
-            checkbox.city_code = city_code
+            checkbox.city_code = city_code  # type: ignore[attr-defined]
             self._checkboxes.append(checkbox)
 
         # Смонтировать все виджеты за один раз

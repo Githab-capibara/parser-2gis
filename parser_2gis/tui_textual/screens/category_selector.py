@@ -204,7 +204,7 @@ class CategorySelectorScreen(Screen):  # type: ignore[type-arg]
             # НЕ используем ID - это предотвращает ошибку DuplicateIds
             # Сохраняем original_index как атрибут виджета
             checkbox = Checkbox(f"{cat_name}", value=is_selected)
-            checkbox.original_index = original_index
+            checkbox.original_index = original_index  # type: ignore[attr-defined]
             self._checkboxes.append(checkbox)
 
         # Смонтировать все виджеты за один раз

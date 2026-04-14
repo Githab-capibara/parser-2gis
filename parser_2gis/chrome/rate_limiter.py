@@ -14,12 +14,12 @@ import time
 from collections import deque
 from typing import Any
 
-from .constants import DEFAULT_NETWORK_TIMEOUT
-
 try:
     import requests
 except ImportError:
     requests = None  # type: ignore[assignment]
+
+from .constants import DEFAULT_NETWORK_TIMEOUT
 
 
 class RateLimiterState:

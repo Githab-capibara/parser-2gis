@@ -13,12 +13,13 @@ from __future__ import annotations
 import threading
 import time
 from collections import OrderedDict
-from typing import TYPE_CHECKING
+
+try:
+    import requests
+except ImportError:
+    requests = None  # type: ignore[assignment]
 
 from parser_2gis.logger.logger import logger as app_logger
-
-if TYPE_CHECKING:
-    import requests
 
 # =============================================================================
 # КЭШИРОВАНИЕ HTTP ЗАПРОСОВ С TTL

@@ -94,7 +94,7 @@ class CacheViewerScreen(Screen):  # type: ignore[type-arg]
 
             # Таблица кэша
             with ScrollableContainer():
-                table = DataTable(id="cache-table", classes="cache-table")
+                table: DataTable[str] = DataTable(id="cache-table", classes="cache-table")
                 table.add_column("URL", width=50)
                 table.add_column("Размер", width=10)
                 table.add_column("Дата", width=20)
@@ -191,7 +191,9 @@ class AboutScreen(Screen):  # type: ignore[type-arg]
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [Binding("escape", "go_back", "Назад")]
+    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [
+        Binding("escape", "go_back", "Назад")
+    ]
 
     CSS = """
     /* Центрирование экрана информации */
