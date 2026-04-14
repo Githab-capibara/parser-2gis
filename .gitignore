@@ -47,6 +47,9 @@ key*
 .coverage
 htmlcov/
 
+# Pre-commit
+.pre-commit-hooks/
+
 # Debug reports
 parser_2gis/tui_textual/DEBUG_REPORT.md
 

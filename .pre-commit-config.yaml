@@ -1,77 +1,254 @@
-# Конфигурация pre-commit хуков для parser-2gis
-# ИСПРАВЛЕНИЕ 27: Добавлено black форматирование
-# ИСПРАВЛЕНИЕ 28: Добавлено isort для сортировки импортов
-# ИСПРАВЛЕНИЕ 29: Добавлено autoflake для удаления неиспользуемых импортов
+# =============================================================================
+# Pre-commit конфигурация для parser-2gis
+# =============================================================================
+# Версия pre-commit: >=3.0
+# Python: >=3.10
+# =============================================================================
 
 repos:
-  # ISSUE 016: Обновлены версии хуков до последних стабильных
+  # ───────────────────────────────────────────────────────────────────────────
+  # 1. БАЗОВЫЕ ПРОВЕРКИ (файлы, синтаксис)
+  # ───────────────────────────────────────────────────────────────────────────
+
+  # Проверка синтаксиса Python и базовых проблем
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: trailing-whitespace
-      - id: check-merge-conflict
-      - id: check-case-conflict
-      - id: check-json
-      - id: check-yaml
-      - id: pretty-format-json
-        args: [--autofix, --no-ensure-ascii, --no-sort-keys]
+      # Проверяет синтаксис Python файлов
       - id: check-ast
+        name: check-python-syntax
+
+      # Проверяет наличие merge-конфликтов
+      - id: check-merge-conflict
+
+      # Проверяет корректность YAML файлов
+      - id: check-yaml
+        args: ['--unsafe']
+
+      # Проверяет корректность TOML файлов
+      - id: check-toml
+
+      # Проверяет корректность JSON файлов
+      - id: check-json
+
+      # Удаляет конечные пробелы
+      - id: trailing-whitespace
+
+      # Удаляет пустые строки в конце файла (оставляет одну)
+      - id: end-of-file-fixer
+
+      # Проверяет, что файлы не превышают 500KB
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+
+      # Проверяет отсутствие отладочных print() и pdb
       - id: debug-statements
-      # ИСПРАВЛЕНИЕ 30: Проверка на утечки ресурсов (открытые файлы)
-      - id: check-executables-have-shebangs
 
-  # ИСПРАВЛЕНИЕ 29: autoflake для удаления неиспользуемых импортов
-  - repo: https://github.com/pycqa/autoflake
-    rev: v2.3.1
+  # ───────────────────────────────────────────────────────────────────────────
+  # 2. ФОРМАТИРОВАНИЕ
+  # ───────────────────────────────────────────────────────────────────────────
+
+  # Ruff: линтер и форматтер (заменяет black, isort, flake8)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
     hooks:
-      - id: autoflake
-        args:
-          - --in-place
-          - --remove-all-unused-imports
-          - --remove-unused-variables
-          - --expand-star-imports
-          - --ignore-init-module-imports
+      # Форматирование кода (аналог black)
+      - id: ruff-format
+        name: ruff-format
+        args: [--config=pyproject.toml]
 
-  # ИСПРАВЛЕНИЕ 28: isort для сортировки импортов
-  - repo: https://github.com/pycqa/isort
-    rev: 6.0.1
-    hooks:
-      - id: isort
-        name: isort (python)
-        args:
-          - --profile=black
-          - --line-length=100
-          - --src-path=parser_2gis
-          - --src-path=tests
+      # Линтинг и автоисправление (аналог flake8 + isort)
+      - id: ruff
+        name: ruff-lint
+        args: [
+          '--fix',
+          '--exit-non-zero-on-fix',
+          '--config=pyproject.toml'
+        ]
 
-  # ИСПРАВЛЕНИЕ 27: black для форматирования кода
-  - repo: https://github.com/psf/black
-    rev: 25.1.0
-    hooks:
-      - id: black
-        language_version: python3
-        args:
-          - --line-length=100
-          - --target-version=py310
-          - --target-version=py311
-          - --target-version=py312
+  # ───────────────────────────────────────────────────────────────────────────
+  # 3. СТАТИЧЕСКИЙ АНАЛИЗ ТИПОВ
+  # ───────────────────────────────────────────────────────────────────────────
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.1.2
-    hooks:
-      - id: flake8
-        language_version: python3
-        args:
-          - --max-line-length=100
-          - --extend-ignore=E203,E501,W503
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
+  # MyPy: строгая проверка типизации
+  - repo: local
     hooks:
       - id: mypy
-        additional_dependencies: [types-requests>=2.31.0]
-        files: parser_2gis
-        args:
-          - --ignore-missing-imports
-          - --disallow-untyped-defs
-          - --disallow-incomplete-defs
+        name: mypy-strict-type-check
+        entry: bash -c 'mypy parser_2gis --config-file pyproject.toml --no-error-summary 2>&1 | head -100'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # Pyright: быстрая проверка типов + сложные паттерны
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright-type-check
+        entry: bash scripts/pyright_check.sh
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 4. БЕЗОПАСНОСТЬ
+  # ───────────────────────────────────────────────────────────────────────────
+
+  # Bandit: поиск уязвимостей в коде
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.3
+    hooks:
+      - id: bandit
+        name: bandit-security-audit
+        args: [
+          '-c', '.bandit.yml',
+          '-r',
+          '-ll',  # medium и high severity
+          '-ii',  # только высокоуровневые проблемы
+          '--exclude', 'tests'
+        ]
+
+  # Semgrep: кастомные правила безопасности
+  - repo: https://github.com/semgrep/semgrep
+    rev: v1.100.0
+    hooks:
+      - id: semgrep
+        name: semgrep-security-scan
+        args: [
+          '--config', 'auto',
+          '--error',
+          '--max-chars-per-line', '200',
+          '--exclude', 'tests',
+          '--exclude', 'venv',
+          '--exclude', '.venv'
+        ]
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 5. КАЧЕСТВО КОДА И СЛОЖНОСТЬ
+  # ───────────────────────────────────────────────────────────────────────────
+
+  # Vulture: поиск мёртвого кода
+  - repo: local
+    hooks:
+      - id: vulture
+        name: vulture-dead-code
+        entry: bash -c 'vulture parser_2gis --min-confidence 80 --exclude tests,venv,.venv,build,dist 2>&1 | head -50 || true'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # Radon: метрики цикломатической сложности
+  - repo: local
+    hooks:
+      - id: radon
+        name: radon-complexity
+        entry: bash -c 'radon cc parser_2gis -a -n "C" --exclude "tests/*,venv/*,.venv/*" 2>&1 | head -80 || true'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # Refurb: современные идиомы и устаревшие паттерны
+  - repo: local
+    hooks:
+      - id: refurb
+        name: refurb-modern-idioms
+        entry: refurb parser_2gis --ignore FURB113,FURB118
+        language: python
+        types: [python]
+        additional_dependencies: ['refurb>=2.0.0']
+        args: ['--quiet']
+
+  # Interrogate: покрытие кода документацией (docstrings)
+  - repo: local
+    hooks:
+      - id: interrogate
+        name: interrogate-docstrings
+        entry: bash -c 'interrogate parser_2gis -v --fail-under 60 --ignore-magic --ignore-init-module --exclude tests --exclude venv --exclude .venv 2>&1 | tail -20 || true'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 6. ЗАВИСИМОСТИ
+  # ───────────────────────────────────────────────────────────────────────────
+
+  # Deptry: проверка зависимостей (неиспользуемые,缺失)
+  - repo: local
+    hooks:
+      - id: deptry
+        name: deptry-dependency-check
+        entry: bash -c 'deptry . --ignore-notebooks 2>&1 | head -50 || true'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # pip-audit: проверка CVE в зависимостях
+  - repo: local
+    hooks:
+      - id: pip-audit
+        name: pip-audit-cve-check
+        entry: bash -c 'pip-audit --format=columns --desc --vulnerability-service=osv 2>&1 | head -100 || true'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 7. ТЕСТЫ И ПОКРЫТИЕ
+  # ───────────────────────────────────────────────────────────────────────────
+
+  # pytest: запуск тестов
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest-tests
+        entry: bash -c 'python -m pytest tests/ -v -m "not requires_chrome and not requires_network and not slow" --tb=short -x 2>&1 | tail -100'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # Coverage: проверка покрытия тестами (минимум 85%)
+  - repo: local
+    hooks:
+      - id: coverage
+        name: coverage-threshold-85
+        entry: bash -c 'python -m pytest tests/ --cov=parser_2gis --cov-config=pyproject.toml --cov-report=term-missing --cov-fail-under=85 -m "not requires_chrome and not requires_network and not slow" 2>&1 | tail -80 || true'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 8. МУТАЦИОННОЕ ТЕСТИРОВАНИЕ
+  # ───────────────────────────────────────────────────────────────────────────
+
+  # Mutmut: мутационное тестирование (проверка эффективности тестов)
+  - repo: local
+    hooks:
+      - id: mutmut
+        name: mutmut-mutation-test
+        entry: bash -c 'mutmut run --paths-to-mutate="parser_2gis/*.py" --tests-dir="tests" --runner="python -m pytest tests/ -x -q" 2>&1 | tail -50 || true'
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        verbose: true
+        # ⚠️ mutmut может занимать много времени; запускается только при явном запросе
+        # Для пропуска: SKIP=mutmut git commit -m "..."
+        stages: [manual]

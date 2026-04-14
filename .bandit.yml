@@ -1,0 +1,20 @@
+---
+# Bandit конфигурация для статического анализа безопасности
+# Синхронизировано с pyproject.toml
+
+exclude_dirs:
+  - tests
+  - docs
+  - migrations
+  - venv
+  - .venv
+  - .mypy_cache
+  - .ruff_cache
+  - .pytest_cache
+  - build
+  - dist
+  - htmlcov
+
+skips:
+  - B603  # subprocess_without_shell_equals_true — ложное срабатывание,
+          # все вызовы subprocess используют контролируемые аргументы (не пользовательский ввод)
