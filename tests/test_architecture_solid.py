@@ -358,10 +358,9 @@ def get_file_imports_from_module(file_path: Path, module_root: Path) -> set[str]
         return imports
 
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom):
-            if node.module and node.module.startswith("parser_2gis"):
-                relative_module = node.module.replace("parser_2gis.", "")
-                imports.add(relative_module.split(".")[0])
+        if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("parser_2gis"):
+            relative_module = node.module.replace("parser_2gis.", "")
+            imports.add(relative_module.split(".")[0])
 
     return imports
 
@@ -749,15 +748,14 @@ def get_type_checking_imports(source: str) -> set[str]:
     try:
         tree = ast.parse(source)
         for node in ast.walk(tree):
-            if isinstance(node, ast.If):
-                if isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
-                    for child in node.body:
-                        if isinstance(child, ast.ImportFrom):
-                            if child.module:
-                                imports.add(child.module.split(".")[-1])
-                        elif isinstance(child, ast.Import):
-                            for alias in child.names:
-                                imports.add(alias.name.split(".")[-1])
+            if isinstance(node, ast.If) and isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
+                for child in node.body:
+                    if isinstance(child, ast.ImportFrom):
+                        if child.module:
+                            imports.add(child.module.split(".")[-1])
+                    elif isinstance(child, ast.Import):
+                        for alias in child.names:
+                            imports.add(alias.name.split(".")[-1])
     except SyntaxError:
         pass
     return imports
@@ -785,12 +783,9 @@ def has_guard_clauses(source: str, method_name: str) -> tuple[bool, int]:
                 ]
                 early_returns = len(returns)
 
-                if node.body:
-                    first_stmt = node.body[0]
-                    if isinstance(first_stmt, ast.If):
-                        if isinstance(first_stmt.body[0], ast.Return):
-                            has_guard = True
-                            break
+                if node.body and isinstance(node.body[0], ast.If) and isinstance(node.body[0].body[0], ast.Return):
+                    has_guard = True
+                    break
     except SyntaxError:
         pass
 

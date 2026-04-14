@@ -97,20 +97,20 @@ class TestCodeQuality:
 
         for file_path, tree in parsed_files:
             for node in ast.walk(tree):
-                if isinstance(node, ast.FunctionDef):
-                    # Проверяем только публичные функции (не начинающиеся с _)
-                    if not node.name.startswith("_"):
-                        # Проверяем наличие return annotation
-                        if node.returns is None:
-                            # Проверяем наличие argument annotations
-                            has_args_hints = all(
-                                arg.annotation is not None
-                                for arg in node.args.args
-                                if arg.arg != "self" and arg.arg != "cls"
-                            )
+                if (
+                    isinstance(node, ast.FunctionDef)
+                    and not node.name.startswith("_")
+                    and node.returns is None
+                ):
+                    # Проверяем наличие argument annotations
+                    has_args_hints = all(
+                        arg.annotation is not None
+                        for arg in node.args.args
+                        if arg.arg != "self" and arg.arg != "cls"
+                    )
 
-                            if not has_args_hints:
-                                files_without_hints.append(f"{file_path.name}:{node.name}")
+                    if not has_args_hints:
+                        files_without_hints.append(f"{file_path.name}:{node.name}")
 
         # Разрешаем до 10% функций без type hints
         total_public_functions = sum(
@@ -153,12 +153,10 @@ class TestCodeQuality:
                         # Fallback: подсчет по телу функции
                         func_length = len(node.body)
 
-                    if func_length > 50:
-                        # Проверяем исключения
-                        if (file_path.name, node.name) not in exceptions:
-                            long_functions.append(
-                                f"{file_path.name}:{node.name} ({func_length} строк)"
-                            )
+                    if func_length > 50 and (file_path.name, node.name) not in exceptions:
+                        long_functions.append(
+                            f"{file_path.name}:{node.name} ({func_length} строк)"
+                        )
 
         # Разрешаем до 5 длинных функций
         assert len(long_functions) <= 5, (
@@ -223,23 +221,20 @@ class TestCodeQuality:
             for node in ast.walk(tree):
                 if isinstance(node, ast.Assign):
                     for target in node.targets:
-                        if isinstance(target, ast.Name):
-                            if constant_pattern.match(target.id):
-                                constants.add(target.id)
+                        if isinstance(target, ast.Name) and constant_pattern.match(target.id):
+                            constants.add(target.id)
 
             # Ищем магические числа
             for node in ast.walk(tree):
-                if isinstance(node, ast.Num):  # Python 3.7
-                    if node.n not in allowed_numbers:
-                        # Проверяем не используется ли в сравнении с константой
-                        magic_numbers.append(f"{file_path.name}:{node.lineno} (число: {node.n})")
+                if isinstance(node, ast.Num) and node.n not in allowed_numbers:  # Python 3.7
+                    # Проверяем не используется ли в сравнении с константой
+                    magic_numbers.append(f"{file_path.name}:{node.lineno} (число: {node.n})")
                 elif isinstance(node, ast.Constant) and isinstance(
                     node.value, (int, float)
-                ):  # Python 3.8+
-                    if node.value not in allowed_numbers:
-                        magic_numbers.append(
-                            f"{file_path.name}:{node.lineno} (число: {node.value})"
-                        )
+                ) and node.value not in allowed_numbers:  # Python 3.8+
+                    magic_numbers.append(
+                        f"{file_path.name}:{node.lineno} (число: {node.value})"
+                    )
 
         # Разрешаем до 20 магических чисел
         assert len(magic_numbers) <= 20, (
@@ -281,9 +276,8 @@ class TestCodeQuality:
                                 break
 
             # Проверяем файлы которые работают с текстом
-            if file_path.name in ("csv_writer.py", "path_utils.py", "serializer.py"):
-                if not has_unicode_handling:
-                    files_without_unicode_handling.append(file_path.name)
+            if file_path.name in ("csv_writer.py", "path_utils.py", "serializer.py") and not has_unicode_handling:
+                files_without_unicode_handling.append(file_path.name)
 
         # Разрешаем до 3 файлов без обработки Unicode
         assert len(files_without_unicode_handling) <= 3, (
@@ -302,19 +296,15 @@ class TestCodeQuality:
 
         for file_path, tree in parsed_files:
             for node in ast.walk(tree):
-                if isinstance(node, ast.FunctionDef):
-                    # Проверяем только публичные функции
-                    if not node.name.startswith("_"):
-                        docstring = ast.get_docstring(node)
-                        if not docstring:
-                            functions_without_docstrings.append(f"{file_path.name}:{node.name}")
+                if isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
+                    docstring = ast.get_docstring(node)
+                    if not docstring:
+                        functions_without_docstrings.append(f"{file_path.name}:{node.name}")
 
-                elif isinstance(node, ast.ClassDef):
-                    # Проверяем только публичные классы
-                    if not node.name.startswith("_"):
-                        docstring = ast.get_docstring(node)
-                        if not docstring:
-                            classes_without_docstrings.append(f"{file_path.name}:{node.name}")
+                elif isinstance(node, ast.ClassDef) and not node.name.startswith("_"):
+                    docstring = ast.get_docstring(node)
+                    if not docstring:
+                        classes_without_docstrings.append(f"{file_path.name}:{node.name}")
 
         # Разрешаем до 20% функций без docstrings
         total_public_functions = len(functions_without_docstrings) + sum(

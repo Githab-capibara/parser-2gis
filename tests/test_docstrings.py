@@ -27,10 +27,8 @@ def get_public_functions(module) -> list[tuple[str, object]]:
     """
     functions = []
     for name, obj in inspect.getmembers(module, predicate=inspect.isfunction):
-        if not name.startswith("_"):
-            # Проверяем что функция определена в этом модуле
-            if hasattr(obj, "__module__") and obj.__module__ == module.__name__:
-                functions.append((name, obj))
+        if not name.startswith("_") and hasattr(obj, "__module__") and obj.__module__ == module.__name__:
+            functions.append((name, obj))
     return functions
 
 
@@ -46,10 +44,8 @@ def get_public_classes(module) -> list[tuple[str, object]]:
     """
     classes = []
     for name, obj in inspect.getmembers(module, predicate=inspect.isclass):
-        if not name.startswith("_"):
-            # Проверяем что класс определён в этом модуле
-            if hasattr(obj, "__module__") and obj.__module__ == module.__name__:
-                classes.append((name, obj))
+        if not name.startswith("_") and hasattr(obj, "__module__") and obj.__module__ == module.__name__:
+            classes.append((name, obj))
     return classes
 
 

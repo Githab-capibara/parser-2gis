@@ -131,12 +131,10 @@ class ConfigModelInspector:
             tree = ast.parse(content)
 
             for node in ast.walk(tree):
-                if isinstance(node, ast.ClassDef):
-                    # Проверяем, является ли класс Pydantic моделью
-                    if self._is_pydantic_model(node):
-                        model_name = node.name
-                        fields = self._extract_fields_from_class(node)
-                        self.model_fields[model_name] = fields
+                if isinstance(node, ast.ClassDef) and self._is_pydantic_model(node):
+                    model_name = node.name
+                    fields = self._extract_fields_from_class(node)
+                    self.model_fields[model_name] = fields
         except (SyntaxError, UnicodeDecodeError):
             pass
 
