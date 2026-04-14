@@ -249,6 +249,6 @@ repos:
         pass_filenames: false
         always_run: true
         verbose: true
-        # ⚠️ mutmut может занимать много времени; запускается только при явном запросе
-        # Для пропуска: SKIP=mutmut git commit -m "..."
+        # ⚠️ mutmut может занимать много времени; запускается вручную
+        # Для пропуска при коммите: SKIP=mutmut git commit -m "..."
         stages: [manual]
