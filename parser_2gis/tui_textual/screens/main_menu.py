@@ -16,9 +16,7 @@ class MainMenuScreen(Screen):  # type: ignore[type-arg]
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[
-        list[Binding | tuple[str, str] | tuple[str, str, str]]
-    ] = [Binding("q", "quit", "Выход")]
+    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [Binding("q", "quit", "Выход")]
 
     CSS = """
     /* Центрирование главного экрана меню */
@@ -109,12 +107,7 @@ class MainMenuScreen(Screen):  # type: ignore[type-arg]
             # Логотип
             with Container(classes="logo-container"):
                 yield Static(
-                    "╔═╗┌─┐┌─┐┌┬┐\n"
-                    "╠╣ ├─┤└─┐ │ \n"
-                    "╚  ┴ ┴└─┘ ┴ \n"
-                    "   ┌─┐┌─┐┌─┐\n"
-                    "   │ ┬├┤ └─┐\n"
-                    "   └─┘└─┘└─┘",
+                    "╔═╗┌─┐┌─┐┌┬┐\n╠╣ ├─┤└─┐ │ \n╚  ┴ ┴└─┘ ┴ \n   ┌─┐┌─┐┌─┐\n   │ ┬├┤ └─┐\n   └─┘└─┘└─┘",
                     classes="logo",
                 )
 

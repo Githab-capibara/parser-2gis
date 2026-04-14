@@ -126,11 +126,7 @@ class JsonSerializer:
 
         """
         try:
-            # ISSUE-104: Убрана избыточная проверка orjson is not None
-            if _USE_ORJSON:
-                deserialized = orjson.loads(data, option=orjson.OPT_NON_STR_KEYS)
-            else:
-                deserialized = json.loads(data)
+            deserialized = orjson.loads(data, option=orjson.OPT_NON_STR_KEYS) if _USE_ORJSON else json.loads(data)
 
             # Проверяем что данные являются словарём
             if not isinstance(deserialized, dict):

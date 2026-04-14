@@ -183,16 +183,12 @@ class ParsingScreen(Screen):  # type: ignore[type-arg]
 
         cities = self.app.get_cities()
         selected_cities = [
-            city
-            for city in cities
-            if isinstance(city, dict) and city.get("name") in selected_city_names
+            city for city in cities if isinstance(city, dict) and city.get("name") in selected_city_names
         ]
 
         all_categories = self.app.get_categories()
         selected_cats = [
-            cat
-            for cat in all_categories
-            if isinstance(cat, dict) and cat.get("name") in selected_categories
+            cat for cat in all_categories if isinstance(cat, dict) and cat.get("name") in selected_categories
         ]
 
         # Проверка с информативным сообщением об ошибке

@@ -42,25 +42,25 @@ _POOL_MB_PER_CONNECTION: float = 2.0  # 2MB на одно соединение
 def _get_max_pool_size_env() -> int:
     """Получает MAX_POOL_SIZE из ENV (lazy инициализация)."""
     if not hasattr(_get_max_pool_size_env, "_value"):
-        _get_max_pool_size_env._value = validate_env_int(  # type: ignore[attr-defined]
+        _get_max_pool_size_env._value = validate_env_int(  # type: ignore[assignment]
             "PARSER_MAX_POOL_SIZE",
             default=20,
             min_value=5,
             max_value=50,
         )
-    return _get_max_pool_size_env._value  # type: ignore[attr-defined,no-any-return]
+    return _get_max_pool_size_env._value  # type: ignore[return-value]
 
 
 def _get_min_pool_size_env() -> int:
     """Получает MIN_POOL_SIZE из ENV (lazy инициализация)."""
     if not hasattr(_get_min_pool_size_env, "_value"):
-        _get_min_pool_size_env._value = validate_env_int(  # type: ignore[attr-defined]
+        _get_min_pool_size_env._value = validate_env_int(  # type: ignore[assignment]
             "PARSER_MIN_POOL_SIZE",
             default=5,
             min_value=1,
             max_value=10,
         )
-    return _get_min_pool_size_env._value  # type: ignore[attr-defined,no-any-return]
+    return _get_min_pool_size_env._value  # type: ignore[return-value]
 
 
 def _get_connection_max_age_env() -> int:
@@ -219,9 +219,7 @@ class ConnectionPool:
         self._connection_age: dict[int, float] = {}
         # weakref.finalize() для гарантированной очистки ресурсов
         self._weak_ref = weakref.ref(self)
-        self._finalizer = weakref.finalize(
-            self, self._cleanup_pool, self._all_conns, self._lock
-        )  # type: ignore[arg-type]
+        self._finalizer = weakref.finalize(self, self._cleanup_pool, self._all_conns, self._lock)  # type: ignore[arg-type]
 
     def _is_connection_valid(self, conn: sqlite3.Connection) -> bool:
         """Проверяет активность соединения через SELECT 1.
@@ -305,8 +303,7 @@ class ConnectionPool:
                 conn_id = id(conn)
                 age = self._connection_age.get(conn_id)
                 if age is not None and (
-                    time.time() - age > _get_connection_max_age_env()
-                    or not self._is_connection_valid(conn)
+                    time.time() - age > _get_connection_max_age_env() or not self._is_connection_valid(conn)
                 ):
                     app_logger.debug("Соединение из queue устарело или неактивно, пересоздаём")
                     try:
@@ -363,8 +360,7 @@ class ConnectionPool:
                     self._local.connection = conn
                     if len(self._all_conns) >= self._pool_size:
                         app_logger.warning(
-                            "Достигнут лимит соединений (%d), "
-                            "новое соединение не добавляется в pool",
+                            "Достигнут лимит соединений (%d), новое соединение не добавляется в pool",
                             self._pool_size,
                         )
                     else:

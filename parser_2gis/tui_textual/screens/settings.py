@@ -166,9 +166,7 @@ class BrowserSettingsScreen(Screen):  # type: ignore[type-arg]
             config.chrome.silent_browser = self.query_one("#silent-switch", Switch).value
 
             memory_limit = self.query_one("#memory-limit-input", Input).value
-            config.chrome.memory_limit = (
-                int(memory_limit) if memory_limit.isdigit() else BROWSER_DEFAULTS_MEMORY_LIMIT
-            )
+            config.chrome.memory_limit = int(memory_limit) if memory_limit.isdigit() else BROWSER_DEFAULTS_MEMORY_LIMIT
 
             startup_delay = self.query_one("#startup-delay-input", Input).value
             config.chrome.startup_delay = (
@@ -328,27 +326,19 @@ class ParserSettingsScreen(Screen):  # type: ignore[type-arg]
             config = self.app.get_config()
 
             max_records = self.query_one("#max-records-input", Input).value
-            config.parser.max_records = (
-                int(max_records) if max_records.isdigit() else PARSER_DEFAULTS_MAX_RECORDS
-            )
+            config.parser.max_records = int(max_records) if max_records.isdigit() else PARSER_DEFAULTS_MAX_RECORDS
 
             delay = self.query_one("#delay-input", Input).value
-            config.parser.delay_between_clicks = (
-                int(delay) if delay.isdigit() else PARSER_DEFAULTS_DELAY_BETWEEN_CLICKS
-            )
+            config.parser.delay_between_clicks = int(delay) if delay.isdigit() else PARSER_DEFAULTS_DELAY_BETWEEN_CLICKS
 
             max_retries = self.query_one("#max-retries-input", Input).value
-            config.parser.max_retries = (
-                int(max_retries) if max_retries.isdigit() else PARSER_DEFAULTS_MAX_RETRIES
-            )
+            config.parser.max_retries = int(max_retries) if max_retries.isdigit() else PARSER_DEFAULTS_MAX_RETRIES
 
             timeout = self.query_one("#timeout-input", Input).value
             config.parser.timeout = int(timeout) if timeout.isdigit() else PARSER_DEFAULTS_TIMEOUT
 
             workers = self.query_one("#workers-input", Input).value
-            config.parallel.max_workers = (
-                int(workers) if workers.isdigit() else PARSER_DEFAULTS_WORKERS
-            )
+            config.parallel.max_workers = int(workers) if workers.isdigit() else PARSER_DEFAULTS_WORKERS
 
             self.app.save_config()
             self.app.notify("Настройки сохранены", title="Успех")

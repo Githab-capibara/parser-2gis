@@ -7,17 +7,13 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
-if TYPE_CHECKING:
-    from parser_2gis.parallel.parallel_parser import ParallelCityParser
-
 from textual import work
-from textual.app import App, ComposeResult
+from textual.app import App, ComposeResult, Screen
 from textual.binding import Binding
 from textual.widgets import Footer, Header
 
@@ -37,6 +33,9 @@ from .screens import (
     ParserSettingsScreen,
     ParsingScreen,
 )
+
+if TYPE_CHECKING:
+    from parser_2gis.parallel.parallel_parser import ParallelCityParser
 
 # =============================================================================
 # DATACLASS ДЛЯ СОСТОЯНИЯ ПРИЛОЖЕНИЯ (ISSUE-020)
@@ -315,7 +314,7 @@ class TUIApp(App):  # type: ignore[type-arg]
     ]
 
     # Регистрация экранов
-    SCREENS: ClassVar[dict[str, type]] = {  # type: ignore[assignment]
+    SCREENS: ClassVar[dict[str, type[Screen[Any]]]] = {  # type: ignore[assignment]
         "main_menu": MainMenuScreen,
         "city_selector": CitySelectorScreen,
         "category_selector": CategorySelectorScreen,
@@ -327,14 +326,14 @@ class TUIApp(App):  # type: ignore[type-arg]
         "about": AboutScreen,
     }
 
-    def __init__(self, **kwargs: Mapping[str, Any]) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """Инициализация приложения.
 
         Args:
             **kwargs: Аргументы для родительского класса App.
 
         """
-        super().__init__(**kwargs)  # type: ignore[arg-type]
+        super().__init__(**kwargs)
         self._config = self._load_config()
         self._state = AppState()  # ISSUE-020: Используем dataclass
         self._file_logger: logging.Logger | None = None
@@ -660,9 +659,7 @@ class TUIApp(App):  # type: ignore[type-arg]
                     """
                     if not self._running:
                         return
-                    category = (
-                        filename.replace(".csv", "").split("_")[-1] if "_" in filename else ""
-                    )
+                    category = filename.replace(".csv", "").split("_")[-1] if "_" in filename else ""
                     self.update_state(
                         success_count=success,
                         error_count=failed,

@@ -228,9 +228,7 @@ class CitySelectorScreen(Screen):  # type: ignore[type-arg]
             if not query:
                 self._filtered_cities = self._cities.copy()
             else:
-                self._filtered_cities = [
-                    city for city in self._cities if query in city.get("name", "").lower()
-                ]
+                self._filtered_cities = [city for city in self._cities if query in city.get("name", "").lower()]
 
             self._populate_cities()
             self._update_counter()
@@ -250,9 +248,7 @@ class CitySelectorScreen(Screen):  # type: ignore[type-arg]
         if city_code is not None:
             # Найти город по коду в отфильтрованном списке
             try:
-                filtered_city = next(
-                    city for city in self._filtered_cities if city.get("code") == city_code
-                )
+                filtered_city = next(city for city in self._filtered_cities if city.get("code") == city_code)
                 # Найти оригинальный индекс города в полном списке
                 original_index = self._cities.index(filtered_city)
 
@@ -302,9 +298,7 @@ class CitySelectorScreen(Screen):  # type: ignore[type-arg]
 
         elif button_id == "next":
             # Сохранить выбранные города
-            selected_names = [
-                self._cities[i].get("name", "") for i in sorted(self._selected_indices)
-            ]
+            selected_names = [self._cities[i].get("name", "") for i in sorted(self._selected_indices)]
             self.app.selected_cities = selected_names
             # Используем switch_screen для замены текущего экрана вместо push_screen
             # Это предотвращает накопление экранов в стеке

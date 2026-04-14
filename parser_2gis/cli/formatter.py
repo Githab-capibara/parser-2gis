@@ -144,10 +144,7 @@ def patch_argparse_translations(*, force: bool = False) -> None:
     # Этот баг был исправлен только 6 мая 2022 https://github.com/python/cpython/pull/17169
     def argument_error__str__(self: argparse.ArgumentError) -> str:
         """Возвращает локализованное строковое представление ошибки аргумента."""
-        if self.argument_name is None:
-            format_str = "%(message)s"
-        else:
-            format_str = "аргумент %(argument_name)s: %(message)s"
+        format_str = "%(message)s" if self.argument_name is None else "аргумент %(argument_name)s: %(message)s"
         return format_str % {"message": self.message, "argument_name": self.argument_name}
 
     argparse.ArgumentError.__str__ = argument_error__str__  # type: ignore[assignment,method-assign]

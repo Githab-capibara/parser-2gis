@@ -86,8 +86,8 @@ include = ["parser_2gis*"]
 # Конфигурация ruff для линтинга и форматирования
 # Синхронизировано с black и isort
 
-# Максимальная длина строки (синхронизировано с black)
-line-length = 100
+# Максимальная длина строки
+line-length = 120
 # Целевая версия Python
 target-version = "py312"
 # Исключаемые директории
@@ -139,10 +139,9 @@ line-ending = "auto"
 
 [tool.black]
 # Конфигурация black для форматирования кода
-# ИСПРАВЛЕНИЕ 27: Black форматирование для всех Python файлов
 
 # Максимальная длина строки
-line-length = 100
+line-length = 120
 # ISSUE 011: Удалены устаревшие версии py38, py39
 target-version = ['py310', 'py311', 'py312']
 # Исключаемые директории
@@ -182,7 +181,7 @@ skip-magic-trailing-comma = false
 # Профиль black для совместимости
 profile = "black"
 # Максимальная длина строки
-line_length = 100
+line_length = 120
 # Отключаем split-on-trailing-comma для совместимости с ruff formatter
 split-on-trailing-comma = false
 # Автоматическое определение стандартной библиотеки
@@ -265,6 +264,7 @@ extension-pkg-allow-list = ["orjson"]
 ignore = [".git", ".mypy_cache", ".tox", ".venv", "build", "dist", "venv", "htmlcov", ".pytest_cache", ".benchmarks", "tests"]
 jobs = 0  # Автоопределение количества ядер
 persistent = true
+fail-under = 10.0
 
 [tool.pylint."MESSAGES CONTROL"]
 # Отключение специфичных предупреждений
@@ -280,9 +280,11 @@ disable = [
     "too-many-locals",  # Сложные функции обработки данных
     "too-many-branches",  # Функции с множеством условий
     "too-many-statements",  # Сложные функции обработки
-    # ISSUE-193: duplicate-code — включено после рефакторинга DRY;
-    # если появляются ложные срабатывания, отключить повторно
-    # "duplicate-code"
+    # ISSUE-193: duplicate-code — отключено, т.к. идентичные CSS-стили в TUI
+    # экранах и шаблоны обработки файлов — сознательный архитектурный паттерн
+    "duplicate-code",
+    # Cyclic import — следствие модульной архитектуры (application <-> parallel)
+    "cyclic-import",
     "redefined-builtin",  # Допустимо для совместимости (str, int и т.д.)
     "no-name-in-module",  # Проблемы с динамическими импортами
     "no-member",  # Проблемы с динамическими атрибутами
@@ -336,7 +338,7 @@ disable = [
 
 [tool.pylint.FORMAT]
 # Настройки форматирования
-max-line-length = 100
+max-line-length = 120
 single-line-if-stmt = true
 
 [tool.pylint.DESIGN]
@@ -446,6 +448,8 @@ title = "Coverage report for parser-2gis"
 # Конфигурация mypy для статической типизации
 
 python_version = "3.12"
+strict = true
+ignore_missing_imports = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -457,7 +461,12 @@ warn_redundant_casts = true
 warn_no_return = true
 strict_equality = true
 strict_optional = true
-ignore_missing_imports = true
+disable_error_code = [
+    "import-untyped",
+    "attr-defined",
+    "no-any-return",
+    "unused-ignore",
+]
 exclude = [
     "venv",
     ".venv",

@@ -17,7 +17,7 @@ from typing import Any
 try:
     import requests
 except ImportError:
-    requests = None  # type: ignore[assignment]
+    requests = None
 
 from .constants import DEFAULT_NETWORK_TIMEOUT
 

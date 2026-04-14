@@ -247,9 +247,7 @@ class CategorySelectorScreen(Screen):  # type: ignore[type-arg]
             if not query:
                 self._filtered_categories = self._categories.copy()
             else:
-                self._filtered_categories = [
-                    cat for cat in self._categories if query in cat.get("name", "").lower()
-                ]
+                self._filtered_categories = [cat for cat in self._categories if query in cat.get("name", "").lower()]
 
             self._populate_categories()
             self._update_counter()
@@ -314,9 +312,7 @@ class CategorySelectorScreen(Screen):  # type: ignore[type-arg]
                 return
 
             # Сохранить выбранные категории
-            selected_names = [
-                self._categories[i].get("name", "") for i in sorted(self._selected_indices)
-            ]
+            selected_names = [self._categories[i].get("name", "") for i in sorted(self._selected_indices)]
             self.app.selected_categories = selected_names
             # Используем switch_screen для замены текущего экрана вместо push_screen
             # Это предотвращает накопление экранов в стеке

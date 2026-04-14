@@ -191,9 +191,7 @@ class AboutScreen(Screen):  # type: ignore[type-arg]
 
     app: ITuiApp  # type: ignore[assignment]
 
-    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [
-        Binding("escape", "go_back", "Назад")
-    ]
+    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [Binding("escape", "go_back", "Назад")]
 
     CSS = """
     /* Центрирование экрана информации */
