@@ -108,6 +108,7 @@ class SignalHandlerFactory(Protocol):
 
     def __call__(self, cleanup_callback: CleanupCallback | None = None) -> SignalHandler:
         """Создаёт SignalHandler."""
+        ...  # Protocol method stub
 
 
 class ChromeRemoteFactory(Protocol):
@@ -115,6 +116,7 @@ class ChromeRemoteFactory(Protocol):
 
     def __call__(self) -> Any:
         """Создаёт или возвращает экземпляр ChromeRemote."""
+        ...  # Protocol method stub
 
 
 class CacheManagerFactory(Protocol):
@@ -122,6 +124,7 @@ class CacheManagerFactory(Protocol):
 
     def __call__(self, _cache_path_obj: Path) -> CacheManager:
         """Создаёт CacheManager."""
+        ...  # Protocol method stub
 
 
 # =============================================================================
@@ -282,7 +285,7 @@ class ApplicationLauncher:
                 ),
                 parser=ParserOptions(  # type: ignore[call-arg]
                     max_records=self.config.parser.max_records,
-                    delay_ms=self.config.parser.delay_between_clicks,
+                    delay_between_clicks=self.config.parser.delay_between_clicks,
                     retry_on_network_errors=self.config.parser.retry_on_network_errors,
                 ),
                 writer=WriterOptions(

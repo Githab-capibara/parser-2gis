@@ -51,6 +51,7 @@ class ParserFactoryProtocol(Protocol):
         browser: BrowserService | None = None,
     ) -> BaseParser:
         """Создаёт парсер."""
+        ...  # Protocol method stub
 
 
 # =============================================================================
@@ -132,7 +133,7 @@ class ParserFacade:
             Экземпляр парсера.
 
         """
-        return self._parser_factory(url, chrome_options, parser_options, browser)
+        return self._parser_factory(url, chrome_options, parser_options, browser)  # type: ignore[return-value]
 
     def parse_url(
         self,
@@ -161,7 +162,7 @@ class ParserFacade:
             return parser.get_stats()
         finally:
             if hasattr(parser, "close"):
-                parser.close()
+                parser.close()  # type: ignore[arg-type]
 
 
 # =============================================================================
@@ -404,7 +405,7 @@ class BrowserFacade:
             Результат выполнения JS (сериализуемый тип).
 
         """
-        return browser.execute_js(js_code, timeout)
+        return browser.execute_js(js_code, timeout)  # type: ignore[no-any-return]
 
     def close(self, browser: BrowserService) -> None:
         """Закрывает браузер.
