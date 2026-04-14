@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404 — необходим для запуска Chrome браузера
 import tempfile
 import threading
 import time
@@ -374,7 +374,7 @@ class ProcessManager:
         try:
             if chrome_options.silent_browser:
                 app_logger.debug("В Chrome отключён вывод отладочной информации.")
-                proc = subprocess.Popen(
+                proc = subprocess.Popen(  # nosec B603 — shell=False, входные данные контролируются
                     chrome_cmd,
                     shell=False,
                     stderr=subprocess.DEVNULL,
@@ -382,7 +382,7 @@ class ProcessManager:
                     text=True,
                 )
             else:
-                proc = subprocess.Popen(chrome_cmd, shell=False, text=True)
+                proc = subprocess.Popen(chrome_cmd, shell=False, text=True)  # nosec B603 — shell=False, входные данные контролируются
 
             self._proc = proc
             app_logger.debug("Chrome браузер запущен с PID: %d", proc.pid)
@@ -610,8 +610,8 @@ class ProcessManager:
                     )
                     return True, "killed_forcefully"
                 except (
-                    psutil.NoSuchProcess,
-                    psutil.AccessDenied,
+                    psutil.NoSuchProcess,  # type: ignore[union-attr]
+                    psutil.AccessDenied,  # type: ignore[union-attr]
                     ImportError,
                     FileNotFoundError,
                 ) as e:
@@ -1043,15 +1043,15 @@ class ChromeBrowser:
         """Путь к профилю (для backward compatibility)."""
         return self._lifecycle_manager.profile_path
 
-    @property
+    @property  # noqa: A003  # Property getter для backward compatibility
     def _closed(self) -> bool:
         """Статус закрытия браузера (для backward compatibility)."""
-        return self._lifecycle_manager._closed
+        return self._lifecycle_manager._closed  # pyright: ignore[reportAttributeAccessIssue]
 
-    @_closed.setter
+    @_closed.setter  # noqa: A003  # Property setter для backward compatibility
     def _closed(self, value: bool) -> None:
         """Устанавливает статус закрытия браузера."""
-        self._lifecycle_manager._closed = value
+        self._lifecycle_manager._closed = value  # pyright: ignore[reportAttributeAccessIssue]
 
     def close(self) -> None:
         """Закрывает браузер и удаляет временный профиль."""
@@ -1341,14 +1341,16 @@ def _is_profile_in_use(profile_path: Path) -> bool:
             return False
         except ImportError:
             # Fallback для систем без psutil: используем subprocess (Unix)
-            import subprocess
+            import subprocess  # nosec B404 — необходим для проверки процессов
             import sys
+            from shutil import which
 
             # Проверяем платформу
             if sys.platform == "win32":
                 # Windows: используем tasklist
-                result = subprocess.run(
-                    ["tasklist", "/V", "/FO", "CSV"],
+                tasklist_path = which("tasklist") or "tasklist"
+                result = subprocess.run(  # nosec B603 — стандартная системная утилита, shell=False
+                    [tasklist_path, "/V", "/FO", "CSV"],
                     capture_output=True,
                     text=True,
                     timeout=10,
@@ -1360,7 +1362,13 @@ def _is_profile_in_use(profile_path: Path) -> bool:
                         return True
             else:
                 # Unix-like: используем ps aux
-                result = subprocess.run(["ps", "aux"], capture_output=True, text=True, timeout=10)
+                ps_path = which("ps") or "/usr/bin/ps"
+                result = subprocess.run(  # nosec: B603 — стандартная системная утилита ps, shell=False, аргументы контролируемые
+                    [ps_path, "aux"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
                 profile_str = str(profile_path)
                 for line in result.stdout.splitlines():
                     if profile_str in line and "chrome" in line.lower():

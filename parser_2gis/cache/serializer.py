@@ -16,13 +16,14 @@ from typing import Any
 
 from ..logger.logger import logger as app_logger
 
-# Попытка импортировать orjson для более быстрой сериализации
+# Попытка импортировать orjson для быстрой сериализации
 # orjson в 2-3 раза быстрее стандартного json модуля
 try:
-    import orjson
+    import orjson  # type: ignore[import-not-found,import-untyped]
 
     _USE_ORJSON = True
 except ImportError:
+    orjson = None  # type: ignore[assignment]
     _USE_ORJSON = False
 
 
@@ -74,8 +75,8 @@ class JsonSerializer:
         if _USE_ORJSON:
             # orjson возвращает bytes, декодируем в строку
             try:
-                return str(orjson.dumps(data).decode("utf-8"))
-            except (orjson.EncodeError, TypeError) as orjson_error:
+                return str(orjson.dumps(data).decode("utf-8"))  # type: ignore[union-attr]
+            except (orjson.EncodeError, TypeError) as orjson_error:  # type: ignore[union-attr]
                 # Fallback на стандартный json при TypeError от orjson
                 # TypeError может возникнуть при сериализации неподдерживаемых типов
                 app_logger.debug("orjson ошибка, fallback на json: %s", orjson_error)
@@ -126,7 +127,7 @@ class JsonSerializer:
 
         """
         try:
-            deserialized = orjson.loads(data, option=orjson.OPT_NON_STR_KEYS) if _USE_ORJSON else json.loads(data)
+            deserialized = orjson.loads(data, option=orjson.OPT_NON_STR_KEYS) if _USE_ORJSON else json.loads(data)  # type: ignore[union-attr]
 
             # Проверяем что данные являются словарём
             if not isinstance(deserialized, dict):
@@ -202,7 +203,7 @@ class JsonSerializer:
             if _USE_ORJSON:
                 # Проверяем, это orjson.JSONDecodeError
                 try:
-                    if isinstance(json_error, orjson.JSONDecodeError):
+                    if isinstance(json_error, orjson.JSONDecodeError):  # type: ignore[union-attr]
                         msg = f"Ошибка десериализации, размер данных: {len(data)} байт"
                         raise TypeError(msg) from json_error
                 except (AttributeError, TypeError) as orjson_check_error:

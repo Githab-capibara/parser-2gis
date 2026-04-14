@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 # Получаем логгер для вывода сообщений
 _logger = logging.getLogger("parser-2gis.progress")
@@ -20,11 +21,14 @@ try:
     TQDM_AVAILABLE = True
 except ImportError:
     TQDM_AVAILABLE = False
-    tqdm = None
+    tqdm = None  # type: ignore[assignment]
     # ID:051: Логируем недоступность tqdm вместо молчаливого отключения
     _logger.warning(
         "Библиотека tqdm недоступна. Прогресс-бар будет отключён. Установите: pip install tqdm",
     )
+
+if TYPE_CHECKING:
+    from tqdm.std import tqdm as TqdmClass
 
 
 @dataclass
@@ -98,8 +102,8 @@ class ProgressManager:
 
         self._disable = disable
         self._stats = ProgressStats()
-        self._page_bar: tqdm | None = None
-        self._record_bar: tqdm | None = None
+        self._page_bar: TqdmClass | None = None  # type: ignore[valid-type]
+        self._record_bar: TqdmClass | None = None  # type: ignore[valid-type]
 
     def start(self, total_pages: int, total_records: int | None = None) -> None:
         """Запуск прогресс-бара.
@@ -120,7 +124,7 @@ class ProgressManager:
             return
 
         # Создаем прогресс-бар для страниц
-        self._page_bar = tqdm(
+        self._page_bar = tqdm(  # type: ignore[operator]
             total=total_pages,
             desc="Страницы",
             unit="стр",
@@ -130,7 +134,7 @@ class ProgressManager:
 
         # Создаем прогресс-бар для записей (если указано)
         if total_records:
-            self._record_bar = tqdm(
+            self._record_bar = tqdm(  # type: ignore[operator]
                 total=total_records,
                 desc="Записи",
                 unit="зап",
@@ -150,7 +154,7 @@ class ProgressManager:
         self._stats.current_page += n
 
         if self._page_bar:
-            self._page_bar.update(n)
+            self._page_bar.update(n)  # type: ignore[union-attr]
 
     def _update_record(self, n: int = 1) -> None:
         """Обновление прогресса по записям.
@@ -164,19 +168,19 @@ class ProgressManager:
         self._stats.current_record += n
 
         if self._record_bar:
-            self._record_bar.update(n)
+            self._record_bar.update(n)  # type: ignore[union-attr]
 
     def _close_bars(self) -> None:
         """Закрывает все прогресс-бары с безопасной обработкой ошибок."""
         if self._page_bar:
             try:
-                self._page_bar.close()
+                self._page_bar.close()  # type: ignore[union-attr]
             except (ValueError, AttributeError) as e:
                 _logger.warning("Ошибка закрытия прогресс-бара страниц: %s", e)
 
         if self._record_bar:
             try:
-                self._record_bar.close()
+                self._record_bar.close()  # type: ignore[union-attr]
             except (ValueError, AttributeError) as e:
                 _logger.warning("Ошибка закрытия прогресс-бара записей: %s", e)
 

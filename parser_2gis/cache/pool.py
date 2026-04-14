@@ -81,6 +81,7 @@ try:
 
     PSUTIL_AVAILABLE = True
 except ImportError:
+    psutil = None  # type: ignore[assignment]
     PSUTIL_AVAILABLE = False
 
 
@@ -112,7 +113,7 @@ def _calculate_dynamic_pool_size() -> int:
             msg = "psutil не установлен"
             raise ImportError(msg)
 
-        available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)
+        available_memory_mb = psutil.virtual_memory().available / (1024 * 1024)  # type: ignore[union-attr]
 
         # Выделяем до 10% доступной памяти под пул соединений
         # Каждое соединение занимает ~2MB в среднем
