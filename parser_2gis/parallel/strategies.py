@@ -450,7 +450,7 @@ class ParseStrategy:
                                 else:
                                     from parser_2gis.parser import get_parser
 
-                                    local_parser = get_parser(
+                                    local_parser = get_parser(  # type: ignore[assignment]
                                         url,
                                         chrome_options=self.config.chrome,
                                         parser_options=self.config.parser,
@@ -477,7 +477,7 @@ class ParseStrategy:
                         local_parser.parse(local_writer)
                 except MemoryError as memory_error:
                     logger.error("Memory error while parsing %s: %s", url, memory_error)
-                    if hasattr(local_parser, "_cache"):
+                    if local_parser is not None and hasattr(local_parser, "_cache"):
                         local_parser._cache.clear()
                     gc.collect()
                     self._update_stats(success=False)

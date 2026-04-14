@@ -145,7 +145,7 @@ def retry_with_backoff(
                         actual_delay = current_delay
                         if jitter:
                             # Добавляем случайность от 0% до 50% от задержки
-                            actual_delay = current_delay * (1 + random.uniform(0, 0.5))
+                            actual_delay = current_delay * (1 + random.uniform(0, 0.5))  # nosec B311 — используется только для jitter задержек
 
                         log_func.warning(
                             "Попытка %d/%d не удалась для %s: %s. Повтор через %.2f сек...",
@@ -260,7 +260,7 @@ def retry_with_jitter(
                 except _normalize_exceptions(exceptions) as e:
                     if attempt < max_attempts:
                         # Случайная задержка между min_delay и max_delay
-                        actual_delay = random.uniform(min_delay, max_delay)
+                        actual_delay = random.uniform(min_delay, max_delay)  # nosec B311 — используется только для jitter задержек
                         logger.warning(
                             "Попытка %d/%d не удалась для %s: %s. Повтор через %.2f сек...",
                             attempt,

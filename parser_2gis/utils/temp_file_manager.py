@@ -23,7 +23,7 @@ import threading
 import time
 from pathlib import Path
 
-from parser_2gis.constants import (
+from parser_2gis.constants.buffer import (
     MAX_TEMP_FILES_MONITORING,
     ORPHANED_TEMP_FILE_AGE,
     TEMP_FILE_CLEANUP_INTERVAL,

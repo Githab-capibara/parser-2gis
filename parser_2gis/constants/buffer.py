@@ -43,6 +43,19 @@ MAX_BUFFER_SIZE: int = 1024 * 1024  # 1048576
 # Порог для mmap (10 MB)
 MMAP_THRESHOLD_BYTES: int = 10 * 1024 * 1024
 
+# =============================================================================
+# МОНИТОРИНГ ВРЕМЕННЫХ ФАЙЛОВ
+# =============================================================================
+
+# Максимальное количество временных файлов для мониторинга
+MAX_TEMP_FILES_MONITORING: int = 1000
+
+# Возраст orphaned временного файла в секундах (1 час)
+ORPHANED_TEMP_FILE_AGE: int = 3600
+
+# Интервал очистки временных файлов в секундах (5 минут)
+TEMP_FILE_CLEANUP_INTERVAL: int = 300
+
 
 __all__ = [
     "CSV_BATCH_SIZE",
@@ -51,7 +64,10 @@ __all__ = [
     "LARGE_FILE_BUFFER_MULTIPLIER",
     "LARGE_FILE_THRESHOLD_MB",
     "MAX_BUFFER_SIZE",
+    "MAX_TEMP_FILES_MONITORING",
     "MERGE_BATCH_SIZE",
     "MERGE_BUFFER_SIZE",
     "MMAP_THRESHOLD_BYTES",
+    "ORPHANED_TEMP_FILE_AGE",
+    "TEMP_FILE_CLEANUP_INTERVAL",
 ]

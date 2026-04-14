@@ -484,6 +484,7 @@ class ParallelCityParser:
         try:
             # CRITICAL 3: Проверка и очистка осиротевших lock файлов
             if lock_file_path.exists():
+                lock_pid = None  # Инициализация для всех путей выполнения
                 try:
                     lock_age = time.time() - lock_file_path.stat().st_mtime
                     if lock_age > MAX_LOCK_FILE_AGE:
@@ -492,7 +493,8 @@ class ParallelCityParser:
                             with open(lock_file_path, encoding="utf-8") as f:
                                 lock_pid = int(f.read().strip())
                             # Проверяем, существует ли процесс
-                            os.kill(lock_pid, 0)
+                            if lock_pid is not None:
+                                os.kill(lock_pid, 0)
                             # Процесс существует - это не осиротевший lock
                             self.log(
                                 f"Lock файл существует "
@@ -501,9 +503,10 @@ class ParallelCityParser:
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             # Процесс не существует - это осиротевший lock
+                            pid_info = f", PID: {lock_pid}" if lock_pid is not None else ""
                             self.log(
                                 "Удаление осиротевшего lock файла "
-                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid})",
+                                f"(возраст: {lock_age:.0f} сек{pid_info})",
                             )
                             lock_file_path.unlink()
                     else:
@@ -776,8 +779,8 @@ class ParallelCityParser:
         self._restore_merge_signal_handlers(
             sigint_registered,
             sigterm_registered,
-            old_sigint_handler,
-            old_sigterm_handler,
+            old_sigint_handler,  # type: ignore[arg-type]
+            old_sigterm_handler,  # type: ignore[arg-type]
         )
         temp_file_manager.unregister(temp_output)
 
@@ -874,8 +877,8 @@ class ParallelCityParser:
                     lock_file_path,
                     sigint_registered,
                     sigterm_registered,
-                    old_sigint_handler,
-                    old_sigterm_handler,
+                    old_sigint_handler,  # type: ignore[arg-type]
+                    old_sigterm_handler,  # type: ignore[arg-type]
                 )
                 return False
 
@@ -909,8 +912,8 @@ class ParallelCityParser:
                 lock_file_path,
                 sigint_registered,
                 sigterm_registered,
-                old_sigint_handler,
-                old_sigterm_handler,
+                old_sigint_handler,  # type: ignore[arg-type]
+                old_sigterm_handler,  # type: ignore[arg-type]
             )
             return True
 
@@ -939,8 +942,8 @@ class ParallelCityParser:
                     lock_file_path,
                     sigint_registered,
                     sigterm_registered,
-                    old_sigint_handler,
-                    old_sigterm_handler,
+                    old_sigint_handler,  # type: ignore[arg-type]
+                    old_sigterm_handler,  # type: ignore[arg-type]
                 )
 
     def run(

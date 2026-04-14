@@ -57,22 +57,25 @@ class ParallelLockManager:
         try:
             # Проверка и очистка осиротевших lock файлов
             if lock_file_path.exists():
+                lock_pid = None  # Инициализация
                 try:
                     lock_age = time.time() - lock_file_path.stat().st_mtime
                     if lock_age > MAX_LOCK_FILE_AGE:
                         try:
                             with open(lock_file_path, encoding="utf-8") as f:
                                 lock_pid = int(f.read().strip())
-                            os.kill(lock_pid, 0)
+                            if lock_pid is not None:
+                                os.kill(lock_pid, 0)
                             self._log(
                                 f"Lock файл существует "
                                 f"(возраст: {lock_age:.0f} сек, PID: {lock_pid}), "
                                 f"ожидаем...",
                             )
                         except (ProcessLookupError, ValueError, OSError):
+                            pid_info = f", PID: {lock_pid}" if lock_pid is not None else ""
                             self._log(
                                 "Удаление осиротевшего lock файла "
-                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid})",
+                                f"(возраст: {lock_age:.0f} сек{pid_info})",
                             )
                             lock_file_path.unlink()
                     else:

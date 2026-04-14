@@ -637,8 +637,8 @@ class ParallelFileMerger:
             self._restore_signal_handlers(
                 sigint_registered,
                 sigterm_registered,
-                old_sigint_handler,
-                old_sigterm_handler,
+                old_sigint_handler,  # type: ignore[arg-type]
+                old_sigterm_handler,  # type: ignore[arg-type]
             )
             temp_file_manager.unregister(temp_output)
             self._cleanup_temp_file_if_exists(

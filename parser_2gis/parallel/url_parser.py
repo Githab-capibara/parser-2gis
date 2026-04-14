@@ -363,7 +363,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                     writer = None
                     try:
                         writer = get_writer(str(temp_filepath), "csv", cached_config.writer)
-                        parser = get_parser(
+                        parser = get_parser(  # type: ignore[assignment]
                             url,
                             chrome_options=cached_config.chrome,
                             parser_options=cached_config.parser,

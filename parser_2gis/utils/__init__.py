@@ -25,7 +25,8 @@ from .decorators import (
     wait_until_finished,
 )
 from .math_utils import floor_to_hundreds
-from .path_utils import FORBIDDEN_PATH_CHARS, validate_path_safety, validate_path_traversal
+from .path_utils import validate_path_safety, validate_path_traversal
+from parser_2gis.constants import FORBIDDEN_PATH_CHARS
 from .retry import (
     RetryError,
     is_tenacity_available,

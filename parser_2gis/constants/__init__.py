@@ -33,9 +33,12 @@ def __getattr__(name: str) -> Any:
         "LARGE_FILE_BUFFER_MULTIPLIER",
         "LARGE_FILE_THRESHOLD_MB",
         "MAX_BUFFER_SIZE",
+        "MAX_TEMP_FILES_MONITORING",
         "MERGE_BATCH_SIZE",
         "MERGE_BUFFER_SIZE",
         "MMAP_THRESHOLD_BYTES",
+        "ORPHANED_TEMP_FILE_AGE",
+        "TEMP_FILE_CLEANUP_INTERVAL",
     }
     if name in _buffer_names:
         from parser_2gis.constants import buffer as _buffer_mod
@@ -226,7 +229,7 @@ def _reset_constant_cache() -> None:
 
     #150: Функция для инвалидации кэша при изменении ENV переменных.
     """
-    from parser_2gis.constants import get_env_config
+    from parser_2gis.constants.env_config import get_env_config
 
     if hasattr(get_env_config, "_instance"):
         delattr(get_env_config, "_instance")

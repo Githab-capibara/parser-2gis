@@ -731,9 +731,10 @@ class ParallelCoordinator:
         filepath: Path,
         progress_callback: Callable[[int, int, str], None] | None = None,
     ) -> tuple[bool, str]:
-        """Реализация парсинга одного URL."""
+        # Реализация парсинга одного URL.
         self.log(
-            f"Начало парсинга: {category_name} - {city_name} (временный файл: {temp_filepath.name})",
+            f"Начало парсинга: {category_name} - {city_name} "
+            f"(временный файл: {temp_filepath.name})",
         )
 
         # H003: Задержка ТОЛЬКО если use_delays=True

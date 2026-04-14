@@ -100,7 +100,7 @@ def _check_timeout_expired(
     func_name: str,
     *,
     throw_exception: bool,
-) -> tuple[bool, Any]:  # noqa: ANN401
+) -> tuple[bool, Any]:
     """Проверяет, истёк ли таймаут.
 
     Args:
