@@ -220,7 +220,9 @@ class ConnectionPool:
         self._connection_age: dict[int, float] = {}
         # weakref.finalize() для гарантированной очистки ресурсов
         self._weak_ref = weakref.ref(self)
-        self._finalizer = weakref.finalize(self, self._cleanup_pool, self._all_conns, self._lock)  # type: ignore[arg-type]
+        self._finalizer = weakref.finalize(
+            self, self._cleanup_pool, self._all_conns, self._lock
+        )  # type: ignore[arg-type]
 
     def _is_connection_valid(self, conn: sqlite3.Connection) -> bool:
         """Проверяет активность соединения через SELECT 1.

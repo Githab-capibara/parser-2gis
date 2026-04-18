@@ -381,7 +381,9 @@ class ProcessManager:
                     text=True,
                 )
             else:
-                proc = subprocess.Popen(chrome_cmd, shell=False, text=True)  # nosec B603 — shell=False, входные данные контролируются
+                proc = subprocess.Popen(  # nosec B603 — shell=False, входные данные контролируются
+                chrome_cmd, shell=False, text=True
+            )
 
             self._proc = proc
             app_logger.debug("Chrome браузер запущен с PID: %d", proc.pid)
@@ -1352,7 +1354,7 @@ def _is_profile_in_use(profile_path: Path) -> bool:
             else:
                 # Unix-like: используем ps aux
                 ps_path = which("ps") or "/usr/bin/ps"
-                result = subprocess.run(  # nosec: B603 — стандартная системная утилита ps, shell=False, аргументы контролируемые
+                result = subprocess.run(  # nosec: B603 — ps утилита, shell=False
                     [ps_path, "aux"],
                     capture_output=True,
                     text=True,
