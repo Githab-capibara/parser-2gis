@@ -178,9 +178,7 @@ class EventEmitter:
 
         """
         with self._lock:
-            self._listeners[event] = [
-                (p, cb) for p, cb in self._listeners[event] if cb is not callback
-            ]
+            self._listeners[event] = [(p, cb) for p, cb in self._listeners[event] if cb is not callback]
 
     def remove_all_listeners(self, event: str | None = None) -> None:
         """Удаляет всех слушателей.

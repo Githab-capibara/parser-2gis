@@ -32,9 +32,7 @@ class TestPathValidatorValidate:
         safe_path = str(tmp_path / "subdir" / "file.txt")
         validator.validate_safety(safe_path)  # Не должно выбросить исключений
 
-    @pytest.mark.parametrize(
-        "forbidden_char", ["..", "~", "$", "`", "|", ";", "&", "\\", "\n", "\r"]
-    )
+    @pytest.mark.parametrize("forbidden_char", ["..", "~", "$", "`", "|", ";", "&", "\\", "\n", "\r"])
     def test_forbidden_characters_raise_error(self, forbidden_char, tmp_path) -> None:
         """Запрещённые символы вызывают ValueError."""
         validator = PathValidator(allowed_base_dirs=[tmp_path])

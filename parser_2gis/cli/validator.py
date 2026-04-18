@@ -108,11 +108,7 @@ class ArgumentValidator:
                 value = getattr(validation_config.args, validation_config.attr_name)
                 if validation_config.convert_to_int:
                     value = int(value)
-                max_val_int = (
-                    int(validation_config.max_val)
-                    if validation_config.max_val != float("inf")
-                    else None
-                )
+                max_val_int = int(validation_config.max_val) if validation_config.max_val != float("inf") else None
                 if max_val_int is not None:
                     validate_positive_int(
                         value,

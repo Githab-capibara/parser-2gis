@@ -408,8 +408,7 @@ class ParallelCoordinator:
                 )
 
         self.log(
-            f"Инициализирован парсер: {len(cities)} городов, {len(categories)} "
-            f"категорий, max_workers={max_workers}",
+            f"Инициализирован парсер: {len(cities)} городов, {len(categories)} категорий, max_workers={max_workers}",
             "info",
         )
 
@@ -449,8 +448,7 @@ class ParallelCoordinator:
             raise ValueError(msg)
         if max_workers > 100:
             logger.warning(
-                "max_workers=%d может быть слишком большим для стабильной работы. "
-                "Рекомендуется не более 50 потоков.",
+                "max_workers=%d может быть слишком большим для стабильной работы. Рекомендуется не более 50 потоков.",
                 max_workers,
             )
 
@@ -460,8 +458,7 @@ class ParallelCoordinator:
             raise ValueError(msg)
         if timeout_per_url > 3600:
             logger.warning(
-                "timeout_per_url=%d секунд может быть слишком большим. "
-                "Рекомендуется не более 600 секунд.",
+                "timeout_per_url=%d секунд может быть слишком большим. Рекомендуется не более 600 секунд.",
                 timeout_per_url,
             )
 
@@ -516,10 +513,7 @@ class ParallelCoordinator:
             TypeError: Если callback не callable.
         """
         if progress_callback is not None and not callable(progress_callback):
-            msg = (
-                f"progress_callback должен быть callable, "
-                f"получен {type(progress_callback).__name__}"
-            )
+            msg = f"progress_callback должен быть callable, получен {type(progress_callback).__name__}"
             raise TypeError(msg)
         if merge_callback is not None and not callable(merge_callback):
             msg = f"merge_callback должен быть callable, получен {type(merge_callback).__name__}"
@@ -733,8 +727,7 @@ class ParallelCoordinator:
     ) -> tuple[bool, str]:
         # Реализация парсинга одного URL.
         self.log(
-            f"Начало парсинга: {category_name} - {city_name} "
-            f"(временный файл: {temp_filepath.name})",
+            f"Начало парсинга: {category_name} - {city_name} (временный файл: {temp_filepath.name})",
         )
 
         # H003: Задержка ТОЛЬКО если use_delays=True

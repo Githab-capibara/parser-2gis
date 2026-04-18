@@ -45,9 +45,7 @@ class TestBrowserLaunchSemaphore:
 
         expected_size = max_workers
         actual_value = parser._browser_launch_semaphore._value
-        assert actual_value == expected_size, (
-            f"Семафор должен иметь размер {expected_size}, но имеет {actual_value}"
-        )
+        assert actual_value == expected_size, f"Семафор должен иметь размер {expected_size}, но имеет {actual_value}"
 
     def test_semaphore_size_with_max_workers_1(self) -> None:
         """Тест 2: Семафор с max_workers=1 имеет размер 1."""

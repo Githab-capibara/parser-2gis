@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Проверяем доступность textual
 TEXTUAL_AVAILABLE = False
 try:
-    import textual  # noqa: F401
+    import textual
 
     TEXTUAL_AVAILABLE = True
 except ImportError:
@@ -61,9 +61,7 @@ class TestTextualDependency:
         assert hasattr(textual, "__version__"), "textual не имеет __version__"
         min_version = version.parse("0.50.0")
         actual_version = version.parse(textual.__version__)
-        assert actual_version >= min_version, (
-            f"Версия textual ({actual_version}) меньше минимальной ({min_version})"
-        )
+        assert actual_version >= min_version, f"Версия textual ({actual_version}) меньше минимальной ({min_version})"
 
     @pytest.mark.skipif(not TEXTUAL_AVAILABLE, reason="textual не установлен")
     def test_textual_app_class_exists(self) -> None:

@@ -113,10 +113,7 @@ class TestDoubleHashing:
         cache = CacheManager(tmp_path, cache_file_name="test_cache.db")
 
         # Создаём тестовые данные
-        items = [
-            (f"https://2gis.ru/moscow/search/batch{i}", {"id": i, "name": f"Batch {i}"})
-            for i in range(10)
-        ]
+        items = [(f"https://2gis.ru/moscow/search/batch{i}", {"id": i, "name": f"Batch {i}"}) for i in range(10)]
 
         # Пакетная вставка
         saved_count = cache._set_batch(items)
@@ -239,10 +236,7 @@ class TestPerformanceIntegration:
 
         # Создаём тестовые данные
         num_items = 100
-        items = [
-            (f"https://2gis.ru/moscow/search/perf{i}", {"id": i, "name": f"Perf {i}"})
-            for i in range(num_items)
-        ]
+        items = [(f"https://2gis.ru/moscow/search/perf{i}", {"id": i, "name": f"Perf {i}"}) for i in range(num_items)]
 
         # Замеряем время пакетной вставки
         start = time.perf_counter()

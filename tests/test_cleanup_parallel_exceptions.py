@@ -48,9 +48,7 @@ class TestKeyboardInterruptHandling:
         флаг отмены операций.
         """
         # Проверяем что флаг отмены изначально не установлен
-        assert parser._cancel_event.is_set() is False, (
-            "Флаг отмены не должен быть установлен изначально"
-        )
+        assert parser._cancel_event.is_set() is False, "Флаг отмены не должен быть установлен изначально"
 
         # Имитируем KeyboardInterrupt через установку флага
         parser._cancel_event.set()

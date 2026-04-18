@@ -242,8 +242,7 @@ def _handle_sensitive_key(
     """
     if current_key and _is_sensitive_key(current_key):
         logger.warning(
-            "Обнаружен чувствительный ключ '%s' — данные будут частично обработаны "
-            "и заменены на '<REDACTED>'",
+            "Обнаружен чувствительный ключ '%s' — данные будут частично обработаны и заменены на '<REDACTED>'",
             current_key,
         )
         _assign_to_parent(parent, parent_key, "<REDACTED>", results, current_id)
@@ -277,9 +276,7 @@ def _process_dict_branch(
             len(current_value),
             MAX_COLLECTION_SIZE,
         )
-        msg = (
-            f"Размер словаря ({len(current_value)}) превышает максимальный ({MAX_COLLECTION_SIZE})."
-        )
+        msg = f"Размер словаря ({len(current_value)}) превышает максимальный ({MAX_COLLECTION_SIZE})."
         raise ValueError(msg)
 
     new_dict: dict[str, Any] = {}
@@ -316,9 +313,7 @@ def _process_list_branch(
             len(current_value),
             MAX_COLLECTION_SIZE,
         )
-        msg = (
-            f"Размер списка ({len(current_value)}) превышает максимальный ({MAX_COLLECTION_SIZE})."
-        )
+        msg = f"Размер списка ({len(current_value)}) превышает максимальный ({MAX_COLLECTION_SIZE})."
         raise ValueError(msg)
 
     new_list: list[Any] = [None] * len(current_value)
@@ -427,8 +422,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                 processed_count += 1
                 if processed_count > MAX_COLLECTION_SIZE:
                     logger.error(
-                        "Количество обработанных элементов превышает "
-                        "максимальное: %d (максимум: %d)",
+                        "Количество обработанных элементов превышает максимальное: %d (максимум: %d)",
                         processed_count,
                         MAX_COLLECTION_SIZE,
                     )
@@ -494,10 +488,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
                     mem_error,
                     exc_info=True,
                 )
-                msg_0 = (
-                    "Нехватка памяти при очистке данных. "
-                    "Данные слишком большие для обработки в памяти."
-                )
+                msg_0 = "Нехватка памяти при очистке данных. Данные слишком большие для обработки в памяти."
                 raise ValueError(msg_0) from mem_error
             except ValueError:
                 # Пробрасываем ValueError без изменений
@@ -528,10 +519,7 @@ def _sanitize_value(value: Any, key: str | None = None) -> Any:
             memory_error,
             exc_info=True,
         )
-        msg_0 = (
-            "Нехватка памяти при очистке чувствительных данных. "
-            "Рекомендуется уменьшить размер входных данных."
-        )
+        msg_0 = "Нехватка памяти при очистке чувствительных данных. Рекомендуется уменьшить размер входных данных."
         raise ValueError(msg_0) from memory_error
     except ValueError:
         # Пробрасываем ValueError без изменений

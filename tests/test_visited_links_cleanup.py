@@ -94,9 +94,7 @@ class TestVisitedLinksCleanup:
         assert cleanup_performed
         assert cleanup_counter == 0  # Счётчик сброшен после последнего вызова
 
-    def test_cleanup_only_when_threshold_exceeded(
-        self, mock_writer: MagicMock, max_visited_links: int
-    ) -> None:
+    def test_cleanup_only_when_threshold_exceeded(self, mock_writer: MagicMock, max_visited_links: int) -> None:
         """Тест что очистка происходит только при превышении порога.
 
         Проверяет:
@@ -142,9 +140,7 @@ class TestVisitedLinksCleanup:
         # Очистка должна произойти
         assert links_removed_above > 0
 
-    def test_cleanup_removes_oldest_links(
-        self, mock_writer: MagicMock, max_visited_links: int
-    ) -> None:
+    def test_cleanup_removes_oldest_links(self, mock_writer: MagicMock, max_visited_links: int) -> None:
         """Тест что очистка удаляет старейшие ссылки.
 
         Проверяет:

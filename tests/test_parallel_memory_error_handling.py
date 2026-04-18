@@ -75,9 +75,7 @@ class TestParallelMemoryErrorHandling:
             timeout_per_url=60,
         )
 
-    def test_memory_error_in_do_parse_cleanup_temp_files(
-        self, parser: ParallelCityParser, tmp_path: Path
-    ) -> None:
+    def test_memory_error_in_do_parse_cleanup_temp_files(self, parser: ParallelCityParser, tmp_path: Path) -> None:
         """Тест что временные файлы очищаются при MemoryError в do_parse().
 
         Проверяет:
@@ -124,9 +122,7 @@ class TestParallelMemoryErrorHandling:
             city_name = "Москва"
 
             # Вызываем parse_single_url
-            parser.parse_single_url(
-                url=url, category_name=category_name, city_name=city_name, progress_callback=None
-            )
+            parser.parse_single_url(url=url, category_name=category_name, city_name=city_name, progress_callback=None)
 
         # Проверяем что семафор освобожден (значение восстановилось)
         final_semaphore_value = parser._browser_launch_semaphore._value
@@ -156,9 +152,7 @@ class TestParallelMemoryErrorHandling:
             # Проверяем что ошибка обработана
             assert success is False
 
-    def test_temp_file_cleanup_on_memory_error(
-        self, parser: ParallelCityParser, tmp_path: Path
-    ) -> None:
+    def test_temp_file_cleanup_on_memory_error(self, parser: ParallelCityParser, tmp_path: Path) -> None:
         """Тест что временные файлы удаляются при MemoryError.
 
         Проверяет:

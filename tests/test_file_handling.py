@@ -78,9 +78,7 @@ class TestRaceConditionTempFiles:
 
             # Проверяем что файл зарегистрирован
             with temp_file_manager._lock:
-                assert temp_path in temp_file_manager._registry, (
-                    "Временный файл должен быть зарегистрирован"
-                )
+                assert temp_path in temp_file_manager._registry, "Временный файл должен быть зарегистрирован"
                 assert len(temp_file_manager._registry) == 1, "В реестре должен быть один файл"
         finally:
             # Очищаем
@@ -170,15 +168,11 @@ class TestRaceConditionTempFiles:
                 actual_count = len(temp_file_manager._registry)
                 # Проверяем что реестр не пуст и не превышает лимит
                 assert actual_count > 0, "Реестр не должен быть пустым"
-                assert actual_count <= MAX_TEMP_FILES, (
-                    f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
-                )
+                assert actual_count <= MAX_TEMP_FILES, f"Реестр не должен превышать лимит {MAX_TEMP_FILES}"
 
             # Проверяем что файлы существуют
             existing_files = sum(1 for f in registered_files if f.exists())
-            assert existing_files == len(registered_files), (
-                f"Все {len(registered_files)} файлов должны существовать"
-            )
+            assert existing_files == len(registered_files), f"Все {len(registered_files)} файлов должны существовать"
 
         finally:
             # Очищаем
@@ -318,9 +312,7 @@ class TestCSVFileDescriptorLeak:
                     writer = csv.writer(tmp)
                     writer.writerow(["col1", "col2", "col3"])
                     for j in range(50):
-                        writer.writerow(
-                            [f"file{i}_row{j}_1", f"file{i}_row{j}_2", f"file{i}_row{j}_3"]
-                        )
+                        writer.writerow([f"file{i}_row{j}_1", f"file{i}_row{j}_2", f"file{i}_row{j}_3"])
                     temp_files.append(tmp.name)
 
             # Измеряем количество открытых дескрипторов до
@@ -365,17 +357,13 @@ class TestCSVFileDescriptorLeak:
                 # Подсчитываем открытые через lsof
                 import subprocess
 
-                result = subprocess.run(
-                    ["lsof", "-p", str(os.getpid())], capture_output=True, text=True, timeout=5
-                )
+                result = subprocess.run(["lsof", "-p", str(os.getpid())], capture_output=True, text=True, timeout=5)
                 return len(result.stdout.strip().split("\n")) - 1  # Минус заголовок
             except Exception as count_error:
                 # Логгируем ошибку подсчёта и возвращаем 0
                 import logging
 
-                logging.getLogger("test_file_handling").debug(
-                    "Не удалось подсчитать открытые файлы: %s", count_error
-                )
+                logging.getLogger("test_file_handling").debug("Не удалось подсчитать открытые файлы: %s", count_error)
                 # Если ничего не работает, возвращаем 0
                 return 0
 
@@ -433,9 +421,7 @@ class TestFileHandlingIntegration:
 
             # Проверяем что реестр пуст после завершения
             with temp_file_manager._lock:
-                assert len(temp_file_manager._registry) == 0, (
-                    "Реестр должен быть пуст после завершения всех потоков"
-                )
+                assert len(temp_file_manager._registry) == 0, "Реестр должен быть пуст после завершения всех потоков"
 
         finally:
             cleanup_all_temp_files()
@@ -478,9 +464,7 @@ class TestFileHandlingIntegration:
 
             # Проверяем что все потоки прочитали все строки
             for thread_id, row_count in results:
-                assert row_count == 100, (
-                    f"Поток {thread_id} должен прочитать 100 строк, прочитано {row_count}"
-                )
+                assert row_count == 100, f"Поток {thread_id} должен прочитать 100 строк, прочитано {row_count}"
 
         finally:
             if os.path.exists(temp_path):

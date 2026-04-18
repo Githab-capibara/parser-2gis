@@ -272,9 +272,7 @@ class TestYieldFrom:
         from parser_2gis.resources.cities_loader import load_cities_json_lazy
 
         # Создаём большой файл с городами
-        large_cities = [
-            {"name": f"City {i}", "code": f"city{i}", "domain": "2gis.ru"} for i in range(1000)
-        ]
+        large_cities = [{"name": f"City {i}", "code": f"city{i}", "domain": "2gis.ru"} for i in range(1000)]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(large_cities, f)

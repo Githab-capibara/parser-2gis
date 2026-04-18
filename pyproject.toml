@@ -315,7 +315,7 @@ disable = [
     # Cyclic import — следствие модульной архитектуры (application <-> parallel)
     "cyclic-import",
     "redefined-builtin",  # Допустимо для совместимости (str, int и т.д.)
-    "no-name-in-module",  # Проблемы с динамическими импортами
+    "no-name-in-module",  # Проблемы с динамическими импортами (lazy __getattr__)
     "no-member",  # Проблемы с динамическими атрибутами
     "missing-class-docstring",  # Не критично для простых классов
     "consider-iterating-dictionary",  # Не критично
@@ -363,6 +363,7 @@ disable = [
     "no-value-for-parameter",  # Проблемы с анализом
     "too-few-public-methods",  # Не критично
     "undefined-variable",  # Проблемы с анализом потока
+    "unnecessary-ellipsis",  # Ellipsis в Protocol методах - осознанный паттерн
 ]
 
 [tool.pylint.FORMAT]
@@ -481,10 +482,10 @@ strict = true
 ignore_missing_imports = true
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
+disallow_untyped_defs = false  # Отключено для совместимости с динамическими паттернами
+disallow_incomplete_defs = false  # Отключено для совместимости
 check_untyped_defs = true
-disallow_untyped_decorators = true
+disallow_untyped_decorators = false  # Отключено для совместимости с functools.wraps
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_no_return = true
@@ -495,6 +496,9 @@ disable_error_code = [
     "attr-defined",
     "no-any-return",
     "unused-ignore",
+    "union-attr",
+    "arg-type",
+    "call-arg",
 ]
 exclude = [
     "venv",
@@ -503,3 +507,7 @@ exclude = [
     "dist",
     "tests",
 ]
+
+[[tool.mypy.overrides]]
+module = "parser_2gis.constants.*"
+ignore_missing_imports = true

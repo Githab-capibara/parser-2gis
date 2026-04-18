@@ -142,9 +142,7 @@ def _check_max_retries_exceeded(
 
     """
     if max_retries is not None and attempt_count >= max_retries:
-        retries_msg = (
-            f"Превышено максимальное количество попыток для {func_name} ({max_retries} попыток)"
-        )
+        retries_msg = f"Превышено максимальное количество попыток для {func_name} ({max_retries} попыток)"
         if throw_exception:
             raise TimeoutError(retries_msg)
         logger.warning(retries_msg)
@@ -293,22 +291,19 @@ def wait_until_finished(
         raise ValueError(f"max_retries должен быть положительным числом: {max_retries}")
     if poll_interval > max_poll_interval:
         raise ValueError(
-            f"poll_interval ({poll_interval}) не может быть больше "
-            f"max_poll_interval ({max_poll_interval})",
+            f"poll_interval ({poll_interval}) не может быть больше max_poll_interval ({max_poll_interval})",
         )
 
     # ISSUE-099: Дополнительная проверка timeout на разумность (максимум 24 часа)
     if timeout is not None and timeout > MAX_TIMEOUT_SECONDS:
         raise ValueError(
-            f"timeout не должен превышать {MAX_TIMEOUT_SECONDS} секунд "
-            f"(24 часа), получено {timeout}",
+            f"timeout не должен превышать {MAX_TIMEOUT_SECONDS} секунд (24 часа), получено {timeout}",
         )
 
     # ISSUE-100: Дополнительная проверка max_poll_interval на разумность (максимум 60 секунд)
     if max_poll_interval > MAX_POLL_INTERVAL_LIMIT:
         raise ValueError(
-            "max_poll_interval не должен превышать "
-            f"{MAX_POLL_INTERVAL_LIMIT} секунд, получено {max_poll_interval}",
+            f"max_poll_interval не должен превышать {MAX_POLL_INTERVAL_LIMIT} секунд, получено {max_poll_interval}",
         )
 
     # Сохраняем значения декоратора в замыкании
@@ -337,25 +332,15 @@ def wait_until_finished(
             effective_config = WaitConfig(
                 timeout=(override_timeout if override_timeout is not None else decorator_timeout),
                 finished=(
-                    override_finished
-                    if override_finished is not None
-                    else decorator_finished or _default_predicate
+                    override_finished if override_finished is not None else decorator_finished or _default_predicate
                 ),
                 throw_exception=(
-                    override_throw_exception
-                    if override_throw_exception is not None
-                    else decorator_throw_exception
+                    override_throw_exception if override_throw_exception is not None else decorator_throw_exception
                 ),
                 poll_interval=(
-                    override_poll_interval
-                    if override_poll_interval is not None
-                    else decorator_poll_interval
+                    override_poll_interval if override_poll_interval is not None else decorator_poll_interval
                 ),
-                max_retries=(
-                    override_max_retries
-                    if override_max_retries is not None
-                    else decorator_max_retries
-                ),
+                max_retries=(override_max_retries if override_max_retries is not None else decorator_max_retries),
             )
 
             result: R | None = None
@@ -504,23 +489,15 @@ def async_wait_until_finished(
         ) -> R | None:
             """Асинхронная обёртка вокруг функции с ожиданием завершения операции."""
             # Приоритет: override_* > значения из декоратора
-            effective_timeout = (
-                override_timeout if override_timeout is not None else decorator_timeout
-            )
+            effective_timeout = override_timeout if override_timeout is not None else decorator_timeout
             effective_finished = (
-                override_finished
-                if override_finished is not None
-                else decorator_finished or _default_predicate
+                override_finished if override_finished is not None else decorator_finished or _default_predicate
             )
             effective_throw_exception = (
-                override_throw_exception
-                if override_throw_exception is not None
-                else decorator_throw_exception
+                override_throw_exception if override_throw_exception is not None else decorator_throw_exception
             )
             effective_poll_interval = (
-                override_poll_interval
-                if override_poll_interval is not None
-                else decorator_poll_interval
+                override_poll_interval if override_poll_interval is not None else decorator_poll_interval
             )
 
             start_time = asyncio.get_running_loop().time()
@@ -532,9 +509,7 @@ def async_wait_until_finished(
                 if effective_timeout is not None:
                     elapsed = asyncio.get_running_loop().time() - start_time
                     if elapsed > effective_timeout and effective_throw_exception:
-                        msg = (
-                            f"Функция {func.__name__} не завершилась за {effective_timeout} секунд"
-                        )
+                        msg = f"Функция {func.__name__} не завершилась за {effective_timeout} секунд"
                         raise TimeoutError(msg)
                     elif elapsed > effective_timeout:
                         return None

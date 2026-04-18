@@ -227,9 +227,7 @@ class TestASTImportAnalysis:
                 # Проверяем что модуль не импортирует сам себя
                 module_name = module_file.replace("/", ".").replace(".py", "")
                 for imp in imports:
-                    assert module_name not in imp, (
-                        f"Модуль {module_name} импортирует сам себя через {imp}"
-                    )
+                    assert module_name not in imp, f"Модуль {module_name} импортирует сам себя через {imp}"
 
 
 class TestTYPE_CHECKINGImports:

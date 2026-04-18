@@ -82,9 +82,7 @@ class FileManager:
             except FileExistsError:
                 if attempt < MAX_UNIQUE_NAME_ATTEMPTS - 1:
                     logger.log(5, "Коллизия имён (попытка %d): генерация нового имени", attempt + 1)
-                    temp_filename = (
-                        f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
-                    )
+                    temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
                     temp_filepath = self.output_dir / temp_filename
                 else:
                     logger.error(
@@ -106,9 +104,7 @@ class FileManager:
                         "Ошибка создания файла (попытка %d): повторная попытка",
                         attempt + 1,
                     )
-                    temp_filename = (
-                        f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
-                    )
+                    temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{uuid.uuid4().hex}.tmp"
                     temp_filepath = self.output_dir / temp_filename
                 else:
                     logger.error(

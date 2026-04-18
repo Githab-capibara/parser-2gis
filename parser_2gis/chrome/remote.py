@@ -262,9 +262,7 @@ class ChromeRemote:
         """
         # ISSUE-102: Валидация response_patterns
         if not isinstance(response_patterns, list):
-            msg = (
-                f"response_patterns должен быть списком, получен {type(response_patterns).__name__}"
-            )
+            msg = f"response_patterns должен быть списком, получен {type(response_patterns).__name__}"
             raise TypeError(msg)
 
         # ISSUE-103: Валидация на пустые паттерны
@@ -549,8 +547,7 @@ class ChromeRemote:
                 except (RequestException, ValueError, KeyError) as e:
                     if attempt < max_attempts - 1:
                         app_logger.warning(
-                            "Не удалось создать вкладку (попытка %d): %s. "
-                            "Повторная попытка через %.1f сек...",
+                            "Не удалось создать вкладку (попытка %d): %s. Повторная попытка через %.1f сек...",
                             attempt + 1,
                             e,
                             delay_seconds,
@@ -597,8 +594,7 @@ class ChromeRemote:
             fixed_useragent = original_useragent.replace("Headless", "")
         else:
             fixed_useragent = (
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
             app_logger.warning("Не удалось получить user agent, используется запасной вариант")
 
@@ -897,8 +893,7 @@ class ChromeRemote:
             # Guard Clause: проверка размера ответа
             if len(response_body) > MAX_RESPONSE_SIZE:
                 app_logger.warning(
-                    "Размер ответа превышает лимит (%d > %d байт) для requestId: %s. "
-                    "Ответ отклонён.",
+                    "Размер ответа превышает лимит (%d > %d байт) для requestId: %s. Ответ отклонён.",
                     len(response_body),
                     MAX_RESPONSE_SIZE,
                     request_id,
@@ -1054,9 +1049,7 @@ class ChromeRemote:
 
         # Создаём обёрнутый скрипт
         combined_script = (
-            f"var results = new Array({len(expressions)});\n"
-            + "\n".join(wrapped_expressions)
-            + "\nresults;"
+            f"var results = new Array({len(expressions)});\n" + "\n".join(wrapped_expressions) + "\nresults;"
         )
 
         app_logger.debug(
@@ -1471,7 +1464,4 @@ class ChromeRemote:
 
         """
         classname = self.__class__.__name__
-        return (
-            f"{classname}(options={self._chrome_options!r}, "
-            f"response_patterns={self._response_patterns!r})"
-        )
+        return f"{classname}(options={self._chrome_options!r}, response_patterns={self._response_patterns!r})"

@@ -29,9 +29,7 @@ from parser_2gis.cache.serializer import _deserialize_json, _serialize_json
 class TestCacheSpecificExceptions:
     """Тесты для специфичных исключений в cache.py."""
 
-    def test_sqlite_error_database_locked(
-        self, tmp_path: Path, temp_cache_manager: CacheManager
-    ) -> None:
+    def test_sqlite_error_database_locked(self, tmp_path: Path, temp_cache_manager: CacheManager) -> None:
         """
         Тест 1.1: Проверка обработки sqlite3.Error "database is locked".
 
@@ -86,9 +84,7 @@ class TestCacheSpecificExceptions:
             assert isinstance(exc_info.value, sqlite3.Error)
             assert "disk I/O" in str(exc_info.value)
 
-    def test_sqlite_error_no_such_table(
-        self, tmp_path: Path, temp_cache_manager: CacheManager
-    ) -> None:
+    def test_sqlite_error_no_such_table(self, tmp_path: Path, temp_cache_manager: CacheManager) -> None:
         """
         Тест 1.3: Проверка обработки sqlite3.Error "no such table".
 
@@ -142,9 +138,7 @@ class TestCacheSpecificExceptions:
             # Проверяем что вернул None (ошибка обработана)
             assert result is None, "Ожидался None при OSError"
 
-    def test_type_error_invalid_data(
-        self, tmp_path: Path, temp_cache_manager: CacheManager
-    ) -> None:
+    def test_type_error_invalid_data(self, tmp_path: Path, temp_cache_manager: CacheManager) -> None:
         """
         Тест 1.5: Проверка обработки TypeError при некорректных данных.
 

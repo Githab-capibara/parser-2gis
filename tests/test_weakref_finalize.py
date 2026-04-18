@@ -184,9 +184,7 @@ class TestWeakrefFinalize:
             _cache = CacheManager(cache_dir=Path(tmpdir))
 
             # Проверяем что метод очистки существует
-            assert hasattr(CacheManager, "_cleanup_cache_manager"), (
-                "Метод _cleanup_cache_manager должен существовать"
-            )
+            assert hasattr(CacheManager, "_cleanup_cache_manager"), "Метод _cleanup_cache_manager должен существовать"
 
     def test_connection_pool_cleanup_method_exists(self) -> None:
         """Тест 14: Метод очистки для _ConnectionPool существует."""
@@ -196,6 +194,4 @@ class TestWeakrefFinalize:
             _pool = _ConnectionPool(Path(tmp.name))
 
             # Проверяем что метод очистки существует
-            assert hasattr(_ConnectionPool, "_cleanup_pool"), (
-                "Метод _cleanup_pool должен существовать"
-            )
+            assert hasattr(_ConnectionPool, "_cleanup_pool"), "Метод _cleanup_pool должен существовать"

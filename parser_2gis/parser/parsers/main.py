@@ -235,8 +235,7 @@ class MainParser:
                     jitter = random.uniform(0, 0.3)
                     delay = base_delay * (1.5**attempt) + jitter
                     logger.warning(
-                        "Системная ошибка при навигации (попытка %d/%d): %s. "
-                        "Повторная попытка через %.1f сек...",
+                        "Системная ошибка при навигации (попытка %d/%d): %s. Повторная попытка через %.1f сек...",
                         attempt + 1,
                         max_retries,
                         system_error,

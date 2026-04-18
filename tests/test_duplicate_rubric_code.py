@@ -46,9 +46,7 @@ class TestDuplicateRubricCodeHandling:
         for i, cat in enumerate(screen._filtered_categories):
             cat_name = cat.get("name", "Неизвестно")
             # Найти оригинальный индекс по имени
-            original_index = next(
-                (idx for idx, c in enumerate(screen._categories) if c.get("name") == cat_name), i
-            )
+            original_index = next((idx for idx, c in enumerate(screen._categories) if c.get("name") == cat_name), i)
             checkbox_id = f"category-{original_index}"
             generated_ids.append(checkbox_id)
 
@@ -72,9 +70,7 @@ class TestDuplicateRubricCodeHandling:
         has_duplicates = len(unique_ids) != len(old_approach_ids)
 
         # Этот тест подтверждает, что старый подход НЕ работает
-        assert has_duplicates, (
-            "Старый подход должен вызывать дубликаты ID (это ожидаемое поведение для демонстрации)"
-        )
+        assert has_duplicates, "Старый подход должен вызывать дубликаты ID (это ожидаемое поведение для демонстрации)"
 
     def test_category_selector_populate_with_duplicates(self) -> None:
         """Тест 4: Проверка _populate_categories с дублирующимися rubric_code."""
@@ -90,9 +86,7 @@ class TestDuplicateRubricCodeHandling:
             cat_name = cat.get("name", "Неизвестно")
 
             # Найти оригинальный индекс по имени
-            original_index = next(
-                (idx for idx, c in enumerate(screen._categories) if c.get("name") == cat_name), i
-            )
+            original_index = next((idx for idx, c in enumerate(screen._categories) if c.get("name") == cat_name), i)
 
             checkbox_id = f"category-{original_index}"
             generated_ids.append(checkbox_id)
@@ -115,9 +109,7 @@ class TestDuplicateRubricCodeHandling:
 
         # Отфильтровать категории (например, по букве "а")
         query = "а"
-        screen._filtered_categories = [
-            cat for cat in CATEGORIES_93 if query in cat.get("name", "").lower()
-        ]
+        screen._filtered_categories = [cat for cat in CATEGORIES_93 if query in cat.get("name", "").lower()]
 
         # Сгенерировать ID для отфильтрованных категорий
         generated_ids = []
@@ -125,9 +117,7 @@ class TestDuplicateRubricCodeHandling:
             cat_name = cat.get("name", "Неизвестно")
 
             # Найти оригинальный индекс по имени
-            original_index = next(
-                (idx for idx, c in enumerate(screen._categories) if c.get("name") == cat_name), i
-            )
+            original_index = next((idx for idx, c in enumerate(screen._categories) if c.get("name") == cat_name), i)
             checkbox_id = f"category-{original_index}"
             generated_ids.append(checkbox_id)
 
@@ -151,14 +141,10 @@ class TestDuplicateRubricCodeHandling:
         for i, cat in enumerate(CATEGORIES_93):
             if cat["name"] == "Фастфуд":
                 fastfood_idx = i
-                assert cat.get("rubric_code") == duplicate_rubric_code, (
-                    "Фастфуд должен иметь rubric_code 20223"
-                )
+                assert cat.get("rubric_code") == duplicate_rubric_code, "Фастфуд должен иметь rubric_code 20223"
             elif cat["name"] == "Шаурмичные":
                 shawarma_idx = i
-                assert cat.get("rubric_code") == duplicate_rubric_code, (
-                    "Шаурмичные должны иметь rubric_code 20223"
-                )
+                assert cat.get("rubric_code") == duplicate_rubric_code, "Шаурмичные должны иметь rubric_code 20223"
 
         assert fastfood_idx is not None, "Категория 'Фастфуд' должна существовать"
         assert shawarma_idx is not None, "Категория 'Шаурмичные' должна существовать"

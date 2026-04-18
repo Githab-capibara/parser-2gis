@@ -9,22 +9,11 @@ from __future__ import annotations
 
 import codecs
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from parser_2gis.constants import CSV_COLUMNS_PER_ENTITY
 
-# Pydantic V1/V2 совместимость: API валидаторов изменился между версиями.
-# В Pydantic V2 используется `field_validator` (импорт из pydantic),
-# а в V1 — `validator` (импорт из pydantic). Блок try/except определяет
-# версию на этапе импорта и выбирает подходящий декоратор.
-try:
-    from pydantic import field_validator
-
-    PYDANTIC_V2 = True
-except ImportError:
-    from pydantic import validator
-
-    PYDANTIC_V2 = False
+PYDANTIC_V2 = True
 
 
 class CSVOptions(BaseModel):
@@ -69,17 +58,8 @@ class WriterOptions(BaseModel):
             raise ValueError(msg) from lookup_err
         return v
 
-    if PYDANTIC_V2:
-
-        @field_validator("encoding")
-        @classmethod
-        def encoding_exists(cls, v: str) -> str:
-            """Проверяет существование и валидность кодировки."""
-            return cls._validate_encoding(v)
-
-    else:
-
-        @validator("encoding")
-        def encoding_exists(self, v: str) -> str:
-            """Проверяет существование и валидность кодировки."""
-            return self._validate_encoding(v)
+    @field_validator("encoding")
+    @classmethod
+    def encoding_exists(cls, v: str) -> str:
+        """Проверяет существование и валидность кодировки."""
+        return cls._validate_encoding(v)

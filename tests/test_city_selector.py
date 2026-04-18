@@ -81,9 +81,7 @@ class TestCitySelectorUniqueIDs:
 
         # Теперь отфильтровать города (имитация поиска по букве "о")
         query = "о"
-        screen._filtered_cities = [
-            city for city in sample_cities if query in city.get("name", "").lower()
-        ]
+        screen._filtered_cities = [city for city in sample_cities if query in city.get("name", "").lower()]
 
         # Вторая "популяция" (с фильтрацией) - генерируем ID
         checkbox_ids_second = {f"city-{city['code']}" for city in screen._filtered_cities}
@@ -119,17 +117,13 @@ class TestCitySelectorUniqueIDs:
         screen._cities = sample_cities
 
         if filter_query:
-            screen._filtered_cities = [
-                city for city in sample_cities if filter_query in city.get("name", "").lower()
-            ]
+            screen._filtered_cities = [city for city in sample_cities if filter_query in city.get("name", "").lower()]
         else:
             screen._filtered_cities = sample_cities.copy()
 
         # Проверить уникальность кодов
         codes = [city["code"] for city in screen._filtered_cities]
-        assert len(codes) == len(set(codes)), (
-            f"Коды должны быть уникальными при фильтре '{stage_name}': {codes}"
-        )
+        assert len(codes) == len(set(codes)), f"Коды должны быть уникальными при фильтре '{stage_name}': {codes}"
 
     def test_no_duplicate_ids_after_multiple_filters(self, sample_cities: list[dict]) -> None:
         """Проверка отсутствия дубликатов ID после множественных фильтраций.
@@ -147,29 +141,19 @@ class TestCitySelectorUniqueIDs:
         screen._filtered_cities = sample_cities.copy()
 
         # Этап 1: Поиск "о"
-        screen._filtered_cities = [
-            city for city in sample_cities if "о" in city.get("name", "").lower()
-        ]
+        screen._filtered_cities = [city for city in sample_cities if "о" in city.get("name", "").lower()]
         ids_stage1 = {city["code"] for city in screen._filtered_cities}
-        assert len(ids_stage1) == len(screen._filtered_cities), (
-            f"Дубликаты ID на этапе 1 (поиск 'о'): {ids_stage1}"
-        )
+        assert len(ids_stage1) == len(screen._filtered_cities), f"Дубликаты ID на этапе 1 (поиск 'о'): {ids_stage1}"
 
         # Этап 2: Поиск "м"
-        screen._filtered_cities = [
-            city for city in sample_cities if "м" in city.get("name", "").lower()
-        ]
+        screen._filtered_cities = [city for city in sample_cities if "м" in city.get("name", "").lower()]
         ids_stage2 = {city["code"] for city in screen._filtered_cities}
-        assert len(ids_stage2) == len(screen._filtered_cities), (
-            f"Дубликаты ID на этапе 2 (поиск 'м'): {ids_stage2}"
-        )
+        assert len(ids_stage2) == len(screen._filtered_cities), f"Дубликаты ID на этапе 2 (поиск 'м'): {ids_stage2}"
 
         # Этап 3: Очистка поиска (все города)
         screen._filtered_cities = sample_cities.copy()
         ids_stage3 = {city["code"] for city in screen._filtered_cities}
-        assert len(ids_stage3) == len(screen._filtered_cities), (
-            f"Дубликаты ID на этапе 3 (очистка): {ids_stage3}"
-        )
+        assert len(ids_stage3) == len(screen._filtered_cities), f"Дубликаты ID на этапе 3 (очистка): {ids_stage3}"
 
         # Проверить, что все коды городов в пределах допустимого диапазона
         all_codes = [city["code"] for city in sample_cities]
@@ -229,9 +213,7 @@ class TestCitySelectorNoWidgetIds:
         checkboxes = []
         for i, city in enumerate(sample_cities):
             city_code = city.get("code", str(i))
-            checkbox = type(
-                "MockCheckbox", (), {"id": None, "city_code": city_code, "value": False}
-            )()
+            checkbox = type("MockCheckbox", (), {"id": None, "city_code": city_code, "value": False})()
             checkboxes.append(checkbox)
 
         # Проверить, что все checkbox не имеют ID
@@ -252,15 +234,11 @@ class TestCitySelectorNoWidgetIds:
         for i, city in enumerate(sample_cities):
             city_code = city.get("code", str(i))
             # Симуляция создания checkbox с атрибутом city_code
-            checkbox = type(
-                "MockCheckbox", (), {"id": None, "city_code": city_code, "value": False}
-            )()
+            checkbox = type("MockCheckbox", (), {"id": None, "city_code": city_code, "value": False})()
 
             # Проверить, что city_code атрибут существует и корректен
             assert hasattr(checkbox, "city_code"), "Checkbox должен иметь атрибут city_code"
-            assert checkbox.city_code == city_code, (
-                f"city_code должен быть '{city_code}', найден: {checkbox.city_code}"
-            )
+            assert checkbox.city_code == city_code, f"city_code должен быть '{city_code}', найден: {checkbox.city_code}"
 
     @pytest.mark.parametrize(
         "filter_query,stage_name,stage_num",
@@ -286,9 +264,7 @@ class TestCitySelectorNoWidgetIds:
         screen._cities = sample_cities
 
         if filter_query:
-            screen._filtered_cities = [
-                city for city in sample_cities if filter_query in city.get("name", "").lower()
-            ]
+            screen._filtered_cities = [city for city in sample_cities if filter_query in city.get("name", "").lower()]
         else:
             screen._filtered_cities = sample_cities.copy()
 
@@ -298,9 +274,7 @@ class TestCitySelectorNoWidgetIds:
                 (),
                 {"id": None, "city_code": city.get("code", str(i)), "value": False},
             )()
-            assert checkbox.id is None, (
-                f"На этапе {stage_num} ({stage_name}) Checkbox не должен иметь ID"
-            )
+            assert checkbox.id is None, f"На этапе {stage_num} ({stage_name}) Checkbox не должен иметь ID"
 
     def test_city_code_attribute_preserved_across_filters(self, sample_cities: list[dict]) -> None:
         """Проверка сохранения атрибута city_code при фильтрации.
@@ -324,12 +298,8 @@ class TestCitySelectorNoWidgetIds:
             # Проверить, что все города имеют city_code
             for i, city in enumerate(screen._filtered_cities):
                 city_code = city.get("code", str(i))
-                assert city_code is not None, (
-                    f"Город должен иметь code при фильтре '{filter_query}'"
-                )
-                assert isinstance(city_code, str), (
-                    f"city_code должен быть строкой при фильтре '{filter_query}'"
-                )
+                assert city_code is not None, f"Город должен иметь code при фильтре '{filter_query}'"
+                assert isinstance(city_code, str), f"city_code должен быть строкой при фильтре '{filter_query}'"
 
     def test_selected_indices_mapping_without_ids(self, sample_cities: list[dict]) -> None:
         """Проверка работы с выбранными городами без использования ID.

@@ -110,9 +110,7 @@ class TestRLockUsageForReentrancy:
         nested_lock_operations()
         assert lock_acquired_count == 3, "RLock должен поддерживать реентерабельность"
 
-    def test_rlock_prevents_deadlock_in_nested_calls(
-        self, parallel_parser: ParallelCityParser
-    ) -> None:
+    def test_rlock_prevents_deadlock_in_nested_calls(self, parallel_parser: ParallelCityParser) -> None:
         """Тест 3: RLock предотвращает deadlock при вложенных вызовах.
 
         Проверяет:
@@ -174,12 +172,8 @@ class TestRLockUsageForReentrancy:
         # Проверяем что merge lock существует и является примитивом блокировки
         assert parallel_parser._merge_lock is not None, "_merge_lock должен существовать"
         # Проверяем что это тип блокировки (Lock или RLock)
-        assert hasattr(parallel_parser._merge_lock, "acquire"), (
-            "_merge_lock должен иметь метод acquire"
-        )
-        assert hasattr(parallel_parser._merge_lock, "release"), (
-            "_merge_lock должен иметь метод release"
-        )
+        assert hasattr(parallel_parser._merge_lock, "acquire"), "_merge_lock должен иметь метод acquire"
+        assert hasattr(parallel_parser._merge_lock, "release"), "_merge_lock должен иметь метод release"
 
     def test_rlock_stats_protection(self, parallel_parser: ParallelCityParser) -> None:
         """Тест 6: RLock защищает статистику.
@@ -246,9 +240,7 @@ class TestRLockUsageForReentrancy:
         # Очищаем
         logger.removeHandler(handler)
 
-    def test_rlock_reentrancy_in_parallel_operations(
-        self, parallel_parser: ParallelCityParser
-    ) -> None:
+    def test_rlock_reentrancy_in_parallel_operations(self, parallel_parser: ParallelCityParser) -> None:
         """Тест 8: RLock реентерабельность в параллельных операциях.
 
         Проверяет:
@@ -300,9 +292,7 @@ class TestRLockUsageForReentrancy:
 
         # Lock вызвал бы deadlock (но мы не тестируем это явно чтобы не заблокировать тест)
         # Просто проверяем что RLock это не Lock
-        assert type(parallel_parser._lock) is not type(regular_lock), (
-            "RLock должен отличаться от Lock"
-        )
+        assert type(parallel_parser._lock) is not type(regular_lock), "RLock должен отличаться от Lock"
 
     def test_rlock_multiple_threads_reentrancy(self, parallel_parser: ParallelCityParser) -> None:
         """Тест 10: RLock реентерабельность в нескольких потоках.
@@ -332,6 +322,4 @@ class TestRLockUsageForReentrancy:
             t.join()
 
         assert len(errors) == 0, f"Ошибки в потоках: {errors}"
-        assert all(count == 10 for count in results.values()), (
-            "Все потоки должны выполнить 10 операций"
-        )
+        assert all(count == 10 for count in results.values()), "Все потоки должны выполнить 10 операций"

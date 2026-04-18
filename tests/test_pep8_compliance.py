@@ -124,9 +124,7 @@ class TestPEP8Compliance:
                     if "E302" in line:
                         violations.append(f"{py_file}: {line}")
 
-        assert len(violations) == 0, "Обнаружены нарушения E302 (2 пустые строки):\n" + "\n".join(
-            violations[:10]
-        )
+        assert len(violations) == 0, "Обнаружены нарушения E302 (2 пустые строки):\n" + "\n".join(violations[:10])
 
     def test_no_e305_violations(self) -> None:
         """
@@ -156,9 +154,8 @@ class TestPEP8Compliance:
                     if "E305" in line:
                         violations.append(f"{py_file}: {line}")
 
-        assert len(violations) == 0, (
-            "Обнаружены нарушения E305 (2 пустые строки после класса/функции):\n"
-            + "\n".join(violations[:10])
+        assert len(violations) == 0, "Обнаружены нарушения E305 (2 пустые строки после класса/функции):\n" + "\n".join(
+            violations[:10]
         )
 
     def test_no_w293_violations(self) -> None:
@@ -189,9 +186,8 @@ class TestPEP8Compliance:
                     if "W293" in line:
                         violations.append(f"{py_file}: {line}")
 
-        assert len(violations) == 0, (
-            "Обнаружены нарушения W293 (whitespace в пустых строках):\n"
-            + "\n".join(violations[:10])
+        assert len(violations) == 0, "Обнаружены нарушения W293 (whitespace в пустых строках):\n" + "\n".join(
+            violations[:10]
         )
 
 
@@ -227,8 +223,8 @@ class TestPEP8ComplianceSpecificFiles:
             if any(code in line for code in ["E302", "E305", "W293"]):
                 relevant_violations.append(line)
 
-        assert len(relevant_violations) == 0, (
-            f"Обнаружены нарушения PEP 8 в {file_path}:\n" + "\n".join(relevant_violations)
+        assert len(relevant_violations) == 0, f"Обнаружены нарушения PEP 8 в {file_path}:\n" + "\n".join(
+            relevant_violations
         )
 
 
@@ -265,14 +261,10 @@ class TestPEP8ComplianceDetailed:
                 # Логгируем ошибку чтения файла и пропускаем его
                 import logging
 
-                logging.getLogger("test_pep8_compliance").debug(
-                    "Не удалось прочитать файл %s: %s", py_file, read_error
-                )
+                logging.getLogger("test_pep8_compliance").debug("Не удалось прочитать файл %s: %s", py_file, read_error)
                 # Пропускаем файлы которые не удалось прочитать
 
-        assert len(violations) == 0, "Обнаружены пробелы в конце строк:\n" + "\n".join(
-            violations[:10]
-        )
+        assert len(violations) == 0, "Обнаружены пробелы в конце строк:\n" + "\n".join(violations[:10])
 
     def test_blank_lines_after_function(self) -> None:
         """
@@ -362,9 +354,7 @@ class TestPEP8ComplianceConfiguration:
 
         config_exists = any(config.exists() for config in config_files)
 
-        assert config_exists, (
-            "Конфигурация flake8 не найдена. Создайте setup.cfg или .flake8 в корне проекта"
-        )
+        assert config_exists, "Конфигурация flake8 не найдена. Создайте setup.cfg или .flake8 в корне проекта"
 
     def test_setup_cfg_has_flake8_section(self) -> None:
         """

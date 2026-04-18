@@ -69,9 +69,7 @@ class TestCSVWriterContactProcessing:
         if actual_path.exists():
             actual_path.unlink()
 
-    def test_append_contact_continues_on_empty_value(
-        self, csv_writer: CSVWriter, temp_output_path: Path
-    ) -> None:
+    def test_append_contact_continues_on_empty_value(self, csv_writer: CSVWriter, temp_output_path: Path) -> None:
         """Тест, что append_contact продолжает обработку при пустом значении контакта.
 
         Проверяет:

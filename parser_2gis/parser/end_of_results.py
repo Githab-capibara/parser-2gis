@@ -59,9 +59,7 @@ class EndOfResultsDetector:
 
         """
         self._chrome_remote = chrome_remote
-        self._compiled_patterns = [
-            re.compile(pattern, re.IGNORECASE) for pattern in self.END_PATTERNS
-        ]
+        self._compiled_patterns = [re.compile(pattern, re.IGNORECASE) for pattern in self.END_PATTERNS]
 
     def is_end_of_results(self) -> bool:
         """Проверяет, достигнут ли конец результатов поиска.

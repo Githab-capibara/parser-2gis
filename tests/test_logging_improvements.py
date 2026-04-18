@@ -202,9 +202,7 @@ class TestLoggingContext:
         files_count = 5
         output_file = "result.csv"
 
-        logger.info(
-            "Операция: %s, файлов: %d, выходной файл: %s", operation, files_count, output_file
-        )
+        logger.info("Операция: %s, файлов: %d, выходной файл: %s", operation, files_count, output_file)
 
         # Проверяем детали
         assert operation in caplog.text

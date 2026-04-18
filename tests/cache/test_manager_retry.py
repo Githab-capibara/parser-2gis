@@ -96,13 +96,10 @@ class TestHandleDbErrorRetry:
         mock_retry_conn.execute.return_value.fetchone.return_value = (test_data, future_expires)
         mock_retry_conn.close.return_value = None
 
-        with patch("parser_2gis.cache.manager.time.sleep"):
-            with patch.object(cache_manager, "_pool") as mock_pool:
-                mock_pool.get_connection.return_value = mock_retry_conn
-                with patch.object(
-                    cache_manager._serializer, "deserialize", return_value={"result": "found"}
-                ):
-                    result = cache_manager._handle_db_error(error, url, url_hash)
+        with patch("parser_2gis.cache.manager.time.sleep"), patch.object(cache_manager, "_pool") as mock_pool:
+            mock_pool.get_connection.return_value = mock_retry_conn
+            with patch.object(cache_manager._serializer, "deserialize", return_value={"result": "found"}):
+                result = cache_manager._handle_db_error(error, url, url_hash)
 
         assert result == {"result": "found"}
         mock_pool.return_connection.assert_called()
@@ -113,11 +110,10 @@ class TestHandleDbErrorRetry:
         url = "https://example.com/test"
         url_hash = "abc123"
 
-        with patch("parser_2gis.cache.manager.time.sleep"):
-            with patch.object(cache_manager, "_pool") as mock_pool:
-                mock_pool.get_connection.return_value = None  # Пул не дал соединение
+        with patch("parser_2gis.cache.manager.time.sleep"), patch.object(cache_manager, "_pool") as mock_pool:
+            mock_pool.get_connection.return_value = None  # Пул не дал соединение
 
-                result = cache_manager._handle_db_error(error, url, url_hash)
+            result = cache_manager._handle_db_error(error, url, url_hash)
 
         assert result is None
 
@@ -127,11 +123,10 @@ class TestHandleDbErrorRetry:
         url = "https://example.com/test"
         url_hash = "abc123"
 
-        with patch("parser_2gis.cache.manager.time.sleep"):
-            with patch.object(cache_manager, "_pool") as mock_pool:
-                mock_pool.get_connection.side_effect = sqlite3.OperationalError("retry failed")
+        with patch("parser_2gis.cache.manager.time.sleep"), patch.object(cache_manager, "_pool") as mock_pool:
+            mock_pool.get_connection.side_effect = sqlite3.OperationalError("retry failed")
 
-                result = cache_manager._handle_db_error(error, url, url_hash)
+            result = cache_manager._handle_db_error(error, url, url_hash)
 
         assert result is None
 
@@ -194,11 +189,10 @@ class TestHandleDbErrorRetry:
         mock_retry_conn = MagicMock()
         mock_retry_conn.execute.return_value.fetchone.return_value = (test_data, past_expires)
 
-        with patch("parser_2gis.cache.manager.time.sleep"):
-            with patch.object(cache_manager, "_pool") as mock_pool:
-                mock_pool.get_connection.return_value = mock_retry_conn
+        with patch("parser_2gis.cache.manager.time.sleep"), patch.object(cache_manager, "_pool") as mock_pool:
+            mock_pool.get_connection.return_value = mock_retry_conn
 
-                result = cache_manager._handle_db_error(error, url, url_hash)
+            result = cache_manager._handle_db_error(error, url, url_hash)
 
         # Данные истекли — должен вернуть None
         assert result is None

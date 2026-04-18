@@ -172,10 +172,7 @@ class TestSpecificOsException:
 
             # Проверяем что ошибка содержит информацию о проблеме
             error_message = str(exc_info.value)
-            assert (
-                "Не удалось создать директорию" in error_message
-                or "Permission denied" in error_message
-            )
+            assert "Не удалось создать директорию" in error_message or "Permission denied" in error_message
 
     def test_specific_os_exception_file_handler_open(self, tmp_path, caplog) -> None:
         """
@@ -218,10 +215,7 @@ class TestSpecificOsException:
             cleanup_orphaned_profiles(profiles_dir=tmp_path)
 
             # Проверяем что ошибка была залогирована
-            assert (
-                "Ошибка при очистке осиротевших профилей" in caplog.text
-                or "Permission denied" in caplog.text
-            )
+            assert "Ошибка при очистке осиротевших профилей" in caplog.text or "Permission denied" in caplog.text
 
     def test_specific_os_exception_profile_stat(self, tmp_path, caplog) -> None:
         """

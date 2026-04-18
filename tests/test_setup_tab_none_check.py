@@ -154,9 +154,7 @@ class TestSetupTabNoneCheck:
 
         # Проверяем содержание лога
         log_args = mock_logger.error.call_args[0][0]
-        assert "Chrome tab" in log_args or "_setup_tab" in log_args, (
-            f"Некорректное сообщение лога: {log_args}"
-        )
+        assert "Chrome tab" in log_args or "_setup_tab" in log_args, f"Некорректное сообщение лога: {log_args}"
 
     def test_chrome_exception_type_not_runtime_error(
         self, mock_chrome_options: MagicMock, mock_response_patterns: list

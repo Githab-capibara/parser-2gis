@@ -193,9 +193,7 @@ class TestTempFileTimerMemoryLeak:
         final_threads = threading.active_count()
 
         # Проверяем что количество потоков вернулось к исходному
-        assert final_threads <= initial_threads + 1, (
-            f"Утечка потоков: было {initial_threads}, стало {final_threads}"
-        )
+        assert final_threads <= initial_threads + 1, f"Утечка потоков: было {initial_threads}, стало {final_threads}"
 
 
 class TestTempFileTimerCallback:
@@ -388,9 +386,7 @@ class TestTempFileTimerEdgeCases:
         timer._is_running = False
 
         # Проверяем что _cleanup_temp_files был вызван 3 раза
-        assert call_count["count"] == 3, (
-            f"_cleanup_temp_files должен быть вызван 3 раза, вызван {call_count['count']}"
-        )
+        assert call_count["count"] == 3, f"_cleanup_temp_files должен быть вызван 3 раза, вызван {call_count['count']}"
 
 
 # Запуск тестов через pytest

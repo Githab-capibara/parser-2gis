@@ -235,8 +235,7 @@ class ProfileManager:
             app_logger.debug("Профиль создан с правами 0o700 через Path.mkdir")
         except OSError as chmod_error:
             app_logger.warning(
-                "Не удалось установить права 0o700 на профиль %s: %s. "
-                "Профиль будет автоматически удалён при закрытии.",
+                "Не удалось установить права 0o700 на профиль %s: %s. Профиль будет автоматически удалён при закрытии.",
                 self._profile_path,
                 chmod_error,
             )
@@ -556,8 +555,7 @@ class ProcessManager:
             if poll_result is not None:
                 process_status = f"killed (exit code: {poll_result})"
                 app_logger.info(
-                    "Chrome браузер принудительно завершён "
-                    "(PID: %d, exit code: %d, время жизни: %.1f сек)",
+                    "Chrome браузер принудительно завершён (PID: %d, exit code: %d, время жизни: %.1f сек)",
                     process_pid,
                     poll_result,
                     time.time() - self._start_time,
@@ -579,8 +577,7 @@ class ProcessManager:
             except subprocess.TimeoutExpired:
                 # P1-10: Добавляем принудительное завершение через kill() после timeout
                 app_logger.error(
-                    "Таймаут (%d сек) после SIGKILL для PID %d - "
-                    "применяем принудительное завершение",
+                    "Таймаут (%d сек) после SIGKILL для PID %d - применяем принудительное завершение",
                     timeout,
                     process_pid,
                 )
@@ -815,9 +812,7 @@ class BrowserLifecycleManager:
 
         """
         # Валидация memory_limit перед формированием команды
-        memory_limit = (
-            chrome_options.memory_limit if chrome_options.memory_limit is not None else 2048
-        )
+        memory_limit = chrome_options.memory_limit if chrome_options.memory_limit is not None else 2048
 
         # Формирование команды запуска
         chrome_cmd = [
@@ -882,8 +877,7 @@ class BrowserLifecycleManager:
                     kill_success, _kill_status = self._process_manager.kill(process_pid, timeout=20)
                     if not kill_success:
                         app_logger.error(
-                            "Не удалось завершить процесс браузера (PID: %s): "
-                            "terminate и kill оба вернули False",
+                            "Не удалось завершить процесс браузера (PID: %s): terminate и kill оба вернули False",
                             process_pid,
                         )
 
@@ -974,11 +968,7 @@ class BrowserLifecycleManager:
     def __del__(self) -> None:
         """Деструктор объекта."""
         try:
-            if (
-                hasattr(self, "_finalizer")
-                and self._finalizer is not None
-                and self._finalizer.detach()
-            ):
+            if hasattr(self, "_finalizer") and self._finalizer is not None and self._finalizer.detach():
                 self._cleanup_from_finalizer(
                     self._process_manager.process,
                     self._profile_manager.profile_tempdir,
@@ -988,8 +978,7 @@ class BrowserLifecycleManager:
 
             if not self._closed and self._process_manager.is_running():
                 app_logger.warning(
-                    "BrowserLifecycleManager уничтожается без явного закрытия. "
-                    "Всегда вызывайте close() явно.",
+                    "BrowserLifecycleManager уничтожается без явного закрытия. Всегда вызывайте close() явно.",
                 )
         except (OSError, RuntimeError, AttributeError) as del_error:
             app_logger.debug("BrowserLifecycleManager.__del__: ошибка: %s", del_error)
@@ -1043,12 +1032,12 @@ class ChromeBrowser:
         """Путь к профилю (для backward compatibility)."""
         return self._lifecycle_manager.profile_path
 
-    @property  # noqa: A003  # Property getter для backward compatibility
+    @property  # Property getter для backward compatibility
     def _closed(self) -> bool:
         """Статус закрытия браузера (для backward compatibility)."""
         return self._lifecycle_manager._closed  # pyright: ignore[reportAttributeAccessIssue]
 
-    @_closed.setter  # noqa: A003  # Property setter для backward compatibility
+    @_closed.setter  # Property setter для backward compatibility
     def _closed(self, value: bool) -> None:
         """Устанавливает статус закрытия браузера."""
         self._lifecycle_manager._closed = value  # pyright: ignore[reportAttributeAccessIssue]

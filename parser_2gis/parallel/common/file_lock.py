@@ -95,9 +95,7 @@ class FileLockManager:
                                 lock_pid = int(f.read().strip())
                             os.kill(lock_pid, 0)
                             self._log(
-                                f"Lock файл существует "
-                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid}), "
-                                f"ожидаем...",
+                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             self._log(
@@ -119,8 +117,7 @@ class FileLockManager:
                 lock_attempts += 1
                 if lock_attempts > self._max_lock_attempts:
                     self._log(
-                        "Превышено максимальное число попыток "
-                        f"получения lock ({self._max_lock_attempts})",
+                        f"Превышено максимальное число попыток получения lock ({self._max_lock_attempts})",
                         "error",
                     )
                     msg = f"Не удалось получить lock файл после {self._max_lock_attempts} попыток"

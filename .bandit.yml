@@ -16,5 +16,9 @@ exclude_dirs:
   - htmlcov
 
 skips:
+  - B311  # random.random() используется для jitter в retry логике,
+          # не для криптографии, это осознанное архитектурное решение
+  - B608  # hardcoded_sql_expressions — SQL запросы используют параметризованные
+          # placeholders, это safe практика, B608 ложное срабатывание на низкой уверенности
   - B603  # subprocess_without_shell_equals_true — ложное срабатывание,
           # все вызовы subprocess используют контролируемые аргументы (не пользовательский ввод)

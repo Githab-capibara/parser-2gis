@@ -256,9 +256,7 @@ class TestExceptionHandlingWithContext:
         var_value = "test_value"
         operation = "тестовая операция"
 
-        logger.error(
-            "Ошибка при %s: переменная %s имеет значение %s", operation, var_name, var_value
-        )
+        logger.error("Ошибка при %s: переменная %s имеет значение %s", operation, var_name, var_value)
 
         # Проверяем что контекст присутствует в сообщении
         assert var_name in caplog.text, "Имя переменной должно быть в сообщении"

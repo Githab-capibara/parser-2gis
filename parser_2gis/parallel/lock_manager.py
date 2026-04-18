@@ -67,15 +67,12 @@ class ParallelLockManager:
                             if lock_pid is not None:
                                 os.kill(lock_pid, 0)
                             self._log(
-                                f"Lock файл существует "
-                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid}), "
-                                f"ожидаем...",
+                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             pid_info = f", PID: {lock_pid}" if lock_pid is not None else ""
                             self._log(
-                                "Удаление осиротевшего lock файла "
-                                f"(возраст: {lock_age:.0f} сек{pid_info})",
+                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек{pid_info})",
                             )
                             lock_file_path.unlink()
                     else:
@@ -93,8 +90,7 @@ class ParallelLockManager:
                 lock_attempts += 1
                 if lock_attempts > self.MAX_LOCK_ATTEMPTS:
                     self._log(
-                        "Превышено максимальное число попыток "
-                        f"получения lock ({self.MAX_LOCK_ATTEMPTS})",
+                        f"Превышено максимальное число попыток получения lock ({self.MAX_LOCK_ATTEMPTS})",
                         "error",
                     )
                     msg = f"Не удалось получить lock файл после {self.MAX_LOCK_ATTEMPTS} попыток"
@@ -121,8 +117,7 @@ class ParallelLockManager:
                                 os.close(lock_fd)
                             except OSError as close_error:
                                 self._log(
-                                    "Ошибка при закрытии fd lock файла "
-                                    f"(игнорируется): {close_error}",
+                                    f"Ошибка при закрытии fd lock файла (игнорируется): {close_error}",
                                     "debug",
                                 )
                 except (OSError, FileExistsError):

@@ -87,9 +87,7 @@ class TestPortSelectionOS:
 
         original_setsockopt = socket.socket.setsockopt
 
-        def mock_setsockopt(
-            sock: socket.socket, level: int, optname: int, value: int | None = None
-        ) -> None:
+        def mock_setsockopt(sock: socket.socket, level: int, optname: int, value: int | None = None) -> None:
             captured_setsockopt_calls.append((level, optname, value))
             return original_setsockopt(sock, level, optname, value)
 
@@ -101,9 +99,7 @@ class TestPortSelectionOS:
             so_reuseaddr = socket.SO_REUSEADDR
 
             reuseaddr_calls = [
-                call
-                for call in captured_setsockopt_calls
-                if call[0] == sol_socket and call[1] == so_reuseaddr
+                call for call in captured_setsockopt_calls if call[0] == sol_socket and call[1] == so_reuseaddr
             ]
             assert len(reuseaddr_calls) >= 1, "SO_REUSEADDR не был установлен"
             # Проверяем что значение равно 1
@@ -145,6 +141,4 @@ class TestPortSelectionOS:
             ports.add(port)
 
         # Все порты должны быть уникальными
-        assert len(ports) == num_calls, (
-            f"Ожидалось {num_calls} уникальных портов, получено {len(ports)}"
-        )
+        assert len(ports) == num_calls, f"Ожидалось {num_calls} уникальных портов, получено {len(ports)}"

@@ -30,8 +30,7 @@ match = re.search(
 )
 if not match:
     raise RuntimeError(
-        f"Не удалось найти версию в файле {VERSION_PATH}. "
-        "Убедитесь, что файл содержит строку вида version = 'X.Y.Z'"
+        f"Не удалось найти версию в файле {VERSION_PATH}. Убедитесь, что файл содержит строку вида version = 'X.Y.Z'"
     )
 version = match.group("version")
 

@@ -256,12 +256,8 @@ class TestTUIFieldCompatibility:
         config.chrome.headless = headless_value
         config.chrome.disable_images = disable_images_value
         config.chrome.silent_browser = silent_value
-        config.chrome.memory_limit = (
-            int(memory_limit_value) if memory_limit_value.isdigit() else 512
-        )
-        config.chrome.startup_delay = (
-            int(startup_delay_value) if startup_delay_value.isdigit() else 0
-        )
+        config.chrome.memory_limit = int(memory_limit_value) if memory_limit_value.isdigit() else 512
+        config.chrome.startup_delay = int(startup_delay_value) if startup_delay_value.isdigit() else 0
 
         # Проверяем значения
         assert config.chrome.headless is True
@@ -330,9 +326,7 @@ class TestMissingFieldDetection:
         """Тест должен упасть, если в ChromeOptions отсутствует поле startup_delay."""
         config = Configuration()
         # Проверяем что поле существует и доступно для записи
-        assert hasattr(config.chrome, "startup_delay"), (
-            "Поле startup_delay отсутствует в ChromeOptions"
-        )
+        assert hasattr(config.chrome, "startup_delay"), "Поле startup_delay отсутствует в ChromeOptions"
         config.chrome.startup_delay = 10
         assert config.chrome.startup_delay == 10
 
@@ -346,8 +340,6 @@ class TestMissingFieldDetection:
     def test_detect_missing_writer_field(self) -> None:
         """Тест должен упасть, если в WriterOptions отсутствует поле add_rubrics."""
         config = Configuration()
-        assert hasattr(config.writer.csv, "add_rubrics"), (
-            "Поле add_rubrics отсутствует в WriterOptions"
-        )
+        assert hasattr(config.writer.csv, "add_rubrics"), "Поле add_rubrics отсутствует в WriterOptions"
         config.writer.csv.add_rubrics = True
         assert config.writer.csv.add_rubrics is True

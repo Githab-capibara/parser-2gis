@@ -53,9 +53,7 @@ class TestParallelParserDelays:
             stats_lock=MagicMock(),
         )
 
-    def test_initial_delay_uses_configured_range(
-        self, mock_parse_strategy: ParseStrategy, tmp_path: Path
-    ) -> None:
+    def test_initial_delay_uses_configured_range(self, mock_parse_strategy: ParseStrategy, tmp_path: Path) -> None:
         """Тест, что начальная задержка использует настроенный диапазон.
 
         Проверяет:
@@ -73,9 +71,7 @@ class TestParallelParserDelays:
             f"initial_delay_max должен быть 0.2, получен {config.parallel.initial_delay_max}"
         )
 
-    def test_launch_delay_uses_configured_range(
-        self, mock_parse_strategy: ParseStrategy, tmp_path: Path
-    ) -> None:
+    def test_launch_delay_uses_configured_range(self, mock_parse_strategy: ParseStrategy, tmp_path: Path) -> None:
         """Тест, что задержка запуска использует настроенный диапазон.
 
         Проверяет:

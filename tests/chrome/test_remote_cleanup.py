@@ -32,9 +32,7 @@ class TestCleanupInterface:
         return [".*"]
 
     @pytest.fixture
-    def chrome_remote(
-        self, mock_chrome_options: MagicMock, mock_response_patterns: list
-    ) -> ChromeRemote:
+    def chrome_remote(self, mock_chrome_options: MagicMock, mock_response_patterns: list) -> ChromeRemote:
         """Создаёт ChromeRemote для тестов."""
         chrome_remote = ChromeRemote(mock_chrome_options, mock_response_patterns)
         chrome_remote._dev_url = "http://127.0.0.1:9222"
@@ -52,9 +50,7 @@ class TestCleanupInterface:
             chrome_remote._cleanup_interface()
 
         mock_tab.stop.assert_called_once()
-        mock_request.assert_called_once_with(
-            "put", "http://127.0.0.1:9222/json/close/tab-123", timeout=10, verify=True
-        )
+        mock_request.assert_called_once_with("put", "http://127.0.0.1:9222/json/close/tab-123", timeout=10, verify=True)
         assert chrome_remote._chrome_tab is None
 
     def test_cleanup_interface_with_stopped_tab(self, chrome_remote: ChromeRemote) -> None:
@@ -99,9 +95,7 @@ class TestCleanupInterface:
 
         assert chrome_remote._chrome_tab is None
 
-    def test_cleanup_interface_http_error_on_close_request(
-        self, chrome_remote: ChromeRemote
-    ) -> None:
+    def test_cleanup_interface_http_error_on_close_request(self, chrome_remote: ChromeRemote) -> None:
         """Тест 5: Ошибка HTTP-запроса при закрытии вкладки."""
         mock_tab = MagicMock()
         mock_tab.status = "started"

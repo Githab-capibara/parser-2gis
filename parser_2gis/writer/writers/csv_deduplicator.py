@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import hashlib
 import os
-from io import TextIOWrapper
-from typing import cast
 import sys
 import unicodedata
+from io import TextIOWrapper
+from typing import cast
 
 from parser_2gis.logger import logger
 

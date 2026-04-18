@@ -12,11 +12,10 @@
 
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:
-    # Для type-checking импортируем, но не используем как типы
-    pass
-
 from parser_2gis.exceptions import ExceptionContextMixin
+
+if TYPE_CHECKING:
+    pass
 
 
 class ChromeException(ExceptionContextMixin, Exception):
@@ -52,10 +51,7 @@ class ChromeException(ExceptionContextMixin, Exception):
         # Формируем полное сообщение с контекстом (аналогично BaseContextualException)
         cleaned_message = message.rstrip(".")
         full_message = (
-            f"{cleaned_message}. "
-            f"Функция: {self.function_name}, "
-            f"Строка: {self.line_number}, "
-            f"Файл: {self.filename}"
+            f"{cleaned_message}. Функция: {self.function_name}, Строка: {self.line_number}, Файл: {self.filename}"
         )
         super().__init__(full_message, **kwargs)
 

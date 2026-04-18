@@ -98,9 +98,8 @@ class TestLineLengthInParallelModule:
         source = inspect.getsource(parallel_parser)
         long_lines = find_long_lines(source)
 
-        assert len(long_lines) == 0, (
-            "Найдены длинные строки в parallel.parallel_parser:\n"
-            + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
+        assert len(long_lines) == 0, "Найдены длинные строки в parallel.parallel_parser:\n" + "\n".join(
+            f"  Строка {ln}: {length} символов" for ln, _, length in long_lines
         )
 
 
@@ -123,9 +122,8 @@ class TestLineLengthInValidationModule:
         source = inspect.getsource(url_validator)
         long_lines = find_long_lines(source)
 
-        assert len(long_lines) == 0, (
-            "Найдены длинные строки в validation.url_validator:\n"
-            + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
+        assert len(long_lines) == 0, "Найдены длинные строки в validation.url_validator:\n" + "\n".join(
+            f"  Строка {ln}: {length} символов" for ln, _, length in long_lines
         )
 
     def test_data_validator_no_long_lines(self) -> None:
@@ -139,9 +137,8 @@ class TestLineLengthInValidationModule:
         source = inspect.getsource(data_validator)
         long_lines = find_long_lines(source)
 
-        assert len(long_lines) == 0, (
-            "Найдены длинные строки в validation.data_validator:\n"
-            + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
+        assert len(long_lines) == 0, "Найдены длинные строки в validation.data_validator:\n" + "\n".join(
+            f"  Строка {ln}: {length} символов" for ln, _, length in long_lines
         )
 
 
@@ -193,9 +190,8 @@ class TestLineLengthInWriterModule:
         source = inspect.getsource(csv_writer)
         long_lines = find_long_lines(source)
 
-        assert len(long_lines) == 0, (
-            "Найдены длинные строки в writer.writers.csv_writer:\n"
-            + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
+        assert len(long_lines) == 0, "Найдены длинные строки в writer.writers.csv_writer:\n" + "\n".join(
+            f"  Строка {ln}: {length} символов" for ln, _, length in long_lines
         )
 
     def test_json_writer_no_long_lines(self) -> None:
@@ -209,9 +205,8 @@ class TestLineLengthInWriterModule:
         source = inspect.getsource(json_writer)
         long_lines = find_long_lines(source)
 
-        assert len(long_lines) == 0, (
-            "Найдены длинные строки в writer.writers.json_writer:\n"
-            + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
+        assert len(long_lines) == 0, "Найдены длинные строки в writer.writers.json_writer:\n" + "\n".join(
+            f"  Строка {ln}: {length} символов" for ln, _, length in long_lines
         )
 
     def test_xlsx_writer_no_long_lines(self) -> None:
@@ -225,9 +220,8 @@ class TestLineLengthInWriterModule:
         source = inspect.getsource(xlsx_writer)
         long_lines = find_long_lines(source)
 
-        assert len(long_lines) == 0, (
-            "Найдены длинные строки в writer.writers.xlsx_writer:\n"
-            + "\n".join(f"  Строка {ln}: {length} символов" for ln, _, length in long_lines)
+        assert len(long_lines) == 0, "Найдены длинные строки в writer.writers.xlsx_writer:\n" + "\n".join(
+            f"  Строка {ln}: {length} символов" for ln, _, length in long_lines
         )
 
 
@@ -356,9 +350,7 @@ class TestLineLengthComprehensive:
         # Фильтруем пропущенные модули
         actual_errors = [e for e in all_errors if "пропущен" not in e]
 
-        assert len(actual_errors) == 0, "Найдены длинные строки в модулях:\n" + "\n".join(
-            actual_errors
-        )
+        assert len(actual_errors) == 0, "Найдены длинные строки в модулях:\n" + "\n".join(actual_errors)
 
 
 # Запуск тестов через pytest

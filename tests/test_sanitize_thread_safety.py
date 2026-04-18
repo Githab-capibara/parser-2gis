@@ -88,9 +88,7 @@ class TestSanitizeValueThreadSafety:
         def worker(data):
             return _sanitize_value(data)
 
-        threads = [
-            threading.Thread(target=lambda: results.append(worker(test_data))) for _ in range(5)
-        ]
+        threads = [threading.Thread(target=lambda: results.append(worker(test_data))) for _ in range(5)]
         for t in threads:
             t.start()
         for t in threads:

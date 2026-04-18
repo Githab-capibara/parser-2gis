@@ -111,8 +111,7 @@ def check_and_optimize_memory(
         # Проверяем превышение порога
         if memory_mb > parser._parser_options.memory_threshold:
             logger.warning(
-                "Использование памяти %.1f МБ превышает порог %d МБ. "
-                "Выполняем автоматическую оптимизацию...",
+                "Использование памяти %.1f МБ превышает порог %d МБ. Выполняем автоматическую оптимизацию...",
                 memory_mb,
                 parser._parser_options.memory_threshold,
             )
@@ -289,9 +288,7 @@ class MainDataProcessor:
         if walk_page_number is not None:
             try:
                 available_pages = self._parser._get_available_pages()
-                available_pages_ahead = {
-                    k: v for k, v in available_pages.items() if k > current_page_number
-                }
+                available_pages_ahead = {k: v for k, v in available_pages.items() if k > current_page_number}
                 next_page_number = min(
                     available_pages_ahead,
                     key=lambda n: abs(n - walk_page_number) if walk_page_number is not None else 0,

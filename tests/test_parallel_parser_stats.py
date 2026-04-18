@@ -203,9 +203,7 @@ class TestParallelParserStatsThreadSafety:
 
                     # Проверяем инвариант: success <= total
                     if current_success > current_total:
-                        read_errors.append(
-                            f"Гонка обнаружена: success={current_success} > total={current_total}"
-                        )
+                        read_errors.append(f"Гонка обнаружена: success={current_success} > total={current_total}")
 
                     # Обновляем статистику
                     parser._stats["success"] += 1
@@ -224,9 +222,7 @@ class TestParallelParserStatsThreadSafety:
             thread.join()
 
         # Проверяем что не было гонок
-        assert len(read_errors) == 0, (
-            f"Обнаружены гонки состояний: {read_errors[:5]}"
-        )  # Показываем первые 5
+        assert len(read_errors) == 0, f"Обнаружены гонки состояний: {read_errors[:5]}"  # Показываем первые 5
 
         # Проверяем итоговую статистику
         expected = num_iterations * num_threads

@@ -292,9 +292,7 @@ class TestCleanupOrphanedProfilesDecomposition:
         current_time = time.time()
         max_age_seconds = 24 * 3600
 
-        result = _process_orphaned_profile(
-            item=profile_dir, current_time=current_time, max_age_seconds=max_age_seconds
-        )
+        result = _process_orphaned_profile(item=profile_dir, current_time=current_time, max_age_seconds=max_age_seconds)
 
         assert result is False
         assert profile_dir.exists()

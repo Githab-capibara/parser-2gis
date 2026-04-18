@@ -153,13 +153,9 @@ class ParsingFacade:
             self._config.chrome.disable_images = saved_config["chrome_disable_images"]
             self._config.chrome.silent_browser = saved_config["chrome_silent_browser"]
             self._config.parser.stop_on_first_404 = saved_config["parser_stop_on_first_404"]
-            self._config.parser.max_consecutive_empty_pages = saved_config[
-                "parser_max_consecutive_empty_pages"
-            ]
+            self._config.parser.max_consecutive_empty_pages = saved_config["parser_max_consecutive_empty_pages"]
             self._config.parser.max_retries = saved_config["parser_max_retries"]
-            self._config.parser.retry_on_network_errors = saved_config[
-                "parser_retry_on_network_errors"
-            ]
+            self._config.parser.retry_on_network_errors = saved_config["parser_retry_on_network_errors"]
             logger.debug("Конфигурация восстановлена после парсинга")
 
     def _cleanup_parser(self) -> None:

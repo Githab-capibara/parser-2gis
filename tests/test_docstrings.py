@@ -187,8 +187,7 @@ class TestDocstringsInParallelModule:
         methods = [
             name
             for name, method in inspect.getmembers(ParallelCityParser, predicate=inspect.isfunction)
-            if not name.startswith("_")
-            and method.__module__ == "parser_2gis.parallel.parallel_parser"
+            if not name.startswith("_") and method.__module__ == "parser_2gis.parallel.parallel_parser"
         ]
 
         for method_name in methods:
@@ -405,9 +404,7 @@ class TestModuleDocstrings:
 
         doc = inspect.getdoc(module)
         assert doc is not None, "Модуль parallel.parallel_parser должен иметь docstring"
-        assert len(doc.strip()) > 0, (
-            "Docstring модуля parallel.parallel_parser не должен быть пустым"
-        )
+        assert len(doc.strip()) > 0, "Docstring модуля parallel.parallel_parser не должен быть пустым"
 
     def test_validation_module_has_docstring(self) -> None:
         """
@@ -419,9 +416,7 @@ class TestModuleDocstrings:
 
         doc = inspect.getdoc(module)
         assert doc is not None, "Модуль validation.url_validator должен иметь docstring"
-        assert len(doc.strip()) > 0, (
-            "Docstring модуля validation.url_validator не должен быть пустым"
-        )
+        assert len(doc.strip()) > 0, "Docstring модуля validation.url_validator не должен быть пустым"
 
 
 # Запуск тестов через pytest

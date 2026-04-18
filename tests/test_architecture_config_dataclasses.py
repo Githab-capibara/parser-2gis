@@ -153,9 +153,7 @@ class TestParserRunConfig:
 
         config = Configuration()
 
-        parser_config = ParallelParserConfig(
-            cities=[], categories=[], output_dir=Path("/tmp"), config=config
-        )
+        parser_config = ParallelParserConfig(cities=[], categories=[], output_dir=Path("/tmp"), config=config)
 
         # Проверяем значения по умолчанию
         assert parser_config.max_workers == 10
@@ -167,9 +165,7 @@ class TestParserRunConfig:
         from parser_2gis.parallel.options import ParallelParserConfig
 
         config = Configuration()
-        parser_config = ParallelParserConfig(
-            cities=[], categories=[], output_dir=Path("/tmp"), config=config
-        )
+        parser_config = ParallelParserConfig(cities=[], categories=[], output_dir=Path("/tmp"), config=config)
 
         # Dataclass по умолчанию изменяемый (если не frozen)
         parser_config.max_workers = 15
@@ -250,9 +246,7 @@ class TestParserThreadConfig:
 
         config = Configuration()
 
-        thread_config = ParserThreadConfig(
-            cities=[], categories=[], output_dir="/tmp", config=config
-        )
+        thread_config = ParserThreadConfig(cities=[], categories=[], output_dir="/tmp", config=config)
 
         # Проверяем значения по умолчанию
         assert thread_config.max_workers == 3
@@ -305,12 +299,8 @@ class TestConfigDataclassUsage:
 
             # Проверяем что нет передачи config как dict
             # (это эвристическая проверка - ищем явные признаки dict config)
-            assert "config: dict" not in content, (
-                f"{filename} не должен использовать dict для config"
-            )
-            assert "config: Dict" not in content, (
-                f"{filename} не должен использовать Dict для config"
-            )
+            assert "config: dict" not in content, f"{filename} не должен использовать dict для config"
+            assert "config: Dict" not in content, f"{filename} не должен использовать Dict для config"
 
 
 # =============================================================================
@@ -375,9 +365,7 @@ class TestDataclassAttributes:
         from parser_2gis.parallel.options import ParallelParserConfig
 
         config = Configuration()
-        parser_config = ParallelParserConfig(
-            cities=[], categories=[], output_dir=Path("/tmp"), config=config
-        )
+        parser_config = ParallelParserConfig(cities=[], categories=[], output_dir=Path("/tmp"), config=config)
 
         # Dataclass автоматически генерирует __repr__
         repr_str = repr(parser_config)
@@ -426,9 +414,7 @@ class TestDataclassTypeHints:
         from parser_2gis.parallel.options import ParallelParserConfig
 
         config = Configuration()
-        parser_config = ParallelParserConfig(
-            cities=[], categories=[], output_dir=Path("/tmp"), config=config
-        )
+        parser_config = ParallelParserConfig(cities=[], categories=[], output_dir=Path("/tmp"), config=config)
 
         # Проверяем типы значений
         assert isinstance(parser_config.cities, list)
@@ -454,13 +440,9 @@ class TestDataclassComparison:
         config1 = Configuration()
         config2 = Configuration()
 
-        parser_config1 = ParallelParserConfig(
-            cities=[], categories=[], output_dir=Path("/tmp"), config=config1
-        )
+        parser_config1 = ParallelParserConfig(cities=[], categories=[], output_dir=Path("/tmp"), config=config1)
 
-        parser_config2 = ParallelParserConfig(
-            cities=[], categories=[], output_dir=Path("/tmp"), config=config2
-        )
+        parser_config2 = ParallelParserConfig(cities=[], categories=[], output_dir=Path("/tmp"), config=config2)
 
         # Dataclass сравниваются по полям
         # config1 и config2 могут быть разными но другие поля равны
@@ -477,13 +459,9 @@ class TestDataclassComparison:
 
         config = Configuration()
 
-        thread_config1 = ParserThreadConfig(
-            cities=[], categories=[], output_dir="/tmp", config=config
-        )
+        thread_config1 = ParserThreadConfig(cities=[], categories=[], output_dir="/tmp", config=config)
 
-        thread_config2 = ParserThreadConfig(
-            cities=[], categories=[], output_dir="/tmp", config=config
-        )
+        thread_config2 = ParserThreadConfig(cities=[], categories=[], output_dir="/tmp", config=config)
 
         # Одинаковые конфигурации должны быть равны
         assert thread_config1.cities == thread_config2.cities
@@ -530,9 +508,7 @@ class TestDataclassInFunctions:
         from parser_2gis.parallel.options import ParallelParserConfig
 
         config = Configuration()
-        parser_config = ParallelParserConfig(
-            cities=[], categories=[], output_dir=Path("/tmp"), config=config
-        )
+        parser_config = ParallelParserConfig(cities=[], categories=[], output_dir=Path("/tmp"), config=config)
 
         # Проверяем что dataclass может быть передан как аргумент
         def process_config(cfg: ParallelParserConfig) -> int:

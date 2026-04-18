@@ -307,11 +307,7 @@ class CacheManager:
         self._ttl = timedelta(hours=ttl_hours)
         # ID:067: Используем pathlib.Path.with_name() для безопасности имени файла
         # Это предотвращает path traversal атаки и обеспечивает корректную обработку имён
-        self._cache_file = (
-            cache_dir.with_name(cache_file_name)
-            if cache_dir.is_dir()
-            else cache_dir / cache_file_name
-        )
+        self._cache_file = cache_dir.with_name(cache_file_name) if cache_dir.is_dir() else cache_dir / cache_file_name
 
         # Инициализация компонентов
         self._pool: ConnectionPool | None = None
@@ -492,8 +488,7 @@ class CacheManager:
         computed_checksum = compute_crc32_cached(data_json_hash, data)
         if computed_checksum != checksum:
             app_logger.warning(
-                "CRC32 checksum не совпадает для URL %s (ожидался: %d, получен: %d). "
-                "Данные считаются повреждёнными.",
+                "CRC32 checksum не совпадает для URL %s (ожидался: %d, получен: %d). Данные считаются повреждёнными.",
                 url_hash,
                 checksum,
                 computed_checksum,
@@ -691,10 +686,7 @@ class CacheManager:
                     conn.execute("BEGIN DEFERRED")
                     break
                 except sqlite3.OperationalError as lock_error:
-                    if (
-                        "database is locked" in str(lock_error).lower()
-                        and attempt < self._MAX_RETRIES - 1
-                    ):
+                    if "database is locked" in str(lock_error).lower() and attempt < self._MAX_RETRIES - 1:
                         app_logger.debug(
                             "База данных заблокирована при BEGIN IMMEDIATE (попытка %d/%d): %s",
                             attempt + 1,
@@ -821,8 +813,7 @@ class CacheManager:
         except MemoryError:
             # ID:072: Graceful обработка MemoryError при сериализации
             app_logger.error(
-                "MemoryError при сериализации данных для кэша (URL: %s). "
-                "Данные слишком большие для обработки.",
+                "MemoryError при сериализации данных для кэша (URL: %s). Данные слишком большие для обработки.",
                 url,
             )
             raise
@@ -1378,9 +1369,7 @@ class CacheManager:
 
                         # Оптимизация: оцениваем размер без повторного stat()
                         remaining_records = total_records - total_deleted
-                        cache_size_mb = (
-                            remaining_records * avg_record_size if remaining_records > 0 else 0.0
-                        )
+                        cache_size_mb = remaining_records * avg_record_size if remaining_records > 0 else 0.0
                         if cache_size_mb <= MAX_CACHE_SIZE_MB:
                             break
 
@@ -1393,8 +1382,7 @@ class CacheManager:
 
                     if total_deleted > 0:
                         app_logger.info(
-                            "LRU eviction завершена: удалено %d записей за %d итераций, "
-                            "новый размер %.2f MB",
+                            "LRU eviction завершена: удалено %d записей за %d итераций, новый размер %.2f MB",
                             total_deleted,
                             eviction_iterations,
                             cache_size_mb,

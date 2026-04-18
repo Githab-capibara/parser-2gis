@@ -26,9 +26,7 @@ if TYPE_CHECKING:
 
 # Рекурсивный тип для валидации данных initialState
 # Может быть dict, list, str, int, float, bool или None
-type InitialStateData = (
-    "dict[str, InitialStateData] | list[InitialStateData] | str | int | float | bool | None"
-)
+type InitialStateData = "dict[str, InitialStateData] | list[InitialStateData] | str | int | float | bool | None"
 
 _ALLOWED_KEYS: set[str] = {
     "data",
@@ -290,9 +288,7 @@ def _safe_extract_initial_state(
         logger.error("initialState содержит небезопасные данные")
         return None
 
-    result: dict[str, InitialStateData] | list[InitialStateData] | str | int | float | None = (
-        raw_data
-    )
+    result: dict[str, InitialStateData] | list[InitialStateData] | str | int | float | None = raw_data
     for key in required_keys:
         if not isinstance(result, dict):
             logger.warning("Ожидался словарь для ключа %s", key)
@@ -407,9 +403,7 @@ class FirmParser(MainParser):
 
                 # Проверяем, что firm_data — словарь для type-safe доступа
                 if not isinstance(firm_data, dict):
-                    logger.warning(
-                        "Данные организации имеют неверный тип: %s", type(firm_data).__name__
-                    )
+                    logger.warning("Данные организации имеют неверный тип: %s", type(firm_data).__name__)
                     return
 
                 # D013: Санитизация строковых данных перед записью

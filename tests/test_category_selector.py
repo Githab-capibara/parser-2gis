@@ -107,9 +107,7 @@ class TestCategorySelectorBasic:
         assert len(category_screen._checkboxes) == 3
 
         # Проверяем уникальность original_index
-        checkbox_original_indices = [
-            getattr(cb, "original_index", None) for cb in category_screen._checkboxes
-        ]
+        checkbox_original_indices = [getattr(cb, "original_index", None) for cb in category_screen._checkboxes]
         assert len(checkbox_original_indices) == len(set(checkbox_original_indices)), (
             "Обнаружены дубликаты original_index!"
         )
@@ -175,12 +173,8 @@ class TestCategorySelectorGlobalConstant:
 
         # Проверить уникальность
         original_indices = [cat["original_index"] for cat in categories_copy]
-        assert len(original_indices) == len(set(original_indices)), (
-            "Обнаружены дубликаты original_index!"
-        )
-        assert len(original_indices) == 93, (
-            f"Ожидалось 93 категории, получено: {len(original_indices)}"
-        )
+        assert len(original_indices) == len(set(original_indices)), "Обнаружены дубликаты original_index!"
+        assert len(original_indices) == 93, f"Ожидалось 93 категории, получено: {len(original_indices)}"
 
         # Проверить, что оригинальная константа не изменилась
         for cat in CATEGORIES_93:
@@ -211,9 +205,7 @@ class TestCategorySelectorGlobalConstant:
         for idx in filtered_indices:
             assert 0 <= idx < 93, f"Неверный original_index: {idx}"
 
-    @pytest.mark.parametrize(
-        "query", ["а", "о", "р", "к"], ids=["letter_a", "letter_o", "letter_r", "letter_k"]
-    )
+    @pytest.mark.parametrize("query", ["а", "о", "р", "к"], ids=["letter_a", "letter_o", "letter_r", "letter_k"])
     def test_multiple_filters_no_duplicate_ids(self, query) -> None:
         """
         Проверяет отсутствие дубликатов ID при множественных фильтрациях.
@@ -248,9 +240,7 @@ class TestCategorySelectorGlobalConstant:
         checkbox_ids = [f"category-{cat['original_index']}" for cat in categories]
 
         # Проверить уникальность ID
-        assert len(checkbox_ids) == len(set(checkbox_ids)), (
-            f"Обнаружены дубликаты ID checkbox: {checkbox_ids}"
-        )
+        assert len(checkbox_ids) == len(set(checkbox_ids)), f"Обнаружены дубликаты ID checkbox: {checkbox_ids}"
 
         # Проверить формат ID
         for checkbox_id in checkbox_ids:
@@ -272,9 +262,7 @@ class TestCategorySelectorGlobalConstant:
 
         # Проверить уникальность original_index
         original_indices = [cat["original_index"] for cat in categories]
-        assert len(original_indices) == len(set(original_indices)), (
-            "Обнаружены дубликаты original_index!"
-        )
+        assert len(original_indices) == len(set(original_indices)), "Обнаружены дубликаты original_index!"
 
         # Проверить диапазон original_index
         assert min(original_indices) == 0, "Минимальный original_index должен быть 0"
@@ -408,9 +396,7 @@ class TestCategorySelectorDuplicatePrevention:
         self.screen._populate_categories()
 
         # Get the original_index values after first population
-        first_original_indices = [
-            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
-        ]
+        first_original_indices = [getattr(cb, "original_index", None) for cb in self.screen._checkboxes]
 
         # Reset mock call counts
         self.mock_container.remove_children.reset_mock()
@@ -426,9 +412,7 @@ class TestCategorySelectorDuplicatePrevention:
         self.screen._populate_categories()
 
         # Get the original_index values after second population
-        second_original_indices = [
-            getattr(cb, "original_index", None) for cb in self.screen._checkboxes
-        ]
+        second_original_indices = [getattr(cb, "original_index", None) for cb in self.screen._checkboxes]
 
         # Verify that remove_children was called
         self.mock_container.remove_children.assert_called()

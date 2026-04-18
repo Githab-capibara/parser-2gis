@@ -86,9 +86,7 @@ class TestNavigateTimeoutHandling:
         browser.add_blocked_requests.return_value = None
         return browser
 
-    def test_navigate_timeout_retry_logic(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_navigate_timeout_retry_logic(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест retry logic при TimeoutError.
 
         Проверяет:
@@ -125,9 +123,7 @@ class TestNavigateTimeoutHandling:
             # Проверяем что результат False (навигация не удалась)
             assert result is False
 
-    def test_navigate_timeout_success_after_retry(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_navigate_timeout_success_after_retry(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест успешной навигации после retry.
 
         Проверяет:
@@ -189,9 +185,7 @@ class TestNavigateTimeoutHandling:
             # Проверяем что результат False
             assert result is False
 
-    def test_navigate_timeout_exhaust_all_retries(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_navigate_timeout_exhaust_all_retries(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест исчерпания всех попыток retry.
 
         Проверяет:
@@ -218,9 +212,7 @@ class TestNavigateTimeoutHandling:
             # Проверяем что результат False
             assert result is False
 
-    def test_navigate_timeout_exponential_backoff(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_navigate_timeout_exponential_backoff(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест экспоненциальной задержки при retry.
 
         Проверяет:
@@ -249,9 +241,7 @@ class TestNavigateTimeoutHandling:
                 for i in range(1, len(delays)):
                     assert delays[i] > delays[i - 1]
 
-    def test_navigate_timeout_logging(
-        self, mock_chrome_options, mock_parser_options, mock_browser, caplog
-    ) -> None:
+    def test_navigate_timeout_logging(self, mock_chrome_options, mock_parser_options, mock_browser, caplog) -> None:
         """Тест логирования при TimeoutError.
 
         Проверяет:
@@ -274,14 +264,9 @@ class TestNavigateTimeoutHandling:
             parser._navigate_to_search("https://2gis.ru/moscow/search/test")
 
             # Проверяем что TimeoutError был залогирован
-            assert any(
-                "Таймаут" in record.message or "Timeout" in record.message
-                for record in caplog.records
-            )
+            assert any("Таймаут" in record.message or "Timeout" in record.message for record in caplog.records)
 
-    def test_navigate_network_error_with_retry(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_navigate_network_error_with_retry(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест retry для сетевых ошибок.
 
         Проверяет:
@@ -309,9 +294,7 @@ class TestNavigateTimeoutHandling:
             # Проверяем что результат False
             assert result is False
 
-    def test_navigate_non_network_error_no_retry(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_navigate_non_network_error_no_retry(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест отсутствия retry для не-сетевых ошибок.
 
         Проверяет:
@@ -339,9 +322,7 @@ class TestNavigateTimeoutHandling:
             # Проверяем что результат False
             assert result is False
 
-    def test_get_links_timeout_handling(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_get_links_timeout_handling(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест обработки TimeoutError в _get_links.
 
         Проверяет:
@@ -363,9 +344,7 @@ class TestNavigateTimeoutHandling:
         # Проверяем что результат None
         assert result is None
 
-    def test_wait_requests_timeout_handling(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_wait_requests_timeout_handling(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест обработки таймаута в _wait_requests_finished.
 
         Проверяет:

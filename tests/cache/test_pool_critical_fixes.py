@@ -107,9 +107,7 @@ class TestCachePoolNoneHandling:
         assert conn is not None, "conn должен быть инициализирован"
         assert isinstance(conn, sqlite3.Connection)
 
-    def test_conn_initialized_after_create_connection(
-        self, connection_pool: ConnectionPool
-    ) -> None:
+    def test_conn_initialized_after_create_connection(self, connection_pool: ConnectionPool) -> None:
         """Тест 4: conn инициализируется после _create_connection().
 
         Проверяет:
@@ -286,6 +284,5 @@ class TestCachePoolConnectionCleanupOnError:
 
             # Проверяем логирование
             assert any(
-                "Соединение" in record.message or "closed" in record.message.lower()
-                for record in caplog.records
+                "Соединение" in record.message or "closed" in record.message.lower() for record in caplog.records
             )

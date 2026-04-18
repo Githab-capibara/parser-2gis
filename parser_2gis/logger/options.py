@@ -32,9 +32,7 @@ class LogOptions(BaseModel):
     cli_format: str = "%(asctime)s.%(msecs)03d | %(levelname)-8s | %(name)s | %(message)s"
     gui_datefmt: str = "%H:%M:%S"
     cli_datefmt: str = "%d/%m/%Y %H:%M:%S"
-    file_format: str = (
-        "%(asctime)s | %(levelname)s | %(name)s | %(funcName)s:%(lineno)d | %(message)s"
-    )
+    file_format: str = "%(asctime)s | %(levelname)s | %(name)s | %(funcName)s:%(lineno)d | %(message)s"
     _file_datefmt: str = "%Y-%m-%d %H:%M:%S"
     level: str = "DEBUG"
     use_colors: bool | None = None  # None = автоматически

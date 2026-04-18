@@ -89,9 +89,7 @@ class TestVisitedLinksMemoryLimit:
         browser.add_blocked_requests.return_value = None
         return browser
 
-    def test_visited_links_ordered_dict_limit(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_visited_links_ordered_dict_limit(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест ограничения размера OrderedDict для visited_links.
 
         Проверяет:
@@ -119,9 +117,7 @@ class TestVisitedLinksMemoryLimit:
         # Проверяем что размер не превысил лимит
         assert len(visited_links) <= max_size
 
-    def test_visited_links_memory_optimization(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_visited_links_memory_optimization(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест оптимизации памяти visited_links.
 
         Проверяет:
@@ -148,9 +144,7 @@ class TestVisitedLinksMemoryLimit:
         # Проверяем что размер контролируется
         assert len(visited_links) <= max_size
 
-    def test_visited_links_thread_safety(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_visited_links_thread_safety(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест потокобезопасности visited_links.
 
         Проверяет:
@@ -273,9 +267,7 @@ class TestNavigateTimeoutHandling:
         browser.add_blocked_requests.return_value = None
         return browser
 
-    def test_navigate_timeout_handling(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_navigate_timeout_handling(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест обработки TimeoutError в _navigate_to_search.
 
         Проверяет:
@@ -304,9 +296,7 @@ class TestNavigateTimeoutHandling:
             # Проверяем что результат False (навигация не удалась)
             assert result is False
 
-    def test_navigate_success_after_retry(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_navigate_success_after_retry(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест успешной навигации после retry.
 
         Проверяет:
@@ -335,9 +325,7 @@ class TestNavigateTimeoutHandling:
             # Проверяем что результат True
             assert result is True
 
-    def test_navigate_network_error_handling(
-        self, mock_chrome_options, mock_parser_options, mock_browser
-    ) -> None:
+    def test_navigate_network_error_handling(self, mock_chrome_options, mock_parser_options, mock_browser) -> None:
         """Тест обработки ошибок сети в навигации.
 
         Проверяет:

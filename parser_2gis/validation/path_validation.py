@@ -126,10 +126,7 @@ class PathSafetyValidator:
                     "Path traversal атака обнаружена: путь содержит запрещённый символ '%s'",
                     forbidden_char,
                 )
-                msg = (
-                    f"Путь содержит запрещённый символ: {forbidden_char!r}. "
-                    "Path traversal атака обнаружена."
-                )
+                msg = f"Путь содержит запрещённый символ: {forbidden_char!r}. Path traversal атака обнаружена."
                 raise PathTraversalError(msg)
 
         # Разрешаем путь через realpath для предотвращения symlink атак
@@ -163,9 +160,7 @@ class PathSafetyValidator:
 
         # Проверка длины пути
         if len(path) > self._MAX_PATH_LENGTH:
-            msg = (
-                f"{path_name} превышает максимальную длину ({len(path)} > {self._MAX_PATH_LENGTH})"
-            )
+            msg = f"{path_name} превышает максимальную длину ({len(path)} > {self._MAX_PATH_LENGTH})"
             raise ValueError(msg)
 
         # Разрешаем путь через realpath для предотвращения symlink атак
@@ -176,10 +171,7 @@ class PathSafetyValidator:
             raise OSError(msg) from fs_error
 
         # Проверка что путь находится в разрешённой директории
-        is_allowed = any(
-            str(resolved_path).startswith(str(allowed_dir))
-            for allowed_dir in self._allowed_base_dirs
-        )
+        is_allowed = any(str(resolved_path).startswith(str(allowed_dir)) for allowed_dir in self._allowed_base_dirs)
 
         if not is_allowed:
             # Разрешаем запись в текущую рабочую директорию и её поддиректории

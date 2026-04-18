@@ -6,9 +6,7 @@ from pathlib import Path
 from typing import Any
 
 
-def create_temp_csv(
-    tmp_path: Path, headers: list[str], rows: list[list[str]], suffix: str = ".csv"
-) -> Path:
+def create_temp_csv(tmp_path: Path, headers: list[str], rows: list[list[str]], suffix: str = ".csv") -> Path:
     """Создаёт временный CSV файл и возвращает путь.
 
     Args:

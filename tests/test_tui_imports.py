@@ -111,18 +111,14 @@ class TestRelativeImportErrors:
         import os
         import re
 
-        screens_dir = os.path.join(
-            os.path.dirname(__file__), "..", "parser_2gis", "tui_textual", "screens"
-        )
+        screens_dir = os.path.join(os.path.dirname(__file__), "..", "parser_2gis", "tui_textual", "screens")
         screens_dir = os.path.abspath(screens_dir)
 
         # Паттерн для поиска некорректных импортов
         # from ..paths, from ..cache, from ..config и т.д.
         # Это неправильно, потому что screens находится на 2 уровня вложенности
         # от parser_2gis, а не на 1
-        invalid_pattern = re.compile(
-            r"^from \.\. (paths|cache|config|data|parallel_parser)\s+import"
-        )
+        invalid_pattern = re.compile(r"^from \.\. (paths|cache|config|data|parallel_parser)\s+import")
 
         errors = []
         for filename in os.listdir(screens_dir):
@@ -138,9 +134,7 @@ class TestRelativeImportErrors:
                 errors.append(f"Файл {filename} содержит некорректные импорты: {matches}")
 
         if errors:
-            pytest.fail(
-                "Обнаружены некорректные относительные импорты в TUI экранах:\n" + "\n".join(errors)
-            )
+            pytest.fail("Обнаружены некорректные относительные импорты в TUI экранах:\n" + "\n".join(errors))
 
     def test_cache_viewer_screen_imports_correctly(self) -> None:
         """

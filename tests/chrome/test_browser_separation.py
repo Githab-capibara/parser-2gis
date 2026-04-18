@@ -46,9 +46,7 @@ class TestBrowserPathResolver:
         options.binary_path = None
         return options
 
-    def test_browser_path_resolver_with_explicit_path(
-        self, path_resolver: BrowserPathResolver
-    ) -> None:
+    def test_browser_path_resolver_with_explicit_path(self, path_resolver: BrowserPathResolver) -> None:
         """Тест разрешения пути с явным указанием пути к браузеру.
 
         Проверяет:
@@ -58,15 +56,14 @@ class TestBrowserPathResolver:
         mock_options = MagicMock()
         mock_options.binary_path = "/usr/bin/google-chrome"
 
-        with patch("os.path.isabs", return_value=True):
-            with patch("os.path.exists", return_value=True):
-                with patch("os.path.isfile", return_value=True):
-                    with patch("os.access", return_value=True):
-                        with patch("os.path.islink", return_value=False):
-                            with patch("os.path.realpath", return_value="/usr/bin/google-chrome"):
-                                result = path_resolver.resolve_path(mock_options)
+        with patch("os.path.isabs", return_value=True), patch("os.path.exists", return_value=True):
+            with patch("os.path.isfile", return_value=True):
+                with patch("os.access", return_value=True):
+                    with patch("os.path.islink", return_value=False):
+                        with patch("os.path.realpath", return_value="/usr/bin/google-chrome"):
+                            result = path_resolver.resolve_path(mock_options)
 
-                                assert result == "/usr/bin/google-chrome"
+                            assert result == "/usr/bin/google-chrome"
 
     def test_browser_path_resolver_auto_detect(self, path_resolver: BrowserPathResolver) -> None:
         """Тест автоматического обнаружения пути к браузеру.
@@ -88,11 +85,11 @@ class TestBrowserPathResolver:
             patch("os.path.isfile", return_value=True),
             patch("os.access", return_value=True),
             patch("os.path.islink", return_value=False),
+            patch("os.path.realpath", return_value="/usr/bin/google-chrome"),
         ):
-            with patch("os.path.realpath", return_value="/usr/bin/google-chrome"):
-                result = path_resolver.resolve_path(mock_options)
+            result = path_resolver.resolve_path(mock_options)
 
-                assert result == "/usr/bin/google-chrome"
+            assert result == "/usr/bin/google-chrome"
 
     def test_browser_path_resolver_not_found(self, path_resolver: BrowserPathResolver) -> None:
         """Тест отсутствия пути к браузеру.
@@ -107,9 +104,7 @@ class TestBrowserPathResolver:
             with pytest.raises(ChromePathNotFound):
                 path_resolver.resolve_path(mock_options)
 
-    def test_browser_path_resolver_symlink_resolution(
-        self, path_resolver: BrowserPathResolver, caplog
-    ) -> None:
+    def test_browser_path_resolver_symlink_resolution(self, path_resolver: BrowserPathResolver, caplog) -> None:
         """Тест разрешения символических ссылок.
 
         Проверяет:
@@ -131,13 +126,9 @@ class TestBrowserPathResolver:
                     result = path_resolver.resolve_path(mock_options)
 
                     assert result == "/usr/bin/google-chrome"
-                    assert any(
-                        "символическую ссылку" in record.message for record in caplog.records
-                    )
+                    assert any("символическую ссылку" in record.message for record in caplog.records)
 
-    def test_browser_path_resolver_relative_path_error(
-        self, path_resolver: BrowserPathResolver
-    ) -> None:
+    def test_browser_path_resolver_relative_path_error(self, path_resolver: BrowserPathResolver) -> None:
         """Тест относительного пути.
 
         Проверяет:
@@ -158,9 +149,7 @@ class TestBrowserPathResolver:
             with pytest.raises(ValueError, match="абсолютным"):
                 path_resolver.resolve_path(mock_options)
 
-    def test_browser_path_resolver_not_exists_error(
-        self, path_resolver: BrowserPathResolver
-    ) -> None:
+    def test_browser_path_resolver_not_exists_error(self, path_resolver: BrowserPathResolver) -> None:
         """Тест несуществующего пути.
 
         Проверяет:
@@ -169,10 +158,9 @@ class TestBrowserPathResolver:
         mock_options = MagicMock()
         mock_options.binary_path = "/nonexistent/chrome"
 
-        with patch("os.path.isabs", return_value=True):
-            with patch("os.path.exists", return_value=False):
-                with pytest.raises(FileNotFoundError):
-                    path_resolver.resolve_path(mock_options)
+        with patch("os.path.isabs", return_value=True), patch("os.path.exists", return_value=False):
+            with pytest.raises(FileNotFoundError):
+                path_resolver.resolve_path(mock_options)
 
     def test_browser_path_resolver_not_file_error(self, path_resolver: BrowserPathResolver) -> None:
         """Тест пути к директории.
@@ -183,15 +171,12 @@ class TestBrowserPathResolver:
         mock_options = MagicMock()
         mock_options.binary_path = "/usr/bin"
 
-        with patch("os.path.isabs", return_value=True):
-            with patch("os.path.exists", return_value=True):
-                with patch("os.path.isfile", return_value=False):
-                    with pytest.raises(ValueError, match="файл"):
-                        path_resolver.resolve_path(mock_options)
+        with patch("os.path.isabs", return_value=True), patch("os.path.exists", return_value=True):
+            with patch("os.path.isfile", return_value=False):
+                with pytest.raises(ValueError, match="файл"):
+                    path_resolver.resolve_path(mock_options)
 
-    def test_browser_path_resolver_not_executable_error(
-        self, path_resolver: BrowserPathResolver
-    ) -> None:
+    def test_browser_path_resolver_not_executable_error(self, path_resolver: BrowserPathResolver) -> None:
         """Тест неисполняемого файла.
 
         Проверяет:
@@ -370,9 +355,7 @@ class TestProcessManager:
             call_args = mock_popen.call_args
             assert call_args.kwargs.get("stderr") != subprocess.DEVNULL
 
-    def test_process_manager_launch_process_exception(
-        self, process_manager: ProcessManager
-    ) -> None:
+    def test_process_manager_launch_process_exception(self, process_manager: ProcessManager) -> None:
         """Тест исключения при запуске процесса.
 
         Проверяет:
@@ -394,9 +377,7 @@ class TestProcessManager:
                 # Проверяем что профиль был очищен
                 mock_rmtree.assert_called_once()
 
-    def test_process_manager_terminate_graceful_success(
-        self, process_manager: ProcessManager
-    ) -> None:
+    def test_process_manager_terminate_graceful_success(self, process_manager: ProcessManager) -> None:
         """Тест корректного завершения процесса.
 
         Проверяет:
@@ -423,9 +404,7 @@ class TestProcessManager:
         assert "terminated" in status
         mock_proc.terminate.assert_called_once()
 
-    def test_process_manager_terminate_graceful_timeout(
-        self, process_manager: ProcessManager
-    ) -> None:
+    def test_process_manager_terminate_graceful_timeout(self, process_manager: ProcessManager) -> None:
         """Тест таймаута при корректном завершении.
 
         Проверяет:
@@ -453,9 +432,7 @@ class TestProcessManager:
         assert success is False
         assert status == "terminate_timeout"
 
-    def test_process_manager_terminate_forceful_success(
-        self, process_manager: ProcessManager
-    ) -> None:
+    def test_process_manager_terminate_forceful_success(self, process_manager: ProcessManager) -> None:
         """Тест принудительного завершения процесса.
 
         Проверяет:
@@ -557,17 +534,17 @@ class TestBrowserLifecycleManager:
         - Все компоненты вызываются корректно
         - Порт возвращается
         """
-        with patch.object(BrowserPathResolver, "resolve_path", return_value="/usr/bin/chrome"):
-            with patch.object(
-                ProfileManager, "create_profile", return_value=(MagicMock(), "/tmp/profile")
-            ):
-                with patch("parser_2gis.chrome.browser.free_port", return_value=9222):
-                    with patch.object(ProcessManager, "launch_process") as mock_launch:
-                        manager = BrowserLifecycleManager(mock_chrome_options)
-                        port = manager.init()
+        with (
+            patch.object(BrowserPathResolver, "resolve_path", return_value="/usr/bin/chrome"),
+            patch.object(ProfileManager, "create_profile", return_value=(MagicMock(), "/tmp/profile")),
+            patch("parser_2gis.chrome.browser.free_port", return_value=9222),
+        ):
+            with patch.object(ProcessManager, "launch_process") as mock_launch:
+                manager = BrowserLifecycleManager(mock_chrome_options)
+                port = manager.init()
 
-                        assert port == 9222
-                        mock_launch.assert_called_once()
+                assert port == 9222
+                mock_launch.assert_called_once()
 
     def test_browser_lifecycle_manager_init_exception(self, mock_chrome_options: MagicMock) -> None:
         """Тест исключения при инициализации.
@@ -576,21 +553,19 @@ class TestBrowserLifecycleManager:
         - Профиль очищается при ошибке ПОСЛЕ его создания
         - Исключение пробрасывается
         """
-        with patch.object(BrowserPathResolver, "resolve_path", return_value="/usr/bin/chrome"):
-            with patch.object(
-                ProfileManager, "create_profile", return_value=(MagicMock(), "/tmp/profile")
-            ):
-                with patch.object(
-                    ProcessManager, "launch_process", side_effect=FileNotFoundError("Mocked error")
-                ):
-                    with patch.object(ProfileManager, "cleanup_profile") as mock_cleanup:
-                        manager = BrowserLifecycleManager(mock_chrome_options)
+        with (
+            patch.object(BrowserPathResolver, "resolve_path", return_value="/usr/bin/chrome"),
+            patch.object(ProfileManager, "create_profile", return_value=(MagicMock(), "/tmp/profile")),
+            patch.object(ProcessManager, "launch_process", side_effect=FileNotFoundError("Mocked error")),
+            patch.object(ProfileManager, "cleanup_profile") as mock_cleanup,
+        ):
+            manager = BrowserLifecycleManager(mock_chrome_options)
 
-                        with pytest.raises(FileNotFoundError):
-                            manager.init()
+            with pytest.raises(FileNotFoundError):
+                manager.init()
 
-                        # Проверяем что профиль был очищен
-                        mock_cleanup.assert_called()
+            # Проверяем что профиль был очищен
+            mock_cleanup.assert_called()
 
     def test_browser_lifecycle_manager_close(self, mock_chrome_options: MagicMock) -> None:
         """Тест закрытия браузера.
@@ -620,9 +595,7 @@ class TestBrowserLifecycleManager:
             # Проверяем что профиль был очищен
             mock_cleanup.assert_called()
 
-    def test_browser_lifecycle_manager_close_idempotent(
-        self, mock_chrome_options: MagicMock
-    ) -> None:
+    def test_browser_lifecycle_manager_close_idempotent(self, mock_chrome_options: MagicMock) -> None:
         """Тест идемпотентности close.
 
         Проверяет:
@@ -639,9 +612,7 @@ class TestBrowserLifecycleManager:
                 mock_terminate.assert_not_called()
                 mock_cleanup.assert_not_called()
 
-    def test_browser_lifecycle_manager_build_chrome_cmd(
-        self, mock_chrome_options: MagicMock
-    ) -> None:
+    def test_browser_lifecycle_manager_build_chrome_cmd(self, mock_chrome_options: MagicMock) -> None:
         """Тест построения команды Chrome.
 
         Проверяет:
@@ -663,9 +634,7 @@ class TestBrowserLifecycleManager:
         assert "--no-sandbox" in cmd
         assert "--max-old-space-size=2048" in cmd
 
-    def test_browser_lifecycle_manager_build_chrome_cmd_headless(
-        self, mock_chrome_options: MagicMock
-    ) -> None:
+    def test_browser_lifecycle_manager_build_chrome_cmd_headless(self, mock_chrome_options: MagicMock) -> None:
         """Тест построения команды Chrome в headless режиме.
 
         Проверяет:
@@ -685,9 +654,7 @@ class TestBrowserLifecycleManager:
         assert "--headless" in cmd
         assert "--disable-gpu" in cmd
 
-    def test_browser_lifecycle_manager_build_chrome_cmd_disable_images(
-        self, mock_chrome_options: MagicMock
-    ) -> None:
+    def test_browser_lifecycle_manager_build_chrome_cmd_disable_images(self, mock_chrome_options: MagicMock) -> None:
         """Тест построения команды Chrome с отключенными изображениями.
 
         Проверяет:
@@ -706,9 +673,7 @@ class TestBrowserLifecycleManager:
 
         assert "--blink-settings=imagesEnabled=false" in cmd
 
-    def test_browser_lifecycle_manager_weakref_finalizer(
-        self, mock_chrome_options: MagicMock
-    ) -> None:
+    def test_browser_lifecycle_manager_weakref_finalizer(self, mock_chrome_options: MagicMock) -> None:
         """Тест weakref.finalizer для гарантированной очистки.
 
         Проверяет:
@@ -719,9 +684,7 @@ class TestBrowserLifecycleManager:
         assert hasattr(manager, "_finalizer")
         assert manager._finalizer is not None
 
-    def test_browser_lifecycle_manager_cleanup_from_finalizer(
-        self, mock_chrome_options: MagicMock
-    ) -> None:
+    def test_browser_lifecycle_manager_cleanup_from_finalizer(self, mock_chrome_options: MagicMock) -> None:
         """Тест очистки из finalizer.
 
         Проверяет:

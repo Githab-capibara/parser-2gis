@@ -90,9 +90,7 @@ class ParserRegistry:
         """
         with self._lock:
             self._registry.pop(parser_name, None)
-            self._patterns = [
-                (cls, pat) for cls, pat in self._patterns if cls.__name__ != parser_name
-            ]
+            self._patterns = [(cls, pat) for cls, pat in self._patterns if cls.__name__ != parser_name]
 
     def find_parser(self, url: str) -> type[BaseParser] | None:
         """Находит парсер по URL.

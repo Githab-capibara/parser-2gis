@@ -37,9 +37,7 @@ if TYPE_CHECKING:
 # =============================================================================
 
 # Попытки и таймауты
-MAX_RESPONSE_ATTEMPTS: int = (
-    3  # Максимальное количество попыток получить ответ (достаточно для временных сбоев сети)
-)
+MAX_RESPONSE_ATTEMPTS: int = 3  # Максимальное количество попыток получить ответ (достаточно для временных сбоев сети)
 # Таймаут навигации можно переопределить через переменную окружения PARSER_NAVIGATION_TIMEOUT
 NAVIGATION_TIMEOUT: int = int(
     os.environ.get("PARSER_NAVIGATION_TIMEOUT", "300"),
@@ -489,14 +487,10 @@ class MainPageParser(BaseParser):
             True если навигация успешна, False иначе.
 
         """
-        if (
-            retry_attempt < self._parser_options.max_retries
-            and self._parser_options.retry_on_network_errors
-        ):
+        if retry_attempt < self._parser_options.max_retries and self._parser_options.retry_on_network_errors:
             delay = self._calculate_retry_delay(retry_attempt)
             logger.warning(
-                "[%s] Таймаут при навигации (попытка %d/%d): %s. "
-                "Повторная попытка через %.1f сек...",
+                "[%s] Таймаут при навигации (попытка %d/%d): %s. Повторная попытка через %.1f сек...",
                 error_class.__name__,
                 retry_attempt + 1,
                 self._parser_options.max_retries,
@@ -615,10 +609,7 @@ class MainPageParser(BaseParser):
             True если навигация успешна, False иначе.
 
         """
-        if (
-            retry_attempt < self._parser_options.max_retries
-            and self._parser_options.retry_on_network_errors
-        ):
+        if retry_attempt < self._parser_options.max_retries and self._parser_options.retry_on_network_errors:
             delay = self._calculate_retry_delay(retry_attempt)
             logger.warning(
                 "[NavigationNetworkError] Ошибка сети при навигации (попытка %d/%d): %s. "
@@ -736,10 +727,7 @@ class MainPageParser(BaseParser):
             NotImplementedError: Метод не предназначен для прямого вызова.
 
         """
-        msg = (
-            "MainPageParser.parse() не предназначен для прямого вызова. "
-            "Используйте MainParser.parse() вместо этого."
-        )
+        msg = "MainPageParser.parse() не предназначен для прямого вызова. Используйте MainParser.parse() вместо этого."
         raise NotImplementedError(msg)
 
     def get_stats(self) -> ParserStats:

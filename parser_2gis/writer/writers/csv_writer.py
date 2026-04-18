@@ -327,8 +327,7 @@ class CSVWriter(FileWriter):
             except (OSError, csv.Error, RuntimeError) as e:
                 logger.error("Ошибка при удалении пустых колонок: %s", e)
                 logger.warning(
-                    "Файл %s может содержать пустые колонки. "
-                    "Рекомендуется проверить качество данных.",
+                    "Файл %s может содержать пустые колонки. Рекомендуется проверить качество данных.",
                     self._file_path,
                 )
 

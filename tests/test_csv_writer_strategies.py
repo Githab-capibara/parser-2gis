@@ -292,9 +292,7 @@ class TestCSVWriterWithStrategies:
         """Создаёт временный CSV файл."""
         return tmp_path / "test.csv"
 
-    def test_csv_writer_initializes_formatters(
-        self, mock_options: MagicMock, temp_csv_file: pathlib.Path
-    ) -> None:
+    def test_csv_writer_initializes_formatters(self, mock_options: MagicMock, temp_csv_file: pathlib.Path) -> None:
         """Тестирует инициализацию форматировщиков в CSVWriter."""
         writer = CSVWriter(file_path=str(temp_csv_file), options=mock_options)
 
@@ -308,9 +306,7 @@ class TestCSVWriterWithStrategies:
         assert isinstance(writer._type_formatter, TypeFormatter)
         assert isinstance(writer._contact_formatter, ContactFormatter)
 
-    def test_csv_writer_type_names_uses_formatter(
-        self, mock_options: MagicMock, temp_csv_file: pathlib.Path
-    ) -> None:
+    def test_csv_writer_type_names_uses_formatter(self, mock_options: MagicMock, temp_csv_file: pathlib.Path) -> None:
         """Тестирует что _type_names использует TypeFormatter."""
         writer = CSVWriter(file_path=str(temp_csv_file), options=mock_options)
 
@@ -319,9 +315,7 @@ class TestCSVWriterWithStrategies:
         assert type_names["parking"] == "Парковка"
         assert type_names["street"] == "Улица"
 
-    def test_csv_writer_sanitize_in_extract_raw(
-        self, mock_options: MagicMock, temp_csv_file: pathlib.Path
-    ) -> None:
+    def test_csv_writer_sanitize_in_extract_raw(self, mock_options: MagicMock, temp_csv_file: pathlib.Path) -> None:
         """Тестирует санитизацию в _extract_raw."""
         writer = CSVWriter(file_path=str(temp_csv_file), options=mock_options)
 

@@ -18,9 +18,7 @@ def assert_log_contains(caplog: pytest.LogCaptureFixture, *expected_substrings: 
         assert expected in log_text, f"Лог не содержит: '{expected}'"
 
 
-def assert_log_does_not_contain(
-    caplog: pytest.LogCaptureFixture, *forbidden_substrings: str
-) -> None:
+def assert_log_does_not_contain(caplog: pytest.LogCaptureFixture, *forbidden_substrings: str) -> None:
     """Проверяет что лог НЕ содержит указанные подстроки.
 
     Args:

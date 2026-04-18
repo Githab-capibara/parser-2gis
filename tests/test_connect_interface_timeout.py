@@ -69,9 +69,7 @@ class TestConnectInterfaceTimeout:
         # Общее время не должно превышать 30 секунд + небольшой запас
         assert elapsed_time <= 35.0, f"Таймаут превышен: {elapsed_time} сек"
 
-    def test_timeout_exceeded_returns_false(
-        self, mock_chrome_options: MagicMock, mock_response_patterns: list
-    ) -> None:
+    def test_timeout_exceeded_returns_false(self, mock_chrome_options: MagicMock, mock_response_patterns: list) -> None:
         """Тест что превышение таймаута возвращает False.
 
         Проверяет:
@@ -89,9 +87,7 @@ class TestConnectInterfaceTimeout:
         # Должно вернуть False при неудаче
         assert result is False
 
-    def test_timeout_check_in_loop(
-        self, mock_chrome_options: MagicMock, mock_response_patterns: list
-    ) -> None:
+    def test_timeout_check_in_loop(self, mock_chrome_options: MagicMock, mock_response_patterns: list) -> None:
         """Тест проверки таймаута в цикле попыток.
 
         Проверяет:

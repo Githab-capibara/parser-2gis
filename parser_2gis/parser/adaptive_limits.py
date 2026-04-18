@@ -128,8 +128,7 @@ class AdaptiveLimits:
         self._adaptive_limit = self.ADAPTIVE_EMPTY_LIMITS[self._city_size]
 
         logger.info(
-            "Определен размер города: %s (среднее записей: %.1f). "
-            "Адаптивный лимит пустых страниц: %d",
+            "Определен размер города: %s (среднее записей: %.1f). Адаптивный лимит пустых страниц: %d",
             self._city_size,
             avg_records,
             self._adaptive_limit,
@@ -154,9 +153,7 @@ class AdaptiveLimits:
         """
         if self._city_size:
             return self.ADAPTIVE_TIMEOUTS[self._city_size]
-        return (
-            self._base_limit * DEFAULT_TIMEOUT_MULTIPLIER
-        )  # Fallback до определения размера города
+        return self._base_limit * DEFAULT_TIMEOUT_MULTIPLIER  # Fallback до определения размера города
 
     def get_city_size(self) -> str | None:
         """Возвращает определенный размер города.

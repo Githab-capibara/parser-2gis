@@ -132,9 +132,7 @@ def categories_data() -> list[dict]:
 class TestStartParsingNoCities:
     """Тесты для проверки запуска парсинга без выбранных городов."""
 
-    def test_start_parsing_with_empty_cities_list(
-        self, mock_tui_app: MagicMock, categories_data: list[dict]
-    ) -> None:
+    def test_start_parsing_with_empty_cities_list(self, mock_tui_app: MagicMock, categories_data: list[dict]) -> None:
         """Тест проверяет что парсинг НЕ запускается при пустом списке городов.
 
         Сценарий:
@@ -156,16 +154,12 @@ class TestStartParsingNoCities:
         TUIApp.start_parsing(mock_tui_app, empty_cities, categories_data)
 
         # Проверяем что было вызвано уведомление об ошибке
-        mock_tui_app.notify_user.assert_called_once_with(
-            "Ошибка: не выбраны города для парсинга!", level="error"
-        )
+        mock_tui_app.notify_user.assert_called_once_with("Ошибка: не выбраны города для парсинга!", level="error")
 
         # Проверяем что экран парсинга НЕ был открыт
         mock_tui_app.push_screen.assert_not_called()
 
-    def test_start_parsing_with_none_cities(
-        self, mock_tui_app: MagicMock, categories_data: list[dict]
-    ) -> None:
+    def test_start_parsing_with_none_cities(self, mock_tui_app: MagicMock, categories_data: list[dict]) -> None:
         """Тест проверяет что парсинг НЕ запускается при None вместо городов.
 
         Сценарий:
@@ -184,9 +178,7 @@ class TestStartParsingNoCities:
         TUIApp.start_parsing(mock_tui_app, None, categories_data)  # type: ignore
 
         # Проверяем что было вызвано уведомление об ошибке
-        mock_tui_app.notify_user.assert_called_once_with(
-            "Ошибка: не выбраны города для парсинга!", level="error"
-        )
+        mock_tui_app.notify_user.assert_called_once_with("Ошибка: не выбраны города для парсинга!", level="error")
 
         # Проверяем что экран парсинга НЕ был открыт
         mock_tui_app.push_screen.assert_not_called()
@@ -200,9 +192,7 @@ class TestStartParsingNoCities:
 class TestStartParsingNoCategories:
     """Тесты для проверки запуска парсинга без выбранных категорий."""
 
-    def test_start_parsing_with_empty_categories_list(
-        self, mock_tui_app: MagicMock, cities_data: list[dict]
-    ) -> None:
+    def test_start_parsing_with_empty_categories_list(self, mock_tui_app: MagicMock, cities_data: list[dict]) -> None:
         """Тест проверяет что парсинг НЕ запускается при пустом списке категорий.
 
         Сценарий:
@@ -224,16 +214,12 @@ class TestStartParsingNoCategories:
         TUIApp.start_parsing(mock_tui_app, cities_data, empty_categories)
 
         # Проверяем что было вызвано уведомление об ошибке
-        mock_tui_app.notify_user.assert_called_once_with(
-            "Ошибка: не выбраны категории для парсинга!", level="error"
-        )
+        mock_tui_app.notify_user.assert_called_once_with("Ошибка: не выбраны категории для парсинга!", level="error")
 
         # Проверяем что экран парсинга НЕ был открыт
         mock_tui_app.push_screen.assert_not_called()
 
-    def test_start_parsing_with_none_categories(
-        self, mock_tui_app: MagicMock, cities_data: list[dict]
-    ) -> None:
+    def test_start_parsing_with_none_categories(self, mock_tui_app: MagicMock, cities_data: list[dict]) -> None:
         """Тест проверяет что парсинг НЕ запускается при None вместо категорий.
 
         Сценарий:
@@ -252,9 +238,7 @@ class TestStartParsingNoCategories:
         TUIApp.start_parsing(mock_tui_app, cities_data, None)  # type: ignore
 
         # Проверяем что было вызвано уведомление об ошибке
-        mock_tui_app.notify_user.assert_called_once_with(
-            "Ошибка: не выбраны категории для парсинга!", level="error"
-        )
+        mock_tui_app.notify_user.assert_called_once_with("Ошибка: не выбраны категории для парсинга!", level="error")
 
         # Проверяем что экран парсинга НЕ был открыт
         mock_tui_app.push_screen.assert_not_called()
@@ -294,11 +278,7 @@ class TestStartParsingValid:
         mock_tui_app.push_screen.assert_not_called()
 
         # Проверяем что НЕ было ошибок
-        error_calls = [
-            call
-            for call in mock_tui_app.notify_user.call_args_list
-            if call[1].get("level") == "error"
-        ]
+        error_calls = [call for call in mock_tui_app.notify_user.call_args_list if call[1].get("level") == "error"]
         assert len(error_calls) == 0, "Не должно быть уведомлений об ошибках при валидных данных"
 
     @pytest.mark.parametrize(
@@ -331,8 +311,7 @@ class TestStartParsingValid:
         """
         # Создадим динамические данные
         cities = [
-            {"name": f"Город {i}", "url": f"https://2gis.ru/city{i}", "code": f"city{i}"}
-            for i in range(cities_count)
+            {"name": f"Город {i}", "url": f"https://2gis.ru/city{i}", "code": f"city{i}"} for i in range(cities_count)
         ]
         categories = [{"name": f"Категория {i}", "id": i} for i in range(categories_count)]
 
@@ -741,9 +720,7 @@ class TestStatePersistenceAcrossScreens:
 class TestStateManagementIntegration:
     """Интеграционные тесты для проверки полного цикла управления состоянием."""
 
-    def test_full_lifecycle_no_cities_no_parsing(
-        self, mock_tui_app: MagicMock, categories_data: list[dict]
-    ) -> None:
+    def test_full_lifecycle_no_cities_no_parsing(self, mock_tui_app: MagicMock, categories_data: list[dict]) -> None:
         """Тест проверяет полный жизненный цикл: нет городов -> нет парсинга.
 
         Сценарий:
@@ -768,14 +745,10 @@ class TestStateManagementIntegration:
         TUIApp.start_parsing(mock_tui_app, [], categories_data)
 
         # Проверяем результат
-        mock_tui_app.notify_user.assert_called_once_with(
-            "Ошибка: не выбраны города для парсинга!", level="error"
-        )
+        mock_tui_app.notify_user.assert_called_once_with("Ошибка: не выбраны города для парсинга!", level="error")
         mock_tui_app.push_screen.assert_not_called()
 
-    def test_full_lifecycle_no_categories_no_parsing(
-        self, mock_tui_app: MagicMock, cities_data: list[dict]
-    ) -> None:
+    def test_full_lifecycle_no_categories_no_parsing(self, mock_tui_app: MagicMock, cities_data: list[dict]) -> None:
         """Тест проверяет полный жизненный цикл: нет категорий -> нет парсинга.
 
         Сценарий:
@@ -800,9 +773,7 @@ class TestStateManagementIntegration:
         TUIApp.start_parsing(mock_tui_app, cities_data, [])
 
         # Проверяем результат
-        mock_tui_app.notify_user.assert_called_once_with(
-            "Ошибка: не выбраны категории для парсинга!", level="error"
-        )
+        mock_tui_app.notify_user.assert_called_once_with("Ошибка: не выбраны категории для парсинга!", level="error")
         mock_tui_app.push_screen.assert_not_called()
 
     def test_full_lifecycle_valid_data_starts_parsing(
@@ -834,11 +805,7 @@ class TestStateManagementIntegration:
 
         # Проверяем что push_screen НЕ вызывался (экран уже открыт)
         mock_tui_app.push_screen.assert_not_called()
-        error_calls = [
-            call
-            for call in mock_tui_app.notify_user.call_args_list
-            if call[1].get("level") == "error"
-        ]
+        error_calls = [call for call in mock_tui_app.notify_user.call_args_list if call[1].get("level") == "error"]
         assert len(error_calls) == 0
 
 
@@ -850,9 +817,7 @@ class TestStateManagementIntegration:
 class TestStateManagementEdgeCases:
     """Тесты для проверки граничных условий управления состоянием."""
 
-    def test_empty_string_in_cities_list(
-        self, mock_tui_app: MagicMock, categories_data: list[dict]
-    ) -> None:
+    def test_empty_string_in_cities_list(self, mock_tui_app: MagicMock, categories_data: list[dict]) -> None:
         """Тест проверяет обработку пустой строки в списке городов.
 
         Сценарий:
@@ -875,9 +840,7 @@ class TestStateManagementEdgeCases:
         # Проверяем что push_screen НЕ вызывался (экран уже открыт)
         mock_tui_app.push_screen.assert_not_called()
 
-    def test_whitespace_only_cities_list(
-        self, mock_tui_app: MagicMock, categories_data: list[dict]
-    ) -> None:
+    def test_whitespace_only_cities_list(self, mock_tui_app: MagicMock, categories_data: list[dict]) -> None:
         """Тест проверяет обработку списка городов только с пробелами.
 
         Сценарий:
@@ -900,9 +863,7 @@ class TestStateManagementEdgeCases:
         # Проверяем что push_screen НЕ вызывался (экран уже открыт)
         mock_tui_app.push_screen.assert_not_called()
 
-    def test_duplicate_cities_in_list(
-        self, mock_tui_app: MagicMock, categories_data: list[dict]
-    ) -> None:
+    def test_duplicate_cities_in_list(self, mock_tui_app: MagicMock, categories_data: list[dict]) -> None:
         """Тест проверяет обработку дубликатов городов в списке.
 
         Сценарий:

@@ -116,10 +116,7 @@ class BaseContextualException(Exception):
         # Убираем trailing '.' чтобы избежать двойных точек
         cleaned_message = message.rstrip(".")
         full_message = (
-            f"{cleaned_message}. "
-            f"Функция: {self.function_name}, "
-            f"Строка: {self.line_number}, "
-            f"Файл: {self.filename}"
+            f"{cleaned_message}. Функция: {self.function_name}, Строка: {self.line_number}, Файл: {self.filename}"
         )
         super().__init__(full_message, **kwargs)
 

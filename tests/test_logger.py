@@ -153,9 +153,7 @@ class TestLogOptions:
 
     def test_log_options_custom(self) -> None:
         """Проверка кастомных значений."""
-        options = LogOptions(
-            level="INFO", cli_format="[CLI] %(message)s", gui_format="[GUI] %(message)s"
-        )
+        options = LogOptions(level="INFO", cli_format="[CLI] %(message)s", gui_format="[GUI] %(message)s")
         assert options.level == "INFO"
         assert options.cli_format == "[CLI] %(message)s"
         assert options.gui_format == "[GUI] %(message)s"
@@ -194,6 +192,4 @@ class TestLoggerMessageFormatting:
             logger.exception("Exception occurred")
         assert any("Exception occurred" in record.message for record in caplog.records)
         # Traceback проверяется в exc_text
-        assert any(
-            record.exc_text and "Test exception" in record.exc_text for record in caplog.records
-        )
+        assert any(record.exc_text and "Test exception" in record.exc_text for record in caplog.records)

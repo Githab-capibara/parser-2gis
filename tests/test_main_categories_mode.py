@@ -20,9 +20,7 @@ class TestCategoriesModeValidation:
 
     def test_categories_mode_requires_cities(self) -> None:
         """--categories-mode без --cities должен вызывать ошибку."""
-        with patch(
-            "sys.argv", ["parser-2gis", "--categories-mode", "-o", "output.csv", "-f", "csv"]
-        ):
+        with patch("sys.argv", ["parser-2gis", "--categories-mode", "-o", "output.csv", "-f", "csv"]):
             with pytest.raises(SystemExit) as exc_info:
                 parse_arguments()
             assert exc_info.value.code == 2  # Код ошибки argparse
@@ -33,9 +31,7 @@ class TestCategoriesModeValidation:
         data_dir = tmp_path / "data"
         data_dir.mkdir(exist_ok=True)
         cities_file = data_dir / "cities.json"
-        cities_file.write_text(
-            '[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]'
-        )
+        cities_file.write_text('[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]')
 
         output_file = tmp_path / "output.csv"
 
@@ -65,9 +61,7 @@ class TestCategoriesModeValidation:
         data_dir = tmp_path / "data"
         data_dir.mkdir(exist_ok=True)
         cities_file = data_dir / "cities.json"
-        cities_file.write_text(
-            '[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]'
-        )
+        cities_file.write_text('[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]')
 
         output_file = tmp_path / "output.csv"
 
@@ -103,9 +97,7 @@ class TestCategoriesModeValidation:
         data_dir = tmp_path / "data"
         data_dir.mkdir(exist_ok=True)
         cities_file = data_dir / "cities.json"
-        cities_file.write_text(
-            '[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]'
-        )
+        cities_file.write_text('[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]')
 
         output_file = tmp_path / "output.csv"
 
@@ -140,9 +132,7 @@ class TestParallelWorkersValidation:
         data_dir = tmp_path / "data"
         data_dir.mkdir(exist_ok=True)
         cities_file = data_dir / "cities.json"
-        cities_file.write_text(
-            '[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]'
-        )
+        cities_file.write_text('[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]')
 
         output_dir = tmp_path / "output"
         output_dir.mkdir(exist_ok=True)
@@ -176,9 +166,7 @@ class TestParallelWorkersValidation:
         data_dir = tmp_path / "data"
         data_dir.mkdir(exist_ok=True)
         cities_file = data_dir / "cities.json"
-        cities_file.write_text(
-            '[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]'
-        )
+        cities_file.write_text('[{"code": "omsk", "domain": "ru", "name": "Омск", "country_code": "ru"}]')
 
         output_dir = tmp_path / "output"
         output_dir.mkdir(exist_ok=True)

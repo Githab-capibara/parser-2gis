@@ -26,9 +26,7 @@ class ConfigFieldExtractor:
     """Извлекает обращения к полям конфигурации из TUI кода."""
 
     # Паттерн для поиска обращений вида config.<section>.<field>
-    CONFIG_ACCESS_PATTERN = re.compile(
-        r"config\.([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)"
-    )
+    CONFIG_ACCESS_PATTERN = re.compile(r"config\.([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)")
 
     def __init__(self, settings_file: Path):
         self.settings_file = settings_file
@@ -111,8 +109,7 @@ class ConfigModelInspector:
         for py_file in self.project_root.rglob("*.py"):
             # Пропускаем тесты, виртуальное окружение, кэш
             if any(
-                part.startswith(".") or part in ("venv", "__pycache__", "tests", "htmlcov")
-                for part in py_file.parts
+                part.startswith(".") or part in ("venv", "__pycache__", "tests", "htmlcov") for part in py_file.parts
             ):
                 continue
 
@@ -258,9 +255,7 @@ class TUIConfigFieldValidator:
         ]
 
         for error in self.errors:
-            report_lines.append(
-                f"❌ Строка {error['line']}: config.{error['section']}.{error['field']}"
-            )
+            report_lines.append(f"❌ Строка {error['line']}: config.{error['section']}.{error['field']}")
             report_lines.append(f"   Ошибка: {error['error']}")
 
             if error["available_fields"]:
@@ -345,10 +340,7 @@ class TestConfigFieldExtractor:
     def test_skip_comments(self, tmp_path: Path) -> None:
         """Проверяет, что комментарии игнорируются."""
         test_file = tmp_path / "test_settings.py"
-        test_file.write_text(
-            "# config.parser.nonexistent = 100\n"
-            "config.parser.timeout = 60  # config.parallel.fake\n"
-        )
+        test_file.write_text("# config.parser.nonexistent = 100\nconfig.parser.timeout = 60  # config.parallel.fake\n")
 
         extractor = ConfigFieldExtractor(test_file)
         accesses = extractor.extract_config_accesses()
@@ -360,9 +352,7 @@ class TestConfigFieldExtractor:
         """Проверяет получение уникальных обращений."""
         test_file = tmp_path / "test_settings.py"
         test_file.write_text(
-            "config.parser.timeout = 60\n"
-            "config.parser.timeout = 400\n"
-            "config.parallel.max_workers = 10\n"
+            "config.parser.timeout = 60\nconfig.parser.timeout = 400\nconfig.parallel.max_workers = 10\n"
         )
 
         extractor = ConfigFieldExtractor(test_file)
@@ -443,9 +433,7 @@ class TestTUIConfigFieldValidator:
     def test_validator_with_errors(self, tmp_path: Path) -> None:
         """Проверяет валидацию с ошибками."""
         test_settings = tmp_path / "test_settings.py"
-        test_settings.write_text(
-            "config.parser.nonexistent_field = 100\nconfig.parser.timeout = 60\n"
-        )
+        test_settings.write_text("config.parser.nonexistent_field = 100\nconfig.parser.timeout = 60\n")
 
         test_config = tmp_path / "test_config.py"
         test_config.write_text(
@@ -470,10 +458,7 @@ class TestTUIConfigFieldValidator:
 
         test_config = tmp_path / "test_config.py"
         test_config.write_text(
-            "from pydantic import BaseModel\n"
-            "\n"
-            "class ParserOptions(BaseModel):\n"
-            "    timeout: int = 60\n"
+            "from pydantic import BaseModel\n\nclass ParserOptions(BaseModel):\n    timeout: int = 60\n"
         )
 
         validator = TUIConfigFieldValidator(test_settings, test_config, project_root=tmp_path)
@@ -512,9 +497,7 @@ class TestRealTUIConfigFields:
 
         if errors:
             error_report = validator.get_error_report()
-            raise AssertionError(
-                f"Обнаружены несоответствия полей TUI и моделей конфигурации:\n\n{error_report}"
-            )
+            raise AssertionError(f"Обнаружены несоответствия полей TUI и моделей конфигурации:\n\n{error_report}")
 
     def test_extractor_finds_all_config_accesses(self, extractor: ConfigFieldExtractor) -> None:
         """Проверяет, что экстрактор находит все обращения к конфигурации."""
@@ -525,9 +508,9 @@ class TestRealTUIConfigFields:
 
         # Проверяем, что найдены хотя бы некоторые секции
         assert len(accesses) > 0, "Не найдено ни одного обращения к конфигурации"
-        assert (
-            "parser" in sections_found or "chrome" in sections_found or "writer" in sections_found
-        ), "Не найдены обращения к основным секциям конфигурации"
+        assert "parser" in sections_found or "chrome" in sections_found or "writer" in sections_found, (
+            "Не найдены обращения к основным секциям конфигурации"
+        )
 
     def test_inspector_extracts_model_fields(self, inspector: ConfigModelInspector) -> None:
         """Проверяет, что инспектор извлекает поля из моделей."""
@@ -556,8 +539,7 @@ class TestRealTUIConfigFields:
         missing = required_fields - parser_fields
 
         assert not missing, (
-            f"В ParserOptions отсутствуют поля, используемые в TUI: {missing}. "
-            f"Доступные поля: {sorted(parser_fields)}"
+            f"В ParserOptions отсутствуют поля, используемые в TUI: {missing}. Доступные поля: {sorted(parser_fields)}"
         )
 
     def test_specific_parallel_fields_exist(self, inspector: ConfigModelInspector) -> None:
@@ -598,8 +580,7 @@ class TestRealTUIConfigFields:
         missing = required_fields - chrome_fields
 
         assert not missing, (
-            f"В ChromeOptions отсутствуют поля, используемые в TUI: {missing}. "
-            f"Доступные поля: {sorted(chrome_fields)}"
+            f"В ChromeOptions отсутствуют поля, используемые в TUI: {missing}. Доступные поля: {sorted(chrome_fields)}"
         )
 
     def test_specific_writer_fields_exist(self, inspector: ConfigModelInspector) -> None:
@@ -616,8 +597,7 @@ class TestRealTUIConfigFields:
         missing = required_fields - writer_fields
 
         assert not missing, (
-            f"В WriterOptions отсутствуют поля, используемые в TUI: {missing}. "
-            f"Доступные поля: {sorted(writer_fields)}"
+            f"В WriterOptions отсутствуют поля, используемые в TUI: {missing}. Доступные поля: {sorted(writer_fields)}"
         )
 
 

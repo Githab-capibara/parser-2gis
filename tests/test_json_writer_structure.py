@@ -71,12 +71,6 @@ class TestJSONWriterStructure:
         writer._wrote_count = 0
         writer._first_item = True
 
-        writer._writedoc(
-            {
-                "result": {
-                    "items": [{"name": "Test Company", "name_ex": {"primary": "Primary Name"}}]
-                }
-            }
-        )
+        writer._writedoc({"result": {"items": [{"name": "Test Company", "name_ex": {"primary": "Primary Name"}}]}})
 
         writer._file.write.assert_called()

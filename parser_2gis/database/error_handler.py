@@ -117,8 +117,7 @@ def handle_db_errors(
 
                     if is_retryable and attempt < retry_count:
                         logger.warning(
-                            "Временная ошибка БД в %s (попытка %d/%d): %s. "
-                            "Повтор через %.2f сек...",
+                            "Временная ошибка БД в %s (попытка %d/%d): %s. Повтор через %.2f сек...",
                             func_name,
                             attempt + 1,
                             retry_count + 1,

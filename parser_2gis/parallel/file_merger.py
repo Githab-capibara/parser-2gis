@@ -232,8 +232,7 @@ class FileMergerStrategy:
                 os.replace(str(temp_output), str(output_file_path))
             except OSError as replace_error:
                 self.log(
-                    f"Не удалось переименовать файл (OSError): {replace_error}. "
-                    f"Используем shutil.move",
+                    f"Не удалось переименовать файл (OSError): {replace_error}. Используем shutil.move",
                     "debug",
                 )
                 try:
@@ -284,8 +283,7 @@ class FileMergerStrategy:
                     signal.signal(signal.SIGTERM, old_sigterm_handler)
             except (OSError, ValueError, TypeError) as signal_error:
                 self.log(
-                    "Ошибка при восстановлении обработчиков "
-                    f"сигналов (игнорируется): {signal_error}",
+                    f"Ошибка при восстановлении обработчиков сигналов (игнорируется): {signal_error}",
                     "debug",
                 )
 
@@ -347,15 +345,12 @@ class FileMergerStrategy:
                             if lock_pid is not None:
                                 os.kill(lock_pid, 0)
                             self.log(
-                                f"Lock файл существует "
-                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid}), "
-                                f"ожидаем...",
+                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             pid_info = f", PID: {lock_pid}" if lock_pid is not None else ""
                             self.log(
-                                "Удаление осиротевшего lock файла "
-                                f"(возраст: {lock_age:.0f} сек{pid_info})",
+                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек{pid_info})",
                             )
                             lock_file_path.unlink()
                     else:

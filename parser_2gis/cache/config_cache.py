@@ -149,11 +149,7 @@ def _validate_city(city: dict[str, Any], index: int) -> None:
         error_msg = f"Город {index} должен содержать поля 'name', 'code' и 'domain'"
         raise ValueError(error_msg)
 
-    if (
-        not isinstance(city["name"], str)
-        or not isinstance(city["code"], str)
-        or not isinstance(city["domain"], str)
-    ):
+    if not isinstance(city["name"], str) or not isinstance(city["code"], str) or not isinstance(city["domain"], str):
         logger.error("Поля 'name', 'code' и 'domain' города %d должны быть строками", index)
         error_msg = f"Поля 'name', 'code' и 'domain' города {index} должны быть строками"
         raise TypeError(error_msg)

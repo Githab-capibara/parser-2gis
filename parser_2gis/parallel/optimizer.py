@@ -144,8 +144,7 @@ class ParallelOptimizer:
                     min(self._max_memory_mb, MAX_MEMORY_LIMIT_MB),
                 )
                 logger.debug(
-                    "Автоматически определён лимит памяти: %d MB "
-                    "(доступно: %.0f MB, процент: %.0f%%)",
+                    "Автоматически определён лимит памяти: %d MB (доступно: %.0f MB, процент: %.0f%%)",
                     self._max_memory_mb,
                     available_memory_mb,
                     self._memory_percent_threshold * 100,
@@ -154,8 +153,7 @@ class ParallelOptimizer:
                 # Fallback если psutil недоступен
                 self._max_memory_mb = 4096
                 logger.warning(
-                    "Не удалось определить доступную память через psutil: %s. "
-                    "Используется лимит по умолчанию: %d MB",
+                    "Не удалось определить доступную память через psutil: %s. Используется лимит по умолчанию: %d MB",
                     e,
                     self._max_memory_mb,
                 )
@@ -364,9 +362,7 @@ class ParallelOptimizer:
             stats["pending_tasks"] = self._tasks.qsize()
             stats["active_tasks"] = len(self._active_tasks)
             stats["progress"] = (
-                self._stats["completed"] / self._stats["total_tasks"] * 100
-                if self._stats["total_tasks"] > 0
-                else 0
+                self._stats["completed"] / self._stats["total_tasks"] * 100 if self._stats["total_tasks"] > 0 else 0
             )
             return stats
 

@@ -204,9 +204,7 @@ def _setup_base_logger(
         Настроенный экземпляр logging.Logger.
 
     """
-    target_logger = (
-        logger_instance if logger_instance is not None else logging.getLogger(_LOGGER_NAME)
-    )
+    target_logger = logger_instance if logger_instance is not None else logging.getLogger(_LOGGER_NAME)
 
     if not target_logger.handlers:
         handler = logging.StreamHandler()

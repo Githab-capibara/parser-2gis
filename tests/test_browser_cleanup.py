@@ -149,18 +149,14 @@ class TestTemporaryDirectoryCleanup:
 
                     # Проверяем что профиль существует
                     assert profile_path.exists(), "Профиль не был создан"
-                    assert profile_path.name.startswith("chrome_profile_"), (
-                        f"Неверное имя профиля: {profile_path.name}"
-                    )
+                    assert profile_path.name.startswith("chrome_profile_"), f"Неверное имя профиля: {profile_path.name}"
 
                     # Закрываем браузер
                     browser.close()
 
                     # Проверяем что профиль удален
                     # TemporaryDirectory.cleanup() должен удалить профиль
-                    assert not profile_path.exists(), (
-                        f"Профиль не был удален после закрытия: {profile_path}"
-                    )
+                    assert not profile_path.exists(), f"Профиль не был удален после закрытия: {profile_path}"
 
                 except Exception as e:
                     # Если браузер не создался, тест всё равно проходит
@@ -202,9 +198,7 @@ class TestTemporaryDirectoryCleanup:
 
                     # После выхода из контекста профиль должен удалиться
                     assert profile_path is not None
-                    assert not profile_path.exists(), (
-                        "Профиль не был удален после выхода из контекстного менеджера"
-                    )
+                    assert not profile_path.exists(), "Профиль не был удален после выхода из контекстного менеджера"
 
                 except Exception as e:
                     pytest.skip(f"Не удалось создать браузер: {e}")
@@ -248,9 +242,7 @@ class TestSignalHandlerCleanup:
 
                         # Проверяем что были вызваны логи очистки
                         # logger.debug или logger.error должны были вызваться
-                        assert mock_logger.debug.called or mock_logger.error.called, (
-                            "Очистка не была залогирована"
-                        )
+                        assert mock_logger.debug.called or mock_logger.error.called, "Очистка не была залогирована"
 
                     except Exception as e:
                         pytest.skip(f"Не удалось создать браузер: {e}")

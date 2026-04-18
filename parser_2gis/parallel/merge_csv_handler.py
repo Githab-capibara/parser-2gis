@@ -114,9 +114,7 @@ class MergeCSVHandler:
                 writer.writerows(batch)
                 batch_total += len(batch)
 
-            batch_count = (batch_total // self._batch_size) + (
-                1 if batch_total % self._batch_size else 0
-            )
+            batch_count = (batch_total // self._batch_size) + (1 if batch_total % self._batch_size else 0)
             self._log(
                 f"Файл {csv_file.name} обработан (строк: {batch_total}, пакетов: {batch_count})",
                 "debug",

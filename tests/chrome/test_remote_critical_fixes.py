@@ -41,9 +41,7 @@ class TestConnectInterfaceReturnValue:
         return [".*"]
 
     @pytest.fixture
-    def chrome_remote(
-        self, mock_chrome_options: MagicMock, mock_response_patterns: list
-    ) -> ChromeRemote:
+    def chrome_remote(self, mock_chrome_options: MagicMock, mock_response_patterns: list) -> ChromeRemote:
         """Создает ChromeRemote для тестов.
 
         Args:
@@ -73,9 +71,7 @@ class TestConnectInterfaceReturnValue:
         # Проверяем что возвращено False
         assert result is False, "_connect_interface() должен вернуть False после цикла"
 
-    def test_connect_interface_returns_false_on_port_check_failure(
-        self, chrome_remote: ChromeRemote
-    ) -> None:
+    def test_connect_interface_returns_false_on_port_check_failure(self, chrome_remote: ChromeRemote) -> None:
         """Тест 2: Возврат False при проверке порта.
 
         Проверяет:
@@ -99,9 +95,7 @@ class TestConnectInterfaceReturnValue:
         # Проверяем что было 3 попытки (max_attempts)
         assert call_count == 3
 
-    def test_connect_interface_returns_false_on_verify_failure(
-        self, chrome_remote: ChromeRemote
-    ) -> None:
+    def test_connect_interface_returns_false_on_verify_failure(self, chrome_remote: ChromeRemote) -> None:
         """Тест 3: Возврат False при проверке соединения.
 
         Проверяет:
@@ -194,9 +188,7 @@ class TestConnectInterfaceReturnValue:
 
         # H3: Используем _check_port_cached вместо _check_port_available
         with (
-            patch(
-                "parser_2gis.chrome.remote._check_port_cached", side_effect=mock_port_check_count
-            ),
+            patch("parser_2gis.chrome.remote._check_port_cached", side_effect=mock_port_check_count),
             patch("parser_2gis.chrome.remote.time.sleep", return_value=None),
         ):
             result = chrome_remote._connect_interface()
@@ -245,9 +237,7 @@ class TestChromeBrowserCloseGuaranteedCleanup:
             # close() должен выполниться без выброса исключения
             browser.close()
             # Позитивная проверка: флаг _closed установлен
-            assert browser._lifecycle_manager._closed is True, (
-                "Браузер должен быть помечен как закрытый"
-            )
+            assert browser._lifecycle_manager._closed is True, "Браузер должен быть помечен как закрытый"
 
     def test_browser_close_finally_block(self) -> None:
         """Тест 10: finally блок в browser.close().
@@ -300,9 +290,7 @@ class TestChromeBrowserCloseGuaranteedCleanup:
 
             # close() не должен выбрасывать исключение
             browser.close()
-            assert browser._lifecycle_manager._closed is True, (
-                "Браузер должен быть помечен как закрытый"
-            )
+            assert browser._lifecycle_manager._closed is True, "Браузер должен быть помечен как закрытый"
 
     def test_browser_close_cleanup_resources(self) -> None:
         """Тест 12: Очистка ресурсов в browser.close().
@@ -350,9 +338,7 @@ class TestChromeBrowserCloseGuaranteedCleanup:
 
             # close() не должен выбрасывать исключение
             browser.close()
-            assert browser._lifecycle_manager._closed is True, (
-                "Браузер должен быть помечен как закрытый"
-            )
+            assert browser._lifecycle_manager._closed is True, "Браузер должен быть помечен как закрытый"
 
     def test_browser_close_multiple_calls(self) -> None:
         """Тест 14: Многократный вызов browser.close().

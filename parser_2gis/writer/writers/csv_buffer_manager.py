@@ -261,8 +261,7 @@ def _calculate_optimal_buffer_size(
                 return int(DEFAULT_BUFFER_SIZE)
             if custom_buffer > MAX_BUFFER_SIZE * 10:
                 logger.warning(
-                    "Некорректное значение PARSER_CSV_BUFFER_SIZE=%d (слишком большой), "
-                    "используется максимальное %d",
+                    "Некорректное значение PARSER_CSV_BUFFER_SIZE=%d (слишком большой), используется максимальное %d",
                     custom_buffer,
                     MAX_BUFFER_SIZE,
                 )

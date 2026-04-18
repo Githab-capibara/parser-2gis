@@ -51,8 +51,7 @@ class TestTempFileRaceCondition:
             registered_count = len(temp_file_manager._registry)
 
         assert len(unique_files) == registered_count, (
-            f"Обнаружены дубликаты: {registered_count} зарегистрировано, "
-            f"но только {len(unique_files)} уникальных"
+            f"Обнаружены дубликаты: {registered_count} зарегистрировано, но только {len(unique_files)} уникальных"
         )
 
     def test_concurrent_registration_and_unregistration(self) -> None:
@@ -114,6 +113,4 @@ class TestTempFileRaceCondition:
         assert len(errors) == 0, f"Ошибки в потоках: {errors}"
 
         with temp_file_manager._lock:
-            assert len(temp_file_manager._registry) == 0, (
-                "Реестр должен быть пуст после всех операций"
-            )
+            assert len(temp_file_manager._registry) == 0, "Реестр должен быть пуст после всех операций"

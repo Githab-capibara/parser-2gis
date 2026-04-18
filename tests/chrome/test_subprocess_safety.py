@@ -183,11 +183,7 @@ class TestSubprocessArgumentsValidation:
             call_args = mock_launch.call_args
 
             # Проверяем что chrome_cmd это список
-            chrome_cmd = (
-                call_args.kwargs["chrome_cmd"]
-                if "chrome_cmd" in call_args.kwargs
-                else call_args.args[0]
-            )
+            chrome_cmd = call_args.kwargs["chrome_cmd"] if "chrome_cmd" in call_args.kwargs else call_args.args[0]
             assert isinstance(chrome_cmd, list)
 
     def test_subprocess_invalid_memory_limit(self, mock_chrome_options) -> None:
@@ -310,9 +306,7 @@ class TestSubprocessArgumentsValidation:
 
         # Тест с пустым списком команд
         with pytest.raises((ValueError, FileNotFoundError, subprocess.SubprocessError)):
-            process_manager.launch_process(
-                chrome_cmd=[], profile_path="/tmp/profile", chrome_options=mock_options
-            )
+            process_manager.launch_process(chrome_cmd=[], profile_path="/tmp/profile", chrome_options=mock_options)
 
     def test_process_manager_launch_with_none_args(self) -> None:
         """Тест запуска процесса с None аргументами.

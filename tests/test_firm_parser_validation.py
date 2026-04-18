@@ -99,9 +99,7 @@ class TestValidateInitialState:
 
     def test_nested_valid_data(self) -> None:
         """Валидные вложенные данные должны проходить."""
-        valid_data = {
-            "data": {"entity": {"profile": {"name": "Test Company", "address": "123 Main St"}}}
-        }
+        valid_data = {"data": {"entity": {"profile": {"name": "Test Company", "address": "123 Main St"}}}}
         valid, _ = _validate_initial_state(valid_data)
         assert valid
 
@@ -141,8 +139,6 @@ class TestSafeExtractInitialState:
 
     def test_malicious_script_in_data_returns_none(self) -> None:
         """Вредоносный скрипт в данных должен возвращать None."""
-        malicious_data = {
-            "data": {"entity": {"profile": {"name": "<script>alert('xss')</script>"}}}
-        }
+        malicious_data = {"data": {"entity": {"profile": {"name": "<script>alert('xss')</script>"}}}}
         result = _safe_extract_initial_state(malicious_data, ["data", "entity", "profile"])
         assert result is None

@@ -15,9 +15,7 @@ class TestSQLInjectionPatterns:
 
     def test_union_select_detected(self) -> None:
         """UNION SELECT должен быть обнаружен."""
-        assert not self.validator._check_sql_injection_patterns(
-            "SELECT * FROM users UNION SELECT password FROM admins"
-        )
+        assert not self.validator._check_sql_injection_patterns("SELECT * FROM users UNION SELECT password FROM admins")
         assert not self.validator._check_sql_injection_patterns("1 UNION ALL SELECT NULL--")
 
     def test_or_1_equals_1_detected(self) -> None:
@@ -36,9 +34,7 @@ class TestSQLInjectionPatterns:
 
     def test_insert_into_detected(self) -> None:
         """INSERT INTO должен быть обнаружен."""
-        assert not self.validator._check_sql_injection_patterns(
-            "INSERT INTO users VALUES ('hacker')"
-        )
+        assert not self.validator._check_sql_injection_patterns("INSERT INTO users VALUES ('hacker')")
 
     def test_delete_from_detected(self) -> None:
         """DELETE FROM должен быть обнаружен."""

@@ -85,10 +85,7 @@ class TestCSVWriterErrorHandling:
                 csv_writer._writerow({"name": "Test"})
 
             # Проверяем что ошибка была залогирована
-            assert any(
-                "csv.Error" in record.message or "формата CSV" in record.message
-                for record in caplog.records
-            )
+            assert any("csv.Error" in record.message or "формата CSV" in record.message for record in caplog.records)
 
     def test_csv_writer_io_error_handling(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки IOError.
@@ -108,10 +105,7 @@ class TestCSVWriterErrorHandling:
                 csv_writer._writerow({"name": "Test"})
 
             # Проверяем что ошибка была залогирована
-            assert any(
-                "IOError" in record.message or "ввода-вывода" in record.message
-                for record in caplog.records
-            )
+            assert any("IOError" in record.message or "ввода-вывода" in record.message for record in caplog.records)
 
     def test_csv_writer_unicode_error_handling(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки UnicodeError.
@@ -131,14 +125,9 @@ class TestCSVWriterErrorHandling:
                 csv_writer._writerow({"name": "Test"})
 
             # Проверяем что ошибка была залогирована
-            assert any(
-                "UnicodeError" in record.message or "кодировки" in record.message
-                for record in caplog.records
-            )
+            assert any("UnicodeError" in record.message or "кодировки" in record.message for record in caplog.records)
 
-    def test_csv_writer_post_processor_exception(
-        self, temp_output_path, mock_options, caplog, monkeypatch
-    ) -> None:
+    def test_csv_writer_post_processor_exception(self, temp_output_path, mock_options, caplog, monkeypatch) -> None:
         """Тест обработки исключений в постпроцессоре.
 
         Проверяет:
@@ -169,13 +158,11 @@ class TestCSVWriterErrorHandling:
             assert mock_processor.remove_empty_columns.called, "remove_empty_columns не был вызван"
 
             # Проверяем что ошибка была залогирована
-            assert any(
-                "Ошибка при удалении пустых колонок" in record.message for record in caplog.records
-            ), f"Ошибка не найдена в логах: {[r.message for r in caplog.records]}"
+            assert any("Ошибка при удалении пустых колонок" in record.message for record in caplog.records), (
+                f"Ошибка не найдена в логах: {[r.message for r in caplog.records]}"
+            )
 
-    def test_csv_writer_deduplicator_exception(
-        self, temp_output_path, mock_options, caplog, monkeypatch
-    ) -> None:
+    def test_csv_writer_deduplicator_exception(self, temp_output_path, mock_options, caplog, monkeypatch) -> None:
         """Тест обработки исключений в дедупликаторе.
 
         Проверяет:
@@ -207,8 +194,7 @@ class TestCSVWriterErrorHandling:
 
             # Проверяем что ошибка была залогирована - сообщение может быть разным
             assert any(
-                "Ошибка при удалении дубликатов" in record.message
-                or "Mocked error" in record.message
+                "Ошибка при удалении дубликатов" in record.message or "Mocked error" in record.message
                 for record in caplog.records
             ), f"Ошибка не найдена в логах: {[r.message for r in caplog.records]}"
 
@@ -229,9 +215,7 @@ class TestCSVWriterErrorHandling:
             assert result == {}
 
             # Проверяем что ошибка была залогирована
-            assert any(
-                "Некорректная структура документа" in record.message for record in caplog.records
-            )
+            assert any("Некорректная структура документа" in record.message for record in caplog.records)
 
     def test_csv_writer_extract_raw_key_error(self, csv_writer: CSVWriter, caplog) -> None:
         """Тест обработки KeyError при извлечении данных.
@@ -313,9 +297,7 @@ class TestCSVWriterErrorHandling:
                 with writer:
                     pass
 
-    def test_csv_writer_context_manager_exception(
-        self, temp_output_path, mock_options, caplog
-    ) -> None:
+    def test_csv_writer_context_manager_exception(self, temp_output_path, mock_options, caplog) -> None:
         """Тест обработки исключений в контекстном менеджере.
 
         Проверяет:

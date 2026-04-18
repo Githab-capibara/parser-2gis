@@ -404,9 +404,7 @@ def get_internal_imports(file_path: Path, package_prefix: str = "parser_2gis") -
     return imports
 
 
-def build_dependency_graph(
-    directory: Path, package_prefix: str = "parser_2gis"
-) -> dict[str, set[str]]:
+def build_dependency_graph(directory: Path, package_prefix: str = "parser_2gis") -> dict[str, set[str]]:
     """Строит граф зависимостей между модулями в директории.
 
     Args:
@@ -503,9 +501,7 @@ def get_classes_in_file(file_path: Path) -> list[tuple[str, int, int, int]]:
         if isinstance(node, ast.ClassDef):
             start_line = node.lineno
             end_line = node.end_lineno if hasattr(node, "end_lineno") else start_line
-            method_count = sum(
-                1 for item in node.body if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
-            )
+            method_count = sum(1 for item in node.body if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)))
             classes.append((node.name, start_line, end_line, method_count))
 
     return classes
@@ -682,9 +678,7 @@ def get_protocols_in_file(file_path: Path) -> list[tuple[str, int]]:
             for base in node.bases:
                 if isinstance(base, ast.Name) and base.id == "Protocol":
                     method_count = sum(
-                        1
-                        for item in node.body
-                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                        1 for item in node.body if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
                     )
                     protocols.append((node.name, method_count))
                     break
@@ -778,9 +772,7 @@ def has_guard_clauses(source: str, method_name: str) -> tuple[bool, int]:
         tree = ast.parse(source)
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == method_name:
-                returns = [
-                    n for n in ast.walk(node) if isinstance(n, ast.Return) and n.value is not None
-                ]
+                returns = [n for n in ast.walk(node) if isinstance(n, ast.Return) and n.value is not None]
                 early_returns = len(returns)
 
                 if node.body and isinstance(node.body[0], ast.If) and isinstance(node.body[0].body[0], ast.Return):
@@ -846,14 +838,10 @@ def has_docstring_with_sections(source: str, class_name: str) -> tuple[bool, lis
                 docstring = ast.get_docstring(node)
                 if docstring:
                     has_docstring = True
-                    if any(
-                        phrase in docstring
-                        for phrase in ["Назначение:", "Purpose:", "Абстракция", "Protocol"]
-                    ):
+                    if any(phrase in docstring for phrase in ["Назначение:", "Purpose:", "Абстракция", "Protocol"]):
                         sections.append("Назначение")
                     if any(
-                        phrase in docstring
-                        for phrase in ["Места использования:", "Usage:", "Использование:", "для"]
+                        phrase in docstring for phrase in ["Места использования:", "Usage:", "Использование:", "для"]
                     ):
                         sections.append("Места использования")
                     if "Пример:" in docstring or "Example:" in docstring:
@@ -919,9 +907,7 @@ class TestSingleResponsibilityPrinciple:
         public_methods = categories["public_api"]
 
         coordination_count = sum(
-            1
-            for m in public_methods
-            if any(c in m for c in ["run", "stop", "get_", "generate", "parse_single"])
+            1 for m in public_methods if any(c in m for c in ["run", "stop", "get_", "generate", "parse_single"])
         )
 
         assert coordination_count >= len(public_methods) * 0.7, (
@@ -938,11 +924,7 @@ class TestSingleResponsibilityPrinciple:
 
         methods = get_class_methods(error_handler_file, "ParallelErrorHandler")
 
-        error_methods = [
-            m
-            for m in methods
-            if "error" in m.lower() or "handle" in m.lower() or "cleanup" in m.lower()
-        ]
+        error_methods = [m for m in methods if "error" in m.lower() or "handle" in m.lower() or "cleanup" in m.lower()]
 
         allowed_methods = [*error_methods, "log", "create_unique_temp_file", "retry_with_backoff"]
 
@@ -962,10 +944,7 @@ class TestSingleResponsibilityPrinciple:
         merge_methods = [
             m
             for m in methods
-            if "merge" in m.lower()
-            or "csv" in m.lower()
-            or "file" in m.lower()
-            or "lock" in m.lower()
+            if "merge" in m.lower() or "csv" in m.lower() or "file" in m.lower() or "lock" in m.lower()
         ]
 
         allowed_methods = [
@@ -1042,9 +1021,7 @@ class TestSingleResponsibilityPrinciple:
 
             method_count = count_class_methods(file_path, class_name)
 
-            assert method_count < 50, (
-                f"{class_name} должен иметь <50 методов (сейчас: {method_count})"
-            )
+            assert method_count < 50, f"{class_name} должен иметь <50 методов (сейчас: {method_count})"
 
 
 # =============================================================================
@@ -1064,13 +1041,9 @@ class TestDependencyInversionPrinciple:
 
         content = main_parser_file.read_text(encoding="utf-8")
 
-        assert "BrowserService" in content, (
-            "MainPageParser должен использовать BrowserService Protocol"
-        )
+        assert "BrowserService" in content, "MainPageParser должен использовать BrowserService Protocol"
 
-        assert "browser: BrowserService" in content, (
-            "MainPageParser должен принимать BrowserService в конструктор"
-        )
+        assert "browser: BrowserService" in content, "MainPageParser должен принимать BrowserService в конструктор"
 
 
 # =============================================================================
@@ -1102,18 +1075,10 @@ class TestInterfaceSegregationPrinciple:
         js_methods = check_protocol_methods_count(BrowserJSExecution)
         screenshot_methods = check_protocol_methods_count(BrowserScreenshot)
 
-        assert nav_methods <= 2, (
-            f"BrowserNavigation должен иметь <=2 методов (сейчас: {nav_methods})"
-        )
-        assert content_methods <= 3, (
-            f"BrowserContentAccess должен иметь <=3 методов (сейчас: {content_methods})"
-        )
-        assert js_methods <= 2, (
-            f"BrowserJSExecution должен иметь <=2 методов (сейчас: {js_methods})"
-        )
-        assert screenshot_methods <= 2, (
-            f"BrowserScreenshot должен иметь <=2 методов (сейчас: {screenshot_methods})"
-        )
+        assert nav_methods <= 2, f"BrowserNavigation должен иметь <=2 методов (сейчас: {nav_methods})"
+        assert content_methods <= 3, f"BrowserContentAccess должен иметь <=3 методов (сейчас: {content_methods})"
+        assert js_methods <= 2, f"BrowserJSExecution должен иметь <=2 методов (сейчас: {js_methods})"
+        assert screenshot_methods <= 2, f"BrowserScreenshot должен иметь <=2 методов (сейчас: {screenshot_methods})"
 
     def test_callback_protocols_are_segregated(self) -> None:
         """Проверяет что callback Protocol разделены."""
@@ -1123,9 +1088,7 @@ class TestInterfaceSegregationPrinciple:
         assert ProgressCallback is not None
 
         for protocol in [CleanupCallback, ProgressCallback]:
-            assert callable(protocol) or protocol is not None, (
-                f"{protocol.__name__} должен быть Callable Protocol"
-            )
+            assert callable(protocol) or protocol is not None, f"{protocol.__name__} должен быть Callable Protocol"
 
     def test_protocols_are_not_fat(self) -> None:
         """Проверяет что Protocol не избыточны."""
@@ -1275,9 +1238,7 @@ class TestOpenClosedPrinciple:
 
         content = error_handler_file.read_text(encoding="utf-8")
 
-        assert "handle_other_error" in content, (
-            "ParallelErrorHandler должен иметь общий метод для обработки ошибок"
-        )
+        assert "handle_other_error" in content, "ParallelErrorHandler должен иметь общий метод для обработки ошибок"
 
     def test_strategy_pattern_for_backends(self) -> None:
         """Проверяет что бэкенды кэша используют стратегию."""
@@ -1331,9 +1292,7 @@ class TestSOLIDIntegrity:
         main_parser_file = project_root / "parser" / "parsers" / "main_parser.py"
 
         content = main_parser_file.read_text(encoding="utf-8")
-        assert "BrowserService" in content, (
-            "MainPageParser должен использовать BrowserService для DIP"
-        )
+        assert "BrowserService" in content, "MainPageParser должен использовать BrowserService для DIP"
 
     def test_protocols_module_is_stable(self) -> None:
         """Проверяет что protocols.py стабилен."""
@@ -1359,9 +1318,7 @@ class TestSOLIDIntegrity:
         ]
 
         for protocol_name in expected_protocols:
-            assert hasattr(protocols, protocol_name), (
-                f"protocols.py должен экспортировать {protocol_name}"
-            )
+            assert hasattr(protocols, protocol_name), f"protocols.py должен экспортировать {protocol_name}"
 
 
 # =============================================================================
@@ -1385,9 +1342,7 @@ class TestLayerBoundaries:
                             imports = _get_imports(Path(source_file))
                             for imp in imports:
                                 if imp.startswith(infra_mod):
-                                    violations.append(
-                                        f"{domain_mod} импортирует {imp} (нарушение границ)"
-                                    )
+                                    violations.append(f"{domain_mod} импортирует {imp} (нарушение границ)")
                 except (ImportError, ModuleNotFoundError):
                     pass
         assert not violations, "Нарушения границ слоёв:\n" + "\n".join(violations)
@@ -1460,9 +1415,7 @@ class TestNoCircularImports:
             if k.startswith("parser_2gis")
         }
         cycles = _detect_cycles(filtered_graph)
-        assert not cycles, "Обнаружены циклические импорты:\n" + "\n".join(
-            " -> ".join(c) for c in cycles
-        )
+        assert not cycles, "Обнаружены циклические импорты:\n" + "\n".join(" -> ".join(c) for c in cycles)
 
 
 # =============================================================================
@@ -1735,9 +1688,7 @@ class TestModuleBoundaries:
             imports = get_file_imports_from_module(py_file, project_root)
             illegal_imports = imports.intersection(business_logic_modules)
 
-            msg = (
-                f"{py_file.relative_to(project_root)} импортирует бизнес-логику: {illegal_imports}."
-            )
+            msg = f"{py_file.relative_to(project_root)} импортирует бизнес-логику: {illegal_imports}."
             assert len(illegal_imports) == 0, msg + " utils/ должен быть изолирован."
 
     def test_validation_no_business_logic_imports(self) -> None:
@@ -1754,9 +1705,7 @@ class TestModuleBoundaries:
             imports = get_file_imports_from_module(py_file, project_root)
             illegal_imports = imports.intersection(business_logic_modules)
 
-            msg = (
-                f"{py_file.relative_to(project_root)} импортирует бизнес-логику: {illegal_imports}."
-            )
+            msg = f"{py_file.relative_to(project_root)} импортирует бизнес-логику: {illegal_imports}."
             assert len(illegal_imports) == 0, msg + " validation/ должен быть изолирован."
 
     def test_constants_no_other_module_imports(self) -> None:
@@ -1827,9 +1776,7 @@ class TestModuleBoundaries:
             if re.search(pattern, content):
                 violations.append(py_file.name)
 
-        assert not violations, (
-            f"parallel/ не должен импортировать tui_textual. Нарушения в: {', '.join(violations)}"
-        )
+        assert not violations, f"parallel/ не должен импортировать tui_textual. Нарушения в: {', '.join(violations)}"
 
 
 # =============================================================================
@@ -1860,17 +1807,12 @@ class TestSeparationOfConcerns:
         class_methods: dict[str, int] = {}
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
-                method_count = sum(
-                    1
-                    for item in node.body
-                    if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
-                )
+                method_count = sum(1 for item in node.body if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)))
                 class_methods[node.name] = method_count
 
         parser_methods = class_methods.get("ParallelCityParser", 0)
         assert parser_methods <= 20, (
-            f"ParallelCityParser имеет {parser_methods} методов. "
-            "Рассмотрите разделение ответственностей."
+            f"ParallelCityParser имеет {parser_methods} методов. Рассмотрите разделение ответственностей."
         )
 
     def test_cache_manager_responsibilities_separated(self) -> None:
@@ -1993,8 +1935,7 @@ class TestSeparationOfConcerns:
 
         if len(violations) > 3:
             pytest.skip(
-                "CLI содержит бизнес-логику (нарушение SoC):\n"
-                + "\n".join(f"  {f}: {p}" for f, p in violations[:5])
+                "CLI содержит бизнес-логику (нарушение SoC):\n" + "\n".join(f"  {f}: {p}" for f, p in violations[:5])
             )
 
     def test_configuration_is_model_only(self, parser_2gis_root_fixture: Path) -> None:
@@ -2075,9 +2016,7 @@ class TestDRYKISSYAGNI:
         duplicates = {name: files for name, files in function_bodies.items() if len(files) > 1}
 
         if len(duplicates) > 10:
-            pytest.skip(
-                f"Обнаружено {len(duplicates)} дубликатов функций (требуется рефакторинг DRY)"
-            )
+            pytest.skip(f"Обнаружено {len(duplicates)} дубликатов функций (требуется рефакторинг DRY)")
 
     def test_method_complexity(self, python_files_fixture: list[Path]) -> None:
         """Проверка сложности методов."""
@@ -2096,15 +2035,10 @@ class TestDRYKISSYAGNI:
         if length_violations:
             pytest.skip(
                 "Обнаружены методы >50 строк (высокая сложность):\n"
-                + "\n".join(
-                    f"  {f.name}:{func} - {lines} строк"
-                    for f, func, lines in length_violations[:10]
-                )
+                + "\n".join(f"  {f.name}:{func} - {lines} строк" for f, func, lines in length_violations[:10])
             )
 
-    def test_no_speculative_generality(
-        self, protocols_file_fixture: Path, parser_2gis_root_fixture: Path
-    ) -> None:
+    def test_no_speculative_generality(self, protocols_file_fixture: Path, parser_2gis_root_fixture: Path) -> None:
         """Проверка YAGNI (You Aren't Gonna Need It)."""
         if not protocols_file_fixture.exists():
             pytest.skip("protocols.py не найден")
@@ -2118,9 +2052,7 @@ class TestDRYKISSYAGNI:
                 unused_protocols.append(protocol_name)
 
         if unused_protocols:
-            pytest.skip(
-                f"Protocol используются <2 раз (Speculative Generality): {unused_protocols[:5]}"
-            )
+            pytest.skip(f"Protocol используются <2 раз (Speculative Generality): {unused_protocols[:5]}")
 
 
 # =============================================================================
@@ -2199,9 +2131,7 @@ class TestModularity:
         if cohesion_issues:
             pytest.skip(
                 "Модули имеют низкую связность (отсутствуют ключевые файлы):\n"
-                + "\n".join(
-                    f"  {name} - отсутствуют: {missing}" for name, missing in cohesion_issues
-                )
+                + "\n".join(f"  {name} - отсутствуют: {missing}" for name, missing in cohesion_issues)
             )
 
     def test_no_circular_dependencies(self, parser_2gis_root_fixture: Path) -> None:
@@ -2274,9 +2204,7 @@ class TestScalability:
         has_process_executor = "ProcessPoolExecutor" in content
 
         has_executor_type = (
-            "executor_type" in content
-            or "ExecutorType" in content
-            or ("thread" in content and "process" in content)
+            "executor_type" in content or "ExecutorType" in content or ("thread" in content and "process" in content)
         )
 
         assert has_process_executor, "ThreadCoordinator должен поддерживать ProcessPoolExecutor"
@@ -2304,9 +2232,7 @@ class TestScalability:
             except (OSError, UnicodeDecodeError):
                 continue
 
-        assert plugin_ready_count >= 1, (
-            "Ни один factory не поддерживает динамическую регистрацию плагинов"
-        )
+        assert plugin_ready_count >= 1, "Ни один factory не поддерживает динамическую регистрацию плагинов"
 
 
 # =============================================================================
@@ -2322,13 +2248,9 @@ class TestTypeCheckingImports:
         source = read_source_file("parser_2gis/parallel/parallel_parser.py")
         type_checking_imports = get_type_checking_imports(source)
 
-        assert "TYPE_CHECKING" in source, (
-            "TYPE_CHECKING должен быть импортирован в parallel_parser.py"
-        )
+        assert "TYPE_CHECKING" in source, "TYPE_CHECKING должен быть импортирован в parallel_parser.py"
 
-        assert len(type_checking_imports) > 0, (
-            "Должны быть импорты в TYPE_CHECKING блоке для уменьшения связанности"
-        )
+        assert len(type_checking_imports) > 0, "Должны быть импорты в TYPE_CHECKING блоке для уменьшения связанности"
 
     def test_parallel_parser_local_imports_in_method(self) -> None:
         """Тест локальных импортов в методе parse_single_url."""
@@ -2370,9 +2292,7 @@ class TestGuardClauses:
 
         has_guard, early_returns = has_guard_clauses(source, "get_response_body")
 
-        assert has_guard or early_returns > 0, (
-            "get_response_body должен использовать Guard Clauses или Early Return"
-        )
+        assert has_guard or early_returns > 0, "get_response_body должен использовать Guard Clauses или Early Return"
 
         depth = get_method_nesting_depth(source, "get_response_body")
         assert depth <= 3, f"Вложенность get_response_body должна быть <= 3 (текущая: {depth})"
@@ -2394,10 +2314,7 @@ class TestGuardClauses:
             next_method_start = source.find("def ", stop_method_start + 10)
             stop_method_code = source[stop_method_start:next_method_start]
 
-            calls_submethods = (
-                "_stop_chrome_tab()" in stop_method_code
-                or "_stop_chrome_browser()" in stop_method_code
-            )
+            calls_submethods = "_stop_chrome_tab()" in stop_method_code or "_stop_chrome_browser()" in stop_method_code
             assert calls_submethods, "Метод stop должен вызывать подметоды"
 
 
@@ -2428,9 +2345,7 @@ class TestProtocolDocumentation:
         has_docstring, sections = has_docstring_with_sections(source, protocol_name)
 
         assert has_docstring, f"{protocol_name} должен иметь docstring"
-        assert len(sections) >= 1, (
-            f"{protocol_name} должен иметь минимум 1 раздел в docstring (найдено: {sections})"
-        )
+        assert len(sections) >= 1, f"{protocol_name} должен иметь минимум 1 раздел в docstring (найдено: {sections})"
 
     def test_logger_protocol_documented(self) -> None:
         """Тест документирования LoggerProtocol."""

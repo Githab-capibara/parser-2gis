@@ -470,8 +470,7 @@ class ParallelUrlParser(UrlGeneratorProtocol):
                     return success, message
                 except FuturesTimeoutError:
                     self.log(
-                        f"Таймаут парсинга {city_name} - {category_name} "
-                        f"({self.timeout_per_url} сек)",
+                        f"Таймаут парсинга {city_name} - {category_name} ({self.timeout_per_url} сек)",
                         "error",
                     )
                     self._cleanup_temp_file(temp_filepath)

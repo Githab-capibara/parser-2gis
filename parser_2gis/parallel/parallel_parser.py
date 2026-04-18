@@ -303,8 +303,7 @@ class ParallelCityParser:
                 )
 
         self.log(
-            f"Инициализирован парсер: {len(cities)} городов, {len(categories)} "
-            f"категорий, max_workers={max_workers}",
+            f"Инициализирован парсер: {len(cities)} городов, {len(categories)} категорий, max_workers={max_workers}",
             "info",
         )
 
@@ -497,16 +496,13 @@ class ParallelCityParser:
                                 os.kill(lock_pid, 0)
                             # Процесс существует - это не осиротевший lock
                             self.log(
-                                f"Lock файл существует "
-                                f"(возраст: {lock_age:.0f} сек, PID: {lock_pid}), "
-                                f"ожидаем...",
+                                f"Lock файл существует (возраст: {lock_age:.0f} сек, PID: {lock_pid}), ожидаем...",
                             )
                         except (ProcessLookupError, ValueError, OSError):
                             # Процесс не существует - это осиротевший lock
                             pid_info = f", PID: {lock_pid}" if lock_pid is not None else ""
                             self.log(
-                                "Удаление осиротевшего lock файла "
-                                f"(возраст: {lock_age:.0f} сек{pid_info})",
+                                f"Удаление осиротевшего lock файла (возраст: {lock_age:.0f} сек{pid_info})",
                             )
                             lock_file_path.unlink()
                     else:
@@ -524,8 +520,7 @@ class ParallelCityParser:
                 lock_attempts += 1
                 if lock_attempts > MAX_LOCK_ATTEMPTS:
                     self.log(
-                        "Превышено максимальное число попыток "
-                        f"получения lock ({MAX_LOCK_ATTEMPTS})",
+                        f"Превышено максимальное число попыток получения lock ({MAX_LOCK_ATTEMPTS})",
                         "error",
                     )
                     msg = f"Не удалось получить lock файл после {MAX_LOCK_ATTEMPTS} попыток"
@@ -555,8 +550,7 @@ class ParallelCityParser:
                                 os.close(lock_fd)
                             except OSError as close_error:
                                 self.log(
-                                    "Ошибка при закрытии fd lock файла "
-                                    f"(игнорируется): {close_error}",
+                                    f"Ошибка при закрытии fd lock файла (игнорируется): {close_error}",
                                     "debug",
                                 )
                 except (OSError, FileExistsError):
@@ -1054,8 +1048,7 @@ class ParallelCityParser:
                 except FuturesTimeoutError:
                     failed_count += 1
                     self.log(
-                        f"❌ Таймаут при парсинге {city_name} - {category_name} "
-                        f"({self.timeout_per_url} сек)",
+                        f"❌ Таймаут при парсинге {city_name} - {category_name} ({self.timeout_per_url} сек)",
                         "error",
                     )
 

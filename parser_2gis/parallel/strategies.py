@@ -264,9 +264,7 @@ class ParseStrategy:
 
         """
         timestamp = str(int(time.time() * 1000000))[-10:]
-        temp_filename = (
-            f"{safe_city}_{safe_category}_{os.getpid()}_{timestamp}_{uuid.uuid4().hex[:8]}.tmp"
-        )
+        temp_filename = f"{safe_city}_{safe_category}_{os.getpid()}_{timestamp}_{uuid.uuid4().hex[:8]}.tmp"
         temp_filepath = self.output_dir / temp_filename
         return temp_filename, temp_filepath
 
@@ -542,8 +540,7 @@ class ParseStrategy:
                     return success, message
                 except FuturesTimeoutError:
                     self._log(
-                        f"Таймаут парсинга {city_name} - {category_name} "
-                        f"({self.timeout_per_url} сек)",
+                        f"Таймаут парсинга {city_name} - {category_name} ({self.timeout_per_url} сек)",
                         "error",
                     )
                     self._cleanup_temp_file(temp_filepath)

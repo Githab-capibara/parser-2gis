@@ -97,16 +97,10 @@ class TestCodeQuality:
 
         for file_path, tree in parsed_files:
             for node in ast.walk(tree):
-                if (
-                    isinstance(node, ast.FunctionDef)
-                    and not node.name.startswith("_")
-                    and node.returns is None
-                ):
+                if isinstance(node, ast.FunctionDef) and not node.name.startswith("_") and node.returns is None:
                     # Проверяем наличие argument annotations
                     has_args_hints = all(
-                        arg.annotation is not None
-                        for arg in node.args.args
-                        if arg.arg != "self" and arg.arg != "cls"
+                        arg.annotation is not None for arg in node.args.args if arg.arg != "self" and arg.arg != "cls"
                     )
 
                     if not has_args_hints:
@@ -154,9 +148,7 @@ class TestCodeQuality:
                         func_length = len(node.body)
 
                     if func_length > 50 and (file_path.name, node.name) not in exceptions:
-                        long_functions.append(
-                            f"{file_path.name}:{node.name} ({func_length} строк)"
-                        )
+                        long_functions.append(f"{file_path.name}:{node.name} ({func_length} строк)")
 
         # Разрешаем до 5 длинных функций
         assert len(long_functions) <= 5, (
@@ -196,8 +188,7 @@ class TestCodeQuality:
 
         # Разрешаем до 5 функций с глубокой вложенностью
         assert len(deep_nesting) <= 5, (
-            f"Слишком много функций с глубокой вложенностью: {len(deep_nesting)}. "
-            f"Примеры: {deep_nesting[:5]}"
+            f"Слишком много функций с глубокой вложенностью: {len(deep_nesting)}. Примеры: {deep_nesting[:5]}"
         )
 
     def test_magic_numbers(self, parsed_files: list[tuple[Path, ast.AST]]) -> None:
@@ -229,12 +220,12 @@ class TestCodeQuality:
                 if isinstance(node, ast.Num) and node.n not in allowed_numbers:  # Python 3.7
                     # Проверяем не используется ли в сравнении с константой
                     magic_numbers.append(f"{file_path.name}:{node.lineno} (число: {node.n})")
-                elif isinstance(node, ast.Constant) and isinstance(
-                    node.value, (int, float)
-                ) and node.value not in allowed_numbers:  # Python 3.8+
-                    magic_numbers.append(
-                        f"{file_path.name}:{node.lineno} (число: {node.value})"
-                    )
+                elif (
+                    isinstance(node, ast.Constant)
+                    and isinstance(node.value, (int, float))
+                    and node.value not in allowed_numbers
+                ):  # Python 3.8+
+                    magic_numbers.append(f"{file_path.name}:{node.lineno} (число: {node.value})")
 
         # Разрешаем до 20 магических чисел
         assert len(magic_numbers) <= 20, (
@@ -311,9 +302,7 @@ class TestCodeQuality:
             1
             for _, tree in parsed_files
             for node in ast.walk(tree)
-            if isinstance(node, ast.FunctionDef)
-            and not node.name.startswith("_")
-            and ast.get_docstring(node)
+            if isinstance(node, ast.FunctionDef) and not node.name.startswith("_") and ast.get_docstring(node)
         )
 
         max_allowed = max(20, int(total_public_functions * 0.2))
@@ -323,9 +312,7 @@ class TestCodeQuality:
             f"Примеры: {functions_without_docstrings[:5]}"
         )
 
-    def test_exception_handling_best_practices(
-        self, parsed_files: list[tuple[Path, ast.AST]]
-    ) -> None:
+    def test_exception_handling_best_practices(self, parsed_files: list[tuple[Path, ast.AST]]) -> None:
         """Тест лучших практик обработки исключений.
 
         Проверяет:

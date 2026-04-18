@@ -56,9 +56,7 @@ class TestPoolExceptionHandling:
         """
         # MemoryError в _create_connection пробрасывается без логирования (критическая ошибка)
         with (
-            patch.object(
-                connection_pool, "_create_connection", side_effect=MemoryError("Mocked MemoryError")
-            ),
+            patch.object(connection_pool, "_create_connection", side_effect=MemoryError("Mocked MemoryError")),
             pytest.raises(MemoryError),
         ):
             connection_pool.get_connection()
@@ -78,9 +76,7 @@ class TestPoolExceptionHandling:
         with caplog.at_level(logging.WARNING):
             # OSError при создании соединения
             with (
-                patch.object(
-                    connection_pool, "_create_connection", side_effect=OSError("Mocked OSError")
-                ),
+                patch.object(connection_pool, "_create_connection", side_effect=OSError("Mocked OSError")),
                 pytest.raises(OSError),
             ):
                 connection_pool.get_connection()
@@ -120,9 +116,7 @@ class TestPoolExceptionHandling:
         with caplog.at_level(logging.WARNING):
             # TypeError при создании соединения
             with (
-                patch.object(
-                    connection_pool, "_create_connection", side_effect=TypeError("Mocked TypeError")
-                ),
+                patch.object(connection_pool, "_create_connection", side_effect=TypeError("Mocked TypeError")),
                 pytest.raises(TypeError),
             ):
                 connection_pool.get_connection()
@@ -139,9 +133,7 @@ class TestPoolExceptionHandling:
         """
         # Exception в _create_connection пробрасывается без логирования
         with (
-            patch.object(
-                connection_pool, "_create_connection", side_effect=Exception("Mocked Exception")
-            ),
+            patch.object(connection_pool, "_create_connection", side_effect=Exception("Mocked Exception")),
             pytest.raises(Exception),
         ):
             connection_pool.get_connection()
@@ -175,9 +167,7 @@ class TestPoolExceptionHandling:
         with pytest.raises(sqlite3.ProgrammingError):
             conn.execute("SELECT 1")
 
-    def test_pool_return_connection_exception_handling(
-        self, connection_pool: ConnectionPool, caplog
-    ) -> None:
+    def test_pool_return_connection_exception_handling(self, connection_pool: ConnectionPool, caplog) -> None:
         """Тест обработки исключений при возврате соединения.
 
         Проверяет:
@@ -230,19 +220,18 @@ class TestPoolExceptionHandling:
         """
         # Сбрасываем lru_cache для чистого теста
         _calculate_dynamic_pool_size.cache_clear()
-        with caplog.at_level(logging.DEBUG):
-            with patch("parser_2gis.cache.pool.psutil") as mock_psutil:
-                mock_psutil.virtual_memory.side_effect = MemoryError("Mocked MemoryError")
+        with caplog.at_level(logging.DEBUG), patch("parser_2gis.cache.pool.psutil") as mock_psutil:
+            mock_psutil.virtual_memory.side_effect = MemoryError("Mocked MemoryError")
 
-                result = _calculate_dynamic_pool_size()
+            result = _calculate_dynamic_pool_size()
 
-                # Проверяем что возвращён MIN_POOL_SIZE
-                from parser_2gis.constants import MIN_POOL_SIZE
+            # Проверяем что возвращён MIN_POOL_SIZE
+            from parser_2gis.constants import MIN_POOL_SIZE
 
-                assert result == MIN_POOL_SIZE
+            assert result == MIN_POOL_SIZE
 
-                # Проверяем логирование
-                assert any("MemoryError" in record.message for record in caplog.records)
+            # Проверяем логирование
+            assert any("MemoryError" in record.message for record in caplog.records)
 
     def test_dynamic_pool_size_os_error(self, caplog) -> None:
         """Тест обработки OSError в _calculate_dynamic_pool_size.
@@ -251,20 +240,19 @@ class TestPoolExceptionHandling:
         - OSError обрабатывается корректно
         - Возвращается MIN_POOL_SIZE
         """
-        with caplog.at_level(logging.WARNING):
-            with patch("parser_2gis.cache.pool.psutil") as mock_psutil:
-                mock_psutil.virtual_memory.side_effect = OSError("Mocked OSError")
+        with caplog.at_level(logging.WARNING), patch("parser_2gis.cache.pool.psutil") as mock_psutil:
+            mock_psutil.virtual_memory.side_effect = OSError("Mocked OSError")
 
-                result = _calculate_dynamic_pool_size()
+            result = _calculate_dynamic_pool_size()
 
-                # Проверяем что возвращён MIN_POOL_SIZE
-                from parser_2gis.constants import MIN_POOL_SIZE
+            # Проверяем что возвращён MIN_POOL_SIZE
+            from parser_2gis.constants import MIN_POOL_SIZE
 
-                assert result == MIN_POOL_SIZE
+            assert result == MIN_POOL_SIZE
 
-                # Проверяем что функция выполнилась без ошибок
-                assert isinstance(result, int)
-                assert result > 0
+            # Проверяем что функция выполнилась без ошибок
+            assert isinstance(result, int)
+            assert result > 0
 
     def test_dynamic_pool_size_value_error(self, caplog) -> None:
         """Тест обработки ValueError в _calculate_dynamic_pool_size.
@@ -273,20 +261,19 @@ class TestPoolExceptionHandling:
         - ValueError обрабатывается корректно
         - Возвращается MIN_POOL_SIZE
         """
-        with caplog.at_level(logging.WARNING):
-            with patch("parser_2gis.cache.pool.psutil") as mock_psutil:
-                mock_psutil.virtual_memory.side_effect = ValueError("Mocked ValueError")
+        with caplog.at_level(logging.WARNING), patch("parser_2gis.cache.pool.psutil") as mock_psutil:
+            mock_psutil.virtual_memory.side_effect = ValueError("Mocked ValueError")
 
-                result = _calculate_dynamic_pool_size()
+            result = _calculate_dynamic_pool_size()
 
-                # Проверяем что возвращён MIN_POOL_SIZE
-                from parser_2gis.constants import MIN_POOL_SIZE
+            # Проверяем что возвращён MIN_POOL_SIZE
+            from parser_2gis.constants import MIN_POOL_SIZE
 
-                assert result == MIN_POOL_SIZE
+            assert result == MIN_POOL_SIZE
 
-                # Проверяем что функция выполнилась без ошибок
-                assert isinstance(result, int)
-                assert result > 0
+            # Проверяем что функция выполнилась без ошибок
+            assert isinstance(result, int)
+            assert result > 0
 
     def test_dynamic_pool_size_type_error(self, caplog) -> None:
         """Тест обработки TypeError в _calculate_dynamic_pool_size.
@@ -295,20 +282,19 @@ class TestPoolExceptionHandling:
         - TypeError обрабатывается корректно
         - Возвращается MIN_POOL_SIZE
         """
-        with caplog.at_level(logging.WARNING):
-            with patch("parser_2gis.cache.pool.psutil") as mock_psutil:
-                mock_psutil.virtual_memory.side_effect = TypeError("Mocked TypeError")
+        with caplog.at_level(logging.WARNING), patch("parser_2gis.cache.pool.psutil") as mock_psutil:
+            mock_psutil.virtual_memory.side_effect = TypeError("Mocked TypeError")
 
-                result = _calculate_dynamic_pool_size()
+            result = _calculate_dynamic_pool_size()
 
-                # Проверяем что возвращён MIN_POOL_SIZE
-                from parser_2gis.constants import MIN_POOL_SIZE
+            # Проверяем что возвращён MIN_POOL_SIZE
+            from parser_2gis.constants import MIN_POOL_SIZE
 
-                assert result == MIN_POOL_SIZE
+            assert result == MIN_POOL_SIZE
 
-                # Проверяем что функция выполнилась без ошибок
-                assert isinstance(result, int)
-                assert result > 0
+            # Проверяем что функция выполнилась без ошибок
+            assert isinstance(result, int)
+            assert result > 0
 
     def test_pool_context_manager_exception_handling(self, temp_db_path: Path, caplog) -> None:
         """Тест обработки исключений в контекстном менеджере.
@@ -326,9 +312,7 @@ class TestPoolExceptionHandling:
                 pass
 
             # Проверяем что пул закрыт (нет ошибок в логе)
-            assert not any(
-                "Ошибка при закрытии пула" in record.message for record in caplog.records
-            )
+            assert not any("Ошибка при закрытии пула" in record.message for record in caplog.records)
 
     def test_pool_weakref_finalizer_exception_handling(self, temp_db_path: Path, caplog) -> None:
         """Тест обработки исключений в weakref.finalizer.
@@ -355,7 +339,6 @@ class TestPoolExceptionHandling:
 
             # Проверяем что ошибка была залогирована
             assert any(
-                "Ошибка БД при закрытии соединения" in record.message
-                or "Mocked error" in record.message
+                "Ошибка БД при закрытии соединения" in record.message or "Mocked error" in record.message
                 for record in caplog.records
             )

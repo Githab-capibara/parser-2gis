@@ -57,8 +57,7 @@ class TestPortCheckLogic:
             # Условие "if not _check_port_available(port)" должно быть True
             port_is_busy = not _check_port_available(chrome_port, timeout=0.5, retries=1)
             assert port_is_busy is True, (
-                "Когда Chrome запущен и слушает на порту, "
-                "условие 'not _check_port_available(port)' должно быть True"
+                "Когда Chrome запущен и слушает на порту, условие 'not _check_port_available(port)' должно быть True"
             )
 
     def test_port_check_logic_for_chrome_not_started(self) -> None:
@@ -102,8 +101,7 @@ class TestPortCheckLogic:
             # Условие "if _check_port_available(port)" должно быть False (не пропускать попытку)
             port_is_free = _check_port_available(chrome_port, timeout=0.5, retries=1)
             assert port_is_free is False, (
-                "Когда Chrome запущен и слушает на порту, "
-                "условие 'if _check_port_available(port)' должно быть False"
+                "Когда Chrome запущен и слушает на порту, условие 'if _check_port_available(port)' должно быть False"
             )
 
     def test_port_check_internal_consistency(self) -> None:
@@ -117,8 +115,7 @@ class TestPortCheckLogic:
         result1 = _check_port_available(free_port, timeout=0.5, retries=1)
         result2 = _check_port_available_internal(free_port, timeout=0.5, retries=1)
         assert result1 == result2, (
-            "_check_port_available и _check_port_available_internal "
-            "должны возвращать одинаковый результат"
+            "_check_port_available и _check_port_available_internal должны возвращать одинаковый результат"
         )
 
     def test_port_check_with_multiple_retries(self) -> None:
@@ -130,6 +127,4 @@ class TestPortCheckLogic:
 
         # Проверяем с несколькими попытками
         result = _check_port_available(free_port, timeout=0.5, retries=3)
-        assert result is True, (
-            "Функция должна вернуть True для свободного порта с несколькими попытками"
-        )
+        assert result is True, "Функция должна вернуть True для свободного порта с несколькими попытками"

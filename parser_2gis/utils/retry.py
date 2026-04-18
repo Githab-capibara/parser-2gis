@@ -330,10 +330,7 @@ def retry_with_tenacity(
 
     """
     if not _TENACITY_AVAILABLE:
-        msg = (
-            "tenacity не установлена. Установите: pip install tenacity "
-            "или используйте retry_with_backoff"
-        )
+        msg = "tenacity не установлена. Установите: pip install tenacity или используйте retry_with_backoff"
         raise ImportError(msg)
 
     from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential

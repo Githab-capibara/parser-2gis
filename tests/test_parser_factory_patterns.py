@@ -34,9 +34,7 @@ class TestParserPatternsCompiled:
 
     def test_inbuilding_parser_pattern_compiled(self) -> None:
         """InBuildingParser паттерн должен быть скомпилирован."""
-        inbuilding_patterns = [
-            (cls, pat) for cls, pat in _get_patterns() if cls == InBuildingParser
-        ]
+        inbuilding_patterns = [(cls, pat) for cls, pat in _get_patterns() if cls == InBuildingParser]
         assert len(inbuilding_patterns) == 1
 
         _, pattern = inbuilding_patterns[0]
@@ -65,9 +63,7 @@ class TestPatternMatching:
 
     def test_inbuilding_pattern_matches_inside_url(self) -> None:
         """InBuilding паттерн должен соответствовать inside URL."""
-        inbuilding_patterns = [
-            (cls, pat) for cls, pat in _get_patterns() if cls == InBuildingParser
-        ]
+        inbuilding_patterns = [(cls, pat) for cls, pat in _get_patterns() if cls == InBuildingParser]
         _, pattern = inbuilding_patterns[0]
 
         assert pattern.match("https://2gis.ru/moscow/inside/123456")

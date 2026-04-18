@@ -194,8 +194,7 @@ class TestTUIPathImports:
 
         for func_name in required_functions:
             assert hasattr(paths, func_name), (
-                f"Функция '{func_name}' отсутствует в модуле paths. "
-                f"Это может вызвать ImportError в TUI."
+                f"Функция '{func_name}' отсутствует в модуле paths. Это может вызвать ImportError в TUI."
             )
             func = getattr(paths, func_name)
             assert callable(func), f"'{func_name}' не является вызываемым объектом"

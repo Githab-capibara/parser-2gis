@@ -38,13 +38,10 @@ def test_urllib3_socks_warning_not_present(caplog) -> None:
         sock_warnings = [
             warning
             for warning in w
-            if issubclass(warning.category, DependencyWarning)
-            and "SOCKS support" in str(warning.message)
+            if issubclass(warning.category, DependencyWarning) and "SOCKS support" in str(warning.message)
         ]
 
-        assert len(sock_warnings) == 0, (
-            f"Обнаружены предупреждения SOCKS: {[str(w.message) for w in sock_warnings]}"
-        )
+        assert len(sock_warnings) == 0, f"Обнаружены предупреждения SOCKS: {[str(w.message) for w in sock_warnings]}"
 
 
 @pytest.mark.skipif(not PYSOCKS_AVAILABLE, reason="PySocks не установлен")

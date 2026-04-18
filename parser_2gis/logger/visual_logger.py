@@ -187,10 +187,7 @@ class VisualLogger:
         emoji_str = f"{emoji} " if self.use_emoji and emoji else ""
         bold_code = ColorCodes.BOLD if bold else ""
 
-        return (
-            f"{timestamp} | {emoji_str}{bold_code}"
-            f"{self._colorize(message, color)}{ColorCodes.RESET}"
-        )
+        return f"{timestamp} | {emoji_str}{bold_code}{self._colorize(message, color)}{ColorCodes.RESET}"
 
     def _get_emoji_for_level(self, level: str) -> str | None:
         """Получает emoji для уровня логирования.
@@ -225,7 +222,7 @@ class VisualLogger:
 
         """
         try:
-            "═" * width
+            _ = "═" * width
 
             if self.use_colors:
                 if subtitle:

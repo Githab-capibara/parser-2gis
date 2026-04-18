@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 # Получаем логгер для вывода сообщений
 _logger = logging.getLogger("parser-2gis.progress")
@@ -94,10 +94,7 @@ class ProgressManager:
 
         """
         if not TQDM_AVAILABLE and not disable:
-            msg = (
-                "Для работы прогресс-бара требуется библиотека tqdm. "
-                "Установите её: pip install tqdm"
-            )
+            msg = "Для работы прогресс-бара требуется библиотека tqdm. Установите её: pip install tqdm"
             raise ImportError(msg)
 
         self._disable = disable
@@ -211,8 +208,7 @@ class ProgressManager:
 
                 # Выводим результаты через logger с lazy-форматированием
                 _logger.info(
-                    "Завершено за %.1f сек (%.1f записей/сек). "
-                    "Всего страниц: %d, Всего записей: %d",
+                    "Завершено за %.1f сек (%.1f записей/сек). Всего страниц: %d, Всего записей: %d",
                     elapsed,
                     records_per_sec,
                     self._stats.current_page,
