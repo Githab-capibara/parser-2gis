@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import json
+import mmap
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, TypedDict
@@ -89,10 +90,9 @@ def _read_cities_json(cities_path: Path) -> list[dict[str, Any]]:
                 "Файл городов большой (%.2f MB), используется mmap для чтения",
                 file_size / (1024 * 1024),
             )
-            import mmap as mmap_module
 
             with Path(cities_path).open("rb") as f:
-                mmapped_file = mmap_module.mmap(f.fileno(), 0, access=mmap_module.ACCESS_READ)
+                mmapped_file = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
                 try:
                     json_data = mmapped_file.read().decode("utf-8")
                     all_cities = json.loads(json_data)

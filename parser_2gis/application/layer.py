@@ -14,14 +14,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, Self, TypeVar
 
+from parser_2gis.cache.manager import CacheManager
+from parser_2gis.chrome.remote import ChromeRemote
+from parser_2gis.parser.factory import get_parser
 from parser_2gis.shared_config_constants import CATALOG_API_PATTERN
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from parser_2gis.cache import CacheManager
     from parser_2gis.chrome.options import ChromeOptions
-    from parser_2gis.chrome.remote import ChromeRemote
     from parser_2gis.parser.options import ParserOptions
     from parser_2gis.parser.parsers.base import BaseParser
     from parser_2gis.parser.parsers.main import MainParser
@@ -110,8 +111,6 @@ class ParserFacade:
             Экземпляр парсера.
 
         """
-        from parser_2gis.parser.factory import get_parser
-
         return get_parser(url, chrome_options, parser_options, browser)
 
     def create_parser(
@@ -207,8 +206,6 @@ class CacheFacade:
             ValueError: Если не передан ни cache_path, ни cache_manager.
 
         """
-        from parser_2gis.cache import CacheManager
-
         if cache_manager is not None:
             self._cache: CacheManager = cache_manager
         elif cache_path is not None:
@@ -354,8 +351,6 @@ class BrowserFacade:
         """
         if self._browser_factory is not None:
             return self._browser_factory()  # type: ignore[return-value]
-
-        from parser_2gis.chrome.remote import ChromeRemote
 
         if self._chrome_options is None:
             error_msg = "chrome_options не передан"
